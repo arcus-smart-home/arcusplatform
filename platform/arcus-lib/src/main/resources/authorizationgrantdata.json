@@ -1,0 +1,10 @@
+[
+   {
+      "entityId": "08300b50-c109-4528-a705-2510a53bcbe7",
+      "placeId": "6f293fd5-b65b-4a63-a5ed-1309eda1122a",
+      "placeName": "home",
+      "accountId": "c24b0e18-3394-4f81-b762-274ba3605ccc",
+      "accountOwner": true,
+      "permissions": ["*:*:*"]
+   }
+]

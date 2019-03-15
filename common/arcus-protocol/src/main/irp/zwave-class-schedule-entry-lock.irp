@@ -1,0 +1,344 @@
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableAllSetV1<id="0x02", group="V1"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableSetV1<id="0x01", group="V1"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 userIdentifier;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayGetV1<id="0x04", group="V1"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayReportV1<id="0x05", group="V1"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDaySetV1<id="0x03", group="V1"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayGetV1<id="0x07", group="V1"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayReportV1<id="0x08", group="V1"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDaySetV1<id="0x06", group="V1"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedGetV1<id="0x09", group="V1"> {
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedReportV1<id="0x0A", group="V1"> {
+    u8 numberOfSlotsWeekDay;
+    u8 numberOfSlotsYearDay;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableAllSetV2<id="0x02", group="V2"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableSetV2<id="0x01", group="V2"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 userIdentifier;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetGetV2<id="0x0B", group="V2"> {
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetReportV2<id="0x0C", group="V2"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetSetV2<id="0x0D", group="V2"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayGetV2<id="0x04", group="V2"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayReportV2<id="0x05", group="V2"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDaySetV2<id="0x03", group="V2"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayGetV2<id="0x07", group="V2"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayReportV2<id="0x08", group="V2"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDaySetV2<id="0x06", group="V2"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedGetV2<id="0x09", group="V2"> {
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedReportV2<id="0x0A", group="V2"> {
+    u8 numberOfSlotsWeekDay;
+    u8 numberOfSlotsYearDay;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableAllSetV3<id="0x02", group="V3"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockEnableSetV3<id="0x01", group="V3"> {
+    const u8 ENABLED_DISABLED = 0x00;
+    const u8 ENABLED_ENABLED = 0x01;
+    u8 userIdentifier;
+    u8 enabled;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetGetV3<id="0x0B", group="V3"> {
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetReportV3<id="0x0C", group="V3"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockTimeOffsetSetV3<id="0x0D", group="V3"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayGetV3<id="0x04", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDayReportV3<id="0x05", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockWeekDaySetV3<id="0x03", group="V3"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 dayOfWeek;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayGetV3<id="0x07", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDayReportV3<id="0x08", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockYearDaySetV3<id="0x06", group="V3"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHour;
+    u8 startMinute;
+    u8 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHour;
+    u8 stopMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedGetV3<id="0x09", group="V3"> {
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryTypeSupportedReportV3<id="0x0A", group="V3"> {
+    u8 numberOfSlotsWeekDay;
+    u8 numberOfSlotsYearDay;
+    u8 numberOfSlotsDailyRepeating;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockDailyRepeatingGetV3<id="0x0E", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockDailyRepeatingReportV3<id="0x0F", group="V3"> {
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 weekDayBitmask;
+    u8 startHour;
+    u8 startMinute;
+    u8 durationHour;
+    u8 durationMinute;
+}
+
+message zwave.ScheduleEntryLock.ScheduleEntryLockDailyRepeatingSetV3<id="0x10", group="V3"> {
+    const u8 SET_ACTION_ERASE = 0x00;
+    const u8 SET_ACTION_MODIFY = 0x01;
+    u8 setAction;
+    u8 userIdentifier;
+    u8 scheduleSlotId;
+    u8 weekDayBitmask;
+    u8 startHour;
+    u8 startMinute;
+    u8 durationHour;
+    u8 durationMinute;
+}

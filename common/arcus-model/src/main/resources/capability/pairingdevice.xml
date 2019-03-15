@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+      name="PairingDevice"
+      namespace="pairdev"
+      version="1.0"
+      xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      A reference to a device that is in the process of being paired.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+            name="pairingState"
+            readwrite="r"
+            type="enum"
+            values="PAIRING,MISPAIRED,MISCONFIGURED,PAIRED"
+            optional="false"
+            description="
+The current state of pairing for the device:
+
+    PAIRING - The system has discovered a device and is in the process of configuring it. (deviceAddress will be null)
+    MISPAIRED - The device failed to pair properly and must be removed / factory reset and re-paired (deviceAddress will be null)
+    MISCONFIGURED - The system was unable to fully configure the device, but it can retry without going through a full re-pair process. (deviceAddress may be null)
+    PAIRED - The device successfully paired. (deviceAddress will be populated)
+            "/>
+      <c:attribute
+            name="pairingPhase"
+            type="enum"
+            values="JOIN,CONNECT,IDENTIFY,PREPARE,CONFIGURE,FAILED,PAIRED"
+            description="The current pairing phase."
+            optional="false"
+            readwrite="r"/>
+      <c:attribute
+            name="pairingProgress"
+            readwrite="r"
+            type="int"
+            optional="false"
+            description="The percent of pairing completion the platform believes the device has made it through."/>
+      <c:attribute
+            name="customizations"
+            type="set&lt;string&gt;"
+            description="The set of customizations that have been applied to this device, this must be updated via the AddCustomization call"
+            optional="false"
+            readwrite="r"/>
+      <c:attribute
+            name="deviceAddress"
+            type="string"
+            description="The address to the associated device object.  This will only be populated once the device has gone sufficiently far in the pairing process."
+            optional="true"
+            readwrite="r"/>
+      <c:attribute
+            name="productAddress"
+            readwrite="r"
+            type="string"
+            optional="true"
+            description="The address of the product associated with this device.  This will start out populated if StartPairing with a product is used to start the pairing process.  If at some point it is determined this device is not the product we thought we were pairing it will be cleared."/>
+      <c:attribute
+            name="removeMode"
+            readwrite="r"
+            type="enum"
+            values="CLOUD,HUB_AUTOMATIC,HUB_MANUAL"
+            optional="false"
+            description="The mode of removal"/>      
+
+      <c:attribute
+            name="protocolAddress"
+            type="string"
+            description="Protocol address for the device."
+            optional="true"
+            readwrite="r"/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="Customize"
+         description="
+Retrieves the customization steps for the given device, the deviceId should match the value from discoveredDeviceIds or PairingDevice#deviceId.
+If this call is successful the hub will no longer be in any pairing mode.
+         ">
+         <c:return 
+            name="steps"
+            type="list&lt;PairingCustomizationStep&gt;"
+            description="The customization actions for the given device."
+            optional="false"/>
+         <c:errors>
+            <c:error code="request.state.invalid" description="If the device is not fully paired." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="AddCustomization"
+         description="Used by the client to indicate which customizations they have applied to the device.  The set may be read from the customizations attribute.">
+         <c:parameter 
+            name="customization"
+            type="string"
+            description="The customization applied by the user."
+            optional="false"/>
+         <c:errors>
+            <c:error code="request.param.invalid" description="If it is an unrecognized customization." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Dismiss"
+         description="
+Dismisses a device from the pairing subsystem.  This should be called when customization is completed or skipped.
+This call is idempotent, so if the device has previously been dismissed this will not return an error, unlike Customize.
+         ">
+         <c:errors>
+            <c:error code="request.state.invalid" description="If the device is not fully paired." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Remove"
+         description="
+Attempts to remove the given device.
+This call will return immediately to give the user removal steps, but the caller should watch for
+a base:Deleted event to be emitted from the PairingDevice.
+This call is safe to retry, but if a notfound error is returned that indicates a previous call
+already succeeded.
+This will take the hub out of pairing mode and may put it in unpairing mode depending on the device
+being removed.
+         ">
+         <c:return
+            name="steps"
+            type="list&lt;PairingStep&gt;"
+            optional="false"
+            description="The removal steps for the given device.  Will be empty for devices that support autonomous removal."
+            />
+         <c:return
+            name="mode"
+            type="enum"
+            values="CLOUD,HUB_AUTOMATIC,HUB_MANUAL"
+            optional="false"
+            description="The mode of removal."
+            />
+         <c:return
+            name="video"
+            type="string"
+            optional="true"
+            description="The URL for a removal video."
+            />         
+      </c:method>
+      <c:method
+         name="ForceRemove"
+         description="
+Causes the hub to blacklist this device and treat it as if it was deleted even though it still has connectivity to the hub.
+This will take the hub out of pairing mode.
+         ">
+      </c:method>
+   </c:methods>
+
+   <c:events>
+      <c:event
+         name="Discovered"
+         description="Emitted when a new device is discovered, intended for analytics &amp; debugging." />
+      <c:event
+         name="Configured"
+         description="Emitted when a device successfully completes configuration, intended for analytics &amp; debugging." />
+      <c:event
+         name="PairingFailed"
+         description="Emitted when a device fails pairing, intended for analytics &amp; debugging." />
+   </c:events>
+
+</c:capability>

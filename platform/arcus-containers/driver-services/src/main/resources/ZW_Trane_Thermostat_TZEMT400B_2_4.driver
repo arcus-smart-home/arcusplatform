@@ -1,0 +1,669 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-Wave Trane Thermostat model TZEMT400B
+ * 
+ */
+
+import groovy.transform.Field
+
+
+driver           "ZWTraneThermostatTZEMT400B"
+description      "Driver for a Z-Wave Trane Thermostat model TZEMT400B"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Thermostat"
+productId        "000000"
+vendor           "Trane"
+model            "TZEMT400B"
+
+matcher          'ZWAV:Manufacturer': 139, 'ZWAV:ProductType': 21586, 'ZWAV:ProductId': 21555
+
+capabilities     DevicePower, Temperature, RelativeHumidity, Thermostat, Clock
+
+importCapability 'zwave/GenericZWaveThermostat'
+
+// Generic Device Class:    8
+// Specific Device Class:   6
+// Command Classes:
+//   0x31    (49)        COMMAND_CLASS_SENSOR_MULTILEVEL
+//   0x40    (64)        COMMAND_CLASS_THERMOSTAT_MODE
+//   0x42    (66)        COMMAND_CLASS_THERMOSTAT_OPERATING_STATE
+//   0x43    (67)        COMMAND_CLASS_THERMOSTAT_SETPOINT
+//   0x44    (68)        COMMAND_CLASS_THERMOSTAT_FAN_MODE
+//   0x45    (69)        COMMAND_CLASS_THERMOSTAT_FAN_STATE
+//   0x70    (112)       COMMAND_CLASS_CONFIGURATION
+//   0x72    (114)       COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//   0x76    (118)       COMMAND_CLASS_LOCK
+//   0x81    (129)       COMMAND_CLASS_CLOCK
+//   0x85    (-123)      COMMAND_CLASS_ASSOCIATION
+//   0x86    (134)       COMMAND_CLASS_VERSION
+
+
+final int TEMPERATURE_READ_INTERVAL_SECS = 120            // 2 min
+final int OFFLINE_TIMEOUT_SECS = 600                      // 10 min (should be at least 3 times TEMPERATURE_READ_INTERVAL_SECS)
+
+// 1.5 - Sensors
+final byte SENSOR_TEMP      = 0x01
+final byte SENSOR_HUMIDITY  = 0x02
+
+// 1.6 Thermostat Modes
+final byte MODE_OFF         = 0x00
+final byte MODE_HEAT        = 0x01
+final byte MODE_COOL        = 0x02
+final byte MODE_AUTO        = 0x03
+final byte MODE_AUX         = 0x04
+final byte MODE_SAVE_HEAT   = 0x0B
+final byte MODE_SAVE_COOL   = 0x0C
+final byte MODE_MSP         = 0x1F        // Manufacturer Specific
+
+// 1.7 Thermostat Operating State
+final byte STATE_OFF        = 0x00
+final byte STATE_HEATING    = 0x01
+final byte STATE_COOLING    = 0x02
+final byte STATE_FAN_ONLY   = 0x03
+final byte STATE_PEND_HEAT  = 0x04
+final byte STATE_PEND_COOL  = 0x05
+
+// 1.9 Thermostat Fan State
+final byte FAN_OFF          = 0x00
+final byte FAN_ON           = 0x01
+
+final byte FAN_MODE_AUTO    = 0x00
+final byte FAN_MODE_ON      = 0x01
+final byte FAN_MODE_CIRC    = 0x06
+
+// 1.10 Thermostat SetPoints
+final byte SETPOINT_HEAT      = 0x01
+final byte SETPOINT_COOL      = 0x02
+final byte SETPOINT_SAVE_HEAT = 0x0B
+final byte SETPOINT_SAVE_COOL = 0x0C
+
+final byte SETPOINT_SCALE_C     = 0x00
+final byte SETPOINT_SCALE_F     = 0x01
+final byte SETPOINT_PRECISION_0 = 0x00
+final byte SETPOINT_PRECISION_1 = 0x20
+final byte SETPOINT_PRECISION_2 = 0x40
+final byte SETPOINT_SIZE_1      = 0x01
+final byte SETPOINT_SIZE_2      = 0x02
+final byte SETPOINT_SIZE_4      = 0x04
+
+@Field final double MAX_HEAT_C  = 32.2
+@Field final double MIN_HEAT_C  = 4.4
+@Field final double MAX_COOL_C  = 37.2
+@Field final double MIN_COOL_C  = 10
+@Field final double MIN_SET_POINT_SEPARATION = 1.67    // minimum set point separation allowed is 1.67C or 3F
+
+@Field def final thermConstantMap = [name:'GoControl', maxHeatSetPoint:MAX_HEAT_C, minHeatSetPoint:MIN_HEAT_C, maxCoolSetPoint:MAX_COOL_C, minCoolSetPoint:MIN_COOL_C, minSetPointSeparationC:MIN_SET_POINT_SEPARATION]
+
+final thermModes = ["OFF", "AUTO", "COOL", "HEAT"]
+
+DevicePower.source                    DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.backupbatterycapable    false
+DevicePower.backupbattery            0
+
+Thermostat.maxfanspeed         1
+Thermostat.autofanspeed        1
+Thermostat.supportedmodes      thermModes
+Thermostat.heatsetpoint        20.0
+Thermostat.coolsetpoint        30.0
+Thermostat.emergencyheat       Thermostat.EMERGENCYHEAT_OFF
+Thermostat.minsetpoint         MIN_HEAT_C
+Thermostat.maxsetpoint         MAX_COOL_C
+Thermostat.setpointseparation  MIN_SET_POINT_SEPARATION
+Thermostat.supportsAuto        true
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+
+onConnected {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+	// 1.5 - Sensors
+    ZWave.sensor_multilevel.get()        // Get the temperature value
+
+    // 1.6 - Thermostat Mode
+    ZWave.thermostat_mode.get()
+    ZWave.thermostat_mode.supported_get()
+    
+    // 1.7 - Thermostat State
+    ZWave.thermostat_operating_state.get()
+
+    // 1.8 - Thermostat Fan Mode
+    ZWave.thermostat_fan_mode.get()
+
+    // 1.9 - Thermostat Fan State
+    ZWave.thermostat_fan_state.get()
+
+    // 1.10 - Thermostat Set Point
+    ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+    ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+        
+    // setup polling for the temperature
+    ZWave.poll( TEMPERATURE_READ_INTERVAL_SECS, ZWave.sensor_multilevel.get)
+}
+
+
+
+void updateSetPoint( setPointKey,  setPointSize,  setPointIntValue,  format ) {
+    byte[] setPoint = new byte[8]
+
+    java.nio.ByteBuffer.wrap(setPoint).putInt(setPointIntValue)
+    
+    byte value1 = 0
+    byte value2 = 0
+    byte value3 = 0
+    byte value4 = 0
+    
+    if( 1 == setPointSize ) {
+        value1 = setPointIntValue
+    }
+    
+    if( 2 == setPointSize ) {
+        value1 = setPoint[2]
+        value2 = setPoint[3]
+    }
+
+    if( 4 == setPointSize ) {
+        value1 = setPoint[0]
+        value2 = setPoint[1]
+        value3 = setPoint[2]
+        value4 = setPoint[3]
+    }
+
+    log.debug "updateSetPoint called with: {} - {} - {} - {} - {} - {}", setPointKey , format, value1, value2, value3, value4
+            
+    ZWave.thermostat_setpoint.set(setPointKey, format, value1, value2, value3, value4)
+}
+
+setAttributes('therm') {
+    log.debug "setAttributes THERM called with Msg: {}", message
+    
+    byte[] setPoint = new byte[8]
+    
+    def attributes = message.attributes;
+    
+    if( null == vars.'precision' ) vars.'precision' = 1
+    if( null == vars.'scale' ) vars.'scale' = 1
+    if( null == vars.'size' ) vars.'size' = 2
+
+    for(attribute in attributes) {
+        switch(attribute.key) {
+        case Thermostat.hvacmode:
+            byte mode
+            if (attribute.value == 'OFF') mode = MODE_OFF
+            if (attribute.value == 'HEAT') mode = MODE_HEAT
+            if (attribute.value == 'COOL') mode = MODE_COOL
+            if (attribute.value == 'AUTO') mode = MODE_AUTO
+            log.debug "setAttributes set HVAC mode: {}", mode
+            
+            ZWave.thermostat_mode.set( mode );
+            ZWave.thermostat_mode.get();
+            ZWave.thermostat_operating_state.get()
+            break;
+        case Thermostat.emergencyheat:
+            byte eheat_mode
+            if (attribute.value == 'ON' ) eheat_mode = MODE_E_HEAT
+            if (attribute.value == 'OFF' ) {
+                switch( Thermostat.hvacmode.get() ) {
+                    case 'OFF':
+                        eheat_mode = MODE_OFF
+                    break
+                    case 'HEAT':
+                        eheat_mode = MODE_HEAT
+                    break
+                    case 'COOL':
+                        eheat_mode = MODE_COOL
+                    break
+                    case 'AUTO':
+                        eheat_mode = MODE_AUTO
+                    break
+                    default:
+                    break;
+                }
+            }
+            ZWave.thermostat_mode.set( eheat_mode );
+            ZWave.thermostat_mode.get();
+            ZWave.thermostat_operating_state.get()
+            break;
+        case Thermostat.coolsetpoint:
+            double set_point = attribute.value
+            double curr_heat_set_point = Thermostat.heatsetpoint.get()
+    
+            if( MAX_COOL_C < set_point ) set_point = MAX_COOL_C
+            if( MIN_COOL_C > set_point ) set_point = MIN_COOL_C
+            double set_point_c = set_point
+    
+            // the temp from the platform will be in C
+            // convert to F if the device is expecting F
+            if( SETPOINT_SCALE_F == vars.'scale' )
+                set_point = ((9/5)*set_point) + 32
+    
+            int set_point_int = Math.round( set_point * Math.pow( 10, vars.'precision' ) )
+    
+            byte precision = (vars.'precision' & 0x07) << 5
+            byte scale = (vars.'scale' & 0x03) << 3
+            byte sz = (vars.'size' & 0x07)
+            format = precision | scale | sz
+            
+            log.debug "setpoint = {} curr heat setpoint = {} curr + offset = {}", set_point_c, curr_heat_set_point, ( curr_heat_set_point - MIN_SET_POINT_SEPARATION )
+            
+            if( set_point_c <= ( curr_heat_set_point + MIN_SET_POINT_SEPARATION ) ) {
+                new_heat_set_point = set_point_c - MIN_SET_POINT_SEPARATION
+                
+                // the temp from the platform will be in C
+                // convert to F if the device is expecting F
+                if( SETPOINT_SCALE_F == vars.'scale' )
+                    new_heat_set_point = ((9/5)*new_heat_set_point) + 32
+        
+                int new_heat_set_point_int = Math.round( new_heat_set_point * Math.pow( 10, vars.'precision' ) )
+                
+                updateSetPoint( SETPOINT_HEAT, sz, new_heat_set_point_int, format )
+                Scheduler.scheduleIn GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT, 4000
+            }
+            
+            updateSetPoint( SETPOINT_COOL, sz, set_point_int, format )
+            Scheduler.scheduleIn GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT, 2000
+            break;
+        case Thermostat.heatsetpoint:
+            double set_point = attribute.value
+            double curr_cool_set_point = Thermostat.coolsetpoint.get()
+
+            if( MAX_HEAT_C < set_point ) set_point = MAX_HEAT_C
+            if( MIN_HEAT_C > set_point ) set_point = MIN_HEAT_C
+            double set_point_c = set_point
+
+            // the temp from the platform will be in C
+            // convert to F if the device is expecting F
+            if( SETPOINT_SCALE_F == vars.'scale' )
+                set_point = ((9/5)*set_point) + 32
+
+            int set_point_int = Math.round( set_point * Math.pow( 10, vars.'precision' ) )
+
+            byte precision = (vars.'precision' & 0x07) << 5
+            byte scale = (vars.'scale' & 0x03) << 3
+            byte sz = (vars.'size' & 0x07)
+            format = precision | scale | sz
+            
+            log.debug "setpoint = {} curr cool setpoint = {} curr + offset = {}", set_point_c, curr_cool_set_point, ( curr_cool_set_point - MIN_SET_POINT_SEPARATION )
+            
+            if( set_point_c >= ( curr_cool_set_point - MIN_SET_POINT_SEPARATION ) ) {
+                new_cool_set_point = set_point_c + MIN_SET_POINT_SEPARATION
+                
+                // the temp from the platform will be in C
+                // convert to F if the device is expecting F
+                if( SETPOINT_SCALE_F == vars.'scale' )
+                    new_cool_set_point = ((9/5)*new_cool_set_point) + 32
+        
+                int new_cool_set_point_int = Math.round( new_cool_set_point * Math.pow( 10, vars.'precision' ) )
+                
+                updateSetPoint( SETPOINT_COOL, sz, new_cool_set_point_int, format )
+                Scheduler.scheduleIn GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT, 4000
+            }
+            
+            updateSetPoint( SETPOINT_HEAT, sz, set_point_int, format )
+            Scheduler.scheduleIn GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT, 2000
+            break;
+        case Thermostat.fanmode:
+            fanMode = attribute.value
+            byte newFanMode
+        
+            if( 0 > fanMode ) fanMode = 0
+            if( Thermostat.maxfanspeed.get() < fanMode ) fanMode = Thermostat.maxfanspeed.get()
+        
+            if( 0 == fanMode ) newFanMode = FAN_MODE_AUTO
+            if( 1 == fanMode ) newFanMode = FAN_MODE_ON
+        
+            log.debug "setting new fan mode to: [{}:{}]", fanMode, newFanMode
+
+            ZWave.thermostat_fan_mode.set( newFanMode )
+            break;
+        case Thermostat.filtertype:
+            log.debug "setting filter type to: {}", attribute.value
+            Thermostat.filtertype attribute.value
+            break;
+        case Thermostat.filterlifespanruntime:
+            log.debug "setting filter life span runtime to: {}", attribute.value
+            Thermostat.filterlifespanruntime attribute.value
+            break;
+        case Thermostat.filterlifespandays:
+            log.debug "setting filter life span days to: {}", attribute.value
+            Thermostat.filterlifespandays attribute.value
+            break;
+        default:
+            // TODO throw an exception?
+            log.error "setAttributes Unrecognized attribute: {}", attribute
+        }
+    }
+}
+
+onThermostat.changeFilter {
+    vars.'filterChangeDate' = Calendar.getInstance().getTimeInMillis()
+    vars.'filterRuntimeTotal' = 0
+    Thermostat.dayssincefilterchange 0
+    Thermostat.runtimesincefilterchange 0
+    
+    // if we changed the filter while the system was running reset the runtime start
+    if( 0 != vars.'runtimeStart' ) {
+        vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+    }
+
+    sendResponse('therm:changeFilterResponse', [:])
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.sensor_multilevel.report {
+    log.trace "reported sensor multilevel:{}", message
+    
+    if( null == vars.'runtimeStart' ) vars.'runtimeStart' = 0
+    if( null == vars.'filterRuntimeTotal' ) vars.'filterRuntimeTotal' = 0
+    
+    // update the filter runtime values
+    if( ( 0 != vars.'runtimeStart' ) && ( null != vars.'filterChangeDate' ) ) {
+        currTimeMillis = Calendar.getInstance().getTimeInMillis()
+        vars.'filterRuntimeTotal' = ( vars.'filterRuntimeTotal' + ( currTimeMillis - vars.'runtimeStart' ) )
+        vars.'runtimeStart' = currTimeMillis
+        log.debug "[{}] - Runtime since filter change: {}", vars.'filterRuntimeTotal', Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+        Thermostat.runtimesincefilterchange Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+        log.debug "Days since filter change: {}", Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+        Thermostat.dayssincefilterchange Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+    }
+    
+    byte[] vals = new byte[4]
+    sensor_type = message.command.get('type')
+    log.trace "received sensor report for sensor type: {}", sensor_type
+    
+    level       = message.command.get('level')
+    
+    double precision = (level & 0xE0) >> 5
+    double scale     = (level & 0x18) >> 3
+    double size      = (level & 0x07)
+    
+    // size == 1
+    double value = message.command.get('val1')
+    
+    if ( 2 == size ) {
+        vals[0] = 0
+        vals[1] = 0
+        vals[2] = message.command.get('val1')
+        vals[3] = message.command.get('val2')
+        
+        value = java.nio.ByteBuffer.wrap(vals).getInt()
+    }
+    
+    if( 4 == size ) {
+        vals[0] = message.command.get('val1')
+        vals[1] = message.command.get('val2')
+        vals[2] = message.command.get('val3')
+        vals[3] = message.command.get('val4')
+        
+        value = java.nio.ByteBuffer.wrap(vals).getInt()
+    }
+    
+    value /= Math.pow(10, precision)
+    
+    if (sensor_type == 0x01) {
+        double temp = value
+        String units = "F"
+        
+        if( SETPOINT_SCALE_F == scale ) {
+            //Convert from F to C
+            temp = 5 * (temp-32) / 9;
+            units = "C"
+        }
+
+        temp = Math.round( temp * Math.pow(10, precision) ) / Math.pow(10, precision)
+        log.debug "received temperature reading: {}{}", temp, units
+        Temperature.temperature temp
+    }
+    
+    if( 0x05 == sensor_type ) {
+        log.debug "received relative humidity reading with scale: {}  precision: {} size: {} and value: {}", scale, preision, size, value
+        RelativeHumidity.humidity value
+    }
+}
+
+onZWaveMessage.thermostat_mode.report {
+    log.debug "reported thermostat mode:{}", message
+    
+    // 'level' byte is defined such that top 3 bits indicate number of data bytes after the 'level' byte and
+    // lower 5 bits indicate the thermostat mode
+    byte level = message.command.get('level')
+    int mfrFldCnt = ( level & 0xE0 ) >> 5
+    int mode = ( level & 0x1F )
+    log.trace "Thermostat Mode:{} Field Count:{}", mode, mfrFldCnt
+    
+    switch (mode) {
+        case MODE_OFF:
+            log.debug "Thermostat reported mode: OFF" 
+            Thermostat.hvacmode Thermostat.HVACMODE_OFF
+            break
+        case MODE_COOL:
+            log.debug "Thermostat reported mode: COOL" 
+            Thermostat.hvacmode Thermostat.HVACMODE_COOL
+            Thermostat.minsetpoint MIN_COOL_C
+            Thermostat.maxsetpoint MAX_COOL_C
+            break
+        case MODE_HEAT:
+            log.debug "Thermostat reported mode: HEAT" 
+            Thermostat.hvacmode Thermostat.HVACMODE_HEAT
+            Thermostat.minsetpoint MIN_HEAT_C
+            Thermostat.maxsetpoint MAX_HEAT_C
+            break
+        case MODE_AUTO:
+            log.debug "Thermostat reported mode: AUTO" 
+            Thermostat.hvacmode Thermostat.HVACMODE_AUTO
+            Thermostat.minsetpoint MIN_HEAT_C
+            Thermostat.maxsetpoint MAX_COOL_C
+            break
+        case MODE_MSP:
+            log.warn "Thermostat reported unhandled Manufacturer Specific Thermostat Mode: {}", mode
+            break
+        default:
+            log.warn "Thermostat reported unhandled mode: {}", mode
+            break
+    }
+}
+
+onZWaveMessage.thermostat_setpoint.report {
+    log.debug "reported thermostat setpoint:{}", message
+    byte[] vals = new byte[4]
+    type     = message.command.get('type')
+    format   = message.command.get('scale')
+    
+    vars.'precision' = (format & 0xE0) >> 5
+    vars.'scale' = (format & 0x18) >> 3
+    vars.'size' = (format & 0x07)
+    
+    log.trace "handle thermostat setpoint report --> precision: {} - scale: {} - size: {}", vars.'precision', vars.'scale', vars.'size'
+    
+    // size == 1
+    double value = message.command.get('value1')
+    
+    if ( 2 == vars.'size' ) {
+        vals[0] = 0
+        vals[1] = 0
+        vals[2] = message.command.get('value1')
+        vals[3] = message.command.get('value2')
+        
+        value = java.nio.ByteBuffer.wrap(vals).getInt()
+    }
+    
+    if( 4 == vars.'size' ) {
+        vals[0] = message.command.get('value1')
+        vals[1] = message.command.get('value2')
+        vals[2] = message.command.get('value3')
+        vals[3] = message.command.get('value4')
+        
+        value = java.nio.ByteBuffer.wrap(vals).getInt()
+    }
+    
+    value /= Math.pow(10, vars.'precision')
+    
+    // temps communicated between the platform and the device will alway be in C
+    // so if the device reports a temp in F convert to C
+    if ( SETPOINT_SCALE_F == vars.'scale' ) {
+        value = 5 * (value-32) / 9
+        value = Math.round( value * Math.pow(10, 1) ) / Math.pow(10, 1)
+    }
+    
+    if ( type == SETPOINT_COOL ) {
+        def prevCoolSetPoint = Thermostat.coolsetpoint.get()
+        Thermostat.coolsetpoint value
+        if ( prevCoolSetPoint != value ) {
+            log.debug "emit COOL SetPointChanged, mode:{}, setPoint:{}C", Thermostat.hvacmode.get(), value
+            emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":Thermostat.hvacmode.get(), "setpoint":value ]
+        }
+    }
+    if ( type == SETPOINT_HEAT) {
+        def prevHeatSetPoint = Thermostat.heatsetpoint.get()
+        Thermostat.heatsetpoint value
+        if ( prevHeatSetPoint != value ) {
+            log.debug "emit HEAT SetPointChanged, mode:{}, setPoint:{}C", Thermostat.hvacmode.get(), value
+            emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":Thermostat.hvacmode.get(), "setpoint":value ]
+        }
+    }
+}
+
+onZWaveMessage.thermostat_operating_state.report {
+    log.debug "reported thermostat operating state:{}", message
+    if( null == vars.'runtimeStart' ) vars.'runtimeStart' = 0
+    if( null == vars.'filterRuntimeTotal' ) vars.'filterRuntimeTotal' = 0
+    
+    state = message.command.get('state')
+    log.debug "operating state: {}", state
+    def fanmode = Thermostat.fanmode.get()
+    if( state == STATE_OFF 
+    || ( fanmode == 0 && state == STATE_PEND_COOL )
+    || ( fanmode == 0 && state == STATE_PEND_HEAT ) ) {
+        Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+        if( ( 0 != vars.'runtimeStart' ) && ( null != vars.'filterChangeDate' ) ) {
+            vars.'filterRuntimeTotal' = ( vars.'filterRuntimeTotal' + ( Calendar.getInstance().getTimeInMillis() - vars.'runtimeStart' ) )
+            vars.'runtimeStart' = 0
+            log.debug "Runtime since filter change: {}", Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+            Thermostat.runtimesincefilterchange Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+            log.debug "Days since filter change: {}", Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+            Thermostat.dayssincefilterchange Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+        }
+    } else {   // turn off HEATING and COOLING w Fan ON, turn on HEAT and COOLING, FAN_ONLY
+        Thermostat.active Thermostat.ACTIVE_RUNNING
+        if( 0 == vars.'runtimeStart' ) vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+    }
+}
+
+onZWaveMessage.thermostat_fan_mode.report {
+    log.debug "reported thermostat fan mode:{}", message
+
+    fan_mode = message.command.get('mode')
+    
+    onoff = ( fan_mode & 0x80 ) >> 7
+    mode = ( fan_mode & 0x0F )
+    
+    log.debug "Fan mode report - onoff bit: {} - mode: {}", onoff, mode
+    
+    if( FAN_MODE_AUTO == mode ) Thermostat.fanmode 0
+    if( FAN_MODE_ON == mode ) Thermostat.fanmode 1
+    ZWave.thermostat_operating_state.get()        
+}
+
+onZWaveMessage.thermostat_fan_state.report {
+    log.debug "reported thermostat fan state:{}", message
+    fan_state = message.command.get('state')
+    
+    if( null == vars.'runtimeStart' ) vars.'runtimeStart' = 0
+    if( null == vars.'filterRuntimeTotal' ) vars.'filterRuntimeTotal' = 0
+    
+    log.debug "Fan state:{}", fan_state
+    
+    if( 0x00 == fan_state ) {
+        Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+        if( ( 0 != vars.'runtimeStart' ) && ( null != vars.'filterChangeDate' ) ) {
+            vars.'filterRuntimeTotal' = ( vars.'filterRuntimeTotal' + ( Calendar.getInstance().getTimeInMillis() - vars.'runtimeStart' ) )
+            vars.'runtimeStart' = 0
+            log.debug "Runtime since filter change: {}", Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+            Thermostat.runtimesincefilterchange Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+            log.debug "Days since filter change: {}", Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+            Thermostat.dayssincefilterchange Math.floor( ( Calendar.getInstance().getTimeInMillis() - vars.'filterChangeDate' ) / MILLIS_PER_DAY )
+        }
+    } else {
+        Thermostat.active Thermostat.ACTIVE_RUNNING
+        if( 0 == vars.'runtimeStart' ) vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+    }
+}
+
+
+onZWaveMessage.clock.report {
+    log.debug "reported clock:{}", message
+    byte day_hour = message.command.get( 'weekday_hour' )
+    byte minute = message.command.get( 'minute' )
+    log.debug "clock rpt day and hour: {} minute: {}", day_hour, minute
+    
+    int day = ( day_hour & 0xE0 ) >> 5
+    int hour = ( day_hour & 0x1F )
+    
+    log.debug "clock rpt day: {} and hour: {} minute: {}", day, hour, minute
+    
+    Calendar today = Calendar.getInstance();                        
+
+    Clock.year today.get( Calendar.YEAR );
+    Clock.month ( today.get( Calendar.MONTH )  + 1 )
+    Clock.day today.get( Calendar.DAY_OF_MONTH )
+    Clock.day_of_week day
+    Clock.hour hour
+    Clock.minute minute
+    Clock.second 0
+}
+
+
+onZWaveMessage.configuration.report {
+    byte param = message.command.get( 'param' )
+    byte value = message.command.get( 'val1' )
+    log.debug "received a configuration report for {}:{}", param, value
+}
+
+
+onEvent(GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT) {
+    ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+}
+
+onEvent(GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT) {
+    ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+}
+
+onThermostat.SetIdealTemperature {
+    GenericZWaveThermostat.setIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+  
+onThermostat.IncrementIdealTemperature {
+    GenericZWaveThermostat.incrementIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+  
+onThermostat.DecrementIdealTemperature {
+    GenericZWaveThermostat.decrementIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+
+

@@ -1,0 +1,137 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Over-the-Air Upgrade Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Ota {
+   const u16 CLUSTER_ID = 0x0019;
+
+   const u16 ATTR_UPGRADE_SERVER_ID = 0x0000;
+   const u16 ATTR_FILE_OFFSET = 0x0001;
+   const u16 ATTR_CURRENT_FILE_VERSION = 0x0002;
+   const u16 ATTR_CURRENT_ZIGBEE_STACK_VERSION = 0x0003;
+   const u16 ATTR_DOWNLOADED_FILE_VERSION = 0x0004;
+   const u16 ATTR_DOWNLOADED_ZIGBEE_STACK_VERSION = 0x0005;
+   const u16 ATTR_IMAGE_UPGRADE_STATUS = 0x0006;
+   const u16 ATTR_MANUFACTURER_ID = 0x0007;
+   const u16 ATTR_IMAGE_TYPE_ID = 0x0008;
+
+   const u8 UPGRADE_STATUS_NORMAL = 0x00;
+   const u8 UPGRADE_STATUS_DOWNLOAD_IN_PROGRESS = 0x01;
+   const u8 UPGRADE_STATUS_DOWNLOAD_COMPLETE = 0x02;
+   const u8 UPGRADE_STATUS_WAITING_TO_UPGRADE = 0x03;
+   const u8 UPGRADE_STATUS_COUNT_DOWN = 0x04;
+   const u8 UPGRADE_STATUS_WAIT_FOR_MORE = 0x05;
+
+   const u8 STATUS_SUCCESS = 0x00;
+   const u8 STATUS_ABORT = 0x95;
+   const u8 STATUS_NOT_AUTHORIZED = 0x7E;
+   const u8 STATUS_INVALID_IMAGE = 0x96;
+   const u8 STATUS_WAIT_FOR_DATA = 0x97;
+   const u8 STATUS_NO_IMAGE_AVAILABLE = 0x98;
+   const u8 STATUS_MALFORMED_COMMAND = 0x80;
+   const u8 STATUS_UNSUP_CLUSTER_COMMAND = 0x81;
+   const u8 STATUS_REQUIRE_MORE_IMAGE = 0x99;
+}
+
+message zcl.Ota.ImageNotify<id="0x00",group="server"> {
+   const u8 PAYLOAD_TYPE_QJ = 0x00;
+   const u8 PAYLOAD_TYPE_QJ_MC = 0x01;
+   const u8 PAYLOAD_TYPE_QJ_MC_IT = 0x02;
+   const u8 PAYLOAD_TYPE_QJ_MC_IT_FV = 0x03;
+
+   u8 payloadType;
+   u8 queryJitter;
+   u16 manufacturerCode when (payloadType >= 1);
+   u16 imageType when (payloadType >= 2);
+   u32 fileVersion when (payloadType >= 3);
+
+}
+
+message zcl.Ota.QueryNextImageRequest<id="0x01",group="client"> {
+   const u8 FIELD_CONTROL_HW_VERSION = 0x01;
+
+   u8 fieldControl;
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+   u16 hardwareVersion when ((fieldControl & FIELD_CONTROL_HW_VERSION) != 0);
+}
+
+message zcl.Ota.QueryNextImageResponse<id="0x02",group="server"> {
+   u8 status;
+   u16 manufacturerCode when (status == STATUS_SUCCESS);
+   u16 imageType when (status == STATUS_SUCCESS);
+   u32 fileVersion when (status == STATUS_SUCCESS);
+   u32 imageSize when (status == STATUS_SUCCESS);
+}
+
+message zcl.Ota.ImageBlockRequest<id="0x03",group="client"> {
+   const u8 FIELD_CONTROL_REQUEST_NODE_IEEE = 0x01;
+
+   u8 fieldControl;
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+   u32 fileOffset;
+   u8 maximumDataSize;
+   u64 requestNodeAddress when ((fieldControl & FIELD_CONTROL_REQUEST_NODE_IEEE) != 0);
+}
+
+message zcl.Ota.ImagePageRequest<id="0x04",group="client"> {
+   const u8 FIELD_CONTROL_REQUEST_NODE_IEEE = 0x01;
+
+   u8 fieldControl;
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+   u32 fileOffset;
+   u8 maximumDataSize;
+   u16 pageSize;
+   u16 responseSpacing;
+   u64 requestNodeAddress when ((fieldControl & FIELD_CONTROL_REQUEST_NODE_IEEE) != 0);
+}
+
+message zcl.Ota.ImageBlockResponse<id="0x05",group="server"> {
+   u8 status;
+
+   u32 currentTime when (status == STATUS_WAIT_FOR_DATA);
+   u32 requestTime when (status == STATUS_WAIT_FOR_DATA);
+
+   u16 manufacturerCocde when (status == STATUS_SUCCESS);
+   u16 imageType when (status == STATUS_SUCCESS);
+   u32 fileVersion when (status == STATUS_SUCCESS);
+   u32 fileOffset when (status == STATUS_SUCCESS);
+   u8 dataSize when (status == STATUS_SUCCESS);
+   u8[dataSize] data when (status == STATUS_SUCCESS);
+}
+
+message zcl.Ota.UpgradeEndRequest<id="0x06",group="client"> {
+   u8 status;
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+}
+
+message zcl.Ota.UpgradeEndResponse<id="0x07",group="server"> {
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+   u32 currentTime;
+   u32 upgradeTime;
+}
+
+message zcl.Ota.QuerySpecificFileRequest<id="0x08",group="client"> {
+   u64 requestNodeAddress;
+   u16 manufacturerCode;
+   u16 imageType;
+   u32 fileVersion;
+   u16 zigbeeStackVersion;
+}
+
+message zcl.Ota.QuerySpecificFileResponse<id="0x09",group="server"> {
+   u8 status;
+   u16 manufacturerCode when (status == STATUS_SUCCESS);
+   u16 imageType when (status == STATUS_SUCCESS);
+   u32 fileVersion when (status == STATUS_SUCCESS);
+   u32 imageSize when (status == STATUS_SUCCESS);
+}

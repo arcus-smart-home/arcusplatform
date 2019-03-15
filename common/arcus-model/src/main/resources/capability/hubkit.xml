@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubKit"
+   namespace="hubkit"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute 
+         name="type"
+         readwrite="r"
+         type="enum"
+         values="NONE,TEST,PROMON"
+         optional="false" 
+         description="Type of kit that this hub is a part of."/>
+
+      <c:attribute
+         name="kit"
+         type="list&lt;ZigbeeLinkKeyedDevice&gt;"
+         readwrite="r"
+         optional="false"
+         description="List of devices in the kit with the hub." />
+
+      <c:attribute
+         name="pendingPairing"
+         type="list&lt;ZigbeeLinkKeyedDevice&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices that have NOT successfully paired that are part of the kit.  This is a sub-set of the hubzigbee:pendingPairing list." />
+
+   </c:attributes>
+   
+   <c:methods>
+   	<c:method
+         name="SetKit" 
+         description="Set the kit items for the hub.">
+         <c:parameters>
+            <c:parameter 
+	            name="type"
+		        type="enum"
+		        values="NONE,TEST,PROMON"
+		        optional="false" 
+		        description="Type of kit that this hub is a part of."/>
+            <c:parameter
+               	name="devices" 
+		        type="list&lt;ZigbeeLinkKeyedDevice&gt;"
+		        readwrite="r"
+		        optional="false"
+		        description="List of devices in the kit that this hub is a part of." />
+         </c:parameters>
+      </c:method>    	
+     </c:methods> 
+	   
+   <c:events>
+   </c:events>
+   
+</c:capability>

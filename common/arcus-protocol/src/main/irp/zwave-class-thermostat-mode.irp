@@ -1,0 +1,113 @@
+
+message zwave.ThermostatMode.ThermostatModeGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatMode.ThermostatModeSetV1<id="0x01", group="V1"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedReportV1<id="0x05", group="V1"> {
+    const u8 BIT_MASK_OFF = 0x00;
+    const u8 BIT_MASK_HEAT = 0x01;
+    const u8 BIT_MASK_COOL = 0x02;
+    const u8 BIT_MASK_AUTO = 0x03;
+    const u8 BIT_MASK_AUXILIARY_EMERGENCY_HEAT = 0x04;
+    const u8 BIT_MASK_RESUME = 0x05;
+    const u8 BIT_MASK_FAN_ONLY = 0x06;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    u8 bitMask;
+}
+
+message zwave.ThermostatMode.ThermostatModeGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeReportV2<id="0x03", group="V2"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatMode.ThermostatModeSetV2<id="0x01", group="V2"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedGetV2<id="0x04", group="V2"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedReportV2<id="0x05", group="V2"> {
+    const u8 BIT_MASK_OFF = 0x00;
+    const u8 BIT_MASK_HEAT = 0x01;
+    const u8 BIT_MASK_COOL = 0x02;
+    const u8 BIT_MASK_AUTO = 0x03;
+    const u8 BIT_MASK_AUXILIARY_EMERGENCY_HEAT = 0x04;
+    const u8 BIT_MASK_RESUME = 0x05;
+    const u8 BIT_MASK_FAN_ONLY = 0x06;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    const u8 BIT_MASK_ENERGY_SAVE_HEAT = 0x0B;
+    const u8 BIT_MASK_ENERGY_SAVE_COOL = 0x0C;
+    const u8 BIT_MASK_AWAY = 0x0D;
+    u8 bitMask;
+}
+
+message zwave.ThermostatMode.ThermostatModeGetV3<id="0x02", group="V3"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeReportV3<id="0x03", group="V3"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    const u8 LEVEL_NO_OF_MANUFACTURER_DATA_FIELDS_MASK = 0xE0;
+    const u8 LEVEL_NO_OF_MANUFACTURER_DATA_FIELDS_SHIFT = 5;
+    u8 level;
+    u8[] manufacturerData;
+}
+
+message zwave.ThermostatMode.ThermostatModeSetV3<id="0x01", group="V3"> {
+    const u8 LEVEL_MODE_MASK = 0x1F;
+    const u8 LEVEL_MODE_SHIFT = 0;
+    const u8 LEVEL_NO_OF_MANUFACTURER_DATA_FIELDS_MASK = 0xE0;
+    const u8 LEVEL_NO_OF_MANUFACTURER_DATA_FIELDS_SHIFT = 5;
+    u8 level;
+    u8[] manufacturerData;
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedGetV3<id="0x04", group="V3"> {
+}
+
+message zwave.ThermostatMode.ThermostatModeSupportedReportV3<id="0x05", group="V3"> {
+    const u8 BIT_MASK_OFF = 0x00;
+    const u8 BIT_MASK_HEAT = 0x01;
+    const u8 BIT_MASK_COOL = 0x02;
+    const u8 BIT_MASK_AUTO = 0x03;
+    const u8 BIT_MASK_AUXILIARY_EMERGENCY_HEAT = 0x04;
+    const u8 BIT_MASK_RESUME = 0x05;
+    const u8 BIT_MASK_FAN_ONLY = 0x06;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    const u8 BIT_MASK_ENERGY_SAVE_HEAT = 0x0B;
+    const u8 BIT_MASK_ENERGY_SAVE_COOL = 0x0C;
+    const u8 BIT_MASK_AWAY = 0x0D;
+    const u8 BIT_MASK_FULL_POWER = 0x0F;
+    const u8 BIT_MASK_MANUFACTURER_SPECIFC = 0x1F;
+    u8 bitMask;
+}

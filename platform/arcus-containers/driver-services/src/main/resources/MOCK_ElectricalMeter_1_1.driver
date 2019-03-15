@@ -1,0 +1,102 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the Electrical Meter capability
+ */
+driver			"MOCK_ElectricalMeter"
+description		"Driver for the Mockitron Electrical Meter device"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"ElectricMeter"
+productId		"ab67e11"
+vendor 			"Mockitron"
+model 			"ElectricMeter"
+
+matcher        'MOCK:Capability' : 'ElectricalMeter'
+matcher        'MOCK:ProductId'  : 'ab67e11'
+
+capabilities	DevicePower, PowerUse, DeviceMock
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mockitron Electrical Meter device started."
+	Device.name 'Mock Electrical Meter'
+	
+	// set default attribute values
+	DeviceConnection.signal	74
+	
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	PowerUse.wholehome true
+	
+	Scheduler.scheduleIn 'PowerUsage', 5000
+}
+ 
+onConnected {
+	log.debug "Mockitron Electrical Meter device connected."
+}
+
+onDisconnected {
+	log.debug "Mockitron Electrical Meter device disconnected."
+}
+
+onRemoved {
+	log.debug "Mockitron Electrical Meter device removed."
+}
+
+// ########### capability support ##################
+void emulatePowerUsage() {
+	double powerUsage = new Random().nextDouble().round(1)
+	
+	// instantaneous
+	PowerUse.instantaneous powerUsage
+	  
+	// cumulative
+	double lastPowerUsage = PowerUse.cumulative.get()?:0
+	double cumulative = (lastPowerUsage + powerUsage).round(1);	
+	PowerUse.cumulative cumulative
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onEvent('PowerUsage') {
+  emulatePowerUsage()
+  Scheduler.scheduleIn 'PowerUsage', 5000
+}
+

@@ -1,0 +1,22 @@
+<t:type
+   name="Preferences"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents ui preferences for a user at a place</t:description>
+
+   <t:attributes>
+
+      <t:attribute
+         name="hideTutorials"
+         type="boolean"
+         description="When set to true, indicates that the user does not want to see tutorial screens in the apps"/>
+
+      <t:attribute
+         name="dashboardCards"
+         type="list&lt;CardPreference&gt;"
+         description="When specified, the order of cards shown on the dashboard should be the order of these cardPreference objects.  Each CardPreference indicates whether or not the card should be shown on the dashboard"/>
+
+   </t:attributes>
+
+</t:type>

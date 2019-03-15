@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="SessionService"
+           namespace="sess"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Enables interactions with the current session.
+   </s:description>
+
+   <s:methods>
+      
+      <s:method
+        name="SetActivePlace" 
+      	description="Sets the place that this session is associated with, the session will begin receiving broadcasts for the requested place">
+   
+         <s:parameter name="placeId" type="string" description="The id of the place to activate" optional="false"/>
+         <s:return name="placeId" type="string" description="The active place"/>
+         <s:return name="preferences" type="Preferences" description="Preferences for the currently logged in user at this place"/>
+
+      </s:method>
+      
+      <s:method
+        name="Log" 
+      	description="Logs an event to the server">
+   
+         <s:parameter name="category" type="string" description="The category for the log message" optional="false"/>
+         <s:parameter name="code" type="string" description="A unique code for the event that happened" optional="false"/>
+         <s:parameter name="message" type="string" description="An optional message to include" optional="true"/>
+
+      </s:method>
+
+      <s:method
+        name="Tag" 
+        description="Persists a UI analytics tag on the server">
+   
+         <s:parameter name="name" type="string" description="The name of the analytic event" optional="false"/>
+         <s:parameter name="context" type="map&lt;string&gt;" description="Additional data associated with the event" optional="true"/>
+
+      </s:method>
+      
+      <s:method
+         name="ListAvailablePlaces"
+         description="Lists the available places for the currently logged in user">
+         
+         <s:return
+            name="places"
+            type="list&lt;PlaceAccessDescriptor&gt;"
+            description="The places the currently logged in user has access"
+            optional="false"/>
+      </s:method>
+      
+      <s:method
+         name="GetPreferences"
+         description="Returns the preferences for the currently logged in user at their active place or empty if no preferences have been set or active place has not been set">
+         
+         <s:return
+            name="prefs"
+            type="Preferences"
+            description="Preferences for the the currently logged in user at their active place"
+            optional="false"/>
+      </s:method>
+      
+      <s:method
+         name="SetPreferences"
+         description="Sets the one or more preferences for the currently logged in user at their active place.  If a key is defined in their preferences but not specified here, it will not be cleared by this set.">
+         
+         <s:parameter
+            name="prefs"
+            type="Preferences"
+            description="Preferences to set for the the currently logged in user at their active place"
+            optional="false"/>
+         <s:errors>
+            <s:error code="place.active.notSet" description="If no active place is currently set." />
+         </s:errors>
+      </s:method>
+      
+      <s:method
+         name="ResetPreference"
+         description="Resets the preference with the given key for the currently logged in user at their active place.  This will remove the preference and return this preference to default.">
+         
+         <s:parameter
+            name="prefKey"
+            type="string"
+            description="Key of the preference to reset"
+            optional="false"/>
+         <s:errors>
+            <s:error code="place.active.notSet" description="If no active place is currently set." />
+         </s:errors>
+      </s:method>
+      
+      <s:method
+         name="LockDevice"
+         description="Lock the device by removing the mobile device record and logout the current session."
+         isRESTful="true">
+         
+         <s:parameter
+            name="deviceIdentifier"
+            type="string"
+            description="mobile device identifier"
+            optional="false"/>
+         <s:parameter
+            name="reason"
+            type="enum"
+            values="USER_REQUESTED,TOUCH_FAILED"
+            description="reason for the lock device call"
+            optional="false"/>
+      </s:method>
+      
+   </s:methods>
+   
+   <s:events>
+      <s:event
+         name="ActivePlaceCleared"
+         description="Emitted when the client bridge clears the current active place for a session">
+         
+         <s:parameter name="reason" type="string" description="The reason the active place was cleared"/>
+         <s:parameter name="placeId" type="string" description="The place id that was cleared"/>
+         
+      </s:event>
+      <s:event
+         name="SessionExpired"
+         description="Emitted when the user is manually or automatically logged out and the shiro session is destroyed">         
+         <s:parameter name="sessionId" type="string" description="The session Id"/>
+      </s:event>
+      
+      <s:event
+         name="PreferencesChanged"
+         description="Emitted when the preferences for this user have changed at the current place">
+         <s:parameter name="prefs" type="Preferences" description="Preferences map for this user at their active place"/>
+      </s:event>
+      
+      <s:event
+         name="Tagged"
+         description="Emitted when a UI analytics tag has been processed">
+         <s:parameter name="name" type="string" description="The name of the UI analytics tag"/>
+         <s:parameter name="placeId" type="uuid" description="The place id for which the tag was sent"/>
+         <s:parameter name="personId" type="uuid" description="The person id for which the tag was sent"/>
+         <s:parameter name="source" type="enum" values="IOS,ANDROID,BROWSER,PLATFORM,OCULUS"
+            description="The source of the tag"/>
+         <s:parameter name="version" type="string" description="The version of the source of the tag"/>
+         <s:parameter name="serviceLevel" type="enum"
+            values="BASIC,PREMIUM,PREMIUM_FREE,PREMIUM_PROMON,PREMIUM_PROMON_FREE,PREMIUM_ANNUAL,PREMIUM_PROMON_ANNUAL"
+            description="The service level of the place for which the tag was sent"/>
+         <s:parameter name="context" type="map&lt;any&gt;" description="Additional data associated with the tag"
+            optional="true"/>
+      </s:event>
+      
+   </s:events>
+
+   <!-- TODO add SessionCreated event here, but its a bit non-conforming since it isn't namespaced --> 
+
+</s:service>

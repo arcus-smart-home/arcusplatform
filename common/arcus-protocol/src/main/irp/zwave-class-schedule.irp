@@ -1,0 +1,107 @@
+
+message zwave.Schedule.ScheduleSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.Schedule.ScheduleSupportedReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_START_TIME_SUPPORT_MASK = 0x3F;
+    const u8 PROPERTIES1_START_TIME_SUPPORT_SHIFT = 0;
+    const u8 PROPERTIES1_FALLBACK_SUPPORT = 0x40;
+    const u8 PROPERTIES1_SUPPORT_ENABLE_DISABLE = 0x80;
+    const u8 PROPERTIES3_SUPPORTED_OVERRIDE_TYPES_MASK = 0x7F;
+    const u8 PROPERTIES3_SUPPORTED_OVERRIDE_TYPES_SHIFT = 0;
+    const u8 PROPERTIES3_OVERRIDE_SUPPORT = 0x80;
+    u8 numberOfSupportedScheduleId;
+    u8 properties1;
+    u8 numberOfSupportedCc;
+    u8 properties3;
+}
+
+message zwave.Schedule.CommandScheduleSetV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_START_MONTH_MASK = 0x0F;
+    const u8 PROPERTIES1_START_MONTH_SHIFT = 0;
+    const u8 PROPERTIES2_START_DAY_OF_MONTH_MASK = 0x1F;
+    const u8 PROPERTIES2_START_DAY_OF_MONTH_SHIFT = 0;
+    const u8 PROPERTIES3_START_WEEKDAY_MASK = 0x7F;
+    const u8 PROPERTIES3_START_WEEKDAY_SHIFT = 0;
+    const u8 PROPERTIES3_RES_ = 0x80;
+    const u8 PROPERTIES4_START_HOUR_MASK = 0x1F;
+    const u8 PROPERTIES4_START_HOUR_SHIFT = 0;
+    const u8 PROPERTIES4_DURATION_TYPE_MASK = 0xE0;
+    const u8 PROPERTIES4_DURATION_TYPE_SHIFT = 5;
+    const u8 PROPERTIES5_START_MINUTE_MASK = 0x3F;
+    const u8 PROPERTIES5_START_MINUTE_SHIFT = 0;
+    u8 scheduleId;
+    u8 userIdentifier;
+    u8 startYear;
+    u8 properties1;
+    u8 properties2;
+    u8 properties3;
+    u8 properties4;
+    u8 properties5;
+    u16 durationByte;
+    u8 reportsToFollow;
+    u8 numberOfCmdToFollow;
+}
+
+message zwave.Schedule.CommandScheduleGetV1<id="0x04", group="V1"> {
+    u8 scheduleId;
+}
+
+message zwave.Schedule.CommandScheduleReportV1<id="0x05", group="V1"> {
+    const u8 PROPERTIES1_START_MONTH_MASK = 0x0F;
+    const u8 PROPERTIES1_START_MONTH_SHIFT = 0;
+    const u8 PROPERTIES1_ACTIVE_ID_MASK = 0xF0;
+    const u8 PROPERTIES1_ACTIVE_ID_SHIFT = 4;
+    const u8 PROPERTIES2_START_DAY_OF_MONTH_MASK = 0x1F;
+    const u8 PROPERTIES2_START_DAY_OF_MONTH_SHIFT = 0;
+    const u8 PROPERTIES3_START_WEEKDAY_MASK = 0x7F;
+    const u8 PROPERTIES3_START_WEEKDAY_SHIFT = 0;
+    const u8 PROPERTIES3_RES_ = 0x80;
+    const u8 PROPERTIES4_START_HOUR_MASK = 0x1F;
+    const u8 PROPERTIES4_START_HOUR_SHIFT = 0;
+    const u8 PROPERTIES4_DURATION_TYPE_MASK = 0xE0;
+    const u8 PROPERTIES4_DURATION_TYPE_SHIFT = 5;
+    const u8 PROPERTIES5_START_MINUTE_MASK = 0x3F;
+    const u8 PROPERTIES5_START_MINUTE_SHIFT = 0;
+    u8 scheduleId;
+    u8 userIdentifier;
+    u8 startYear;
+    u8 properties1;
+    u8 properties2;
+    u8 properties3;
+    u8 properties4;
+    u8 properties5;
+    u16 durationByte;
+    u8 reportsToFollow;
+    u8 numberOfCmdToFollow;
+}
+
+message zwave.Schedule.ScheduleRemoveV1<id="0x06", group="V1"> {
+    u8 scheduleId;
+}
+
+message zwave.Schedule.ScheduleStateSetV1<id="0x07", group="V1"> {
+    u8 scheduleId;
+    u8 scheduleState;
+}
+
+message zwave.Schedule.ScheduleStateGetV1<id="0x08", group="V1"> {
+}
+
+message zwave.Schedule.ScheduleStateReportV1<id="0x09", group="V1"> {
+    const u8 PROPERTIES1_REPORTS_TO_FOLLOW_MASK = 0xFE;
+    const u8 PROPERTIES1_REPORTS_TO_FOLLOW_SHIFT = 1;
+    const u8 PROPERTIES1_OVERRIDE = 0x01;
+    const u8 PROPERTIES2_ACTIVE_ID_1_MASK = 0x0F;
+    const u8 PROPERTIES2_ACTIVE_ID_1_SHIFT = 0;
+    const u8 PROPERTIES2_ACTIVE_ID_2_MASK = 0xF0;
+    const u8 PROPERTIES2_ACTIVE_ID_2_SHIFT = 4;
+    const u8 PROPERTIES3_ACTIVE_ID_3_MASK = 0x0F;
+    const u8 PROPERTIES3_ACTIVE_ID_3_SHIFT = 0;
+    const u8 PROPERTIES3_ACTIVE_ID_N_MASK = 0xF0;
+    const u8 PROPERTIES3_ACTIVE_ID_N_SHIFT = 4;
+    u8 numberOfSupportedScheduleId;
+    u8 properties1;
+    u8 properties2;
+    u8 properties3;
+}

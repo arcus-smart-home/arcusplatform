@@ -1,0 +1,22 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Tamper Cluster
+//    From "Implementing the AlertMe Tamper, Button & KeyFob Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.Tamper {
+   const u16 CLUSTER_ID = 0x00F2;
+}
+
+message alertme.Tamper.TamperReleased<id="0x00"> {
+   u8 eventCount;
+   u32 timestamp;
+}
+
+message alertme.Tamper.TamperPressed<id="0x01"> {
+   u8 eventCount;
+   u32 timestamp;
+}
+
+message alertme.Tamper.ClearTamper<id="0x02"> {
+   // AlertMe Documentation: not used as devices don't remember tamper state
+}

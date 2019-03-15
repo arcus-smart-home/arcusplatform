@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WaterHardness"
+   namespace="waterhardness"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a measurement of water hardness.
+   </c:description>
+   
+   <c:attributes>
+   <c:attribute
+      name="hardness" 
+      readwrite="r" 
+      type="double"
+      unit="grains/gallon"
+      optional="false" 
+      description="Hardness of water in grains per gallon"/>
+   </c:attributes>
+   
+</c:capability>

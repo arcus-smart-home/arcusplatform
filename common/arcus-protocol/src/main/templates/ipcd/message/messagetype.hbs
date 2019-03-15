@@ -1,0 +1,28 @@
+{{#file . "com/iris/protocol/ipcd/message/model/MessageType.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+public enum MessageType {
+   {{#messages}}{{name}}("{{type}}"){{#unless @last}},{{/unless}}
+   {{/messages}};
+   
+   private final boolean isServer;
+   private final boolean isClient;
+   
+   MessageType(String direction) {
+      isServer = "both".equalsIgnoreCase(direction) || "server".equalsIgnoreCase(direction);
+      isClient = "both".equalsIgnoreCase(direction) || "client".equalsIgnoreCase(direction);
+   }
+   
+   public boolean isServer() { return isServer; }
+   public boolean isClient() { return isClient; }
+   
+   public static MessageType fromString(String value) {
+      for (MessageType type : MessageType.values()) {
+      	if (type.name().equalsIgnoreCase(value)) {
+      		return type;
+      	}
+      }
+      return null;
+   }
+}
+{{/file}}

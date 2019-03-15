@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   targetNamespace="http://arcus.com/device-ota-firmware_1.0.0"
+   xmlns:tns="http://arcus.com/device-ota-firmware_1.0.0"
+   elementFormDefault="qualified">
+
+   <xs:annotation>
+      <xs:documentation xml:lang="en">
+         Iris Device OTA Firmware Update schema
+         Copyright 2015 Lowe's Companies, Inc. All rights reserved.
+      </xs:documentation>
+   </xs:annotation>
+
+   <xs:element name="firmwares">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="metadata" type="tns:metadataType" />
+            <xs:element name="configDefaults" type="tns:configDefaultsType" />
+            <xs:element name="firmware" type="tns:firmwareType"
+               minOccurs="1" maxOccurs="unbounded" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+
+   <xs:complexType name="metadataType">
+      <xs:attribute name="version" type="xs:dateTime" />
+      <xs:attribute name="publisher" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="configDefaultsType">
+      <xs:attribute name="retryIntervalMins" type="xs:int" use="required"/>
+      <xs:attribute name="retryAttemptsMax" type="xs:int" use="required"/>   
+   </xs:complexType>
+
+
+   <xs:complexType name="firmwareType">
+   	  <xs:sequence>
+   	  	<xs:element name="from-versions" type="tns:fromVersionsType" minOccurs="0" maxOccurs="1"/>
+   	  </xs:sequence>
+      <xs:attribute name="productId" type="xs:string" use="required" />
+      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="populations" type="xs:string" />
+      <xs:attribute name="version" type="xs:string" use="required" />
+      <xs:attribute name="path" type="xs:string" use="required" />
+      <xs:attribute name="retryIntervalMins" type="xs:int"/>
+      <xs:attribute name="retryAttemptsMax" type="xs:int"/>
+      <xs:attribute name="md5" type="xs:string"/>
+   </xs:complexType>
+   
+   <xs:complexType name="fromVersionsType">
+   	<xs:sequence>
+   		<xs:element name="version" type="tns:versionType"  
+   		               minOccurs="1" maxOccurs="unbounded" />
+   	</xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="versionType">
+   	<xs:attribute name="type" type="xs:string" />
+   	<xs:attribute name="match" type="xs:string" />
+   </xs:complexType>
+
+</xs:schema>

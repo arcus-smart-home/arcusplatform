@@ -1,0 +1,42 @@
+[
+   {
+      "deviceId" : "0a875067-76de-4f1c-82f5-6e0a2f15554e",
+      "attributes": {
+         "cont:contact": "CLOSED",
+         "temp:temperature": 22.2,
+         "devpow:source": "BATTERY",
+         "devpow:linecapable": false,
+         "devpow:battery": 98,
+         "devconn:state": "ONLINE",
+         "devconn:lastchange": 1419012584398,
+         "devconn:signal": 100
+      }
+   },
+   
+   {
+      "deviceId" : "4f2397e1-1f0f-45ba-abdc-4c1e829fa538",
+      "attributes": {
+         "swit:state": "OFF",
+         "devpow:source": "BATTERY",
+         "devpow:linecapable": false,
+         "devpow:battery": 98,
+         "devconn:state": "ONLINE",
+         "devconn:lastchange": 1419012584398,
+         "devconn:signal": 100
+      }
+   },
+   
+   {
+   	  "deviceId" : "6ff3a5ff-4650-4ce7-82e0-682a58392316",
+   	  "attributes": {
+            "swit:state": "OFF",
+            "devpow:source": "BATTERY",
+            "devpow:linecapable": false,
+            "devpow:battery": 98,
+            "devconn:state": "ONLINE",
+            "devconn:lastchange": 1419012584398,
+            "devconn:signal": 100
+         }
+   }
+]
+

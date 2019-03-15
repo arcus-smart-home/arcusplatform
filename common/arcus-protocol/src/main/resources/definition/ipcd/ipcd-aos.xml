@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adapter
+   xmlns="urn:com/iris/protocol/ipcd/aos/xml/model"
+   name="aos" >
+
+   <device vendor="A.O. Smith"
+           model="#MasterModelId"
+           sn="#DeviceText"
+           ipcdver="0.3"
+           fwver="#MasterFwVer"
+           connectURL="https://devices.irissmarthome.com/aosmith/v2.php"
+           connection="persistent"
+           actions="Report,Event"
+           commands="GetDeviceInfo,GetParameterValues,SetParameterValues,GetParameterInfo,GetReportConfiguration" />
+
+   <events>
+      <event name="onConnect" />
+      <event name="onValueChange" />
+   </events>
+
+   <parameters>
+      <parameter aos_name="DeviceText"
+                 aos_type="string"
+                 name="aos.devicetext"
+                 type="string"
+                 attrib="r"
+                 description="Device Serial Number" />
+
+      <parameter aos_name="Password"
+                 aos_type="string"
+                 name="aos.password"
+                 type="string"
+                 attrib="r"
+                 description="Device password" />
+
+      <parameter aos_name="ModuleApi"
+                 aos_type="string"
+                 name="aos.moduleapi"
+                 type="string"
+                 attrib="r"
+                 description="Module API version" />
+
+      <parameter aos_name="ModFwVer"
+                 aos_type="string"
+                 name="aos.modfwver"
+                 type="string"
+                 attrib="r"
+                 description="Module firmware version" />
+
+      <parameter aos_name="MasterFwVer"
+                 aos_type="string"
+                 name="aos.masterfwver"
+                 type="string"
+                 attrib="r"
+                 description="Master firmware version" />
+
+      <parameter aos_name="MasterModelId"
+                 aos_type="string"
+                 name="aos.mastermodelid"
+                 type="string"
+                 attrib="r"
+                 description="Model Id" />
+
+      <parameter aos_name="DisplayFwVer"
+                 aos_type="string"
+                 name="aos.displayfwver"
+                 type="string"
+                 attrib="r"
+                 description="Display firmware version" />
+
+      <parameter aos_name="WifiFwVer"
+                 aos_type="string"
+                 name="aos.wififwver"
+                 type="string"
+                 attrib="r"
+                 description="WiFi firmware version" />
+
+      <parameter aos_name="UpdateRate"
+                 aos_type="int"
+                 name="aos.updaterate"
+                 type="number"
+                 attrib="rw"
+                 unit="seconds"
+                 description="Polling rate in seconds" />
+
+      <parameter aos_name="Mode"
+                 aos_type="string"
+                 name="aos.mode"
+                 type="enum"
+                 values="EnergySmart,Standard,Vacation"
+                 attrib="rw"
+                 description="Water heater control mode" />
+
+     <parameter aos_name="AvailableModes"
+                 aos_type="string"
+                 name="aos.availablemodes"
+                 type="string"
+                 attrib="r"
+                 description="Available water heater modes" />
+
+     <parameter  aos_name="SetPoint"
+                 aos_type="int"
+                 name="aos.setpoint"
+                 type="number"
+                 attrib="rw"
+                 unit="C"
+                 floor="26"
+                 ceiling="65"
+                 description="Controlling set point temperature as set by the user in Celsius" />
+
+      <parameter aos_name="Units"
+                 aos_type="string"
+                 name="aos.units"
+                 type="enum"
+                 values="C,F"
+                 attrib="rw"
+                 description="Temperature units for control and display" />
+
+      <parameter aos_name="LeakDetect"
+                 aos_type="string"
+                 name="aos.leakdetect"
+                 type="enum"
+                 values="Disabled,Enabled,NotDetected"
+                 attrib="rw"
+                 description="Enable or disable leak detection. Or report that no sensor is present and force to disabled" />
+
+      <parameter aos_name="Grid"
+                 aos_type="string"
+                 name="aos.grid"
+                 type="enum"
+                 values="Disabled,Enabled"
+                 attrib="r"
+                 description="Remote control of Grid participation. Not currently implemented." />
+
+      <parameter aos_name="MaxSetPoint"
+                 aos_type="int"
+                 name="aos.maxsetpoint"
+                 type="number"
+                 attrib="r"
+                 unit="C"
+                 description="Maximum controlling set point temperature as set by the user." />
+
+      <parameter aos_name="HotWaterVol"
+                 aos_type="string"
+                 name="aos.hotwatervol"
+                 type="enum"
+                 values="Low,Medium,High"
+                 attrib="r"
+                 description="Status of the current state of hot water" />
+
+      <parameter aos_name="SystemInHeating"
+                 aos_type="string"
+                 name="aos.systeminheating"
+                 type="enum"
+                 values="False,True"
+                 attrib="r"
+                 description="Is the water heater heating with either element?" />
+
+      <parameter aos_name="Leak"
+                 aos_type="string"
+                 name="aos.leak"
+                 type="enum"
+                 values="None,Detected,Unplugged,Error"
+                 attrib="r"
+                 description="Water conductivity detected on probes" />
+
+      <parameter aos_name="DryFire"
+                 aos_type="string"
+                 name="aos.dryfire"
+                 type="enum"
+                 values="None,Detected"
+                 attrib="r"
+                 description="Detects that a dry-fire condition was present" />
+
+      <parameter aos_name="ElementFail"
+                 aos_type="string"
+                 name="aos.elementfail"
+                 type="enum"
+                 values="None,Upper,Lower,Upper_Lower"
+                 attrib="r"
+                 description="Status of upper and lower elements" />
+
+      <parameter aos_name="TankSensorFail"
+                 aos_type="string"
+                 name="aos.tanksensorfail"
+                 type="enum"
+                 values="None,Lower,Upper,Upper_Lower"
+                 attrib="r"
+                 description="Status of upper and lower temperature sensors" />
+
+      <parameter aos_name="EcoError"
+                 aos_type="string"
+                 name="aos.ecoerror"
+                 type="enum"
+                 values="False,True"
+                 attrib="r"
+                 description="Mechanical tank over temperature sensor." />
+
+      <parameter aos_name="MasterDispFail"
+                 aos_type="string"
+                 name="aos.masterdispfail"
+                 type="enum"
+                 values="None,Master,Display"
+                 attrib="r"
+                 description="Master (ET) and Display (ESM) self-test status" />
+
+      <parameter aos_name="SignalStrength"
+                 aos_type="int"
+                 name="aos.signalstrength"
+                 type="number"
+                 attrib="r"
+                 description="WiFi signal strength" />
+   </parameters>
+</adapter>

@@ -1,0 +1,51 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library IAS WD command frames
+//    From Section 8.4 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.IasWd {
+   const u16 CLUSTER_ID = 0x0502;
+
+   const u16 ATTR_MAX_DURATION = 0x0000;
+}
+
+message zcl.IasWd.StartWarning<id="0x00",group="client"> {
+   const u8 WARNING_MODE_MODE_MASK = 0xF0;
+   const u8 WARNING_MODE_STROBE_MASK = 0x0C;
+
+   // this is actually a four bit enum
+   const u8 WARNING_MODE_STOP = 0x00;
+   const u8 WARNING_MODE_BURGLAR = 0x1;
+   const u8 WARNING_MODE_FIRE = 0x02;
+   const u8 WARNING_MODE_EMERGENCY = 0x03;
+   const u8 WARNING_MODE_POLICE_PANIC = 0x04;
+   const u8 WARNING_MODE_FIRE_PANIC = 0x05;
+   const u8 WARNING_MODE_EMERGENCY_PANIC = 0x06;
+
+   const u8 WARNING_MODE_NO_STROBE = 0x00;
+   const u8 WARNING_MODE_USE_STROBE = 0x04;
+
+   u8 warningMode;
+   u16 warningDuration;
+   u8 strobeDutyCycle;
+   u8 strobeLevel;
+}
+
+message zcl.IasWd.Squawk<id="0x01",group="client"> {
+   const u8 SQUAWK_MODE_MODE_MASK = 0xF0;
+   const u8 SQUAWK_MODE_STROBE_MASK = 0x08;
+   const u8 SQUAWK_MODE_LEVEL_MASK = 0x03;
+
+   const u8 SQUAWK_MODE_ARMED = 0x10;
+   const u8 SQUAWK_MODE_DISARMED = 0x20;
+
+   const u8 SQUAWK_MODE_NO_STROBE = 0x00;
+   const u8 SQUAWK_MODE_USE_STROBE = 0x08;
+
+   const u8 SQUAWK_MODE_LEVEL_LOW = 0x00;
+   const u8 SQUAWK_MODE_LEVEL_MEDIUM = 0x01;
+   const u8 SQUAWK_MODE_LEVEL_HIGH = 0x02;
+   const u8 SQUAWK_MODE_LEVEL_VERY_HIGH = 0x03;
+
+   u8 squawkMode;
+}

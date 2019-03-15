@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WeatherRadio"
+   namespace="noaa"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Weather Radio.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="alertstate"
+         readwrite="r" 
+         type="enum"
+         values="ALERT,NO_ALERT,HUSHED"
+         optional="false" 
+         description="Reflects the current state of the weather radio (alerting, no existing alert, or an existing hushed alert)."/>
+      <c:attribute
+         name="playingstate"
+         readwrite="r" 
+         type="enum"
+         values="PLAYING,QUIET"
+         optional="false" 
+         description="Reflects whether the weather radio is currently playing or is quiet."/>   
+      <c:attribute 
+         name="currentalert" 
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="EAS code for current alert (three letter strings). Set to NONE when no alert is active. Set to UNKNOWN when a code not currently known is sent."/>
+      <c:attribute 
+         name="lastalerttime" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="true" 
+         description="UTC date time of last alert start time. Note if alert changes (county list or duration), timestamp will be updated."/>
+      <c:attribute 
+         name="alertsofinterest" 
+         readwrite="rw"
+         type="list&lt;string&gt;"
+         optional="true"
+         description="List of EAS alert codes the user wishes to be notifed of (three letter strings)."/>
+      <c:attribute 
+         name="location" 
+         readwrite="rw" 
+         type="string" 
+         optional="true" 
+         description="Six digit S.A.M.E. code for locations published by NOAA."/>
+      <c:attribute 
+         name="stationselected" 
+         readwrite="rw" 
+         type="int" 
+         optional="true" 
+         description="station ID of selected station."/>      
+      <c:attribute 
+         name="frequency" 
+         readwrite="r" 
+         type="string"  
+         optional="true" 
+         description="Broadcast frequency of selected station."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method 
+         name="ScanStations"
+         description="Scans all stations to determine which can be heard.">
+         <c:return
+            name="stations"
+            type="list&lt;Station&gt;"
+            description="The list of stations discovered during the scan, like [ {'id':1, 'freq':'106.240 MHz', 'rssi':-67.0}, ... ]"/>
+      </c:method>
+      
+     <c:method 
+         name="PlayStation"
+         description="Play selected station to allow user to select amongst the options.">
+         <c:parameter
+            name="station"
+            type="int"
+            description="The ID of the station to play (1-7)"
+            optional="false"/>           
+         <c:parameter
+            name="time"
+            type="int"
+            description="Timeout in seconds after which player will stop (-1 to play forever)"
+            optional="false"/>           
+      </c:method>
+
+      <c:method 
+         name="StopPlayingStation"
+         description="Stop playing current station.">
+      </c:method>
+
+      <c:method 
+         name="SelectStation"
+         description="Select station as the one Halo will use.">
+         <c:parameter
+            name="station"
+            type="int"
+            description="The ID of the station to use (1-7)"
+            optional="false"/>
+      </c:method>
+   </c:methods>
+
+</c:capability>

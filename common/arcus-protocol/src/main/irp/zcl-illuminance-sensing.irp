@@ -1,0 +1,20 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 4.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.IlluminanceSensing {
+   const u16 CLUSTER_ID = 0x0401;
+
+   const u16 ATTR_LEVEL_STATUS = 0x0000;
+   const u16 ATTR_LIGHT_SENSOR_TYPE = 0x0001;
+   const u16 ATTR_ILLUMINANCE_TARGET_LEVEL = 0x0010;
+
+   const u8 LEVEL_STATUS_ON_TARGET = 0x00;
+   const u8 LEVEL_STATUS_BELOW_TARGET = 0x01;
+   const u8 LEVEL_STATUS_ABOVE_TARGET = 0x02;
+
+   const u8 LIGHT_SENSOR_TYPE_PHOTODIODE = 0x00;
+   const u8 LIGHT_SENSOR_TYPE_CMOS = 0x01;
+   const u8 LIGHT_SENSOR_TYPE_UNKNOWN = 0xFF;
+}

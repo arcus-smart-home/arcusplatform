@@ -1,0 +1,271 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the SmartThings SmartSense Multi (V1) sensor
+ * 
+ *    05/08/17 - Version 2.3 for Reflexes.  If hub is OFFLINE, Tilt changes are unavailable and do not map to Contact changes.
+ * 
+ * FACTORY RESET:
+ *  - Hold down the "connect" button (tamper switch) for 6 seconds until LED turns OFF
+ *  - Put hub in Pairing mode and press "connect" button once
+ *  
+ * OFFLINE TIMEOUT:
+ *    10 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *    Device sends a Profile 0xFC01, Cluster 0xFC03, Cmd 0x07, from EndPoint 2 (manufacturer 0x110A, Physical Graph Corp)
+ *    every 2.5 minutes as a heart beat
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - 
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  -  No apparent support for Diagnostics.
+ * 
+ * ISSUES/NOTES:
+ *  - SmartThings documentation:
+ *     - https://support.smartthings.com/hc/en-us/articles/200903230-SmartSense-Multi-Sensor
+ * 
+ *  - No Documentation on ZigBee commands. Profile 0xFC01, Cluster 0xFC03 used to send:
+ *     - MessageID 0x00 - No Data, not sure of purpose
+ *     - MessageID 0x05 - Appears to send X, Y, and Z axis info when devices moves/tilts
+ *     - MessageID 0x07 - Appears to be a "heartbeat" sent every 150 seconds. Includes 3 bytes of data.
+ *        - Byte 0 appears to increase and decrease as ambient temperature does.
+ *        - Byte 2, bit 0 appears to indicate Contact state (0=Closed, 1=Open)
+ *        
+ *  - add a Tag of ["tiltActivatesContact"] to configure device's tilt sensor to act as the contact setting (assumes magnet is not being used to activate real contact sensor)
+ *  - add a Tag of ["closedOnUpright"] to configure device to set Contact state "CLOSED" when upright (like a Garage Door), otherwise it sets Contact state to "CLOSED" when flat (like a Jewelry box lid)
+ * 
+ * IN Clusters
+ *   0x0000     Basic
+ * OUT Clusters
+ *   0x0019     OTA Upgrade
+ * 
+ */
+
+import groovy.transform.Field                    // not needed to compile, but used in eclipse
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+
+uses "generic.GenericContact"
+uses "generic.GenericTiltWithContact"
+uses "zigbee.GenericZigbeeDeviceOta"
+
+
+driver          "ZBSmartThingsMultiSensor"
+description     "Driver for the SmartThings SmartSense Multi (V1) Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Contact"
+productId       "a21130"
+vendor          "Uncertified"        // "SmartThings"
+model           "STSS-MULT-001"
+
+
+matcher         'ZIGB:manufacturer': 4362, 'ZIGB:vendor': 'SmartThings', 'ZIGB:model': 'PGC313'
+
+
+capabilities    DeviceOta
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_UNKNOWN
+    bind contactchanged to Contact.contact
+}
+
+Tilt {
+    Tilt.tiltstate  Tilt.TILTSTATE_FLAT
+    bind tiltstatechanged to Tilt.tiltstate
+}
+
+
+@Field def dvcEndPoint  = Zigbee.endpoint((byte)1)
+@Field def otaCluster   = dvcEndPoint.Ota
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    offlineTimeout 10, MINUTES
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    // None
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process IAS Zone Status reports locally on the hub.
+    // Device does not declare IAS Zone, but is sends IAS Zone cluster messages (no binding or enrollment needed though)
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        // if alarm1 status reported SET with 'delay' of 30 seconds or less, change Contact.contact to OPEN
+        on iaszone, endpoint: 1, set: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_OPENED
+    }
+
+    match reflex {
+        // if alarm1 status reported CLEAR with 'delay' of 30 seconds or less, change Contact.contact to CLOSED
+        on iaszone, endpoint: 1, clear: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_CLOSED
+    }
+    
+    match reflex {
+        // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+        on iaszone, set: ["battery"]
+        emit DevicePower.battery, 0
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+    
+    // Profile:64513, ClusterId:64515, MsgId:7, EndPoint:2, Flags:15, Dat[-31, 0, 118]
+    // Appears to be a "heartbeat" sent every 150 seconds. Includes 3 bytes of data.
+    // - Byte 0 appears to increase and decrease as ambient temperature does.
+    // - Byte 2, bit 0 appears to indicate Contact state (0=Closed, 1=Open)
+    if ((0xFC01 == profile) && (0xFC03 == clusterId) && (7 == messageId) && (2 == endpoint)) {
+        log.trace "Driver received Heartbeat/Check-In from sensor device, Flags:{}, Data:${data}", flags
+        
+        if (3 <= data.length) {
+            def prevContact = Contact.contact.get()        // save previous Contact state
+            if (0 == (0x02 & data[2])) {
+                log.trace "Contact is CLOSED"
+                Contact.contact Contact.CONTACT_CLOSED
+            } else {
+                log.trace "Contact is OPEN"
+                Contact.contact Contact.CONTACT_OPENED
+            }
+            // if previous state is not the same as newly reported state, record timestamp of change
+            if (prevContact != Contact.contact.get()) {
+                Contact.contactchanged new Date()
+            }
+        }
+        return
+    }
+
+    // Profile 0xFC01, Cluster 0xFC03, MessageID 0x05 - Appears to send X, Y, and Z axis info when devices moves/tilts
+    if ((0xFC01 == profile) && (0xFC03 == clusterId) && (5 == messageId) && (2 == endpoint)) {
+        log.trace "Driver received Cluster 0xFC03, CmdId 5, from sensor device, Flags:{}, Data:${data}", flags
+        if (6 <= data.length) {
+            def prevState = Tilt.tiltstate.get()
+            if ((data[3] >= 3) || (data[3] <= -3)) {        // byte 3 appears to be -4 or 4 if Upright
+                Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+            } else {
+                Tilt.tiltstate Tilt.TILTSTATE_FLAT
+            }
+            // if previous state is not the same as newly reported state, record timestamp of change
+            if (Tilt.tiltstate.get() != prevState) {
+                def now = new Date()
+                Tilt.tiltstatechanged now
+                if (Base.tags.get().contains('tiltActivatesContact')) {
+                    adjustContactState(Tilt.tiltstate.get(), now)
+                }
+            }
+        }
+        return
+    }
+
+    if ((0xFC01 == profile) && (0xFC03 == clusterId) && (0 == messageId) && (2 == endpoint)) {
+        log.trace "Driver received Cluster 0xFC03, CmdId 0, from sensor device, Flags:{}, Data:${data}", flags
+        // not sure what this command is, contains no data
+        return
+    }
+
+    log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+            profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+void adjustContactState(Object newTiltState, Object now) {
+    boolean isClosedOnUpright = Base.tags.get().contains('closedOnUpright')
+    if ((Tilt.TILTSTATE_UPRIGHT == newTiltState && isClosedOnUpright) || (Tilt.TILTSTATE_FLAT == newTiltState && !isClosedOnUpright)) {
+        Contact.contact Contact.CONTACT_CLOSED
+        Contact.contactchanged now
+    } else {
+        Contact.contact Contact.CONTACT_OPENED
+        Contact.contactchanged now
+    }
+}
+
+// Handling tags
+onBase.AddTags {
+    GenericTiltWithContact.doAddTags(this, message, DEVICE_NAME)
+}
+
+onBase.RemoveTags {
+    GenericTiltWithContact.doRemoveTags(this, message, DEVICE_NAME)
+}
+

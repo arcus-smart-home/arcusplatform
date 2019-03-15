@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="PopulationService"
+           namespace="population"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Service methods for managing populations.
+   </s:description>
+
+   <s:methods>
+      
+      <s:method 
+         name="ListPopulations"
+         description="List all the existing populations."
+         internal="true"
+         isRESTful="false">
+   
+         <s:return name="populations" type="list&lt;Population&gt;" description="The available populations in the system."/>
+
+      </s:method>
+      
+      <s:method
+        name="AddPlaces" 
+      	description="Add the list place ids to a given population"
+      	internal="true">
+   
+         <s:parameter name="population" type="string" description="The population name the given places should be added to" optional="false"/>
+         <s:parameter name="places" type="list&lt;string&gt;" description="The list of place addresses to be added to the given population" optional="false"/>
+
+      </s:method>
+
+      <s:method
+        name="RemovePlaces" 
+        description="Remove the list of place addresses from a given population"
+        internal="true">
+   
+         <s:parameter name="population" type="string" description="The population name the given persons should be removed from" optional="false"/>
+         <s:parameter name="places" type="list&lt;string&gt;" description="The list of place addresses to be removed from the given population" optional="false"/>
+
+      </s:method>
+      
+   </s:methods>
+   
+</s:service>

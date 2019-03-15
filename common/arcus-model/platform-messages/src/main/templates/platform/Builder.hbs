@@ -1,0 +1,55 @@
+{{#if .}}
+      public static Builder builder() {
+         return new Builder();
+      }
+      
+      public static Builder builder(com.iris.messages.MessageBody body) {
+         return new Builder(body);
+      }
+      
+      public static class Builder {
+         {{#.}}
+         private {{{javaTypeOf type}}} _{{name}};
+         {{/.}}
+
+         Builder() {
+         }
+
+         Builder(com.iris.messages.MessageBody body) {
+             this(body != null ? body.getAttributes() : null);
+         }
+
+         Builder(java.util.Map<String, Object> attributes) {
+            if(attributes != null) {
+	           {{#.}}
+	           this._{{name}} = ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(attributes.get(ATTR_{{toUpperCase name}}));
+	           {{/.}}
+            }
+         }
+
+         {{#.}}
+         public {{{javaTypeOf type}}} get{{capitalize name}}() {
+            return _{{name}};
+         }
+
+         public Builder with{{capitalize name}}({{{javaTypeOf type}}} value) {
+            this._{{name}} = value;
+            return this;
+         }
+         {{/.}}
+      
+         public com.iris.messages.MessageBody build() {
+            java.util.Map<String, Object> attributes = 
+               new java.util.HashMap<String, Object>({{hashsize this}},0.75f);
+            {{#.}}
+            attributes.put(ATTR_{{toUpperCase name}}, _{{name}});
+            {{/.}}
+            return com.iris.messages.MessageBody.buildMessage(NAME, attributes);
+         }
+      }
+{{else}}
+      private static final com.iris.messages.MessageBody INSTANCE = 
+         com.iris.messages.MessageBody.buildMessage(NAME, java.util.Collections.<String, Object>emptyMap());
+         
+      public static com.iris.messages.MessageBody instance() { return INSTANCE; }
+{{/if}}

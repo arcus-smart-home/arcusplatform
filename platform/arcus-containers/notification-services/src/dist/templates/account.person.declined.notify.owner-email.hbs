@@ -1,0 +1,27 @@
+{{#section "subject"}}
+{{{inviteeFirstName}}} Declined Their Invitation To {{{_place.name}}}. 
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{inviteeFirstName}}} {{{inviteeLastName}}} declined their invitation to the place called {{{_place.name}}}.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{inviteeFirstName}} {{inviteeLastName}} declined their invitation to the place called {{_place.name}}.<br/>
+	{{/partial}}
+	
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

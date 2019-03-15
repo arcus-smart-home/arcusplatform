@@ -1,0 +1,52 @@
+
+message zwave.BarrierOperator.BarrierOperatorSetV1<id="0x01", group="V1"> {
+    const u8 REQUESTED_BARRIER_STATE_CLOSE = 0x00;
+    const u8 REQUESTED_BARRIER_STATE_OPEN = 0xFF;
+    u8 requestedBarrierState;
+}
+
+message zwave.BarrierOperator.BarrierOperatorGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.BarrierOperator.BarrierOperatorReportV1<id="0x03", group="V1"> {
+    const u8 BARRIER_STATE_CLOSED = 0x00;
+    const u8 BARRIER_STATE_UNKNOWN_POSITION_MOVING_TO_CLOSE = 0xFC;
+    const u8 BARRIER_STATE_UNKNOWN_POSITION_STOPPED = 0xFD;
+    const u8 BARRIER_STATE_UNKNOWN_POSITION_MOVING_TO_OPEN = 0xFE;
+    const u8 BARRIER_STATE_OPEN = 0xFF;
+    u8 barrierState;
+}
+
+message zwave.BarrierOperator.BarrierOperatorSignalSupportedGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.BarrierOperator.BarrierOperatorSignalSupportedReportV1<id="0x05", group="V1"> {
+    u8 bitMask;
+}
+
+message zwave.BarrierOperator.BarrierOperatorSignalSetV1<id="0x06", group="V1"> {
+    const u8 SUBSYSTEM_TYPE_NOT_SUPPORTED = 0x00;
+    const u8 SUBSYSTEM_TYPE_AUDIBLE_NOTIFICATION = 0x01;
+    const u8 SUBSYSTEM_TYPE_VISUAL_NOTIFICATION = 0x02;
+    const u8 SUBSYSTEM_STATE_OFF = 0x00;
+    const u8 SUBSYSTEM_STATE_ON = 0xFF;
+    u8 subsystemType;
+    u8 subsystemState;
+}
+
+message zwave.BarrierOperator.BarrierOperatorSignalGetV1<id="0x07", group="V1"> {
+    const u8 SUBSYSTEM_TYPE_NOT_SUPPORTED = 0x00;
+    const u8 SUBSYSTEM_TYPE_AUDIBLE_NOTIFICATION = 0x01;
+    const u8 SUBSYSTEM_TYPE_VISUAL_NOTIFICATION = 0x02;
+    u8 subsystemType;
+}
+
+message zwave.BarrierOperator.BarrierOperatorSignalReportV1<id="0x08", group="V1"> {
+    const u8 SUBSYSTEM_TYPE_NOT_SUPPORTED = 0x00;
+    const u8 SUBSYSTEM_TYPE_AUDIBLE_NOTIFICATION = 0x01;
+    const u8 SUBSYSTEM_TYPE_VISUAL_NOTIFICATION = 0x02;
+    const u8 SUBSYSTEM_STATE_OFF = 0x00;
+    const u8 SUBSYSTEM_STATE_ON = 0xFF;
+    u8 subsystemType;
+    u8 subsystemState;
+}

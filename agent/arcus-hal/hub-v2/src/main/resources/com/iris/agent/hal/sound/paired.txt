@@ -1,0 +1,7 @@
+# Triple beep when device is paired
+B5,100,70
+B5,0,70
+B5,100,70
+B5,0,70
+B5,100,70
+

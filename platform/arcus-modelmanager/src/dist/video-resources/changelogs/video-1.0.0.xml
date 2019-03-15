@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="1.0.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="addResourceBundleTable" author="peckw">
+      <cl:description>Add table for storing localization resource bundles</cl:description>
+      <cl:tracking>ITWOK-183</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS resource_bundle (
+            bundle varchar,
+            locale varchar,
+            key varchar,
+            value varchar,
+            PRIMARY KEY((bundle, locale), key)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS resource_bundle</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoRecordingTable" author="peckw">
+      <cl:description>Adds the recording table</cl:description>
+      <cl:tracking>ITWOK-183</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ///////////////////////////////////////////////////////////////////////
+         // Data Model for Video Recordings
+         //  
+         // Rows in this table store all of the information required to
+         // generate an HLS or MPEG-DASH playlist. The table is modeled
+         // using standard Cassandra wide rows with a UUID row key spreading
+         // data evenly around the cluster and clustering columns of 
+         // video timestamp and byte offset providing efficient access
+         // to sub-sections of the video if required.
+         //
+         // The UUID in the id field is a timeuuid so that it also captures
+         // date and time that the recording was made.
+         // 
+         // Metadata about the recording is store in the following special
+         // column names, since timestamps cannot be negative in a video:
+         //    * (-inf,0):int = storage location
+         //    * (-inf,1):int = camera id
+         //    * (-inf,2):int = place id
+         //    * (-inf,3):int = person id
+         //
+         //    * (-inf,100):int = video width in pixels
+         //    * (-inf,101):int = video height in pixels
+         //    * (-inf,102):int = video bandwidth in bytes / second
+         //    * (-inf,103):double = video framerate in frames / second
+         //
+         //    * (inf,200):double = video duration in seconds
+         //    * (inf,201):bigint = video size in bytes
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE IF NOT EXISTS recording (
+            id timeuuid,
+            ts double,
+            bo bigint,
+            bl blob,
+            PRIMARY KEY (id,ts,bo) 
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (ts ASC, bo ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoAccountRecordingsTable" author="peckw">
+      <cl:description>Adds the recording per account table</cl:description>
+      <cl:tracking>ITWOK-183</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ///////////////////////////////////////////////////////////////////////
+         // Data Model for Video Recordings per Account
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE IF NOT EXISTS account_recordings (
+            placeid uuid,
+            recordingid timeuuid,
+            column text,
+            value text,
+            PRIMARY KEY (placeid,recordingid,column) 
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (recordingid ASC, column ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS account_recordings;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoDeletedRecordingsTable" author="peckw">
+      <cl:description>Adds the recording per account table</cl:description>
+      <cl:tracking>ITWOK-183</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ///////////////////////////////////////////////////////////////////////
+         // Data Model for Deleted Video Recordings
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE IF NOT EXISTS deleted_recordings (
+            deletetime timestamp,
+            recordingid timeuuid,
+            placeid uuid,
+            PRIMARY KEY (deletetime) 
+         ) WITH COMPACT STORAGE
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS deleted_recordings;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="removeVideoDeletedRecordingsTable" author="peckw">
+      <cl:description>Removed the deleted recordings table</cl:description>
+      <cl:tracking>ITWO-5880</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE deleted_recordings;</cl:update>
+         <cl:rollback>
+         ///////////////////////////////////////////////////////////////////////
+         // Data Model for Deleted Video Recordings
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE deleted_recordings (
+            deletetime timestamp,
+            recordingid timeuuid,
+            placeid uuid,
+            PRIMARY KEY (deletetime)
+         ) WITH COMPACT STORAGE
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoDeletedRecordingsTable2" author="peckw">
+      <cl:description>Adds a wide-row definition for the video purge metadata</cl:description>
+      <cl:tracking>ITWO-5880</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ///////////////////////////////////////////////////////////////////////
+         // Data Model for Deleted Video Recordings.
+         //
+         // This table is based on "Advanced Time Series with Cassandra"
+         // document. Each row in the database has a primary key that
+         // represents an hourly bucket of recordings to be deleted. This
+         // allows the purging code to efficiently pull out the buckets that
+         // have expired and remove them from storage.
+         //
+         // The purging task also needs to know the full time range of data
+         // that exists. This cannot be figured out efficiently directly from the
+         // primary keys because the primary keys are not sorted (because they
+         // are distributed around the cluster). To support this query, a special
+         // hourly bucket exists: 1970-01-01 00:00 UTC (Java epoch). The data in
+         // this bucket represents the row keys that exist in the rest of the
+         // table.
+         //
+         // To eliminate hot spots the primary key is a composite key composed
+         // of the bucket timestamp representing the time the recordings should be
+         // purged along with a partition id that is a simple integer used to spread
+         // write load across the cluster.
+         //
+         // Purging, then is performed as follows:
+         // * Read from all of the the buckets with deletetime '1970-01-01 00:00' 
+         //   all columns which are less than the current time. In the result set
+         //   the "recordingid" is a time uuid where the time represents the time 
+         //   bucket for another row in the table.
+         //
+         // * For each of these results read the entire row for all of the
+         //   configured partitions. In the result set the recordingid and
+         //   placeid represent the required information for finding the
+         //   recording that needs to be deleted.
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE purge_recordings (
+            deletetime timestamp,
+            partitionid int,
+            recordingid timeuuid,
+            placeid uuid,
+            PRIMARY KEY ((deletetime,partitionid),recordingid)
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (recordingid ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE purge_recordings;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>
+

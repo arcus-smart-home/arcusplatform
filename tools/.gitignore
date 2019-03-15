@@ -1,0 +1,40 @@
+# Nothing from the Build
+build/
+bin/
+.idea/
+
+# Nothing compiled
+*.jar
+*.class
+
+# No project specific settings
+.classpath
+.project
+.gradle/
+.settings/
+.metadata/
+
+# No data
+database/data/
+*.csv
+data/*.cqlsh
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Editor files
+.vimrc
+.lvimrc
+*.swp
+*.bak
+*~
+
+*.iml
+**/*.iml
+
+# Generated files
+arcus-captools/src/main/resources/generated/
+
+// Mac specific
+.DS_Store
+**/xcuserdata/*

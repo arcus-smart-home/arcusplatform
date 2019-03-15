@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Capability Index</title>
+      <link href="stylesheet/capability.css" type="text/css" rel="stylesheet" />
+   </head>
+   <body>
+      <p>Capability Index</p>
+      {{#capabilities}}
+      <p><a target="capabilityFrame" href="{{htmlFile}}">{{name}}</a></p>
+      {{/capabilities}}
+     
+      {{#if services}} 
+      <p>Service Index</p>
+      {{#services}}
+      <p><a target="capabilityFrame" href="{{htmlFile}}">{{name}}</a></p>
+      {{/services}}
+      {{/if}}
+   </body>
+</html>

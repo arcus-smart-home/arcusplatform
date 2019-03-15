@@ -1,0 +1,50 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver "ZigbeeMessageHandler"
+version "1.0"
+vendor "Iris"
+model  "TestCase"
+deviceTypeHint "test"
+
+matcher protocol: 'ZIGB'
+
+def byte ON_MESSAGE = 0x01;
+def byte GENERAL_MESSAGE = 0x01;
+
+onZigbeeMessage.Zcl.onoff(ON_MESSAGE, Zigbee.GROUP_CLIENT) {
+   vars.match = "zcl exact cluster-specific"
+}
+
+onZigbeeMessage.Zcl.onoff(GENERAL_MESSAGE, Zigbee.GROUP_GENERAL) {
+   vars.match = "zcl exact general"
+}
+
+onZigbeeMessage.Zcl.onoff.off() {
+   vars.match = "zcl exact off"
+}
+
+onZigbeeMessage.Zcl.fan("zclReadAttributesResponse") {
+   vars.match = "zcl exact fan general"
+}
+
+onZigbeeMessage.Zcl.onoff() {
+   vars.match = "zcl cluster"
+}
+
+onZigbeeMessage.Zdp.discovery.zdpIeeeAddrReq() {
+   vars.match = "zdp ieee"
+}
+

@@ -1,0 +1,53 @@
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_OPERATING_STATE_MASK = 0x0F;
+    const u8 LEVEL_OPERATING_STATE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateReportV2<id="0x03", group="V2"> {
+    const u8 PROPERTIES1_OPERATING_STATE_MASK = 0x0F;
+    const u8 PROPERTIES1_OPERATING_STATE_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateLoggingSupportedGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingLoggingSupportedReportV2<id="0x04", group="V2"> {
+    const u8 BIT_MASK_IDLE = 0x00;
+    const u8 BIT_MASK_HEATING = 0x01;
+    const u8 BIT_MASK_COOLING = 0x02;
+    const u8 BIT_MASK_FAN_ONLY = 0x03;
+    const u8 BIT_MASK_PENDING_HEAT = 0x04;
+    const u8 BIT_MASK_PENDING_COOL = 0x05;
+    const u8 BIT_MASK_VENT_ECONOMIZER = 0x06;
+    const u8 BIT_MASK_AUX_HEATING = 0x07;
+    const u8 BIT_MASK_2ND_STAGE_HEATING = 0x08;
+    const u8 BIT_MASK_2ND_STAGE_COOLING = 0x09;
+    u8 bitMask;
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateLoggingGetV2<id="0x05", group="V2"> {
+    const u8 BIT_MASK_IDLE = 0x00;
+    const u8 BIT_MASK_HEATING = 0x01;
+    const u8 BIT_MASK_COOLING = 0x02;
+    const u8 BIT_MASK_FAN_ONLY = 0x03;
+    const u8 BIT_MASK_PENDING_HEAT = 0x04;
+    const u8 BIT_MASK_PENDING_COOL = 0x05;
+    const u8 BIT_MASK_VENT_ECONOMIZER = 0x06;
+    const u8 BIT_MASK_AUX_HEATING = 0x07;
+    const u8 BIT_MASK_2ND_STAGE_HEATING = 0x08;
+    const u8 BIT_MASK_2ND_STAGE_COOLING = 0x09;
+    u8 bitMask;
+}
+
+message zwave.ThermostatOperatingState.ThermostatOperatingStateLoggingReportV2<id="0x06", group="V2"> {
+    u8 reportsToFollow;
+}

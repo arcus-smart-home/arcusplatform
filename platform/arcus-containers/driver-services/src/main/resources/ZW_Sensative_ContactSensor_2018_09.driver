@@ -1,0 +1,220 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Sensative Contact Sensor
+ * 
+ * OFFLINE TIMEOUT:     73 Hours  (3 days plus 1 hour)
+ * 
+ * WAKE UP INTERVAL:    24 hours
+ *   NOTE, per request from the manufacturer, the wake up interval is set to 24 hours (as opposed to once an hour)
+ *   to extend the battery life of the device.  The driver queues up a read request for the current state of
+ *   the device (to make sure we are in sync with it), and for the current battery level, so that the next time the device
+ *   wakes up we will get those updates.
+ *
+ * Command Classes:
+ *    0x20   (32) Basic
+ *    0x30   (48) Sensor_Binary
+ *    0x59   (89) Association Group Info
+ *    0x5A   (90) Device Reset Locally
+ *    0x5E   (94) ZWave Plus Info
+ *    0x70  (112) Configuration
+ *    0x71  (113) Alarm (Notification)
+ *    0x72  (114) Manufacturer_Specific
+ *    0x73  (115) Power Level
+ *    0x80 (-128) Battery
+ *    0x84 (-124) Wake_Up
+ *    0x85 (-123) Association
+ *    0x86 (-122) Version
+ *    
+ */
+
+
+driver           "ZWSensativeContactSensorDriver"
+description      "Driver for a Sensative Strips Contact Sensor"
+version          "2018.09"
+protocol         "ZWAV"
+deviceTypeHint   "Contact"
+productId        "396984"
+vendor           "Uncertified"  //Sensative
+model            "1101011"
+
+
+matcher          'ZWAV:Manufacturer': 0x019A, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0003
+
+
+uses "zwave.GenericZWaveBattery"
+uses "zwave.GenericZWaveContact"
+
+
+final int    OFFLINE_TIMEOUT_SECS      = 262800     // 73 hours; 3 days, plus 1 hour
+final int    POLLING_INTERVAL_SEC      = 86400      // poll state and battery level every 24 hours
+
+final int    NOTIFICATION_STATE_OPEN   = 22
+final byte   CONTACT_OPEN              = 0xFF
+final byte   CONTACT_CLOSED            = 0x00
+
+final String QUEUED_READS              = 'QueuedReads'
+final int    QUEUED_READ_DELAY_MSECS   = 30000      // wait at least 30 seconds after connecting, so device goes back to sleep first
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver capability support - DevicePower, Contact
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Contact {
+    Contact.contact  Contact.CONTACT_OPENED
+    Contact.usehint  Contact.USEHINT_DOOR
+    bind contactchanged to Contact.contact
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onConnected {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+    ZWave.association.set(1, 1);
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+    
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+    // set the wake up interval to 24 hours (0x015180 = 86400 seconds) for node 0x01 (per request from Sensative)
+    ZWave.wake_up.set((byte)0x01, (byte)0x51, (byte)0x80, (byte)0x01)
+
+    // Note: Generic ZWave Contact capability file reads current state during onConnected
+
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+
+    // delay at least 30 seconds, then queue up a read of the state and battery level, to be sent during next Wake Up interval
+    Scheduler.scheduleIn(QUEUED_READS, QUEUED_READ_DELAY_MSECS)
+}
+
+onUpgraded {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+    // make sure the wake up interval is set to 24 hours (0x015180 = 86400 seconds) for node 0x01 (per request from Sensative)
+    ZWave.wake_up.set((byte)0x01, (byte)0x51, (byte)0x80, (byte)0x01)
+
+    // delay at least 30 seconds, then queue up a read of the state and battery level, to be sent during next Wake Up interval
+    Scheduler.scheduleIn(QUEUED_READS, QUEUED_READ_DELAY_MSECS)
+}
+
+
+//////////////////////////////////////////
+//  Events
+//////////////////////////////////////////
+
+onEvent(QUEUED_READS){
+    log.trace "Queue up read of state and battery for next Wake Up"
+    ZWave.basic.get()
+    ZWave.battery.get()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Basic.Set message sent if device is operating in communications mode 2
+ */
+onZWaveMessage.basic.set {
+    log.trace "Received Basic Set: {}", message
+    // Basic Set sends the current state in the 'value' attribute
+    byte[] bytes = message.command.recvBytes
+    byte currentState = bytes[0]
+    log.trace "State: {}", currentState
+    // pass value set to generic Contact State handler
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Basic.Report message is sent in response to any Basic.Get messages we send or if
+ * device is operating in communications mode 3
+ */
+onZWaveMessage.basic.report {
+    log.trace "Received Basic Report: {}", message
+    // Basic Report sends the current state in the 'value' attribute
+    byte currentState = message.command.get( 'value' )
+    log.trace "State: {}", currentState
+    // pass basic value reported to generic Contact State handler
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Currently device does not send this message, but we include handling just in case, since
+ * the device supports the Command Class.
+ */
+onZWaveMessage.sensor_binary.report {
+    log.debug "Received Sensor Binary Report: {}", message
+    // Binary Sensor Report sends the current state in the 'value' attribute
+    byte currentState = message.command.get( 'value' )
+    // pass binary sensor value reported to generic Contact State handler
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Alarm(Notification).Report message sent if device is operating in communications mode 1 (default)
+ */
+onZWaveMessage.alarm.report {
+    log.trace "Received Alarm/Notification Report"
+    
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    byte[] bytes = message.command.recvBytes
+    
+    log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", alarmType, alarmLevel, event, notificationType, notificationStatus
+    
+    // Closed:  Alarm Type: 0, Alarm Level: 0, Event: 23, Notification Type: 6, Notification Status: -1
+    // Open:    Alarm Type: 0, Alarm Level: 0, Event: 22, Notification Type: 6, Notification Status: -1
+    if ((0 == alarmType) && (0 == alarmLevel) && (6 == notificationType) && (-1 == notificationStatus)) {
+        byte currentState = (NOTIFICATION_STATE_OPEN == event) ? CONTACT_OPEN : CONTACT_CLOSED
+        // pass state based on event reported to generic Contact State handler
+        GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+    }
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Received Wake Up Notification"
+}
+
+onZWaveMessage {
+    log.debug "Received unhandled ZWave message {}", message
+    return false;
+}
+
+

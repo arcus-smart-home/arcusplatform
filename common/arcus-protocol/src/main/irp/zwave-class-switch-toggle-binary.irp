@@ -1,0 +1,13 @@
+
+// SWITCH_TOGGLE_BINARY_SET
+message zwave.SwitchToggleBinary.SwitchToggleBinarySetV1<id="0x01", group="V1"> {
+}
+
+message zwave.SwitchToggleBinary.SwitchToggleBinaryGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SwitchToggleBinary.SwitchToggleBinaryReportV1<id="0x03", group="V1"> {
+    const u8 VALUE_OFF = 0x00;
+    const u8 VALUE_ON = 0xFF;
+    u8 val;
+}

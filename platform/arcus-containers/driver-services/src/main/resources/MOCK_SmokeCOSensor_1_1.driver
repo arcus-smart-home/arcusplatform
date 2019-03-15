@@ -1,0 +1,123 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the Smoke Detector
+ */
+driver			"MOCK_SmokeCOSensor"
+description		"Driver for the Mockitron Smoke CO Detector"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Smoke/CO"
+productId		"1d33c1"
+vendor 			"Mockitron"
+model 			"Smoke CO Detector"
+
+matcher        'MOCK:Capability' : 'SmokeCOSensor'
+matcher        'MOCK:ProductId'  : '1d33c1'
+
+capabilities	DevicePower, Smoke, CarbonMonoxide, Test, DeviceMock
+
+
+onAdded {
+	log.debug "Mockitron Smoke CO device started."
+	Device.name 'Mock Smoke CO Detector'
+	// remove once oculus issue resolved
+	
+	DeviceConnection.signal	88
+	
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 96
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Smoke.smoke				 Smoke.SMOKE_SAFE
+	Smoke.smokechanged       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	CarbonMonoxide.co		 CarbonMonoxide.CO_SAFE
+	CarbonMonoxide.eol		 CarbonMonoxide.EOL_OK
+	CarbonMonoxide.cochanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Test.lastTestTime		 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "Mockitron Smoke CO device connected."
+	
+}
+
+onDisconnected {
+	log.debug "Mockitron Smoke CO device disconnected."
+	
+}
+
+onRemoved {
+	log.debug "Mockitron Smoke CO device removed."
+}
+
+// ########### capability support ##################
+setAttributes('smoke') {
+   attributes << message.attributes
+}
+
+setAttributes('co') {
+	attributes << message.attributes
+ }
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  def handledAttrs = []
+  for(attribute in message.attributes.attrs) {
+	  log.debug 'key: ' + attribute.key + ' - value: ' + attribute.value
+	  handledAttrs.add( attribute.key )
+	  switch(attribute.key) {
+		  case Test.lastTestTime:
+		  	Test.lastTestTime now().getTime()
+		  break;
+		  case Smoke.smoke:
+		    Smoke.smoke attribute.value
+		  	Smoke.smokechanged new Date()
+		  break;
+		  case CarbonMonoxide.co:
+		    CarbonMonoxide.co attribute.value
+		  	CarbonMonoxide.cochanged new Date()
+		  break;
+		  case CarbonMonoxide.eol:
+		    CarbonMonoxide.eol attribute.value
+		  break;
+		  default:
+		    log.warn 'Mock Smoke Detector - unknown attribute.'
+			handledAttrs.remove( attribute.key )
+	  }
+  }
+  for( attr in handledAttrs ) message.attributes.attrs.remove( attr )
+  attributes << message.attributes.attrs
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

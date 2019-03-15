@@ -1,0 +1,57 @@
+{{#file . "com/iris/driver/groovy/ipcd/bindings/{{capitalize name}}MessageTypeClosure.java"}}
+package com.iris.driver.groovy.ipcd.bindings;
+
+import com.iris.driver.groovy.binding.EnvironmentBinding;
+import com.iris.driver.groovy.ipcd.BaseIpcdMessageTypeClosure;
+import com.iris.protocol.ipcd.message.model.CommandType;
+import com.iris.protocol.ipcd.message.model.MessageType;
+import com.iris.protocol.ipcd.message.model.StatusType;
+
+import groovy.lang.Closure;
+import groovy.lang.MissingMethodException;
+
+@SuppressWarnings("serial")
+public class {{capitalize name}}MessageTypeClosure extends BaseIpcdMessageTypeClosure {
+
+	public {{capitalize name}}MessageTypeClosure(EnvironmentBinding binding) {
+      super(binding, MessageType.{{name}});
+    }
+       
+    {{!-- This template is very specific to responses, but there may never be a need to generalize it --}}
+    {{#if closures}}
+    protected void doCall(String commandName, Closure<?> closure) {
+       addHandler(commandName, null, closure);
+    }
+    
+    protected void doCall(String commandName, String statusType, Closure<?> closure) {
+       addHandler(commandName, StatusType.fromString(statusType), closure);
+    }
+    
+    protected void doCall(String commandName, StatusType statusType, Closure<?> closure) {
+       addHandler(commandName, statusType, closure);
+    }
+    
+    @Override
+    public Object invokeMethod(String name, Object args) {
+       CommandType commandType = CommandType.fromString(name);
+       if (commandType != null) {
+          String command = commandType.name();
+          Object[] arguments = (Object[])args;
+          if (arguments.length == 1 && arguments[0] instanceof Closure) {
+             addHandler(command, null, (Closure<?>)arguments[0]);
+             return null;
+          }
+          if (arguments.length == 2 && arguments[0] instanceof StatusType && arguments[1] instanceof Closure) {
+             addHandler(command, (StatusType)arguments[0], (Closure<?>)arguments[1]);
+             return null;
+          }
+          if (arguments.length == 2 && arguments[0] instanceof String && arguments[1] instanceof Closure) {
+             addHandler(command, StatusType.fromString((String)arguments[0]), (Closure<?>)arguments[1]);
+             return null;
+          }
+       }
+       throw new MissingMethodException(name, getClass(), (Object[])args);
+    }
+    {{/if}}
+}
+{{/file}}

@@ -1,0 +1,76 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+////////////////////////////////////////////////////////////////////////////////
+// Tasks for inspecting and auto-updating the version numbers
+////////////////////////////////////////////////////////////////////////////////
+
+def commit_version_update(version) {
+   repo.add(patterns: ["gradle.properties"])
+   def commit = repo.commit(message: "Updating build version to ${version}")
+   repo.push(remote: 'mainline')
+
+   println "Committed version update to ${version}: ${commit.abbreviatedId}"
+}
+
+task bump_major() {
+   doLast {
+      def gradlePropertiesFile = new File("${projectDir}/gradle.properties")
+      def gradlePropertiesText = gradlePropertiesFile.text
+
+      def version_newmajor=Integer.parseInt(version_major) + 1
+      def gradlePropertiesNew = gradlePropertiesText.replace("version_major=${version_major}", "version_major=${version_newmajor}")
+      gradlePropertiesNew = gradlePropertiesNew.replace("version_minor=${version_minor}", "version_minor=0")
+      gradlePropertiesNew = gradlePropertiesNew.replace("version_patch=${version_patch}", "version_patch=0")
+
+      gradlePropertiesFile.write(gradlePropertiesNew)
+      commit_version_update("${version_newmajor}.0.0")
+   }
+}
+
+task bump_minor() {
+   doLast {
+      def gradlePropertiesFile = new File("${projectDir}/gradle.properties")
+      def gradlePropertiesText = gradlePropertiesFile.text
+
+      def version_newminor=Integer.parseInt(version_minor) + 1
+      def gradlePropertiesNew = gradlePropertiesText.replace("version_minor=${version_minor}", "version_minor=${version_newminor}")
+      gradlePropertiesNew = gradlePropertiesNew.replace("version_patch=${version_patch}", "version_patch=0")
+
+      gradlePropertiesFile.write(gradlePropertiesNew)
+      commit_version_update("${version_major}.${version_newminor}.0")
+   }
+}
+
+task bump_patch() {
+   doLast {
+      def gradlePropertiesFile = new File("${projectDir}/gradle.properties")
+      def gradlePropertiesText = gradlePropertiesFile.text
+
+      def version_newpatch=Integer.parseInt(version_patch) + 1
+      def gradlePropertiesNew = gradlePropertiesText.replace("version_patch=${version_patch}", "version_patch=${version_newpatch}")
+
+      gradlePropertiesFile.write(gradlePropertiesNew)
+      commit_version_update("${version_major}.${version_minor}.${version_newpatch}")
+   }
+}
+
+task tag_release() {
+   doLast {
+      repo.tag.add(name: "v${version}", message: "Release v${version}", force: true)
+      repo.push(tags: true, remote: 'mainline')
+   }
+}
+

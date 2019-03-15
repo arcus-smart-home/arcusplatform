@@ -1,0 +1,4 @@
+struct alertme.General.AmeString {
+   u8 length;
+   u8[length] string;
+}

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definition
+   xmlns="urn:com/iris/protocol/ipcd/xml/model"
+   name="Ipcd"
+   version="0.3">
+   
+   <!--
+      Attribute Definitions
+      *:name - The name of the element being defined.
+      *:description - A description of the element that will be used for comments and documentation.
+      
+      message:type - 'server' for messages that are sent to the device, 
+                     'client' for messages from the device, 
+                     'both' for messages that go either way
+      message:commandElement - The element where the command this message is based on can be found. '.' means the current element.
+      message:closures - A boolean that indicates of DSL binding closures will be generated for this type of message.
+      
+      property:type - the java type for the element being defined
+                      standard Java types are lower case by convention
+                      types defined in this definition are camel-case by convention
+      property:virtual - means a virtual type that is determined by the particular instance of the object being defined
+      property:required - indicates of this property is required to be present or have a value.
+      property:sample - A sample value to use for testing.
+                      A value that starts with '#' indicates that the sample the sample for a type defined in this file.
+                      A comma-separated string indicates a collection, entries with a ':' indicate a map, otherwise it will be a list
+                      Regular values are turned into numbers or strings depending on their content
+    -->
+   
+   <messages>
+      <message name="command" type="server" commandElement="." description="Commands are message sent to the device instructing it to do something." >
+         <!-- A key property is a property that identifies the messages. In this case, the specific command is identified by this property. --> 
+         <property name="command" type="string" key="true" description="The name of the command." />
+         <property name="txnid" type="string" required="false" sample="316ce17a-9748-4713-9b07-951c34eb12ab" description="The transaction id. If the server includes this attribute in a command, then the agent must return this value in the request encapsulated inside the response." />
+      </message>
+      <message name="event" type="client" description="The event action is used by the device to notify the platform when something has happened." >
+         <property name="device" type="Device" sample="#Device" description="Description of the agent device." />
+         <property name="events" type="list&lt;string&gt;" sample="onValueChange, onUpdate" description="List of events being reported." />
+         <property name="valueChanges" required="false" type="list&lt;ValueChange&gt;" sample="#ValueChange" description="List of value changes." />
+      </message>
+      <message name="response" type="client" commandElement="request" closures="true" description="A response is the message returned from device after a command has been processed." >
+         <property name="device" type="Device" sample="#Device" description="Description of the agent device." />
+         <property name="request" type="IpcdCommand" virtual="true" description="The request this is a response to." />
+         <property name="response" type="object" required="false" virtual="true" />
+         <property name="status" type="Status" required="false" sample="#Status" description="The status of the result." />
+      </message>
+      <message name="report" type="client" description="The report action is used by the device to periodically send the value of its parameters to the platform." >
+         <property name="device" type="Device" sample="#Device" description="Description of the agent device." />
+         <property name="report" type="map&lt;string,object&gt;" sample="ms2.temperature:23,ms2.batterylevel:80" description="The values being reported." />
+      </message>
+   </messages>
+   
+   <commands>
+      <command name="GetDeviceInfo" description="Gets information about the device.">
+         <response type="DeviceInfo" />
+      </command>
+      <command name="SetDeviceInfo" description="Sets the value of one or more device info fields. Only connectUrl is currently supported.">
+         <parameters>
+            <property name="values" type="map&lt;string,object&gt;" />
+         </parameters>
+         <response type="map&lt;string,object&gt;" description="One attribute for each of the fields referenced in the values attribute of the request, showing the current value after the set." />
+      </command>
+      <command name="GetParameterValues" description="Gets the value of one or more parameters.">
+         <parameters>
+            <property name="parameters" type="list&lt;string&gt;" required="false" />
+         </parameters>
+         <response type="map&lt;string,object&gt;" description="One attribute for each of the parameters in the request. If the device does not understand one of the requested attributes, that attribute should be returned in the response with value null." />
+      </command>
+      <command name="SetParameterValues" description="Sets the values of one or more parameters.">
+         <parameters>
+            <property name="values" type="map&lt;string,object&gt;" />
+         </parameters>
+         <response type="map&lt;string,object&gt;" description="One attribute for each of the parameters referenced in the values attribute of the request, showing the current value after the set." />
+      </command>
+      <command name="GetParameterInfo" description="Returns a description for each of the parameters of the device.">
+         <response type="map&lt;string,ParameterInfo&gt;" description="A list of all supported parameters." />
+      </command>
+      <command name="GetReportConfiguration" description="Retrieves the configuration of the device's reporting ability.">
+         <response type="ReportConfiguration" description="The reporting configuration." />
+      </command>
+      <command name="SetReportConfiguration" description="Sets the configuration of the device's reporting ability.">
+         <parameters allowNone="false" >
+            <property name="interval" type="number" required="false" />
+            <property name="parameters" type="list&lt;string&gt;" required="false" />
+         </parameters>
+         <response type="ReportConfiguration" description="The reporting configuration after the set." />
+      </command>
+      <command name="GetEventConfiguration" description="Gets the supported and enabled events and value changes.">
+         <response type="GetEventConfiguration" description="The event configuration." />
+      </command>
+      <command name="SetEventConfiguration" description="Sets the supported and enabled events and value changes.">
+         <parameters>
+            <property name="enabledEvents" type="list&lt;string&gt;"/>
+            <property name="enabledValueChanges" type="map&lt;string,ValueChangeThreshold&gt;" />
+         </parameters>
+         <response type="SetEventConfiguration" description="The event configuration after the set." />
+      </command>
+      <command name="Download" description="Tells the device to download a binary file. Typically used for firmware updates." >
+         <parameters>
+            <property name="url" type="string" description="URL to the firmware image to download." />
+            <property name="username" type="string" required="false" description="Optional username." />
+            <property name="password" type="string" required="false" description="Optional password." />
+         </parameters>
+      </command>
+      <command name="FactoryReset" description="Tells the device to factory reset." />
+      <command name="Leave" description="Tells the device to leave Wi-Fi network." />
+   </commands>
+   
+   <enums>
+      <enum name="StatusType" description="The status of a response message.">
+         <option value="success" description="Request was successfully handled."/>
+         <option value="warn" description="The request was successfully handled but the device has result messages to return"/>
+         <option value="fail" description="Unexpected input was provided or a precondition of the command was not satisfied"/>
+         <option value="error" description="An exception occurred."/>
+      </enum>
+   </enums>
+   
+   <types>
+      <type name="Device">
+         <property name="vendor" type="string" description="Name of the device vendor." />
+         <property name="model" type="string" description="Model name or number of the device." />
+         <property name="sn" type="string" description="Serial number of the device." />
+         <property name="ipcdver" type="string" description="IPCD protocol version." />
+      </type>
+      <type name="Status">
+         <property name="result" type="StatusType" description="'success' when request was successfully handled. 'warn' when the request as successfully handled but the device has result messages to return. 'fail' when unexpected input was provided or a precondition of the command was not satisfied. 'error' when an exception occurred." />
+         <property name="messages" required="false" type="list&lt;string&gt;" description="List of messages explaining the warning, failure, or error." />
+      </type>
+      <type name="DeviceInfo">
+         <property name="fwver" type="string" description="Firmware version." />
+         <property name="connection" type="string" description="Connection type, one of 'on-demand', 'persistent'." />
+         <property name="connectUrl" type="string" description="Service endpoint URL that device connects to." />
+         <property name="uptime" type="number" required="false" description="Number of seconds since last device restart or reboot." />
+         <property name="actions" type="list&lt;string&gt;" description="Ipcd Action names supported by the device." />
+         <property name="commands" type="list&lt;string&gt;" description="Ipcd Command names supported by the device." />
+      </type>
+      <type name="ParameterInfo">
+         <property name="type" type="string" description="One of 'string', 'number', 'boolean', or 'enum'." />
+         <property name="enumvalues" type="list&lt;string&gt;" required="false" description="List of enum values." />
+         <property name="attrib" type="string" description="One of 'readonly', 'readwrite', or 'writeonly'." />
+         <property name="unit" type="string" required="false" description="A human-readable hint about the unit space of the paramter." />
+         <property name="floor" type="number" required="false" description="A human-readable hint about the lower boundary of a numeric attribute." />
+         <property name="ceiling" type="number" required="false" description="A human-readable hint about the upper boundary of a numeric attribute." />
+         <property name="description" type="string" required="false" description="Human-readable description of the atribute." />
+       </type>
+       <type name="ReportConfiguration">
+         <property name="interval" type="number" description="The interval in seconds between successful reports." />
+         <property name="parameters" type="list&lt;string&gt;" description="The array of the names of all parameters included in reports." />
+         <property name="lastReportTime" type="number" required="false" description="Time of last report in Unix epoch time." />
+       </type>
+       <type name="GetEventConfiguration">
+         <property name="supportedEvents" type="list&lt;string&gt;" description="List of the names of events that are supported on the device." />
+         <property name="enabledEvents" type="list&lt;string&gt;" description="List of names of evetns that are enabled on the device." />
+         <property name="supportedValueChanges" type="map&lt;string,list&lt;string&gt;&gt;" description="A map of parameter names to a list of supported value change sub-events, 'onChange', 'onChangeBy', 'onEquals', 'onLessThan', 'onGreaterThan'." />
+         <property name="enabledValueChanges" type="map&lt;string,ValueChangeThreshold&gt;" description="A map of paramter names to ValueChangeThresholds." />
+       </type>
+       <type name="SetEventConfiguration">
+          <property name="enabledEvents" type="list&lt;string&gt;" description="List of names of evetns that are enabled on the device." />
+          <property name="enabledValueChanges" type="map&lt;string,ValueChangeThreshold&gt;" description="A map of paramter names to ValueChangeThresholds." />
+       </type>
+       <type name="ValueChange">
+         <property name="parameter" type="string" description="Parameter name."/>
+         <property name="value" type="object" description="New Parameter Value."/>
+         <property name="thresholdRule" type="string" required="false" description="Threshold rule as defined in event configuration." />
+         <property name="thresholdValue" type="object" required="false" description="The value used by the threshold rule." />
+       </type>
+       <type name="ValueChangeThreshold">
+         <property name="onChange" type="boolean" required="false" description="If set to true, any change in the parameter since the last value change event." />
+         <property name="onChangeBy" type="number" required="false" description="If the parameter value changes by the specified amount then a new value change event will be triggered." />
+         <property name="onEquals" type="list&lt;object&gt;" required="false" description="If the parameter's new value is equal to any value in the lsit, then a new value change event will be triggered." />
+         <property name="onLessThan" type="number" required="false" description="If the parameter's new value is less than the provided value, then a new value change event will be triggered." />
+         <property name="onGreaterThan" type="number" required="false" description="If the parameter's new value is greater than the provided value, then a new value change event will be triggered." />
+       </type>
+       <type name="EmptyResponse">
+       </type>
+   </types>
+   
+</definition>

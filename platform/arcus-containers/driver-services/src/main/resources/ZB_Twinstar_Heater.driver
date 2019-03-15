@@ -1,0 +1,1028 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Twinstar Duraflame Heater
+ *
+ * To Reset the heater if it is already paired:
+ *  - Hold in the Power button while plugging in the unit (may have to turn Off/On quickly several times)
+ *
+ * To Pair the device:
+ *  - Place hub in Pairing mode
+ *  - plug in the device and it should pair with the hub right away
+ * 
+ * To Unpair the device:
+ *  - From the platform select Remove Device while the device is connected to the system
+ * 
+ * Identify
+ *  - Device identifies itself by flashing the green 'iris' light on the front panel for the configured number of seconds (120).
+ *  
+ * NOTES:
+ *  - PowerUse capability not currently supported since device sends "garbage" values. It may be added later, so code is commented out for now.
+ *  - Power level reported does not immediately increase when device turns on, it sometimes takes a minute or two and generally reports a level of about 940 Watts.
+ *  - Device sometimes reports default values of 7.22C (45F) for setpoint and -17.77 (0F) for air temperature when first paired. Driver filters these values out if reported.
+ *  
+ */
+import groovy.transform.Field
+import com.iris.protocol.zigbee.ZclData;
+import com.iris.protocol.zigbee.zcl.ApplianceAlerts.GetAlertsResponse
+import com.iris.protocol.zigbee.zcl.General.ZclReadReportingConfigurationResponse
+import static com.iris.protocol.zigbee.zcl.Constants.*		// /arcus-protocol/build/generated-src/main/java/com/iris/protocol/zigbee/zcl/Constants.java
+import static com.iris.protocol.zigbee.zcl.General.*
+
+
+driver			"ZBTwinstarHeater"
+description		"Driver for the Twinstar Duraflame Heater"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"SpaceHeater"
+productId		"bf5579"
+vendor 			"Duraflame"
+model 			"Heater"
+
+matcher			'ZIGB:manufacturer': 0xDA77, 'ZIGB:vendor': 'Twin-Star International', 'ZIGB:model': '20QI071ARA'
+
+capabilities	DevicePower, Identify, DeviceOta, Temperature, SpaceHeater, TwinStar	//, PowerUse
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+//importCapability 'zigbee/GenericZigbeePowerUse'
+
+DeviceAdvanced.errors 				[:]  //initialize variable so unit tests work properly
+
+DevicePower.source 					DevicePower.SOURCE_LINE
+DevicePower.linecapable				true
+DevicePower.backupbatterycapable 	false
+
+SpaceHeater.minsetpoint             10			// 50F
+SpaceHeater.maxsetpoint             36.11		// 97F (96.998F)
+
+
+// End Point (0x01) 
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003		Identify
+//   0x0201		Thermostat
+//   0x0204     Thermostat User Interface
+//   0x0B02     Appliance Events
+//   0x0702	Metering (replaces 0x0B04)
+// OUT Clusters
+//   0x0003     Identify
+//   0x0019     OTA Upgrade (All)
+
+
+// Zigbee cluster constants (NOTE: would like to use thermostatCluster.CLUSTER_ID, etc, but value is always 769 for all clusters)
+@Field final short CLUSTER_BASIC            = 0x0000
+@Field final short CLUSTER_THERMOSTAT       = 0x0201
+@Field final short CLUSTER_THERMOSTAT_UI    = 0x0204
+@Field final short CLUSTER_METERING         = 0x0702
+@Field final short CLUSTER_APPLIANCE_ALERTS = 0x0B02
+
+@Field final byte ENDPOINT                  = 1
+@Field def dvcEndPoint = Zigbee.endpoint((byte)ENDPOINT)
+
+@Field final byte ZCL_RESPONSE_SUCCESS      = 0x00			// defined here because not sure ZigBee constant ZB_STATUS_SUCCESS is really the same thing
+
+
+def identCluster                = dvcEndPoint.Identify
+def otaCluster                  = dvcEndPoint.Ota
+def alertsCluster               = dvcEndPoint.ApplianceAlerts
+@Field def thermostatUiCluster  = dvcEndPoint.ThermostatUi
+@Field def thermostatCluster    = dvcEndPoint.Thermostat
+@Field def meteringCluster      = dvcEndPoint.Metering
+
+@Field static final String DEVICE_NAME = 'Twinstar Duraflame Heater'
+@Field final short PROFILE_HA		   = 0x0104
+
+// operational constants
+final int OFFLINE_TIMEOUT_SECS         = 600		// 10 minutes
+final short IDENT_PERIOD_SECS          = 120		// number of seconds for device to Identify itself when Identify method is called
+@Field final int TEMP_RANGE_MIN        = -17		// 1.4F, minimum air temperature we will consider valid (have seen -17.77C (0F) reported when first paired, may be a default)
+@Field final int TEMP_RANGE_MAX        =  50		// 122F, maximum air temperature we will consider valid
+
+// configured attribute reporting (car) settings  [cluster(2bytes), attribute(2bytes), type, min(2bytes), max(2bytes), delta(optional)]
+@Field final byte[] TEMP_CNF = [0x01, 0x02, 0x00, 0x00, ZB_TYPE_SIGNED_16BIT,   0x05, 0x00, 0x78, 0x00, 0x01, 0x00]
+@Field final byte[] MODE_CNF = [0x01, 0x02, 0x1c, 0x00, ZB_TYPE_ENUM_8BIT,      0x05, 0x00, 0x78, 0x00]
+@Field final byte[] SP_CNF   = [0x01, 0x02, 0x12, 0x00, ZB_TYPE_SIGNED_16BIT,   0x05, 0x00, 0x78, 0x00, 0x01, 0x00]
+@Field final byte[] ECO_CNF  = [0x01, 0x02, 0x25, 0x00, ZB_TYPE_BITMAP_8BIT,    0x05, 0x00, 0x78, 0x00]
+@Field final byte[] DISP_CNF = [0x04, 0x02, 0x00, 0x00, ZB_TYPE_ENUM_8BIT,      0x05, 0x00, 0x78, 0x00]
+@Field final byte[] POW_CNF  = [0x02, 0x07, 0x00, 0x04, ZB_TYPE_SIGNED_24BIT,   0x05, 0x00, 0x78, 0x00, 0x01, 0x00, 0x00]
+@Field final byte[] EN_CNF   = [0x02, 0x07, 0x00, 0x00, ZB_TYPE_UNSIGNED_48BIT, 0x05, 0x00, 0x78, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+@Field final short CNF_RETRY_TIME_MSEC    = 7800  // just under 8 seconds for the first retry (doubles subsequently)
+@Field final short CNFG_MAX_RETRIES       = 10
+
+// names for configured attribute reporting (car) settings
+@Field final String CNFG_MODE     = 'carMode'               // mode of device OFF/ON
+@Field final String CNFG_SETPOINT = 'carSetpoint'           // setpoint of device (desired air temperature)
+@Field final String CNFG_ECO      = 'carEco'                // economy mode setting (forces use of desired temperature 70F, without changing setpoint)
+@Field final String CNFG_TEMP     = 'carTemp'               // current air temperature of room
+@Field final String CNFG_TEMPUI   = 'carTempui'             // display units on device (F or C)
+@Field final String CNFG_POWER    = 'carPower'              // instantaneous power usage of device
+@Field final String CNFG_ENERGY   = 'carEnergy'             // cumulative power usage of device
+
+// delays to spread out configuration settings
+final long CNFG_MODE_DELAY     =  500   
+final long CNFG_SETPOINT_DELAY = 1000
+final long CNFG_ECO_DELAY      = 1500
+final long CNFG_TEMP_DELAY     = 2000
+final long CNFG_TEMPUI_DELAY   = 2500
+final long CNFG_POWER_DELAY    = 3000
+final long CNFG_ENERGY_DELAY   = 3500
+
+// Config State Machine constants
+@Field final int CNFG_STATE_DONE      = 0		// final state of state machine
+@Field final int CNFG_STATE_START     = 1		// initial state of state machine
+@Field final int CNFG_STATE_READING   = 2		// waiting for Read Response for Reporting Attribute value
+@Field final int CNFG_STATE_WRONG_VAL = 3		// Reporting Attribute value read is wrong (unexpected) value
+@Field final int CNFG_STATE_WRITTEN   = 4		// wrote Reporting Attribute setting, waiting for write response
+
+// event names
+final String DELAYED_TEMP_READ = 'DelayedTemperatureRead'
+
+// Alert Constants
+@Field final short ALERT_ID_OVERHEAT               = 128 		
+@Field final String ALERT_NAME_OVERHEAT            = "Overheat Shutdown"
+@Field final String ALERT_MESSAGE_OVERHEAT         = "E3: The heater has overheated.  Check that the inlets/outlets are not blocked, unplug the heater and allow it to cool down before use again."
+
+@Field final short ALERT_ID_PLUG                   = 129			
+@Field final String ALERT_NAME_PLUG                = "Safer Plug Shutdown"
+@Field final String ALERT_MESSAGE_PLUG             = "ER: The Safer Plug has detected possible outlet overheating.  Check the plug and outlet temperature, if overheated discontinue use of that outlet."
+
+@Field final short ALERT_ID_SENSOR                 = 130
+@Field final String ALERT_NAME_SENSOR              = "Safer Sensor Shutdown"
+@Field final String ALERT_MESSAGE_SENSOR           = "The Safer Sensor has detected the heater outlet may be blocked.  Check the heater to ensure that no objects are in front of the heater outlet."
+
+@Field final short ALERT_ID_THERM_DISCONNECT       = 131
+@Field final String ALERT_NAME_THERM_DISCONNECT    = "Thermostat Disconnected"
+@Field final String ALERT_MESSAGE_THERM_DISCONNECT = "E1: The thermostat is disconnected or damaged; contact Duraflame customer service at 1-800-318-9373"
+
+@Field final short ALERT_ID_THERM_BROKE            = 132
+@Field final String ALERT_NAME_THERM_BROKE         = "Thermostat Broken"
+@Field final String ALERT_MESSAGE_THERM_BROKE      = "E2: The thermostat is damaged; contact Duraflame customer service at 1-800-318-9373"
+
+@Field final short ALERT_ID_SAFER_STATUS           = 133  //Not Implemented
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    log.debug "{} added.", DEVICE_NAME
+
+    // set default attribute values
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+//    GenericZigbeePowerUse.doInitPowerUse(this, DEVICE_NAME, meteringCluster)
+
+    // Bind all of the command clusters on the endpoints we need
+    Zigbee.bindEndpoints(
+		alertsCluster.bindServerCluster(),
+		thermostatCluster.bindServerCluster(),
+		thermostatUiCluster.bindServerCluster(),
+		meteringCluster.bindServerCluster() )	
+}
+
+onConnected {
+	log.debug "{} connected.", DEVICE_NAME
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// initialize state machine for each Reporting Config setting
+	initStateMachine CNFG_MODE,     CNFG_MAX_RETRIES
+	initStateMachine CNFG_SETPOINT, CNFG_MAX_RETRIES
+	initStateMachine CNFG_ECO,      CNFG_MAX_RETRIES
+	initStateMachine CNFG_TEMP,     CNFG_MAX_RETRIES
+	initStateMachine CNFG_TEMPUI,   CNFG_MAX_RETRIES
+//	initStateMachine CNFG_POWER,    CNFG_MAX_RETRIES
+//	initStateMachine CNFG_ENERGY,   CNFG_MAX_RETRIES
+
+	// scheduled delayed settings of Reporting Configurations
+	Scheduler.scheduleIn CNFG_MODE,     CNFG_MODE_DELAY
+	Scheduler.scheduleIn CNFG_SETPOINT, CNFG_SETPOINT_DELAY
+	Scheduler.scheduleIn CNFG_ECO,      CNFG_ECO_DELAY
+	Scheduler.scheduleIn CNFG_TEMP,     CNFG_TEMP_DELAY
+	Scheduler.scheduleIn CNFG_TEMPUI,   CNFG_TEMPUI_DELAY
+//	Scheduler.scheduleIn CNFG_POWER,    CNFG_POWER_DELAY
+//	Scheduler.scheduleIn CNFG_ENERGY,   CNFG_ENERGY_DELAY
+
+	// read current Thermostat values
+	thermostatCluster.zclReadAttributes(
+		thermostatCluster.ATTR_LOCAL_TEMPERATURE,                           // Air Temperature
+		thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT,                   // Temperature Setpoint
+		thermostatCluster.ATTR_SYSTEM_MODE,                                 // SpaceHeater Mode: ON/OFF
+		thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE )      // Economy Mode: ON/OFF
+	
+	// read current Thermostat UI values
+	thermostatUiCluster.zclReadAttributes(
+		thermostatUiCluster.ATTR_TEMPERATURE_DISPLAY_MODE )                 // Temperature Display Units on device
+
+	// Read current Power Metering
+//	GenericZigbeePowerUse.doConfigPowerUse(this, DEVICE_NAME, meteringCluster)
+	
+	// Check for any current appliance Alerts
+	log.trace "Get ApplianceAlerts"
+	alertsCluster.getAlerts()
+	
+	// sometimes devices report default Setpoint and Air Temperature readings when read during pairing process
+	// so try reading those values again after a few seconds (5 seconds does not always work but 10 seems to generally work and then we don't have
+	// to wait a full 120 seconds until the next reporting interval)
+	Scheduler.scheduleIn DELAYED_TEMP_READ, 10000
+}
+
+onDisconnected {
+	log.debug "{} disconnected.", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed.", DEVICE_NAME
+}
+
+
+
+
+onEvent( DELAYED_TEMP_READ ) {
+	// read current Thermostat values
+	thermostatCluster.zclReadAttributes(
+		thermostatCluster.ATTR_LOCAL_TEMPERATURE,                           // Air Temperature
+		thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT,                   // Temperature Setpoint
+		thermostatCluster.ATTR_SYSTEM_MODE,                                 // SpaceHeater Mode: ON/OFF
+		thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE )      // Economy Mode: ON/OFF
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Reporting Configuration State Machine Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+// basic state machine:
+// - Read configuration, if desired value, we're done.
+// - If not, attempt to write desired value
+// - If write response received, attempt to read again from state 1.
+// - If not, re-configure again (up to 10 times total)
+
+void handleStateEvent( attrName, readClosure, writeClosure) {
+	int state = getState(attrName)
+	int cnt = getRetryCnt(attrName)
+	log.trace "{} event: state:{}, cnt:{}", attrName, state, cnt
+
+	// if state is DONE, do nothing
+	if (CNFG_STATE_DONE == state) {
+		return	// done
+	}
+	
+	// if retry count has decremented to less than 0, log warning and stop trying
+	if (0 > cnt) {
+		log.warn "{} could not be configured.  Device may not report changes as expected.", attrName
+		return	// done, retry attempt limit reached
+	}
+
+	// if state is START, try to read the configured attribute reporting (car) value
+	if (CNFG_STATE_START == state) {
+		log.trace "{} - read configured attribute reporting (car) value", attrName
+		// call provided readClosure
+		readClosure()
+		// transition state to READING
+		setState attrName, CNFG_STATE_READING
+	}
+	
+	// if state is READING, or WRITTEN, we've timed out waiting for a response, so try writing again
+	// or if value was read but is WRONG_VAL, try writing again
+	else if ((CNFG_STATE_READING == state) ||		// we timed out trying to read the configured attribute reporting (car) value
+			 (CNFG_STATE_WRITTEN == state) ||		// we timed out trying to write the configured attribute reporting (car) value
+			 (CNFG_STATE_WRONG_VAL == state) ) {	// the setting read back is the wrong (unexpected) value
+		// call provided writeClosure
+		writeClosure()
+		// transition state to WRITTEN
+		setState attrName, CNFG_STATE_WRITTEN
+	}
+	Scheduler.scheduleIn attrName, CNF_RETRY_TIME_MSEC * (CNFG_MAX_RETRIES - cnt + 1)	// as retry count decrements, wait longer between retries
+}
+
+onEvent( CNFG_MODE ) {
+	handleStateEvent CNFG_MODE, 
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_SYSTEM_MODE ) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_SYSTEM_MODE, ZB_TYPE_ENUM_8BIT, CNFG_MODE ) }
+}
+
+onEvent( CNFG_SETPOINT ) {
+	handleStateEvent CNFG_SETPOINT, 
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT ) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZB_TYPE_SIGNED_16BIT, CNFG_SETPOINT ) }
+}
+
+onEvent( CNFG_ECO ) {
+	handleStateEvent CNFG_ECO,
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE ) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE, ZB_TYPE_BITMAP_8BIT, CNFG_ECO ) }
+}
+
+onEvent( CNFG_TEMP ) {
+	handleStateEvent CNFG_TEMP,
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_LOCAL_TEMPERATURE) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_THERMOSTAT, thermostatCluster.ATTR_LOCAL_TEMPERATURE, ZB_TYPE_SIGNED_16BIT, CNFG_TEMP ) }
+}
+
+onEvent( CNFG_TEMPUI ) {
+	handleStateEvent CNFG_TEMPUI,
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_THERMOSTAT_UI, thermostatUiCluster.ATTR_TEMPERATURE_DISPLAY_MODE) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_THERMOSTAT_UI, thermostatUiCluster.ATTR_TEMPERATURE_DISPLAY_MODE, ZB_TYPE_ENUM_8BIT, CNFG_TEMPUI ) }
+}
+
+onEvent( CNFG_POWER ) {
+	handleStateEvent CNFG_POWER,
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_METERING, meteringCluster.ATTR_INSTANTANEOUS_DEMAND) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_METERING, meteringCluster.ATTR_INSTANTANEOUS_DEMAND, ZB_TYPE_SIGNED_24BIT, CNFG_POWER ) }
+}
+
+onEvent( CNFG_ENERGY ) {
+	handleStateEvent CNFG_ENERGY,
+		{ sendReadCnfgAttrCommand( ENDPOINT, CLUSTER_METERING, meteringCluster.ATTR_CURRENT_SUMMATION_DELIVERED) },
+		{ sendCnfgAttrCommandRetries( ENDPOINT, CLUSTER_METERING, meteringCluster.ATTR_CURRENT_SUMMATION_DELIVERED, ZB_TYPE_UNSIGNED_48BIT, CNFG_ENERGY ) }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SpaceHeater Capability Attribute Closure
+////////////////////////////////////////////////////////////////////////////////
+setAttributes('spaceheater') {
+	log.debug "{} received 'spaceheater' setAttributes message {} ", DEVICE_NAME, message
+
+	// create a map of thermostat cluster attribute settings to send to the device
+	Map<Short,ZclData> thermAttributes = new HashMap();
+	ZclData HEAT_ON = Zigbee.Data.encode8BitEnum((byte)thermostatCluster.SYSTEM_MODE_HEAT)
+	
+	def attributes = message.attributes
+	for (attribute in attributes){
+		log.trace "Processing {} with value {}", attribute.key, attribute.value
+		switch(attribute.key) {
+			case SpaceHeater.heatstate:
+				switch(attribute.value){
+					case SpaceHeater.HEATSTATE_ON:
+						 thermAttributes.put( thermostatCluster.ATTR_SYSTEM_MODE, HEAT_ON )
+						 log.debug "Set mode to heat"
+						 break
+					case SpaceHeater.HEATSTATE_OFF:
+						 thermAttributes.put( thermostatCluster.ATTR_SYSTEM_MODE, Zigbee.Data.encode8BitEnum((byte)thermostatCluster.SYSTEM_MODE_OFF) )
+						 log.debug "Set mode to off"
+						 break
+					default:
+						log.error "{} Unrecognized attribute value: {}", DEVICE_NAME, attribute
+						break
+				}
+				break
+			case SpaceHeater.setpoint:
+				// convert degC decimal to 1/100th of degree
+				short setpoint = Math.round((new Double(attribute.value)* 100))
+				// enforce limits
+				if (SpaceHeater.minsetpoint.get()*100 >setpoint){
+					setpoint = SpaceHeater.minsetpoint.get()*100
+				}
+				if (SpaceHeater.maxsetpoint.get()*100 <setpoint){
+					setpoint = SpaceHeater.maxsetpoint.get()*100
+				}
+				log.debug "{} Set heating setpoint to {}", DEVICE_NAME, setpoint
+				thermAttributes.put( thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT, Zigbee.Data.encode16BitSigned((short)setpoint) )
+				break
+			default:
+				log.info "{} Unrecognized attribute: {}", DEVICE_NAME, attribute
+				break
+		}
+	}
+	
+	if (0 < thermAttributes.size()) {
+		// set twinstar:ecomode = DISABLED when spaceheater:setpoint is set (IFF the request also has heatstate going to ON OR if heatstate is already ON)
+		if (thermAttributes.containsKey(thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT) &&
+			((HEAT_ON == thermAttributes.get(thermostatCluster.ATTR_SYSTEM_MODE)) || (SpaceHeater.HEATSTATE_ON == SpaceHeater.heatstate.get())) ) {
+			log.debug "{} Auto-disable Eco Mode", DEVICE_NAME
+			thermAttributes.put( thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE, Zigbee.Data.encode8BitBitmap(thermostatCluster.THERMOSTAT_PROGRAMMING_OPERATION_MODE_ECONOMY_OFF))
+		}
+	
+		// write all thermostat cluster attributes in a single request to the device
+		log.debug "{} Writing thermostat cluster attributes to device: {}", DEVICE_NAME, thermAttributes
+		thermostatCluster.zclWriteAttributes( thermAttributes )
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Twinstar Capability Attribute Closure
+////////////////////////////////////////////////////////////////////////////////
+setAttributes('twinstar') {
+	log.debug "{} received 'twinstar' setAttributes message {} ", DEVICE_NAME, message
+	def attributes = message.attributes
+	for (attribute in attributes){
+		log.trace "Processing {} with value {}", attribute.key, attribute.value
+		switch(attribute.key) {
+			case TwinStar.ecomode:
+				switch(attribute.value){
+					case TwinStar.ECOMODE_DISABLED:
+						thermostatCluster.zclWriteAttributes( thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE, Zigbee.Data.encode8BitBitmap(thermostatCluster.THERMOSTAT_PROGRAMMING_OPERATION_MODE_ECONOMY_OFF))
+						log.debug "{} setting Economy Mode OFF", DEVICE_NAME
+						break
+					case TwinStar.ECOMODE_ENABLED:
+						thermostatCluster.zclWriteAttributes( thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE, Zigbee.Data.encode8BitBitmap(thermostatCluster.THERMOSTAT_PROGRAMMING_OPERATION_MODE_ECONOMY_ON))
+						log.debug "{} setting Economy Mode to ON", DEVICE_NAME		
+						break		
+					default:
+						log.info "{} unrecognized value {} for attribute: {}", DEVICE_NAME, attribute.value, attribute		
+						break				
+				}
+				break
+			default:
+				log.info "{} unrecognized 'twinstar' attribute: {}", DEVICE_NAME, attribute
+				break
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify: " + message
+	// ask the device to identify itself (flashes "IRIS" light on front of device)
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+void handleThermostatMessage(Object cluster, Object message){
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def currMode = attributes[cluster.ATTR_SYSTEM_MODE]
+	def currTemp = attributes[cluster.ATTR_LOCAL_TEMPERATURE]
+	def currHeat = attributes[cluster.ATTR_OCCUPIED_HEATING_SETPOINT]
+	def currEcoMode = attributes[cluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE]
+	
+	log.debug "{} received attribute report for SYSTEM_MODE:[{}], LOCAL_TEMPERATURE:[{}], OCCUPIED_HEATING_SETPOINT:[{}], THERMOSTAT_PROGRAMMING_OPERATION_MODE:[{}]", DEVICE_NAME, currMode, currTemp, currHeat, currEcoMode
+
+	// set Temp attributes to current levels
+	if ((null != currTemp) && ('INVALID' != currTemp.toString())) {
+        // temperature is reported in 100ths degree C, so convert to C and save
+        double tempC = currTemp
+        tempC /= 100
+        log.debug "Reported Measured Temp as: {}C", tempC
+		// verify value reported is in range (have seen -17.77C reported when first paired, may be a default)
+		if ((TEMP_RANGE_MIN <= tempC) && (TEMP_RANGE_MAX >= tempC)) {
+			Temperature.temperature tempC
+		} else {
+			log.info "Ignoring Out-of-Range ({}C - {}C) temperature reported {}C", TEMP_RANGE_MIN, TEMP_RANGE_MAX, tempC
+		}
+    }
+    
+    // set SystemMode attributes to current levels
+	if ((null != currMode) && ('INVALID' != currMode.toString())) {
+		switch(currMode){
+			case cluster.SYSTEM_MODE_OFF:
+				log.debug "{} setting Spaceheater mode to OFF", DEVICE_NAME
+				SpaceHeater.heatstate SpaceHeater.HEATSTATE_OFF
+				break
+			case cluster.SYSTEM_MODE_HEAT:
+				log.debug "{} setting Spaceheater mode to ON", DEVICE_NAME
+				SpaceHeater.heatstate SpaceHeater.HEATSTATE_ON
+				break
+			case cluster.SYSTEM_MODE_FAN_ONLY:
+				log.debug "{} IN cooldown, no capability", DEVICE_NAME
+				break
+			default:
+				log.info "Received unrecognized System Mode {} from {}", currMode, DEVICE_NAME
+				break
+		}
+	}
+	
+	// set Heating Set Point attribute to current levels
+	if ((null != currHeat) && ('INVALID' != currHeat.toString())) {
+        // temperature is reported in 100ths degree C, so convert to C and save
+        double tempC = currHeat
+        tempC /= 100
+        log.debug "Reported Setpoint Temp as: {}C", tempC
+		// verify setpoint value reported is in range (have seen 7.22C reported when first paired, may be a default)
+		if ((SpaceHeater.minsetpoint.get() <= tempC) && (SpaceHeater.maxsetpoint.get() >= tempC)) {
+			currSetPoint = SpaceHeater.setpoint.get()
+			if (currSetPoint != tempC){
+				SpaceHeater.setpoint		tempC
+			}
+		} else {
+			log.info "Ignoring Out-of-Range ({}C - {}C) setpoint reported {}C", SpaceHeater.minsetpoint.get(), SpaceHeater.maxsetpoint.get(), tempC
+		}
+    }
+    
+    // set EcoMode attributes to current levels
+	if ((null != currEcoMode) && ('INVALID' != currEcoMode.toString())) {
+        log.debug "Reported EcoMode as: {}", currEcoMode
+        if (currEcoMode){
+        	TwinStar.ecomode TwinStar.ECOMODE_ENABLED
+        }else{
+       		TwinStar.ecomode TwinStar.ECOMODE_DISABLED
+		}
+    }
+
+}
+
+onZigbeeMessage.Zcl.thermostat.zclreadattributesresponse() {
+	log.trace "{} received Thermostat Attributes Response {}", DEVICE_NAME, message
+	handleThermostatMessage(thermostatCluster, message)
+}
+
+// called when device asynchronously sends a Report Attributes
+onZigbeeMessage.Zcl.thermostat.zclreportattributes() {
+	log.trace "{} received Thermostat Report Attributes {}", DEVICE_NAME, message
+	handleThermostatMessage(thermostatCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// ThermostatUI protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+void handleThermostatUiMessage(Object cluster, Object message){
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def currMode = attributes[cluster.ATTR_TEMPERATURE_DISPLAY_MODE]
+	log.trace "Received UI Display Mode: {}", currMode
+
+	if ((null != currMode) && ('INVALID' != currMode.toString())) {
+		switch(currMode){
+			case cluster.TEMPERATURE_DISPLAY_MODE_CELSIUS:
+				log.debug "{} setting Thermostat UI Mode to degC", DEVICE_NAME
+				break
+			case cluster.TEMPERATURE_DISPLAY_MODE_FAHRENHEIT:
+				log.debug "{} setting Thermostat UI  Mode to degF", DEVICE_NAME
+				break		
+			default:
+				log.warn "Received unrecognized UI Display Mode {} from {}", currMode, DEVICE_NAME
+		}
+	}
+}
+
+onZigbeeMessage.Zcl.thermostatui.zclreadattributesresponse() {
+	log.trace "{} received Thermostat UI Attributes Response {}", DEVICE_NAME, message
+	handleThermostatUiMessage(thermostatUiCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.thermostatui.zclreportattributes() {
+	log.trace "{} received Thermostat UI Report Attributes {}", DEVICE_NAME, message
+	handleThermostatUiMessage(thermostatUiCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Alerts protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+void handleAlertsMessage(Object cluster, Object message){
+	def msg = Zigbee.Message.decodeZcl(message)
+	byte numberEvents = 0x0F & (byte)msg.getNumberAlerts()
+	log.debug "{} received [{}] alerts", DEVICE_NAME, numberEvents
+	
+	if (0 == numberEvents){
+		log.trace "{} clearing errors", DEVICE_NAME
+		DeviceAdvanced.errors [:]
+		return
+	}
+	
+	def data = msg.getData()
+	log.debug "Alert Response: {} Alerts, with data: {}", numberEvents, data
+
+	//data is in 3 byte chuncks		
+	for(int i = 0; i < numberEvents*3; i=i+3){
+		short alertcode = data[i]
+		if (0 > alertcode) {
+            alertcode = alertcode + 256
+        }
+		byte presenceCode = ((byte)(data[i+1] >>4) & 0x03)
+		String alertName = ""
+		String alertMessage = ""
+		log.debug "{} processing alert number {} with presence code {}", DEVICE_NAME, alertcode, presenceCode
+		switch(alertcode){
+		    case(ALERT_ID_OVERHEAT):
+		 	     alertName = ALERT_NAME_OVERHEAT
+		 	     alertMessage = ALERT_MESSAGE_OVERHEAT
+		 	     break
+		    case(ALERT_ID_PLUG):
+		 	     alertName = ALERT_NAME_PLUG
+		 	     alertMessage = ALERT_MESSAGE_PLUG
+		 	     break
+		    case(ALERT_ID_SENSOR):
+		 	     alertName = ALERT_NAME_SENSOR
+		 	     alertMessage = ALERT_MESSAGE_SENSOR
+		 	     break
+		    case(ALERT_ID_THERM_DISCONNECT):
+		 	     alertName = ALERT_NAME_THERM_DISCONNECT
+		 	     alertMessage = ALERT_MESSAGE_THERM_DISCONNECT
+		 	     break		 	   
+		    case(ALERT_ID_THERM_BROKE):
+		 	     alertName = ALERT_NAME_THERM_BROKE
+		 	     alertMessage = ALERT_MESSAGE_THERM_BROKE
+		 	     break
+		 	case(ALERT_ID_SAFER_STATUS):
+		 		log.debug("Received Safer Sensor Disabled Alert with presence: [{}]", presenceCode)
+		    default:
+                log.info "Unrecognized Alert [{}]", alertcode
+		}
+		if (GetAlertsResponse.PRESENCE == presenceCode && "" != alertName){
+			DeviceAdvanced.errors.put(alertName, alertMessage)
+			log.debug "{} Alert Set", alertName
+		} else if (GetAlertsResponse.RECOVERY == presenceCode && "" != alertName){
+			log.debug "{} Alert Cleared", alertName
+			DeviceAdvanced.errors.remove(alertName)
+			log.debug "{} Alert Cleared, errors = {}", alertName, DeviceAdvanced.errors.get()
+		} else {
+			log.info "Unrecognized Alert Presence Code [{}]", presenceCode
+		}
+	}	
+}
+
+
+onZigbeeMessage.Zcl.appliancealerts.getalertsresponse() {
+	log.trace "{} received GetAlertsResponse {}", DEVICE_NAME, message
+	handleAlertsMessage(alertsCluster, message)
+}
+
+onZigbeeMessage.Zcl.appliancealerts.alertsnotification() {
+	log.trace "{} received AlertsNotification {}", DEVICE_NAME, message
+	handleAlertsMessage(alertsCluster, message)
+}
+
+
+final int END_OF_CYCLE = 1;
+final int SWITCHING_OFF = 6;
+onZigbeeMessage.Zcl.appliancealerts.eventsnotification() {
+	log.debug "{} received Events Notification {}", DEVICE_NAME, message
+	def msg = Zigbee.Message.decodeZcl(message)
+	byte event = (byte)msg.getEventIdentification()
+//Cannot figure out the syntax to use the constant from the .irp
+//	if (alertsCluster.EventsNotification.END_OF_CYCLE == event || alertsCluster.EventsNotification.SWITCHING_OFF == event){
+	if (END_OF_CYCLE == event|| SWITCHING_OFF == event){
+		log.debug("Timed heating cycle completed" )
+	} else {
+		log.debug("Unknown event [{}]", event) 
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Metering protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+void handleMeteringResponse(message){
+	if (null != DeviceOta.currentVersion.get() && "6055700" != DeviceOta.currentVersion.get()){
+//	GenericZigbeePowerUse.doHandlePowerUse(this, DEVICE_NAME, meteringCluster, message)
+	} else {
+	log.debug "{} dropping metering response because version wrong or unknown[{}]", DEVICE_NAME, DeviceOta.currentVersion.get()
+	}
+}
+
+onZigbeeMessage.Zcl.metering.zclreadattributesresponse() {
+	log.trace "{} received Metering Attributes Response {}", DEVICE_NAME, message
+	handleMeteringResponse(message)
+}
+
+onZigbeeMessage.Zcl.metering.zclreportattributes() {
+	log.trace "{} received Metering Report Attributes {}", DEVICE_NAME, message
+	handleMeteringResponse(message)
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   log.trace "{} received zigbee ZCL message: {} ", DEVICE_NAME, message
+   def zclMsg = Zigbee.Message.toZcl(message)
+   // get Information about the message
+   def profile = zclMsg.getProfileId()
+   def clusterId = zclMsg.getClusterId()
+   def msgId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def flags = zclMsg.getFlags()
+   // get the message data
+   byte[] data = zclMsg.getPayload()
+
+   if ((PROFILE_HA == profile) && (ZclConfigureReportingResponse.ID == msgId)) {
+      processCnfgRptRsp( endpoint, clusterId, data)
+   } else if ((PROFILE_HA == profile) && (ZclReadReportingConfigurationResponse.ID == msgId)) {
+      processReadCnfgRptRsp( endpoint, clusterId, data)
+   } else if ((PROFILE_HA == profile) && (ZclWriteAttributesResponse.ID == msgId)) {
+      processWrtAttrRsp( endpoint, clusterId, data)
+   } else if ((PROFILE_HA == profile) && (ZclReadAttributes.ID == msgId)) {
+      // device periodically (roughly every 5 minutes) sends us a ReadAttributes request for Basic cluster, Attribute 0x00
+      // this appears to be some type of keep-alive or heart beat, so we just log it
+      log.trace "{} sent ReadAttributes request for: Profile: {}, ClusterId:{}, EndPoint:{}, Flags:{}",
+                DEVICE_NAME, profile, clusterId, endpoint, flags
+   } else {
+      log.debug "{} received unhandeld ZCL message: Profile: {}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:",
+                DEVICE_NAME, profile, clusterId, msgId, endpoint, flags, data
+   }
+}
+
+
+void processWrtAttrRsp( endpoint, cluster, data) {
+	log.trace "{} Write Attr Response - Endpoint:{}, Cluster:{} Data:{} Size:{}", DEVICE_NAME, endpoint, cluster, data, data.size()
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// configure reporting - and sub functions
+///////////////////////////////////////////////////////////////////////////////
+void sendCnfgAttrCommand( endpoint, cluster, attr, type) {
+	log.trace "sendCnfgAttrCommand - Endpoint:{}, Cluster:{}, Attr:{}, Type:{}", endpoint, cluster, attr, type
+
+	// hard codes to min of 5 seconds, max of 120 seconds, min reportable, if needed, is 1.
+	byte[] payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00]
+	
+	if (canConfigDelta(type)) {
+		byte num_zeros = type%8 		// uint8: 0x20 = 34 % 8 == 0... signed: 0x28 = 40 % 8 = 0
+		log.trace "{} analog, attach {} zeros", attr, num_zeros
+
+		if (num_zeros==1) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00]
+		} else if (num_zeros==2) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00,0x00]
+		} else if (num_zeros==3) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00,0x00,0x00]
+		} else if (num_zeros==4) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00,0x00,0x00,0x00]
+		} else if (num_zeros==5) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00,0x00,0x00,0x00,0x00]
+		} else if (num_zeros==6) {
+			payload = [0x00, attr&0xFF, attr>>8, type,0x05,0x00,0x78,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00]
+		}      
+		sendGlobalCommand( endpoint, cluster, ZclConfigureReporting.ID, payload )
+	} else {
+		log.trace "Attr {} not analog, type: {}", attr, type
+		sendGlobalCommand( endpoint, cluster, ZclConfigureReporting.ID, payload )
+	}
+}
+
+void sendCnfgAttrCommandRetries( endpoint, cluster, attr, type, cntName) {
+	int count = getRetryCnt(cntName)
+	log.trace "sendCnfgAttrCommandRetries - Endpoint:{}, Cluster:{}, Attr:{}, Type:{}, Cnt:{}", endpoint, cluster, attr, type, count
+	if (0 <= count) {
+		sendCnfgAttrCommand( endpoint, cluster, attr, type)
+		decRetryCnt(cntName)
+	}
+}
+
+void processCnfgRptRsp( endpoint, cluster, data) {
+	log.trace "{} configure reporting response Endpoint:{}, Cluster:{} Data:{} Size:{}", DEVICE_NAME, endpoint, cluster, data, data.size()
+
+	//short attr = (data[3] * 256) + data[2]
+	
+	// the zcl (6!) spec still states that attribute is mandatory, but it is NEVER included
+	// so instead we assume that whatever state machine is currently in state 4 for the proper cluster,
+	// move that back to state 1 to read the configuration again.
+	byte response = data[0]
+	if (ZCL_RESPONSE_SUCCESS == response) {
+		if ((CLUSTER_THERMOSTAT == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_TEMP))) {				// && (thermostatCluster.ATTR_LOCAL_TEMPERATURE == attr)
+			setStateToReadAndReschedule(CNFG_TEMP)
+		} else if ((CLUSTER_THERMOSTAT == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_MODE))) {		// && (thermostatCluster.ATTR_SYSTEM_MODE == attr)
+			setStateToReadAndReschedule(CNFG_MODE)
+	    } else if ((CLUSTER_THERMOSTAT == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_SETPOINT))) {	// && (thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT == attr)
+			setStateToReadAndReschedule(CNFG_SETPOINT)
+		} else if ((CLUSTER_THERMOSTAT == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_ECO))) {			// && (thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE == attr)
+			setStateToReadAndReschedule(CNFG_ECO)
+		} else if ((CLUSTER_THERMOSTAT_UI == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_TEMPUI))) {	// && (thermostatUiCluster.ATTR_TEMPERATURE_DISPLAY_MODE == attr)
+			setStateToReadAndReschedule(CNFG_TEMPUI)
+		} else if ((CLUSTER_METERING == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_POWER))) {			// && (meteringCluster.ATTR_INSTANTANEOUS_DEMAND == attr)
+			setStateToReadAndReschedule(CNFG_POWER)
+		} else if ((CLUSTER_METERING == cluster) && (CNFG_STATE_WRITTEN == getState(CNFG_ENERGY))) {		//&& (meteringCluster.ATTR_CURRENT_SUMMATION_DELIVERED == attr)
+			setStateToReadAndReschedule(CNFG_ENERGY)
+		}  else {
+			log.info "{} Config Reporting Response for unexpected cluster {}", DEVICE_NAME, cluster
+		}
+	} else {
+		log.info "{} FAILURE returned in Config Reporting Response for cluster {}", DEVICE_NAME, cluster
+	}
+}
+
+void setStateToReadAndReschedule(attrName) {
+	log.trace "{} success response for writting {}", DEVICE_NAME, attrName
+	// reset state machine for the attribute back to START, so we try to read current value
+	setState(attrName, CNFG_STATE_START)
+	// changed scheduled event to run now (deferred) so we go ahead and trigger a read request
+	Scheduler.defer attrName
+}
+
+
+void processReadCnfgRptRsp( endpoint, cluster, data ) {
+	log.trace "{} read configuration of reporting response Endpoint:{}, Cluster:{}, Data:{}, Size:{}", DEVICE_NAME, endpoint, cluster, data, data.size()
+	byte response = data[0]
+	
+	if ((ZCL_RESPONSE_SUCCESS == response) && (data.size() > 4)) { // success, meaning supported, reportable and configured (only time the data is present)
+		short attr = (data[3] * 256) + data[2]
+		
+		if ((CLUSTER_THERMOSTAT == cluster) && (thermostatCluster.ATTR_LOCAL_TEMPERATURE == attr)) {
+			checkConfigAttrReportValue( CNFG_TEMP, TEMP_CNF, data)
+			
+		} else if ((CLUSTER_THERMOSTAT == cluster) && (thermostatCluster.ATTR_SYSTEM_MODE == attr)) {
+			checkConfigAttrReportValue( CNFG_MODE, MODE_CNF, data)
+			
+		} else if ((CLUSTER_THERMOSTAT == cluster) && (thermostatCluster.ATTR_OCCUPIED_HEATING_SETPOINT == attr) ) {
+			checkConfigAttrReportValue( CNFG_SETPOINT, SP_CNF, data)
+			
+		} else if ((CLUSTER_THERMOSTAT == cluster) && (thermostatCluster.ATTR_THERMOSTAT_PROGRAMMING_OPERATION_MODE == attr)) {
+			checkConfigAttrReportValue( CNFG_ECO, ECO_CNF, data)
+			
+		} else if ((CLUSTER_THERMOSTAT_UI == cluster) && (thermostatUiCluster.ATTR_TEMPERATURE_DISPLAY_MODE == attr)) {
+			checkConfigAttrReportValue( CNFG_TEMPUI, DISP_CNF, data)
+			
+		} else if ((CLUSTER_METERING == cluster) && (meteringCluster.ATTR_INSTANTANEOUS_DEMAND == attr)) {
+			checkConfigAttrReportValue( CNFG_POWER, POW_CNF, data)
+			
+		} else if ((CLUSTER_METERING == cluster) && (meteringCluster.ATTR_CURRENT_SUMMATION_DELIVERED == attr)) {
+			checkConfigAttrReportValue( CNFG_ENERGY, EN_CNF, data)
+			
+		}  else {
+			log.info "{} Read Cnfg Reporting Response for unexpected cluster {} and Attr {}", DEVICE_NAME, cluster, attr
+		}
+	}
+}
+
+void checkConfigAttrReportValue(attrName, desired, actual) {
+	int length = actual.size()
+	boolean result = true
+
+	for (i in 2..(length-1)) {
+		if (desired[i] != actual[i]) {
+			log.trace "Byte:{}, Values: {} != {}", i, desired[i], actual[i]
+			result = false
+			break
+		}
+	}
+	if (result) {		// matches, we're done with the whole process
+		log.debug "{} configuration SUCCESS", attrName
+		setState(attrName, CNFG_STATE_DONE)
+		clrRetryCnt(attrName)
+		Scheduler.cancel attrName
+	} else { // not properly configured
+		log.debug "{} value does not match desired setting", attrName
+		setState(attrName, CNFG_STATE_WRONG_VAL)
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// helper functions - basic payload
+///////////////////////////////////////////////////////////////////////////////
+
+void sendGlobalCommand( endpoint, cluster, command, payload ) {
+	log.trace "sendGlobalCommand - Endpoint:{}, Cluster:{}, Cmd:{}, Payload:{}", endpoint, cluster, command, payload
+	Zigbee.send(
+		"cluster" : cluster,
+		"command" : (short)command,
+		"profile" : PROFILE_HA,
+		"endpoint" : endpoint,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : payload as byte[]
+	)
+}
+
+void sendClusterSpecificCommand( endpoint, cluster, command, payload ) {
+	log.trace "sendClusterCommand - Endpoint:{}, Cluster:{}, Cmd:{}, Payload:{}", endpoint, cluster, command, payload
+	Zigbee.send(
+		"cluster" : cluster,
+		"command" : (short)command,
+		"profile" : PROFILE_HA,
+		"endpoint" : endpoint,
+		"clusterspecific" : true,
+		"defaultresponse" : true,
+		"data" : payload as byte[]
+	)
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// helper functions - specific global commands with basic payload
+///////////////////////////////////////////////////////////////////////////////
+
+void sendReadCnfgAttrCommand( endpoint, cluster, attr ) {
+	byte[] payload = [0x00, attr&0xFF, attr>>8]
+	log.trace "sendReadCnfgAttrCommand - Endpoint:{}, Cluster:{}, Attr:{}, Payload:{}", endpoint, cluster, attr, payload
+	sendGlobalCommand( endpoint, cluster, ZclReadReportingConfiguration.ID, payload )
+}
+
+// returns true if the data type allows configuring a "delta" change to trigger reporting
+boolean canConfigDelta(dataType) {
+
+	// unsigned types
+	if ((ZB_TYPE_UNSIGNED_8BIT <= dataType) && (ZB_TYPE_UNSIGNED_64BIT >= dataType)) {
+		return true
+	}
+	
+	// signed types
+	if ((ZB_TYPE_SIGNED_8BIT <= dataType) && (ZB_TYPE_SIGNED_64BIT >= dataType)) {
+		return true
+	}
+	
+	// misc analog types
+	if ((ZB_TYPE_SEMIFLOAT == dataType) || 
+		(ZB_TYPE_FLOAT == dataType) || 
+		(ZB_TYPE_DOUBLE == dataType)) {
+		return true
+	}
+		
+	// time types
+	if ((ZB_TYPE_TIME_OF_DAY == dataType) || 
+		(ZB_TYPE_DATE == dataType) || 
+		(ZB_TYPE_UTCTIME == dataType)) {
+		return true
+	}
+
+	return false
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// configuration state machine accessor methods for named attributes
+///////////////////////////////////////////////////////////////////////////////
+
+// initialize the configuration state machine for the named attribute
+void initStateMachine( cnfgName, maxRetryCnt ) {
+	vars."${cnfgName}S" = CNFG_STATE_START		// start the configuration state machine
+	vars."${cnfgName}C" = maxRetryCnt
+}
+
+// get the configuration state machine state for the named attribute
+int getState( cnfgName ) {
+	return (vars."${cnfgName}S" ?: 1)
+}
+
+// set the configuration state machine state for the named attribute to the specified state, returns previous state.
+int setState( cnfgName, state ) {
+	int prevState = vars."${cnfgName}S" ?: CNFG_STATE_START
+	vars."${cnfgName}S" = state
+	return prevState
+}
+
+
+// get retry count remaining from configuration state machine for a named attribute
+int getRetryCnt( cnfgName ) {
+	return (vars."${cnfgName}C" ?: CNFG_MAX_RETRIES)	// default to max value if not set
+}
+
+// decrement retry count in configuration state machine for a named attribute, returns new count indicating retries remaining
+int decRetryCnt( cnfgName ) {
+	int cnt = getRetryCnt(cnfgName)
+	cnt--
+	vars."${cnfgName}C" = cnt
+	return cnt
+}
+
+// clear retry count in configuration state machine for a named attribute so that no further retries will occur
+void clrRetryCnt( cnfgName ) {
+	vars."${cnfgName}C" = -1	// retries stop once count is below 0
+}
+

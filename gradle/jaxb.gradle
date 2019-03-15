@@ -1,0 +1,86 @@
+ext.DEFAULT_SCHEMA_DIR = 'src/main/resources/schema/'
+ext.DEFAULT_SCHEMA_DIR_INCLUDES = '*.xsd'
+ext.DEFAULT_DESTINATION_DIR = 'src/generated/java'
+ext.DEFAULT_PACKAGE_ROOT = 'com.iris.generated'
+ext.jaxbRuns = []
+
+resetExtensionDefaults()
+
+project.configurations.create('xjc') {
+   visible = true
+   transitive = true
+   description = "The JAXB XJC libraries to be used for this project."
+}
+
+dependencies {
+   xjc libraries.jaxb_xjc
+   xjc libraries.jaxb_impl
+   xjc libraries.jaxb_api
+   xjc libraries.javax_activation_api
+}
+
+def resetExtensionDefaults(){
+   ext.schemaDir = DEFAULT_SCHEMA_DIR
+   ext.schemaDirIncludes = DEFAULT_SCHEMA_DIR_INCLUDES
+   ext.packageName = DEFAULT_PACKAGE_ROOT
+   ext.destinationDir = DEFAULT_DESTINATION_DIR
+}
+
+
+task cleanJaxb {
+   doLast {
+      jaxbRuns.each {
+         it()
+         String packageFolder = packageName.replaceAll('\\.', '/')
+         File destdir = file("$destinationDir/$packageFolder")
+         println "cleaning generated folder $destdir"
+         destdir.deleteDir()
+      }
+   }
+}
+
+task excuteJaxbGeneration() {
+   doLast {
+
+      jaxbRuns.each {
+         it()
+         xjcAnt()
+         resetExtensionDefaults()
+      }
+   }
+}
+
+
+def xjcAnt(){
+   println "genertaing schema for $schemaDir$schemaDirIncludes"
+   ant.taskdef(name: 'xjc', classname: 'com.sun.tools.xjc.XJCTask', classpath: configurations.xjc.asPath)
+
+   def destination = destinationDir
+   def jaxbTargetDir = file(destination)
+   def packageName = packageName
+   def schemaDir = schemaDir
+
+   jaxbTargetDir.mkdirs()
+   ant.xjc(destdir: destination, package: packageName) {
+      schema(dir:schemaDir, includes: schemaDirIncludes)
+   }
+}
+
+task generateJaxb(dependsOn:excuteJaxbGeneration) {
+   doLast {
+
+      println "jaxb generation completed"
+   }
+}
+compileJava.dependsOn generateJaxb
+eclipseClasspath.dependsOn generateJaxb
+ext.jaxb = { config -> jaxbRuns << config }
+clean.dependsOn 'cleanJaxb'
+
+sourceSets {
+   main {
+      java {
+         srcDir destinationDir
+      }
+   }
+}

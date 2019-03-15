@@ -1,0 +1,132 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a GE/Jasco Plug-in Outdoor Switch
+ *
+ */
+driver			"ZWJascoOutdoorSwitchDriver"
+description		"Driver for a GE/Jasco ZW4201 Plug-in Outdoor Switch"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+vendor 			"GE"
+model 			"45635, 12720"
+productId		"359d72"
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x5250, 'ZWAV:ProductId': 0x3130
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F50, 'ZWAV:ProductId': 0x3031
+
+capabilities	DevicePower, Switch
+
+importCapability 'zwave/GenericZWaveVersion'
+
+// Generic Device Class:    GENERIC_TYPE_SWITCH_BINARY
+// Specific Device Class:   SPECIFIC_TYPE_POWER_SWITCH_BINARY
+// Command Classes:
+//      0x25	 (37)   COMMAND_CLASS_SWITCH_BINARY
+//      0x27	 (39)   COMMAND_CLASS_SWITCH_ALL
+//      0x75	 (117)  COMMAND_CLASS_PROTECTION
+//      0x73	 (115)   COMMAND_CLASS_POWERLEVEL
+//      0x86	 (134)   COMMAND_CLASS_VERSION
+//      0x72	 (114)   COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//      0x77	 (119)   COMMAND_CLASS_NODE_NAMING
+
+
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_LINE
+DevicePower.linecapable	         true
+DevicePower.backupbatterycapable false
+Switch.state                     Switch.STATE_OFF
+
+
+final int  POLLING_INTERVAL_SEC = 120		// every 2 minutes, to match Iris 1
+
+final byte SWITCH_ON	= 0xff
+final byte SWITCH_OFF	= 0x00
+final int  OFFLINE_TIMEOUT_SECS = 600 		// 10 min, may subject to change
+
+
+onAdded {
+	log.debug "Jasco Outdoor Switch added"
+
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+
+onConnected {
+	log.debug "Jasco Outdoor Switch connected"
+
+	// get the current switch state
+	ZWave.switch_binary.get()
+
+	// These devices do not send a switch_binary.report when their state is changed locally,
+	// so periodically poll for the current switch state.  They do send a Node Info when the
+	// state is switched locally, but we also periodically poll in case we miss that message.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	// polling interval is 2 minutes, timeout from spread sheet is 10 minutes
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+setAttributes('swit') {
+	log.debug "Jasco Outdoor Switch received message: {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+
+				// get the current switch state
+				ZWave.switch_binary.get()
+				break
+
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+onZWaveNodeInfo {
+	log.debug "Jasco Outdoor Switch reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	// All values are bytes.
+//	vars.status = message.getStatus()
+//	vars.nodeid = message.getNodeId()
+//	vars.basic = message.getBasic()
+//	vars.generic = message.getGeneric()
+//	vars.specific = message.getSpecific()
+
+	// these devices report a Node Info everytime their state is changed locally,
+	// so do a Binary Switch Get to get the current state
+	ZWave.switch_binary.get()
+ }
+
+
+onZWaveMessage.switch_binary.report {
+	log.debug "Received binary switch report from Jasco Outdoor Switch: {}", message
+	def prevState = Switch.state.get()
+	Switch.state message.command.get('value') == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF
+	// if state changed, capture timestamp
+	if (Switch.state.get() != prevState) {
+		Switch.statechanged new Date()
+	}
+}
+

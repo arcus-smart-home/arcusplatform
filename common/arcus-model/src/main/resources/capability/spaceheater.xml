@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="SpaceHeater"
+   namespace="spaceheater"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a space heater.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="setpoint" 
+         readwrite="rw" 
+         type="double" 
+         unit="C"
+         optional="false" 
+         description="The desired temperature when the unit is running, maps to heatsetpoint in  thermostat. May also be used to set the target temperature."/>
+      <c:attribute 
+         name="minsetpoint" 
+         readwrite="r" 
+         type="double" 
+         unit="C"
+         optional="true" 
+         description="The minimum temperature that can be placed in setpoint."/>
+      <c:attribute 
+         name="maxsetpoint" 
+         readwrite="r" 
+         type="double" 
+         unit="C"
+         optional="true" 
+         description="The maximum temperature that can be placed in setpoint."/>
+      <c:attribute 
+         name="heatstate" 
+         readwrite="rw" 
+         type="enum"
+         values="OFF, ON"
+         optional="false"
+         description="The current mode of the device, maps to OFF, HEAT in thermostat:mode."/>
+   </c:attributes>
+         
+</c:capability>

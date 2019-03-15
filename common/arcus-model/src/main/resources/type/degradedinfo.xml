@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="DegradedInfo"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the information about a devices degraded state.</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="protocol"
+			type="string"
+			description="The protocol address of the device"
+		   optional="false"/>
+		<t:attribute
+			name="degraded"
+			type="boolean"
+			description="Indicates whether the device is operating in a degraded state"
+		   optional="false"/>
+	</t:attributes>
+ </t:type>

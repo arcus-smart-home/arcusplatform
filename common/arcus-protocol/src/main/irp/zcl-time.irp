@@ -1,0 +1,24 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.12 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Time {
+   const u16 CLUSTER_ID = 0x000A;
+
+   const u16 ATTR_TIME = 0x0000;
+   const u16 ATTR_TIME_STATUS = 0x0001;
+   const u16 ATTR_TIME_ZONE = 0x0002;
+   const u16 ATTR_DST_START = 0x0003;
+   const u16 ATTR_DST_END = 0x0004;
+   const u16 ATTR_DST_SHIFT = 0x0005;
+   const u16 ATTR_STANDARD_TIME = 0x0006;
+   const u16 ATTR_LOCAL_TIME = 0x0007;
+   const u16 ATTR_LAST_SET_TIME = 0x0008;
+   const u16 ATTR_VALID_UNTIL_TIME = 0x0009;
+
+   const u8 TIME_STATUS_MASTER = 0x01;
+   const u8 TIME_STATUS_SYNCHRONIZED = 0x02;
+   const u8 TIME_STATUS_MASTER_ZONE_DST = 0x04;
+   const u8 TIME_STATUS_SUPERSEDING = 0x08;
+}

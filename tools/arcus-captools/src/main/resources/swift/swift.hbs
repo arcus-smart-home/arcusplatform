@@ -1,0 +1,14 @@
+Generating capabilities...
+{{#capabilities}}
+{{> swift/model/model_swift}}
+{{> swift/capability/capability_swift}}
+{{> swift/capability/capability_swift_legacy}}
+{{> swift/capability/capability_swift_events}}
+{{/capabilities}}
+
+Generating services...
+{{#services}}
+{{> swift/service/service_swift_events}}
+{{> swift/service/service_swift_legacy}}
+{{> swift/service/service_swift}}
+{{/services}}

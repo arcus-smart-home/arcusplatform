@@ -1,0 +1,19 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.9 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.OnOffSwitch {
+   const u16 CLUSTER_ID = 0x0007;
+
+   const u16 ATTR_SWITCH_TYPE = 0x0000;
+   const u16 ATTR_SWITCH_ACTIONS = 0x0010;
+
+   const u8 SWITCH_TYPE_TOGGLE = 0x00;
+   const u8 SWITCH_TYPE_MOMENTARY = 0x01;
+   const u8 SWITCH_TYPE_MULTIFUNCTION = 0x02;
+
+   const u8 SWITCH_ACTION_ON = 0x00;
+   const u8 SWITCH_ACTION_OFF = 0x01;
+   const u8 SWITCH_ACTION_TOGGLE = 0x02;
+}

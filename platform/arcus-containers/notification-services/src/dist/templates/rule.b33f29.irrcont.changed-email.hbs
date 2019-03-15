@@ -1,0 +1,29 @@
+{{#section "subject"}}
+{{{ _ruleName }}} Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+Hi {{{_person.firstName}}},
+
+{{{ device }}} {{enum mode OFF="is off" WATERING="started watering" NOT_WATERING="stopped watering" RAIN_DELAY="stopped due to rain delay"}} at {{{_place.name}}}
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{ device }} {{enum mode OFF="is off" WATERING="started watering" NOT_WATERING="stopped watering" RAIN_DELAY="stopped due to rain delay"}} at {{_place.name}}
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

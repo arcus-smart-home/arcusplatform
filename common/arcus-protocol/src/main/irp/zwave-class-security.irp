@@ -1,0 +1,64 @@
+
+message zwave.Security.NetworkKeySetV1<id="0x06", group="V1"> {
+    u8[] networkKeyByte;
+}
+
+message zwave.Security.NetworkKeyVerifyV1<id="0x07", group="V1"> {
+}
+
+message zwave.Security.SecurityCommandsSupportedGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Security.SecurityCommandsSupportedReportV1<id="0x03", group="V1"> {
+    u8 reportsToFollow;
+    u8[] commandClassSupport;
+    // commandClassMark contained in previous field
+    // commandClassControl contained in previous field
+}
+
+message zwave.Security.SecurityMessageEncapsulationV1<id="0x81", group="V1"> {
+    const u8 PROPERTIES1_SEQUENCE_COUNTER_MASK = 0x0F;
+    const u8 PROPERTIES1_SEQUENCE_COUNTER_SHIFT = 0;
+    const u8 PROPERTIES1_SEQUENCED = 0x10;
+    const u8 PROPERTIES1_SECOND_FRAME = 0x20;
+    u8[8] initializationVectorByte;
+    // properties1 contained in next field
+    // commandClassIdentifier contained in next field
+    // commandIdentifier contained in next field
+    u8[] commandByte;
+    // receiversNonceIdentifier contained in previous field
+    // messageAuthenticationCodeByte contained in previous field
+}
+
+message zwave.Security.SecurityMessageEncapsulationNonceGetV1<id="0xC1", group="V1"> {
+    const u8 PROPERTIES1_SEQUENCE_COUNTER_MASK = 0x0F;
+    const u8 PROPERTIES1_SEQUENCE_COUNTER_SHIFT = 0;
+    const u8 PROPERTIES1_SEQUENCED = 0x10;
+    const u8 PROPERTIES1_SECOND_FRAME = 0x20;
+    u8[8] initializationVectorByte;
+    // properties1 contained in next field
+    // commandClassIdentifier contained in next field
+    // commandIdentifier contained in next field
+    u8[] commandByte;
+    // receiversNonceIdentifier contained in previous field
+    // messageAuthenticationCodeByte contained in previous field
+}
+
+message zwave.Security.SecurityNonceGetV1<id="0x40", group="V1"> {
+}
+
+message zwave.Security.SecurityNonceReportV1<id="0x80", group="V1"> {
+    u8[8] nonceByte;
+}
+
+message zwave.Security.SecuritySchemeGetV1<id="0x04", group="V1"> {
+    u8 supportedSecuritySchemes;
+}
+
+message zwave.Security.SecuritySchemeInheritV1<id="0x08", group="V1"> {
+    u8 supportedSecuritySchemes;
+}
+
+message zwave.Security.SecuritySchemeReportV1<id="0x05", group="V1"> {
+    u8 supportedSecuritySchemes;
+}

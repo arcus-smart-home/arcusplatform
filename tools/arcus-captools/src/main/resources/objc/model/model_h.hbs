@@ -1,0 +1,9 @@
+{{#unless enhances}}
+{{#file . "generated/{{name}}Model.h"}}
+#import <Foundation/Foundation.h>
+#import "Model.h"
+
+{{!-- @interface {{name}}Model : Model
+@end --}}
+{{/file}}
+{{/unless}}

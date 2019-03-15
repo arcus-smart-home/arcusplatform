@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Door Lock Jammed
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}} is reporting that it is jammed.  Please try to unlock and then lock it using the app or manually operate the lock to clear this warning.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}} is reporting that it is jammed.  Please try to unlock and then lock it using the app or manually operate the lock to clear this warning.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

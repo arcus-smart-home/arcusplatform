@@ -1,0 +1,568 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Waxman Smart Valve HA (Supports OTA)
+ *
+ * FACTORY RESET:
+ *  - Press the "Link" button 5 times.
+ *
+ */
+import groovy.transform.Field
+
+driver			"ZBWaxmanSmartValveHA"
+description		"Driver for the Waxman Smart Value (with OTA)"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Water Valve"
+productId		"832217"
+vendor 			"Leak Smart"
+model 			"TBD"
+
+matcher			'ZIGB:manufacturer': 0x113B, 'ZIGB:vendor': 'WAXMAN', 'ZIGB:model': 'House Water Valve - MDL-TBD'      		// Hardware Version 0x0A
+matcher			'ZIGB:manufacturer': 0x113B, 'ZIGB:vendor': 'WAXMAN', 'ZIGB:model': 'leakSMART Water Valve v2.10'			// production release
+
+capabilities	DevicePower, Valve, Test, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+DevicePower.battery 			 0
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+
+// Manufacturer ID:       0x113B
+// Manufacturer:          WAXMAN
+// Model:                 MDL-8810300L
+//
+// 1 End Point
+//
+// Waxman Leak Smart Valve
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0006     On/Off
+//   0x0020     Poll Control
+//   0x0B02     Appliance Events and Alert
+//   0xFC02     
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+
+def basicCluster = Zigbee.endpoint((byte)1).Basic
+def pwrCluster   = Zigbee.endpoint((byte)1).Power
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+def pollCluster  = Zigbee.endpoint((byte)1).PollControl
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+
+@Field static final String DEVICE_NAME = 'Waxman HA Smart Valve'
+def final short PROFILE_HA				            = 0x0104
+def final short CLUSTER_BASIC_CNFG                  = 0x0000
+def final short CLUSTER_PWR_CNFG                    = 0x0001
+def final short CLUSTER_ON_OFF                      = 0x0006
+def final short CLUSTER_POLL_CONTROL                = 0x0020
+def final short CLUSTER_APPLIANCE_ALERTS            = 0x0B02
+
+def final byte CMD_CNFG_RPT 					    = 0x06			// General Command Frame - Configure Reporting
+def final byte CMD_WRT_ATTR 					    = 0x02          // General Command Frame - Write Attributes
+def final byte CMD_GET_ALERTS                       = 0x00
+
+// @Field def final short ON_OFF_BATTERY_PERCENT_ATT   = 0x0021		// NOTE: defined in manufacture docs, but not ZigBee, and appears to cause issues when requested
+
+
+// operational constants
+def final short IDENT_PERIOD_SECS           = 300       // number of seconds (0-600) for device to Identify itself when Identify method is called
+
+def final long READ_DELAY_MSEC              = 5000      // milliseconds to delay before attempting to read valve state (used to allow value to physically move before reading state)
+
+def final OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Waxman SmartValve device started."
+
+	// set default attribute values
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Valve.valvestate                    Valve.VALVESTATE_OPEN
+	Valve.valvestatechanged             ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Test.lastTestTime                   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	// Bind endpoints use in Iris 1
+	Zigbee.bindEndpoints(
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_BASIC_CNFG),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_PWR_CNFG),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_ON_OFF),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_POLL_CONTROL),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_APPLIANCE_ALERTS)
+		)
+}
+
+
+onConnected {
+	log.debug "Waxman SmartValve device connected."
+
+	// set long poll interval to 20 quarter seconds, and short poll interval to 2 quarter seconds
+	pollCluster.setLongPollInterval((int)20)
+	pollCluster.setShortPollInterval((short)2)
+
+	// read current valve state
+	log.debug "Read ON/OFF State"
+	vars.'obstructed' = false
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+
+	// read current Basic attributes (to determine power source, batteries, or mains)
+	log.debug "Read Basic:PowerSource"
+	basicCluster.zclReadAttributes(
+		basicCluster.ATTR_ZCL_VERSION,
+		basicCluster.ATTR_APPLICATION_VERSION,
+		basicCluster.ATTR_HARDWARE_VERSION,
+		basicCluster.ATTR_MODEL_IDENTIFIER,
+		basicCluster.ATTR_POWER_SOURCE )
+
+	// read current Power attributes
+	log.debug "Read Power:Battery Levels"
+	pwrCluster.zclReadAttributes(
+		pwrCluster.ATTR_BATTERY_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD,
+		pwrCluster.ATTR_BATTERY_ALARM_MASK )
+
+	// read current Poll Control attributes (if needed)
+	log.debug "Read Polling"
+	pollCluster.zclReadAttributes(
+		pollCluster.ATTR_CHECKIN_INTERVAL,
+		pollCluster.ATTR_LONG_POLL_INTERVAL,
+		pollCluster.ATTR_SHORT_POLL_INTERVAL,
+		pollCluster.ATTR_FAST_POLL_TIMEOUT )
+
+	// read current Alerts (no helper class)
+	log.debug "Read ApplianceAlerts"
+	byte[] getAlertsBytes = []
+	Zigbee.send("cluster" : CLUSTER_APPLIANCE_ALERTS, "command" : CMD_GET_ALERTS, "profile" : PROFILE_HA, "endpoint" : 1, "clusterspecific" : true, "defaultresponse" : false, "data" : getAlertsBytes )
+
+	// configure power source reporting interval
+	byte[] powerSourceRptPayload = [
+		// Dir(0x00)
+		0x00,
+		// Attr(0x0007) PowerSource
+		0x07, 0x00,
+		// Attr Data Type(0x30) 8-bit Enum
+		0x30,
+		// Minimum Interval (iris1 0x0078  120 sec :: 2 min)
+		0x78, 0x00,
+		// Maximum Interval ( 0xA8C0  43200 sec :: 720 min  :: 12hr) Increase to reduce traffic
+		0xC0, 0xA8 ]
+	Zigbee.send( 	"cluster" : CLUSTER_BASIC_CNFG,
+					"command" : CMD_CNFG_RPT,
+					"profile" : PROFILE_HA,
+					"endpoint" : 1,
+					"clusterspecific" : false,
+					"defaultresponse" : false,
+					"data" : powerSourceRptPayload )
+
+	// configure battery level reporting interval
+	byte[] batteryLevelCnfgBytes = [
+		// Dir(0x00)
+		0x00,
+		// Attr(0x0020) Battery Voltage
+		0x20, 0x00,
+		// Attr Data Type(0x20) Unsigned 8-Bit Int
+		0x20,
+		// Minimum Interval ( 0x0E10  3600 sec :: 60 min :: 1hr) Increase to reduce traffic
+		0x10, 0x0E,
+		// Maximum Interval ( 0xA8C0  43200 sec :: 720 min  :: 12hr) Increase to reduce traffic
+		0xC0, 0xA8,
+		// Report Change ( 0x02) Increased to avoid jitter
+		0x02 ]
+	Zigbee.send("cluster" : CLUSTER_PWR_CNFG, "command" : CMD_CNFG_RPT, "profile" : PROFILE_HA, "endpoint" : 1, "clusterspecific" : false, "defaultresponse" : false, "data" : batteryLevelCnfgBytes )
+
+	// configure on/off reporting interval
+	byte[] onOffCnfgBytes = [
+		// Dir(0x00)
+		0x00,
+		// Attr(0x0000) On/Off
+		0x00, 0x00,
+		// Attr Data Type(0x10) Boolean
+		0x10,
+		// Minmum Interval (iris1 0x0001 1 sec)
+		0x01, 0x00,
+		// Maximum Interval (iris1 0x012C 300 sec)
+		0x2C, 0x01 ]
+	Zigbee.send("cluster" : CLUSTER_ON_OFF, "command" : CMD_CNFG_RPT, "profile" : PROFILE_HA, "endpoint" : 1, "clusterspecific" : false, "defaultresponse" : false, "data" : onOffCnfgBytes )
+
+	// write Poll Control cluster Checkin Interval
+	byte[] wrtChkIntvlBytes = [
+		// Attr Id (0x0000) Checkin Interval
+		0x00, 0x00,
+		// Attr Data Type (0x23) Unsigned 32- bit integer
+		0x23,
+		// Attr Data (0x0000001C) 28 quarter-seconds
+		0x1C, 0x00, 0x00, 0x00 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_POLL_CONTROL,
+		"command" : CMD_WRT_ATTR,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,		// using general Write Attribute command
+		"defaultresponse" : true,
+		"data" : wrtChkIntvlBytes)
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+
+onDisconnected {
+	log.debug "Waxman SmartValve device disconnected."
+}
+
+
+onRemoved {
+	log.debug "Waxman SmartValve device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Valve Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Valve capability attrbutes (only 'state' attribute can be written/set)
+setAttributes('valv') {
+	log.debug "Maxman SmartValve driver received 'valv' setAttributes message " + message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+
+		log.debug "attribute ${attribute.key} - ${attribute.value} "
+		switch(attribute.key) {
+			case Valve.valvestate:
+				vars.'obstructed' = false
+				if (attribute.value == 'OPEN') {
+					Valve.valvestate Valve.VALVESTATE_OPENING
+					onOffCluster.on()
+				} else if (attribute.value == 'CLOSED') {
+					Valve.valvestate Valve.VALVESTATE_CLOSING
+					onOffCluster.off()
+				}
+				// delay a specified number of milliseconds, while value is adjusted, and then read the new state
+				Scheduler.scheduleIn 'DelayedRead', READ_DELAY_MSEC
+				break
+
+			default:
+				log.error "unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+
+onEvent('DelayedRead') {
+	log.debug "Delayed Read of Valve State"
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Waxman SmartValve driver received onIdentify.Identify: " + message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOnOffMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[cluster.ATTR_ONOFF]
+	log.debug "OnOff: " + onoff
+	if (onoff != null) {
+		def prevState = Valve.valvestate.get()
+		Valve.valvestate onoff ? Valve.VALVESTATE_OPEN : Valve.VALVESTATE_CLOSED
+		// if state changed, capture timestamp
+		if (Valve.valvestate.get() != prevState) {
+			Valve.valvestatechanged new Date()
+		}
+	}
+}
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.debug "Waxman SmartValve driver received OnOff Attributes Response: " + message
+	if (false == vars.'obstructed') {
+		handleOnOffMsg(onOffCluster, message)
+	} else {
+		log.warn "Last oberation triggered Obstructed Alert, don't overwrite"
+	}
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.debug "Waxman SmartValve driver received OnOff Attributes Report: " + message
+	handleOnOffMsg(onOffCluster, message)
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleBasicMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def pwrSrc = attributes[cluster.ATTR_POWER_SOURCE]
+	def zclVers = attributes[cluster.ATTR_ZCL_VERSION]
+	def appVers = attributes[cluster.ATTR_APPLICATION_VERSION]
+	def hwVers = attributes[cluster.ATTR_HARDWARE_VERSION]
+	def mfgName = attributes[cluster.ATTR_MANUFACTURER_NAME]
+	def model = attributes[cluster.ATTR_MODEL_IDENTIFIER]
+	log.debug "ZCL-Ver:" + zclVers + ", App-Ver:" + appVers + ", HW-Ver:" + hwVers + ", Mfg:" + mfgName + ", Model:" + model + ", PwrSrc:" + pwrSrc
+	// ZCL-Ver:1, App-Ver:20, HW-Ver:1, Mfg:null, Model:House Water Valve - MDL-8810300L, PwrSrc:3
+
+	// NOTE: test device always returns pwrSrc = 3, even when plugged in.
+	def prevSrc = DevicePower.source.get()
+	if (3 == pwrSrc) {
+		log.debug 'Device is battery powered'
+		DevicePower.source DevicePower.SOURCE_BATTERY
+	} else {
+		if (0 != pwrSrc) {	// if not Unknown
+			log.debug 'Device is Mains (or DC) powered'
+			DevicePower.source DevicePower.SOURCE_LINE
+		}
+	}
+	// if power source changed, capture timestamp
+	if (DevicePower.source.get() != prevSrc) {
+		DevicePower.sourcechanged new Date()
+	}
+}
+
+// called when device responds to a Basic Read Attributes
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+	log.debug "Waxman SmartValve driver received Basic Attributes Response: " + message
+	handleBasicMsg(basicCluster, message)
+}
+
+// called when device asynchronously sends a Basic Report Attributes
+onZigbeeMessage.Zcl.basic.zclreportattributes() {
+	log.debug "Waxman SmartValve driver received Basic Attributes Report: " + message
+	handleBasicMsg(basicCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+	def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+	def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+	def fastPollTimeout = attributes[cluster.ATTR_FAST_POLL_TIMEOUT]
+	log.debug "CheckinInterval:" + checkin + ", LongPoll:" + longPoll + ", ShortPoll:" + shortPoll + ", FastPollTimeout:" + fastPollTimeout
+	// CheckinInterval:28, LongPoll:28, ShortPoll:2, FastPollTimeout:28
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+	log.debug "Waxman SmartValve driver received Poll Control Attributes Response: " + message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+	log.debug "Waxman SmartValve driver received Poll Control Attributes Report: " + message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Checkin
+onZigbeeMessage.Zcl.pollcontrol.checkin() {
+	log.debug "Waxman SmartValve driver received Poll Control Checkin: " + message
+	// tell device to resume without short polling
+	pollCluster.checkInResponse( (byte)0x00, (short)0x0000 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+	def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+	def battAlarmMask = attributes[cluster.ATTR_BATTERY_ALARM_MASK]
+//	def battPct = attributes[ON_OFF_BATTERY_PERCENT_ATTR]
+	log.debug "BatteryVoltage:" + battVolt + ", Min Thrshld:" + battMinThreshold + ", Alarm Mask:" + battAlarmMask	//  + ", BATTERY PCT:" + battPct
+
+// NOTE: Ignore this for now.  Voltage Too Low bit appears to always be set
+//	if ( (null != battAlarmMask) && (battAlarmMask & cluster.BATTERY_ALARM_MASK_VOLTAGE_TOO_LOW) ) {		// battery alarm mask, bit 0, 1 = battery voltage too low
+//		log.warn "Alarm: Battery voltage too low"
+//	}
+
+	double minVolts = (null != battMinThreshold) ? (battMinThreshold / 10.0) : 4.1		// default to 4.1 volts (from spec)
+	double nomVolts = 6.0	// 4 X 1.5V AA Batteries
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+		// battery Voltage is reported in tenths of Volts
+		double volts = (battVolt / 10.0)
+		log.debug "Battery Volts:" + volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (nomVolts - minVolts)) {	// prevent division by zero
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = battPercent
+			if (0 == intBattPercent){
+				log.warn "Invalid Battery Percentage of 0"
+			} else { 
+				log.debug "Battery Percent:" + intBattPercent
+				DevicePower.battery intBattPercent
+			}
+		}
+	}
+}
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.debug "Waxman SmartValve Sensor driver received Power Attributes Response: " + message
+	handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.debug "Waxman SmartValve Sensor driver received Power Attributes Report: " + message
+	handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.debug "Waxman SmartValve driver received zigbee ZCL message: " + message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	if (CLUSTER_APPLIANCE_ALERTS == clusterId && data.length > 0) {
+		if ((0 == msgId) || (1 == msgId)) {		// Get Alerts Response, or Alerts Notification
+			def byte dataByte = data[1]
+			if (0 == dataByte) {
+				log.debug 'No Alert'
+				// if there was previously an obstruction, and now no alert, read current valve state
+				if (Valve.VALVESTATE_OBSTRUCTION == Valve.valvestate.get()) {
+					onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+				}
+			} else {
+				log.debug 'Valve Operation Failure Alert'
+				vars.'obstructed' = true
+				Valve.valvestate Valve.VALVESTATE_OBSTRUCTION
+			}
+		}
+		if (msgId == 2) {		// Events Notification
+			def byte dataByte = data[1]
+			switch (dataByte) {
+				case -128:		// 0x80 (-128) = MONTHLY VALVE CYCLE START
+					log.debug 'Starting Monthly Test'
+					Test.lastTestTime new Date()
+					break
+				case -127:		// 0x81 (-127) = VALVE OPERATION FAILURE
+					log.warn 'Valve Operation Failure Event'
+					Valve.valvestate Valve.VALVESTATE_OBSTRUCTION
+					vars.'obstructed' = true
+					break
+				case -126:		// 0x82 (-126) = MONTHLY VALVE CYCLE NOT PERFORMED
+					log.warn 'Monthly Test NOT performed'
+					break
+				case -125:		// 0x83 (-125) = MOTHLY VALVE CYCLE SUCCESS
+					log.warn 'Monthly Test Completed Successfully'
+					Test.lastTestTime new Date()
+					break
+				default:
+					log.warn 'Waxman SmartValve Unexpected Event Data: ' + dataByte
+					break
+			}
+		}
+		return
+	}
+	
+	log.debug "Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+}
+
+
+// default handler for all ZigBee messages, called if no other handlers handled the message
+/*onZigbeeMessage() {
+	log.debug "Waxman SmartValve driver received zigbee message: " + message
+}*/
+

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability name="PlaceMonitorSubsystem" namespace="subplacemonitor"
+   enhances="Subsystem" version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Place Monitor subsystem.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute name="updatedDevices" type="set&lt;String&gt;"
+         readwrite="r" optional="false"
+         description="The addresses and version of all the devices that have OTA firmware upgrades requests issued." />
+
+      <c:attribute name="defaultRulesDevices" type="set&lt;String&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have default rules and schedules ." />
+
+      <c:attribute name="fullBatteryNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have a full battery notification sent." />
+
+      <c:attribute name="lowBatteryNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have a low battery notification sent." />
+
+      <c:attribute name="veryLowBatteryNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have a very low battery notification sent." />
+
+      <c:attribute name="criticalBatteryNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have a critical battery notification sent." />
+
+      <c:attribute name="deadBatteryNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have a dead battery notification sent." />
+
+      <c:attribute name="offlineNotificationSent" type="map&lt;timestamp&gt;"
+         readwrite="r" optional="false"
+         description="The addresses of all the devices that have offline notifications sent." />
+
+      <c:attribute name="pairingState" type="enum"
+         values="PAIRING,UNPAIRING,IDLE,PARTIAL"
+         readwrite="r" optional="false"
+         description="Pairing state of the place." />
+
+      <c:attribute
+         name="smartHomeAlerts"
+         type="list&lt;SmartHomeAlert&gt;"
+         description="The list of current smart home alerts."
+         optional="false"
+         readwrite="r"
+      />
+         
+   </c:attributes>
+
+   <c:methods>
+
+      <c:method
+         name="RenderAlerts"
+         description="Renders all alerts"
+      >
+         <c:return name="alerts" type="list&lt;object&gt;" description="List of rendered alerts JSON formatted for consumption via the UI."/>
+      </c:method>
+
+   </c:methods>
+
+   <c:events>
+      <c:event name="HubOffline"
+         description="Sent when a hub is offline for a specified measure of time.">
+         <c:parameters>
+            <c:parameter name="hubAddress" type="string"
+               description="The address of the hub that went offline." />
+            <c:parameter name="lastOnlineTime" type="timestamp"
+               description="The last time this hub was online." />
+         </c:parameters>
+      </c:event>
+      <c:event name="HubOnline"
+         description="Sent when a hub comes back online after being offline for a specified measure of time.">
+         <c:parameters>
+            <c:parameter name="hubAddress" type="string"
+               description="The address of the hub that came back online." />
+            <c:parameter name="onlineTime" type="timestamp"
+               description="The time this hub came back online." />
+            <c:parameter name="disarmedBy" type="string"
+               description="The address of the person who disarmed the hub while it was offline."
+               optional="true" />
+            <c:parameter name="offlineIncident" type="string"
+               description="The address of the incident that alarmed while the hub was offline."
+               optional="true" />
+         </c:parameters>
+      </c:event>
+      <c:event name="DeviceOffline"
+         description="Sent when a device is offline for a specified measure of time.">
+         <c:parameters>
+            <c:parameter name="deviceAddress" type="string"
+               description="The device id of the device that went offline." />
+            <c:parameter name="lastOnlineTime" type="timestamp"
+               description="The last time this device was online." />
+         </c:parameters>
+      </c:event>
+      <c:event name="DeviceOnline"
+         description="Sent when a device comes back online after being offline for a specified measure of time.">
+         <c:parameters>
+            <c:parameter name="deviceAddress" type="string"
+               description="The device id of the device that went offline." />
+            <c:parameter name="onlineTime" type="timestamp"
+               description="The time this device came back online." />
+         </c:parameters>
+      </c:event>
+   </c:events>
+</c:capability>

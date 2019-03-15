@@ -1,0 +1,283 @@
+
+message zwave.Notification.NotificationGetV3<id="0x04", group="V3"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    u8 v1AlarmType;
+    u8 notificationType;
+    u8 event;
+}
+
+message zwave.Notification.NotificationReportV3<id="0x05", group="V3"> {
+    const u8 NOTIFICATION_STATUS_OFF = 0x00;
+    const u8 NOTIFICATION_STATUS_ON = 0xFF;
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 PROPERTIES1_EVENT_PARAMETERS_LENGTH_MASK = 0x1F;
+    const u8 PROPERTIES1_EVENT_PARAMETERS_LENGTH_SHIFT = 0;
+    const u8 PROPERTIES1_SEQUENCE = 0x80;
+    u8 v1AlarmType;
+    u8 v1AlarmLevel;
+    u8 zensorNetSourceNodeId;
+    u8 notificationStatus;
+    u8 notificationType;
+    u8 event;
+    u8 properties1;
+    u8[] eventParameter;
+    // sequenceNumber contained in previous field
+}
+
+message zwave.Notification.NotificationSetV3<id="0x06", group="V3"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 NOTIFICATION_STATUS_OFF = 0x00;
+    const u8 NOTIFICATION_STATUS_ON = 0xFF;
+    u8 notificationType;
+    u8 notificationStatus;
+}
+
+message zwave.Notification.NotificationSupportedGetV3<id="0x07", group="V3"> {
+}
+
+message zwave.Notification.NotificationSupportedReportV3<id="0x08", group="V3"> {
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_SHIFT = 0;
+    const u8 PROPERTIES1_V1_ALARM = 0x80;
+    const u8 BIT_MASK_SMOKE = 0x01;
+    const u8 BIT_MASK_CO = 0x02;
+    const u8 BIT_MASK_CO2 = 0x03;
+    const u8 BIT_MASK_HEAT = 0x04;
+    const u8 BIT_MASK_WATER = 0x05;
+    const u8 BIT_MASK_ACCESS_CONTROL = 0x06;
+    const u8 BIT_MASK_BURGLAR = 0x07;
+    const u8 BIT_MASK_POWER_MANAGEMENT = 0x08;
+    const u8 BIT_MASK_SYSTEM = 0x09;
+    const u8 BIT_MASK_EMERGENCY = 0x0A;
+    const u8 BIT_MASK_CLOCK = 0x0B;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 properties1;
+    u8 bitMask;
+}
+
+message zwave.Notification.EventSupportedGetV3<id="0x01", group="V3"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    u8 notificationType;
+}
+
+message zwave.Notification.EventSupportedReportV3<id="0x02", group="V3"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_SHIFT = 0;
+    const u8 BIT_MASK_SMOKE = 0x01;
+    const u8 BIT_MASK_CO = 0x02;
+    const u8 BIT_MASK_CO2 = 0x03;
+    const u8 BIT_MASK_HEAT = 0x04;
+    const u8 BIT_MASK_WATER = 0x05;
+    const u8 BIT_MASK_ACCESS_CONTROL = 0x06;
+    const u8 BIT_MASK_BURGLAR = 0x07;
+    const u8 BIT_MASK_POWER_MANAGEMENT = 0x08;
+    const u8 BIT_MASK_SYSTEM = 0x09;
+    const u8 BIT_MASK_EMERGENCY = 0x0A;
+    const u8 BIT_MASK_CLOCK = 0x0B;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 notificationType;
+    u8 properties1;
+    u8 bitMask;
+}
+
+message zwave.Notification.NotificationGetV4<id="0x04", group="V4"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_APPLIANCE = 0x0C;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    u8 v1AlarmType;
+    u8 notificationType;
+    u8 event;
+}
+
+message zwave.Notification.NotificationReportV4<id="0x05", group="V4"> {
+    const u8 NOTIFICATION_STATUS_OFF = 0x00;
+    const u8 NOTIFICATION_STATUS_NO_PENDING_NOTIFICATIONS = 0xFE;
+    const u8 NOTIFICATION_STATUS_ON = 0xFF;
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_APPLIANCE = 0x0C;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 PROPERTIES1_EVENT_PARAMETERS_LENGTH_MASK = 0x1F;
+    const u8 PROPERTIES1_EVENT_PARAMETERS_LENGTH_SHIFT = 0;
+    const u8 PROPERTIES1_SEQUENCE = 0x80;
+    u8 v1AlarmType;
+    u8 v1AlarmLevel;
+    u8 zensorNetSourceNodeId;
+    u8 notificationStatus;
+    u8 notificationType;
+    u8 event;
+    u8 properties1;
+    u8[] eventParameter;
+    // sequenceNumber contained in previous field
+}
+
+message zwave.Notification.NotificationSetV4<id="0x06", group="V4"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_APPLIANCE = 0x0C;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 NOTIFICATION_STATUS_OFF = 0x00;
+    const u8 NOTIFICATION_STATUS_NO_PENDING_NOTIFICATIONS = 0xFE;
+    const u8 NOTIFICATION_STATUS_ON = 0xFF;
+    u8 notificationType;
+    u8 notificationStatus;
+}
+
+message zwave.Notification.NotificationSupportedGetV4<id="0x07", group="V4"> {
+}
+
+message zwave.Notification.NotificationSupportedReportV4<id="0x08", group="V4"> {
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_SHIFT = 0;
+    const u8 PROPERTIES1_V1_ALARM = 0x80;
+    const u8 BIT_MASK_SMOKE = 0x01;
+    const u8 BIT_MASK_CO = 0x02;
+    const u8 BIT_MASK_CO2 = 0x03;
+    const u8 BIT_MASK_HEAT = 0x04;
+    const u8 BIT_MASK_WATER = 0x05;
+    const u8 BIT_MASK_ACCESS_CONTROL = 0x06;
+    const u8 BIT_MASK_BURGLAR = 0x07;
+    const u8 BIT_MASK_POWER_MANAGEMENT = 0x08;
+    const u8 BIT_MASK_SYSTEM = 0x09;
+    const u8 BIT_MASK_EMERGENCY = 0x0A;
+    const u8 BIT_MASK_CLOCK = 0x0B;
+    const u8 BIT_MASK_APPLIANCE = 0x0C;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 properties1;
+    u8 bitMask;
+}
+
+message zwave.Notification.EventSupportedGetV4<id="0x01", group="V4"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_APPLIANCE = 0x0C;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    u8 notificationType;
+}
+
+message zwave.Notification.EventSupportedReportV4<id="0x02", group="V4"> {
+    const u8 NOTIFICATION_TYPE_SMOKE = 0x01;
+    const u8 NOTIFICATION_TYPE_CO = 0x02;
+    const u8 NOTIFICATION_TYPE_CO2 = 0x03;
+    const u8 NOTIFICATION_TYPE_HEAT = 0x04;
+    const u8 NOTIFICATION_TYPE_WATER = 0x05;
+    const u8 NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 NOTIFICATION_TYPE_BURGLAR = 0x07;
+    const u8 NOTIFICATION_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 NOTIFICATION_TYPE_SYSTEM = 0x09;
+    const u8 NOTIFICATION_TYPE_EMERGENCY = 0x0A;
+    const u8 NOTIFICATION_TYPE_CLOCK = 0x0B;
+    const u8 NOTIFICATION_TYPE_APPLIANCE = 0x0C;
+    const u8 NOTIFICATION_TYPE_FIRST = 0xFF;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_SHIFT = 0;
+    const u8 BIT_MASK_SMOKE = 0x01;
+    const u8 BIT_MASK_CO = 0x02;
+    const u8 BIT_MASK_CO2 = 0x03;
+    const u8 BIT_MASK_HEAT = 0x04;
+    const u8 BIT_MASK_WATER = 0x05;
+    const u8 BIT_MASK_ACCESS_CONTROL = 0x06;
+    const u8 BIT_MASK_BURGLAR = 0x07;
+    const u8 BIT_MASK_POWER_MANAGEMENT = 0x08;
+    const u8 BIT_MASK_SYSTEM = 0x09;
+    const u8 BIT_MASK_EMERGENCY = 0x0A;
+    const u8 BIT_MASK_CLOCK = 0x0B;
+    const u8 BIT_MASK_APPLIANCE = 0x0C;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 notificationType;
+    u8 properties1;
+    u8 bitMask;
+}

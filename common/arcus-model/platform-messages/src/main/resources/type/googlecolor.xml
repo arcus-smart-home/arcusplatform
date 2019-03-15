@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="GoogleColor"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents the color state object used by Google</t:description>
+
+   <t:attributes>
+      <t:attribute name="name" type="string" description="Name of the color" optional="true"/>
+      <t:attribute name="temperature" type="int" description="The color temp in kelvin" optional="true"/>
+      <t:attribute name="spectrumRGB" type="int" description="Spectrum value in RGB (hex value as integer)." optional="true"/>
+   </t:attributes>
+
+ </t:type>

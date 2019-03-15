@@ -1,0 +1,43 @@
+{{#section "subject"}}
+Your Iris Service Has Been Downgraded to Basic
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+You have successfully updated your service plan to Basic at {{{_place.name}}}.
+
+The following changes will occur to your account:
+
+* You will have to call and dispatch emergency responders in the event of a Security, Smoke, CO, or Panic alarm.
+* If you have cellular backup, you will need to subscribe to the Backup Cellular add-on plan at {{{_redirectBaseUrl}}}/e_prodowngrade to keep the service.
+* Clipped video storage will be 1 day instead of 30 days
+* You will be unable to pin videos to your account
+* And more....... ({{{_redirectBaseUrl}}}/e_prodowngrade)
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>You have successfully updated your service plan to Basic at {{{_place.name}}}.</p>
+
+	<p>The following changes will occur to your account:</p>
+
+	<ul>
+	<li>You will have to call and dispatch emergency responders in the event of a Security, Smoke, CO, or Panic alarm.</li>
+	<li>If you have cellular backup, you will need to subscribe to the <a href="{{_redirectBaseUrl}}/e_prodowngrade">Backup Cellular add-on plan</a> to keep the service.</li>
+	<li>Clipped video storage will be 1 day instead of 30 days</li>
+	<li>You will be unable to pin videos to your account</li>
+	<li>And <a href="{{_redirectBaseUrl}}/e_prodowngrade">more</a>.......</li>
+	</ul>
+	{{/partial}}
+	
+{{#partial "extra" }}
+{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

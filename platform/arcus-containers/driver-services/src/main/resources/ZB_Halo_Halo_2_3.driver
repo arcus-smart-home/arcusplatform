@@ -1,0 +1,1937 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the HaloPlus Smoke detector
+ *
+ */
+
+import com.iris.protocol.zigbee.msg.ZigbeeMessage;
+import static com.iris.protocol.zigbee.zcl.General.*;
+import static com.iris.protocol.zigbee.zcl.Constants.*;
+import static com.iris.protocol.zigbee.zcl.Color.*;
+import static com.iris.protocol.zigbee.zcl.IasZone.*;
+import static com.iris.protocol.zigbee.zcl.IasWd.*;
+
+driver			"ZBHalo"
+description		"Driver for the Halo Smoke Detector"
+version			"2.3"
+protocol		"ZIGB"
+deviceTypeHint	        "Halo"
+productId		"a2060f"
+vendor 			"Halo"
+model 			"Halo"
+
+matcher	 		'ZIGB:vendor': 'HaloSmartLabs', 'ZIGB:model': 'halo'			
+matcher	 		'ZIGB:vendor': 'HaloSmartLabs', 'ZIGB:model': 'SABCA1'
+
+capabilities	Smoke, CarbonMonoxide, Test, DeviceOta, Atmos, DevicePower, Switch, Light, Color, Dimmer, Identify, Temperature, RelativeHumidity, Halo
+
+uses "zigbee.GenericZigbeeDimmer"
+uses "zigbee.GenericZigbeeColorOnly"
+uses "zigbee.GenericZigbeeDeviceOta"
+
+@Field final short PROFILE_HA	= 0x0104
+@Field final short HALO_MSP     = 0x1201
+
+@Field final byte ZIGBEE_CNF_ATTR_DIR_WRITE = 0x00
+@Field final byte ZIGBEE_CNF_ATTR_REMOVE    = 0xFFFF // (Max is set to this to delete attribute configuration)
+
+// Device documentation:
+// Endpoint 1:
+// IN clusters
+// 0x0000 Basic
+// 0x0001 Power Configuration 
+// 0x0003 Identify
+// 0x0402 Temperature
+// 0x0403 Pressure
+// 0x0405 Relative humidity
+// 0x0500 Smoke Zone Status (fire device type: 0x0028)
+// 0x0502 IAS Warning Device
+// OUT clusters
+// 0x0019 OTA
+// Endpoint 2:
+// 0x0006 on/off
+// 0x0008 level
+// 0x0300 Color
+// Endpoint 3:
+// 0x0500 CO Zone Status (device type: 0x002b)
+// Endpoint 4:
+// 0xFD00 Halo general cluster: device status, language, room, test
+// 0xFD01 Halo control cluster: test and hush
+// 0xFD02 Halo msp sensors: photo electric, ionization, CO
+// duplicated for self-documentation
+@Field final byte ENDPOINT_SMOKE    = 1
+@Field final byte ENDPOINT_WD       = 1
+@Field final byte ENDPOINT_BASIC    = 1
+@Field final byte ENDPOINT_OTA      = 1
+@Field final byte ENDPOINT_SENS     = 1
+@Field final byte ENDPOINT_POWER    = 1
+@Field final byte ENDPOINT_LIGHT    = 2
+@Field final byte ENDPOINT_CO       = 3
+@Field final byte ENDPOINT_HALO     = 4
+
+// Warning Device MSP entries
+@Field final byte MSP_WARNING_MODE_CO     = 0x07
+@Field final byte MSP_WARNING_MODE_LEAK   = 0x08
+@Field final byte MSP_WARNING_MODE_ENTRY  = 0x0a
+@Field final byte MSP_WARNING_MODE_EXIT   = 0x0b
+
+@Field final short CLUSTER_HALO         = 0xFD00
+@Field final short CLUSTER_HALO_CONTROL = 0xFD01
+@Field final short CLUSTER_HALO_SENSORS = 0xFD02
+@Field final short CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG = 0xFFFD
+@Field final short CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG_PER_SPEC = 2
+@Field final short CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG_WHOLE_PERCENT = 1
+@Field final short CLUSTER_HALO_HUMIDITY_DELAY = 20000 // 20 seconds
+
+@Field final short ATTR_DEVICE_STATUS = 0x0000
+
+@Field final byte DEVICE_STATUS_CLEAR            = 0x00
+@Field final byte DEVICE_STATUS_LOW_BATTERY      = 0x01
+@Field final byte DEVICE_STATUS_EOL              = 0x02
+// no CO pre-alert any more, was 3
+@Field final byte DEVICE_STATUS_PRE_ALERT        = 0x04 
+@Field final byte DEVICE_STATUS_WEATHER_RADIO    = 0x05
+@Field final byte DEVICE_STATUS_CO               = 0x06
+@Field final byte DEVICE_STATUS_SMOKE            = 0x07
+@Field final byte DEVICE_STATUS_OTHER            = 0x08
+@Field final byte DEVICE_STATUS_SILENCED         = 0x09
+@Field final byte DEVICE_STATUS_VERY_LOW_BATTERY = 0x0a
+@Field final byte DEVICE_STATUS_FAILED_BATTERY   = 0x0b
+// 12, 13 reserved?
+@Field final byte DEVICE_STATUS_CO_TEST          = 0x0e
+@Field final byte DEVICE_STATUS_CO_TEST_CLEAR    = 0x0f
+@Field final byte DEVICE_STATUS_SMOKE_TEST       = 0x10
+@Field final byte DEVICE_STATUS_SMOKE_TEST_CLEAR = 0x11
+@Field final byte DEVICE_STATUS_CO_INTERCONNECT  = 0x12
+@Field final byte DEVICE_STATUS_SMOKE_INTERCONNECT = 0x13
+// 20 is reserved? last one so not sure why.
+
+@Field final short CMD_DEVICE_STATUS_CHANGE_NOTIFICATION = 0x00
+
+@Field final short ATTR_ROOM          = 0x0002
+
+@Field final byte ROOM_BASEMENT       = 0x00
+@Field final byte ROOM_BEDROOM        = 0x01
+@Field final byte ROOM_DEN            = 0x02
+@Field final byte ROOM_DINING_ROOM    = 0x03
+@Field final byte ROOM_DOWNSTAIRS     = 0x04
+@Field final byte ROOM_ENTRYWAY       = 0x05
+@Field final byte ROOM_FAMILY_ROOM    = 0x06
+@Field final byte ROOM_GAME_ROOM      = 0x07
+@Field final byte ROOM_GUEST_BEDROOM  = 0x08
+@Field final byte ROOM_HALLWAY        = 0x09
+@Field final byte ROOM_KIDS_BEDROOM   = 0x0a 
+@Field final byte ROOM_LIVING_ROOM    = 0x0b
+@Field final byte ROOM_MASTER_BEDROOM = 0x0c
+@Field final byte ROOM_OFFICE         = 0x0d
+@Field final byte ROOM_STUDY          = 0x0e
+@Field final byte ROOM_UPSTAIRS       = 0x0f
+@Field final byte ROOM_WORKOUT_ROOM   = 0x10 
+@Field final byte ROOM_NONE           = 0xff
+
+@Field final short ATTR_TEST_STATUS   = 0x0000
+@Field final byte CMD_HALO_TEST       = 0x00
+
+@Field final byte TEST_STATUS_SUCCESS      = 0x00
+@Field final byte TEST_STATUS_FAIL_ION     = 0x01
+@Field final byte TEST_STATUS_FAIL_PHOTO   = 0x02
+@Field final byte TEST_STATUS_FAIL_CO      = 0x03
+@Field final byte TEST_STATUS_FAIL_TEMP    = 0x04
+@Field final byte TEST_STATUS_FAIL_WX      = 0x05
+@Field final byte TEST_STATUS_FAIL_UNKNOWN = 0x06
+@Field final byte TEST_STATUS_STARTED      = 0x07
+
+@Field final byte HALO_TEST_START      = 0x01 // used to be 0, changed to match broken code on device
+@Field final byte HALO_TEST_CANCEL     = 0x00 // used to be 1, changed to match broken code on device
+
+@Field final short ATTR_HUSH_STATUS   = 0x0001
+
+@Field final byte CMD_HALO_HUSH       = 0x01
+@Field final byte HALO_HUSH_START     = 0x00
+@Field final byte HALO_HUSH_STOP      = 0x01
+@Field final byte HALO_HUSH_RED       = 0x02
+@Field final byte HALO_HUSH_BLUE      = 0x03
+@Field final byte HALO_HUSH_GREEN     = 0x04
+@Field final byte HALO_HUSH_WEATHER   = 0x10
+@Field final byte HALO_HUSH_SUCCESS   = 0x00
+@Field final byte HALO_HUSH_TIMEOUT   = 0x01
+@Field final byte HALO_HUSH_READY     = 0x02
+@Field final byte HALO_HUSH_DISABLED  = 0x03
+
+@Field final short ATTR_CO_PPM        = 0x0002
+
+@Field final device_zigbee_map = [(Halo.DEVICESTATE_SAFE):DEVICE_STATUS_CLEAR,
+                                  (Halo.DEVICESTATE_WEATHER):DEVICE_STATUS_WEATHER_RADIO,
+                                  (Halo.DEVICESTATE_SMOKE):DEVICE_STATUS_SMOKE,
+                                  (Halo.DEVICESTATE_CO):DEVICE_STATUS_CO,
+                                  (Halo.DEVICESTATE_PRE_SMOKE):DEVICE_STATUS_PRE_ALERT,
+                                  (Halo.DEVICESTATE_EOL):DEVICE_STATUS_EOL,
+                                  (Halo.DEVICESTATE_LOW_BATTERY):DEVICE_STATUS_LOW_BATTERY,
+                                  (Halo.DEVICESTATE_VERY_LOW_BATTERY):DEVICE_STATUS_VERY_LOW_BATTERY,
+                                  (Halo.DEVICESTATE_FAILED_BATTERY):DEVICE_STATUS_FAILED_BATTERY]
+/* New statuses not handled in the capability:
+                                  (Halo.DEVICESTATE_OTHER):DEVICE_STATUS_OTHER,
+                                  (Halo.DEVICESTATE_SILENCED):DEVICE_STATUS_SILENCED,
+                                  (Halo.DEVICESTATE_CO_TEST):DEVICE_STATUS_CO_TEST,
+                                  (Halo.DEVICESTATE_CO_TEST_CLEAR):DEVICE_STATUS_CO_TEST_CLEAR,
+                                  (Halo.DEVICESTATE_SMOKE_TEST):DEVICE_STATUS_SMOKE_TEST,
+                                  (Halo.DEVICESTATE_SMOKE_TEST_CLEAR):DEVICE_STATUS_SMOKE_TEST_CLEAR,
+                                  (Halo.DEVICESTATE_CO_INTERCONNECT):DEVICE_STATUS_CO_INTERCONNECT,
+                                  (Halo.DEVICESTATE_SMOKE_INTERCONNECT):DEVICE_STATUS_SMOKE_INTERCONNECT,                                  
+*/
+
+@Field final room_zigbee_map = [(Halo.ROOM_BASEMENT):ROOM_BASEMENT,
+                                (Halo.ROOM_BEDROOM):ROOM_BEDROOM,
+                                (Halo.ROOM_DEN):ROOM_DEN,
+                                (Halo.ROOM_DINING_ROOM):ROOM_DINING_ROOM,
+                                (Halo.ROOM_DOWNSTAIRS):ROOM_DOWNSTAIRS,
+                                (Halo.ROOM_ENTRYWAY):ROOM_ENTRYWAY,
+                                (Halo.ROOM_FAMILY_ROOM):ROOM_FAMILY_ROOM,
+                                (Halo.ROOM_GAME_ROOM):ROOM_GAME_ROOM,
+                                (Halo.ROOM_GUEST_BEDROOM):ROOM_GUEST_BEDROOM,
+                                (Halo.ROOM_HALLWAY):ROOM_HALLWAY,
+                                (Halo.ROOM_KIDS_BEDROOM):ROOM_KIDS_BEDROOM,
+                                (Halo.ROOM_LIVING_ROOM):ROOM_LIVING_ROOM,
+                                (Halo.ROOM_MASTER_BEDROOM):ROOM_MASTER_BEDROOM,
+                                (Halo.ROOM_OFFICE):ROOM_OFFICE,
+                                (Halo.ROOM_STUDY):ROOM_STUDY,
+                                (Halo.ROOM_UPSTAIRS):ROOM_UPSTAIRS,
+                                (Halo.ROOM_WORKOUT_ROOM):ROOM_WORKOUT_ROOM,
+                                (Halo.ROOM_NONE):ROOM_NONE]
+
+@Field final test_zigbee_map = [(Halo.REMOTETESTRESULT_SUCCESS):TEST_STATUS_SUCCESS,
+                                (Halo.REMOTETESTRESULT_FAIL_ION_SENSOR):TEST_STATUS_FAIL_ION,
+                                (Halo.REMOTETESTRESULT_FAIL_PHOTO_SENSOR):TEST_STATUS_FAIL_PHOTO,
+                                (Halo.REMOTETESTRESULT_FAIL_CO_SENSOR):TEST_STATUS_FAIL_CO,
+                                (Halo.REMOTETESTRESULT_FAIL_TEMP_SENSOR):TEST_STATUS_FAIL_TEMP,
+                                (Halo.REMOTETESTRESULT_FAIL_WEATHER_RADIO):TEST_STATUS_FAIL_WX,
+                                (Halo.REMOTETESTRESULT_FAIL_OTHER):TEST_STATUS_FAIL_UNKNOWN]
+                                // NOTE: test started handled as exception in code below
+
+@Field final device_message_map = [(Halo.DEVICESTATE_EOL):"End of Life",
+                                   (Halo.DEVICESTATE_VERY_LOW_BATTERY):"Low Battery",
+                                   (Halo.DEVICESTATE_FAILED_BATTERY):"Failed Battery"]
+
+@Field final test_message_map = [(Halo.REMOTETESTRESULT_FAIL_ION_SENSOR):"Ion Sensor Failure",
+                                 (Halo.REMOTETESTRESULT_FAIL_PHOTO_SENSOR):"Photo Sensor Failure",
+                                 (Halo.REMOTETESTRESULT_FAIL_CO_SENSOR):"CO Sensor Failure",
+                                 (Halo.REMOTETESTRESULT_FAIL_TEMP_SENSOR):"Temperature Sensor Failure",
+                                 (Halo.REMOTETESTRESULT_FAIL_WEATHER_RADIO):"Weather Radio Failure",
+                                 (Halo.REMOTETESTRESULT_FAIL_OTHER):"Other Failure"]
+
+@Field final msg_message_map = ["End of Life": "Halo has completed its service life. Please replace it immediately.",
+                                "Low Battery": "Halo’s rechargeable battery is dangerously low. Restore the AC power supply.",
+                                "Failed Battery": "Halo has an issue with its rechargeable battery.",
+                                "Ion Sensor Failure": "Halo has an issue with its Smoke sensor.",
+                                "Photo Sensor Failure": "Halo has an issue with its Smoke sensor.",
+                                "CO Sensor Failure": "Halo has an issue with its CO sensor.",
+                                "Temperature Sensor Failure": "Halo has an issue with its temperature sensor.",
+                                "Weather Radio Failure": "Halo reports a weather radio issue.",
+                                "Other Failure": "Halo has failed for an unknown reason."]
+
+@Field final hush_zigbee_map = [(Halo.HUSHSTATUS_SUCCESS):HALO_HUSH_SUCCESS,
+                                (Halo.HUSHSTATUS_TIMEOUT):HALO_HUSH_TIMEOUT,
+                                (Halo.HUSHSTATUS_READY):HALO_HUSH_READY,
+                                (Halo.HUSHSTATUS_DISABLED):HALO_HUSH_DISABLED]
+
+@Field final hushcolor_zigbee_map = [(Halo.SendHush.COLOR_RED):HALO_HUSH_RED,
+                                     (Halo.SendHush.COLOR_BLUE):HALO_HUSH_BLUE,
+                                     (Halo.SendHush.COLOR_GREEN):HALO_HUSH_GREEN]
+
+@Field def devBasicEndpoint = Zigbee.endpoint(ENDPOINT_BASIC)
+@Field def devSensEndpoint  = Zigbee.endpoint(ENDPOINT_SENS)
+@Field def devLightEndpoint = Zigbee.endpoint(ENDPOINT_LIGHT)
+@Field def devSmokeEndpoint = Zigbee.endpoint(ENDPOINT_SMOKE)
+@Field def devWdEndpoint    = Zigbee.endpoint(ENDPOINT_WD)
+@Field def devCoEndpoint    = Zigbee.endpoint(ENDPOINT_CO)
+@Field def devOtaEndpoint   = Zigbee.endpoint(ENDPOINT_OTA)
+@Field def devPowerEndpoint = Zigbee.endpoint(ENDPOINT_POWER)
+
+@Field def zoneSmokeCluster = devSmokeEndpoint.IasZone
+@Field def zoneCoCluster    = devCoEndpoint.IasZone
+def wdCluster        = devWdEndpoint.IasWd
+def onOffCluster     = devLightEndpoint.OnOff
+def levelCluster     = devLightEndpoint.Level
+def colorCluster     = devLightEndpoint.Color
+def identCluster     = devLightEndpoint.Identify
+def otaCluster       = devOtaEndpoint.Ota
+def powerCluster     = devPowerEndpoint.Power
+def basicCluster     = devBasicEndpoint.Basic
+def tempCluster      = devSensEndpoint.TemperatureMeasurement
+def humCluster       = devSensEndpoint.HumidityMeasurement
+def presCluster      = devSensEndpoint.PressureMeasurement
+
+// operational constants for color, haven't changed from cut and paste jobs
+final int DFLT_BRIGHTNESS		= 100
+final short DFLT_TRANS_SECS             = 1         // default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+final int DFLT_COLOR_HUE                = 0
+final int DFLT_COLOR_SATURATION         = 100
+@Field final short DFLT_CLR_TRANS_SECS  = 2         // default transition seconds to use when color attributes are set, since there is no transition time attribute
+@Field final byte HUE_MOVE_DIR          = 0         // move mode when changing just hue value; 0=Shortest, 1=Longest, 2=Up, 3=Down
+@Field final long UNKNOWN_VALUE         = -1 
+@Field final String KEY_LAST_HUE        = "lastHue"
+@Field final String KEY_LAST_SAT        = "lastSat"
+@Field final String KEY_LAST_MODE       = "lastMode"
+@Field final String MODE_COLOR	        = "color"
+final boolean FOLLOWS_LEVEL_SPEC        = true
+
+final long DFLT_POLL_TIME               = 120000	// 120 sec
+final short OFFLINE_TIMEOUT_SECS        = 600       // 10 minutes
+final short IDENT_PERIOD_SECS           = 30        // number of seconds for device to Identify itself when Identify method is called
+
+// Used for Report Configuration
+@Field final short RC_STATE_MACHINE_DELAY     = 500
+@Field final short RC_READ_TIMEOUT            = 16    // 16 * state machine delay = 8 seconds (just over an indirect message timeout)
+@Field final short RC_MAX_WRITE_RETRIES       = 10
+// when to try a re-read, in case writes are working, but write responses are not coming
+// set to -1 for none
+@Field final short RC_READ_RETRY              = 5   
+
+@Field final short RC_STATE_DONE      = -1
+@Field final short RC_STATE_SETUP     = 0
+@Field final short RC_STATE_RUNNING   = 1
+@Field final short CFG_STATE_READ     = 1
+@Field final short CFG_STATE_WAIT     = 2
+@Field final short CFG_STATE_CONFIG   = 3
+@Field final short CFG_STATE_SUCCESS  = -1
+@Field final short CFG_STATE_FAIL     = -2
+
+@Field final short IAS_STATE_DONE = -1
+
+// Used for CIE write and Zone Enrollment
+@Field final long WRITE_IAS_CIE_DELAY   = 5000
+@Field final long ZONE_ENROLL_DELAY     = 5000
+// I've never seen anything after the third or fourth succeed. lower to 10? do retries like configure reporting?
+@Field final long MAX_IAS_CIE_WRITES    = 100	    // Maximum attempts to try and write the IAS CIE Address
+@Field final long MAX_ZONE_ENROLLS      = 100	    // Maximum attempts to try and enroll the device in a Zone
+@Field static final String DEVICE_NAME  = 'Halo'
+
+@Field final long READ_MSP_ATTR_DELAY   = 8000
+@Field final long DELAY_READ_ATTR_DELAY = 3000
+
+// TODO do these exist somewhere else?
+@Field final byte CMD_READ_ATTR        = 0x00      // General Command Frame - Read Attributes
+@Field final byte CMD_READ_ATTR_RSP    = 0x01      // General Command Frame - Read Attributes Response
+@Field final byte CMD_WRT_ATTR         = 0x02      // General Command Frame - Write Attributes
+@Field final byte CMD_WRT_ATTR_RSP     = 0x04      // General Command Frame - Write Attributes Response
+@Field final byte CMD_CNF_RPT          = 0x06      // General Command Frame - Configure Reporting
+@Field final byte CMD_CNF_RPT_RSP      = 0x07      // General Command Frame - Configure Reporting Response
+@Field final byte CMD_READ_CNF_RPT     = 0x08      // General Command Frame - Read Configure Reporting
+@Field final byte CMD_READ_CNF_RPT_RSP = 0x09      // General Command Frame - Read Configure Reporting Response
+@Field final byte CMD_REPORT_ATTR      = 0x0A      // General Command Frame - Report Attributes
+@Field final byte CMD_DFLT_RSP         = 0x0B      // General Command Frame - Default Response
+
+/////////////////////////////////////////////////////////////
+//Reflex Capability Initialization
+/////////////////////////////////////////////////////////////
+DevicePower {
+   source                    DevicePower.SOURCE_LINE
+   linecapable               true
+   backupbatterycapable      true
+   battery                   100
+   bind sourcechanged to source
+}
+
+Smoke {
+   Smoke.smoke               Smoke.SMOKE_SAFE
+   bind Smoke.smokechanged to Smoke.smoke
+}
+
+CarbonMonoxide {
+   CarbonMonoxide.co         CarbonMonoxide.CO_SAFE
+   bind CarbonMonoxide.cochanged to CarbonMonoxide.co
+}
+
+Zigbee {
+   offlineTimeout 10, MINUTES
+   match reflex {
+      on iaszone, endpoint: ENDPOINT_SMOKE, clear: ["test"], set: ["alarm1"]
+      debug "Reflex smoke detected"
+      set Smoke.smoke, Smoke.SMOKE_DETECTED
+      forward
+   }
+ 
+   match reflex {
+      on iaszone, endpoint: ENDPOINT_SMOKE, clear: ["test", "alarm1"]
+      debug "Reflex smoke clear"
+      set Smoke.smoke, Smoke.SMOKE_SAFE
+      forward
+   }
+ 
+   match reflex {
+      on iaszone, endpoint: ENDPOINT_CO, clear: ["test"], set: ["alarm1"]
+      debug "Reflex CO detected"
+      set CarbonMonoxide.co, CarbonMonoxide.CO_DETECTED
+      forward
+   }
+
+   match reflex {
+      on iaszone, endpoint: ENDPOINT_CO, clear: ["test", "alarm1"]
+      debug "Reflex CO clear"
+      set CarbonMonoxide.co, CarbonMonoxide.CO_SAFE
+      forward
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability defaults
+////////////////////////////////////////////////////////////////////////////////
+Switch.state		            Switch.STATE_OFF
+Dimmer.brightness                   DFLT_BRIGHTNESS
+Light.colormode                     Light.COLORMODE_COLOR // no color temp support
+Halo.haloalertstate                 Halo.HALOALERTSTATE_QUIET
+DeviceAdvanced.errors               [:]
+
+final Map roomNamesMap = [
+	"NONE":"None",
+	"BASEMENT":"Basement",
+	"BEDROOM":"Bedroom",
+	"DEN":"Den",
+	"DINING_ROOM":"Dining Room",
+	"DOWNSTAIRS":"Downstairs",
+	"ENTRYWAY":"Entryway",
+	"FAMILY_ROOM":"Family Room",
+	"GAME_ROOM":"Game Room",
+	"GUEST_BEDROOM":"Guest Bedroom",
+	"HALLWAY":"Hallway",
+	"KIDS_BEDROOM":"Kid's Bedroom",
+	"LIVING_ROOM":"Living Room",
+	"MASTER_BEDROOM":"Master Bedroom",
+	"OFFICE":"Office",
+	"STUDY":"Study",
+	"UPSTAIRS":"Upstairs",
+	"WORKOUT_ROOM":"Workout Room"
+	]
+								
+Halo.roomNames                      roomNamesMap
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+onAdded {
+   vars.'CURRENT_NAME' = DEVICE_NAME
+   log.debug "{} started.", DEVICE_NAME
+
+   // get changed timestamps
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Smoke.smokechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   CarbonMonoxide.cochanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Test.lastTestTime	     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Switch.statechanged       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+// 16 table entries
+// reporting supports 18
+// Bind all does it in a sensible order, but not in a useful order, and we run out
+//		Zigbee.bindAll()
+   log.debug "BINDING needed endpoints onAdded"
+   Zigbee.bindEndpoints(
+		zoneSmokeCluster.bindServerCluster(), // most important - safety
+		zoneCoCluster.bindServerCluster(),
+                wdCluster.bindServerCluster(),
+
+                Zigbee.endpoint(ENDPOINT_HALO).bindServerCluster(CLUSTER_HALO),  // operational, msp
+                Zigbee.endpoint(ENDPOINT_HALO).bindServerCluster(CLUSTER_HALO_CONTROL),
+                Zigbee.endpoint(ENDPOINT_HALO).bindServerCluster(CLUSTER_HALO_SENSORS),
+                
+                basicCluster.bindServerCluster(),  // operational, power
+		powerCluster.bindServerCluster(),
+
+                onOffCluster.bindServerCluster(),  // nightlight
+		levelCluster.bindServerCluster(),
+		colorCluster.bindServerCluster(),
+
+                tempCluster.bindServerCluster(), // informational
+                humCluster.bindServerCluster(),
+                presCluster.bindServerCluster()
+                )
+
+   initIasStateMachines()
+   
+   // write the IAS CIE Address now
+   zoneSmokeCluster.zclWriteAttributes( [(zoneSmokeCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+   zoneCoCluster.zclWriteAttributes( [(zoneCoCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+   // and schedule a followup write in case first write fails
+   Scheduler.scheduleIn 'doWriteSmokeIasCie', WRITE_IAS_CIE_DELAY
+   Scheduler.scheduleIn 'doWriteCoIasCie', WRITE_IAS_CIE_DELAY
+
+   // configuration of reporting: first which attributes (the strings of the definitions in vars)
+   vars.'RC' = ['RC.temp', 'RC.pres', 'RC.humid', 'RC.batt', 'RC.volt', 'RC.powsrc', 'RC.onoff', 'RC.level', 'RC.hue',
+                'RC.sat', 'RC.hush', 'RC.test', 'RC.dev', 'RC.co']
+   // imported capabilities configure their own reporting
+   vars.'RC.temp'    = [EP: ENDPOINT_SENS, Cluster:ZHA_CLUSTER_TEMPERATURE_MEASUREMENT, Attribute: tempCluster.ATTR_MEASURED_VALUE,
+                        Type:ZB_TYPE_SIGNED_16BIT, Min:30, Max:120, Delta:20] // this is 0.20 C min change value
+   vars.'RC.pres'    = [EP: ENDPOINT_SENS, Cluster:ZHA_CLUSTER_PRESSURE_MEASUREMENT, Attribute:presCluster.ATTR_MEASURED_VALUE,
+                        Type:ZB_TYPE_SIGNED_16BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.humid'   = [EP: ENDPOINT_SENS, Cluster:ZHA_CLUSTER_RELATIVE_HUMIDITY_MEASUREMENT, Attribute:humCluster.ATTR_MEASURED_VALUE,
+                        Type:ZB_TYPE_UNSIGNED_16BIT, Min:30, Max:120, Delta:1]
+   vars.'RC.batt'    = [EP: ENDPOINT_POWER, Cluster:ZHA_CLUSTER_POWER_CONFIGURATION, Attribute:powerCluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING,
+                        Type:ZB_TYPE_UNSIGNED_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.volt'    = [EP: ENDPOINT_POWER, Cluster:ZHA_CLUSTER_POWER_CONFIGURATION, Attribute:powerCluster.ATTR_BATTERY_VOLTAGE,
+                        Type:ZB_TYPE_UNSIGNED_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.powsrc'  = [EP: ENDPOINT_BASIC, Cluster:ZHA_CLUSTER_BASIC, Attribute:basicCluster.ATTR_POWER_SOURCE,
+                        Type:ZB_TYPE_ENUM_8BIT, Min:5, Max:120, Delta:0]
+   vars.'RC.onoff'   = [EP: ENDPOINT_LIGHT, Cluster:ZHA_CLUSTER_ON_OFF, Attribute:onOffCluster.ATTR_ONOFF,
+                        Type:ZB_TYPE_BOOLEAN, Min:5, Max:120, Delta:0]
+   vars.'RC.level'   = [EP: ENDPOINT_LIGHT, Cluster:ZHA_CLUSTER_LEVEL_CONTROL, Attribute:levelCluster.ATTR_CURRENT_LEVEL,
+                        Type:ZB_TYPE_UNSIGNED_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.hue'     = [EP: ENDPOINT_LIGHT, Cluster:ZHA_CLUSTER_COLOR_CONTROL,  Attribute:colorCluster.ATTR_CURRENT_HUE,
+                        Type:ZB_TYPE_UNSIGNED_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.sat'     = [EP: ENDPOINT_LIGHT, Cluster:ZHA_CLUSTER_COLOR_CONTROL,  Attribute:colorCluster.ATTR_CURRENT_SATURATION,
+                        Type:ZB_TYPE_UNSIGNED_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.hush'    = [EP: ENDPOINT_HALO, Cluster:CLUSTER_HALO_CONTROL, Attribute:ATTR_HUSH_STATUS, Type:ZB_TYPE_ENUM_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.test'    = [EP: ENDPOINT_HALO, Cluster:CLUSTER_HALO_CONTROL, Attribute:ATTR_TEST_STATUS, Type:ZB_TYPE_ENUM_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.dev'     = [EP: ENDPOINT_HALO, Cluster:CLUSTER_HALO, Attribute:ATTR_DEVICE_STATUS, Type:ZB_TYPE_ENUM_8BIT, Min:5, Max:120, Delta:1]
+   vars.'RC.co'      = [EP: ENDPOINT_HALO, Cluster:CLUSTER_HALO_SENSORS, Attribute:ATTR_CO_PPM,
+                        Type:ZB_TYPE_SIGNED_16BIT, Min:5, Max:120, Delta:1]
+
+   // this keeps the device in pairing mode and delays the "halo is now configured" message. 
+   // If the room name is set before this times out, it will say/confirm the room name ("in the den").
+   //identCluster.identifyCmd( IDENT_PERIOD_SECS )
+}
+
+onConnected {
+   log.debug "{} connected.", DEVICE_NAME
+
+   basicCluster.zclReadAttributes(
+      basicCluster.ATTR_ZCL_VERSION,
+      basicCluster.ATTR_APPLICATION_VERSION,
+      basicCluster.ATTR_HARDWARE_VERSION,
+      basicCluster.ATTR_MODEL_IDENTIFIER,
+      basicCluster.ATTR_POWER_SOURCE )
+   powerCluster.zclReadAttributes(
+      powerCluster.ATTR_BATTERY_VOLTAGE, 
+      powerCluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING )
+
+   // read current IAS Zone attributes after setting Address (to get current state and trigger async Enroll Response)
+   zoneSmokeCluster.zclReadAttributes(
+      zoneSmokeCluster.ATTR_ZONE_STATE,
+      zoneSmokeCluster.ATTR_ZONE_TYPE,
+      zoneSmokeCluster.ATTR_ZONE_STATUS,
+      zoneSmokeCluster.ATTR_IAS_CIE_ADDRESS )
+   zoneCoCluster.zclReadAttributes(
+      zoneCoCluster.ATTR_ZONE_STATE,
+      zoneCoCluster.ATTR_ZONE_TYPE,
+      zoneCoCluster.ATTR_ZONE_STATUS,
+      zoneCoCluster.ATTR_IAS_CIE_ADDRESS )
+
+   onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+   levelCluster.zclReadAttributes( levelCluster.ATTR_CURRENT_LEVEL )
+   colorCluster.zclReadAttributes(
+      colorCluster.ATTR_CURRENT_HUE,
+      colorCluster.ATTR_CURRENT_SATURATION,
+      colorCluster.ATTR_COLOR_TEMPERATURE,
+      colorCluster.ATTR_COLOR_MODE )
+
+   tempCluster.zclReadAttributes( tempCluster.ATTR_MEASURED_VALUE )
+   presCluster.zclReadAttributes( presCluster.ATTR_MEASURED_VALUE )
+   humCluster.zclReadAttributes( humCluster.ATTR_MEASURED_VALUE,
+                                 CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG )
+
+   sendReadAttrCommand(this,ENDPOINT_HALO,CLUSTER_HALO_SENSORS,ATTR_CO_PPM)
+   sendReadAttrCommand(this,ENDPOINT_HALO,CLUSTER_HALO,ATTR_DEVICE_STATUS)
+   sendReadAttrCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,ATTR_TEST_STATUS)
+   sendReadAttrCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,ATTR_HUSH_STATUS)
+
+   // configuration of reporting
+   configurationDoAction(RC_STATE_SETUP)
+   Scheduler.scheduleIn 'RCStateMachine', RC_STATE_MACHINE_DELAY*3 // wait a bit longer for reads to clear
+
+   // set recommended offline timeout interval
+   Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+   vars.'alwaysSendBothColorAttr' = true        
+}
+
+onDisconnected {
+   log.debug "{} disconnected.", DEVICE_NAME
+}
+
+
+onRemoved {
+   log.debug "{} removed.", DEVICE_NAME
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zone configuration: CIE and Zone Enrollment
+////////////////////////////////////////////////////////////////////////////////
+onEvent('doWriteSmokeIasCie') {
+	if ((0 <= getIasCount('writeSmokeIasCieCnt')) && (MAX_IAS_CIE_WRITES > getIasCount('writeSmokeIasCieCnt'))) {
+		incrementIasCount('writeSmokeIasCieCnt')
+		log.trace "Write Smoke IAS CIE Address attempt: {}", getIasCount('writeSmokeIasCieCnt')
+		zoneSmokeCluster.zclWriteAttributes( [(zoneSmokeCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+		// schedule to write again in case this write fails
+		Scheduler.scheduleIn 'doWriteSmokeIasCie', (WRITE_IAS_CIE_DELAY * getIasCount('writeSmokeIasCieCnt'))
+	}
+}
+onEvent('doWriteCoIasCie') {
+	if ((0 <= getIasCount('writeCoIasCieCnt')) && (MAX_IAS_CIE_WRITES > getIasCount('writeCoIasCieCnt'))) {
+		incrementIasCount('writeCoIasCieCnt')
+                log.trace "WRITE CO IAS CIE Address attempt: {}", getIasCount('writeCoIasCieCnt')
+		zoneCoCluster.zclWriteAttributes( [(zoneCoCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+		// schedule to write again in case this write fails
+		Scheduler.scheduleIn 'doWriteCoIasCie', (WRITE_IAS_CIE_DELAY * getIasCount('writeCoIasCieCnt'))
+	}
+}
+onEvent('doZoneSmokeEnroll') {
+	if ((0 <= getIasCount('zoneSmokeEnrollCnt')) && (MAX_ZONE_ENROLLS > getIasCount('zoneSmokeEnrollCnt'))) {
+		incrementIasCount('zoneSmokeEnrollCnt')
+                // alternate writes and reads... elsewhere we process reads and if value is set
+                // correctly we stop writing
+                if ( (getIasCount('zoneSmokeEnrollCnt') % 2) == 1) {
+  		   log.trace "Zone Enrollment attempt: {}", getIasCount('zoneSmokeEnrollCnt')
+		   zoneSmokeCluster.zoneEnrollResponse((byte) ZB_STATUS_SUCCESS, (byte)0xFF)
+                } else {
+                   log.trace "READ smoke zone enroll Address attempt: {}", getIasCount('zoneSmokeEnrollCnt')
+                   zoneSmokeCluster.zclReadAttributes(
+                        zoneSmokeCluster.ATTR_ZONE_STATE,
+		        zoneSmokeCluster.ATTR_ZONE_TYPE,
+		        zoneSmokeCluster.ATTR_ZONE_STATUS,
+		        zoneSmokeCluster.ATTR_IAS_CIE_ADDRESS )
+                }
+		// schedule to send again in case this enrollment fails
+		Scheduler.scheduleIn 'doZoneSmokeEnroll', (ZONE_ENROLL_DELAY * getIasCount('zoneSmokeEnrollCnt'))
+	}
+}
+onEvent('doZoneCoEnroll') {
+	if ((0 <= getIasCount('zoneCoEnrollCnt')) && (MAX_ZONE_ENROLLS > getIasCount('zoneCoEnrollCnt'))) {
+		incrementIasCount('zoneCoEnrollCnt')
+                // alternate writes and reads... elsewhere we process reads and if value is set
+                // correctly we stop writing
+                if ( (getIasCount('zoneCoEnrollCnt') % 2) == 1 ) {
+   		   log.trace "Zone Enrollment attempt: {}", getIasCount('zoneCoEnrollCnt')
+		   zoneCoCluster.zoneEnrollResponse((byte) ZB_STATUS_SUCCESS, (byte)0xFF)
+                } else {
+                   log.trace "READ CO zone enroll Address attempt: {}", getIasCount('zoneCoEnrollCnt')
+                   zoneCoCluster.zclReadAttributes(
+                        zoneCoCluster.ATTR_ZONE_STATE,
+		        zoneCoCluster.ATTR_ZONE_TYPE,
+		        zoneCoCluster.ATTR_ZONE_STATUS,
+		        zoneCoCluster.ATTR_IAS_CIE_ADDRESS )
+                }
+		// schedule to send again in case this enrollment fails
+		Scheduler.scheduleIn 'doZoneCoEnroll', (ZONE_ENROLL_DELAY * getIasCount('zoneCoEnrollCnt'))
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Configuration of Attribute reporting
+// see also processCnfRptRsp and processReadCnfRptRsp for read side
+////////////////////////////////////////////////////////////////////////////////
+onEvent('RCStateMachine') {
+   log.trace "RCStateMachine: SM state: {}", configurationGetAction()
+   def config = vars.'RC'
+   boolean done = true
+   if ( configurationGetAction() == RC_STATE_DONE ) {
+      log.trace "RCStateMachine: NOTHING TO DO: {}", config
+      return
+   }
+   if ( configurationGetAction() == RC_STATE_SETUP ) {
+      log.trace "RCStateMachine: setup: {}", config
+      config.each() {
+         log.trace "RCStateMachine: each: {}", it
+         initConfigState(it)
+         def map = vars."${it}"
+         log.trace "RCStateMachine: INITIALIZE count:{}: state:{} timeout:{} ep:{} clus:{} att:{}",
+                   getConfigRetries(it),getConfigState(it),getConfigTimer(it),
+                   map['EP'],map['Cluster'],map['Attribute']
+      }
+      configurationDoAction( RC_STATE_RUNNING )
+      done = false
+   } else if (configurationGetAction() == RC_STATE_RUNNING ) {
+      log.trace "RCStateMachine: read: {}", config
+      boolean sent = false // only send one message per config run
+      // move independent configuration state machines along
+      // state 1: send one read configuration
+      // state 2: waiting for some response (either to read, or to configure)
+      //          Response handler(s) move(s) us to:
+      //               -1 on success of read (done) 
+      //               3 on fail of read (config again)
+      //               1 on success of config (read again)
+      //               3 on fail of config (read again)
+      //          calculate timeout here. Move to 3 on timeout.
+      // state 3: send one configure attribute reporting message (with retries)
+      //          (if we haven't send a read)
+      //    comments in this section help most to debug      
+      config.each() {
+         if ( (!sent) && (CFG_STATE_READ==getConfigState(it)) ) {  // send only one per period, but leave state 1 for this attr
+            def map = vars."${it}"
+            log.trace "RCStateMachine: {} SEND READ CONFIG: ep: {} clus: {} att: {}", it, map['EP'],map['Cluster'],map['Attribute']
+            sendReadCnfAttrCommand(this,map['EP'],map['Cluster'],map['Attribute'])
+            setConfigState(it, CFG_STATE_WAIT)
+            sent = true   // SEND ONLY ONE READ CONFIG PER TIME PERIOD
+            done = false  // sent a message
+         } else if ( CFG_STATE_WAIT == getConfigState(it) ) {
+            log.trace "RCStateMachine: WAITING; timeout: {}", getConfigTimer(it)
+            if ( 0 >= decrementConfigTimer(it) ) {
+               log.trace "RCStateMachine: DONE WAITING"
+               if ( RC_READ_RETRY == getConfigRetries(it) ) {
+                  // we've failed writing five times, do one more read to see if something changed.
+                  setConfigState(it, CFG_STATE_READ)
+               } else {
+                  // otherwise, keep writing
+                  setConfigState(it, CFG_STATE_CONFIG)
+               }
+            }
+            done = false // still counting down
+         } else if ( (!sent) && (CFG_STATE_CONFIG==getConfigState(it)) ) {
+            def map = vars."${it}"
+            log.trace "RCStateMachine: SEND CONFIG ATTR. count:{}: state:{} timeout:{} ep:{} clus:{} att:{}",
+                      getConfigRetries(it),getConfigState(it),getConfigTimer(it),
+                      map['EP'],map['Cluster'],map['Attribute']
+            if ( 0 < (getConfigRetries(it) ) ) { 
+               sendCnfAttrCommand(this,map['EP'],map['Cluster'],map['Attribute'],map['Type'],map['Min'],map['Max'],map['Delta'])
+               setConfigState(it, CFG_STATE_WAIT)
+               decrementConfigRetries(it)
+               sent = true
+               done = false // we sent something
+            } else {
+               log.trace "RCStateMachine: OUT OF RETRIES, NOT SENDING CONFIG!!!!!!!!!!!!!!!!!!!!!!!!!!"
+               setConfigState(it, CFG_STATE_FAIL) //  we are out of retries
+            }
+         } // var == -1 falls through, done remains true if it was
+      } // end config.each
+   } else {
+      log.warn "RCStateMachine: bad state: {}", configurationGetAction()
+   }
+   if (!done) {
+      Scheduler.scheduleIn 'RCStateMachine', RC_STATE_MACHINE_DELAY
+   } else {
+      log.trace "RCStateMachine: DONE! not re-scheduling"
+      config.each() {
+         // SUMMARY STATUS REPORT
+         if (CFG_STATE_FAIL == getConfigState(it)) {
+            if  ( ZB_STATUS_UNSUPPORTED_ATTRIBUTE == getConfigResponse(it) ) {
+               log.info "RCStateMachine: each: {} state FAIL ({} retries) UNSUPPORTED ATTRIBUTE", it, RC_MAX_WRITE_RETRIES
+            } else if ( ZB_STATUS_UNREPORTABLE_ATTRIBUTE == getConfigResponse(it) ) {
+               log.info "RCStateMachine: each: {} state FAIL ({} retries) UNREPORTABLE ATTRIBUTE", it, RC_MAX_WRITE_RETRIES
+            } else if ( ZB_STATUS_INVALID_DATA_TYPE == getConfigResponse(it) ) {
+               log.info "RCStateMachine: each: {} state FAIL ({} retries) INVALID DATA TYPE", it, RC_MAX_WRITE_RETRIES
+            } else {
+               log.info "RCStateMachine: each: {} state FAIL ({} retries) response: {}", it, RC_MAX_WRITE_RETRIES, getConfigResponse(it)
+            }
+         } else if (CFG_STATE_SUCCESS == getConfigState(it)) {
+            log.trace "RCStateMachine: each: {} state SUCCESS", it
+         } else {
+            log.info "RCStateMachine: each: {} state {}", it, getConfigState(it)
+         }
+         // end STATUS REPORT
+         configurationDoAction(RC_STATE_DONE)
+      }
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+// deferred timers for GenericZigbeeDimmer
+// Not using the configure reporting so the last two are not copied here.
+// See top of GenericZigbeeDimmer.capability for more info.
+onEvent( GenericZigbeeDimmer.DEFERRED_ON_EVENT ) {
+    GenericZigbeeDimmer.doDeferredOnEvent this, DEVICE_NAME, onOffCluster
+}
+onEvent( GenericZigbeeDimmer.READ_SWITCH_EVENT ) {
+    GenericZigbeeDimmer.doReadSwitchEvent this, DEVICE_NAME, onOffCluster
+}
+onEvent( GenericZigbeeDimmer.READ_LEVEL_EVENT ) {
+    GenericZigbeeDimmer.doReadLevelEvent this, DEVICE_NAME, levelCluster
+}
+setAttributes() {
+   boolean dimmerChanges = false;
+   boolean colorChanges = false;
+   def handledChanges = [];
+   def attributes = message.attributes
+   for(attribute in attributes) {
+       handledChanges.add attribute.key;
+       switch(attribute.key) {
+       case Switch:
+       case Dimmer:
+          dimmerChanges = true;
+          break;
+
+        case Light:
+        case Color:
+          colorChanges = true;
+          break;
+
+        default:
+           //log.warn "Ignoring non-light attribute [{}]", attribute
+           handledChanges.remove attribute.key
+        }
+    }
+   
+   if(dimmerChanges) {
+      GenericZigbeeDimmer.doSetAttributes(this, DEVICE_NAME, levelCluster, onOffCluster, message);
+   }
+   if(colorChanges) {
+      GenericZigbeeColorOnly.doSetColorAttributes(this, DEVICE_NAME, colorCluster, message)
+   }
+   return handledChanges
+}
+// method defined in the Dimmer capability
+onDimmer.RampBrightness {
+   log.trace "{} driver received onDimmer.RampBrightness message: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.doRampBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.IncrementBrightness {
+   log.trace "{} driver received onDimmer.IncrementBrightness message: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.doIncrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+ 
+onDimmer.DecrementBrightness {
+   log.trace "{} driver received onDimmer.decrementBrightness message: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.doDecrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onEvent('DeferredReadColor') {
+   log.trace "{} driver received deferred read color message: {}", DEVICE_NAME, message
+   GenericZigbeeColorOnly.handleDeferredReadColorEvent(this, colorCluster)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Handlers for Halo
+////////////////////////////////////////////////////////////////////////////////
+onHalo.StartHush {
+   log.debug "halo:starthush:{} cmdId:{}", message, HALO_HUSH_START
+   boolean result = true
+
+   /* If we want to confirm, we could check to make sure:
+      Halo.devicestate.get() is one of Halo.DEVICESTATE_SMOKE, Halo.DEVICESTATE_CO, or Halo.DEVICESTATE_PRE_SMOKE.
+      AND Halo.hushstatus.get() != Halo.HUSHSTATUS_DISABLED
+      but presently just always send which causes no problems.
+   */
+   sendClusterSpecificCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,CMD_HALO_HUSH,HALO_HUSH_START)
+   sendResponse 'halo:StartHushResponse', ['hushstarted': result]
+}
+
+onHalo.SendHush {
+   def color = (message.attributes['color'] != null) ? message.attributes['color'] : HALO_HUSH_RED
+   log.debug "halo:sendhush:{} color:({}) map:{}", message, color, hushcolor_zigbee_map[color]
+   sendClusterSpecificCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,CMD_HALO_HUSH,hushcolor_zigbee_map[color])
+   sendResponse 'halo:SendHushResponse', [:]   
+}
+onHalo.CancelHush {
+   log.debug "halohush:CANCEL:{} cmdId:{}", message, HALO_HUSH_STOP
+   sendClusterSpecificCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,CMD_HALO_HUSH,HALO_HUSH_STOP)
+   sendResponse 'halo:CancelHushResponse', [:]
+}
+onHalo.StartTest {
+   log.trace "halotest:RemoteTest:{}", message
+   sendClusterSpecificCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,CMD_HALO_TEST,HALO_TEST_START)
+   sendResponse 'halo:StartTestResponse', [:]
+}
+// If we want to add this back to the capability:
+//onHalo.CancelTest {
+//   log.debug "halotest:CancelTest:{}", message
+//   sendClusterSpecificCommand(this,ENDPOINT_HALO,CLUSTER_HALO_CONTROL,CMD_HALO_TEST,HALO_TEST_CANCEL)
+//   sendResponse 'halo:CancelTestResponse', [:]
+//}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Handlers for Halo
+////////////////////////////////////////////////////////////////////////////////
+setAttributes(Halo) {
+   log.trace "halo:SetAttributes: {}", message
+   def handled = []
+   def attributes = message.attributes
+   for(attribute in attributes) {
+      log.trace "attribute ${attribute.key} - ${attribute.value} "
+      switch(attribute.key) {
+         case Halo.room:
+            def room = ( room_zigbee_map[attribute.value] != null ) ? room_zigbee_map[attribute.value] : ROOM_NONE
+            log.debug "Halo: set room to {}, attr: {}", room, attribute.value
+            setRoom(this,room)
+            handled.add(Halo.room)
+            break
+         case Halo.haloalertstate:
+            log.debug "halo: set alert type to {} (NOT SUPPORTED YET)", attribute.value
+            // NOT SUPPORTED YET
+            handled.add(Halo.haloalertstate)
+            break
+         default:
+            log.warn "Halo unrecognized attr: {}", attribute
+            break
+      }
+   }
+   return handled
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the IAS Zone Cluster
+////////////////////////////////////////////////////////////////////////////////
+// Helper function
+void sendZoneEnrollment(Object cluster) {
+	byte enrollResponseCode = ZB_STATUS_SUCCESS
+	byte zoneId = 0xFF
+	cluster.zoneEnrollResponse( enrollResponseCode, zoneId )
+}
+void verifyCIEAddr(ep, addr) {
+   log.trace "Reported IAS CIE Address is: {}", addr
+   def hubAddr = Zigbee.Data.encodeIeee(Zigbee.Hub.eui64).dataValue
+   log.trace "Hub IEEE Address is: {}",  hubAddr
+
+   if ((null == addr) || ('INVALID' == addr.toString()) || (8 != addr.size())) {
+      log.warn "IAS CIE Address not set."
+   } else {
+      if (addr != hubAddr) {
+         log.warn "IAS CIE Address not set to hub address. {} != {} Will likely continue to fail.", addr, hubAddr
+      } else {
+         log.debug "IAS CIE Address is set to hub address. Stopping state machine."
+         if (ENDPOINT_SMOKE == ep) {
+            setIasComplete('writeSmokeIasCieCnt')
+         } else if (ENDPOINT_CO == ep) {
+            setIasComplete('writeCoIasCieCnt')
+         } else {
+            log.warn "Invalid endpoint for IAS Zone"
+         }
+      }
+   }
+}
+void processZoneStatus(Object cluster, int zoneStatus, int endpoint) {
+   boolean testmode = false
+   def safety = (ENDPOINT_CO == endpoint) ? "CO" : "SMOKE"
+   if ( zoneStatus & cluster.ZONE_STATUS_TEST ) {
+      log.debug "Sensor is in TEST MODE - NOT SENDING {} MESSAGE TO PLATFORM!!!", safety
+      Test.lastTestTime  new Date()
+      return
+   }
+   log.debug "Test mode off, processing {} Zone Status Changed message (non-reflex)", safety
+/*
+   if (ENDPOINT_SMOKE == endpoint) {
+      def prevSmoke = Smoke.smoke.get()
+      if ( zoneStatus & cluster.ZONE_STATUS_ALARM1 ) {
+         log.debug "Alarm1 Set (Smoke detected) sending to platform"
+         Smoke.smoke Smoke.SMOKE_DETECTED
+      } else {
+         log.debug "Alarm1 Clear (No Smoke)"
+         Smoke.smoke Smoke.SMOKE_SAFE
+      }
+      if (Smoke.smoke.get() != prevSmoke) {
+         Smoke.smokechanged new Date()
+      }
+   } else if (ENDPOINT_CO == endpoint) {
+      def prevCo = CarbonMonoxide.co.get()
+      if ( zoneStatus & cluster.ZONE_STATUS_ALARM1 ) {
+         log.debug "Alarm1 Set (CO detected) sending to platform"
+         CarbonMonoxide.co CarbonMonoxide.CO_DETECTED
+      } else {
+         log.debug "Alarm1 Clear (No CO)"
+         CarbonMonoxide.co CarbonMonoxide.CO_SAFE
+      }
+      if (CarbonMonoxide.co.get() != prevCo) {
+         CarbonMonoxide.cochanged new Date()
+      }
+   } else {
+      log.warn "Invalid endpoint for IAS Zone"
+   }
+*/
+   // zoneStatus & cluster.ZONE_STATUS_ALARM2 : bit set or clear
+   // zoneStatus & cluster.ZONE_STATUS_TAMPER : set: tampered
+   // zoneStatus & cluster.ZONE_STATUS_BATTERY : set: low battery, unset, battery ok
+}
+void handleZoneMsg(Object endpoint, Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def iasCieAddr
+
+   if (ENDPOINT_SMOKE == endpoint) {
+      def zoneState = (attributes[zoneSmokeCluster.ATTR_ZONE_STATE] != null) ? attributes[zoneSmokeCluster.ATTR_ZONE_STATE] : ZONE_STATE_NOT_ENROLLED
+      def zoneType = attributes[zoneSmokeCluster.ATTR_ZONE_TYPE]
+      def zoneStatus = attributes[zoneSmokeCluster.ATTR_ZONE_STATUS]
+      iasCieAddr = attributes[zoneSmokeCluster.ATTR_IAS_CIE_ADDRESS]
+      if (zoneState == ZONE_STATE_NOT_ENROLLED ) {
+         log.debug "Smoke not enrolled: sending zone enrollment response"
+         sendZoneEnrollment zoneSmokeCluster
+      } else {
+         setIasComplete('zoneSmokeEnrollCnt')
+      }  
+      processZoneStatus zoneSmokeCluster, zoneStatus, endpoint
+   } else if (ENDPOINT_CO == endpoint) {
+      def zoneState = (attributes[zoneCoCluster.ATTR_ZONE_STATE] != null) ? attributes[zoneCoCluster.ATTR_ZONE_STATE] : ZONE_STATE_NOT_ENROLLED
+      def zoneType = attributes[zoneCoCluster.ATTR_ZONE_TYPE]
+      def zoneStatus = attributes[zoneCoCluster.ATTR_ZONE_STATUS]
+      iasCieAddr = attributes[zoneCoCluster.ATTR_IAS_CIE_ADDRESS]
+      if (zoneState == ZONE_STATE_NOT_ENROLLED ) {
+         log.debug "CO not enrolled: sending zone enrollment response"
+         sendZoneEnrollment zoneCoCluster
+      } else {
+         setIasComplete('zoneCoEnrollCnt')
+      }  
+      processZoneStatus zoneCoCluster, zoneStatus, endpoint
+   } else {
+      log.warn "Invalid endpoint for IAS Zone"
+   }
+   verifyCIEAddr endpoint, iasCieAddr
+}
+
+// Handlers
+onZigbeeMessage.Zcl.iaszone.zclreadattributesresponse() {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def endpoint = zclMsg.getEndpoint()
+   handleZoneMsg(endpoint, message)
+}
+onZigbeeMessage.Zcl.iaszone.zclreportattributes() {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def endpoint = zclMsg.getEndpoint()
+   handleZoneMsg(endpoint, message)
+}
+onZigbeeMessage.Zcl.iaszone.zclwriteattributesresponse() {
+	log.trace "Driver received IAS Zone write attributes response: {}", message
+
+	def zclMsg = Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+      	def endpoint = zclMsg.getEndpoint()
+	if ((null != data) && (1 <= data.size())) {
+		if (ZB_STATUS_SUCCESS == data[0]) {
+			log.trace "IAS Zone Write Attributes Success"
+                        if (ENDPOINT_SMOKE == endpoint) {
+   	                   setIasComplete('writeSmokeIasCieCnt')
+		 	   Scheduler.defer 'doZoneSmokeEnroll'
+                        } else if (ENDPOINT_CO == endpoint) {
+   	                   setIasComplete('writeCoIasCieCnt')
+		 	   Scheduler.defer 'doZoneCoEnroll'
+                        } else {
+                           log.warn "Invalid endpoint for IAS Zone"
+                        }
+		} else if (0x70 == data[0]) {			// REQUEST_DENIED
+			log.debug "IAS Zone Write Attributes REQUEST DENIED"
+                        if (ENDPOINT_SMOKE == endpoint) {
+			   setIasComplete('writeSmokeIasCieCnt')
+                        } else if (ENDPOINT_CO == endpoint) {
+			   setIasComplete('writeCoIasCieCnt')
+                        } else {
+                           log.warn "Invalid endpoint for IAS Zone"                        
+                        }
+		} else {
+			log.warn "IAS Zone Write Attributes failed, unknown reason: {} (will retry)" data[0]
+		}
+	} else {
+           log.warn "Null response in ZCL IAS Zone write attribute response"
+        }
+}
+onZigbeeMessage.Zcl.iaszone.ZoneEnrollRequest() {
+	log.trace "Driver received IasZone ZoneEnrollRequest: {}", message
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+        def endpoint = Zigbee.Message.toZcl(message).getEndpoint()
+	def rqst = Zigbee.Message.decodeZcl(message)
+	int zoneType = rqst.getZoneType()
+	int mfgCode = rqst.getManufacturerCode()
+	log.trace "ZoneType: {}, MfgCode: {}", zoneType, mfgCode
+	// send a ZoneEnrollResponse
+        if (ENDPOINT_SMOKE == endpoint) {
+   	   sendZoneEnrollment zoneSmokeCluster
+        } else if (ENDPOINT_CO == endpoint) {
+   	   sendZoneEnrollment zoneCoCluster
+        } else {
+           log.warn "Invalid endpoint for IAS Zone"        
+        }
+}
+onZigbeeMessage.Zcl.iaszone.ZoneStatusChangeNotification() {
+	log.trace "Driver received IasZone ZoneStatusChangeNotification: {}", message
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+        def endpoint = Zigbee.Message.toZcl(message).getEndpoint()
+	def notification = Zigbee.Message.decodeZcl(message)
+	int zoneStatus = notification.getZoneStatus()
+	int extStatus = notification.getExtendedStatus()
+        if (ENDPOINT_SMOKE == endpoint) {
+           setIasComplete('zoneSmokeEnrollCnt')
+	   processZoneStatus zoneSmokeCluster, zoneStatus, endpoint
+        } else if (ENDPOINT_CO == endpoint) {
+           setIasComplete('zoneCoEnrollCnt')
+	   processZoneStatus zoneCoCluster, zoneStatus, endpoint
+        } else {
+           log.warn "Invalid endpoint for IAS Zone"
+        }
+}
+
+//////////////////////////////////////////////////
+// temperature cluster handling
+//////////////////////////////////////////////////
+void handleTemperatureMeasurement(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+	// def tempMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+	// def tempMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+	// def tempTolerance = attributes[cluster.ATTR_TOLERANCE]
+	log.trace "Temp:{}", tempVal
+
+	if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+		// temperature is reported in 100ths degree C, so convert to C and save
+		double tempC = tempVal
+		tempC /= 100
+		log.trace "Set Temp:{}", tempC
+		Temperature.temperature tempC
+	}
+}
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+   log.trace "received temperature read response: {}", message
+   handleTemperatureMeasurement(tempCluster, message)
+}
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+   log.trace "received temperature report: {}", message
+   handleTemperatureMeasurement(tempCluster, message)
+}
+
+//////////////////////////////////////////////////
+// Humidity cluster handling
+//////////////////////////////////////////////////
+onEvent('delayHumidity') {
+   log.trace "{} driver in poll humidity callback", DEVICE_NAME
+   humCluster.zclReadAttributes( humCluster.ATTR_MEASURED_VALUE,
+                                 CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG )
+}
+
+void handleHumidityMeasurement(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+        def config = attributes[(short)CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG]
+	def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+	// def tempMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+	// def tempMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+	// def tempTolerance = attributes[cluster.ATTR_TOLERANCE]
+        // XXX log.trace!
+
+	if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+           log.trace "Humidity received: {}", tempVal
+           if ((null != config) && ('INVALID' != config.toString())) {
+              log.trace "Humidity config: {}", config
+              if (CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG_WHOLE_PERCENT == config) {
+                 log.debug "Humidity received in whole percent: ({}%)", tempVal
+                 RelativeHumidity.humidity tempVal
+              } else if (CLUSTER_HALO_HUMIDITY_SENSOR_CONFIG_PER_SPEC == config) {
+                 double tempH = tempVal
+                 tempH /= 100
+                 log.debug "Humidity received per spec: {} received; whole percent computed: ({}%)", tempVal, tempH
+                 RelativeHumidity.humidity tempH                 
+              } else {
+                 log.info "Unexpected value in humidity sensor configuration (per spec (2) or whole percent (1) expected, received {})", config
+                 return
+              }
+           } else {
+              log.trace "Humidity config null, schedule delayed read now"
+              // schedule delayed read in case config value is not being set which would cause read loop
+              Scheduler.scheduleIn 'delayHumidity', CLUSTER_HALO_HUMIDITY_DELAY
+           }
+	} else {
+           log.debug "Humidity value null, bare read of humidity config! should never happen."
+        }        
+}
+onZigbeeMessage.Zcl.humiditymeasurement.zclreadattributesresponse() {
+   log.trace "received humidity read response: {}", message
+   handleHumidityMeasurement(humCluster, message)
+}
+onZigbeeMessage.Zcl.humiditymeasurement.zclreportattributes() {
+   log.trace "received humidity report: {}", message
+   handleHumidityMeasurement(humCluster, message)
+}
+//////////////////////////////////////////////////
+// Pressure cluster handling
+//////////////////////////////////////////////////
+void handlePressureMeasurement(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+	// def tempMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+	// def tempMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+	// def tempTolerance = attributes[cluster.ATTR_TOLERANCE]
+	log.trace "Press:{}", tempVal
+
+	if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+           double tempP = tempVal
+           tempP /= 10
+           log.debug "Set Pressure received: {} set: {}", tempVal, tempP
+           Atmos.pressure tempP
+	}
+}
+onZigbeeMessage.Zcl.pressuremeasurement.zclreadattributesresponse() {
+   log.trace "received pressure read response: {}", message
+   handlePressureMeasurement(presCluster, message)
+}
+onZigbeeMessage.Zcl.pressuremeasurement.zclreportattributes() {
+   log.trace "received pressure report: {}", message
+   handlePressureMeasurement(presCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+void handleBasicMsg(Object cluster, Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg);
+   def pwrSrc = attributes[cluster.ATTR_POWER_SOURCE] ?: 0 // unknown, ignored below
+   def zclVers = attributes[cluster.ATTR_ZCL_VERSION] ?: 0
+   def appVers = attributes[cluster.ATTR_APPLICATION_VERSION] ?: 0
+   def hwVers = attributes[cluster.ATTR_HARDWARE_VERSION] ?: 0
+   def mfgName = attributes[cluster.ATTR_MANUFACTURER_NAME] ?: ""
+   def model = attributes[cluster.ATTR_MODEL_IDENTIFIER] ?: ""
+
+   int intSrc = (int)pwrSrc & 0xff
+   boolean secondBat = ((intSrc & 0x80) == 0x80)
+   int actPwr = (secondBat) ? intSrc ^ 0x80 : intSrc
+
+   log.trace "Received ZCL basic report: {} app: {} hw: {} mfg: {} model: {} source: {} secondBat: {}", zclVers, appVers, hwVers, mfgName, model, actPwr, secondBat
+
+   def prevSrc = DevicePower.source.get()
+   if (3 == actPwr) {
+      DevicePower.source DevicePower.SOURCE_BATTERY
+   } else {
+      if (0 != actPwr) {	// if not Unknown
+          DevicePower.source DevicePower.SOURCE_LINE
+      }
+   }
+   // if power source changed, capture timestamp
+   if (DevicePower.source.get() != prevSrc) {
+      log.debug "Device changed power source: {} from {}", actPwr, prevSrc
+      DevicePower.sourcechanged new Date()
+   }
+}
+
+// called when device responds to a Basic Read Attributes
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+   log.trace "{} received Basic Attributes Response: ", DEVICE_NAME, message
+   handleBasicMsg(basicCluster, message)
+}
+
+// called when device asynchronously sends a Basic Report Attributes
+onZigbeeMessage.Zcl.basic.zclreportattributes() {
+   log.trace "{} received Basic Attributes Report: ", DEVICE_NAME, message
+   handleBasicMsg(basicCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+void handlePowerMsg(Object cluster, Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+   def battPct = attributes[cluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING]
+   // attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+   // attributes[cluster.ATTR_BATTERY_ALARM_MASK]
+   log.trace "Received ZCL Power report: voltage: {} percent: {}", battVolt, battPct
+
+   if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+      int intVolt = (int)battVolt & 0xff
+      log.debug "Battery voltage reported: {} dV", intVolt
+   }
+   if ((null != battPct) && ('INVALID' != battPct.toString())) {
+      int intPct = (int)battPct & 0xff
+      log.trace "Battery percent reported: {}", intPct
+      if (200 < intPct) {
+         log.trace "percent too high in zigbee: {} setting to 200", intPct
+         intPct = 200;
+      }
+      if (0 > intPct) {
+         log.trace "percent too low in zigbee: {} setting to 0", intPct
+         intPct = 0;
+      }
+      double batt = intPct / 2.0
+      int intbatt = batt
+      log.trace "DevicePower from ZCL percent: {}", intbatt
+      DevicePower.battery intbatt
+   }
+}
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+   log.trace "{} received Power Attributes Response: ", DEVICE_NAME, message
+   handlePowerMsg(powerCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+   log.trace "{} received Power Attributes Report: ", DEVICE_NAME, message
+   handlePowerMsg(powerCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+   log.trace "{} received OnOff Attributes Response: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+}
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+   log.trace "{} received OnOff Attributes Report: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+   log.trace "{} received Level Attributes Response: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.handleLevelMsgNoRestore(this, DEVICE_NAME, levelCluster, onOffCluster, FOLLOWS_LEVEL_SPEC, message)
+}
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+   log.trace "{} received Level Attributes Report: {}", DEVICE_NAME, message
+   GenericZigbeeDimmer.handleLevelMsgNoRestore(this, DEVICE_NAME, levelCluster, onOffCluster, FOLLOWS_LEVEL_SPEC, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Color Cluster
+////////////////////////////////////////////////////////////////////////////////
+// called when device responds to a Color Read Attributes
+onZigbeeMessage.Zcl.color.zclreadattributesresponse() {
+   log.trace "{} received Color Attributes Response: {}", DEVICE_NAME, message
+   GenericZigbeeColorOnly.handleColorMsg(this, DEVICE_NAME, colorCluster, message)
+}
+// called when device asynchronously sends a Color Report Attributes
+onZigbeeMessage.Zcl.color.zclreportattributes() {
+   log.trace "{} received Color Attributes Report: {}", DEVICE_NAME, message
+   GenericZigbeeColorOnly.handleColorMsg(this, DEVICE_NAME, colorCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+   log.trace "Driver received onIdentify.Identify: {}", message
+   // ask the device to identify itself for 30 seconds
+   identCluster.identifyCmd( IDENT_PERIOD_SECS )
+   // send a response so event processing completes and next event can be handled
+   sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,devOtaEndpoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+// Read and report attribute handling for MSP clusters
+void processDeviceStatus(status) {
+   def deventry = device_zigbee_map.find { it.value == status }
+   if (deventry == null) {
+      switch (status) {
+          case DEVICE_STATUS_OTHER:
+             log.info "Halo: unused state OTHER received from device: {}", status
+             // XXX map to safe?
+             break;
+          case DEVICE_STATUS_SILENCED:
+             log.info "Halo: ignoring device SILENCED with button during an alarm: {}", status
+             // XXX we could do safe here too, but not sure
+             break;
+          case DEVICE_STATUS_CO_TEST:
+             log.info "Halo: test mode progress... we could do a cool pizza tracker here: CO TEST: {}", status
+             break;
+          case DEVICE_STATUS_CO_TEST_CLEAR:
+             log.info "Halo: test mode progress... we could do a cool pizza tracker here: CO TEST CLEAR: {}", status
+             break;
+          case DEVICE_STATUS_SMOKE_TEST:
+             log.info "Halo: test mode progress... we could do a cool pizza tracker here: SMOKE TEST: {}", status
+             break;
+          case DEVICE_STATUS_SMOKE_TEST_CLEAR:
+             log.info "Halo: test mode progress... we could do a cool pizza tracker here: SMOKE TEST CLEAR: {}", status
+             break;
+          case DEVICE_STATUS_CO_INTERCONNECT:
+             log.info "Halo: INTERCONNECT CO, DOING NOTHING PENDING PM DISCUSSION!!!!!!: {}", status
+             // XXX removed 
+             // CarbonMonoxide.co CarbonMonoxide.CO_DETECTED
+             break;
+          case DEVICE_STATUS_SMOKE_INTERCONNECT:
+             log.info "Halo: INTERCONNECT SMOKE, DOING NOTHING PENDING PM DISCUSSION!!!!!!: {}", status
+             // XXX removed 
+             // Smoke.smoke Smoke.SMOKE_DETECTED
+             break;
+         default:
+             log.info "Halo: unknown device state received from device: {}", status
+      }
+      return
+   }
+   log.debug "Halo: device state set to {} (ZCL code {})", deventry.key, deventry.value
+   Halo.devicestate  deventry.key
+
+   // glean info from handled states (most are ignored)
+   if (DEVICE_STATUS_WEATHER_RADIO == status) {
+      log.warn "Halo: non-plus device reports weather problem!"
+   }
+
+   // Handle error messages
+   if (device_message_map.containsKey(deventry.key)) {
+      log.trace "Halo: device state ({}) maps to message: {}", deventry.key, device_message_map[deventry.key]
+      DeviceAdvanced.errors.put(device_message_map[deventry.key],msg_message_map[device_message_map[deventry.key]])
+   } else if ( Halo.DEVICESTATE_SAFE == deventry.key ) {
+      log.trace "errors = {}", DeviceAdvanced.errors.get()
+      Map errs = DeviceAdvanced.errors.get()
+      log.trace "error map = {}", errs
+      for (err in errs) { // clear out only entries that were caused by device state
+         if ( device_message_map.containsValue(err.key) ) {
+            log.trace "Halo: device state ({}) clears out device state errors ({})", deventry.key, err.key
+            DeviceAdvanced.errors.remove(err.key)
+         } else {
+            log.trace "Halo: device state ({}) leaving test errors ({})", deventry.key, err.key
+         }
+      }
+   }
+}
+
+void processAttributeInfo(ctx,ep,clus,cmdId,data) {
+   short attr = cvtListtoShort(data[0], data[1])
+   byte type
+   def offset
+   if ((CMD_READ_ATTR_RSP==cmdId) && (ZB_STATUS_SUCCESS==data[2])) {
+      // read attribute response (bytes):
+      // 2: attr 1: status 1: type (if success) var: value (if success)
+      type = data[3]
+      offset = 4
+   } else if ((CMD_REPORT_ATTR==cmdId)) {
+      // report attribute (bytes):
+      // 2: attr 1: type var: value
+      type = data[2]
+      offset = 3
+   } else {
+      log.warn "Unhandled command ID (this function should only be called for read response or report!)."
+   }
+   if (data.size() < offset) {
+      log.warn "Message to set attribute not long enough: size: {} offset: {}", data.size(), offset
+      return
+   }
+   if ((CLUSTER_HALO == (short)clus) && (ATTR_ROOM == attr) && (ZB_TYPE_ENUM_8BIT==type) ) { 
+      def roomentry = room_zigbee_map.find { it.value == data[offset] }
+      // only read after attempt to write
+      log.trace "Halo: set ROOM type to {} ({})", roomentry.key, data[offset]
+      Halo.room roomentry.key
+   }
+   else if ((CLUSTER_HALO == (short)clus) && (ATTR_DEVICE_STATUS == attr) && (ZB_TYPE_ENUM_8BIT==type)) {
+      processDeviceStatus(data[offset])
+   }
+   else if ((CLUSTER_HALO_CONTROL == (short)clus) && (ATTR_TEST_STATUS == attr) && (ZB_TYPE_ENUM_8BIT==type)) { 
+      if (TEST_STATUS_STARTED == data[offset]) {
+         // this will only come when actual test run...
+         // Can we log this (the below test result) differently if this does not come?
+         // the driver would have to do the history directly.
+         log.trace "Halo: remote test started..."
+         return
+      }
+      if (TEST_STATUS_FAIL_WX == data[offset]) {
+         log.debug "Halo: non-plus received weather fail???"
+         // still show it to user...?
+      }
+      def testentry = test_zigbee_map.find { it.value == data[offset] }
+      if (null == testentry) {
+         log.warn "Halo received unknown test result, mapping to FAIL_OTHER: {}", data[offset]
+         testentry = test_zigbee_map.find { it.value == TEST_STATUS_FAIL_UNKNOWN }
+      } else {
+         log.debug "Halo: remote test result received: {}", testentry.key
+      }
+      Halo.remotetestresult  testentry.key
+      // test_message_map only has entries for which there is a message. Missing ones are no-op.
+      if (test_message_map.containsKey(testentry.key)) {
+         log.trace "Halo: test result ({}) maps to message: {}", testentry.key, test_message_map[testentry.key]
+         DeviceAdvanced.errors.put(test_message_map[testentry.key],msg_message_map[test_message_map[testentry.key]])
+      } else if (Halo.REMOTETESTRESULT_SUCCESS == testentry.key)  {
+         // if the current result is success, then we can clear out the test state errors
+         Map errs = DeviceAdvanced.errors.get()
+         log.trace "error map = {}", errs
+         for (err in errs) { // clear out only entries that were caused by test state
+            if ( test_message_map.containsValue(err.key) ) {
+               log.trace "Halo: test response ({}) clears out test errors ({})", testentry.key, err.key
+               DeviceAdvanced.errors.remove(err.key)
+            } else {
+               log.trace "Halo: test sucess ({}) leaving device state errors ({})", testentry.key, err.key
+            }
+         }
+      }
+   }
+   else if ((CLUSTER_HALO_CONTROL == (short)clus) && (ATTR_HUSH_STATUS == attr)&& (ZB_TYPE_ENUM_8BIT==type)) { 
+      def hushentry = hush_zigbee_map.find { it.value == data[offset] }
+      if (null == hushentry) {
+         log.warn "Halo received invalid hush status: {}", data[offset]
+         return
+      }
+      log.debug "Halo: hush status set to {}", hushentry.key
+      Halo.hushstatus  hushentry.key
+   }
+   else if ((CLUSTER_HALO_SENSORS == (short)clus) && (ATTR_CO_PPM == attr) && (ZB_TYPE_SIGNED_16BIT==type)) { // PETER should be unsigned but is not
+      if ( data.size() < (offset + 1) ) {
+         log.warn "Message to set attribute not long enough for 2 byte CO PPM: size: {} offset: {}", data.size(), offset
+         return
+      }
+      short ppm = cvtListtoShort(data[offset], data[offset+1])
+      log.trace "Setting CO PPM to {}", ppm
+      CarbonMonoxide.coppm  ppm
+   }
+   else {
+      log.warn "Unhandled Read Attribute Response: clus: {} attr: {}", clus, attr
+   }
+}
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   log.trace "received zigbee ZCL message: {}", message 
+
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def profile = zclMsg.getProfileId()
+   def clusterId = zclMsg.getClusterId()
+   def msgId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def flags = zclMsg.getFlags()
+   byte[] data = zclMsg.getPayload()
+
+   if ((PROFILE_HA == profile) && ((flags & ZigbeeMessage.Zcl.CLUSTER_SPECIFIC) != 0)) {
+      if ((flags & ZigbeeMessage.Zcl.FROM_SERVER) != 0) {
+         log.trace "Cluster specific command from server: {}", msgId
+         if (CMD_DEVICE_STATUS_CHANGE_NOTIFICATION == msgId) {
+            processDeviceStatus(data[0])
+         }
+      } else {
+         log.warn "Unhandled cluster specific message: {}", msgId
+      }
+   }
+   // else if GLOBAL COMMANDS...
+   else if ((PROFILE_HA == profile) && (CMD_CNF_RPT_RSP == msgId)) {
+      processCnfRptRsp(this,endpoint,clusterId,data)
+   } else if ((PROFILE_HA == profile) && (CMD_READ_CNF_RPT_RSP == msgId)) {
+      processReadCnfRptRsp(this,endpoint,clusterId,data)
+   } else if ((PROFILE_HA == profile) && (CMD_WRT_ATTR_RSP == msgId)) {
+      processWrtAttrRsp(this,endpoint,clusterId,data)
+   } else if ((PROFILE_HA == profile) && (CMD_REPORT_ATTR == msgId)) {
+      processAttributeInfo(this,endpoint,clusterId,msgId,data)
+   } else if ((PROFILE_HA == profile) && (CMD_READ_ATTR_RSP == msgId)) {
+      processAttributeInfo(this,endpoint,clusterId,msgId,data)
+   } else if ((PROFILE_HA == profile) && (CMD_DFLT_RSP == msgId)) {
+      log.trace "Unhandled Default Response: Profile: {}, ClusterId: {}, MsgId: {}, Endpoint: {}, Flags: {}, Data: {}", profile, clusterId, msgId, endpoint, flags, data
+   } else {
+      log.warn "Unhandled Global Command: Profile: {}, ClusterId: {}, MsgId: {}, EndPoint: {}, Flags: {}, Data: {}", profile, clusterId, msgId, endpoint, flags, data
+   }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// helper functions - write attribute helpers - room type
+///////////////////////////////////////////////////////////////////////////////
+void setRoom(ctx,roomID) {
+   byte[] payload = [ATTR_ROOM&0xFF, ATTR_ROOM>>8,ZB_TYPE_ENUM_8BIT,roomID]
+   log.trace "setRoom payload(roomID): {}", roomID
+   sendWriteAttrCommand(ctx,ENDPOINT_HALO,CLUSTER_HALO,payload)
+   Scheduler.scheduleIn 'delaySetRoom', DELAY_READ_ATTR_DELAY
+}
+onEvent('delaySetRoom') {
+   log.trace "delaySetRoom"
+   sendReadAttrCommand(this,ENDPOINT_HALO,CLUSTER_HALO,ATTR_ROOM)
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// configure reporting - and sub functions
+///////////////////////////////////////////////////////////////////////////////
+void processCnfRptRsp(ctx,endpoint,cluster,data) {
+   log.trace "RCStateMachine (conf): configure reporting response ep: {} clus: {} response: {}", endpoint, cluster, data[0]
+   // Spec is wrong, this data does not exist
+   //short attr = (data[3] * 256) + data[2]
+   def config = vars.'RC'
+   config.each() {
+      def map = vars."${it}"
+      if ((map['EP'] == endpoint) && ((short)map['Cluster'] == (short)cluster)) {
+         if ( CFG_STATE_WAIT != getConfigState(it) ) { // we have sent a config
+            log.trace "RCStateMachine (conf): OTHER ATTRIBUTE WAITING"
+         } else {
+            if (ZB_STATUS_SUCCESS == data[0]) { // success
+               log.trace "RCStateMachine (conf): SUCCESS config, moving clus: {} no attr! go BACK to READ", cluster
+               setConfigState(it, CFG_STATE_READ) 
+            } else {
+               log.trace "RCStateMachine (conf): FAIL config, retry. clus: {} no attr! response: {}", cluster, data[0]
+               setConfigState(it, CFG_STATE_CONFIG) 
+               setConfigResponse(it, data[0]) // keep track of response code, should this be our last try
+            }
+         }
+      } else {
+         log.trace "RCStateMachine (conf): no match ep: {} clus: {} state: {}", endpoint, cluster, getConfigState(it)
+      }
+   }
+}
+
+void processReadCnfRptRsp(ctx,endpoint,cluster,data) {
+   log.trace "RCStateMachine (read): read configuration of reporting response ep: {} clus: {}", endpoint, cluster
+   short attr = cvtListtoShort(data[2],data[3])
+   def config = vars.'RC'
+   config.each() {
+      def map = vars."${it}"
+      if ((map['EP'] == endpoint) && (map['Cluster'] == (short)cluster) && (map['Attribute'] == (short)attr)) {
+         if ( CFG_STATE_WAIT != getConfigState(it) ) {
+            log.trace "RCStateMachine (read): OTHER ATTRIBUTE WAITING"
+         } else {
+            if (ZB_STATUS_SUCCESS == data[0]) {
+               log.trace "RCStateMachine (read): SUCCESS read config, moving clus: {} attr: {} to COMPLETE", cluster, attr
+               setConfigState(it, CFG_STATE_SUCCESS) 
+            } else if (ZIGBEE_CNF_ATTR_REMOVE == map['Max']) { // this entry was to delete it so we treat any response as success
+               log.trace "RCStateMachine (read): ERASE read config SUCCESSFUL, moving clus: {} attr: {} to COMPLETE", cluster, attr
+               setConfigState(it, CFG_STATE_SUCCESS) 
+            } else {
+               log.trace "RCStateMachine (read): FAIL read config, moving clus: {} attr: {} to config", cluster, attr
+               setConfigState(it, CFG_STATE_CONFIG) 
+            } // or is this just a failed write and we retry (up to 10 times)
+         }
+         return
+      }
+   }
+}
+
+void processWrtAttrRsp(ctx,endpoint,cluster,data) {
+// this doesn't exist in the responses, although the spec says it should be...
+//   short attr = (data[2] * 256) + data[1]
+// so we need to read the attribute back to confirm...
+// here we use a delayed read, so nothing to do here:
+   log.trace "Write attributes response, nothing to do... data:{}", data
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Send configure attribute reporting command
+// Does not handle time or floating point values
+void sendCnfAttrCommand(ctx,ep,clus,attr,type,min,max,delta) {
+   byte[] payload = [ZIGBEE_CNF_ATTR_DIR_WRITE,attr&0xFF, attr>>8, type, min&0xFF, min>>8, max&0xFF, max>>8]
+
+   if (!isAnalogType((byte)type)) {  
+      sendGlobalCommand(ctx,ep,clus,CMD_CNF_RPT,payload)   
+   } else { // is analog data type
+      // uint8: 0x20 = 34 % 8 == 0... signed: 0x28 = 40 % 8 = 0.
+      // unit16: 0x21 = 35 % 8 = 1... signed is the same, and so on.
+      // so this number defines number of bytes needed in the configuration message.
+      def num_extra_bytes = type%8 
+      if (num_extra_bytes==0) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta]
+      } else if (num_extra_bytes==1) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8]
+      } else if (num_extra_bytes==2) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16]
+      } else if (num_extra_bytes==3) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16&0xFF, delta>>24]
+      } else if (num_extra_bytes==4) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16&0xFF, delta>>24&0xFF, delta>>32]
+      } else if (num_extra_bytes==5) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16&0xFF, delta>>24&0xFF, delta>>32&0xFF, delta>>40]
+      } else if (num_extra_bytes==6) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16&0xFF, delta>>24&0xFF, delta>>32&0xFF, delta>>40&0xFF, delta>>48]
+      } else if (num_extra_bytes==7) {
+         payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8, type,  min&0xFF, min>>8, max&0xFF, max>>8, delta&0xFF, delta>>8&0xFF, delta>>16&0xFF, delta>>24&0xFF, delta>>32&0xFF, delta>>40&0xFF, delta>>48&0xFF, delta>>56]
+      }      
+      sendGlobalCommand(ctx,ep,clus,CMD_CNF_RPT,payload)
+   }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// helper functions - basic payload, MSP and non-MSP
+///////////////////////////////////////////////////////////////////////////////
+void sendGlobalCommand(ctx,endpoint,cluster,command,payload) {
+    if ((cluster & 0xf000) > 0) {
+      ctx.Zigbee.send(
+         "msp": HALO_MSP,
+         "cluster" : cluster,
+         "command" : command,
+         "profile" : PROFILE_HA,
+         "endpoint" : endpoint,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : payload as byte[]
+         )
+   } else { 
+      ctx.Zigbee.send(
+         "cluster" : cluster,
+         "command" : command,
+         "profile" : PROFILE_HA,
+         "endpoint" : endpoint,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : payload as byte[]
+         )
+   }
+}
+void sendClusterSpecificCommand(ctx,endpoint,cluster,command,payload=null) {
+   if (((short)cluster & 0xf000) > 0) {
+      if (null == payload) {
+         ctx.Zigbee.send(
+            "msp": HALO_MSP,
+            "cluster" : cluster,
+            "command" : command,
+            "profile" : PROFILE_HA,
+            "endpoint" : endpoint,
+            "clusterspecific" : true,
+            "defaultresponse" : true,
+            )
+       } else {
+         ctx.Zigbee.send(
+            "msp": HALO_MSP,
+            "cluster" : cluster,
+            "command" : command,
+            "profile" : PROFILE_HA,
+            "endpoint" : endpoint,
+            "clusterspecific" : true,
+            "defaultresponse" : true,
+            "data" : payload as byte[]
+            )
+       }
+   } else {
+      if (null == payload) {   
+         ctx.Zigbee.send(
+            "cluster" : cluster,
+            "command" : command,
+            "profile" : PROFILE_HA,
+            "endpoint" : endpoint,
+            "clusterspecific" : true,
+            "defaultresponse" : true,
+            )
+      } else {
+         ctx.Zigbee.send(
+            "cluster" : cluster,
+            "command" : command,
+            "profile" : PROFILE_HA,
+            "endpoint" : endpoint,
+            "clusterspecific" : true,
+            "defaultresponse" : true,
+            "data" : payload as byte[]
+            )
+      }
+   }
+}
+///////////////////////////////////////////////////////////////////////////////
+// helper functions - specific global commands with basic payload
+///////////////////////////////////////////////////////////////////////////////
+void sendWriteAttrCommand(ctx,ep,clus,payload) {
+   sendGlobalCommand(ctx,ep,clus,CMD_WRT_ATTR,payload)
+}
+void sendReadAttrCommand(ctx,ep,clus,attr) {
+   byte[] payload = [attr&0xFF, attr>>8]
+   sendGlobalCommand(ctx,ep,clus,CMD_READ_ATTR,payload)
+}
+void sendReadCnfAttrCommand(ctx,ep,clus,attr) {
+   byte[] payload = [ZIGBEE_CNF_ATTR_DIR_WRITE, attr&0xFF, attr>>8]
+   sendGlobalCommand(ctx,ep,clus,CMD_READ_CNF_RPT,payload)
+}
+static byte[] toBytes(value) {
+   return [value & 0xFF,value >> 8]
+}
+byte[] addLists(l1, l2) {
+   for (i in 0..l2.size() ) {
+      l1.add(l2[i])
+   }
+   return l1
+}
+// in order of ZigBee message, low byte first
+int cvtListtoInt(b1,b2,b3,b4) {
+   int l1 = (int)b1&0xFF
+   int l2 = (int)b2&0xFF
+   int l3 = (int)b3&0xFF
+   int l4 = (int)b4&0xFF
+   int retval = (l4 * 256 * 256 * 256) + (l3 * 256 * 256) + (l2 * 256) + l1
+   return retval
+}
+short cvtListtoShort(b1, b2) {
+// in order of ZigBee message, low byte first
+   short l1 = (int)b1&0xFF
+   short l2 = (int)b2&0xFF
+   short retval = (l2 * 256) + l1
+}
+int cvtStringtoInt(s) {
+   if ( s.isInteger() ) {
+      return s.toInteger()
+   } else {
+      return 0
+   }
+}
+////////////////////////////////////////////////////////////////////////
+// See ZCL spec. Table 2-10, Data types. Discrete data types like booleans
+// and enums do not require/allow a "min change" field in attribute reporting
+// configuration. The analog data types do. This returns true for all of
+// these analog data types.
+boolean isAnalogType(byte v) {
+   if (v==ZB_TYPE_UNSIGNED_8BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_16BIT) {
+      return true
+   }      
+   if (v==ZB_TYPE_UNSIGNED_24BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_32BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_40BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_48BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_56BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_UNSIGNED_64BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_8BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_16BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_24BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_32BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_40BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_48BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_56BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SIGNED_64BIT) {
+      return true
+   }
+   if (v==ZB_TYPE_SEMIFLOAT) {
+      return true
+   }
+   if (v==ZB_TYPE_FLOAT) {
+      return true
+   }
+   if (v==ZB_TYPE_DOUBLE) {
+      return true
+   }
+   if (v==ZB_TYPE_TIME_OF_DAY) {
+      return true
+   }
+   if (v==ZB_TYPE_DATE) {
+      return true
+   }
+   if (v==ZB_TYPE_UTCTIME) {
+      return true
+   }
+   return false
+}
+//////////////////////////////////////////////////////////
+// accessor functions - both CIE count and zone enrollment count use the same functions with different vars.
+//////////////////////////////////////////////////////////
+void initIasStateMachines() {
+   vars.'writeSmokeIasCieCnt' = 0
+   vars.'zoneSmokeEnrollCnt' = 0
+   vars.'writeCoIasCieCnt' = 0
+   vars.'zoneCoEnrollCnt' = 0
+}
+int getIasCount(s) {
+   return ((vars."${s}") ?: 0)
+}
+void incrementIasCount(s) {
+   int cnt = getIasCount(s)
+   cnt = cnt + 1
+   vars."${s}" = cnt
+}
+void setIasComplete(s) {
+   vars."${s}" = IAS_STATE_DONE
+}
+////////////////////////////////////////////////////////////////////////////////
+// accessor functions for Report Attribute Configuration
+////////////////////////////////////////////////////////////////////////////////
+void configurationDoAction(action) {
+   vars."RC.state" = action
+}
+int configurationGetAction() {
+   return ((vars."RC.state") ?: RC_STATE_SETUP)
+}
+void initConfigState(configurationId) {
+   vars."${configurationId+'.state'}"   = CFG_STATE_READ
+   vars."${configurationId+'.count'}"   = RC_MAX_WRITE_RETRIES
+   vars."${configurationId+'.timeout'}" = RC_READ_TIMEOUT
+   vars."${configurationId+'.resp'}"    = ZB_STATUS_SUCCESS
+}
+int getConfigState(id) {
+   return ((vars."${id+'.state'}") ?: CFG_STATE_READ)
+}
+// also sets timeout counter
+void setConfigState(id, state) {
+   (vars."${id+'.state'}")=state
+   // if we're waiting, set how long
+   if (CFG_STATE_WAIT == state) {
+      (vars."${id+'.timeout'}")=RC_READ_TIMEOUT
+   }      
+}
+int decrementConfigTimer(id) {
+   int cnt = vars."${id+'.timeout'}" ?: RC_READ_TIMEOUT
+   cnt = cnt - 1
+   vars."${id+'.timeout'}" = cnt
+   return cnt
+}
+int getConfigTimer(id) {
+   if ((vars."${id+'.timeout'}") == null) {
+      vars."${id+'.timeout'}" = RC_READ_TIMEOUT
+   }
+   if ((vars."${id+'.timeout'}") == 0) {
+      return 0
+   } else {
+      return vars."${id+'.timeout'}"
+   }
+}
+int decrementConfigRetries(id) {
+   int cnt = getConfigRetries(id)
+   cnt = cnt - 1
+   (vars."${id+'.count'}") = cnt
+   return cnt
+}
+int getConfigRetries(id) {
+   int retval
+   if ((vars."${id+'.count'}") == null) {
+      vars."${id+'.count'}" = RC_READ_TIMEOUT
+   }
+   if ((vars."${id+'.count'}") == 0) {
+      return 0
+   } else {
+      return vars."${id+'.count'}"
+   }
+}
+// will be SUCCESS unless config state is CFG_STATE_FAIL
+void setConfigResponse(id,resp) {
+   (vars."${id+'.resp'}") = resp
+}
+int getConfigResponse(id) {
+   return (vars."${id+'.resp'}") ?: CFG_STATE_SUCCESS
+}
+

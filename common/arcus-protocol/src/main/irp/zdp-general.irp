@@ -1,0 +1,47 @@
+////////////////////////////////////////////////////////////////////////////////
+// Section 2.4.4 from the Zigbee specification
+////////////////////////////////////////////////////////////////////////////////
+
+struct zdp.General.ZdpBindingTableRecord {
+   u64 srcAddr;
+   u8 srcEndpoint;
+   u16 clusterId;
+   u8 dstAddrMode;
+   u16 groupAddr when (dstAddrMode == ZDP_ADDR_MODE_GROUP);
+   u64 dstAddr when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+   u8 dstEndpoint when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+}
+
+struct zdp.General.ZdpNetworkRecord {
+   u64 extendedPanId;
+   u8 logicalChannel;
+   u8 profileAndVersion;
+   u8 beaconAndSuperframe;
+   u8 permitJoining;
+}
+
+struct zdp.General.ZdpNeighborRecord {
+   u64 extendedPanId;
+   u64 extendedAddr;
+   u16 networkAddr;
+   u8 flags;
+   u8 permitJoining;
+   u8 depth;
+   u8 lqi;
+}
+
+struct zdp.General.ZdpRoutingRecord {
+   u16 dstAddr;
+   u8 flags;
+   u16 nextHopAddr;
+}
+
+struct zdp.General.ZdpDiscCacheRecord {
+   u64 extendedAddr;
+   u16 nwkAddr;
+}
+
+struct zdp.General.ZdpMessage {
+   u8 transactionSeqNumber;
+   u8[] messageContents;
+}

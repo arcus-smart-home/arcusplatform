@@ -1,0 +1,7 @@
+
+message zwave.ApplicationCapability.CommandCommandClassNotSupportedV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_DYNAMIC = 0x80;
+    u8 properties1;
+    u8 offendingCommandClass;
+    u8 offendingCommand;
+}

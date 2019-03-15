@@ -1,0 +1,40 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Power Control Cluster
+//    From "Implementing the AlertMe Power Control & Power Monitor Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.PowerControl {
+   const u16 CLUSTER_ID = 0x00EE;
+}
+
+message alertme.PowerControl.SetOperatingMode<id="0x01"> {
+   const u8 MODE_LOCAL = 0x00;
+   const u8 MODE_REMOTE = 0x01;
+
+   u8 mode;
+}
+
+message alertme.PowerControl.SetRelayState<id="0x02"> {
+   u8 relayBitfield;
+   u8 relayMask;
+}
+
+message alertme.PowerControl.RelayStatusRequest<id="0x03"> {
+}
+
+message alertme.PowerControl.RelayStatusReport<id="0x80"> {
+   const u8 OPERATING_POWER_SOURCE_MASK = 0x4;
+   const u8 OPERATING_POWER_SOURCE_BATTERY = 0x0;
+   const u8 OPERATING_POWER_SOURCE_MAINS = 0x4;
+
+   const u8 OPERATING_MODE_MASK = 0x2;
+   const u8 OPERATING_MODE_LOCAL = 0x0;
+   const u8 OPERATING_MODE_REMOTE = 0x2;
+
+   const u8 RELAY_STATE_MASK = 0x01;
+   const u8 RELAY_STATE_OPEN = 0x00;
+   const u8 RELAY_STATE_CLOSED = 0x01;
+
+   u8 statusBitfield;
+   u8 relayBitfield;
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="EasCodeService"
+           namespace="eascode"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Service methods for retrieving EAS Codes from the NOAA EAS Code database.
+   </s:description>
+	
+   <s:methods>
+
+       <s:method
+             name="ListEasCodes"
+             description=""
+             isRESTful="true">
+          <s:return name="easCodes" type="List&lt;EasCode&gt;" description="" />
+       </s:method>
+
+   </s:methods>
+
+</s:service>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaCapability"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the Alexa V3 capability structure returned in the endpoint structure</t:description>
+
+   <t:attributes>
+      <t:attribute name="type" type="string" description="Indicates the type of capability, which determines what fields the capability has." optional="false"/>
+      <t:attribute name="interface" type="string" description="The qualified name of the Alexa.Interface that describes the actions for the device." optional="false"/>
+      <t:attribute name="version" type="string" description="Indicates the interface version that this endpoint supports." optional="false"/>
+      <t:attribute name="properties" type="AlexaCapProperties" description="Properties from the interace supported." optional="true"/>
+   </t:attributes>
+
+</t:type>

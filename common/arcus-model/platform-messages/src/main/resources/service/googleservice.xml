@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="GoogleService"
+           namespace="google"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Internal communication channel between the Google Bridge/Voice Service.
+   </s:description>
+
+   <s:methods>
+
+      <s:method
+         name="Sync"
+         description="Platform message placed on the bus when Google Assistant request a sync operation.  The place will
+be based on the place ID message header, which the Google Bridge must set."
+         internal="true"
+         isRESTful="false"
+      >
+
+         <s:return
+            name="devices"
+            type="list&lt;Object&gt;"
+            description="List of Google device models."/>
+
+         <s:return
+            name="userAgentId"
+            type="string"
+            description="User Agent ID used for posting events to Google."/>
+
+      </s:method>
+
+      <s:method
+         name="Query"
+         description="Platform message placed on the bus when Google Assistant requests a query operation.  The place will
+be based on the place ID message header, which the Google Bridge must set."
+         internal="true"
+         isRESTful="false"
+      >
+
+         <s:parameter name="addresses" type="set&lt;string&gt;" description="Set of addresses to query"/>
+         <s:return name="devices" type="map&lt;Object&gt;" description="Device objects with state supplied"/>
+
+      </s:method>
+
+      <s:method
+         name="Execute"
+         description="Platform message placed on the bus when Google Assistant requests an execute operation.  The place
+will be based on the place ID message header, which the Google Bridge must set."
+         internal="true"
+         isRESTful="false"
+      >
+         <s:parameter name="commands" type="list&lt;GoogleCommand&gt;" description="The list of commands to execute."/>
+         <s:return name="commands" type="list&lt;GoogleCommandResult&gt;" description="The results of execution"/>
+      </s:method>
+
+
+   </s:methods>
+
+</s:service>
+

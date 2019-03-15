@@ -1,0 +1,25 @@
+
+message zwave.ControllerReplication.CtrlReplicationTransferGroupV1<id="0x31", group="V1"> {
+    u8 sequenceNumber;
+    u8 groupId;
+    u8 nodeId;
+}
+
+message zwave.ControllerReplication.CtrlReplicationTransferGroupNameV1<id="0x32", group="V1"> {
+    u8 sequenceNumber;
+    u8 groupId;
+    u8[] groupName;
+}
+
+message zwave.ControllerReplication.CtrlReplicationTransferSceneV1<id="0x33", group="V1"> {
+    u8 sequenceNumber;
+    u8 sceneId;
+    u8 nodeId;
+    u8 level;
+}
+
+message zwave.ControllerReplication.CtrlReplicationTransferSceneNameV1<id="0x34", group="V1"> {
+    u8 sequenceNumber;
+    u8 sceneId;
+    u8[] sceneName;
+}

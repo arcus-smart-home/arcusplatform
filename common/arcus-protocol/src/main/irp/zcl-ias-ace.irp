@@ -1,0 +1,188 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library IAS ACE command frames
+//    From Section 8.3 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.IasAce {
+   const u16 CLUSTER_ID = 0x0501;
+}
+
+struct zcl.IasAce.ZoneTableEntry {
+   u8 zoneId;
+   u16 zoneType;
+   u64 ieeeAddress;
+}
+
+message zcl.IasAce.Arm<id="0x00",group="client"> {
+   const u8 ARM_MODE_DISARM = 0x00;
+   const u8 ARM_MODE_DAY = 0x01;
+   const u8 ARM_MODE_NIGHT = 0x02;
+   const u8 ARM_MODE_ALL = 0x03;
+
+   u8 armMode;
+   u8 codeLength;
+   u8[codeLength] code;
+   u8 zoneId;
+}
+
+message zcl.IasAce.Bypass<id="0x01",group="client"> {
+   u8 numberOfZones;
+   u8[numberOfZones] zoneIds;
+   u8 codeLength;
+   u8[codeLength] code;
+}
+
+message zcl.IasAce.Emergency<id="0x02",group="client"> {
+}
+
+message zcl.IasAce.Fire<id="0x03",group="client"> {
+}
+
+message zcl.IasAce.Panic<id="0x04",group="client"> {
+}
+
+message zcl.IasAce.GetZoneIdMap<id="0x05",group="client"> {
+}
+
+message zcl.IasAce.GetZoneInformation<id="0x06",group="client"> {
+   u8 zoneId;
+}
+
+message zcl.IasAce.GetPanelStatus<id="0x07",group="client"> {
+}
+
+message zcl.IasAce.GetBypassedZoneList<id="0x08",group="client"> {
+}
+
+message zcl.IasAce.GetZoneStatus<id="0x09",group="client"> {
+   u8 startingZoneId;
+   u8 maxNumberOfZoneIds;
+   u8 zoneStatusMaskFlag;
+   u16 zoneStatusMask;
+}
+
+message zcl.IasAce.ArmResponse<id="0x00",group="server"> {
+   const u8 ARM_NOTIFICATION_ALL_ZONES_DISARMED = 0x00;
+   const u8 ARM_NOTIFICATION_DAY_ZONES_ARMED = 0x01;
+   const u8 ARM_NOTIFICATION_NIGHT_ZONES_ARMED = 0x02;
+   const u8 ARM_NOTIFICATION_ALL_ZONES_ARMED = 0x03;
+   const u8 ARM_NOTIFICATION_INVALID_CODE = 0x04;
+
+   u8 armNotification;
+}
+
+message zcl.IasAce.GetZoneIdMapResponse<id="0x01",group="server"> {
+   u16[16] zoneIdMap;
+}
+
+message zcl.IasAce.GetZoneInformationResponse<id="0x02",group="server"> {
+   u8 zoneId;
+   u16 zoneType;
+   u64 ieeeAddress;
+   u8 zoneLabelLength;
+   u8[zoneLabelLength] zoneLabel;
+}
+
+message zcl.IasAce.ZoneStatusChanged<id="0x03",group="server"> {
+   const u8 AUDIBLE_NOTIFICATION_MUTE = 0x00;
+   const u8 AUDIBLE_NOTIFICATION_DEFAULT = 0x01;
+
+   u8 zoneId;
+   u16 zoneStatus;
+   u8 audibleNotification;
+   u8 labelLength;
+   u8[labelLength] label;
+}
+
+message zcl.IasAce.PanelStatusChanged<id="0x04",group="server"> {
+   const u8 STATUS_DISARMED = 0x00;
+   const u8 STATUS_ARMED_STAY = 0x01;
+   const u8 STATUS_ARMED_NIGHT = 0x02;
+   const u8 STATUS_ARMED_AWAY = 0x03;
+   const u8 STATUS_EXIT_DELAY = 0x04;
+   const u8 STATUS_ENTRY_DELAY = 0x05;
+   const u8 STATUS_NOT_READY_TO_ARM = 0x06;
+   const u8 STATUS_IN_ALARM = 0x07;
+   const u8 STATUS_ARMING_STAY = 0x08;
+   const u8 STATUS_ARMING_NIGHT = 0x09;
+   const u8 STATUS_ARMING_AWAY = 0x0A;
+
+   const u8 ALARM_STATUS_NO_ALARM = 0x00;
+   const u8 ALARM_STATUS_BURGLAR = 0x01;
+   const u8 ALARM_STATUS_FIRE = 0x02;
+   const u8 ALARM_STATUS_EMERGENCY = 0x03;
+   const u8 ALARM_STATUS_POLICE_PANIC = 0x04;
+   const u8 ALARM_STATUS_FIRE_PANIC = 0x05;
+   const u8 ALARM_STATUS_EMERGENCY_PANIC = 0x06;
+
+   u8 status;
+   u8 seconds;
+   u8 audibleNotification;
+   u8 alarmStatus;
+}
+
+message zcl.IasAce.GetPanelStatusResponse<id="0x05",group="server"> {
+   const u8 STATUS_DISARMED = 0x00;
+   const u8 STATUS_ARMED_STAY = 0x01;
+   const u8 STATUS_ARMED_NIGHT = 0x02;
+   const u8 STATUS_ARMED_AWAY = 0x03;
+   const u8 STATUS_EXIT_DELAY = 0x04;
+   const u8 STATUS_ENTRY_DELAY = 0x05;
+   const u8 STATUS_NOT_READY_TO_ARM = 0x06;
+   const u8 STATUS_IN_ALARM = 0x07;
+   const u8 STATUS_ARMING_STAY = 0x08;
+   const u8 STATUS_ARMING_NIGHT = 0x09;
+   const u8 STATUS_ARMING_AWAY = 0x0A;
+
+   const u8 ALARM_STATUS_NO_ALARM = 0x00;
+   const u8 ALARM_STATUS_BURGLAR = 0x01;
+   const u8 ALARM_STATUS_FIRE = 0x02;
+   const u8 ALARM_STATUS_EMERGENCY = 0x03;
+   const u8 ALARM_STATUS_POLICE_PANIC = 0x04;
+   const u8 ALARM_STATUS_FIRE_PANIC = 0x05;
+   const u8 ALARM_STATUS_EMERGENCY_PANIC = 0x06;
+
+   u8 status;
+   u8 seconds;
+   u8 audibleNotification;
+   u8 alarmStatus;
+}
+
+message zcl.IasAce.SetBypassZoneList<id="0x06",group="server"> {
+   u8 numberOfZones;
+   u8[numberOfZones] zoneIds;
+}
+
+message zcl.IasAce.BypassResponse<id="0x07",group="server"> {
+   const u8 BYPASS_RESULT_BYPASSED = 0x00;
+   const u8 BYPASS_RESULT_NOT_BYPASSED = 0x01;
+   const u8 BYPASS_RESULT_NOT_ALLOWED = 0x02;
+   const u8 BYPASS_RESULT_INVALID_ZONE_ID = 0x03;
+   const u8 BYPASS_RESULT_UNKNOWN_ZONE_ID = 0x04;
+   const u8 BYPASS_RESULT_INVALID_CODE = 0x05;
+
+   u8 numberOfZones;
+   u8 bypassResult;
+}
+
+struct zcl.IasAce.ZoneStatusResult {
+   const u16 STATUS_ALARM1 = 0x0001;
+   const u16 STATUS_ALARM2 = 0x0002;
+   const u16 STATUS_TAMPER = 0x0004;
+   const u16 STATUS_BATTERY = 0x0008;
+   const u16 STATUS_SUPERVISION_REPORTS = 0x0010;
+   const u16 STATUS_RESTORE_REPORTS = 0x0020;
+   const u16 STATUS_TROUBLE = 0x0040;
+   const u16 STATUS_AC = 0x0080;
+   const u16 STATUS_TEST = 0x0100;
+   const u16 STATUS_BATTERY_DEFECT = 0x0200;
+
+   u8 zoneId;
+   u16 status;
+}
+
+message zcl.IasAce.GetZoneStatusResponse<id="0x08",group="server"> {
+   u8 zoneStatusComplete;
+   u8 numberOfZones;
+   ZoneStatusResult[numberOfZones] zoneStatusResults;
+}

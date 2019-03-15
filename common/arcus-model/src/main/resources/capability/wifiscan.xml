@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WiFiScan"
+   namespace="wifiscan"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of WiFi Scan information.
+   </c:description>
+   
+   <c:attributes />
+   
+   <c:methods>
+      <c:method
+         name="StartWifiScan"
+         description="Starts a wifi scan that will end after timeout seconds unless endWifiScan() is called. Periodically, while WiFi scan is active, WiFiScanResults events will be generated.">
+        <c:parameters>
+          <c:parameter name="timeout" type="int" optional="false" description="The number of seconds to scan unless endWifiScan() is called."></c:parameter>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="EndWifiScan"
+         description="Ends any active WiFiScan. If no scan is active, this is a no-op.">
+      </c:method>
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="WiFiScanResults" 
+         description="Drivers should return a complete list of all BSSIDs found during the lifetime of the scan, not just those BSSIDs which are newly observed at the time of event generation.">
+         <c:parameters>
+            <c:parameter
+               name="scanResults"
+               type="list&lt;map&gt;"
+               description="Results of wifi scan"
+               optional="false"/>
+            <c:parameter
+               name="message"
+               type="string"
+               description="Error message, if any"
+               optional="true"/>
+         </c:parameters>
+         <!--
+          Body contains a list of ScanResult structures as follows:
+					
+					scanResults {
+						ssid: string, // human readable string
+						bssid: string, // as MAC address
+						mode: string, // [Ad-hoc, Infrastructure]
+						security: list<string>, // valid elements [None, WEP, WPA-PSK, WPA2-PSK, WPA-Enterprise, WPA2-Enterprise]
+						wepauth: string, // only valid when security contains WEP, valid elements [Unknown, OpenSystem, SharedKey]
+						encryption: string, // valid elements [None, WEP, TKIP, AES, AES+TKIP]
+						channel: int, // wireless channel number
+						signal: int, // normalized RSSI [0..100]
+						wps: string // [Yes, No, PBC, PIN-Code]
+				  }         
+         -->
+      </c:event>
+   </c:events>
+   
+</c:capability>

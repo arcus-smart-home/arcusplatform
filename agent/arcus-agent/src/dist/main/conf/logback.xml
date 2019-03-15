@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false">
+   <!--
+   NOTE:
+   
+   This file documents the default log levels in use by the hub agent, but 
+   these levels are configured at startup and dynamically by the class:
+
+      com.iris.agent.logging.IrisAgentLogging
+
+   Please ensure any updates to this file are correctly correlated with
+   the code in that class to ensure that logging is correctly setup.
+   -->
+
+  <conversionRule conversionWord="sot" converterClass="com.iris.agent.logging.IrisAgentSotConverter" />
+
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+     <resetJUL>true</resetJUL>
+  </contextListener>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>WARN</level>
+    </filter>
+
+    <encoder>
+      <pattern>%.-1level%d{MMdd} %d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}] %msg%n</pattern>
+    </encoder>
+  </appender>
+
+
+  <appender name="MEMORY" class="com.iris.agent.logging.IrisAgentAppender">
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="com.iris.agent.logging.IrisLayout"/>
+    </encoder>
+  </appender>
+
+  <appender name="DEV" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%highlight(%.-1level%d{MMdd}) %gray(%d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}]) %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="io.netty" level="WARN" />
+  <logger name="org.eclipse.jetty" level="WARN" />
+  <logger name="org.asynchttpclient" level="WARN" />
+  <logger name="javax.activation" level="WARN" />
+  <logger name="net.wimpi" level="WARN" />
+  <logger name="org.crsh" level="WARN" />
+  <logger name="org.hibernate" level="WARN" />
+  <logger name="org.apache" level="WARN" />
+  <logger name="com.netflix" level="WARN" />
+  <logger name="com.almworks" level="WARN" />
+  <logger name="org.fourthline" level="WARN" />
+  <logger name="sun.net.www" level="WARN" />
+  <logger name="oshi" level="WARN" />
+  <logger name="oshi.util.FileUtil" level="OFF" />
+  <logger name="org.fourthline.cling.transport.spi.DatagramIO" level="OFF" />
+
+  <logger name="com.iris.agent.zwave" level="DEBUG" />
+  <logger name="com.iris.agent.zigbee" level="DEBUG" />
+  <logger name="com.iris.agent.ble" level="DEBUG" />
+
+  <logger name="driver" level="WARN" />
+
+  <root level="DEBUG">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="DEV" />
+    <appender-ref ref="MEMORY" />
+  </root>
+</configuration>

@@ -1,0 +1,497 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Kwikset SmartCode 914 Deadbolt (914 TRL ZB)
+ * 
+ * ADD/PAIR DEVICE:
+ *  - Press the 'A' button inside the device 4 times while hub is in pairing mode.
+ * 
+ * REMOVE/UNPAIR DEVICE:
+ *  - Press the 'B' button inside the device 9 times.
+ * 
+ * FACTORY RESET:
+ *  - Remove the battery pack.
+ *  - Press and hold the 'Program' button while reinserting the battery pack, and keep holding the button for 30 seconds until the lock beeps and the status LED flashes red.
+ *  - Press the 'Program' button once more.  When the LED flashes green and you hear one beep the Lock has been reset.
+ *  - The lock then has to be re-taught the door lock orientation.
+ * 
+ * IDENTIFY:
+ *  - Sending the Identify command flashed the red LED under the inside cover for 3 minutes.  Unfortunately this is not visible to the user unless the cover is off.
+ * 
+ * OFFLINE TIMEOUT:
+ *  - 60 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *  - 20 minutes (reports Lock State)
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours
+ *  - At most every 6 hours, if level changes by 0.2 Volts or more (ignore 0.1 volt jitter)
+ * 
+ * TEMPERATURE REPORTING:
+ *  - At least every 30 minutes, at most every 5 minutes
+ *  - Read each time device connects
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async
+ * 
+ * 
+ * IN Clusters
+ *   0x0000    (0) Basic
+ *   0x0001    (1) Power Configuration
+ *   0x0003    (3) Identify
+ *   0x0004    (4) Groups
+ *   0x0005    (5) Scenes
+ *   0x0009    (9) Alarms
+ *   0x0020   (32) Poll Control
+ *   0x0101  (257) DoorLock
+ *   0x0402 (1026) Temperature Measurement
+ *   0x0B05 (2821) Diagnostics
+ * OUT Clusters
+ *   0x000A   (10) Time
+ *   0x0019   (25) OTA Upgrade
+ */
+import groovy.transform.Field
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse
+import static com.iris.protocol.zigbee.zcl.DoorLock.OperationEventNotification
+import static com.iris.protocol.zigbee.zcl.DoorLock.ProgrammingEventNotification
+
+driver           "ZBKwikset914Deadbolt"
+description      "Driver for the Kwikset SmartCode 914 Deadbolt"
+version          "2.6"
+protocol         "ZIGB"
+deviceTypeHint   "Lock"
+productId        "c470f4"
+vendor           "Kwikset"
+model            "914"
+
+matcher          'ZIGB:manufacturer': 4242, 'ZIGB:vendor': 'Kwikset', 'ZIGB:model': 'SMARTCODE_DEADBOLT_10'
+
+capabilities     DevicePower, DoorLock, Temperature, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDoorLock_2_6'
+importCapability 'zigbee/GenericZigbeeDoorLockPower'
+importCapability 'zigbee/GenericZigbeeDoorLockTemperature'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+////////////////////////////////////////////////////////////////////////////////
+// Initial Device Attributes
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+DoorLock.type                    DoorLock.TYPE_DEADBOLT
+DoorLock.supportsBuzzIn          true
+DoorLock.supportsInvalidPin      false
+DoorLock.numPinsSupported        30
+DoorLock.slots                   [:]
+
+////////////////////////////////////////////////////////////////////////////////
+// Constants used by the driver
+////////////////////////////////////////////////////////////////////////////////
+
+@Field static final byte ENDPOINT = 2
+final def dvcEndPoint  = Zigbee.endpoint(ENDPOINT)
+final def pwrCluster   = dvcEndPoint.Power
+final def identCluster = dvcEndPoint.Identify
+final def pollCluster  = dvcEndPoint.PollControl
+final def otaCluster   = dvcEndPoint.Ota
+final def alarmCluster = dvcEndPoint.Alarms
+final def tempCluster  = dvcEndPoint.TemperatureMeasurement
+final def diagCluster  = dvcEndPoint.Diagnostics
+final def lockCluster  = dvcEndPoint.DoorLock
+
+@Field static final short PROFILE_HA  = 0x0104
+@Field static final int OFFLINE_TIMEOUT_SECS = 3600
+@Field static final short IDENT_PERIOD_SECS  = 180
+
+@Field static final int BUZZ_IN_TIMEOUT_MILLIS = 30000         // 30 second buzz-in timeout
+@Field static final int READ_LOCK_DELAY_MILLIS = 10000         // 10 seconds after connect ask for the lock state
+
+@Field static final String EVENT_READ_LOCK_STATE = 'EventReadLockState'
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Level Configuration Required by the Driver
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+   configure {
+      bind name: "bind-powr",
+         endpoint: 2,
+         cluster: Zcl.Power.CLUSTER_ID, 
+         server: true
+
+      bind name: "bind-poll",
+         endpoint: 2,
+         cluster: Zcl.PollControl.CLUSTER_ID,
+         server: true
+
+      bind name: "bind-lock",
+         endpoint: 2,
+         cluster: Zcl.DoorLock.CLUSTER_ID,
+         server: true
+
+      bind name: "bind-alrm",
+         endpoint: 2,
+         cluster: Zcl.Alarms.CLUSTER_ID,
+         server: true
+
+      bind name: "bind-temp",
+         endpoint: 2,
+         cluster: Zcl.TemperatureMeasurement.CLUSTER_ID,
+         server: true
+
+      report name: "conf-batt", 
+         endpoint: 2, 
+         cluster: Zcl.Power.CLUSTER_ID, 
+         attr: Zcl.Power.ATTR_BATTERY_VOLTAGE, 
+         change: Data.encode8BitUnsigned(2), 
+         min: 21600, 
+         max: 43200
+
+      report name: "conf-temp", 
+         endpoint: 2, 
+         cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, 
+         attr: Zcl.TemperatureMeasurement.ATTR_MEASURED_VALUE, 
+         change: Data.encode16BitSigned(10), 
+         min: 300, 
+         max: 1800
+
+      report name: "conf-lock", 
+         endpoint: 2, 
+         cluster: Zcl.DoorLock.CLUSTER_ID, 
+         attr: Zcl.DoorLock.ATTR_LOCK_STATE,
+         type: Data.TYPE_ENUM_8BIT,
+         min: 0,
+         max: 1200
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    DoorLock.lockstatechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+    
+    // schedule an event to get the lock state since these seem to get
+    // missed a lot when done here in onConnected
+    Scheduler.scheduleIn EVENT_READ_LOCK_STATE, READ_LOCK_DELAY_MILLIS
+
+    // read current Power attributes
+    pwrCluster.zclReadAttributes(
+        pwrCluster.ATTR_BATTERY_VOLTAGE,
+        pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD )
+
+    // read current Temperature attributes
+    tempCluster.zclReadAttributes(
+        tempCluster.ATTR_MEASURED_VALUE )
+
+    // read Diagnostic attributes
+    diagCluster.zclReadAttributes(
+        diagCluster.ATTR_LAST_MESSAGE_LQI,
+        diagCluster.ATTR_LAST_MESSAGE_RSSI )
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(EVENT_READ_LOCK_STATE) {
+    // if we don't have it yet, ask for the lock state again
+    if( null == DoorLock.lockstate.get() ) {
+        lockCluster.zclReadAttributes(
+            lockCluster.ATTR_DOOR_STATE,
+            lockCluster.ATTR_LOCK_STATE )
+    
+        // schedule it again, one more time, in case the request just sent is ignored
+        Scheduler.scheduleIn EVENT_READ_LOCK_STATE, READ_LOCK_DELAY_MILLIS
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Doorlock Capability methods
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('doorlock') {
+    GenericZigbeeDoorLock_2_6.doSetDoorLockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.AuthorizePerson {
+    GenericZigbeeDoorLock_2_6.doAuthorizePerson(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.DeauthorizePerson {
+    GenericZigbeeDoorLock_2_6.doDeauthorizePerson(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.ClearAllPins { 
+    GenericZigbeeDoorLock_2_6.doClearAllPins(this,DEVICE_NAME,lockCluster)
+}
+
+onDoorLock.BuzzIn {
+    GenericZigbeeDoorLock_2_6.doBuzzIn(this,DEVICE_NAME,lockCluster)
+}
+
+onEvent( 'LockAfterBuzzIn' ) {
+    GenericZigbeeDoorLock_2_6.doLockAfterBuzzIn(this,DEVICE_NAME,lockCluster)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Doorlock Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.doorlock.lockdoorresponse() {
+    GenericZigbeeDoorLock_2_6.handleLockDoorResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.unlockdoorresponse() {
+   GenericZigbeeDoorLock_2_6.handleUnlockDoorResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.setpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleSetPinCodeResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.getpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleGetPinCodeResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.clearpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleClearPinCodeResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.clearallpincodesresponse() {
+    GenericZigbeeDoorLock_2_6.handleClearAllPinCodesResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.zclreadattributesresponse() {
+    GenericZigbeeDoorLock_2_6.handleDoorlockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.zclreportattributes() {
+    GenericZigbeeDoorLock_2_6.handleDoorlockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.operationeventnotification() {
+    GenericZigbeeDoorLock_2_6.handleOperationEventNotification(this,DEVICE_NAME,lockCluster,message)
+}
+   
+onZigbeeMessage.Zcl.doorlock.programmingeventnotification() {
+    GenericZigbeeDoorLock_2_6.handleProgrammingEventNotification(this,DEVICE_NAME,lockCluster,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    GenericZigbeeDoorLockPower.handleDoorLockPowerMsg(this,DEVICE_NAME,pwrCluster,message)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    GenericZigbeeDoorLockPower.handleDoorLockPowerMsg(this,DEVICE_NAME,pwrCluster,message)
+}
+
+onZigbeeMessage.Zcl.power.zclconfigurereportingresponse() {
+    GenericZigbeeDoorLockPower.handleReportingConfigResponse(this,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "Driver received Poll Control Attributes Response:{}", Zigbee.Message.decodeZclAttributes(message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "Driver received Poll Control Attributes Report:{}", Zigbee.Message.decodeZclAttributes(message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclwriteattributesresponse() {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    byte[] data = zclMsg.getPayload()
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "Poll Control Write Attributes was SUCCESSFUL: {}", data
+    } else {
+        log.warn "Poll Control Write Attributes FAILED: {}", data
+    }
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zcldefaultresponse() {
+    log.trace "Received Poll Control default response"
+}
+
+onZigbeeMessage.Zcl.pollcontrol.CheckIn() {
+    log.trace "Received Poll Control Checkin"
+    // tell device to resume without short polling, short poll timeout 0
+    pollCluster.checkInResponse( CheckInResponse.START_FAST_POLLING_DISABLED, (short)0 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+   GenericZigbeeDoorLockTemperature.handleDoorLockTemperatureMeasurement(this,DEVICE_NAME,tempCluster,message)
+}
+
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+   GenericZigbeeDoorLockTemperature.handleDoorLockTemperatureMeasurement(this,DEVICE_NAME,tempCluster,message)
+}
+
+onZigbeeMessage.Zcl.temperaturemeasurement.zclconfigurereportingresponse() {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    byte[] data = zclMsg.getPayload()
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "Configure Temperature reporting was SUCCESSFUL: {}", data
+    } else {
+        log.warn "Configure Temperature reporting FAILED: {}", data
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Alarms Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.alarms.Alarm() {
+    GenericZigbeeDoorLock_2_6.handleKwiksetAlarms(this,message)
+}
+
+onZigbeeMessage.Zcl.alarms.zclconfigurereportingresponse() {
+    GenericZigbeeDoorLock_2_6.handleAlarmReportingConfigResponse(this,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+    identCluster.identifyCmd( IDENT_PERIOD_SECS )
+    sendResponse 'ident:IdentifyResponse', ['result':true]    
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleDiagnosticMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+    def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+
+    if (lqi != null) {
+        if ('INVALID' == lqi.toString()) lqi = 255    // helper parses 255 value as 'INVALID', but it just means 100%
+        if (0 > lqi) lqi = 256 + lqi  // convert signed value to unsigned
+        int sigPct = Math.round( (lqi * 100.0) / 255.0)
+        log.trace "LQI:{}, (percent:{})", lqi, sigPct
+        DeviceConnection.signal sigPct
+    }
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+    log.trace "Driver received Diagnostics Attributes Response:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+    log.trace "Driver received Diagnostics Attributes Report:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+    
+    if (PROFILE_HA == profile) {      // Home Automation Profile
+        
+        if (ZHA_CLUSTER_TIME == clusterId && 0 == messageId) {
+            log.trace "Received Time cluster command 0, flags:{}, data:{}", flags, data
+            return
+        }
+    }
+
+    log.debug "Received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+              profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+

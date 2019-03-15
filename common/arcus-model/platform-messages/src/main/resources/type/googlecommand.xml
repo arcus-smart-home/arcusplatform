@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="GoogleCommand"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a command issued by Google to execute against one or more devices.</t:description>
+
+   <t:attributes>
+      <t:attribute name="addresses" type="set&lt;string&gt;" description="The addresses of entities the command will execute against"/>
+      <t:attribute name="command" type="string" description="The Google command to execute"/>
+      <t:attribute name="params" type="map&lt;any&gt;" description="The arguments to the command"/>
+   </t:attributes>
+
+ </t:type>

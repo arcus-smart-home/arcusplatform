@@ -1,0 +1,430 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Yale Real Living Touch Screen Deadbolt, YRD 226/246 TSDB
+ * 
+ * ADD/PAIR DEVICE:
+ *  - Enter the 4-8 digit Master PIN code followed by the # key.
+ *  - Press the 7 key followed by the # key.
+ *  - Press the 1 key followed by the # key 
+ * 
+ * REMOVE/UNPAIR DEVICE:
+ *  - Enter the 4-8 digit Master PIN code followed by the # key.
+ *  - Press the 7 key followed by the # key.
+ *  - Press the 3 key followed by the # key 
+ *  
+ * FACTORY RESET:
+ *  - Remove the battery pack.
+ *  - There is a reset button located behind the panel with battery.
+ *  - While pressing the reset button (at least 3 second), reinstall batteries.
+ *  - Release button
+ *  Upon reset, the Master PIN code will need to re-create.
+ *  
+ * OFFLINE TIMEOUT:
+ *  - 60 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *  - 20 minutes (reports Lock State)
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - 6-12 hours
+ * 
+ * IDENTIFY
+ *  - Beeps and flashes LED above Locking Knob and touch screen for 30 seconds.
+ * 
+ * ISSUES/NOTES:
+ *  - If device Alarms 'Too Many Wrong Codes', it may disable and no longer be operational until unlocked manually or remotely via app
+ *  - Door Lock state is reported any time it changes. Also schedules periodic reporting of the lock state at least every 20 minutes.
+ * 
+ * 
+ * IN Clusters
+ *   0x0000    (0) Basic
+ *   0x0001    (1) Power Configuration
+ *   0x0003    (3) Identify
+ *   0x0009    (9) Alarms
+ *   0x000A   (10) Time
+ *   0x0020   (32) Poll Control
+ *   0x0101  (257) DoorLock
+ *   0x0B05 (2821) Diagnostics
+ * OUT Clusters
+ *   0x000A   (10) Time
+ *   0x0019   (25) OTA Upgrade
+ * 
+ */
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse
+import static com.iris.protocol.zigbee.zcl.DoorLock.OperationEventNotification
+import static com.iris.protocol.zigbee.zcl.DoorLock.ProgrammingEventNotification
+
+
+driver          "ZBYale246TouchscreenDeadbolt"
+description     "Driver for the Yale 226/246 Touchscreen Deadbolt"
+version         "2.8"
+protocol        "ZIGB"
+deviceTypeHint  "Lock"
+productId       "243d0c"
+vendor          "Yale"
+model           "YRD226/246 TSDB"
+
+
+matcher         'ZIGB:manufacturer': 0x101D, 'ZIGB:vendor': 'Yale', 'ZIGB:model': 'YRD226/246 TSDB'
+
+
+capabilities    DevicePower, DoorLock, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDoorLock_2_6'
+importCapability 'zigbee/GenericZigbeeDoorLockPower'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+DoorLock.type                    DoorLock.TYPE_DEADBOLT
+DoorLock.supportsBuzzIn          true
+DoorLock.supportsInvalidPin      false
+DoorLock.numPinsSupported        249
+DoorLock.slots                   [:]
+
+DeviceAdvanced.errors            [:]
+
+final byte ENDPOINT = 1
+final def  dvcEndPoint  = Zigbee.endpoint(ENDPOINT)
+final def  pwrCluster   = dvcEndPoint.Power
+final def  identCluster = dvcEndPoint.Identify
+final def  pollCluster  = dvcEndPoint.PollControl
+final def  lockCluster  = dvcEndPoint.DoorLock
+final def  otaCluster   = dvcEndPoint.Ota
+final def  alarmCluster = dvcEndPoint.Alarms
+final def  diagCluster  = dvcEndPoint.Diagnostics
+
+final short PROFILE_HA           = 0x0104
+final int   OFFLINE_TIMEOUT_SECS = 3600
+final short IDENT_PERIOD_SECS    = 30
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    DoorLock.lockstatechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+    lockCluster.clearAllPinCodes()
+
+    // bind to clusters we are interested in (hub does not seem to do this for us automatically)
+    Zigbee.bindEndpoints(
+        pwrCluster.bindServerCluster(),
+        pollCluster.bindServerCluster(),
+        lockCluster.bindServerCluster(),
+        alarmCluster.bindServerCluster(),
+        diagCluster.bindServerCluster()
+        )
+}
+
+onConnected {
+    Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+    
+    lockCluster.zclReadAttributes( lockCluster.ATTR_LOCK_STATE )
+    pwrCluster.zclReadAttributes( pwrCluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING )
+
+    // configure reporting of PowerConfig cluster Battery Percentage
+    byte[] rptPwrCnfgBytes = [
+        // Dir (0x00)
+        0x00,
+        // Attr Id (0x0021) Battery Percentage
+        0x21, 0x00,
+        // Attr Data Type (0x20) Unsigned 8-Bit Int
+        0x20,
+        // Min Interval (0x5460) 21600 secs (at most once every 6 hours, this is what it ends up reporting at)
+        0x60, 0x54,
+        // Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+        0xC0, 0xA8,
+		// Reportable Change 1%
+		0x02 ]
+    Zigbee.send(
+        "cluster" : ZHA_CLUSTER_POWER_CONFIGURATION,
+        "command" : ZclConfigureReporting.ID,
+        "profile" : PROFILE_HA,
+        "endpoint" : ENDPOINT,
+        "clusterspecific" : false,
+        "defaultresponse" : true,
+        "data" : rptPwrCnfgBytes )
+
+    // configure reporting of Lock State
+    byte[] rptLockCnfgBytes = [
+        // Dir (0x00)
+        0x00,
+        // Attr Id (0x0000) Lock state
+        0x00, 0x00,
+        // Attr Data Type (0x30) 8-Bit Enumeration
+        0x30,
+        // Min Interval (0x000F) 15 seconds (at most once every 15 seconds)
+        0x0F, 0x00,
+        // Max Interval (0x04B0) 1200 seconds (at least once every 20 minutes)
+        0xB0, 0x04]
+    Zigbee.send(
+        "cluster" : ZHA_CLUSTER_DOOR_LOCK,
+        "command" : ZclConfigureReporting.ID,
+        "profile" : PROFILE_HA,
+        "endpoint" : ENDPOINT,
+        "clusterspecific" : false,
+        "defaultresponse" : true,
+        "data" : rptLockCnfgBytes )
+
+    // read Diagnostic attributes
+    diagCluster.zclReadAttributes(
+        diagCluster.ATTR_LAST_MESSAGE_LQI,
+        diagCluster.ATTR_LAST_MESSAGE_RSSI )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Doorlock related
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('doorlock') {
+    GenericZigbeeDoorLock_2_6.doSetDoorLockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.AuthorizePerson {
+    GenericZigbeeDoorLock_2_6.doAuthorizePerson(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.DeauthorizePerson {
+    GenericZigbeeDoorLock_2_6.doDeauthorizePerson(this,DEVICE_NAME,lockCluster,message)
+}
+
+onDoorLock.ClearAllPins {
+    GenericZigbeeDoorLock_2_6.doClearAllPins(this,DEVICE_NAME,lockCluster)
+}
+
+onDoorLock.BuzzIn {
+    GenericZigbeeDoorLock_2_6.doBuzzIn(this,DEVICE_NAME,lockCluster)
+}
+
+onEvent( 'LockAfterBuzzIn' ) {
+    GenericZigbeeDoorLock_2_6.doLockAfterBuzzIn(this,DEVICE_NAME,lockCluster)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Doorlock Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.doorlock.lockdoorresponse() {
+    GenericZigbeeDoorLock_2_6.handleLockDoorResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.unlockdoorresponse() {
+    GenericZigbeeDoorLock_2_6.handleUnlockDoorResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.setpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleSetPinCodeResponse(this,DEVICE_NAME,lockCluster,message,true)
+}
+
+onZigbeeMessage.Zcl.doorlock.getpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleGetPinCodeResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.clearpincoderesponse() {
+    GenericZigbeeDoorLock_2_6.handleClearPinCodeResponse(this,DEVICE_NAME,lockCluster,message,true)
+}
+
+onZigbeeMessage.Zcl.doorlock.clearallpincodesresponse() {
+    GenericZigbeeDoorLock_2_6.handleClearAllPinCodesResponse(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.zclreadattributesresponse() {
+    GenericZigbeeDoorLock_2_6.handleDoorlockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.zclreportattributes() {
+    GenericZigbeeDoorLock_2_6.handleDoorlockAttributes(this,DEVICE_NAME,lockCluster,message)
+}
+
+onZigbeeMessage.Zcl.doorlock.operationeventnotification() {
+    GenericZigbeeDoorLock_2_6.handleOperationEventNotification(this,DEVICE_NAME,lockCluster,message)
+}
+   
+onZigbeeMessage.Zcl.doorlock.programmingeventnotification() {
+    GenericZigbeeDoorLock_2_6.handleProgrammingEventNotification(this,DEVICE_NAME,lockCluster,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    GenericZigbeeDoorLockPower.handleDoorLockBatteryPercentRemaining(this,pwrCluster,message)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    GenericZigbeeDoorLockPower.handleDoorLockBatteryPercentRemaining(this,pwrCluster,message)
+}
+
+onZigbeeMessage.Zcl.power.zclconfigurereportingresponse() {
+    GenericZigbeeDoorLockPower.handleReportingConfigResponse(this,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "Driver received Poll Control Attributes Response:{}", Zigbee.Message.decodeZclAttributes(message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "Driver received Poll Control Attributes Report:{}", Zigbee.Message.decodeZclAttributes(message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclwriteattributesresponse() {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    byte[] data = zclMsg.getPayload()
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "Poll Control Write Attributes was SUCCESSFUL: {}", data
+    } else {
+        log.warn "Poll Control Write Attributes FAILED: {}", data
+    }
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zcldefaultresponse() {
+    log.trace "Received Poll Control default response"
+}
+
+onZigbeeMessage.Zcl.pollcontrol.CheckIn() {
+    log.trace "Received Poll Control Checkin"
+    // tell device to resume without short polling, short poll timeout 0
+    pollCluster.checkInResponse( CheckInResponse.START_FAST_POLLING_DISABLED, (short)0 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Alarms Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.alarms.Alarm() {
+    GenericZigbeeDoorLock_2_6.handleYaleAlarms(this,message)
+}
+
+onZigbeeMessage.Zcl.alarms.zclconfigurereportingresponse() {
+    GenericZigbeeDoorLock_2_6.handleAlarmReportingConfigResponse(this,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+    identCluster.identifyCmd( IDENT_PERIOD_SECS )
+    sendResponse 'ident:IdentifyResponse', ['result':true]    
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleDiagnosticMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+    def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+
+    if (lqi != null) {
+        if ('INVALID' == lqi.toString()) lqi = 255    // helper parses 255 value as 'INVALID', but it just means 100%
+        if (0 > lqi) lqi = 256 + lqi  // convert signed value to unsigned
+        int sigPct = Math.round( (lqi * 100.0) / 255.0)
+        log.trace "LQI:{}, (percent:{})", lqi, sigPct
+        DeviceConnection.signal sigPct
+    }
+}
+
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+    log.trace "Driver received Diagnostics Attributes Response:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+    log.trace "Driver received Diagnostics Attributes Report:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+    
+    if (PROFILE_HA == profile) {      // Home Automation Profile
+        if (ZHA_CLUSTER_TIME == clusterId && 0 == messageId) {
+            log.trace "Received Time cluster command 0, flags:{}, data:{}", flags, data
+            return
+        }
+    }
+    
+    log.debug "Received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+              profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+

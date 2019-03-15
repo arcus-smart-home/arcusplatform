@@ -1,0 +1,299 @@
+#!/bin/sh
+
+################################################################################
+# Determine where the agent is installed at
+################################################################################
+
+IRISAGENT_ALLARGS="$0 $@"
+DIRNAME=$(dirname "$0")
+INSTALL_PATH=$(readlink -f "${DIRNAME}/..")
+
+################################################################################
+# Default values for various options
+################################################################################
+
+HEAP_MAX='256m'
+HEAP_MIN='256m'
+DNS_TTL="60"
+DNS_NEGATIVE_TTL="5"
+STRING_TABLE_SIZE="60013"
+DEBUG=""
+DEBUG_WAIT="n"
+AGENT_JSA="${INSTALL_PATH}/agent.jsa"
+
+LOG_TLAB=""
+LOG_GC=""
+LOG_COMPILATION=""
+LOG_ASSEMBLY=""
+LOG_PAUSE=""
+
+PROFILE=""
+PROFILER_PATH="/data/yjp/bin/linux-armv7-hf/libyjpagent.so"
+PROFILER_OPTS="=probe_disable=*,probe_on=.Threads,dir=/data/yjp-snapshots,logdir=/data/yjp-log"
+
+################################################################################
+# Figure out where java is at
+################################################################################
+
+if [ -z "${JAVA}" ]; then
+   if [ -n "${JAVA_HOME}" ]; then
+      if [ -e "${JAVA_HOME}/bin/java" ]; then
+         JAVA="${JAVA_HOME}/bin/java";
+      fi
+   fi
+fi
+
+if [ -z "${JAVA}" ]; then
+   JAVA_SEARCH=""
+   JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/current"
+   JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/java-7-openjdk"
+   JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/java-8-openjdk"
+   for next in ${JAVA_SEARCH}; do
+      if [ -z "${JAVA}" ]; then
+         if [ -e "${next}/bin/java" ]; then
+            export JAVA_HOME="${next}"
+            JAVA="${JAVA_HOME}/bin/java";
+         fi
+      fi
+   done
+fi
+
+if [ -z "${JAVA}" ]; then
+   export JAVA_HOME="/usr";
+   JAVA="${JAVA_HOME}/bin/java";
+fi
+
+################################################################################
+# Allow overriding of various options via environment variables
+################################################################################
+
+[ -n "${AGENT_HEAP_MAX}" ] && HEAP_MAX="${AGENT_HEAP_MAX}"
+[ -n "${AGENT_HEAP_MIN}" ] && HEAP_MIN="${AGENT_HEAP_MIN}"
+
+[ -n "${AGENT_PERM_MAX}" ] && PERM_MAX="${AGENT_PERM_MAX}"
+[ -n "${AGENT_PERM_MIN}" ] && PERM_MAX="${AGENT_PERM_MIN}"
+
+[ -n "${AGENT_DEBUG}" ] && DEBUG="${AGENT_DEBUG}"
+[ -n "${AGENT_DEBUG_WAIT}" ] && DEBUG_WAIT="${AGENT_DEBUG_WAIT}"
+
+[ -n "${AGENT_LOG_TLAB}" ] && LOG_TLAB="${AGENT_LOG_TLAB}"
+[ -n "${AGENT_LOG_GC}" ] && LOG_GC="${AGENT_LOG_GC}"
+[ -n "${AGENT_LOG_COMPILATION}" ] && LOG_COMPILATION="${AGENT_LOG_COMPILATION}"
+[ -n "${AGENT_LOG_ASSEMBLY}" ] && LOG_ASSEMBLY="${AGENT_LOG_ASSEMBLY}"
+[ -n "${AGENT_LOG_PAUSE}" ] && LOG_PAUSE="${AGENT_LOG_PAUSE}"
+
+[ -n "${AGENT_PROFILE}" ] && PROFILE="${AGENT_PROFILE}"
+[ -n "${AGENT_PROFILER_PATH}" ] && PROFILER_PATH="${AGENT_PROFILER_PATH}"
+[ -n "${AGENT_PROFILER_OPTS}" ] && PROFILER_OPTS="${AGENT_PROFILER_PORT}"
+
+################################################################################
+# Add all of the jars in /lib to the classpath
+################################################################################
+
+CP=""
+for jar in $(ls "${INSTALL_PATH}/libs"/*); do
+   CP="${CP}:${jar}"
+done
+
+################################################################################
+# Setup the command line arguments
+################################################################################
+
+JAVA_OPTS=""
+JAVA_OPTS="${JAVA_OPTS} -server"
+JAVA_OPTS="${JAVA_OPTS} -Xmx${HEAP_MAX}"
+JAVA_OPTS="${JAVA_OPTS} -Xms${HEAP_MIN}"
+JAVA_OPTS="${JAVA_OPTS} -XX:NewRatio=1"
+JAVA_OPTS="${JAVA_OPTS} -XX:SurvivorRatio=12"
+JAVA_OPTS="${JAVA_OPTS} -XX:-UsePerfData"
+JAVA_OPTS="${JAVA_OPTS} -XX:+PerfDisableSharedMem"
+JAVA_OPTS="${JAVA_OPTS} -XX:WorkAroundNPTLTimedWaitHang=0"
+JAVA_OPTS="${JAVA_OPTS} -XX:-DontCompileHugeMethods"
+#JAVA_OPTS="${JAVA_OPTS} -XX:CompileCommandFile=${INSTALL_PATH}/conf/hotspot_compiler"
+
+JAVA_OPTS="${JAVA_OPTS} -Dlogback.configurationFile=${INSTALL_PATH}/conf/logback.xml"
+JAVA_OPTS="${JAVA_OPTS} -Djava.awt.headless=true"
+JAVA_OPTS="${JAVA_OPTS} -Djava.net.preferIPv4Stack=true"
+JAVA_OPTS="${JAVA_OPTS} -Dsun.net.inetaddr.ttl=${DNS_TTL}"
+JAVA_OPTS="${JAVA_OPTS} -Dsun.net.inetaddr.negative.ttl=${DNS_NEGATIVE_TTL}"
+
+JAVA_OPTS="${JAVA_OPTS} -XX:+AggressiveOpts"
+JAVA_OPTS="${JAVA_OPTS} -XX:StringTableSize=${STRING_TABLE_SIZE}"
+JAVA_OPTS="${JAVA_OPTS} -XX:+BackgroundCompilation"
+
+JAVA_OPTS="${JAVA_OPTS} -XX:+UseSerialGC"
+JAVA_OPTS="${JAVA_OPTS} -XX:+DisableExplicitGC"
+
+if [ -n "${LOG_TLAB}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintTLAB"
+fi
+
+if [ -n "${LOG_COMPILATION}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+LogCompilation"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+TraceClassLoading"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintCompilation"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintCompilation2"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintInlining"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintInterpreter"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+CITime"
+fi
+
+if [ -n "${LOG_ASSEMBLY}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintAssembly"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+LogCompilation"
+fi
+
+if [ -n "${LOG_GC}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGC"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCDetails"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCTimeStamps"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCDateStamps"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintTenuringDistribution"
+   JAVA_OPTS="${JAVA_OPTS} -Xloggc:/tmp/gc.log"
+fi
+
+if [ -n "${LOG_PAUSE}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCApplicationStoppedTime"
+   JAVA_OPTS="${JAVA_OPTS} -XX:+PrintGCApplicationConcurrentTime"
+fi
+
+if [ -n "${DEBUG}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8123,suspend=${DEBUG_WAIT}"
+fi
+
+if [ -n "${PROFILE}" ]; then
+   JAVA_OPTS="-agentpath:${PROFILER_PATH}${PROFILER_OPTS} ${JAVA_OPTS}"
+fi
+
+################################################################################
+# Misc configuration
+################################################################################
+
+JAVA_OPTS="${JAVA_OPTS} -Dio.netty.leakDetection.level=disabled"
+JAVA_OPTS="${JAVA_OPTS} -Dio.netty.buffer.bytebuf.checkAccessible=false"
+JAVA_OPTS="${JAVA_OPTS} -Dio.netty.noUnsafe=false"
+JAVA_OPTS="${JAVA_OPTS} -Dos.arch=arm"
+
+################################################################################
+# Native library configuration
+################################################################################
+
+# Use old libraries if necessary (based on firmware version as they are
+#  built related to the Yocto version...)
+if grep -q "v2\." /tmp/version; then
+    export LD_LIBRARY_PATH="${INSTALL_PATH}/lib/v2"
+    JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${INSTALL_PATH}/lib/v2"
+else
+    export LD_LIBRARY_PATH="${INSTALL_PATH}/lib"
+    JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${INSTALL_PATH}/lib"
+fi
+
+################################################################################
+# If there is a selfcheck file present in the install directory then we need
+# to perform a simple self check before starting up.
+################################################################################
+
+if [ -e "${INSTALL_PATH}/selfcheck" ]; then
+   echo "all-on" >/tmp/ledMode
+   echo "performing sqlite3 integrity check..."
+   /usr/bin/sqlite3 "/data/iris/db/iris.db" "PRAGMA integrity_check" &>/tmp/dbcheck.log
+   echo "boot-agent" >/tmp/ledMode
+fi
+
+touch "${INSTALL_PATH}/selfcheck"
+
+################################################################################
+# Determine if the hub was rebooted an an "unclean" way, i.e. a watchdog
+# reboot, power failure, OOM killer, etc. These are all reported up as
+# a last reboot reason of "WATCHDOG".
+################################################################################
+
+if [ -e "${INSTALL_PATH}/watchdog_check" ]; then
+   export IRIS_AGENT_WATCHDOG_RESET="yes"
+else
+   unset IRIS_AGENT_WATCHDOG_RESET
+fi
+
+touch "${INSTALL_PATH}/watchdog_check"
+
+################################################################################
+# Cleanup up the tmp data directory
+################################################################################
+
+rm -rf /data/iris/data/tmp/*
+
+################################################################################
+# Create a shared archive to speed up restarts
+################################################################################
+
+if [ -z "${PROFILE}" ]; then
+   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
+   JAVA_OPTS="${JAVA_OPTS} -XX:SharedArchiveFile=${AGENT_JSA}"
+
+   if [ ! -e "${AGENT_JSA}" ]; then
+      echo "generating shared archive ${AGENT_JSA}..."
+	   ${JAVA} -XX:OnOutOfMemoryError="kill -9 %p" -XX:ErrorFile=/tmp/hs_err.log ${JAVA_OPTS} ${JAVA_DBG_OPTS} -cp "${CP}" '-Xshare:dump' || true
+   fi
+
+   JAVA_OPTS="${JAVA_OPTS} -Xshare:on"
+fi
+
+################################################################################
+# Invoke the JVM and process the exit code
+################################################################################
+
+ulimit -n 4096 -s 4096
+${JAVA} -XX:OnOutOfMemoryError="kill -9 %p" -XX:ErrorFile=/tmp/hs_err.log ${JAVA_OPTS} ${JAVA_DBG_OPTS} -cp "${CP}" com.iris.agent.IrisAgent "${INSTALL_PATH}" "${INSTALL_PATH}/conf"
+EC="$?"
+
+case "${EC}" in
+   80) echo "Restarting Iris Agent...";
+       rm -f "${INSTALL_PATH}/selfcheck" "${INSTALL_PATH}/watchdog_check"
+       exec ${IRISAGENT_ALLARGS}
+       ;;
+
+   81) echo "Rebooting Iris Hub...";
+       rm -f "${INSTALL_PATH}/selfcheck" "${INSTALL_PATH}/watchdog_check"
+       exec /usr/bin/hub_restart 0
+       ;;
+
+   82) echo "Installing new hub firmware from: /data/iris/data/tmp/hubOS.bin";
+       /usr/bin/update -f 'file:///data/iris/data/tmp/hubOS.bin' && /bin/rm -rf '/data/agent' && exec /usr/bin/hub_restart 0
+       echo "Installation of hub firmware failed, restarting old agent..."
+       exec ${IRISAGENT_ALLARGS}
+       ;;
+
+   83) echo "Installing new agent firmware from: /data/iris/data/tmp/hubAgent.bin";
+       mv '/data/agent' '/data/agent-backup' && mkdir '/data/agent' && cd /data/agent && tar xzf '/data/iris/data/tmp/hubAgent.bin' && cd - && rm -rf '/data/agent-backup' && exec ${IRISAGENT_ALLARGS}
+       echo "Installation of hub agent failed, restarting old agent..."
+       rm -rf '/data/agent' && mv '/data/agent-backup' '/data/agent' ; exec ${IRISAGENT_ALLARGS}
+       ;;
+
+   84) echo "Factory resetting the hub...";
+       rm -rf /data/iris;
+       rm -rf /data/agent;
+       rm -rf /data/config;
+       zwave_default;
+       zigbee_default;
+       exec /usr/bin/hub_restart 0
+       ;;
+
+   85) echo "Rebooting Iris Hub and Performing Self Checks";
+       rm -f "${INSTALL_PATH}/watchdog_check"
+       exec /usr/bin/hub_restart 0
+       ;;
+
+    0|129|130|143) echo "Iris Agent Exited (${EC})"
+       rm -f "${INSTALL_PATH}/selfcheck" "${INSTALL_PATH}/watchdog_check"
+       ;;
+
+    *) echo "Iris Agent Exited Abnormally (${EC})"
+       rm -f "${AGENT_JSA}"
+       exec ${IRISAGENT_ALLARGS}
+       ;;
+esac

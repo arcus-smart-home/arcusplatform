@@ -1,0 +1,24 @@
+   /** {{description}} */
+   public static class {{name}}Event extends com.iris.client.ClientEvent {
+      public static final String NAME = "{{namespace}}:{{name}}";
+
+{{> client/parameters parameters}}
+
+      public {{name}}Event(String sourceAddress) {
+         super(NAME, sourceAddress);
+      }
+   
+      public {{name}}Event(String sourceAddress, java.util.Map<String, Object> attributes) {
+         super(NAME, sourceAddress, attributes);
+      }
+
+      public {{name}}Event(com.iris.client.ClientEvent copy) {
+         super(NAME, copy.getSourceAddress(), new java.util.HashMap<String, Object>(copy.getAttributes()));
+      }
+
+      {{#parameters}}
+      public {{{javaTypeOf type}}} get{{capitalize name}}() {
+         return ({{{javaTypeOf type}}}) getAttribute("{{name}}");
+      }
+      {{/parameters}}
+   }

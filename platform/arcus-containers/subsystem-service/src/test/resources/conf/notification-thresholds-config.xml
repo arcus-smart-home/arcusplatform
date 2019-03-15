@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<notificationThresholdsConfig xmlns="http://arcus.com/notification-thresholds_1.0.0">
+
+   <metadata version="2018-08-20T00:00:00" publisher="Dan Ignat" />
+
+   <configDefaults
+      hubOfflineTimeoutSec="3600" deviceOfflineTimeoutSec="86400"
+      deviceBatteryFull="100"     deviceBatteryFullClear="95"
+      deviceBatteryLow="10"       deviceBatteryLowClear="25"
+      deviceBatteryVeryLow="7"    deviceBatteryVeryLowClear="10"
+      deviceBatteryCritical="5"   deviceBatteryCriticalClear="7"
+      deviceBatteryDead="1"       deviceBatteryDeadClear="5" />
+
+   <deviceOverride productId="xyz"         offlineTimeoutSec="60" />
+
+   <deviceOverride productId="nosend"      offlineTimeoutSec="0" batteryLow="-1" />
+
+   <deviceOverride productId="highbattery" offlineTimeoutSec="0" batteryLow="60" batteryLowClear="90" />
+
+</notificationThresholdsConfig>

@@ -1,0 +1,169 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Water Heater
+ * 
+ */
+driver			"MOCK_Water Heater"
+description		"Driver for a Water Heater"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"waterheater"
+vendor 			"Mockitron"
+model 			"Water Heater"
+productId		"cf441c"
+
+matcher         'MOCK:Capability' : 'WaterHeater'
+matcher         'MOCK:ProductId'  : 'cf441c'
+
+capabilities    DevicePower, AOSmithWaterHeaterController, WaterHeater, DeviceMock
+
+importCapability 'mock/MOCK_WiFi'
+importCapability 'mock/MOCK_WiFiScan'
+importCapability 'mock/MOCK_IpInfo'
+
+def errorsMap = ["E01":"Dry fire risk as there is an insufficient amount of water in tank.",
+	"E02":"The water temperature in the tank has exceeded 170°F. ",
+	"E03":"The upper temperature sensor in your hot water heater has failed. ",
+	"E04":"The upper heating element in your hot water heater has failed.",
+	"E05":"The lower heating element in your hot water heater has failed.",
+	"E06":"The electronic thermostat in your hot water heater has failed. ",
+	"E07":"The lower temperature sensor in your hot water heater has failed. ",
+	"E08":"Energy Smart Module (ESM) periodic test has failed.",
+	"E09":" The electronic thermostat in your hot water heater has reported an error.",
+	"E10":" The electronic thermostat in your hot water heater has reported an error.",
+	"E11":" The electronic thermostat in your hot water heater has reported an error.",
+	"E12":"The electronic thermostat in your hot water heater has reported an error.",
+	"E51":"The Energy Smart Module on your hot water heater has failed.",
+	"E52":"The Energy Smart Module on your hot water heater is not working properly. ",
+	"E71":"The Energy Smart Module thermistor on your hot water heater has failed. "]
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Water Heater device started."
+	Device.name 'Mock Water Heater'
+
+	DevicePower.source 							DevicePower.SOURCE_LINE
+	DevicePower.linecapable						true
+	DevicePower.backupbatterycapable    		false
+	DevicePower.sourcechanged           		((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	AOSmithWaterHeaterController.controlmode	AOSmithWaterHeaterController.CONTROLMODE_STANDARD
+	AOSmithWaterHeaterController.gridenabled	false
+	AOSmithWaterHeaterController.errors			errorsMap
+	
+	WaterHeater.heatingstate            		true
+	WaterHeater.hotwaterlevel           		WaterHeater.HOTWATERLEVEL_HIGH
+	WaterHeater.maxsetpoint 					50 //c
+	WaterHeater.setpoint	 					45 //c
+}
+
+onConnected {
+	log.debug "Mock Water Heater device connected."
+}
+
+onDisconnected {
+	log.debug "Mock Water Heater device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Water Heater device removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('aosmithwaterheatercontroller') {
+	log.debug "Mock Water Heater driver received 'aosmithwaterheatercontroller' setAttributes message " + message
+	
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case AOSmithWaterHeaterController.controlmode:
+				AOSmithWaterHeaterController.controlmode attribute.value
+				break
+			case AOSmithWaterHeaterController.updaterate:
+				AOSmithWaterHeaterController.updaterate attribute.value
+				break
+			case AOSmithWaterHeaterController.units:
+				AOSmithWaterHeaterController.units attribute.value
+				break
+			case AOSmithWaterHeaterController.leakdetect:
+				AOSmithWaterHeaterController.leakdetect attribute.value
+				break
+			case AOSmithWaterHeaterController.modelnumber:
+				AOSmithWaterHeaterController.modelnumber attribute.value
+				break
+			case AOSmithWaterHeaterController.serialnumber:
+				AOSmithWaterHeaterController.serialnumber attribute.value
+				break
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+	
+	sendResponse 'aosmithwaterheatercontroller:SetAttributesResponse', [:]
+}
+
+setAttributes('waterheater') {
+	log.debug "Mock Water Heater driver received 'waterheater' setAttributes message " + message
+	
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case WaterHeater.setpoint:
+				double setpoint = (double)attribute.value
+				double maxsetpoint = WaterHeater.maxsetpoint.get()
+				log.debug "setpoint [" + setpoint + "] maxsetpoint [" + maxsetpoint + "]"
+				
+				// setpoint cannot exceed maxsetpoint
+				if (setpoint > maxsetpoint) {
+					setpoint = maxsetpoint
+				}
+				
+				WaterHeater.setpoint setpoint
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+	
+	sendResponse 'waterheater:SetAttributesResponse', [:]
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

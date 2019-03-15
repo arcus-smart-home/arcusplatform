@@ -1,0 +1,216 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a GoControl Door/Window Sensor
+ * 
+ * Rebranded Nortek (Linear) device.
+ * 
+ * NOTES: 
+ * - Terminal Screws inside device can be wired to a switch and used instead of magnet.
+ * - If cover is removed, at next Wake Up Notification (usually sent when cover is replaced) battery level is read, in case battery was replaced.
+ * 
+ * PAIRING
+ * - Place hub in 'pairing' mode and insert battery.
+ * - You may then have to press "Tamper Switch" inside device for 1 second.
+ * 
+ * UNPAIRING
+ * - Place hub in 'unpairing' mode (or select "Remove Device").
+ * - Press "Tamper Switch" inside device for 1 second.
+ * 
+ */
+import groovy.transform.Field
+
+driver          "ZWGoControlDoorWindowSensorDriver"
+description     "Driver for a GoControl Door/Window Sensor"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Contact"
+productId       "53002e"
+vendor          "GoControl"
+model           "WADWAZ-1"
+
+matcher         'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x2001, 'ZWAV:ProductId': 0x0102
+
+
+capabilities	DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+importCapability 'zwave/GenericZWaveContact'		// use generic ZWave Contact handling
+
+
+// Command Classes:
+//		0x30   (48) Sensor_Binary
+//		0x71  (113) Alarm (Notification)
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//		0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+// set DevicePower
+// ---------------
+DevicePower.source 	             DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+final String DEVICE_NAME        = "GoControl Door/Window Sensor"
+final int POLLING_INTERVAL_SEC  = 3600		// every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+
+final int BATTERY_POLLING_INTERVAL_SEC = 86400   // Ask for battery level every 24 hours
+
+final byte ALARM_TYPE           =  7
+final byte ALARM_EVENT_INTERNAL =  2	// event for internal magnetic reed switch
+final byte ALARM_EVENT_TAMPER   =  3
+final byte ALARM_EVENT_EXTERNAL = -2	// this is not a normal Event value, but this manufacturer uses it for when terminal screws are used instead of internal magnetic reed switch
+final byte ALARM_LEVEL_TAMPER   = -1
+final byte NOTIFICATION_TYPE    =  7
+final byte NOTIFICATION_STATUS  = -1
+
+final String VAR_REPORTED_COVER_REMOVED = 'REPORTED_COVER_REMOVED'
+
+
+//Set here instead of Generic so other devices can set to Door or Window.
+Contact.usehint                     Contact.USEHINT_UNKNOWN
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+	vars.VAR_REPORTED_COVER_REMOVED = false
+	
+	// Note: Generic capability files set the capability attributes to defaults during onAdded
+	
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+	vars.VAR_REPORTED_COVER_REMOVED = false
+	
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set Association to Group 1, Node 1
+	ZWave.association.set( 1, 1);
+
+	// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+	// Note: Generic ZWave Contact capability file reads current state during onConnected
+
+	// setup polling for the current state
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+	
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+
+	// setup polling for battery level
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.basic.report {
+	log.trace "{} sent Basic Report: {}", DEVICE_NAME, message
+	// Basic Report sends the current state in the 'value' attribute
+	byte currentState = message.command.get( 'value' )
+	// pass basic value reported to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.basic.set {
+	log.trace "{} sent Basic Set: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.trace "{} sent Basic Set State: {}", DEVICE_NAME, bytes[0]
+	// pass basic value reported to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, bytes[0])
+}
+
+onZWaveMessage.sensor_binary.report {
+	log.trace "{} sent Sensor Binary Report: {}", DEVICE_NAME, message
+	// Binary Sensor Report sends the current state in the 'value' attribute
+	byte currentState = message.command.get( 'value' )
+	// pass binary sensor value reported to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+	log.trace "{} sent Alarm/Notification Report", DEVICE_NAME
+	byte alarmType = message.command.get('alarmtype')
+	byte alarmLevel = message.command.get('alarmlevel')
+	byte notificationStatus = message.command.get('notificationstatus')
+	byte notificationType = message.command.get('notificationtype')
+	byte event = message.command.get('event')
+	byte[] bytes = message.command.recvBytes
+	
+	// if Internal Alarm (magnetic reed switch)
+	if ((ALARM_TYPE == alarmType) && (ALARM_EVENT_INTERNAL == event) && (NOTIFICATION_TYPE == notificationType) && (NOTIFICATION_STATUS == notificationStatus)) {
+		GenericZWaveContact.handleContactState(this, DEVICE_NAME, alarmLevel)
+	}
+	// if External Alarm (external switch connected to terminal screws)
+	else if ((ALARM_TYPE == alarmType) && (ALARM_EVENT_EXTERNAL == event) && (NOTIFICATION_TYPE == notificationType) && (NOTIFICATION_STATUS == notificationStatus)) {
+		log.trace "{} reported External Alarm Event", DEVICE_NAME
+		GenericZWaveContact.handleContactState(this, DEVICE_NAME, alarmLevel)
+	}
+	// if tamper alarm
+	else if ((ALARM_TYPE == alarmType) && (ALARM_LEVEL_TAMPER == alarmLevel) && (ALARM_EVENT_TAMPER == event) && (NOTIFICATION_TYPE == notificationType) && (NOTIFICATION_STATUS == notificationStatus)) {
+		log.info "{} cover removed", DEVICE_NAME
+		vars.VAR_REPORTED_COVER_REMOVED = true
+	}
+	// otherwise, log the unprocessed alarm report
+	else {
+		log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", alarmType, alarmLevel, event, notificationType, notificationStatus
+	}
+}
+
+onZWaveMessage.wake_up.notification {
+	log.debug "{} sent Wakeup Notification", DEVICE_NAME
+	
+	// read the current state, in case it has not reported it lately
+	ZWave.basic.get()
+	
+	// if the cover has been removed since last Wake Up notification, read battery level, in case battery was replaced
+	// Note: device usually sends a Wake Up Notification when the cover is replaced
+	if (true == (vars.VAR_REPORTED_COVER_REMOVED ?: false)) {
+		ZWave.battery.get()
+	}
+	vars.VAR_REPORTED_COVER_REMOVED = false
+}
+
+onZWaveMessage {
+    log.debug "{} driver received unhandled ZWave message " + DEVICE_NAME, message
+    return false;
+}
+
+

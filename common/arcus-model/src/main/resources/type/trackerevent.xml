@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+      name="TrackerEvent"
+      version="1.0"
+      xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents an tracker event</t:description>
+
+   <t:attributes>
+      <t:attribute
+            name="time"
+            type="timestamp"
+            description="The time the tracker event occurred"/>
+
+      <t:attribute
+            name="state"
+            type="enum"
+            values="PREALERT,ALERT,CANCELLED,DISPATCHING,DISPATCHED,DISPATCH_REFUSED,DISPATCH_FAILED,DISPATCH_CANCELLED"
+            description="The state of the tracker event, should be used to guide iconography"/>
+
+      <t:attribute
+            name="key"
+            type="string"
+            description="A key describing the event, can be used for comparison in code"/>
+
+      <t:attribute
+            name="message"
+            type="string"
+            description="The user friendly message associated with the key"/>
+
+   </t:attributes>
+</t:type>

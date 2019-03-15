@@ -1,0 +1,41 @@
+{{#section "subject"}}
+Your Iris Service Has Been Upgraded to Premium
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+You have successfully upgraded to Premium Plan at {{{_place.name}}}. With Premium, you'll now be able to access:
+
+* Unlimited video storage for a rolling 30 day period
+* Ability to pin up to 150 videos
+* Alarm Tracker™ (real time updates of alarm events)
+* Care helps you monitor your loved ones' daily routine
+* Expanded History
+* Add up to 6 people to alarm notifications lists
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>You have successfully upgraded to Premium Plan at {{{_place.name}}}. With Premium, you'll now be able to access:</p>
+
+	<ul>
+	<li>Unlimited video storage for a rolling 30 day period</li>
+	<li>Ability to pin up to 150 videos</li>
+	<li>Alarm Tracker&#8482; (real time updates of alarm events)</li>
+	<li>Care helps you monitor your loved ones' daily routine</li>
+	<li>Expanded History</li>
+	<li>Add up to 6 people to alarm notifications lists</li>
+	</ul>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

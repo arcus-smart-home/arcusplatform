@@ -1,0 +1,126 @@
+
+message zwave.DoorLock.DoorLockConfigurationGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.DoorLock.DoorLockConfigurationReportV1<id="0x06", group="V1"> {
+    const u8 OPERATION_TYPE_CONSTANT_OPERATION = 0x01;
+    const u8 OPERATION_TYPE_TIMED_OPERATION = 0x02;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_SHIFT = 4;
+    u8 operationType;
+    u8 properties1;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockConfigurationSetV1<id="0x04", group="V1"> {
+    const u8 OPERATION_TYPE_CONSTANT_OPERATION = 0x01;
+    const u8 OPERATION_TYPE_TIMED_OPERATION = 0x02;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_SHIFT = 4;
+    u8 operationType;
+    u8 properties1;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockOperationGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.DoorLock.DoorLockOperationReportV1<id="0x03", group="V1"> {
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED = 0x00;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_WITH_TIMEOUT = 0x01;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES = 0x10;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x11;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES = 0x20;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x21;
+    const u8 DOOR_LOCK_MODE_DOOR_SECURED = 0xFF;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_MODE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_MODE_SHIFT = 4;
+    u8 doorLockMode;
+    u8 properties1;
+    u8 doorCondition;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockOperationSetV1<id="0x01", group="V1"> {
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED = 0x00;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_WITH_TIMEOUT = 0x01;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES = 0x10;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x11;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES = 0x20;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x21;
+    const u8 DOOR_LOCK_MODE_DOOR_SECURED = 0xFF;
+    u8 doorLockMode;
+}
+
+message zwave.DoorLock.DoorLockConfigurationGetV2<id="0x05", group="V2"> {
+}
+
+message zwave.DoorLock.DoorLockConfigurationReportV2<id="0x06", group="V2"> {
+    const u8 OPERATION_TYPE_CONSTANT_OPERATION = 0x01;
+    const u8 OPERATION_TYPE_TIMED_OPERATION = 0x02;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_SHIFT = 4;
+    u8 operationType;
+    u8 properties1;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockConfigurationSetV2<id="0x04", group="V2"> {
+    const u8 OPERATION_TYPE_CONSTANT_OPERATION = 0x01;
+    const u8 OPERATION_TYPE_TIMED_OPERATION = 0x02;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_STATE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_STATE_SHIFT = 4;
+    u8 operationType;
+    u8 properties1;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockOperationGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.DoorLock.DoorLockOperationReportV2<id="0x03", group="V2"> {
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED = 0x00;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_WITH_TIMEOUT = 0x01;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES = 0x10;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x11;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES = 0x20;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x21;
+    const u8 DOOR_LOCK_MODE_DOOR_LOCK_STATE_UNKNOWN = 0xFE;
+    const u8 DOOR_LOCK_MODE_DOOR_SECURED = 0xFF;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_INSIDE_DOOR_HANDLES_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_MODE_MASK = 0xF0;
+    const u8 PROPERTIES1_OUTSIDE_DOOR_HANDLES_MODE_SHIFT = 4;
+    u8 doorLockMode;
+    u8 properties1;
+    u8 doorCondition;
+    u8 lockTimeoutMinutes;
+    u8 lockTimeoutSeconds;
+}
+
+message zwave.DoorLock.DoorLockOperationSetV2<id="0x01", group="V2"> {
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED = 0x00;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_WITH_TIMEOUT = 0x01;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES = 0x10;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_INSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x11;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES = 0x20;
+    const u8 DOOR_LOCK_MODE_DOOR_UNSECURED_FOR_OUTSIDE_DOOR_HANDLES_WITH_TIMEOUT = 0x21;
+    const u8 DOOR_LOCK_MODE_DOOR_LOCK_STATE_UNKNOWN = 0xFE;
+    const u8 DOOR_LOCK_MODE_DOOR_SECURED = 0xFF;
+    u8 doorLockMode;
+}

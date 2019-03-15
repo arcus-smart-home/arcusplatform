@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="StatsSample4G"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+    Represents a sample of the 4G connection statistics for a 4G
+    dongle connected to a hub.
+    </t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="signalBars"
+			type="int"
+			description="A connection quality estimate for the 4G connection (0-5 bars)"
+			/>
+		<t:attribute
+			name="currentConnectedTime"
+			type="long"
+			description="An estimate of the number of seconds that the current 4G connection has been active"
+			/>
+		<t:attribute
+			name="currentUpload"
+			type="long"
+			description="An estimate of the number of bytes uploaded by the current 4G connection"
+			/>
+		<t:attribute
+			name="currentDownload"
+			type="long"
+			description="An estimate of the number of bytes downloaded by the current 4G connection"
+			/>
+		<t:attribute
+			name="currentUploadRate"
+			type="long"
+			description="An estimate of upload rate of the current 4G connection"
+			/>
+		<t:attribute
+			name="currentDownloadRate"
+			type="long"
+			description="An estimate of download rate of the current 4G connection"
+			/>
+		<t:attribute
+			name="totalUpload"
+			type="long"
+			description="Total number of bytes uploaded since the 4G dongle became active"
+			/>
+		<t:attribute
+			name="totalDownload"
+			type="long"
+			description="Total number of bytes uploaded since the 4G dongle became active"
+			/>
+		<t:attribute
+			name="totallConnectedTime"
+			type="long"
+			description="An estimate of the number of seconds that the 4G connection has been active"
+			/>
+	</t:attributes>
+ </t:type>

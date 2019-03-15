@@ -1,0 +1,89 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import groovy.transform.Field
+
+/**
+ * Mock driver for a Garage Door
+ * 
+ * Notes: If you set the doorstate to OBSTRUCTION twice before setting it to CLOSED, it will lock out
+ *        closing the door until the doorstate is set to OBSTRUCTION a third time, which will automatically
+ *        reset the count back to zero.
+ *        
+ */
+driver			"MOCK_GenieAladdinGarageDoor"
+description		"Driver for the Mock Genie Aladdin Garage Door."
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Garage Door"
+productId		"aeda44"
+vendor 			"Mockitron"
+model 			"GenieAladdinGarageDoor"
+
+matcher        'MOCK:Capability' : 'GenieAladdinGarageDoor'
+matcher        'MOCK:ProductId'  : 'aeda44'
+
+capabilities	DevicePower, BridgeChild, MotorizedDoor, 'devmock'
+
+importCapability 'mock/MOCK_MotorizedDoor'
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	Device.name 'Mock Genie Aladdin Garage Door'
+}
+
+onConnected {
+	log.debug "Mock Genie Aladdin Garage Door connected."
+}
+
+onDisconnected {
+	log.debug "Mock Genie Aladdin Garage Door disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Genie Aladdin Garage Door removed."
+}
+
+
+// ########### capability support ##################
+
+
+
+
+
+// ########### mock stuff here #####################
+
+
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

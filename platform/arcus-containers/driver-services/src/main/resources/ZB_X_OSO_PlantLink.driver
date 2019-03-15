@@ -1,0 +1,384 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the OSO Plant Link moisture sensors
+ * 
+ * ISSUES/NOTES:
+ *  - The device reports a DC Voltage which will be converted into a resistance and translated into a Humidity Level.
+ *  - Device does not have any mechanism to physically identify itself, so even though it supports the Identify cluster the driver does NOT support the Identify capability.
+ *  - Every 15 minutes device asynchronously reports the Battery Voltage and the Voltage across probes (used to calculate the moisture level).  Note that the calculation depends on 
+ *    the current battery voltage.
+ *  - Device asynchronously reports 'mains voltage' for PowerCluster, which is battery level, but in non-standard data format, so it is parsed manually without using helper methods.
+ *  
+ * FACTORY RESET:
+ *  - You can do a hard reset on the device by pressing and holding the "link" button for 10 seconds.  This does not appear to always work however.
+ *
+ * NOTES/REFERENCES:
+ *  - https://github.com/KristopherKubicki/device-plantlink-direct
+ *  - https://github.com/d8adrvn/PlantLink
+ *  - https://osotech.zendesk.com/hc/en-us
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBXOSOPlantLink"
+description		"Driver for the ZigBee OSO Plant Link moisture sensors"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Accessory"				// TODO:
+productId		"d0712e"
+vendor 			"OSO Technologies"
+model 			"PlantLink"				    // TODO:
+
+
+matcher			'ZIGB:manufacturer': 0x1002		// device does not send Vendor and Model strings, so we can only match on Manufacturer
+												// NOTE: this is Ember's generic Manufacture ID, likely to match with many devices built with Ember development tools.
+
+capabilities	DevicePower, SoilMoisture	    // device does not have any machanism to physically identify itself, so we do NOT support the Identify capability
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+SoilMoisture.soiltype            SoilMoisture.SOILTYPE_NORMAL
+
+// Manufacturer ID:       0x1002
+//
+// End Point 1
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0B04     Electrical Measurement
+// OUT Clusters
+//   0x0003     Identify
+
+
+@Field def identCluster = Zigbee.endpoint((byte)1).Identify
+@Field def basicCluster = Zigbee.endpoint((byte)1).Basic
+@Field def pwrCluster   = Zigbee.endpoint((byte)1).Power
+
+
+@Field def final short PROFILE_HA               = 0x0104
+
+@Field def final short CLUSTER_PWR_CNFG         = 0x0001		// Power Configuration Cluster
+@Field def final short CLUSTER_ELEC_MEASURE     = 0x0B04		// (2820) Electrical Measurement Cluster
+
+@Field def final CMD_READ_ATTR                  = 0x00          // General Command Frame - Read Attributes
+@Field def final CMD_WRT_ATTR 					= 0x02          // General Command Frame - Write Attributes
+@Field def final CMD_CNFG_RPT 					= 0x06			// General Command Frame - Configure Reporting
+
+// operational constants
+@Field def final OFFLINE_TIMEOUT_SECS           = 3900          // 01:05, 1 Hour 5 Minutes (device should report data approximately every 15 minutes)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "OSO Plant Link device started."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	SoilMoisture.soiltype            SoilMoisture.SOILTYPE_NORMAL
+	
+	// reset the device to factory defaults
+	basicCluster.resetToFactoryDefaults()
+	
+	// Bind all of the command clusters on the enpoints we need
+	Zigbee.bindEndpoints(
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_ELEC_MEASURE),
+		pwrCluster.bindServerCluster() )
+}
+
+onConnected {
+	log.debug "OSO Plant Link device connected."
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// read current Basic attributes
+	basicCluster.zclReadAttributes(
+		basicCluster.ATTR_ZCL_VERSION,
+		basicCluster.ATTR_APPLICATION_VERSION )
+
+	// current 'mains voltage' is reported async, read operations ignored so don't bother trying to read current battery level here
+}
+
+
+onDisconnected {
+	log.debug "OSO Plant Link device disconnected."
+}
+
+
+onRemoved {
+	log.debug "OSO Plant Link device removed."
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+	log.debug "Device received Basic Attributes Response: " + message
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def zclVersion = attributes[basicCluster.ATTR_ZCL_VERSION]
+	def appVersion = attributes[basicCluster.ATTR_APPLICATION_VERSION]
+	log.debug "ZCL-Ver:" + zclVersion + ", App-Ver:" + appVersion
+	
+	vars.'appVersion' = appVersion
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.debug "Driver received zigbee ZCL message: " + message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// device sends non-standard 'mains voltage', so parse ourselves (helper methods do not work)
+	if ((CLUSTER_PWR_CNFG == clusterId) && (0x0A == msgId) && (5 == data.length)) {
+		def int iVolts = ((data[4] & 0xff) << 8) | (data[3] & 0xff)
+		double minVolts = 2.1
+		double nomVolts = 3.0		// OSO uses 3.3, but 3.0 makes more sense to me since it is 2 AAAA batteries and new batteries read 3.024 on my sample
+		double volts = (new Double(iVolts)) / 1000.0
+		log.debug "Battery Volts:" + volts
+		vars.'vsource' = volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+		battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+		battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+		int intBattPercent = battPercent
+		log.debug "Battery Percent:" + intBattPercent
+		DevicePower.battery intBattPercent
+		return
+	}
+	
+	if ((CLUSTER_ELEC_MEASURE == clusterId) && (0x0A == msgId) && (5 == data.length)) {
+		if ((0x00 == data[0]) && (0x01 == data[1]) && (0x29 == data[2])) {
+			def int moisture_raw_int = ((data[4] & 0xff) << 8) | (data[3] & 0xff)
+			log.debug "Raw Moisture Reading:" + moisture_raw_int + " with Vsource: " + vars.'vsource'
+			
+			// Dry device reports moisture_raw_int = 0
+			// Device with probes in water reports moisture_raw_int = 8560 - 8660
+			// Device with probes wrapped in wet paper towels reports moisture_raw_int = ~7780
+			
+			def int adc_resolution_bits = 14				// bit resoulution of raw reading
+			def double vLimit = 1.2							// max voltage of sensor
+			def double soilCrossSectionPerLength = 0.08066	// meters
+			
+			// make sure raw reading is within range
+			if (moisture_raw_int > (2 ** adc_resolution_bits)) {
+				log.error "Data reading can not be bigger than the number of available ADC bits"
+				SoilMoisture.watercontent null
+				return
+			}
+			
+			// make sure battery voltage is sufficient
+			if (null == vars.'vsource') {
+				log.debug "Cannot calc moisture, battery level not set yet"
+				return
+			}
+			if ((2.1 >= vars.'vsource') || (3.3 < vars.'vsource')) {
+				log.warn "Cannot calc moisture, battery level out of range (3.3V or less, and greater than 2.1 V): " + vars.'vsource'
+				return
+			}
+			
+			def double vSensor = ((double)moisture_raw_int / (2.0 ** adc_resolution_bits)) * vLimit
+			log.debug "Sensor Voltage (0-1.2V): " + vSensor
+			
+			def double resistance = 0.0
+			if ((2.1 < vars.'vsource') && (vars.'vsource' <= 2.5)) {
+				resistance = (vars.'vsource' - 2.1) / (2.5 - 2.1) * 
+						(v_to_r_given_bat_25(vSensor) - v_to_r_given_bat_21(vSensor)) + v_to_r_given_bat_21(vSensor)
+			} else if ((2.5 < vars.'vsource') && (vars.'vsource' <= 2.7)) {
+				resistance = (vars.'vsource' - 2.5) / (2.7 - 2.5) *
+						(v_to_r_given_bat_27(vSensor) - v_to_r_given_bat_25(vSensor)) + v_to_r_given_bat_25(vSensor)
+			} else if ((2.7 < vars.'vsource') && (vars.'vsource' <= 3.0)) {
+				resistance = (vars.'vsource' - 2.7) / (3.0 - 2.7) *
+						(v_to_r_given_bat_30(vSensor) - v_to_r_given_bat_27(vSensor)) + v_to_r_given_bat_27(vSensor)
+			} else if ((3.0 < vars.'vsource') && (vars.'vsource' <= 3.3)) {
+				resistance = (vars.'vsource' - 3.0) / (3.3 - 3.0) *
+						(v_to_r_given_bat_33(vSensor) - v_to_r_given_bat_30(vSensor)) + v_to_r_given_bat_30(vSensor)
+			}
+			log.debug "Resistance: " + resistance
+
+			def double resistivity = resistance * soilCrossSectionPerLength
+			log.debug "Resistivity: " + resistivity
+			
+			
+// simple approach (used by SmartThings implementation found online
+			def simpleResistivity = (1500000 * 2.71828 ** (-0.000888 * moisture_raw_int)) as Integer
+			def double simpleMoisture = 0.0
+			log.debug "Simple Resistivity:" + simpleResistivity
+			
+			
+			if (0.0 == resistivity) {
+				log.error "Error: No Resistivity"
+				SoilMoisture.watercontent null
+				return
+			}
+			
+			def double moisture = 0.0
+			if ( SoilMoisture.SOILTYPE_SANDY == SoilMoisture.soiltype.get() ) {
+				moisture = (3.1916 * resistivity ** -0.412)
+				log.debug "For SANDY soil moisture is: " + moisture
+				simpleMoisture = (3.1916 * simpleResistivity ** -0.412)
+				log.debug "For SANDY soil simple moisture is: " + simpleMoisture
+			}
+			else if ( SoilMoisture.SOILTYPE_CLAY == SoilMoisture.soiltype.get() ) {
+				moisture = (1.6356 * resistivity ** -0.297)
+				log.debug "For CLAY soil moisture is: " + moisture
+				simpleMoisture = (1.6356 * simpleResistivity ** -0.297)
+				log.debug "For CLAY soil simple moisture is: " + simpleMoisture
+			}
+			else {
+				// moisture = (5.6398 * resistivity ** -0.504)
+				def double lower_end = 1500.0
+				def double upper_end = 4500.0
+				moisture = 0.25 * ((upper_end - lower_end) - (resistivity - lower_end)) / (
+					upper_end - lower_end) + 0.13
+				log.debug "For NORMAL soil moisture is: " + moisture
+				simpleMoisture = 0.25 * ((upper_end - lower_end) - (simpleResistivity - lower_end)) / (
+					upper_end - lower_end) + 0.13
+				log.debug "For NORMAL soil simple moisture is: " + simpleMoisture
+			}
+			
+			if (-0.5 > moisture) {
+				log.error "Error: Moisture Content less than -0.5"
+				SoilMoisture.watercontent null
+				return
+			} else if ((-0.5 <= moisture) && (moisture <= 0)) {
+				moisture = 0
+				log.warn "Moisture content between -0.5 and 0.0 set to 0.0"
+			} else if (0.5 < moisture) {
+				moisture = 0.5
+				log.warn "Moisture content greater than 0.5 set to 0.5"
+			}
+
+			log.debug "Moisture Content:" + moisture
+			SoilMoisture.watercontent moisture
+			SoilMoisture.watercontentupdated new Date()
+			
+			return
+		}
+	}
+
+	log.debug "Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+}
+
+
+//
+// functions to simulate piecewise functions
+//
+
+double v_to_r_given_bat_21( double x ) {
+	if ((0.0 < x) && (x <= 0.19)) {
+		return (1.9365E+06 * java.lang.Math.exp(-1.9046E+01 * x))
+	}
+	if ((0.19 < x) && (x <= 0.459)) {
+		return (0.8377 * x ** -6.753)
+	}
+	if (0.459 < x) {
+		return (-4076.8 * x + 1978.7)
+	}
+	return 0.0
+}
+
+double v_to_r_given_bat_25( double x ) {
+	if ((0.0 < x) && (x <= 0.2734)) {
+		return (19820 * x ** -1.348)
+	}
+	if ((0.2734 < x) && (x <= 0.525)) {
+		return (11.178 * x ** -7.272)
+	}
+	if (0.525 < x) {
+		return (30850 * x ** 2 - 43767 * x + 15445)
+	}
+	return 0.0
+}
+
+double v_to_r_given_bat_27( double x ) {
+	if ((0.0 < x) && (x <= 0.423)) {
+		return (18234 * x ** -1.477)
+	}
+	if ((0.423 < x) && (x <= 0.638)) {
+		return (15.41 * x ** -9.493)
+	}
+	if ((0.638 < x) && (x <= 0.772)) {
+		return (44428 * x ** 2 - 69891 * x + 27518)
+	}
+	if (0.772 < x) {
+		return (317384 * x ** 2 - 497456 * x + 194925)
+	}
+	return 0.0
+}
+
+double v_to_r_given_bat_30( double x ) {
+	if ((0.0 < x) && (x <= 0.2977)) {
+		return (41249 * x ** -1.215)
+	}
+	if ((0.2977 < x) && (x <= 0.677)) {
+		return (6.4514E+05 * x ** 2 - 1.0747E+06 * x + 4.3624E+05)
+	}
+	if ((0.677 < x) && (x <= 0.89)) {
+		return (22.144 * x ** -14.23)
+	}
+	if (0.89 < x) {
+		return (-3152.5 * x + 2904.2)
+	}
+	return 0.0
+}
+
+double v_to_r_given_bat_33( double x ) {
+	if ((0.0 < x) && (x <= 0.467)) {
+		return (4.2769E+04 * x ** -1.2701E+00)
+	}
+	if ((0.467 < x) && (x <= 0.72)) {
+		return (-312729 * x + 245901)
+	}
+	if ((0.72 < x) && (x <= 0.824)) {
+		return (202.14 * x ** -14.08)
+	}
+	if ((0.824 < x) && (x <= 0.985)) {
+		return (192.33 * x ** -14.39)
+	}
+	if (0.985 < x) {
+		return (23934 * x ** 2 - 52104 * x + 28321)
+	}
+	return 0.0
+}
+

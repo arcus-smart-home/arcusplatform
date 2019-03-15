@@ -1,0 +1,30 @@
+{{#section "subject"}}
+{{{secondaryContactFirstName}}} Has Removed Access To {{{_place.name}}}. 
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{secondaryContactFirstName}}} {{{secondaryContactLastName}}} has decided to remove their access to {{{_place.name}}}. 
+
+We recommend contacting this person to discuss why they left. 
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{secondaryContactFirstName}} {{secondaryContactLastName}} has decided to remove their access to {{_place.name}}<br/><br/>
+	We recommend contacting this person to discuss why they left.<br/>
+	{{/partial}}
+	
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

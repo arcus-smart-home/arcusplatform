@@ -1,0 +1,180 @@
+
+message zwave.ThermostatSetpoint.ThermostatSetpointGetV1<id="0x02", group="V1"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSetV1<id="0x01", group="V1"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedReportV1<id="0x05", group="V1"> {
+    const u8 BIT_MASK_NONE = 0x00;
+    const u8 BIT_MASK_HEATING = 0x01;
+    const u8 BIT_MASK_COOLING = 0x02;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    u8 bitMask;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointGetV2<id="0x02", group="V2"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointReportV2<id="0x03", group="V2"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSetV2<id="0x01", group="V2"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedGetV2<id="0x04", group="V2"> {
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedReportV2<id="0x05", group="V2"> {
+    const u8 BIT_MASK_NONE = 0x00;
+    const u8 BIT_MASK_HEATING = 0x01;
+    const u8 BIT_MASK_COOLING = 0x02;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    const u8 BIT_MASK_ENERGY_SAVE_HEATING = 0x0B;
+    const u8 BIT_MASK_ENERGY_SAVE_COOLING = 0x0C;
+    const u8 BIT_MASK_AWAY_HEATING = 0x0D;
+    u8 bitMask;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointGetV3<id="0x02", group="V3"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointReportV3<id="0x03", group="V3"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSetV3<id="0x01", group="V3"> {
+    const u8 LEVEL_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 LEVEL_SETPOINT_TYPE_SHIFT = 0;
+    const u8 LEVEL2_SIZE_MASK = 0x07;
+    const u8 LEVEL2_SIZE_SHIFT = 0;
+    const u8 LEVEL2_SCALE_MASK = 0x18;
+    const u8 LEVEL2_SCALE_SHIFT = 3;
+    const u8 LEVEL2_PRECISION_MASK = 0xE0;
+    const u8 LEVEL2_PRECISION_SHIFT = 5;
+    u8 level;
+    u8 level2;
+    u8[] val;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedGetV3<id="0x04", group="V3"> {
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointSupportedReportV3<id="0x05", group="V3"> {
+    const u8 BIT_MASK_NONE = 0x00;
+    const u8 BIT_MASK_HEATING = 0x01;
+    const u8 BIT_MASK_COOLING = 0x02;
+    const u8 BIT_MASK_FURNACE = 0x07;
+    const u8 BIT_MASK_DRY_AIR = 0x08;
+    const u8 BIT_MASK_MOIST_AIR = 0x09;
+    const u8 BIT_MASK_AUTO_CHANGEOVER = 0x0A;
+    const u8 BIT_MASK_ENERGY_SAVE_HEATING = 0x0B;
+    const u8 BIT_MASK_ENERGY_SAVE_COOLING = 0x0C;
+    const u8 BIT_MASK_AWAY_HEATING = 0x0D;
+    const u8 BIT_MASK_AWAY_COOLING = 0x0E;
+    const u8 BIT_MASK_FULL_POWER = 0x0F;
+    u8 bitMask;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointCapabilitiesGetV3<id="0x09", group="V3"> {
+    const u8 PROPERTIES1_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 PROPERTIES1_SETPOINT_TYPE_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.ThermostatSetpoint.ThermostatSetpointCapabilitiesReportV3<id="0x0A", group="V3"> {
+    const u8 PROPERTIES1_SETPOINT_TYPE_MASK = 0x0F;
+    const u8 PROPERTIES1_SETPOINT_TYPE_SHIFT = 0;
+    const u8 PROPERTIES2_SIZE_MASK = 0x07;
+    const u8 PROPERTIES2_SIZE_SHIFT = 0;
+    const u8 PROPERTIES2_SCALE_MASK = 0x18;
+    const u8 PROPERTIES2_SCALE_SHIFT = 3;
+    const u8 PROPERTIES2_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES3_SIZE_MASK = 0x07;
+    const u8 PROPERTIES3_SIZE_SHIFT = 0;
+    const u8 PROPERTIES3_SCALE_MASK = 0x18;
+    const u8 PROPERTIES3_SCALE_SHIFT = 3;
+    const u8 PROPERTIES3_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES3_PRECISION_SHIFT = 5;
+    u8 properties1;
+    u8 properties2;
+    u8[] minValue;
+    // properties3 contained in previous field
+    // maxvalue contained in previous field
+}

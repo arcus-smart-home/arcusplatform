@@ -1,0 +1,100 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Tilt Sensor
+ */
+driver			"MOCK_TiltSensor"
+description		"Driver for the Mock Tilt Sensor"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Tilt"
+productId		"fbf00f"
+vendor 			"Mockitron"
+model 			"TiltSensor"
+
+matcher        'MOCK:Capability' : 'TiltSensor'
+matcher        'MOCK:ProductId'  : 'fbf00f'
+
+capabilities   DevicePower, Tilt, DeviceMock
+
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Tilt Sensor started."
+	Device.name 'Mock Tilt Sensor'
+	
+	DeviceConnection.signal             82
+	
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 75
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Tilt.tiltstate                      Tilt.TILTSTATE_UPRIGHT
+	Tilt.tiltstatechanged               ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "Mock Tilt Sensor connected."
+}
+
+onDisconnected {
+	log.debug "Mock Tilt Sensor disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Tilt Sensor removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('tilt') {
+	log.debug "tilt:SetAttributes:" + message.attributes
+	def prevState = Tilt.tiltstate.get()
+	attributes << message.attributes
+    if (Tilt.tiltstate.get() != prevState) { 
+        Tilt.tiltstatechanged new Date()
+    }
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['tilt:tiltstate']) {
+    Tilt.tiltstatechanged new Date()
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

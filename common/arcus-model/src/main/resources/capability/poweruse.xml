@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="PowerUse"
+   namespace="pow"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a device that monitors power usage.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="instantaneous" 
+         readwrite="r" 
+         type="double" 
+         unit="Watts"
+         optional="false" 
+         description="Reflects an instantaneous power reading from the device."/>
+      <c:attribute 
+         name="cumulative" 
+         readwrite="r" 
+         type="double" 
+         unit="Watt-Hours"
+         optional="true" 
+         description="Reflects the cumulative power reading from the device if possible."/>
+      <c:attribute 
+         name="wholehome" 
+         readwrite="r" 
+         type="boolean"
+         optional="false" 
+         description="If true, this represents a whole-home meter."/>
+   </c:attributes>
+   
+</c:capability>

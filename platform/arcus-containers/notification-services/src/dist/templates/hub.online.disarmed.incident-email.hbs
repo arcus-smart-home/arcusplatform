@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Hub Reconnected: Security Alarm Disarmed While Offline During Alarm
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Your hub, {{{hubName}}}, has reconnected to the Iris cloud platform.  {{{offlineDisarmedByName}}} set your Security Alarm to Off while the hub was offline during an alarm.  Please check your Alarm Activity for details.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>Your hub, {{hubName}}, has reconnected to the Iris cloud platform.  {{offlineDisarmedByName}} set your Security Alarm to Off while the hub was offline during an alarm.  Please check your Alarm Activity for details.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

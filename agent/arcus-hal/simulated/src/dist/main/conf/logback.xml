@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+     <resetJUL>true</resetJUL>
+  </contextListener>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+       <pattern>%highlight(%.-1level%d{MMdd}) %gray(%d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}]) %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="io.netty" level="WARN" />
+  <logger name="org.hibernate" level="WARN" />
+  <logger name="org.apache" level="WARN" />
+  <logger name="com.netflix" level="WARN" />
+  <logger name="com.almworks" level="WARN" />
+  <logger name="com.iris.protocol.zwave" level="WARN" />
+  <logger name="com.iris.agent.zwave" level="WARN" />
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

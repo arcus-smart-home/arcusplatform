@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="ProductCatalogService" namespace="prodcat"
+	version="1.0" xmlns:s="http://www.iris.com/schema/service/1.0.0">
+
+	<s:description>
+		Service methods for retrieving the product catalog and product catalog version
+	</s:description>
+
+	<s:events>
+		<s:event name="Reload"
+			description="Fired to initiate the search for a new version of the product catalog.  The newest version will be loaded unless a version is specified.">
+			<s:parameters>
+				<s:parameter name="prodCatVersion" type="int"
+					description="The requested version to load" />
+			</s:parameters>
+		</s:event>
+		<s:event name="ReloadSuccessResponse"
+            description="The Product Catalog was successfully reloaded.">
+            <s:parameters>
+                <s:parameter name="prodCatPath" type="String"
+                    description="The Product Catalog path used for reloading." />
+            </s:parameters>
+        </s:event>
+        <s:event name="ReportProdCatVersion"
+			description="Fired to have services report their current version of the product catalog.">
+		</s:event>
+		<s:event name="ReportProdCatVersionResponse"
+            description="The servies have reported their current version of the product catalog">
+            <s:parameters>
+                <s:parameter name="prodCatPath" type="String"
+                    description="The current path of the Product Catalog" />
+            </s:parameters>
+        </s:event>
+	</s:events>
+</s:service>

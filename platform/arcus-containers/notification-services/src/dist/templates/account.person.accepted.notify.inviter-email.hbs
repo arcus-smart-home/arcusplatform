@@ -1,0 +1,30 @@
+{{#section "subject"}}
+{{{inviteeFirstName}}} Accepted Their Invitation To {{{_place.name}}}
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Congrats! {{{inviteeFirstName}}} {{{inviteeLastName}}} accepted their 
+invitation to the place {{{_place.name}}}.
+
+We recommend contacting {{{inviteeFirstName}}} to discuss their new access.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	Congrats! {{inviteeFirstName}} {{inviteeLastName}} accepted their invitation to the place {{_place.name}}.<br/><br/>
+	We recommend contacting {{inviteeFirstName}} to discuss their new access.<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

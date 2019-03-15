@@ -1,0 +1,42 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Home Automation diagnostics command frames
+//    From Section 9.2 of the ZHA specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Diagnostics {
+   const u16 CLUSTER_ID = 0x0B05;
+
+   const u16 ATTR_NUMBER_OF_RESETS = 0x0000;
+   const u16 ATTR_PERSISTENT_MEMORY_WRITES = 0x0001;
+
+   const u16 ATTR_MAC_RX_BCAST = 0x0100;
+   const u16 ATTR_MAC_TX_BCAST = 0x0101;
+   const u16 ATTR_MAC_RX_UCAST = 0x0102;
+   const u16 ATTR_MAC_TX_UCAST = 0x0103;
+   const u16 ATTR_MAC_TX_UCAST_RETRY = 0x0104;
+   const u16 ATTR_MAC_TX_UCAST_FAIL = 0x0105;
+   const u16 ATTR_APS_RX_BCAST = 0x0106;
+   const u16 ATTR_APS_TX_BCAST = 0x0107;
+   const u16 ATTR_APS_RX_UCAST = 0x0108;
+   const u16 ATTR_APS_TX_UCAST_SUCCESS = 0x0109;
+   const u16 ATTR_APS_TX_UCAST_RETRY = 0x010A;
+   const u16 ATTR_APS_TX_UCAST_FAIL = 0x010B;
+   const u16 ATTR_ROUTE_DISC_INITIATED = 0x010C;
+   const u16 ATTR_NEIGHBOR_ADDED = 0x010D;
+   const u16 ATTR_NEIGHBOR_REMOVED = 0x010E;
+   const u16 ATTR_NEIGHBOR_STALE = 0x010F;
+   const u16 ATTR_JOIN_INDICATION = 0x0110;
+   const u16 ATTR_CHILD_MOVED = 0x0111;
+   const u16 ATTR_NWK_FC_FAILURE = 0x0112;
+   const u16 ATTR_APS_FC_FAILURE = 0x0113;
+   const u16 ATTR_APS_UNAUTHORIZED_KEY = 0x0114;
+   const u16 ATTR_NWK_DECRYPT_FAILURES = 0x0115;
+   const u16 ATTR_APS_DECRYPT_FAILURES = 0x0116;
+   const u16 ATTR_PACKET_BUFFER_ALLOCATE_FAILURES = 0x0117;
+   const u16 ATTR_RELAYED_UCAST = 0x0118;
+   const u16 ATTR_PHY_TO_MAC_QUEUE_LIMIT_REACHED = 0x0119;
+   const u16 ATTR_PACKET_VALIDATE_DROP_COUNT = 0x011A;
+   const u16 ATTR_AVERAGE_MAC_RETRY_PER_APS_MESSAGE_SENT = 0x011B;
+   const u16 ATTR_LAST_MESSAGE_LQI = 0x011C;
+   const u16 ATTR_LAST_MESSAGE_RSSI = 0x011D;
+}

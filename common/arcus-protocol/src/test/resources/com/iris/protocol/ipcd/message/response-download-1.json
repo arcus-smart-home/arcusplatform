@@ -1,0 +1,17 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "Download",
+      "url" : "https://thingyverse.com/images/devices/BlackBox/ms2/1.20-b236.bin"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+  }
+}

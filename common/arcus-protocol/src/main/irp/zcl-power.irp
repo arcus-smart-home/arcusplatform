@@ -1,0 +1,41 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.3 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Power {
+   const u16 CLUSTER_ID = 0x0001;
+
+   const u16 ATTR_MAINS_VOLTAGE = 0x0000;
+   const u16 ATTR_MAINS_FREQUENCY = 0x0001;
+
+   const u16 ATTR_MAINS_ALARM_MASK = 0x0010;
+   const u16 ATTR_MAINS_VOLTAGE_MIN_THRESHOLD = 0x0011;
+   const u16 ATTR_MAINS_VOLTAGE_MAX_THRESHOLD = 0x0012;
+   const u16 ATTR_MAINS_VOLTAGE_DWELL_TRIP_POINT = 0x0013;
+
+   const u16 ATTR_BATTERY_VOLTAGE = 0x0020;
+   const u16 ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING = 0x0021;
+
+   const u16 ATTR_BATTERY_MANUFACTURER = 0x0030;
+   const u16 ATTR_BATTERY_SIZE = 0x0031;
+   const u16 ATTR_BATTERY_AHR_RATING = 0x0032;
+   const u16 ATTR_BATTERY_QUANTITY = 0x0033;
+   const u16 ATTR_BATTERY_RATED_VOLTAGE = 0x0034;
+   const u16 ATTR_BATTERY_ALARM_MASK = 0x0035;
+   const u16 ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD = 0x0036;
+
+   const u8 MAINS_ALARM_MASK_VOLTAGE_TOO_LOW = 0x01;
+   const u8 MAINS_ALARM_MASK_VOLTAGE_TOO_HIGH = 0x02;
+
+   const u8 BATTERY_SIZE_NONE = 0x00;
+   const u8 BATTERY_SIZE_BUILTIN = 0x01;
+   const u8 BATTERY_SIZE_OTHER = 0x02;
+   const u8 BATTERY_SIZE_AA = 0x03;
+   const u8 BATTERY_SIZE_AAA = 0x04;
+   const u8 BATTERY_SIZE_C = 0x05;
+   const u8 BATTERY_SIZE_D = 0x06;
+   const u8 BATTERY_SIZE_UNKNOWN = 0xFF;
+
+   const u8 BATTERY_ALARM_MASK_VOLTAGE_TOO_LOW = 0x01;
+}

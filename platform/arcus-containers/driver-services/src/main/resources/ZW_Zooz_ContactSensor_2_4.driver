@@ -1,0 +1,173 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz Contact Sensor
+ * 
+ * FACTORY RESET:  Press and hold the button inside the device for 10 - 15 seconds, until the LED lights up and then release it.
+ * 
+ * PAIR/INCLUDE:   Press the "Z-Wave" button 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Press the "Z-Wave" button 3 times quickly while the hub is in exclusion mode.
+ * 
+ * Command Classes:
+ *   0x30   (48) Sensor_Binary
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification v3)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ */
+import groovy.transform.Field
+
+
+driver           "ZWZoozContactSensorDriver"
+description      "Driver for a Zooz Contact Sensor"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Contact"
+productId        "edc94a"
+vendor           "Zooz"
+model            "ZSE08"
+
+matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0082
+
+
+capabilities     DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveContact'
+importCapability 'generic/GenericContact'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+Contact.usehint                  Contact.USEHINT_UNKNOWN
+
+
+final int POLLING_INTERVAL_SEC  = 3600      // every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+final int BATTERY_POLLING_SEC   = 86400     // Ask for battery level every 24 hours
+
+
+// Config Parameters (http://products.z-wavealliance.org/products/1926/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_BASIC_SET_OFF_DELAY_PARAM_NO  = 1          // parameter number to configure BASIC Set OFF Delay
+final byte CNFG_BASIC_SET_OFF_DELAY_SIZE             = 2          // size is 2 bytes (documented default is 65535, factory reset default is 0)
+final byte CNFG_BASIC_SET_OFF_DELAY_VALUE_1          = 255        // highest order byte for number of seconds
+final byte CNFG_BASIC_SET_OFF_DELAY_VALUE_2          = 255        // lowest order byte for number of seconds
+
+@Field final byte CNFG_BASIC_SET_LEVEL_PARAM_NO      = 2          // parameter number to configure BASIC Set Level sent when contact opened
+final byte CNFG_BASIC_SET_LEVEL_SIZE                 = 1          // size is 1 byte
+final byte CNFG_BASIC_SET_LEVEL_VALUE                = 255        // 0(OFF), 1-99(documented default), 255(ON)(factory reset default)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wake up interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+    
+    // Note: Generic ZWave Contact capability file reads current state during onConnected
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+    
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+    
+    // make sure configuration is set to defaults (can't use bulk_set because settings are different sizes)
+    ZWave.configuration.set( CNFG_BASIC_SET_OFF_DELAY_PARAM_NO, CNFG_BASIC_SET_OFF_DELAY_SIZE, CNFG_BASIC_SET_OFF_DELAY_VALUE_1, CNFG_BASIC_SET_OFF_DELAY_VALUE_2 )
+    ZWave.configuration.set( CNFG_BASIC_SET_LEVEL_PARAM_NO, CNFG_BASIC_SET_LEVEL_SIZE, CNFG_BASIC_SET_LEVEL_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.basic.report {
+    byte currentState = message.command.get( 'value' )
+    log.trace "Basic Report: {}", currentState
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.sensor_binary.report {
+    byte currentState = message.command.get( 'value' )
+    log.trace "Sensor Binary Report: {}", currentState
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.battery.report {
+    // this device sometimes reports percentages greater than 100, like 109, so allow that and simply cap at 100
+    GenericZWaveBattery.handleBatteryReportAcceptValuesOver100(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}", 
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+    // don't do a ZWave.basic.get() here. Instead we poll for that so the queued message will be sent as soon as the device communicates to the hub,
+    // rather than waiting for the driver to see that the device is awake and then sending the request down to the hub and then on to the device.
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+

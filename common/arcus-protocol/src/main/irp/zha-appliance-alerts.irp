@@ -1,0 +1,44 @@
+constants zcl.ApplianceAlerts {
+   const u16 CLUSTER_ID = 0x0B02;
+
+}
+
+message zcl.ApplianceAlerts.GetAlerts<id="0x00",group="client"> {
+
+}
+
+message zcl.ApplianceAlerts.GetAlertsResponse<id="0x00",group="server"> {
+   const u8 UNSTRUCTURED = 0x00;
+   const u8 WARNING = 0x01;
+   const u8 DANGER = 0x02;
+   const u8 FAILURE = 0x03;
+   const u8 RECOVERY = 0x00;
+   const u8 PRESENCE = 0x01;
+   
+   u8 numberAlerts;
+   u8[] data;  
+}
+
+message zcl.ApplianceAlerts.AlertsNotification<id="0x01",group="server"> {
+   const u8 UNSTRUCTURED = 0x00;
+   const u8 WARNING = 0x01;
+   const u8 DANGER = 0x02;
+   const u8 FAILURE = 0x03;
+   const u8 RECOVERY = 0x00;
+   const u8 PRESENCE = 0x01;
+   
+   u8 numberAlerts;
+   u8[] data;  
+}
+
+message zcl.ApplianceAlerts.EventsNotification<id="0x02",group="server"> {
+   const u8 END_OF_CYCLE = 0x00;
+   const u8 TEMPERATURE_REACHED = 0x04;
+   const u8 END_OF_COOKING = 0x05;
+   const u8 SWITCHING_OFF = 0x06;
+   const u8 WRONG_DATA = 0x07;
+               
+   u8 eventHeader;
+   u8 EventIdentification;
+}
+

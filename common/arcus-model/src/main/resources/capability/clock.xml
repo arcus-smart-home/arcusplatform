@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Clock"
+   namespace="clock"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="year" 
+         readwrite="r" 
+         type="int" 
+         optional="false" 
+         min="0"
+         max="9999"
+         description="Year gregorian calendar"/>
+      <c:attribute 
+         name="month" 
+         readwrite="r" 
+         type="int"
+         min="1"
+         max="12" 
+         optional="false" 
+         description="Month 1-12 (Jan - Dec)"/>
+      <c:attribute 
+         name="day" 
+         readwrite="r" 
+         type="int"
+         min="1"
+         max="31" 
+         optional="false" 
+         description="Day of the month" />
+      <c:attribute 
+         name="hour" 
+         readwrite="r" 
+         type="int"
+         min="0"
+         max="23" 
+         optional="false" 
+         description="Hour of the day 0-23.  Midnight = 0"/>
+      <c:attribute 
+         name="minute" 
+         readwrite="r" 
+         type="int"
+         min="0"
+         max="59" 
+         optional="false" 
+         description="Minute of the hour"/>
+      <c:attribute 
+         name="second" 
+         readwrite="r" 
+         type="int"
+         min="0"
+         max="59" 
+         optional="false" 
+         description="Second of the minute"/>
+      <c:attribute 
+         name="day_of_week" 
+         readwrite="r" 
+         type="int"
+         min="1"
+         max="7" 
+         optional="false" 
+         description="Day of the week"/>
+   </c:attributes>
+   
+</c:capability>

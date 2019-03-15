@@ -1,0 +1,544 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import com.iris.device.attributes.AttributeKey
+import com.iris.device.attributes.AttributeMap
+import com.iris.messages.MessageBody
+import com.iris.messages.address.Address
+import com.iris.messages.address.ProtocolDeviceId
+import com.iris.messages.capability.DeviceAdvancedCapability
+import com.iris.protocol.ipcd.message.IpcdMessage
+import com.iris.protocol.ipcd.message.model.IpcdEvent
+import com.iris.protocol.ipcd.message.model.IpcdReport
+
+import groovy.transform.Field
+
+
+
+driver         "IPCDGenieAladdinBridge"
+description    "Driver for Genie Aladdin Connect Bridge/Controller"
+version        "2.5"
+protocol       "IPCD"
+deviceTypeHint "Genie Aladdin Controller"
+productId      "aeda43"
+vendor         "Genie"
+model          "Aladdin"
+
+matcher        'IPCD:vendor' : 'Genie', 'IPCD:model' : 'Aladdin'
+
+capabilities   DevicePower, Bridge, WiFi, DeviceOta
+
+
+DevicePower.source                 DevicePower.SOURCE_LINE
+DevicePower.linecapable            true
+DevicePower.backupbatterycapable   false
+Bridge.numDevicesSupported         3
+
+def final int REPORT_FREQ = 60
+
+// OTA constants
+final String OFFLINE_CHECK               = "OfflineCheck"
+final long DELAY_FOR_REBOOT              = 60000                     // 60 second delay for device to reboot after OTA
+@Field final String FAIL_REASON_OFFLINE  = "Offline"
+@Field final String OTA_TIMEOUT_CHECK    = "DeviceOtaCheckTimeout"
+@Field static final long OTA_TIMEOUT     = (15L * 60L * 1000L)       // 15 minutes should be plenty of time for upgrade to complete, based on test runs that took less than 5 minutes
+
+// IPCD Events
+@Field final String KEY_EVENTS                  = "events"
+@Field final String EVENT_ON_DOWNLOAD_COMPLETE  = "onDownloadComplete"
+@Field final String EVENT_ON_DOWNLOAD_FAILED    = "onDownloadFailed"
+@Field final String EVENT_ON_UPDATE             = "onUpdate"
+@Field final String EVENT_ON_BOOT               = "onBoot"
+
+
+//--------------------------------------------------------------------------------------------------
+// Driver Life Cycle Implementation
+//--------------------------------------------------------------------------------------------------
+
+onAdded {
+   DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+   WiFi.state                 WiFi.STATE_CONNECTED
+   WiFi.enabled               true
+   Bridge.pairedDevices       [:]
+   Bridge.unpairedDevices     new HashSet()
+   Bridge.pairingState        Bridge.PAIRINGSTATE_IDLE
+   DeviceOta.status           DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason   ""
+   DeviceOta.retryCount       0
+}
+
+onConnected {
+   Ipcd.Commands.setReportConfiguration(REPORT_FREQ, [
+      'dps1.door_status', 'dps1.temperature', 'dps1.battery_level',
+      'dps2.door_status', 'dps2.temperature', 'dps2.battery_level',
+      'dps3.door_status', 'dps3.temperature', 'dps3.battery_level'])
+   
+   updateChildrenConnectivity(false)
+   sendGpv()
+}
+
+onUpgraded {
+   DeviceOta.status           DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason   ""
+   DeviceOta.retryCount       0
+   DeviceOta.currentVersion   "00001"   // default firmware to a specific version until read
+   sendGpv()    // attempt to read parameters, to get current firmware version of device
+}
+
+onDisconnected {
+   updateChildrenConnectivity(true)
+   
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+      Scheduler.scheduleIn OFFLINE_CHECK, DELAY_FOR_REBOOT
+   }
+}
+
+onRemoved {
+   removeChildren()
+   Ipcd.Commands.factoryReset()
+}
+
+
+onEvent(OFFLINE_CHECK){
+   log.trace "Event: Offline Check"
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+      DeviceOta.status DeviceOta.STATUS_FAILED
+      DeviceOta.lastFailReason FAIL_REASON_OFFLINE
+   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Bridge Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+onBridge.StartPairing {
+   log.debug "Genie is pairing other devices";
+
+   // Clear out the already known unpaired devices.
+   def unpaired = Bridge.unpairedDevices.get();
+   for(val in unpaired) {
+      pairDevice(val)
+   }
+
+   startPairing(message.attributes['timeout']);
+   sendResponse( 'bridge:StartPairingResponse', [:])
+}
+
+// Helper function to start pairing devices.
+void startPairing(timeout) {
+   Bridge.pairingState Bridge.PAIRINGSTATE_PAIRING
+   Scheduler.scheduleIn 'StopPairing', timeout
+   sendGpv()
+}
+
+onBridge.StopPairing {
+   Bridge.pairingState Bridge.PAIRINGSTATE_IDLE
+   Scheduler.cancel 'StopPairing'
+   sendResponse( 'bridge:StopPairingResponse', [:])
+}
+
+onEvent('StopPairing') {
+   Bridge.pairingState Bridge.PAIRINGSTATE_IDLE
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// OTA Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+onDeviceOta.FirmwareUpdate {
+   log.debug "Received DeviceOta.FirmwareUpdate message: {}", message
+   
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()) {
+      log.warn "Rejecting OTA because another OTA is currently in progress"
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"already in progress", message:"Dropping request. Another OTA is already in progress"]
+      return
+   }
+
+   // verify URL provided and looks valid, we expect something like: http://www.aladdinconnect.net/ota/iris/update
+   updateUrl = message.attributes['url']
+   if (updateUrl == null || !updateUrl.contains("://") || countOf(updateUrl, '/') <= 2) {
+      log.warn "Rejecting OTA because of poorly formatted url: {}", updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path"]
+      return
+   }
+
+   // set last Attempt timestamp and timeout to make sure OTA marked FAILED if attempt times out
+   def lastAttempt = new Date()
+   Scheduler.scheduleIn OTA_TIMEOUT_CHECK, ['attempt': lastAttempt], OTA_TIMEOUT
+ 
+   DeviceOta.status DeviceOta.STATUS_INPROGRESS
+   DeviceOta.lastFailReason ""
+   DeviceOta.lastAttempt lastAttempt
+   DeviceOta.progressPercent 0
+
+   Ipcd.Commands.download(null, updateUrl, null, null)    // no username or password
+   sendResponse "devota:FirmwareUpdateResponse", ["status":"OK"]
+}
+
+onDeviceOta.FirmwareUpdateCancel {
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      log.warn "Rejecting OTA Cancel because no OTA is in progress"
+      sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"no ota in progress", message:"Dropping request. No OTA is in progress"]
+      return
+   }
+
+   log.warn "FirmwareUpdateCancel request received, but no IPCD Command to cancel " + message
+   DeviceOta.status DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason "Cancelled"
+
+   sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"cancel.unsupported", message:"Clearing updating flag, but the OTA itself can't be cancelled"]
+}
+
+onEvent(OTA_TIMEOUT_CHECK) {
+   log.trace "Event: OTA Timeout Check"
+
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      // no OTA in progress any more, so nothing left to do
+      return
+   }
+
+   def checkAttempt = message.data.attempt  
+   def currentAttempt = DeviceOta.lastAttempt.get()
+   if (checkAttempt != currentAttempt) {
+      // different OTA in progress than the one this timeout was for, so nothing left to do
+      return
+   }
+
+   DeviceOta.status DeviceOta.STATUS_FAILED
+   DeviceOta.lastFailReason "Timeout"
+}
+
+//--------------------------------------------------------------------------------------------------
+// IPCD Protocol Message Handlers
+//--------------------------------------------------------------------------------------------------
+
+// commands coming in would be from children, so we'll just pass those on to the bridge
+onIpcdMessage.command {
+   log.debug("Genie Bridge incoming command:" + message)
+   Ipcd.send(message)
+}
+
+onIpcdMessage.event {
+   def data = message.mapify()
+   def events = message.mapify()[KEY_EVENTS]
+   log.debug "Genie Bridge events:{} in data:{}", events, data
+   for (event in events) {
+      switch (event) {
+
+         // testing shows that the current Genie Aladdin firmware does not appear to send this event,
+         // but we include code to process it in case future versions do
+         case EVENT_ON_DOWNLOAD_COMPLETE:
+            log.info "Received Genie Bridge event 'onDownloadComplete'"
+            DeviceOta.progressPercent 50
+            break
+
+         case EVENT_ON_DOWNLOAD_FAILED:
+            log.warn "Received Genie Bridge event 'onDownloadFailed' with data:{}", data
+            DeviceOta.status DeviceOta.STATUS_FAILED
+            DeviceOta.lastFailReason "Download Failed"
+            break
+
+         // some firmware versions do not send the onUpdate, only the onBoot, so we process the
+         // same if both or either event is sent while an OTA is in progress
+         case EVENT_ON_BOOT:
+         case EVENT_ON_UPDATE:
+            log.info "Received Genie Bridge event '{}'", event
+            if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+               DeviceOta.status DeviceOta.STATUS_COMPLETED
+               DeviceOta.progressPercent 100
+               DeviceOta.lastFailReason ""
+            }
+            break
+         default:
+            break
+      }
+   }
+   if (data.containsKey("valueChanges")) {
+      passEventToPaired(message)
+      handleControllerValueChange(data["valueChanges"])
+   }
+}
+
+// no conditions on status here because the genie doesn't respond with a valid ipcd message if
+// no parameters are specified to get "everything" so we request all parameters we are interested
+// in.  when the genie responds the status of the message will be warn instead of success
+onIpcdMessage.response.getParameterValues {
+   def response = message.mapify()["response"]
+   def request = message.mapify()["request"]
+   log.debug("Genie Bridge request: " + request)
+   def parameters = request['parameters'];
+   log.debug("Genie Bridge parameters: " + parameters)
+   log.debug("Genie Bridge response contents: " + response)
+   passToPaired(message)
+   handleControllerGetParameterResponse(response)
+}
+
+onIpcdMessage.report {
+   def report = message.mapify()["report"]
+   handleControllerReport(report)
+   passReportToPaired(message)
+}
+
+//--------------------------------------------------------------------------------------------------
+// Control Protocol Message Handlers
+//--------------------------------------------------------------------------------------------------
+
+onControl('RemoveChild') {
+   def child = message.attributes['childId']
+   def paired = Bridge.pairedDevices.get().clone()
+   paired.remove(child)
+   Bridge.pairedDevices paired
+}
+
+//--------------------------------------------------------------------------------------------------
+// Utility Functions
+//--------------------------------------------------------------------------------------------------
+
+void updateUrl(url) {
+   log.debug "Genie Changing connectURL."
+   // Remove this after testing
+   Ipcd.Commands.setDeviceInfo(["connectUrl" : url ]);
+}
+
+
+void passEventToPaired(msg) {
+   def paired = Bridge.pairedDevices.get()
+   if (null != paired) {
+	   def eventClones = [new IpcdEvent(), new IpcdEvent(), new IpcdEvent() ]
+	
+	   int i=0;
+	   int n=paired.size();
+	   for (i=0;i<n;i++) {
+	      eventClones[i].setDevice( msg.getDevice() )
+	      eventClones[i].setValueChanges( msg.getValueChanges() )
+	      eventClones[i].setEvents( msg.getEvents() )
+	   }
+	   
+	   i=0
+	   for(val in paired) {
+	      forwardToDevice(val.value, eventClones[i])
+	      i++
+	   }
+   }
+}
+
+void passReportToPaired(msg) {
+   def paired = Bridge.pairedDevices.get()
+   def reportClones = [new IpcdReport(), new IpcdReport(), new IpcdReport() ]
+
+   def i=0;
+   def n=paired.size();
+   for (i=0;i<n;i++) {
+      reportClones[i].setDevice( msg.getDevice() )
+      reportClones[i].setReport( msg.getReport() )
+   }
+   
+   i=0
+   for(val in paired) {
+      forwardToDevice(val.value, reportClones[i])
+      i++
+   }
+}
+
+
+void passToPaired(msg) {
+   def paired = Bridge.pairedDevices.get()
+   
+   for(val in paired) {
+      forwardToDevice(val.value, msg)
+   }
+}
+
+void updateChildrenConnectivity(offline) {
+   MessageBody body = MessageBody.buildMessage(offline ? 'DeviceOfflineEvent' : 'DeviceOnlineEvent', [:])
+   def paired = Bridge.pairedDevices.get()
+   for(val in paired) {
+      forwardToDevice(val.value, 'CTRL', body)
+   }
+}
+
+void removeChildren() {
+   def paired = Bridge.pairedDevices.get()
+   for(val in paired) {
+      def attrs = [
+         "accountId": Device.account.get(),
+         "protocol": "IPCD",
+         "protocolId": ProtocolDeviceId.hashDeviceId(Device.place.get() + "." + val.key).getRepresentation()
+      ]
+      sendToPlatform("SERV:dev:", "devadv:RemovedDevice", attrs, false)
+   }
+}
+
+void handleControllerGetParameterResponse(gpvr) {
+   if(gpvr['dcm.wifi_rssi'] != null) {
+      WiFi.rssi Math.round(Double.valueOf(gpvr['dcm.wifi_rssi']))
+   }
+   if(gpvr['dcm.wifi_ssid']) {
+      WiFi.ssid gpvr['dcm.wifi_ssid']
+   }
+   if(gpvr['dcm.fw_version']) {
+      DeviceOta.currentVersion gpvr['dcm.fw_version']
+   }
+   for(i in 1..3) {
+      def controllerId = "dps${i}"
+      if(gpvr["${controllerId}.link_status"] != null) {
+         handlePairedDevice(controllerId)
+      } else {
+         def unpaired = Bridge.unpairedDevices.get().clone()
+         if (unpaired.contains(controllerId)) {
+            unpaired.remove(controllerId)
+            Bridge.unpairedDevices unpaired
+         }
+      }
+   }
+}
+
+void handleControllerReport(report) {
+   log.debug("Handling report " + report )
+   if(report['dcm.wifi_rssi'] != null) {
+      WiFi.rssi Math.round(Double.valueOf(report['dcm.wifi_rssi']))
+   }
+   if(report['dcm.wifi_ssid']) {
+      WiFi.ssid report['dcm.wifi_ssid']
+   }
+   if(report['dcm.fw_version']) {
+      DeviceOta.currentVersion report['dcm.fw_version']
+   }
+   for(i in 1..3) {
+      def controllerId = "dps${i}"
+      if(report["${controllerId}.link_status"] != null) {
+         handlePairedDevice(controllerId)
+      } else {
+         def unpaired = Bridge.unpairedDevices.get().clone()
+         if (unpaired.contains(controllerId)) {
+            unpaired.remove(controllerId)
+            Bridge.unpairedDevices unpaired
+         }
+      }
+   }
+}
+
+void handleControllerValueChange(valueChanges) {
+   def sendGpvForPairing = false
+   def pairedDevices = Bridge.pairedDevices.get()
+   
+   for(valueChange in valueChanges) {
+      if(valueChange["parameter"] == 'dcm.wifi_rssi') {
+         WiFi.rssi Math.round(Double.valueOf(valueChange["value"]))
+      }
+      if(valueChange["parameter"] == 'dcm.wifi_ssid') {
+         WiFi.ssid valueChange["value"]
+      }
+      if(valueChange["parameter"] == 'dcm.fw_version') {
+         DeviceOta.currentVersion valueChange["value"]
+      }
+      if(valueChange["parameter"].endsWith("link_status")) {
+         def controllerId = valueChange["parameter"].substring(0, 4)
+         sendGpvForPairing = !pairedDevices.containsKey(controllerId)
+      }
+   }
+   
+   if(sendGpvForPairing) {
+      sendGpv()
+   }
+}
+
+void handlePairedDevice(controllerId) {
+   def paired = Bridge.pairedDevices.get()
+   
+   // already paired
+   if(paired[controllerId] != null) {
+      return
+   }
+   
+   if(Bridge.PAIRINGSTATE_PAIRING == Bridge.pairingState.get()) {
+      pairDevice(controllerId)
+   } else {
+      def unpaired = Bridge.unpairedDevices.get().clone()
+      unpaired << controllerId
+      Bridge.unpairedDevices unpaired
+   }
+}
+
+void pairDevice(controllerId) {
+   log.debug("pairing " + controllerId)
+   def protId = ProtocolDeviceId.hashDeviceId(Device.place.get() + ".${controllerId}")
+   def protAddr = Address.protocolAddress("IPCD", protId)
+   
+   def attrs = [
+      "protocolName": "IPCD",
+      "accountId": Device.account.get(),
+      "placeId": Device.place.get(),
+      "deviceId": ProtocolDeviceId.hashDeviceId(Device.place.get() + ".${controllerId}").getRepresentation(),
+      "protocolAttributes": createChildProtocolAttributes(controllerId)
+   ]
+   
+   def unpaired = Bridge.unpairedDevices.get().clone()
+   unpaired.remove(controllerId.toString())
+   Bridge.unpairedDevices unpaired
+   
+   def paired = Bridge.pairedDevices.get().clone()
+   paired[controllerId] = protAddr.getRepresentation()
+   Bridge.pairedDevices paired
+   
+   sendToPlatform("SERV:dev:", "platform:AddDeviceRequest", attrs, true)
+}
+
+AttributeMap createChildProtocolAttributes(controllerId) {
+   def vendorKey = AttributeKey.create("IPCD:vendor", String.class)
+   def modelKey = AttributeKey.create("IPCD:model", String.class)
+   def parentAddressKey = AttributeKey.create("bridgechild:parentAddress", String.class)
+   def bridgeIdAddrKey = AttributeKey.create("bridgechild:bridgeSpecificId", String.class)
+   
+   def bridgeProtId = ProtocolDeviceId.fromRepresentation(DeviceAdvanced.protocolid.get())
+   def bridgeProtAddr = Address.protocolAddress("IPCD", bridgeProtId).getRepresentation()
+   
+   def protAttrs = AttributeMap.newMap()
+   
+   // toString required to prevent GStringImpl cannot be cast to String exceptions
+   protAttrs.add(vendorKey.valueOf("Genie".toString()))
+   protAttrs.add(modelKey.valueOf("Aladdin Door".toString()))
+   protAttrs.add(parentAddressKey.valueOf(bridgeProtAddr.toString()))
+   protAttrs.add(bridgeIdAddrKey.valueOf(controllerId.toString()))
+   
+   return protAttrs
+}
+
+void sendGpv() {
+
+   Ipcd.Commands.getParameterValues([
+      "dps1.link_status",
+      "dps2.link_status",
+      "dps3.link_status",
+      "dcm.wifi_ssid",
+      "dcm.wifi_rssi",
+      "dcm.fw_version",
+      "dcm.error_code",
+      "dcm.error_code"      // Duplicate causes the previous value to show up and parse correctly.
+   ])
+}
+
+int countOf(String inputString, String letter){
+   int count = 0;
+   input = inputString.toCharArray()
+   for (int i = 0; i < inputString.length(); i++){
+      if (input[i] == letter){
+         count++
+      }
+   }
+   return count
+}
+

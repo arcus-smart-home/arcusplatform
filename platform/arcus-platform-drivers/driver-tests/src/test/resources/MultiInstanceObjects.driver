@@ -1,0 +1,59 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * This contains multi-instance capability specification
+ */
+driver 'MultiInstanceStrings'
+version '1.0'
+vendor 'Iris'
+model 'TestCase'
+deviceTypeHint 'TestCase'
+matcher vendor: ~/.*/
+
+instance 'plug1', 'swit', 'devpow'
+instance 'plug2', 'swit', 'devpow'
+instance 'lock', 'doorlock'
+
+DevicePower.source.plug1		'line'
+DevicePower.source.plug2		'battery'
+DevicePower.linecapable.plug1	true
+DevicePower.linecapable.plug2	false
+DoorLock.type.lock				'deadbolt'
+
+setAttributes(Switch) {
+   for(attribute in message.attributes) {
+      switch(attribute.key) {
+      case Switch.state.plug1:
+         vars.plug1 = attribute.value;
+         break;
+      case Switch.state:
+         vars.state = attribute.value;
+         break;
+      }
+   }
+   attributes << message.attributes;
+}
+
+onPlatform(DoorLock.AuthorizePerson.lock) {
+   vars.handledBy = 'doorlock:AuthorizePerson:lock';
+   sendResponse DoorLock.AuthorizePersonResponse, [:]
+}
+
+onPlatform(DoorLock.DeauthorizePerson) {
+   vars.handledBy = 'doorlock:DeauthorizePerson';
+   sendResponse DoorLock.DeauthorizePersonResponse, [:]
+}
+

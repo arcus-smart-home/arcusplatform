@@ -1,0 +1,274 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Dome Water Leak Sensor
+ * 
+ * FACTORY RESET
+ *  - Remove the front cover by twisting it COUNTER-CLOCKWISE.
+ *  - Press and hold the CONNECT button for 10 - 15 seconds, until the LED lights up and then release it.
+ * 
+ * PAIRING / UNPAIRING
+ *  - Place the hub in Inclusion / Exclusion mode
+ *  - Remove the front cover by twisting it COUNTER-CLOCKWISE.
+ *  - Press the CONNECT button 3 times quickly.
+ *  - The LED will flash five times indicating exclusion/disconnection.
+ *  
+ * Command Classes:
+ *   0x30   (48) Sensor_Binary
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70 (112)  Configuration
+ *   0x71  (113) Alarm (Notification)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ */
+import groovy.transform.Field
+
+
+driver           "ZWaveDomeLeakSensorDriver"
+description      "Driver for a Z-wave Dome Water Leak Sensor"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Water Leak"
+productId        "d4e156"
+vendor           "Dome"
+model            "DMWS1"
+
+matcher          'ZWAV:Manufacturer': 0x021F, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0085
+
+
+capabilities     DevicePower, LeakH2O
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+LeakH2O.state                    LeakH2O.STATE_SAFE
+
+
+// Z-Wave alarm states
+@Field final byte SAFE               = 0x00
+@Field final byte LEAK_DETECTED      = 0xFF
+
+
+final int OFFLINE_TIMEOUT_SECS       = 11400        // 190 minutes
+final int BATTERY_POLL_SEC           = 86400        // Ask for battery level every 24 hours
+final int STATE_POLLING_INTERVAL_SEC = 3600         // Ask for current state every 60 minutes
+
+
+// Config Parameters (http://products.z-wavealliance.org/products/1954/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_TOTAL_ALARM_DURATION_PARAM_NO = 1          // parameter number to configure Total Alarm Duration
+final byte CNFG_TOTAL_ALARM_DURATION_SIZE            = 1          // size is 1 byte
+final byte CNFG_TOTAL_ALARM_DURATION_VALUE           = 120        // 0=Until Water Removed, 1-255(documented default=255, factory reset default=120) minutes
+
+@Field final byte CNFG_MUTE_TIME_PARAM_NO            = 2          // parameter number to configure Alarm Mute Time
+final byte CNFG_MUTE_TIME_SIZE                       = 1          // size is 1 byte
+final byte CNFG_MUTE_TIME_VALUE                      = 1          // 1-255(documented default=255, factory reset default=1) minutes
+
+@Field final byte CNFG_INITIAL_ALARM_PARAM_NO        = 3          // parameter number to configure Initial Alarm
+final byte CNFG_INITIAL_ALARM_SIZE                   = 1          // size is 1 byte
+final byte CNFG_INITIAL_ALARM_VALUE                  = 60         // 10-255(documented default=255, factory reset default=60) seconds
+
+@Field final byte CNFG_REMINDER_ALARM_PARAM_NO       = 4          // parameter number to configure Reminder Alarm
+final byte CNFG_REMINDER_ALARM_SIZE                  = 1          // size is 1 byte
+final byte CNFG_REMINDER_ALARM_VALUE                 = 5          // 5-255(documented default=255, factory reset default=5) seconds
+
+@Field final byte CNFG_AUDIBLE_ALARM_PARAM_NO        = 5          // parameter number to enable/disable Audible Alarm
+final byte CNFG_AUDIBLE_ALARM_SIZE                   = 1          // size is 1 byte
+final byte CNFG_AUDIBLE_ALARM_VALUE                  = 1          // 0=disable, 1=enable(default)
+
+@Field final byte CNFG_WATER_DETECTION_PARAM_NO      = 6          // parameter number to enable/disable Water Detection
+final byte CNFG_WATER_DETECTION_SIZE                 = 1          // size is 1 byte
+final byte CNFG_WATER_DETECTION_VALUE                = 1          // 0=disable, 1=enable(default)
+
+@Field final byte CNFG_BASIC_SET_LEVEL_PARAM_NO      = 7          // parameter number to configure Basic.Set sent when water detected
+final byte CNFG_BASIC_SET_LEVEL_SIZE                 = 1          // size is 1 byte
+final byte CNFG_BASIC_SET_LEVEL_VALUE                = 255        // 0=turn OFF device, 1-99=dim level, 255=turn ON device (default)
+
+// values to use bulk_set to factory defaults
+final byte CNFG_PARAM_OFFSET_MSB                     = 0
+final byte CNFG_PARAM_OFFSET_LSB                     = 1          // start at parameter offset 1
+final byte CNFG_PARAM_COUNT                          = 7          // configure parameters 1 thru 7
+final byte CNFG_PARAM_SIZE                           = 1          // parameter sizes are 1 byte
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    LeakH2O.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    ZWave.sensor_binary.get()
+    ZWave.poll(STATE_POLLING_INTERVAL_SEC, ZWave.sensor_binary.get)
+    
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLL_SEC, ZWave.battery.get)
+    
+    // make sure device is configured like we want
+    ZWave.configuration.bulk_set( CNFG_PARAM_OFFSET_MSB, CNFG_PARAM_OFFSET_LSB, CNFG_PARAM_COUNT, CNFG_PARAM_SIZE,
+        CNFG_TOTAL_ALARM_DURATION_VALUE,
+        CNFG_MUTE_TIME_VALUE,
+        CNFG_INITIAL_ALARM_VALUE,
+        CNFG_REMINDER_ALARM_VALUE,
+        CNFG_AUDIBLE_ALARM_VALUE,
+        CNFG_WATER_DETECTION_VALUE,
+        CNFG_BASIC_SET_LEVEL_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility methods
+////////////////////////////////////////////////////////////////////////////////
+
+// called each time we get a valid 'current state' value (which should be every time it is reported)
+void resetReadCount() {
+    vars.'readCount' = 0
+}
+
+// called if we get an invalid(unexpected) state value, to see if we should try reading the value again
+// (currently limits retries to 3 times, so we don't get stuck in a tight loop trying to re-read bad values
+// if device continuously sends us an unexpected value).
+boolean shouldReadAgain() {
+    if (null == vars.'readCount') vars.'readCount' = 0;
+    if (3 > vars.'readCount') {
+        vars.'readCount'++
+        return true
+    }
+    return false
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(byte currentState) {
+    def prevState = LeakH2O.state.get()
+    if (SAFE == currentState) {
+        LeakH2O.state LeakH2O.STATE_SAFE
+        resetReadCount()
+    } else if (LEAK_DETECTED == currentState) {
+        LeakH2O.state LeakH2O.STATE_LEAK
+        resetReadCount()
+    } else {
+        log.warn "Unexpected State value reported [expected 0(safe) or -1(leak)]: {}", currentState
+        // try to re-read the current state if device is still awake, but not indefinitely if device keeps sending bad values
+        if (shouldReadAgain()) {
+            ZWave.sensor_binary.get()
+        } else {    // trying to re-read and kept getting bad value, so just ignore for now.
+            log.warn "Unexpected State value [expected 0(safe) or -1(leak)]: {}, reported 3 consecutive times, ignoring {}", currentState, 
+            resetReadCount()
+        }
+    }
+    if (LeakH2O.state.get() != prevState) {
+        LeakH2O.statechanged new Date()
+        log.debug "Leak State changed to {}", LeakH2O.state.get()
+    }
+}
+
+onZWaveMessage.basic.report {
+    byte currState = message.command.get('value')
+    log.trace "Basic Report: {}", currState
+    handleStateMsg currState
+}
+
+onZWaveMessage.basic.set {
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Basic Set: {}", bytes[0]
+    handleStateMsg bytes[0]
+}
+
+onZWaveMessage.sensor_binary.report {
+    byte currState = message.command.get('value')
+    log.trace "Sensor Binary Report: {}", currState
+    handleStateMsg currState
+}
+
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}", alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    if (0 == alarmType && 0 == alarmLevel && 5 == notificationType && -1 == notificationStatus)    {
+        if (2 == event) handleStateMsg(LEAK_DETECTED)
+        else if (0 == event) handleStateMsg(SAFE)
+        else log.warn "Unexpected Event code:{}", event
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReportAcceptValuesOver100(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+    // don't do a ZWave.sensor_binary.get() here. Instead we poll for that so the queued message will be sent as soon as the device communicates to the hub,
+    // rather than waiting for the driver to see that the device is awake and then sending the request down to the hub and then on to the device.
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+

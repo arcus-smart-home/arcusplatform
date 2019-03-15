@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="AlarmSubsystem"
+   namespace="subalarm"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Generic alarm subsystem.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="alarmState"
+         type="enum"
+         values="INACTIVE,READY,PREALERT,ALERTING,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The combined state of the alarm across all alerts." />
+      <c:attribute
+         name="securityMode"
+         type="enum"
+         values="INACTIVE,DISARMED,ON,PARTIAL"
+         readwrite="r"
+         optional="false"
+         description="The state of the security alarm." />
+      <c:attribute
+         name="securityArmTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The time at which the security system was or will be armed.  This will be cleared when the security system is disarmed." />
+      <c:attribute
+         name="lastArmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The last time the security alarm was armed." />
+      <c:attribute
+         name="lastArmedBy"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the last person to arm the security alarm, this may be empty if it was armed from a scene or a rule." />
+      <c:attribute
+         name="lastArmedFrom"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the keypad, rule, scene, or app the security alarm was armed from." />
+      <c:attribute
+         name="lastDisarmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The last time at which the security system was disarmed." />
+      <c:attribute
+         name="lastDisarmedBy"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the last person to disarm the security alarm, this may be empty if it was disarmed from a scene or a rule." />
+      <c:attribute
+         name="lastDisarmedFrom"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the keypad, rule, scene, or app the security alarm was disarmed from." />
+      <c:attribute
+         name="activeAlerts"
+         type="list&lt;enum&gt;"
+         values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+         readwrite="r"
+         optional="false"
+         description="A priority ordered list of alerts that are currently active.  Note that the banner should always use the first element from this list, it is ordered."/>
+      <c:attribute
+         name="availableAlerts"
+         type="set&lt;enum&gt;"
+         values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+         readwrite="r"
+         optional="false"
+         description="The set of alarms which are supported by the devices paired at the current place."/>
+      <c:attribute
+         name="monitoredAlerts"
+         type="set&lt;enum&gt;"
+         values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+         readwrite="rw"
+         optional="false"
+         description="The set of alarms which are professionally monitored."/>
+      <c:attribute
+         name="currentIncident"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The currently incident, will be the empty string when there is no current incident.  This may stay populated for a period of time after this incident is over to notify the user that an incident happened next time they login. 
+
+Cancelling the incident or disarming from the keypad will clear out the current incident, although it will remain active until dispatch has completed.
+
+When this field is populated the incident screen should be shown."/>
+      <c:attribute
+         name="callTree"
+         type="list&lt;CallTreeEntry&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The list of people who should be notified when the alarm goes into alert mode.  This is marked as a list to maintain ordering, but each entry may only appear once.
+Note that all addresses must be persons associated with this place."/>
+
+      <c:attribute
+         name="testModeEnabled"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="Flag used by AlarmIncidentService. When true the service implementation should create a mock incident instead. Defaults to false"/>
+      <c:attribute
+         name="fanShutoffSupported"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Indicates whether fanShutoffOnSmoke and fanShutoffOnCO are supported for the current place.  True if there are any fans, thermostats or space heaters at the current place."/>
+      <c:attribute
+         name="fanShutoffOnSmoke"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When set to true, all fans, thermostats and space heaters will be turned off when a Smoke alarm is triggered.  Defaults to false."/>   
+      <c:attribute
+         name="fanShutoffOnCO"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When set to true, all fans, thermostats and space heaters will be turned off when a CO alarm is triggered.  Defaults to true"/>   
+	  <c:attribute
+         name="recordingSupported"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Whether or not the alarm subsystem supports recording on alarm.  This requires the user to have cameras and a premium / promonitoring service level to support recording."/>            	 
+      <c:attribute
+         name="recordOnSecurity"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When set to true all cameras will record.  This flag may be true even if recordingSupported is false.  Default to be true."/>
+      <c:attribute
+         name="recordingDurationSec"
+         type="int"
+         min="30"
+         max="1200"
+         unit="seconds"
+         readwrite="rw"
+         optional="false"
+         description="The number of seconds to record for when a security alarm is triggered.  Default to be 60 seconds."/>   
+      <c:attribute
+         name="alarmProvider"
+         type="enum"
+         values="PLATFORM,HUB"
+         readwrite="r"
+         optional="false"
+         description="The provider of the alarming implementation. Defaults to PLATFORM."/>
+		<c:attribute
+         name="requestedAlarmProvider"
+         type="enum"
+         values="PLATFORM,HUB"
+         readwrite="r"
+         optional="false"
+         description="The provider of the alarming implementation that was requested. Defaults to HUB"/>
+		<c:attribute
+         name="lastAlarmProviderAttempt"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The last time at which the change of provider of the alarming implementation requested." />     
+		<c:attribute
+         name="lastAlarmProviderError"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The error message upon the last change of provider of the alarming implementation." />         
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="ListIncidents" 
+         description="Immediately puts the alarm into ALERT mode and record the lastAlertCause as PANIC.  If it is in ALERT this will have no affect.  If it is in any other state this will return an error.The cause will be recorded as the lastAlertCause.">
+         <c:return
+         	name="incidents"
+         	type="list&lt;AlarmIncident&gt;"
+         	/>
+      </c:method>
+      <c:method
+         name="Arm"
+         description="Attempts to arm the alarm into the requested mode, if successful it will return the delay until the alarm is armed.  If this call is repeated with the alarm is in the process of arming with the same mode, it will return the remaining seconds until the alarm is armed (making retries safe).  If this call is invoked with a new mode while the alarm is arming an error will be returned.  If this call is invoked while the alarm is arming with bypassed devices it will return an error.">
+         <c:parameter
+            name="mode"
+            type="string"
+            optional="false"
+            />
+         <c:return
+         	name="delaySec"
+         	type="int"
+         	/>
+         <c:errors>
+            <c:error code="security.insufficientDevices" description="If there are not enough devices for the given mode." />
+            <c:error code="security.triggeredDevices" description=" If there are devices currently tripped or offline that would otherwise participate.  In this case the error description will be a comma separated list of devices that need to be bypassed in order to arm." />
+            <c:error code="security.invalidState" description="If the alarm is armed into a different mode or is currently in INACTIVE, PREALERT or CLEARING state.  This means this call may be repeated while in ARMING or READY states." />
+            <c:error code="security.noHub" description="If the alarm provider has been set to hub but no hub is associated with the place." />
+            <c:error code="security.hubDisarming" description="If hub local alarms are enabled and the hub is still in the process of being disarmed, preventing it from re-arming." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="ArmBypassed"
+         description="Attempts to arm the alarm into the requested mode, excluding any offline or currently tripped devices.  If successful it will return the delay until the alarm is armed.  If this call is repeated with the alarm is in the process of arming with the same mode, it will return the remaining seconds until the alarm is armed (making retries safe).  If this call is invoked with a new mode while the alarm is arming an error will be returned.  If this call is invoked while the alarm is arming with bypassed devices it will return an error.">
+         <c:parameter
+            name="mode"
+            type="string"
+            optional="false"
+            />
+         <c:return
+         	name="delaySec"
+         	type="int"
+         	/>
+         <c:errors>
+            <c:error code="security.insufficientDevices" description="If there are not enough devices for the given mode." />
+            <c:error code="security.invalidState" description="If the alarm is armed into a different mode or is currently in INACTIVE, PREALERT or CLEARING state.  This means this call may be repeated while in ARMING or READY states." />
+            <c:error code="security.noHub" description="If the alarm provider has been set to hub but no hub is associated with the place." />
+            <c:error code="security.hubDisarming" description="If hub local alarms are enabled and the hub is still in the process of being disarmed, preventing it from re-arming." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Disarm"
+         description="Attempts to disarm the security alarm.  This MAY also cancel any incidents in progress."
+         />
+      <c:method 
+         name="Panic" 
+         description="Triggers the PANIC alarm."
+         />
+      <c:method
+         name="SetProvider"
+         description=".">
+         <c:parameter
+            name="provider"
+            type="enum"
+            values="PLATFORM,HUB"
+            optional="false"
+            />
+         <c:errors>
+            <c:error code="alarm.providerAlreadySet" description="If the given alarm subsystem implementation is the current alarm subsystem implementation." />
+            <c:error code="alarm.cannotChangeInCurrentState" description="If the alarm subsystem provider cannot be changed because of the current alarm subsystem's state (for instance, current subsystem is alarming)." />
+			<c:error code="hub.belowMinFw" description="Can not change to HUB provider because the hub OS version does not meet the minimum." />
+         </c:errors>
+      </c:method>
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+</c:capability>

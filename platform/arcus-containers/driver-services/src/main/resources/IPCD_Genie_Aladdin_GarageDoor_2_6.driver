@@ -1,0 +1,381 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import com.iris.model.Version
+import com.iris.protocol.ipcd.message.model.GetParameterValuesCommand
+import com.iris.protocol.ipcd.message.model.SetParameterValuesCommand
+import groovy.transform.Field
+
+driver         "IPCDGenieAladdinGarageDoor"
+description    "Driver for Genie Aladdin Connect Bridge/Controller"
+version        "2.6"
+protocol       "IPCD"
+deviceTypeHint "Garage Door"
+productId		"aeda44"
+vendor         "Genie"
+model          "Aladdin"
+
+matcher        'IPCD:vendor' : 'Genie', 'IPCD:model' : 'Aladdin Door'
+
+capabilities   DevicePower, BridgeChild, MotorizedDoor
+
+@Field final String ERR_OBSTRUCTION_KEY = 'ERR_OBSTRUCTION'
+@Field final String ERR_OBSTRUCTION_VALUE = 'Garage door may be obstructed'
+@Field final int TIMEOUT_ACTIVE_MS = 180000 //3 Minutes
+
+DeviceAdvanced.errors              [:]
+DevicePower.source                 DevicePower.SOURCE_BATTERY
+DevicePower.linecapable            false
+DevicePower.backupbatterycapable   false
+
+//--------------------------------------------------------------------------------------------------
+// Protocol Message Handlers
+//--------------------------------------------------------------------------------------------------
+
+onAdded {
+   log.debug "Genie Garage Door Added"
+   BridgeChild.parentAddress    message.getAttributes()['bridgechild:parentAddress']
+   BridgeChild.bridgeSpecificId message.getAttributes()['bridgechild:bridgeSpecificId']
+}
+
+onConnected {
+   log.debug "Genie Garage Door Connected."
+   sendGpv()
+}
+
+onDisconnected {
+   log.debug "Genie Garage Door Disconnected."
+}
+
+onRemoved {
+   log.debug "Genie Garage Door Removed."
+   sendRemoved()
+}
+
+onUpgraded {
+   //check for null old driver to keep oldVersion accessor from nre
+   if (message.getOldDriverId() != null) {
+      //check to see if the 2.6 upgrade is needed
+      if (message.oldVersion.compareTo(Version.fromRepresentation("2.6")) > 0) {
+
+         log.debug 'Upgrading to driver to 2.6'
+         if (MotorizedDoor.DOORSTATE_OBSTRUCTION == MotorizedDoor.doorstate.get()) {
+
+            log.debug 'Door is obstructed. Adding device error messages for upgrade'
+            handleTimeoutSwitchingDoorState('UPGRADE')
+
+         }
+      }
+   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// MotorizedDoor Capability Handler
+//--------------------------------------------------------------------------------------------------
+
+setAttributes('motdoor') {
+	if (DeviceConnection.state.get() == DeviceConnection.STATE_OFFLINE) {
+	   throw new Exception("Cannot change the state of an offline door");
+	}
+
+   def attributes = message.attributes
+   for (attribute in attributes) {
+      switch(attribute.key) {
+         case MotorizedDoor.doorstate:
+            if (DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+               log.info 'Cannot operate door until obstruction is cleared.'
+               return
+            }
+
+            if (attribute.value == MotorizedDoor.DOORSTATE_OPEN) {
+               openDoor()
+            } else if(attribute.value == MotorizedDoor.DOORSTATE_CLOSED) {
+               closeDoor()
+            } else {
+               log.error "unable to set door state to " + attribute.value
+            }
+         break
+         
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Protocol Message Handlers
+//--------------------------------------------------------------------------------------------------
+
+onIpcdMessage.event {
+   def response = message.mapify()
+   log.debug("Genie Garage Door event contents: " + response)
+   
+   if (response.containsKey("valueChanges")) {
+      handleValueChange(response["valueChanges"])
+   }
+}
+
+onIpcdMessage.response.getParameterValues {
+   def response = message.mapify()["response"]
+   log.debug("Genie Garage Door response contents: " + response)
+   handleGpvOrReport(response)
+}
+
+onIpcdMessage.report {
+   def report = message.mapify()["report"];
+   log.debug("report = " + report)
+   handleGpvOrReport(report)
+}
+
+//--------------------------------------------------------------------------------------------------
+// Utility Methods
+//--------------------------------------------------------------------------------------------------
+
+void handleGpvOrReport(paramMap) {
+   //WDS - Note, if this driver is updated to handle faults like UL_Lockout, etc.,
+   //the bridge driver will also likely need to report the faults on interval
+   //to keep the state in sync as it's not reported currently.
+
+   def prefix = BridgeChild.bridgeSpecificId.get()
+   
+   if(paramMap["${prefix}.link_status"] != null) {
+      updateConnectivity(paramMap["${prefix}.link_status"])
+   }
+   if(paramMap["${prefix}.battery_level"] != null) {
+      updateBattery(paramMap["${prefix}.battery_level"])
+   }
+   if(paramMap["${prefix}.temperature"] != null) {
+      updateTemp(paramMap["${prefix}.temperature"])
+   }
+
+   if(paramMap["${prefix}.door_status"] != null) {
+      updateDoorState(paramMap["${prefix}.door_status"], false)
+   }
+}
+
+void handleValueChange(valueChanges) {
+   def prefix = BridgeChild.bridgeSpecificId.get()
+   for(valueChange in valueChanges) {
+      if(valueChange["parameter"] == "${prefix}.link_status") {
+         updateConnectivity(valueChange["value"])
+      } else if(valueChange["parameter"] == "${prefix}.door_status") {
+         updateDoorState(valueChange["value"], true)
+      } else if(valueChange["parameter"] == "${prefix}.battery_level") {
+         updateBattery(valueChange["value"])
+      } else if(valueChange["parameter"] == "${prefix}.temperature") {
+         updateTemp(valueChange["value"])
+      }
+   }
+}
+
+void setDoorObstructed() {
+   if (!DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+      log.trace 'Setting errors to obstructed'
+      DeviceAdvanced.errors.put ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE
+   }
+
+   if (MotorizedDoor.DOORSTATE_OBSTRUCTION != MotorizedDoor.doorstate.get()) {
+      log.trace 'Setting door state to obstructed'
+      MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OBSTRUCTION
+      MotorizedDoor.doorstatechanged new Date()
+   }
+}
+
+boolean clearDoorObstructed(doorState) {
+   boolean retval = false //return true if obstructions were cleared
+
+   if (DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+      log.trace 'Removing obstruction errors'
+      DeviceAdvanced.errors.remove ERR_OBSTRUCTION_KEY
+      retval = true
+   }
+
+   if (MotorizedDoor.DOORSTATE_OBSTRUCTION == MotorizedDoor.doorstate.get()) {
+      //sendGpv doens't work since the genie device doesn't include door_state in the response
+      //so the last requested door state is used
+
+      log.trace 'Setting door state to {} to clear obstruction door state', doorState
+      MotorizedDoor.doorstate doorState
+      MotorizedDoor.doorstatechanged new Date()
+
+      retval = true
+
+   } else {
+      log.trace 'Door state was not obstructed.'
+   }
+
+   return retval
+}
+
+void handleOpenOrClose(modelState, blockingState, desiredState, isEvent) {
+   //the genie will emit a timeout door state and then the actual state a few moments later
+   //so we ignore an open or close if it's the first one since the timeout. If the
+   //battery is removed and added to the device, it will emit the open/close event again.
+   if (isEvent && isTimeoutActive()) {
+      log.debug 'Timeout was detected. Ignoring state {} request', desiredState
+      vars.lastTimeoutDetected = null
+      return
+   }
+
+   //The device will emit the state of the door as open if the commands are sent too quickly
+   //and the last timeout clears after the door has been requested closed again.
+   //This could be improved with a timeout since if we miss the timeout message, it could
+   //get stuck in closing/opening, but a successful manual close/open (respectfully) will reset it.
+   if (modelState != blockingState) {
+
+      //reports cannot clear obstructions, only events.
+      //obstruction clearing needs to set a door state,
+      //so we can exit out of this flow if that's the case
+      if (isEvent && clearDoorObstructed(desiredState)) return
+
+      setModelDoorState(desiredState)
+   } else {
+      log.trace 'Doorstate is {}. Cannot set to {}.', blockingState, desiredState
+   }
+}
+
+boolean isTimeoutActive() {
+   if (vars.lastTimeoutDetected != null) {
+      def currentTime = now()
+      def lastTimeout = vars.lastTimeoutDetected
+      def delay = currentTime.getTime() - lastTimeout.getTime()
+      if (delay < TIMEOUT_ACTIVE_MS) {
+         log.trace 'Timeout still active'
+         return true
+      }
+      log.trace 'Timeout expired.'
+      vars.lastTimeoutDetected = null
+   }
+   log.trace "No timeout active"
+   return false
+}
+
+void handleTimeoutSwitchingDoorState(doorState) {
+   vars.lastTimeoutDetected = now()
+   log.info 'Door state {} detected', doorState
+   setDoorObstructed()
+}
+
+void updateConnectivity(linkStatus) {
+   def state = DeviceConnection.STATE_ONLINE
+   if("connected" != linkStatus.toLowerCase()) {
+      state = DeviceConnection.STATE_OFFLINE
+   }
+   if(state != DeviceConnection.state.get()) {
+      DeviceConnection.state      state
+      DeviceConnection.lastchange new Date()
+   }
+}
+
+void setModelDoorState(desiredState) {
+   log.trace 'Set door state to {}', desiredState
+
+   if(desiredState != MotorizedDoor.doorstate.get()) {
+      MotorizedDoor.doorstate desiredState
+      MotorizedDoor.doorstatechanged new Date()
+      log.trace 'Door state was changed'
+   }
+}
+
+void updateDoorState(doorState, isEvent) {
+   def modelState = MotorizedDoor.doorstate.get()
+   log.debug 'Update door state from {} to {} requested', modelState, doorState
+
+   vars.lastRequestedDoorState = doorState.toUpperCase()
+   if (DeviceAdvanced.errors.get(ERR_OBSTRUCTION_KEY) && !isEvent) {
+      log.trace 'State cannot be updated by report to {} until obstruction errors are cleared', doorState
+      return
+   }
+
+   String doorStateLower = doorState.toLowerCase()
+
+   if("open" == doorStateLower) {
+
+      handleOpenOrClose(modelState, MotorizedDoor.DOORSTATE_CLOSING, MotorizedDoor.DOORSTATE_OPEN, isEvent)
+
+   } else if("closed" == doorStateLower) {
+
+      handleOpenOrClose(modelState, MotorizedDoor.DOORSTATE_OPENING, MotorizedDoor.DOORSTATE_CLOSED, isEvent)
+
+   } else if ("timeoutopening" == doorStateLower || "timeoutclosing" == doorStateLower) {
+
+      handleTimeoutSwitchingDoorState(doorState)
+
+   } else if("opening" == doorStateLower) {
+
+      setModelDoorState(MotorizedDoor.DOORSTATE_OPENING)
+
+   } else if("closing" == doorStateLower) {
+
+      setModelDoorState(MotorizedDoor.DOORSTATE_CLOSING)
+
+   } else {
+      log.warn 'Unhandled door state [{}]', doorState
+   }
+}
+
+void updateBattery(battery) {
+   if (Double.valueOf(battery) > 0.0) {
+      DevicePower.battery Double.valueOf(battery)
+   }
+}
+
+void updateTemp(temp) {
+}
+
+void openDoor() {
+   def prefix = BridgeChild.bridgeSpecificId.get()
+   def key = "${prefix}.desired_status".toString()
+   def attrs = [:]
+   attrs[key] = "Open"
+   sendSpv(attrs)
+}
+
+void closeDoor() {
+   def prefix = BridgeChild.bridgeSpecificId.get()
+   def key = "${prefix}.desired_status".toString()
+   def attrs = [:]
+   attrs[key] = "Closed"
+   sendSpv(attrs)
+}
+
+void sendRemoved() {
+   def msg = MessageBody.buildMessage("RemoveChild", ["childId": BridgeChild.bridgeSpecificId.get()])
+   forwardToDevice(BridgeChild.parentAddress.get(), "CTRL", msg)
+}
+
+void sendSpv(map) {
+   def msg = new SetParameterValuesCommand()
+   msg.setValues(map)
+   forwardToDevice(BridgeChild.parentAddress.get(), msg)
+}
+
+void sendGpv() {
+   def msg = new GetParameterValuesCommand()
+   def prefix = BridgeChild.bridgeSpecificId.get()
+   
+   // toString to make sure these are java and not groovy strings
+   //door state is not available from the devices.
+
+   //wds - faults may be needed in the future if tampering alarms, etc are needed
+   msg.setParameters([
+      "${prefix}.link_status".toString(),
+      "${prefix}.battery_level".toString(),
+      "${prefix}.ble_strength".toString(),
+      "${prefix}.temperature".toString(),
+   ])
+   forwardToDevice(BridgeChild.parentAddress.get(), msg)
+}
+

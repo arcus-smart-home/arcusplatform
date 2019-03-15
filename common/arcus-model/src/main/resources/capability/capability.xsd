@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+   xmlns="http://www.w3.org/2001/XMLSchema"
+   xmlns:tns="http://www.iris.com/schema/capability/1.0.0"
+   targetNamespace="http://www.iris.com/schema/capability/1.0.0"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified">
+   
+   <element name="capability" type="tns:capabilityType" />
+   
+   <complexType name="capabilityType">
+      <sequence>
+         <element name="description" type="string" minOccurs="1" maxOccurs="1"/>
+         <element name="attributes" type="tns:attributesType" minOccurs="0" maxOccurs="1"/>
+         <element name="methods" type="tns:methodsType" minOccurs="0" maxOccurs="1"/>
+         <element name="events" type="tns:eventsType" minOccurs="0" maxOccurs="1"/>
+         <element name="errors" type="tns:errorsType" minOccurs="0" maxOccurs="1"/>
+      </sequence>
+      <attribute name="name" type="string" use="required" />
+      <attribute name="namespace" type="string" use="required" />
+      <attribute name="enhances" type="string" />
+      <attribute name="version" type="string" use="required" />
+   </complexType>
+   
+   <complexType name="attributesType">
+      <sequence>
+         <element name="attribute" type="tns:attributeType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+   
+   <complexType name="methodsType">
+      <sequence>
+         <element name="method" type="tns:methodType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+      
+   <complexType name="eventsType">
+      <sequence>
+         <element name="event" type="tns:eventType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+   
+   <complexType name="attributeType">
+      <attribute name="name" type="string" use="required" />
+      <attribute name="type" type="string" use="required" />
+      <attribute name="description" type="string" use="required" />
+      <attribute name="optional" type="tns:trueFalseEnumType" use="required" />
+      <attribute name="readwrite" type="tns:readWriteEnumType" use="required" />
+      <attribute name="min" type="string" />
+      <attribute name="max" type="string" />
+      <attribute name="values" type="string" />
+      <attribute name="unit" type="string" />
+      <attribute name="since" type="string" />
+   </complexType>
+   
+   <complexType name="methodType">
+      <sequence>
+         <element name="parameter" type="tns:parameterType" minOccurs="0" maxOccurs="unbounded" />
+         <element name="return" type="tns:parameterType" minOccurs="0" maxOccurs="unbounded"/>
+         <element name="error" type="tns:errorType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+      <attribute name="isRESTful" type="boolean" use="optional" default="false"/>
+      <attribute name="name" type="string" use="required" />
+      <attribute name="description" type="string" use="required" />
+   </complexType>
+   
+   <complexType name="errorsType">
+      <sequence>
+         <element name="error" type="tns:errorType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+   
+   <complexType name="errorType">
+      <attribute name="code" type="string" use="required" />
+      <attribute name="description" type="string" use="required" />
+   </complexType>
+      
+   <complexType name="eventType">
+      <sequence>
+         <element name="parameter" type="tns:parameterType" minOccurs="0" maxOccurs="unbounded" />
+      </sequence>
+      <attribute name="name" type="string" use="required" />
+      <attribute name="description" type="string" use="required" />
+   </complexType>
+   
+   <complexType name="parameterType">
+      <attribute name="name" type="string" use="required" />
+      <attribute name="type" type="string" use="required" />
+      <attribute name="optional" type="string" />
+      <attribute name="description" type="string" use="required" />
+      <attribute name="values" type="string" />
+   </complexType>
+   
+   <simpleType name="trueFalseEnumType">
+      <restriction base="string">
+         <enumeration value="true" />
+         <enumeration value="false" />
+      </restriction>
+   </simpleType>
+   
+   <simpleType name="readWriteEnumType">
+      <restriction base="string">
+         <enumeration value="r" />
+         <enumeration value="w" />
+         <enumeration value="rw" />
+      </restriction>
+   </simpleType>
+   
+</schema>

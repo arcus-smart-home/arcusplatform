@@ -1,0 +1,67 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.10 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Level {
+   const u16 CLUSTER_ID = 0x0008;
+
+   const u16 ATTR_CURRENT_LEVEL = 0x0000;
+   const u16 ATTR_REMAINING_TIME = 0x0001;
+   const u16 ATTR_ON_OFF_TRANSITION_TIME = 0x0010;
+   const u16 ATTR_ON_LEVEL = 0x0011;
+
+   const u16 ATTR_ON_TRANSITION_TIME = 0x0012;
+   const u16 ATTR_OFF_TRANSITION_TIME = 0x0013;
+   const u16 ATTR_DEFAULT_MOVE_RATE = 0x0014;
+}
+
+message zcl.Level.MoveToLevel<id="0x00",group="client"> {
+   u8 level;
+   u16 transitionTime;
+}
+
+message zcl.Level.Move<id="0x01",group="client"> {
+   const u8 MOVE_MODE_UP = 0x00;
+   const u8 MOVE_MODE_DOWN = 0x01;
+
+   u8 moveMode;
+   u8 rate;
+}
+
+message zcl.Level.Step<id="0x02",group="client"> {
+   const u8 STEP_MODE_UP = 0x00;
+   const u8 STEP_MODE_DOWN = 0x01;
+
+   u8 stepMode;
+   u8 stepSize;
+   u16 transisionTime;
+}
+
+message zcl.Level.Stop<id="0x03",group="client"> {
+}
+
+message zcl.Level.MoveToLevelWithOnOff<id="0x04",group="client"> {
+   u8 level;
+   u16 transitionTime;
+}
+
+message zcl.Level.MoveWithOnOff<id="0x05",group="client"> {
+   const u8 MOVE_MODE_UP = 0x00;
+   const u8 MOVE_MODE_DOWN = 0x01;
+
+   u8 moveMode;
+   u8 rate;
+}
+
+message zcl.Level.StepWithOnOff<id="0x06",group="client"> {
+   const u8 STEP_MODE_UP = 0x00;
+   const u8 STEP_MODE_DOWN = 0x01;
+
+   u8 stepMode;
+   u8 stepSize;
+   u16 transisionTime;
+}
+
+message zcl.Level.StopWithOnOff<id="0x07",group="client"> {
+}

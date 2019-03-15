@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="UserBehavior"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a single entry in a user_behavior table</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="id"
+			type="uuid"
+			description="The platform-owned identifier for the user/person"
+			/>
+		<t:attribute
+			name="lastMobileLogin"
+			type="timestamp"
+			description="Last mobile login datetime"
+			/>
+		<t:attribute
+			name="lastMobileForeground"
+			type="timestamp"
+			description="The last datetime mobile app was foregrounded"
+			/>
+		<t:attribute
+			name="lastWebLogin"
+			type="timestamp"
+			description="The last web login datetime"
+			/>
+		<t:attribute
+			name="lastPINUsage"
+			type="timestamp"
+			description="The last datetime pin was used"
+			/>
+		<t:attribute
+			name="lastNotification"
+			type="timestamp"
+			description="The last datetime notification was sent"
+			/>
+		
+	</t:attributes>
+ </t:type>

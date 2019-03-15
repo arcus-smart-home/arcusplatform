@@ -1,0 +1,15 @@
+{
+  "command" : "SetEventConfiguration",
+  "enabledEvents" : ["onBoot", "onDownloadComplete", "onDownloadFailed", "onUpdate", "onConnect",
+                     "onValueChange"],
+  "enabledValueChanges" : {
+    "ms2.temperature" : {
+      "onLessThan" : 5,
+      "onGreaterThan" : 23
+    },
+    "ms2.batterylevel" : {
+      "onChangeBy" : 10,
+      "onLessThan" : 15 
+    }
+  }
+}

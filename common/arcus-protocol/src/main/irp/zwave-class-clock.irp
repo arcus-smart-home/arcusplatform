@@ -1,0 +1,21 @@
+
+message zwave.Clock.ClockGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.Clock.ClockReportV1<id="0x06", group="V1"> {
+    const u8 LEVEL_HOUR_MASK = 0x1F;
+    const u8 LEVEL_HOUR_SHIFT = 0;
+    const u8 LEVEL_WEEKDAY_MASK = 0xE0;
+    const u8 LEVEL_WEEKDAY_SHIFT = 5;
+    u8 level;
+    u8 minute;
+}
+
+message zwave.Clock.ClockSetV1<id="0x04", group="V1"> {
+    const u8 LEVEL_HOUR_MASK = 0x1F;
+    const u8 LEVEL_HOUR_SHIFT = 0;
+    const u8 LEVEL_WEEKDAY_MASK = 0xE0;
+    const u8 LEVEL_WEEKDAY_SHIFT = 5;
+    u8 level;
+    u8 minute;
+}

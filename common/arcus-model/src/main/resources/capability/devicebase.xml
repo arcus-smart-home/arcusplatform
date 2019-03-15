@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Device"
+   namespace="dev"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Base device capabilities shared by all devices.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="account"
+         readwrite="r"
+         type="uuid" 
+         optional="false" 
+         description="Driver-owned account associated with the device"/>
+      <c:attribute 
+         name="place" 
+         readwrite="r" 
+         type="uuid" 
+         optional="false" 
+         description="Driver-owned place where the device is currently located"/>
+      <c:attribute 
+         name="devtypehint"
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Device Details screen that should be used to view this device"/>
+      <c:attribute
+         name="name"
+         readwrite="rw"
+         type="string"
+         optional="false" 
+         description="Human readable name for the device"/>
+      <c:attribute
+         name="vendor"
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Vendor name"/>
+      <c:attribute 
+         name="model" 
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Model name"/>
+      <c:attribute
+         name="productId"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="ID of the product catalog that describes this device"/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this device">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this device" />
+      </c:method>
+      
+      <c:method
+         name="Remove"
+         description="
+Attempts to remove the given device.
+This call will return immediately to give the user removal steps, but the caller should watch for
+a base:Deleted event to be emitted from the Device.
+This call is safe to retry, but if a notfound error is returned that indicates a previous call
+already succeeded.
+This may put the hub in unpairing mode depending on the device being removed.
+         ">
+         <c:parameters>
+            <c:parameter 
+               name="timeout"
+               type="long"
+               unit="milliseconds" 
+               description="The number of milliseconds that device removal is expected for.  Defaults to 5 minutes if not specified."
+               optional="true"/>
+         </c:parameters>
+         <c:return
+            name="steps"
+            type="list&lt;PairingStep&gt;"
+            optional="false"
+            description="The removal steps for the given device.  Will be empty for devices that support autonomous removal."
+            />
+         <c:return
+            name="mode"
+            type="enum"
+            values="CLOUD,HUB_AUTOMATIC,HUB_MANUAL"
+            optional="false"
+            description="The mode of removal."
+            />
+         <c:return
+            name="video"
+            type="string"
+            optional="true"
+            description="The URL for a removal video."
+            />         
+      </c:method>
+
+       <c:method 
+         name="ForceRemove"
+         description="Sent to request that a device be removed."/>
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="DeviceConnected" 
+         description="Sent when a device comes online. This may be very specific to the given protocol and require client interpretation." />
+      <c:event 
+         name="DeviceDisconnected" 
+         description="Sent when a device goes offline. This may be very specific to the given protocol and require client interpretation.  Not all drivers will be able to detect this event." />
+      <c:event 
+         name="DeviceRemoved" 
+         description="Sent when a device is removed." />
+   </c:events>
+   
+</c:capability>

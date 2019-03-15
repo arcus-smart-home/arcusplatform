@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PUT https://:subdomain.recurly.com/v2/accounts/:account_code -->
+<account>
+  <company_name>New Company Name</company_name>
+</account>

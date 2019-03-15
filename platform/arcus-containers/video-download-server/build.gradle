@@ -1,0 +1,39 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: file("${rootDir}/gradle/subproject.gradle")
+apply from: file("${rootDir}/gradle/container.gradle")
+
+// project specific build settings, dependencies, etc.
+mainClassName= "com.iris.video.download.server.VideoDownloadServer"
+
+dependencies {
+   compile project (':platform:arcus-lib')
+   compile project (':platform:arcus-video')
+   compile project (':common:arcus-common')
+
+   compile netty
+   compile libraries.azure_storage
+   compile libraries.azure_mgmt_storage
+
+   testCompile project(':platform:arcus-test')
+   testCompile libraries.httpClient
+}
+
+applicationDefaultJvmArgs = [
+   "-Djavax.net.debug2=ssl,handshake",
+   "-Dio.netty.leakDetectionLevel=simple"
+]
+

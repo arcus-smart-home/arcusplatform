@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="SecurityAlarmMode"
+   namespace="subsecuritymode"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Security alarm subsystem mode.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="devices"
+         type="set&lt;String&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The addresses of all the security devices that participate in this mode." />
+      <c:attribute
+         name="entranceDelaySec"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The amount of time an alarm device must be triggering for before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 30&lt;/b&gt;"/>
+      <c:attribute
+         name="exitDelaySec"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The amount of time before the alarm is fully armed.&lt;br/&gt;&lt;b&gt;Default: 30&lt;/b&gt;"/>
+      <c:attribute
+         name="alarmSensitivityDeviceCount"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The number of alarm devices which must trigger before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 1&lt;/b&gt;"/>
+      <c:attribute
+         name="silent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices will not be triggered."/>
+      <c:attribute
+         name="soundsEnabled"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="Hub and keypad make sounds when arming.&lt;br/&gt;&lt;b&gt;Default: true&lt;/b&gt;"/>
+      <c:attribute
+         name="motionSensorCount"
+         type="int"
+         readwrite="rw"
+         optional="N"
+         description="The number of the number of motion sensors associated with this mode"/>
+   </c:attributes>
+   
+</c:capability>

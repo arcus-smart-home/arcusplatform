@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Control"
+   namespace="CTRL"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   Control protocol
+   </p:description>
+
+</p:protocol>

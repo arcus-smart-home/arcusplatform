@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DeviceAdvanced"
+   namespace="devadv"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   <c:description>
+   Advanced device capabilities shared by all devices.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="drivername" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="The name of the driver handling the device."/>
+      <c:attribute 
+         name="driverversion" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="The current verison of the driver handling the device."/>
+      <c:attribute 
+         name="drivercommit" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="The commit id from the commit that this file was last changed in."/>
+      <c:attribute 
+         name="driverhash" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="A hash of the contents of the file."/>
+      <c:attribute 
+         name="driverstate" 
+         readwrite="r" 
+         type="enum"
+         values="CREATED,PROVISIONING,ACTIVE,UNSUPPORTED,RECOVERABLE,UNRECOVERABLE,TOMBSTONED" 
+         optional="false" 
+         description="The state of the driver.
+           CREATED - Transient state meaning the device has been created but the driver is not running.  Clients should not see this state generally.
+           PROVISIONING - The driver is still in the process of configuring the device for initial use.
+           ACTIVE - The driver is fully loaded.  Note there may be additional error preventing it from running 'normally', see devadv:errors.
+           UNSUPPORTED - The device is using the fallback driver, it is not really supported by the platform.  This is often due to pairing errors, in which case devadv:errors will be populated.
+           RECOVERABLE - The device has been deleted from the hub, but may be recovered by re-pairing it with the hub.
+           UNRECOVERABLE - The device has been deleted from the hub and it is not possible to re-pair it.
+           TOMBSTONED - The user has force removed the device but it still exists in the hub database.
+           "/>
+      <c:attribute 
+         name="protocol" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="Protocol supported by the device; should initially be one of (zwave, zigbee, alljoyn, ipcd)"/>
+      <c:attribute 
+         name="subprotocol" 
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Sub-protocol supported by the device. For zigbee devices, this may be ha1.1, ha1.2, etc."/>
+      <c:attribute 
+         name="protocolid" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="Protocol specific identifier for this device. This should be globally unique. For zigbee devices this will be the mac address. For zwave devices, this should be homeid.deviceid."/>
+      <c:attribute
+         name="errors"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="false"
+         description="A map where the keys are the errorCode and the values are a more descriptive error message.  These errors should be used for devices that have an error status that may be cleared or may simply indicate the device has passed its usable lifetime.  This is not intended for maintenance errors such as low battery or air filter change."
+         />
+      <c:attribute 
+         name="added" 
+         readwrite="r" 
+         type="timestamp"
+         optional="false" 
+         description="Time at which this device was most recently added (date of driver instantiation)"/>
+      <c:attribute 
+         name="firmwareVersion" 
+         readwrite="r" 
+         type="string"
+         optional="true" 
+         description="The firmware version of the device, primarily for devices that do not support OTA. For ZigBee devices it contains the version from the basic cluster, the OTA cluster version goes in devota."/>
+      <c:attribute 
+         name="hubLocal" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="True if the device is operating in a hub local manner."/>
+      <c:attribute 
+         name="degraded" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="True if the device is operating in a degraded manner for any reason."/>
+      <c:attribute 
+         name="degradedCode" 
+         readwrite="rw" 
+         type="string" 
+         optional="false" 
+         description="The code string indicating the reason that a device is operating in a degraded manner."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method name="UpgradeDriver" description="Upgrades the driver for this device to the driver specified.  If not specified it will look for the most current driver for this device.">
+         <c:parameter name="driverName" type="string" description="Optional driver name to upgrade this device to.  If specified driverVersion must also be provided." optional="true"/>
+         <c:parameter name="driverVersion" type="string" description="Optional driver version to upgrade this device to.  If specified driverName must also be provided." optional="true"/>
+         <c:return name="driverName" type="string" description="The name of the driver after the platform has determined the new driver if any." optional="false"/>
+         <c:return name="driverVersion" type="string" description="The version of the driver after the platform has determined the new driver if any." optional="false"/>
+         <c:return name="upgraded" type="boolean" description="True if the returned driver name and version are the result of an upgrade, false if they match the existing driver" optional="false"/>
+      </c:method>
+      <c:method name="GetReflexes" description="Gets the currently defined reflexes for the driver as a json object.">
+         <c:return name="reflexes" type="any" description="The JSON representation of the device's reflexes." />
+      </c:method>
+      <c:method name="Reconfigure" description="Attempts to re-apply initial configuration for the device, this may leave it in an unusable state if it fails." />
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="RemovedDevice" 
+         description="Sent when a device has been removed for any reason. This may be very specific to the given protocol and require client interpretation.">
+         <c:parameters>
+            <c:parameter 
+               name="protocol"
+               type="string"
+               values=""
+               description="The namespace of the devices associated protocol."
+               optional="false"/>
+            <c:parameter 
+               name="protocolId"
+               type="string"
+               values=""
+               description="The protocol specific identifier for the device."
+               optional="false"/>
+            <c:parameter 
+               name="accountId"
+               type="string"
+               values=""
+               description="The account id the device is associated with if available."
+               optional="true"/>
+            <c:parameter 
+               name="hubId"
+               type="string"
+               values=""
+               description="The hub id of the hub the device is assocaited with if available."
+               optional="true"/>
+            <c:parameter 
+               name="status"
+               type="enum"
+               values="CLEAN,FORCED,SPONTANEOUS"
+               description="An indication of why the device has been removed. Spontaneous means that the removal was unplanned."
+               optional="true"/>
+         </c:parameters>
+      </c:event>
+   </c:events>
+   
+   <c:errors>
+      <c:error code="pairing.misconfigured" description="Added to devadv:errors when pairing/configuration did not complete successfully, the device may be removed and re-paired OR a Reconfigure request may be tried." />
+      <c:error code="pairing.failed" description="Added to devadv:errors when pairing has failed and the device needs to be removed and re-paired." />
+   </c:errors>
+   
+</c:capability>

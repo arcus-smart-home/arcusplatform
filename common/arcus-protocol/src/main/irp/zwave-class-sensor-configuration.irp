@@ -1,0 +1,56 @@
+
+message zwave.SensorConfiguration.SensorTriggerLevelGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SensorConfiguration.SensorTriggerLevelReportV1<id="0x03", group="V1"> {
+    const u8 SENSOR_TYPE_TEMPERATURE = 0x01;
+    const u8 SENSOR_TYPE_GENERAL_PURPOSE_VALUE = 0x02;
+    const u8 SENSOR_TYPE_LUMINANCE = 0x03;
+    const u8 SENSOR_TYPE_POWER = 0x04;
+    const u8 SENSOR_TYPE_RELATIVE_HUMIDITY = 0x05;
+    const u8 SENSOR_TYPE_VELOCITY = 0x06;
+    const u8 SENSOR_TYPE_DIRECTION = 0x07;
+    const u8 SENSOR_TYPE_ATMOSPHERIC_PRESSURE = 0x08;
+    const u8 SENSOR_TYPE_BAROMETRIC_PRESSURE = 0x09;
+    const u8 SENSOR_TYPE_SOLAR_RADIATION = 0x0A;
+    const u8 SENSOR_TYPE_DEW_POINT = 0x0B;
+    const u8 SENSOR_TYPE_RAIN_RATE = 0x0C;
+    const u8 SENSOR_TYPE_TIDE_LEVEL = 0x0D;
+    const u8 PROPERTIES1_SIZE_MASK = 0x07;
+    const u8 PROPERTIES1_SIZE_SHIFT = 0;
+    const u8 PROPERTIES1_SCALE_MASK = 0x18;
+    const u8 PROPERTIES1_SCALE_SHIFT = 3;
+    const u8 PROPERTIES1_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES1_PRECISION_SHIFT = 5;
+    u8 sensorType;
+    u8 properties1;
+    u8[] triggerValue;
+}
+
+message zwave.SensorConfiguration.SensorTriggerLevelSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_CURRENT = 0x40;
+    const u8 PROPERTIES1_DEFAULT = 0x80;
+    const u8 SENSOR_TYPE_TEMPERATURE = 0x01;
+    const u8 SENSOR_TYPE_GENERAL_PURPOSE_VALUE = 0x02;
+    const u8 SENSOR_TYPE_LUMINANCE = 0x03;
+    const u8 SENSOR_TYPE_POWER = 0x04;
+    const u8 SENSOR_TYPE_RELATIVE_HUMIDITY = 0x05;
+    const u8 SENSOR_TYPE_VELOCITY = 0x06;
+    const u8 SENSOR_TYPE_DIRECTION = 0x07;
+    const u8 SENSOR_TYPE_ATMOSPHERIC_PRESSURE = 0x08;
+    const u8 SENSOR_TYPE_BAROMETRIC_PRESSURE = 0x09;
+    const u8 SENSOR_TYPE_SOLAR_RADIATION = 0x0A;
+    const u8 SENSOR_TYPE_DEW_POINT = 0x0B;
+    const u8 SENSOR_TYPE_RAIN_RATE = 0x0C;
+    const u8 SENSOR_TYPE_TIDE_LEVEL = 0x0D;
+    const u8 PROPERTIES2_SIZE_MASK = 0x07;
+    const u8 PROPERTIES2_SIZE_SHIFT = 0;
+    const u8 PROPERTIES2_SCALE_MASK = 0x18;
+    const u8 PROPERTIES2_SCALE_SHIFT = 3;
+    const u8 PROPERTIES2_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_PRECISION_SHIFT = 5;
+    u8 properties1;
+    u8 sensorType;
+    u8 properties2;
+    u8[] triggerValue;
+}

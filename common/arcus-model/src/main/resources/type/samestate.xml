@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="SameState"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+    Represents a mapping between a stateCode and its full name as defined by the NWS.
+    </t:description>
+
+    <t:attributes>
+ 		<t:attribute
+			name="stateCode"
+			type="string"
+			description="The 2 or 3 character abbreviation that represents a state"
+			/>   
+		<t:attribute
+			name="state"
+			type="string"
+			description="The full state or territory name"
+			/>
+	</t:attributes>
+ </t:type>

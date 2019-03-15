@@ -1,0 +1,111 @@
+{{#file . "com/iris/client/service/{{name}}.java"}}
+package com.iris.client.service;
+
+import com.iris.client.model.*;
+
+public interface {{name}} extends Service {
+   public static final String NAMESPACE = "{{namespace}}";
+   public static final String NAME = "{{name}}";
+
+   {{#methods}}
+   /** {{description}} */
+   public static final String CMD_{{toUpperCase name}} = "{{namespace}}:{{name}}";
+   {{/methods}}
+
+   {{#methods}}
+   /** {{description}} */
+   {{#if restful }}@com.iris.client.annotation.RESTful{{/if}}
+   @com.iris.client.annotation.Command(value="{{namespace}}:{{name}}", parameters={ {{#parameters}}"{{name}}"{{#unless @last}}, {{/unless}}{{/parameters}} })
+   public com.iris.client.event.ClientFuture<{{name}}Response> {{uncapitalize name}}(
+         {{#parameters}}{{{javaTypeOf type}}} {{name}}{{#unless @last}}, {{/unless}}{{/parameters}}
+   );
+   {{/methods}}
+
+   {{#methods}}
+{{> client/ClientRequest}}
+
+{{> client/ClientResponse}}
+   {{/methods}}
+
+   {{#events}}
+{{> client/ClientEvent}}
+   {{/events}}
+
+   public static final com.iris.capability.definition.ServiceDefinition DEFINITION =
+      com.iris.capability.definition.Definitions
+         .serviceBuilder()
+         .withName("{{name}}")
+         .withNamespace("{{namespace}}")
+         .withDescription("{{{description}}}")
+         .withVersion("{{version}}")
+         {{#attributes}}
+         .addAttribute(
+            com.iris.capability.definition.Definitions
+               .attributeBuilder()
+               .withName("{{name}}")
+               .withDescription("{{{description}}}")
+               .withType("{{{type.representation}}}")
+               {{#if readwrite = 'rw'}}.writable(){{/if}}
+               {{#if optional}}.optional(){{/if}}
+               {{#enumValues}}.addEnumValue("{{.}}")
+               {{/enumValues}}
+               .withMin("{{min}}")
+               .withMax("{{max}}")
+               .withUnit("{{unit}}")
+               .build()
+         ){{/attributes}}
+         {{#methods}}
+         .addMethod(
+            com.iris.capability.definition.Definitions
+               .methodBuilder()
+               .withName("{{name}}")
+               .withDescription("{{{description}}}")
+               {{#if restful }}.isRestful(true){{/if}}
+               {{#parameters}}
+               .addParameter(
+                  com.iris.capability.definition.Definitions
+                     .parameterBuilder()
+                     .withName("{{name}}")
+                     .withDescription("{{{description}}}")
+                     .withType("{{{type.representation}}}")
+                     {{#enumValues}}.addEnumValue("{{.}}")
+                     {{/enumValues}}
+                     .build()
+               ){{/parameters}}
+               {{#returnValues}}
+               .addReturnValue(
+                  com.iris.capability.definition.Definitions
+                     .parameterBuilder()
+                     .withName("{{name}}")
+                     .withDescription("{{{description}}}")
+                     .withType("{{{type.representation}}}")
+                     {{#enumValues}}.addEnumValue("{{.}}")
+                     {{/enumValues}}
+                     .build()
+               ){{/returnValues}}
+               {{#errors}}
+               .addErrorCode(
+				{{> client/errorCodeBuilderBuilder .}}
+               ){{/errors}}
+               .build()
+         ){{/methods}}
+         {{#events}}
+         .addEvent(
+            com.iris.capability.definition.Definitions
+               .eventBuilder()
+               {{#parameters}}
+               .addParameter(
+                  com.iris.capability.definition.Definitions
+                     .parameterBuilder()
+                     .withName("{{name}}")
+                     .withDescription("{{{description}}}")
+                     .withType("{{{type.representation}}}")
+                     {{#enumValues}}.addEnumValue("{{.}}")
+                     {{/enumValues}}
+                     .build()
+               ){{/parameters}}
+               .build()
+         ){{/events}}
+         .build();
+}
+{{/file}}

@@ -1,0 +1,183 @@
+#!/bin/bash
+
+################################################################################
+# Apache Kafka startup script configuration.
+################################################################################
+
+KAFKA_DATA_DIRS="/data/kafka"
+
+################################################################################
+# Docker entry point.
+################################################################################
+
+kafka_docker_entry() {
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    local CMDNAME=$(basename $1)
+    if [ "${CMDNAME}" == "${SCRIPTNAME}" ]; then
+        kafka_init
+    fi
+
+    exec $@
+}
+
+
+################################################################################
+# Initializes the Apache Kafka server.
+################################################################################
+
+kafka_init() {
+    # Get the current broker ID. If the ID is zero then this server is not setup.
+    local BID=$(cat ${KAFKA_HOME}/config/server.properties  |grep broker.id |sed 's/broker.id\s*=\s*\([0-9]*\)/\1/')
+    if [ "${BID}" != "0" ]; then
+        return
+    fi
+
+    echo "Initializing Apache Kafka Server..."
+
+    local HSTN=$(cat /data/hostname 2>/dev/null)
+    [ -z "${HSTN}" ] && [ ! -z "${ZOOKEEPER}" ] && HSTN="kafka.eyeris"
+    [ -z "${HSTN}" ] && [ -z "${ZOOKEEPER}" ] && HSTN="kafkaops.eyeris"
+
+    local ZKN=$(cat /data/zk 2>/dev/null)
+    [ -z "${ZKN}" ] && [ ! -z "${ZOOKEEPER}" ] && ZKN="${ZOOKEEPER}"
+    [ -z "${ZKN}" ] && [ -z "${ZOOKEEPER}" ] && ZKN="${ZOOKEEPEROPS}"
+    [ -z "${ZKN}" ] && ZKN="zookeeper.eyeris"
+
+    local BID=$(cat /data/brokerid 2>/dev/null)
+    [ -z "${BID}" ] && BID=1
+
+    echo "Setting up broker: brokerid=${BID}, hostname=${HSTN}, zookeeper=${ZKN} ..."
+    sed -i "s/^\s*broker.id\s*=.*$/broker.id=$BID/" $KAFKA_HOME/config/server.properties
+    sed -i "s/^\s*zookeeper.connect\s*=.*$/zookeeper.connect=$ZKN/" $KAFKA_HOME/config/server.properties
+    sed -i "s/^\s*num.partitions\s*=.*$/num.partitions=32/" $KAFKA_HOME/config/server.properties
+    sed -i "s/^\s*num.recovery.threads.per.data.dir\s*=.*$/num.recovery.threads.per.data=4/" $KAFKA_HOME/config/server.properties
+
+    if [[ -n ${ADVERTISED_HSTN} ]] ; then
+        echo "advertised.listeners=PLAINTEXT://$ADVERTISED_HSTN:9092" >> $KAFKA_HOME/config/server.properties
+    fi
+    
+    if [[ -n ${KAFKA_PROTOCOL_VERSION} ]] ; then
+        echo "inter.broker.protocol.version=${KAFKA_PROTOCOL_VERSION}" >> $KAFKA_HOME/config/server.properties
+    else 
+        echo "inter.broker.protocol.version=0.10.0.1" >> $KAFKA_HOME/config/server.properties
+    fi 
+
+    if [[ -n ${KAFKA_LOG_MESSAGE_VERSION} ]] ; then
+        echo "log.message.format.version=${KAFKA_LOG_MESSAGE_VERSION}" >> $KAFKA_HOME/config/server.properties
+    else 
+        echo "log.message.format.version=0.10.0.1" >> $KAFKA_HOME/config/server.properties
+    fi 
+
+
+    if [[ -n ${KAFKA_AUTO_CREATE_TOPICS_ENABLE} ]] ; then
+        echo "auto.create.topics.enable=${KAFKA_AUTO_CREATE_TOPICS_ENABLE}" >> $KAFKA_HOME/config/server.properties
+    fi 
+
+    if [[ -n ${KAFKA_DELETE_TOPIC_ENABLE} ]] ; then
+        echo "delete.topic.enable=${KAFKA_DELETE_TOPIC_ENABLE}" >> $KAFKA_HOME/config/server.properties
+    fi 
+
+    # Setup the data directories
+    local KDD=""
+    for datadir in ${KAFKA_DATA_DIRS}; do
+        if [ -z "${KDD}" ]; then
+            local KDD="${datadir}"
+        else
+            local KDD="${KDD},${datadir}"
+        fi
+
+        mkdir -p "${datadir}"
+    done
+
+    sed -i "s|^\s*log.dirs\s*=.*$|log.dirs=${KDD}|" $KAFKA_HOME/config/server.properties
+}
+
+################################################################################
+# Setup all of the preconfigured Apache Kafka topics.
+################################################################################
+
+kafka_setup() {
+
+if [ ! -z "${ZOOKEEPER}"  ]; then
+    echo "adding kafka-provision topics"
+    /usr/bin/kafka-provision
+fi
+if [ ! -z "${ZOOKEEPEROPS}" ]; then
+    echo "adding kafka-operations-provision topics"
+    /usr/bin/kafka-operations-provision
+fi
+
+
+}
+
+################################################################################
+# Starts the Apache Kafka server.
+################################################################################
+
+kafka_start() {
+    export KAFKA_HEAP_OPTS="-Xmx${KAFKA_HSIZE}m -Xms${KAFKA_HSIZE}m"
+    export KAFKA_JVM_PERFORMANCE_OPTS="-server  -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -Djava.awt.headless=true"
+
+    echo "Starting Apache Kafka Server ($KAFKA_HEAP_OPTS)..."
+    exec "${KAFKA_HOME}/bin/kafka-server-start.sh" "${KAFKA_HOME}/config/server.properties"
+}
+
+################################################################################
+# Script entry point.
+################################################################################
+
+SCRIPT="$0"
+SCRIPTNAME=$(basename "${SCRIPT}")
+
+# Perform some quick sanity checks
+if [ -z "${KAFKA_HOME}" ]; then
+    echo "KAFKA_HOME is not set" >&2
+    exit 1
+fi
+
+if [ ! -d "${KAFKA_HOME}" ]; then
+    echo "$KAFKA_HOME is not a directory" >&2
+    exit 1
+fi
+
+if [ ! -e "${KAFKA_HOME}/config/server.properties" ]; then
+    echo "$KAFKA_HOME/config/server.properties is not a present" >&2
+    exit 1
+fi
+
+# Process the requested command
+case $1 in
+    start)
+        shift
+        kafka_start $@
+        ;;
+
+    init)
+        shift
+        kafka_init $@
+        ;;
+
+    setup)
+        shift
+        kafka_setup $@
+        ;;
+
+    entry)
+        shift
+        kafka_docker_entry $@
+        ;;
+
+    help)
+        echo "Usage: $0 <start|stop|init>"
+        exit 0
+        ;;
+
+    *)
+        echo "Unknown command: $1"
+        echo "Usage: $0 <start|stop|init>"
+        exit 1
+        ;;
+esac

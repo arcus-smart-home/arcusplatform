@@ -1,0 +1,75 @@
+
+message zwave.Protection.ProtectionGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Protection.ProtectionReportV1<id="0x03", group="V1"> {
+    const u8 PROTECTION_STATE_UNPROTECTED = 0x00;
+    const u8 PROTECTION_STATE_PROTECTION_BY_SEQUENCE = 0x01;
+    const u8 PROTECTION_STATE_NO_OPERATION_POSSIBLE = 0x02;
+    u8 protectionState;
+}
+
+message zwave.Protection.ProtectionSetV1<id="0x01", group="V1"> {
+    const u8 PROTECTION_STATE_UNPROTECTED = 0x00;
+    const u8 PROTECTION_STATE_PROTECTION_BY_SEQUENCE = 0x01;
+    const u8 PROTECTION_STATE_NO_OPERATION_POSSIBLE = 0x02;
+    u8 protectionState;
+}
+
+message zwave.Protection.ProtectionEcGetV2<id="0x07", group="V2"> {
+}
+
+message zwave.Protection.ProtectionEcReportV2<id="0x08", group="V2"> {
+    u8 nodeId;
+}
+
+message zwave.Protection.ProtectionEcSetV2<id="0x06", group="V2"> {
+    u8 nodeId;
+}
+
+message zwave.Protection.ProtectionGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.Protection.ProtectionReportV2<id="0x03", group="V2"> {
+    const u8 LEVEL_LOCAL_PROTECTION_STATE_MASK = 0x0F;
+    const u8 LEVEL_LOCAL_PROTECTION_STATE_SHIFT = 0;
+    const u8 LEVEL2_RF_PROTECTION_STATE_MASK = 0x0F;
+    const u8 LEVEL2_RF_PROTECTION_STATE_SHIFT = 0;
+    u8 level;
+    u8 level2;
+}
+
+message zwave.Protection.ProtectionSetV2<id="0x01", group="V2"> {
+    const u8 LEVEL_LOCAL_PROTECTION_STATE_MASK = 0x0F;
+    const u8 LEVEL_LOCAL_PROTECTION_STATE_SHIFT = 0;
+    const u8 LEVEL2_RF_PROTECTION_STATE_MASK = 0x0F;
+    const u8 LEVEL2_RF_PROTECTION_STATE_SHIFT = 0;
+    u8 level;
+    u8 level2;
+}
+
+message zwave.Protection.ProtectionSupportedGetV2<id="0x04", group="V2"> {
+}
+
+message zwave.Protection.ProtectionSupportedReportV2<id="0x05", group="V2"> {
+    const u8 LEVEL_TIMEOUT = 0x01;
+    const u8 LEVEL_EXCLUSIVE_CONTROL = 0x02;
+    u8 level;
+    u16 localProtectionState;
+    u16 rfProtectionState;
+}
+
+message zwave.Protection.ProtectionTimeoutGetV2<id="0x0A", group="V2"> {
+}
+
+message zwave.Protection.ProtectionTimeoutReportV2<id="0x0B", group="V2"> {
+    const u8 TIMEOUT_NO_TIMER_IS_SET = 0x00;
+    const u8 TIMEOUT_NO_TIMEOUT_IS_SET = 0xFF;
+    u8 timeout;
+}
+
+message zwave.Protection.ProtectionTimeoutSetV2<id="0x09", group="V2"> {
+    const u8 TIMEOUT_NO_TIMER_IS_SET = 0x00;
+    const u8 TIMEOUT_NO_TIMEOUT_ = 0xFF;
+    u8 timeout;
+}

@@ -1,0 +1,37 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library Simple Metering command frames
+//    From Section D.3 of the ZSE specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Metering {
+   const u16 CLUSTER_ID = 0x0702;
+
+//only a subset of attributes captured, list is extensive
+   const u16 ATTR_CURRENT_SUMMATION_DELIVERED = 0x0000;   //Energy consumed by device (typically w-hrs or kHhr)  U48
+   const u16 ATTR_CURRENT_SUMMATION_RECEIVED = 0x0001;
+   const u16 ATTR_CURRENT_MAX_DEMAND_DELIVERED = 0x0002;   //Power consumed by device (typically w or kW)        U48
+   const u16 ATTR_CURRENT_MAX_DEMAND_RECIEVED = 0x0003;
+   const u16 ATTR_DFT_SUMMATION = 0x0004;           		//Snapshot of Current Summation Delivered at Daily Freeze Time              
+   const u16 ATTR_DAILY_FREEZE_TIME = 0x0005;				//Time of day when daily use is captured in 0xhhmm format
+   const u16 ATTR_STATUS = 0x0200;				// Status of meter
+   const u16 ATTR_REMAINING_BATTERY_LIFE = 0x0201;
+   const u16 ATTR_HOURS_IN_OPERATION = 0x0202;
+   const u16 ATTR_HOURS_IN_FAULT = 0x0203;
+   const u16 ATTR_UNIT_OF_MEASURE = 0x0300;
+   const u16 ATTR_MULTIPLIER = 0x0301;
+   const u16 ATTR_DIVISOR = 0x0302;
+   const u16 ATTR_SUMMATION_FORMATTING = 0x0303;
+   const u16 ATTR_HISTORICAL_CONSUMPTION_FORMATTING = 0x0303;
+   const u16 ATTR_METERING_DEVICE_TYPE = 0x0306;
+   const u16 ATTR_INSTANTANEOUS_DEMAND = 0x0400;
+   const u16 ATTR_CURRENT_DAY_CONSUMPTION_DELIVERED = 0x0401;
+   const u16 ATTR_CURRENT_DAY_CONSUMPTION_RECEIVED = 0x0402;
+   const u16 ATTR_PREVIOUS_DAY_CONSUMPTION_DELIVERED = 0x0403;
+   const u16 ATTR_PREVIOUS_DAY_CONSUMPTION_RECEIVED = 0x0404;
+   const u16 ATTR_GENERIC_ALARM_MASK = 0x0800;
+   const u16 ATTR_ELECTRICITY_ALARM_MASK = 0x0801;
+   const u16 ATTR_FLOW_PRESSURE_ALARM_MASK = 0x0802;
+   const u16 ATTR_WATER_SPECIFIC_ALARM_MASK = 0x0803;
+   const u16 ATTR_HEAT_AND_COOLING_SPECIFIC_ALARM_MASK = 0x0804;
+   const u16 ATTR_GAS_SPECIFIC_ALARM_MASK = 0x0805;
+}

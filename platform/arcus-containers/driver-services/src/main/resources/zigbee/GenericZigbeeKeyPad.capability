@@ -1,0 +1,277 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * A generic helper for Zigbee Keypads a driver importing this capability MUST
+ * define the following constants:
+
+@Field def final byte KEYPADSTATE_UNKNOWN          =
+@Field def final byte KEYPADSTATE_OFF              =
+@Field def final byte KEYPADSTATE_ARMED_ON         =
+@Field def final byte KEYPADSTATE_ARMED_PARTIAL    =
+@Field def final byte KEYPADSTATE_PANIC            =
+@Field def final byte KEYPADSTATE_ARMING_ON        =
+@Field def final byte KEYPADSTATE_ALARMING_ON      =
+@Field def final byte KEYPADSTATE_ARMING_PARTIAL   =
+@Field def final byte KEYPADSTATE_ALARMING_PARTIAL =
+
+ *
+ */
+
+import groovy.transform.Field
+
+capability		KeyPad
+description		"Helper methods for Zigbee Keypads"
+version			"1.0"
+
+// FIXME bug in the generator that doesn't create Set<Enum> constants
+// keypad sound constants
+@Field static final String ENABLEDSOUNDS_BUTTONS = "BUTTONS";
+@Field static final String ENABLEDSOUNDS_DISARMED = "DISARMED";
+@Field static final String ENABLEDSOUNDS_ARMED = "ARMED";   
+@Field static final String ENABLEDSOUNDS_ARMING = "ARMING";
+@Field static final String ENABLEDSOUNDS_SOAKING = "SOAKING";
+@Field static final String ENABLEDSOUNDS_ALERTING = "ALERTING";
+
+@Field static final SOUNDS_ON  = [ 
+	"BUTTONS",
+	"DISARMED",
+	"ARMED",
+	"ARMING",
+	"SOAKING",
+	"ALERTING"
+];
+@Field static final SOUNDS_OFF = [ ];
+
+// clear the pin after about 5 minutes of no activity
+@Field static final EVENT_CLEAR_PIN = "ClearPin"
+@Field static final CLEAR_PIN_DELAY_MS = 5 * 60 * 1000
+
+
+static void initializeAttributes( driver ) {
+	def Alert = driver.Alert
+	def KeyPad = driver.KeyPad
+	def GenericZigbeeKeyPad = driver.GenericZigbeeKeyPad
+
+	defaultAttribute  Alert.state,          Alert.STATE_QUIET
+	
+	defaultAttribute  KeyPad.alarmState,    KeyPad.ALARMSTATE_DISARMED    // Current alarm state of the keypad.  Should reflect the state of the Security Alarm Subsystem.
+	defaultAttribute  KeyPad.alarmMode,     KeyPad.ALARMMODE_ON           // If the alarm is on or partial mode.  This attribute is only valid of the alarmState is in the ARMED state.
+	defaultAttribute  KeyPad.alarmSounder,  KeyPad.ALARMSOUNDER_ON		  // If ON the alarms are audible, otherwise they are silent."
+	defaultAttribute  KeyPad.enabledSounds, (KeyPad.alarmSounder.get() == KeyPad.ALARMSOUNDER_ON ? GenericZigbeeKeyPad.SOUNDS_ON : GenericZigbeeKeyPad.SOUNDS_OFF)
+	
+}
+
+
+static boolean defaultAttribute(attribute, value) {
+	if( attribute.get() == null ) {
+		attribute value
+		return true
+	}
+	return false;
+}
+
+
+static Map<String, Boolean> processKeyPadAttributes( driver, attributes ) {
+	driver.log.debug "Received setAttributes:KeyPad attributes: {}", attributes
+	
+	def response = [
+		'updateSounds' : false,
+		'updateState'  : false
+	]
+	def KeyPad = driver.KeyPad;
+	
+	// handle sounds
+	if( attributes.containsKey( KeyPad.enabledSounds.name ) ) {
+	   // write sounds
+	   def enabledSounds = attributes[KeyPad.enabledSounds.name]
+	   KeyPad.enabledSounds enabledSounds
+	   // legacy
+	   KeyPad.alarmSounder  enabledSounds.size() == 0 ? KeyPad.ALARMSOUNDER_OFF : KeyPad.ALARMSOUNDER_ON
+	   response.updateSounds = true
+	}
+	else if( attributes.containsKey(KeyPad.alarmSounder.name) ) {
+	   // handle legacy
+	   if(attributes[KeyPad.alarmSounder.name] == KeyPad.ALARMSOUNDER_ON) {
+	      KeyPad.enabledSounds driver.GenericZigbeeKeyPad.SOUNDS_ON 
+	   }
+	   else {
+	      KeyPad.enabledSounds driver.GenericZigbeeKeyPad.SOUNDS_OFF
+	   }
+	   response.updateSounds = true
+	}
+	
+	// handle mode
+	def alarmState = attributes[KeyPad.alarmState.name];
+	def alarmMode  = attributes[KeyPad.alarmMode.name];
+	if(
+		(alarmState != null && alarmState != KeyPad.alarmState.get()) || 
+		(alarmMode  != null && alarmMode  != KeyPad.alarmMode.get())
+	) {
+	   if( alarmState != null ) {
+	      KeyPad.alarmState alarmState
+	   }
+	   if( alarmMode != null) {
+	      KeyPad.alarmMode  alarmMode
+	   }
+	   
+	   response.updateState = true
+	}
+	return response
+}
+
+
+static Map<String, Object> processAlertAttributes( driver, attributes ) {
+   def Alert = driver.Alert
+   def KeyPad = driver.KeyPad
+   def state = attributes[Alert.state.name];
+   if(state == null) {
+      return false;
+   }
+   
+   
+	def response = [
+		'updateSounds' : false,
+		'updateState'  : false
+	]
+   if(state == Alert.STATE_ALERTING && KeyPad.alarmState.get() != KeyPad.ALARMSTATE_ALERTING) {
+      // only re-write the state if we weren't already in alerting
+      KeyPad.alarmState KeyPad.ALARMSTATE_ALERTING
+      response.updateState = true
+   }
+   else if(state == Alert.STATE_QUIET) {
+      // this is only a state change if we're currently alerting
+   	  if( KeyPad.alarmState.get() == KeyPad.ALARMSTATE_ALERTING ) {
+   	     if( KeyPad.alarmMode.get() == KeyPad.ALARMMODE_OFF ) {
+   	        // if mode is off and we've 
+   	        KeyPad.alarmState KeyPad.ALARMSTATE_DISARMED
+   	     }
+   	     else {
+   	        KeyPad.alarmState KeyPad.ALARMSTATE_ARMED 
+   	      }
+	  }
+   	  // always re-push QUIET to make the thing shut-up
+      response.updateState = true
+   }
+   return response
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Keypad State Management
+////////////////////////////////////////////////////////////////////////////////
+
+static byte getKeypadStateCode( driver ) {   
+   return getKeypadStateCode( 
+      driver,
+      driver.KeyPad.alarmState.get(), 
+      driver.KeyPad.alarmMode.get()
+   )   
+}
+
+static byte getKeypadStateCode( driver, state, mode ) {
+   if (state == null) {
+      state = driver.KeyPad.ALARMSTATE_DISARMED;
+   }
+   if (mode == null) {
+      mode = driver.KeyPad.ALARMMODE_OFF;
+   }
+   boolean isPartial = ( mode == driver.KeyPad.ALARMMODE_PARTIAL );
+
+   switch(state) {
+   case driver.KeyPad.ALARMSTATE_DISARMED:
+      return driver.KEYPADSTATE_OFF;
+      
+   case driver.KeyPad.ALARMSTATE_ARMING:
+      return isPartial ? driver.KEYPADSTATE_ARMING_PARTIAL : driver.KEYPADSTATE_ARMING_ON;
+      
+   case driver.KeyPad.ALARMSTATE_ARMED:
+      return isPartial ? driver.KEYPADSTATE_ARMED_PARTIAL : driver.KEYPADSTATE_ARMED_ON;
+      
+   case driver.KeyPad.ALARMSTATE_SOAKING:
+      return isPartial ? driver.KEYPADSTATE_SOAKING_PARTIAL : driver.KEYPADSTATE_SOAKING_ON;
+
+   case driver.KeyPad.ALARMSTATE_ALERTING:
+      switch(mode) {
+      case driver.KeyPad.ALARMMODE_OFF     : return driver.KEYPADSTATE_PANIC;
+      case driver.KeyPad.ALARMMODE_PARTIAL : return driver.KEYPADSTATE_ALARMING_PARTIAL;
+      case driver.KeyPad.ALARMMODE_ON      : return driver.KEYPADSTATE_ALARMING_ON;
+      }
+
+   default: 
+      driver.log.warn "Unexpected Keypad State and Mode combination: {} - {}", state, mode
+      return driver.KEYPADSTATE_UNKNOWN
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Pin Code Management
+////////////////////////////////////////////////////////////////////////////////
+
+
+static boolean checkPinAndSetActor(driver, String pinCode) {
+	if(pinCode == null || pinCode.length() == 0) {
+	   driver.log.debug "No pin set"
+	   return false;
+	}
+	
+	def PinManagement = driver.PinManagement
+	
+	try {
+		def person = PinManagement.validatePin(pinCode)
+		if (person == null) {
+			return false;
+		}
+		
+		PinManagement.setActor(person)
+		return true
+	}
+	catch(e) {
+		driver.log.debug "Error validating pin", e
+		return false;
+	}
+}
+
+
+static String getPin(driver) {
+   def vars = driver.vars
+   return vars.lastEnteredPIN == null ? '' : vars.lastEnteredPIN
+}
+
+// FIXME this should use PinManager to accumulate
+static void accumulatePin( driver, String pin ) {
+   def vars = driver.vars
+   def Scheduler = driver.Scheduler
+   
+   pin = driver.GenericZigbeeKeyPad.getPin( driver ) + pin
+   def int digitCnt = pin.length()
+   if (4 < digitCnt) {
+      vars.'lastEnteredPIN' = pin.substring( digitCnt - 4)
+   } else {
+      vars.'lastEnteredPIN' = pin
+   }
+   Scheduler.scheduleIn driver.GenericZigbeeKeyPad.EVENT_CLEAR_PIN, driver.GenericZigbeeKeyPad.CLEAR_PIN_DELAY_MS
+}
+
+static void clearPin(driver) {
+	driver.vars.'lastEnteredPIN' = ''
+}
+
+onEvent(EVENT_CLEAR_PIN) {
+	clearPin(this)
+}
+
+

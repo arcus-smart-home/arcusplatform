@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <adjustment href="https://your-subdomain.recurly.com/v2/adjustments/626db120a84102b1809909071c701c60" type="charge">
+    <account href="https://your-subdomain.recurly.com/v2/accounts/100"/>
+    <invoice href="https://your-subdomain.recurly.com/v2/invoices/1108"/>
+    <uuid>626db120a84102b1809909071c701c60</uuid>
+    <state>invoiced</state>
+    <description>One-time Charged Fee</description>
+    <accounting_code/>
+    <product_code>basic</product_code>
+    <origin>debit</origin>
+    <unit_amount_in_cents type="integer">2000</unit_amount_in_cents>
+    <quantity type="integer">1</quantity>
+    <original_adjustment_uuid>2cc95aa62517e56d5bec3a48afa1b3b9</original_adjustment_uuid> <!-- Only shows if adjustment is a credit created from another credit. -->
+    <discount_in_cents type="integer">0</discount_in_cents>
+    <tax_in_cents type="integer">175</tax_in_cents>
+    <total_in_cents type="integer">2175</total_in_cents>
+    <currency>USD</currency>
+    <taxable type="boolean">false</taxable>
+    <tax_type>usst</tax_type>
+    <tax_region>CA</tax_region>
+    <tax_rate type="float">0.0875</tax_rate>
+    <tax_exempt type="boolean">false</tax_exempt>
+    <tax_details type="array">
+      <tax_detail>
+        <name>california</name>
+        <type>state</type>
+        <tax_rate type="float">0.065</tax_rate>
+        <tax_in_cents type="integer">130</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name>san mateo county</name>
+        <type>county</type>
+        <tax_rate type="float">0.01</tax_rate>
+        <tax_in_cents type="integer">20</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name>sf municipal tax</name>
+        <type>city</type>
+        <tax_rate type="float">0.0</tax_rate>
+        <tax_in_cents type="integer">0</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name nil="nil"/>
+        <type>special</type>
+        <tax_rate type="float">0.0125</tax_rate>
+        <tax_in_cents type="integer">25</tax_in_cents>
+      </tax_detail>
+    </tax_details>
+    <start_date type="datetime">2015-02-04T23:13:07Z</start_date>
+    <end_date nil="nil"/>
+    <created_at type="datetime">2015-02-04T23:13:07Z</created_at>
+  </adjustment>

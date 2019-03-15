@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="master"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+  <cl:import file="changelog-1.0.0.xml"/>
+  <cl:import file="changelog-2.2.0.xml"/>
+  <cl:import file="changelog-2.3.0.xml"/>
+  <cl:import file="changelog-2.4.0.xml"/>
+  <cl:import file="changelog-2.5.0.xml"/>
+  <cl:import file="changelog-2.6.0.xml"/>
+  <cl:import file="changelog-2.7.0.xml"/>
+  <cl:import file="changelog-2.9.0.xml"/>
+  <cl:import file="changelog-2.11.0.xml"/>
+  <cl:import file="changelog-2.12.0.xml"/>
+  <cl:import file="changelog-2018.10.0.xml"/>
+</cl:changelog>

@@ -1,0 +1,33 @@
+{{#section "subject"}}
+{{{inviterFirstName}}} Added You To Their Iris Account
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}}, 
+
+Great news! {{{inviterFirstName}}} {{{inviterLastName}}} added you to 
+{{{_owner.firstName}}} {{{_owner.lastName}}}'s smart home at the place 
+called ({{{_place.name}}}). 
+
+We recommend contacting {{{inviterFirstName}}} to learn what it means 
+to have access to their place.
+
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{inviteeFirstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	Great news! {{inviterFirstName}} {{inviterLastName}} added you to {{_owner.firstName}} {{_owner.lastName}}'s smart home at the place called ({{_place.name}}). <br/><br/>
+	We recommend contacting {{inviterFirstName}} to learn what it means to have access to their place.<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

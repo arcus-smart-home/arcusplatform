@@ -1,0 +1,253 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an GoControl Motion Sensor
+ * 
+ * Rebranded Nortek (Linear) device.
+ * 
+ * NOTES: 
+ * - Slow. Sometimes takes 5 to 10 seconds to detect motion.
+ * - Reset Interval can be configured from 1 - 255 minutes, and defaults to 3. The driver currently sets it to 1 minute.
+ * - If cover is removed, at next Wake Up Notification (usually sent when cover is replaced) battery level is read, in case battery was replaced.
+ * - Temperature is only reported when temperature changes, and is reported by users to sometimes not be very accurate and/or jitter, 
+ *   especially at/below freezing, towards cooler end of supported range of 5F - 140F (-15C - 60C).
+ * 
+ * PAIRING
+ * - Place hub in 'pairing' mode and insert battery.
+ * - You may then have to press "Program Switch" with paper clip through small hole on back of device.
+ * 
+ * UNPAIRING
+ * - Place hub in 'unpairing' mode (or select "Remove Device").
+ * - Press "Program Switch" with paper clip through small hole on back of device.
+ * 
+ */
+import groovy.transform.Field
+
+driver          "ZWGoControlMotionSensorDriver"
+description     "Driver for an GoControl Motion Sensor"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Motion"
+productId       "550d1b"
+vendor          "GoControl"
+model           "WAPIRZ-1"
+
+matcher         'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x2002, 'ZWAV:ProductId': 0x0203
+
+
+capabilities	DevicePower, Motion, Temperature
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+
+// Command Classes:
+//		0x31   (49) Sensor_Multilevel
+//		0x70  (112) Configuration
+//		0x71  (113) Alarm (Notification)
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//      0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+final String DEVICE_NAME        = "GoControl Motion Sensor"
+final int POLLING_INTERVAL_SEC  = 3600		// every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+
+final int BATTERY_POLLING_INTERVAL_SEC = 86400   // Ask for battery level every 24 hours
+
+final byte ALARM_TYPE           =  7
+final byte ALARM_EVENT_MOTION   =  2
+final byte ALARM_EVENT_TAMPER   =  3
+final byte ALARM_LEVEL_TAMPER   = -1
+final byte NOTIFICATION_TYPE    =  7
+final byte NOTIFICATION_STATUS  = -1
+
+final String VAR_REPORTED_COVER_REMOVED = 'REPORTED_COVER_REMOVED'
+
+
+// Config Parameters  (see http://www.pepper1.net/zwavedb/device/410)
+// ------------------------------------------------------------------
+byte CNFG_RESET_PARAM_NO                  = 0xFF       // parameter number to reset configuration to factory default
+byte CNFG_RESET_SIZE                      = 0x01
+byte CNFG_RESET_VALUE                     = 0x00
+
+byte CNFG_RETRIGGER_PARAM_NO              = 0x01       // parameter number to set Re-trigger Wait Time (in Minutes, 1-255)
+byte CNFG_RETRIGGER_SIZE                  = 0x01       // size is 1 byte
+byte CNFG_RETRIGGER_VALUE                 = 0x01       // 1 minute (default is 3 minutes)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+	vars.VAR_REPORTED_COVER_REMOVED = false
+	
+	Motion.motion                    Motion.MOTION_NONE
+	Motion.motionchanged             ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+	// reset the device configuration to factory defaults
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+	vars.VAR_REPORTED_COVER_REMOVED = false
+	
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set Association to Group 1, Node 1
+	ZWave.association.set( 1, 1);
+
+	// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+	
+	// read the current state
+	ZWave.basic.get()
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+	
+	// get the level of the battery 0 - 100%
+	ZWave.battery.get()
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+	
+	// Get the temperature
+	ZWave.sensor_multilevel.get();
+	
+	// configure the Re-trigger Wait Minutes
+	ZWave.configuration.set(CNFG_RETRIGGER_PARAM_NO, CNFG_RETRIGGER_SIZE, CNFG_RETRIGGER_VALUE)
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+	def prevState = Motion.motion.get()
+	if (-1 == currentState ) {
+		Motion.motion Motion.MOTION_DETECTED
+		log.trace 'Motion: DETECTED'
+	} else if (0 == currentState ) {
+		Motion.motion Motion.MOTION_NONE
+		log.trace 'Motion: NONE'
+	}
+	// if previous state is not the same as newly reported state, record timestamp of change
+	if (Motion.motion.get() != prevState) {
+		Motion.motionchanged now()
+	}
+}
+
+onZWaveMessage.basic.report {
+	log.trace "{} sent Basic Report: {}", DEVICE_NAME, message
+	handleStateMsg(message.command.get('value'))
+}
+
+onZWaveMessage.basic.set {
+	log.trace "{} sent Basic Set: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.trace "{} sent Basic Set State: {}", DEVICE_NAME, bytes[0]
+	handleStateMsg(bytes[0])
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+	log.trace "{} sent Alarm/Notification Report", DEVICE_NAME
+	byte alarmType = message.command.get('alarmtype')
+	byte alarmLevel = message.command.get('alarmlevel')
+	byte notificationStatus = message.command.get('notificationstatus')
+	byte notificationType = message.command.get('notificationtype')
+	byte event = message.command.get('event')
+	byte[] bytes = message.command.recvBytes
+	
+	// if Motion Alarm
+	if ((ALARM_TYPE == alarmType) && (ALARM_EVENT_MOTION == event) && (NOTIFICATION_TYPE == notificationType) && (NOTIFICATION_STATUS == notificationStatus)) {
+		handleStateMsg(alarmLevel)
+	}
+	// if tamper alarm
+	else if ((ALARM_TYPE == alarmType) && (ALARM_LEVEL_TAMPER == alarmLevel) && (ALARM_EVENT_TAMPER == event) && (NOTIFICATION_TYPE == notificationType) && (NOTIFICATION_STATUS == notificationStatus)) {
+		log.info "{} cover removed", DEVICE_NAME
+		vars.VAR_REPORTED_COVER_REMOVED = true
+	}
+	// otherwise, log the unprocessed alarm report
+	else {
+		log.debug "{} reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", DEVICE_NAME, alarmType, alarmLevel, event, notificationType, notificationStatus
+	}
+}
+
+onZWaveMessage.sensor_multilevel.report {
+	log.trace "{} sent Sensor Multilevel Report", DEVICE_NAME
+	byte type = message.command.get('type')
+	byte pss = message.command.get('level')			// 3bit precision, 2bit scale, 3bit size
+	byte val = message.command.get('val1')			// temperature reported in F
+	
+	if (0 > val) val += 128		// make sure it is a positive value since range is 5-140 F
+	log.trace "{} sent Sensor Multilevel Report, type: {}, prec/scale/size: {}, temperature: {} F", DEVICE_NAME, type, pss, val
+	
+	if ((1 == type) && (9 == pss)) {				// type value of 1 indicates this is an Air Temperature reading, precision/scale/size should be 9 for 0/1/1
+		if (140 >= val) {
+			double dtemp = val as double		// convert byte to double
+			dtemp = 5.0 * (dtemp - 32.0) / 9.0;		// convert F to C
+			log.trace "{} set temperature: {} C", DEVICE_NAME, dtemp
+			Temperature.temperature dtemp
+		} else {
+			log.warn "{} reported out-of-range temperature value: {} F", DEVICE_NAME, val
+		}
+	} else {
+		log.warn "{} reported unexpected Sensor Multilevel Type: {} (expected 1) or Precision/Scale/Size: {} (expected 9) with value: {}", DEVICE_NAME, type, pss, val
+	}
+}
+
+onZWaveMessage.wake_up.notification {
+	log.debug "{} sent Wakeup Notification", DEVICE_NAME
+
+	// read the current state, in case it has not reported it lately
+	ZWave.basic.get()
+	
+	// if the cover has been removed since last Wake Up notification, read battery level, in case battery was replaced
+	// Note: device usually sends a Wake Up Notification when the cover is replaced
+	if (true == (vars.VAR_REPORTED_COVER_REMOVED ?: false)) {
+		ZWave.battery.get()
+	}
+	vars.VAR_REPORTED_COVER_REMOVED = false
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {}", DEVICE_NAME, message
+    return false;
+}
+
+

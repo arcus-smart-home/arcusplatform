@@ -1,0 +1,71 @@
+
+message zwave.TariffTblMonitor.TariffTblCostGetV1<id="0x05", group="V1"> {
+    u8 rateParameterSetId;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+}
+
+message zwave.TariffTblMonitor.TariffTblCostReportV1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 0;
+    const u8 PROPERTIES2_COST_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_COST_PRECISION_SHIFT = 5;
+    u8 rateParameterSetId;
+    u8 properties1;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8[3] currency;
+    u8 properties2;
+    u32 costValue;
+}
+
+message zwave.TariffTblMonitor.TariffTblGetV1<id="0x03", group="V1"> {
+    u8 rateParameterSetId;
+}
+
+message zwave.TariffTblMonitor.TariffTblReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_TARIFF_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES1_TARIFF_PRECISION_SHIFT = 5;
+    u8 rateParameterSetId;
+    u8 properties1;
+    u32 tariffValue;
+}
+
+message zwave.TariffTblMonitor.TariffTblSupplierGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.TariffTblMonitor.TariffTblSupplierReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_STANDING_CHARGE_PERIOD_MASK = 0x1F;
+    const u8 PROPERTIES1_STANDING_CHARGE_PERIOD_SHIFT = 0;
+    const u8 PROPERTIES1_STANDING_CHARGE_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES1_STANDING_CHARGE_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES2_NUMBER_OF_SUPPLIER_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES2_NUMBER_OF_SUPPLIER_CHARACTERS_SHIFT = 0;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+    u8[3] currency;
+    u8 properties1;
+    u32 standingChargeValue;
+    u8 properties2;
+    u8[] supplierCharacter;
+}

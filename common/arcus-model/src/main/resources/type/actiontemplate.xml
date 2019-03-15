@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="ActionTemplate"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Contains instructions for building an action that may be executed by a Scene</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="id"
+			type="string"
+			description="The id of the template that this action was created from."
+			/>
+		<t:attribute
+			name="name"
+			type="string"
+			description="The name of this action, generally taken from the ActionTemplate."
+			/>
+		<t:attribute
+			name="typehint"
+			type="string"
+			description="A string that may be used for determining the type of icon to show and possibly what time of devices the user needs to add to enable the action."
+    		/>
+   		<t:attribute
+   			name="satisfiable"
+   			type="boolean"
+   			description="Whether or not there are sufficient devices paired in the system to be able to run this action."
+   			/>
+   		<t:attribute
+   			name="premium"
+   			type="boolean"
+   			description="Whether or not this action requires PREMIUM service level."
+   			/>	
+   		<t:attribute
+   			name="selectors"
+   			type="map&lt;list&lt;ActionSelector&gt;&gt;"
+   			description="A map of target address (often a device, but may be the security subsystem or something else) to a set of selectors for values that may be set."
+   			/>
+	</t:attributes>
+ </t:type>

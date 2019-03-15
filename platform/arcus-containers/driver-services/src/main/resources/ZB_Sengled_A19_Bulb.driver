@@ -1,0 +1,388 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Sengled A19 Dimmable Bulb
+ * 
+ * To Factory Reset the bulb:   hold button for 20+ seconds
+ * To rejoin network:			hold button for 10-15 seconds
+ * To toggle through states:	press button (100%->75%->50%->25%-off->100%)
+ * 
+ * NOTE: Bulb is supposed to report LQI, but we always seem to get FF. RSSI is reported though.
+ * 
+ * NOTE: For Level cluster, bulb does not send a Remaining Time or On/Off Transition Time.
+ * 
+ * NOTE: Because the state and level of these bulbs can be changed locally, using the button on the bulb, they
+ *       cannot be restored to the previous state after a power failure, because the platform currently has no way
+ *       of recognizing that the state and level being reported are due to a power failure and not just the user
+ *       changing the setting at the bulb.
+ */
+import groovy.transform.Field
+
+driver			"ZBSengledA19Bulb"
+description		"Driver for the Sengled A19 Dimmable Bulb"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Light"
+productId		"6555bb"
+vendor 			"Uncertified"		// "Sengled"
+model 			"Z01-CIA19"
+
+matcher			'ZIGB:manufacturer': 0x1901, 'ZIGB:vendor': 'sengled', 'ZIGB:model': 'Z01-CIA19'
+matcher			'ZIGB:manufacturer': 0x1160, 'ZIGB:vendor': 'sengled', 'ZIGB:model': 'Z01-CIA19NAE26'
+
+capabilities	DevicePower, Dimmer, Switch, Light, DeviceOta, Identify
+
+importCapability 'zigbee/GenericZigbeeDimmer'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+// Manufacturer ID:       0x1901		(6401)
+// Manufacturer:          sengled
+// Model:                 Z01-CIA19
+// Capability:            0x8C			(140)
+//
+// 1 End Point (0x01)
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x0702     (1794) Metering     
+//   0x0B05     (2821) Diagnostics
+// OUT Clusters
+//   0x0019     (25) OTA Upgrade
+
+
+@Field def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+@Field def levelCluster = Zigbee.endpoint((byte)1).Level
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+@Field static final String DEVICE_NAME = 'Sengled A19'
+
+final int DFLT_BRIGHTNESS			= 100
+final short DFLT_TRANS_SECS         = 0				// default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+final short DFLT_CLR_TRANS_SECS     = 0				// default transition seconds to use when color attributes are set, since there is no transition time attribute
+
+final long READBACK_DELAY_MSEC      = 1000		    // delay before reading
+
+// constants used if setting level reporting interval
+final short PROFILE_HA				= 0x0104
+
+final short CLUSTER_ON_OFF          = 0x0006
+final short CLUSTER_LEVEL_CTRL      = 0x0008
+final short CLUSTER_METERING        = 0x0702        // (1794) Simple Metering
+final short CLUSTER_DIAGNOSTICS     = 0x0B05        // (2821) Diagnostics Cluster
+
+final byte CMD_CNFG_RPT             = 0x06          // General Command Frame - Configure Reporting
+final byte CMD_WRT_ATTR             = 0x02          // General Command Frame - Write Attributes
+
+
+// operational constants
+final int OFFLINE_TIMEOUT_SECS      = 600       // 10 minutes
+final short IDENT_PERIOD_SECS       = 10        // number of seconds for device to Identify itself when Identify method is called
+
+
+DevicePower.source                  DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.backupbatterycapable    false
+Switch.state                        Switch.STATE_ON
+Dimmer.brightness                   DFLT_BRIGHTNESS
+Light.colormode                     Light.COLORMODE_NORMAL
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} added.", DEVICE_NAME
+	
+	// set default attribute values
+	DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		levelCluster.bindServerCluster(),
+		diagCluster.bindServerCluster(),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_METERING) )
+}
+
+
+onConnected {
+	log.debug "{} connected.", DEVICE_NAME
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// read current OnOff attributes
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+
+	// read current Level attributes
+	levelCluster.zclReadAttributes( 
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_ON_LEVEL )
+
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+	GenericZigbeeDimmer.doDefaultConfiguration(this, DEVICE_NAME, (byte)1)
+
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+	byte[] rptDiagCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x011C) Last Message LQI
+		0x1C, 0x01,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x003C) 60 secs
+		0x3C, 0x00,
+		// Max Interval (0x0078) 120 secs
+		0x78, 0x00,
+		// Reportable Change (0x01)
+		0x01 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_DIAGNOSTICS,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptDiagCnfgBytes )
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected."
+}
+
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed."
+}
+
+
+////////////////////////////////////////
+///    Events
+////////////////////////////////////////
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.DEFERRED_ON_EVENT) {
+	GenericZigbeeDimmer.doDeferredOnEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.READ_SWITCH_EVENT) {
+	GenericZigbeeDimmer.doReadSwitchEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.READ_LEVEL_EVENT) {
+	GenericZigbeeDimmer.doReadLevelEvent(this, DEVICE_NAME, levelCluster)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes() {
+	GenericZigbeeDimmer.doSetAttributes(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZigbeeDimmer.doRampBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZigbeeDimmer.doIncrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZigbeeDimmer.doDecrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.trace "${DEVICE_NAME} driver received OnOff Attributes Response: {}", message
+	GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.trace "${DEVICE_NAME} driver received OnOff Attributes Report: {}", message
+	GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.trace "${DEVICE_NAME} driver received Level Attributes Response: {}", message
+	handleLevel(message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.trace "${DEVICE_NAME} driver received Level Attributes Report: {}", message
+	handleLevel(message)
+}
+
+void handleLevel(message) {
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def currLevel = attributes[levelCluster.ATTR_CURRENT_LEVEL]
+	if ('INVALID' == currLevel.toString()) {
+		Dimmer.brightness 100
+		GenericZigbeeDimmer.setTargetLevel( this, 100 )
+	} else {
+		GenericZigbeeDimmer.handleLevelMsgNoRestore(this, DEVICE_NAME, levelCluster, onOffCluster, true, message)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.trace "${DEVICE_NAME} driver received onIdentify.Identify: {}", message
+	// ask the device to identify itself for 3 minutes
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.trace "RSSI: {}, LQI: {}",rssi, lqi
+	
+	if ((rssi != null) && ('INVALID' != rssi.toString())) {
+		processed = true
+	}
+	if ((lqi != null) && ('INVALID' != lqi.toString())) {
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		double signal = (lqi * 100.0) / 255.0
+		int sigLvl = Math.round(signal)
+		log.trace "LQI:{}, (percent:{})", lqi, sigLvl
+		DeviceConnection.signal sigLvl
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "${DEVICE_NAME} driver received Diagnostics Attributes Response: {}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "${DEVICE_NAME} driver received Diagnostics Attributes Report: {}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "${DEVICE_NAME} driver received zigbee ZCL message: {}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	// if Diagnostic cluster reported LQI and not previously handled (exception parsing attribute) manually parse the value here
+	if ((CLUSTER_DIAGNOSTICS == clusterId) && (3 < data.length)) {
+		if ((0x1C == data[0]) && (0x01 == data[1]) && (0x20 == data[2])) {		// LQI Attribute (0x011C) as unsigned 8-bit value (0x20)
+			int lqi = data[3]				// 0-255
+			if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+			double signal = (lqi * 100.0) / 255.0
+			int sigLvl = Math.round(signal)
+			log.debug "LQI: {}, (percent:{})", lqi, sigLvl
+			DeviceConnection.signal sigLvl
+		}
+		return
+	}
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:{}", profile, clusterId, msgId, endpoint, flags, data
+}
+
+
+
+

@@ -1,0 +1,335 @@
+constants zdp.Discovery {
+   const u16 ZDP_NWK_ADDR_REQ = 0x0000;
+   const u16 ZDP_IEEE_ADDR_REQ = 0x0001;
+   const u16 ZDP_NODE_DESC_REQ = 0x0002;
+   const u16 ZDP_POWER_DESC_REQ = 0x0003;
+   const u16 ZDP_SIMPLE_DESC_REQ = 0x0004;
+   const u16 ZDP_ACTIVE_EP_REQ = 0x0005;
+   const u16 ZDP_MATCH_DESC_REQ = 0x0006;
+   const u16 ZDP_COMPLEX_DESC_REQ = 0x0010;
+   const u16 ZDP_USER_DESC_REQ = 0x0011;
+   const u16 ZDP_DISCOVERY_CACHE_REQ = 0x0012;
+   const u16 ZDP_DEVICE_ANNCE = 0x0013;
+   const u16 ZDP_USER_DESC_SET = 0x0014;
+   const u16 ZDP_SYSTEM_SERVER_DISCOVERY_REQ = 0x0015;
+   const u16 ZDP_DISCOVERY_STORE_REQ = 0x0016;
+   const u16 ZDP_NODE_DESC_STORE_REQ = 0x0017;
+   const u16 ZDP_POWER_DESC_STORE_REQ = 0x0018;
+   const u16 ZDP_ACTIVE_EP_STORE_REQ = 0x0019;
+   const u16 ZDP_SIMPLE_DESC_STORE_REQ = 0x001A;
+   const u16 ZDP_REMOVE_NODE_CACHE_REQ = 0x001B;
+   const u16 ZDP_FIND_NODE_CACHE_REQ = 0x001C;
+   const u16 ZDP_EXTENDED_SIMPLE_DESC_REQ = 0x001D;
+   const u16 ZDP_EXTENDED_ACTIVE_EP_REQ = 0x001E;
+
+   const u16 ZDP_NWK_ADDR_RSP = 0x8000;
+   const u16 ZDP_IEEE_ADDR_RSP = 0x8001;
+   const u16 ZDP_NODE_DESC_RSP = 0x8002;
+   const u16 ZDP_POWER_DESC_RSP = 0x8003;
+   const u16 ZDP_SIMPLE_DESC_RSP = 0x8004;
+   const u16 ZDP_ACTIVE_EP_RSP = 0x8005;
+   const u16 ZDP_MATCH_DESC_RSP = 0x8006;
+   const u16 ZDP_COMPLEX_DESC_RSP = 0x8010;
+   const u16 ZDP_USER_DESC_RSP = 0x8011;
+   const u16 ZDP_DISCOVERY_CACHE_RSP = 0x8012;
+   const u16 ZDP_USER_DESC_CONF = 0x8014;
+   const u16 ZDP_SYSTEM_SERVER_DISCOVERY_RSP = 0x8015;
+   const u16 ZDP_DISCOVERY_STORE_RSP = 0x8016;
+   const u16 ZDP_NODE_DESC_STORE_RSP = 0x8017;
+   const u16 ZDP_POWER_DESC_STORE_RSP = 0x8018;
+   const u16 ZDP_ACTIVE_EP_STORE_RSP = 0x8019;
+   const u16 ZDP_SIMPLE_DESC_STORE_RSP = 0x801A;
+   const u16 ZDP_REMOVE_NODE_CACHE_RSP = 0x801B;
+   const u16 ZDP_FIND_NODE_CACHE_RSP = 0x801C;
+   const u16 ZDP_EXTENDED_SIMPLE_DESC_RSP = 0x801D;
+   const u16 ZDP_EXTENDED_ACTIVE_EP_RSP = 0x801E;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Sections 2.3.2 from the Zigbee specification
+////////////////////////////////////////////////////////////////////////////////
+
+struct zdp.Discovery.ZdpNodeDescriptor {
+   u16 nodeFlags;
+   u8 macCapabilityFlags;
+   u16 manufacturerCode;
+   u8 maximumBufferSize;
+   u16 maximumIncomingTransferSize;
+   u16 serverMask;
+   u16 maximumOutgoingTransferSize;
+   u8 descriptorCapability;
+}
+
+struct zdp.Discovery.ZdpPowerDescriptor {
+   u16 poweDescriptor;
+}
+
+struct zdp.Discovery.ZdpSimpleDescriptor {
+   u8 endpoint;
+   u16 profileId;
+   u16 deviceId;
+   u8 deviceVersion;
+   u8 inputClusterCount;
+   u16[inputClusterCount] inputClusters;
+   u8 outputClusterCount;
+   u16[outputClusterCount] outputClusters;
+}
+
+struct zdp.Discovery.ZdpUserDescriptor {
+   u8 length;
+   u8[length] asciiString;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Sections 2.4.3 and 2.4.4 from the Zigbee specification
+////////////////////////////////////////////////////////////////////////////////
+
+message zdp.Discovery.ZdpNwkAddrReq<id="0x0000"> {
+   u64 ieeeAddress;
+   u8 requestType;
+   u8 startIndex;
+}
+
+message zdp.Discovery.ZdpNwkAddrRsp<id="0x8000"> {
+   u8 status;
+   u64 ieeeAddr;
+   u16 nwkAddr;
+   //u8 numAssocDev when (status == ZDP_SUCCESS);
+   //u8 startIndex when (status == ZDP_SUCCESS);
+   //u16[numAssocDev] nwkAddrAssocDevList when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpIeeeAddrReq<id="0x0001"> {
+   u16 nwkAddrOfInterest;
+   u8 requestType;
+   u8 startIndex;
+}
+
+message zdp.Discovery.ZdpIeeeAddrRsp<id="0x8001"> {
+   u8 status;
+   u64 ieeeAddrRemoteDev;
+   u16 nwkAddrRemoteDev;
+   //u8 numAssocDev when (status == ZDP_SUCCESS);
+   //u8 startIndex when (status == ZDP_SUCCESS);
+   //u16[numAssocDev] nwkAddrAssocDevList when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpNodeDescReq<id="0x0002"> {
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpNodeDescRsp<id="0x8002"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   ZdpNodeDescriptor nodeDescriptor when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpPowerDescReq<id="0x0003"> {
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpPowerDescRsp<id="0x8003"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   ZdpPowerDescriptor nodeDescriptor when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpSimpleDescReq<id="0x0004"> {
+   u16 nwkAddrOfInterest;
+   u8 endpoint;
+}
+
+message zdp.Discovery.ZdpSimpleDescRsp<id="0x8004"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 length;
+   ZdpSimpleDescriptor simpleDescriptor when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpActiveEpReq<id="0x0005"> {
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpActiveEpRsp<id="0x8005"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 activeEpCount;
+   u8[activeEpCount] activeEndpoints;
+}
+
+message zdp.Discovery.ZdpMatchDescReq<id="0x0006"> {
+   u16 nwkAddrOfInterest;
+   u16 profileId;
+   u8 numInClusters;
+   u16[numInClusters] inClusters;
+   u8 numOutClusters;
+   u16[numOutClusters] outClusters;
+}
+
+message zdp.Discovery.ZdpMatchDescRsp<id="0x8006"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 matchLength;
+   u8[matchLength] matches;
+}
+
+message zdp.Discovery.ZdpComplexDescReq<id="0x0010"> {
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpComplexDescRsp<id="0x8010"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 length;
+   u8[length] descriptor when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpUserDescReq<id="0x0011"> {
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpUserDescRsp<id="0x8011"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   ZdpUserDescriptor descriptor when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpDiscoveryCacheReq<id="0x0012"> {
+   u16 nwkAddrOfInterest;
+   u64 ieeeAddr;
+}
+
+message zdp.Discovery.ZdpDiscoveryCacheRsp<id="0x8012"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpDeviceAnnce<id="0x0013"> {
+   u16 nwkAddrOfInterest;
+   u64 ieeeAddr;
+   u8 capability;
+}
+
+message zdp.Discovery.ZdpUserDescSet<id="0x0014"> {
+   u16 nwkAddrOfInterest;
+   ZdpUserDescriptor descriptor;
+}
+
+message zdp.Discovery.ZdpUserDescConf<id="0x8014"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+}
+
+message zdp.Discovery.ZdpSystemServerDiscoveryReq<id="0x0015"> {
+   u16 serverMask;
+}
+
+message zdp.Discovery.ZdpSystemServerDiscoveryRsp<id="0x8015"> {
+   u8 status;
+   u16 serverMask;
+}
+
+message zdp.Discovery.ZdpDiscoveryStoreReq<id="0x0016"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+   u8 nodeDescSize;
+   u8 powerDescSize;
+   u8 activeEpSize;
+   u8 simpleDescCount;
+   u8[simpleDescCount] simpleDescSizeList;
+}
+
+message zdp.Discovery.ZdpDiscoveryStoreRsp<id="0x8016"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpNodeDescStoreReq<id="0x0017"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+   ZdpNodeDescriptor nodeDescriptor;
+}
+
+message zdp.Discovery.ZdpNodeDescStoreRsp<id="0x8017"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpPowerDescStoreReq<id="0x0018"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+   ZdpPowerDescriptor nodeDescriptor;
+}
+
+message zdp.Discovery.ZdpPowerDescStoreRsp<id="0x8018"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpActiveEpStoreReq<id="0x0019"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+   u8 activeEpCount;
+   u8[activeEpCount] activeEpList;
+}
+
+message zdp.Discovery.ZdpActiveEpStoreRsp<id="0x8019"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpSimpleDescStoreReq<id="0x001A"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+   u8 length;
+   u8[length] simpleDescriptor;
+}
+
+message zdp.Discovery.ZdpSimpleDescStoreRsp<id="0x801A"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpRemoveNodeCacheReq<id="0x001B"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+}
+
+message zdp.Discovery.ZdpRemoveNodeCacheRsp<id="0x801B"> {
+   u8 status;
+}
+
+message zdp.Discovery.ZdpFindNodeCacheReq<id="0x001C"> {
+   u16 nwkAddr;
+   u64 ieeeAddr;
+}
+
+message zdp.Discovery.ZdpFindNodeCacheRsp<id="0x801C"> {
+   u16 cacheNwkAddr;
+   u16 nwkAddr;
+   u64 ieeeAddr;
+}
+
+message zdp.Discovery.ZdpExtendedSimpleDescReq<id="0x001D"> {
+   u16 nwkAddrOfInterest;
+   u8 endpoint;
+   u8 startIndex;
+}
+
+message zdp.Discovery.ZdpExtendedSimpleDescRsp<id="0x801D"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 endpoint;
+   u8 inputClusterCount;
+   u8 outputClusterCount;
+   u8 startIndex;
+   u16[inputClusterCount] inputClusters when (status == ZDP_SUCCESS);
+   u16[outputClusterCount] outputClusters when (status == ZDP_SUCCESS);
+}
+
+message zdp.Discovery.ZdpExtendedActiveEpReq<id="0x001E"> {
+   u16 nwkAddrOfInterest;
+   u8 startIndex;
+}
+
+message zdp.Discovery.ZdpExtendedActiveEpRsp<id="0x801E"> {
+   u8 status;
+   u16 nwkAddrOfInterest;
+   u8 activeEpCount;
+   u8 startIndex;
+   u8[activeEpCount] activeEndpoints;
+}

@@ -1,0 +1,637 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the Halo+ Smoke & CO Detector (Full)
+ * 
+ * - The mock driver updates the Temperature, Relative Humidity, Atmospheric Pressure, and CO ppm attributes every 15 seconds 
+ *   by a random amount (CO just increases 1ppm each interval), to allow easier testing of value changes.
+ *   
+ * - Halo Remote Test delays several seconds and then reports one of the possible results, cycling through each possibility each time a test is performed.
+ * 
+ * 
+ */
+
+import groovy.transform.Field
+
+driver          "MOCK_HaloPlus"
+description     "Driver for the Mockitron Halo Plus"
+version         "1.0"
+protocol        "MOCK"
+deviceTypeHint  "Halo"
+productId       "86a251"
+vendor          "Mockitron"
+model           "SABDA1"
+
+matcher         'MOCK:Capability' : 'HaloPlus'
+matcher         'MOCK:ProductId'  : '86a251'
+
+capabilities    DevicePower, Smoke, CarbonMonoxide, Test, Identify, Atmos, Temperature, RelativeHumidity, Switch, Dimmer, Light, Color, Halo, WeatherRadio, DeviceMock
+
+
+@Field final String DEVICE_NAME         = 'Mock HaloPlus'
+
+final String EVENT_END_RAMP_BRIGHTNESS  = 'EventEndRampBrightness'
+final String EVENT_LEVEL_SET            = 'EventDimLevelSet'
+final String EVENT_UPDATE_SENSORS       = 'EventUpdateSensors'
+final String EVENT_TEST_COMPLETED       = 'EventTestCompleted'
+final String EVENT_HUSH_RESPONSE        = 'EventHushResponse'
+final String EVENT_PLAY_COMPLETED       = 'EventStationPlayCompleted'
+final String EVENT_SCAN_COMPLETED       = 'EventStationScanCompleted'
+
+@Field final String KEY_TARGET_LEVEL    = 'KeyTargetLevel'
+@Field final String KEY_TEST_RESULT_IDX = 'KeyTestResultIndex'
+@Field final String KEY_HUSH_RSLT       = 'KeyHushResult'
+@Field final String KEY_SCAN_RESULT_IDX = 'KeyScanResultIndex'
+
+final long DIM_DELAY_MSEC      =  1000  // delay for Dim level to adjust and report back
+final long SENSOR_UPDATE_MSEC  = 15000  // interval for updating Temperature, RelativeHumidity, and Atmos attributes
+final long TEST_COMPLETED_MSEC = 20000  // interval for self-test to complete
+final long HUSH_COMPLETED_MSEC =  1000  // interval for Start Hush to respond
+final long SCAN_COMPLETED_MSEC =  5000  // interval for Station Scan to complete
+
+final byte WEATHER_PLAY_DEFAULT_DURATION = 5
+
+@Field 
+final ArrayList TEST_RESULTS_LIST = [ Halo.REMOTETESTRESULT_SUCCESS,        Halo.REMOTETESTRESULT_FAIL_ION_SENSOR,  Halo.REMOTETESTRESULT_FAIL_PHOTO_SENSOR,
+                                      Halo.REMOTETESTRESULT_FAIL_CO_SENSOR, Halo.REMOTETESTRESULT_FAIL_TEMP_SENSOR, Halo.REMOTETESTRESULT_FAIL_WEATHER_RADIO,
+                                      Halo.REMOTETESTRESULT_FAIL_OTHER ]
+
+@Field final mapTestResultToMsgTitle = [
+	(Halo.REMOTETESTRESULT_FAIL_ION_SENSOR):     "Ion Sensor Failure",
+	(Halo.REMOTETESTRESULT_FAIL_PHOTO_SENSOR):   "Photo Sensor Failure",
+	(Halo.REMOTETESTRESULT_FAIL_CO_SENSOR):      "CO Sensor Failure",
+	(Halo.REMOTETESTRESULT_FAIL_TEMP_SENSOR):    "Temperature Sensor Failure",
+	(Halo.REMOTETESTRESULT_FAIL_WEATHER_RADIO):  "Weather Radio Failure",
+	(Halo.REMOTETESTRESULT_FAIL_OTHER):          "Other Failure"
+	]
+
+@Field final mapMsgTitleToMsgText = [
+	"End of Life":                  "Halo has completed its service life. Please replace it immediately.",
+	"Low Battery":                  "Halo’s rechargeable battery is dangerously low. Restore the AC power supply.",
+	"Failed Battery":               "Halo has an issue with its rechargeable battery.",
+	"Ion Sensor Failure":           "Halo has an issue with its Smoke sensor.",
+	"Photo Sensor Failure":         "Halo has an issue with its Smoke sensor.",
+	"CO Sensor Failure":            "Halo has an issue with its CO sensor.",
+	"Temperature Sensor Failure":   "Halo has an issue with its temperature sensor.",
+	"Weather Radio Failure":        "Halo has an issue with its weather radio.",
+	"Other Failure":                "Halo has failed for an unknown reason."
+	]
+
+@Field
+final ArrayList STATION_FREQS = [ '162.400 MHz', '162.425 MHz', '162.450 MHz', '162.475 MHz', '162.500 MHz', '162.525 MHz', '162.550 MHz' ]
+
+
+DeviceConnection.signal	            88
+DeviceAdvanced.errors               [:]
+DevicePower.source                  DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.battery                 96
+DevicePower.backupbatterycapable    false
+Smoke.smoke                         Smoke.SMOKE_SAFE
+CarbonMonoxide.co                   CarbonMonoxide.CO_SAFE
+CarbonMonoxide.eol                  CarbonMonoxide.EOL_OK
+CarbonMonoxide.coppm                8
+Atmos.pressure                      101.325	// average sea-level pressure in kPa, 29.92 inches (inHg), 760 millimetres of mercury (mmHg)
+Temperature.temperature             22.2222		// 72F
+RelativeHumidity.humidity           67
+Switch.state                        Switch.STATE_OFF
+Dimmer.brightness                   100
+Light.colormode                     Light.COLORMODE_COLOR
+Color.hue                           1
+Color.saturation                    100
+Halo.room                           Halo.ROOM_NONE
+Halo.devicestate                    Halo.DEVICESTATE_SAFE
+Halo.hushstatus                     Halo.HUSHSTATUS_READY
+Halo.remotetestresult               Halo.REMOTETESTRESULT_SUCCESS
+Halo.haloalertstate                 Halo.HALOALERTSTATE_QUIET
+WeatherRadio.alertstate             WeatherRadio.ALERTSTATE_NO_ALERT
+WeatherRadio.playingstate           WeatherRadio.PLAYINGSTATE_QUIET
+WeatherRadio.currentalert           'NONE'
+WeatherRadio.location               '04401'	// Bangor, ME
+WeatherRadio.stationselected        2
+WeatherRadio.frequency              STATION_FREQS.getAt(2)
+def alertsOfInterestList =          [ "FFW", "BZW", "TOR", "TOA" ]
+WeatherRadio.alertsofinterest       alertsOfInterestList
+
+
+final Map roomNamesMap = [
+	"NONE":"None",
+	"BASEMENT":"Basement",
+	"BEDROOM":"Bedroom",
+	"DEN":"Den",
+	"DINING_ROOM":"Dining Room",
+	"DOWNSTAIRS":"Downstairs",
+	"ENTRYWAY":"Entryway",
+	"FAMILY_ROOM":"Family Room",
+	"GAME_ROOM":"Game Room",
+	"GUEST_BEDROOM":"Guest Bedroom",
+	"HALLWAY":"Hallway",
+	"KIDS_BEDROOM":"Kid's Bedroom",
+	"LIVING_ROOM":"Living Room",
+	"MASTER_BEDROOM":"Master Bedroom",
+	"OFFICE":"Office",
+	"STUDY":"Study",
+	"UPSTAIRS":"Upstairs",
+	"WORKOUT_ROOM":"Workout Room"
+	]
+									
+Halo.roomNames                      roomNamesMap
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} added", DEVICE_NAME
+
+	Device.name                         DEVICE_NAME
+	
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Smoke.smokechanged                  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	CarbonMonoxide.cochanged            ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Test.lastTestTime                   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	WeatherRadio.lastalerttime          ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+	
+	// schedule periodic updates of sensor values
+	Scheduler.scheduleIn EVENT_UPDATE_SENSORS, SENSOR_UPDATE_MSEC
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+	
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+// ########### capability support ##################
+
+setAttributes() {
+	def prevSwitch = Switch.state.get()
+	int level = -1
+	boolean stateSet = false
+
+	def attribs = message.attributes
+	for(attribute in attribs) {
+		// handle all "writable" attributes for supported capabilities, and Device.name
+		switch(attribute.key) {
+			case Dimmer.brightness:
+				level = attribute.value
+				if (level < 0) level = 0
+				if (level > 100) level = 100
+				log.debug "Set Brightness to: $level"
+				break
+
+			case Switch.state:
+				stateSet = true
+				Switch.state attribute.value
+				if (Switch.state.get() != prevSwitch) { 
+					Switch.statechanged now()
+				}
+				break
+
+			case Switch.inverted:
+				log.info "{} does not support Switch.inverted attribute", DEVICE_NAME
+				throw new Exception("${DEVICE_NAME} does not support the Switch.inverted attribute");
+				break
+
+			case Light.colormode:
+				if ((Light.COLORMODE_NORMAL == attribute.value) || (Light.COLORMODE_COLOR == attribute.value)) {
+					Light.colormode attribute.value
+				} else {
+					log.info "{} does not support colormode {}", DEVICE_NAME, attribute.value
+					throw new Exception("${DEVICE_NAME} does not support colormode ${attribute.value}");
+				}
+				break
+
+			case Color.hue:
+				int hue = attribute.value
+				if (360 < hue) hue = 360
+				if (0 > hue) hue = 0
+				log.debug "{} set Color.hue to {}", DEVICE_NAME, hue
+				Color.hue hue
+				break
+
+			case Color.saturation:
+				int sat = attribute.value
+				if (100 < sat) sat = 100
+				if (0 > sat) sat = 0
+				log.debug "{} set Color.saturation to {}", DEVICE_NAME, sat
+				Color.saturation sat
+				break
+
+			case Halo.room:
+				log.debug "{} set Halo.room to {}", DEVICE_NAME, attribute.value
+				Halo.room attribute.value
+				break
+
+			case Halo.haloalertstate:
+				log.debug "{} set Halo.haloalertstate to {}", DEVICE_NAME, attribute.value
+				Halo.haloalertstate attribute.value
+				break
+
+			case WeatherRadio.alertsofinterest:
+				log.debug "{} set WeatherRadio.alertsofinterest to {}", DEVICE_NAME, attribute.value
+				WeatherRadio.alertsofinterest attribute.value
+				break
+
+			case WeatherRadio.location:
+				log.debug "{} set WeatherRadio.location to {}", DEVICE_NAME, attribute.value
+				WeatherRadio.location attribute.value
+				break
+
+			case WeatherRadio.stationselected:
+				log.debug "{} set WeatherRadio.stationselected to {}", DEVICE_NAME, attribute.value
+				WeatherRadio.stationselected attribute.value
+				break
+				
+			case Device.name:
+				log.debug "{} set Device.name to {}", DEVICE_NAME, attribute.value
+				Device.name attribute.value
+				break
+
+			default:
+				log.debug "Unhandled Attribute in setAttributes: {}", attribute.key
+				break
+		}
+	}
+
+	// if level has been set
+	if (-1 != level) {
+		// if level is 0
+		if (0 == level) {
+			Dimmer.brightness 100
+			// if switch state was not set, set it to OFF
+			if (!stateSet) {
+				Switch.state Switch.STATE_OFF
+			}
+		} else {
+			// Dimmer.brightness level
+			setTargetLevel(level)
+			Scheduler.scheduleIn EVENT_LEVEL_SET, DIM_DELAY_MSEC
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Mock support
+////////////////////////////////////////////////////////////////////////////////
+
+onPlatform ("devmock:Connect") {
+	log.debug "devmock:Connect"
+	connected()
+	sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+	log.debug "devmock:Disconnect"
+	disconnected()
+	sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+	def handledAttrs = []
+	for(attribute in message.attributes.attrs) {
+		log.debug 'key: ' + attribute.key + ' - value: ' + attribute.value
+		handledAttrs.add( attribute.key )
+		// handle all attributes requiring any custom logic, or that also trigger a "changed" time stamp
+		switch(attribute.key) {
+			case Switch.state:
+				Switch.state attribute.value
+				Switch.statechanged now()
+				break
+			case Test.lastTestTime:
+				Test.lastTestTime now().getTime()
+				break
+			case Smoke.smoke:
+				Smoke.smoke attribute.value
+				Smoke.smokechanged now()
+				break
+			case CarbonMonoxide.co:
+				CarbonMonoxide.co attribute.value
+				CarbonMonoxide.cochanged now()
+				break
+			case CarbonMonoxide.eol:
+				CarbonMonoxide.eol attribute.value
+				break
+			case WeatherRadio.alertstate:
+				WeatherRadio.alertstate attribute.value
+				WeatherRadio.lastalerttime now()
+				break
+			default:
+				handledAttrs.remove( attribute.key )
+				break
+		}
+	}
+	for( attr in handledAttrs ) message.attributes.attrs.remove( attr )
+	attributes << message.attributes.attrs
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+	log.debug "{} received onIdentify.Identify", DEVICE_NAME
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+onDimmer.RampBrightness {
+	log.debug "{} received onDimmer.RampBrightness message: {}", DEVICE_NAME, message
+
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	if (targetBrightness < 0) targetBrightness = 0
+	if (targetBrightness > 100) targetBrightness = 100
+
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+
+	log.debug "Dimmer Brightness: " + targetBrightness + "," + targetSeconds
+	
+	Dimmer.rampingtarget targetBrightness
+	Dimmer.rampingtime targetSeconds
+	
+	Scheduler.scheduleIn EVENT_END_RAMP_BRIGHTNESS, (targetSeconds * 1000)
+	sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+onDimmer.IncrementBrightness {
+	log.debug "{} received onDimmer.IncrementBrightness message: {}", DEVICE_NAME, message
+	int newBrightness = new Double(message.attributes['amount']).intValue() + Dimmer.brightness.get()
+	if(newBrightness > 100) {
+		newBrightness = 100
+	}
+	def prevSwitch = Switch.state.get()
+	if(newBrightness > 0) {
+		Switch.state Switch.STATE_ON
+		if (Switch.state.get() != prevSwitch) { 
+			Switch.statechanged now()
+		}
+	}
+	// Dimmer.brightness newBrightness
+	setTargetLevel(newBrightness)
+	Scheduler.scheduleIn EVENT_LEVEL_SET, DIM_DELAY_MSEC
+	
+	sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+onDimmer.DecrementBrightness {
+	log.debug "{} received onDimmer.DecrementBrightness message: {}", DEVICE_NAME, message
+	int newBrightness = Dimmer.brightness.get() - new Double(message.attributes['amount']).intValue()
+	def prevSwitch = Switch.state.get()
+	if(newBrightness <= 1) {
+		newBrightness = 1
+	}
+	// Dimmer.brightness newBrightness
+	setTargetLevel(newBrightness)
+	Scheduler.scheduleIn EVENT_LEVEL_SET, DIM_DELAY_MSEC
+
+	sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+onHalo.StartHush {
+	log.debug "{} received onHalo.StartHush message: {}", DEVICE_NAME, message
+	Scheduler.scheduleIn EVENT_HUSH_RESPONSE, HUSH_COMPLETED_MSEC
+}
+
+onHalo.SendHush {
+	log.debug "{} received onHalo.SendHush message: {}", DEVICE_NAME, message
+	String color = message.attributes['color']
+	log.debug "Set device color: {}", color
+	sendResponse 'halo:SendHushResponse', [:]
+}
+
+onHalo.CancelHush {
+	log.debug "{} received onHalo.CancelHush message: {}", DEVICE_NAME, message
+	Halo.hushstatus Halo.HUSHSTATUS_READY
+	sendResponse 'halo:CancelHushResponse', [:]
+}
+
+onHalo.StartTest {
+	log.debug "{} received onHalo.StartTest message: {}", DEVICE_NAME, message
+	Scheduler.scheduleIn EVENT_TEST_COMPLETED, TEST_COMPLETED_MSEC
+	sendResponse 'halo:StartTestResponse', [:]
+}
+
+onWeatherRadio.ScanStations {
+	log.debug "{} received onWeatherRadio.ScanStations message: {}", DEVICE_NAME, message
+	Scheduler.scheduleIn EVENT_SCAN_COMPLETED, SCAN_COMPLETED_MSEC
+}
+
+onWeatherRadio.PlayStation {
+	log.debug "{} received onWeatherRadio.PlayStation message: {}", DEVICE_NAME, message
+	int station = message.attributes['station'] ?: 1
+	int secs = message.attributes['time'] ?: WEATHER_PLAY_DEFAULT_DURATION
+	if (1 > station) station = 1
+	if (7 < station) station = 7
+	WeatherRadio.stationselected station
+	WeatherRadio.frequency STATION_FREQS.getAt(station-1)
+	WeatherRadio.playingstate WeatherRadio.PLAYINGSTATE_PLAYING
+	log.debug "Play Station {} for {} seconds", station, secs
+	if (0 <= secs) {
+		Scheduler.scheduleIn EVENT_PLAY_COMPLETED, (secs * 1000)		
+	}
+	sendResponse 'noaa:PlayStationResponse', [:]
+}
+
+onWeatherRadio.StopPlayingStation {
+	log.debug "{} received onWeatherRadio.StopPlayingStation message: {}", DEVICE_NAME, message
+	Scheduler.cancel EVENT_PLAY_COMPLETED
+	WeatherRadio.playingstate WeatherRadio.PLAYINGSTATE_QUIET
+	sendResponse 'noaa:StopPlayingStationResponse', [:]
+}
+
+onWeatherRadio.SelectStation {
+	log.debug "{} received onWeatherRadio.SelectStation message: {}", DEVICE_NAME, message
+	int station = message.attributes['station']
+	if (1 > station) station = 1
+	if (7 < station) station = 7
+	WeatherRadio.stationselected station
+	WeatherRadio.frequency STATION_FREQS.getAt(station-1)
+	log.debug "Select Station {} at {} MHz", station, WeatherRadio.frequency.get()
+	sendResponse 'noaa:SelectStationResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Events
+////////////////////////////////////////////////////////////////////////////////
+
+// event that periodically reschedules itself to simulate device periodically reporting sensor values
+onEvent(EVENT_UPDATE_SENSORS){
+	Scheduler.scheduleIn EVENT_UPDATE_SENSORS, SENSOR_UPDATE_MSEC
+	java.util.Random rnd = new Random()
+	
+	double tmp = Temperature.temperature.get() as Double
+	tmp += (0.5 - rnd.nextDouble())				// increase random amount -0.5 to 0.5 C
+	if (20.0 > tmp) tmp = 20.0					// don't go below 68F
+	if (30.0 < tmp) tmp = 30.0					// don't go above 86F
+	log.debug "{} reported temperature: {} C", DEVICE_NAME, tmp
+	Temperature.temperature tmp
+
+	double humidity = RelativeHumidity.humidity.get() as Double
+	humidity += (0.5 - rnd.nextDouble())		// increase random amount -0.5 to 0.5 %
+	if (20.0 > humidity) humidity = 20.0		// don't go below 20%
+	if (80.0 < humidity) humidity = 30.0		// don't go above 80%
+	log.debug "{} reported humidity: {}%", DEVICE_NAME, humidity
+	RelativeHumidity.humidity humidity
+
+	double pressure = Atmos.pressure.get() as Double
+	pressure += (0.25 - (rnd.nextDouble()/2))	// increase random amount -0.25 to 0.25 kPa
+	if (98.0 > pressure) pressure = 98.0		// don't go below 98.0 kPa, barometric pressure seldom goes above 31 inches (~98.2 kPa)
+	if (105.0 < pressure) pressure = 105.0		// don't go above 105.0 kPa, barometric pressure seldom drops below 29 inches (~104.9 kPa)
+	log.debug "{} reported air pressure: {} kPa", DEVICE_NAME, pressure
+	Atmos.pressure pressure
+
+	long co = CarbonMonoxide.coppm.get() as Long
+	co += 1
+	log.debug "{} reported CO: {} ppm", DEVICE_NAME, co
+	CarbonMonoxide.coppm co
+}
+
+// event scheduled to simulate device reaching target dim level after a specified time
+onEvent(EVENT_END_RAMP_BRIGHTNESS) {
+	Dimmer.brightness Dimmer.rampingtarget.get()
+	Dimmer.rampingtime 0
+}
+
+// event scheduled to simulate device delay to reach a target dim level
+onEvent(EVENT_LEVEL_SET) {
+	Dimmer.brightness getTargetLevel()
+}
+
+// event scheduled to simulate completion of self-test on device
+onEvent(EVENT_TEST_COMPLETED) {
+	log.debug "{} self-test completed", DEVICE_NAME
+	def result = getNextTestResult()
+	Halo.remotetestresult result
+	
+	if (mapTestResultToMsgTitle.containsKey(result)) {
+		log.debug "HaloPlus: test result ({}) maps to message: {}, {}", result, mapTestResultToMsgTitle[result], mapMsgTitleToMsgText[mapTestResultToMsgTitle[result]]
+		DeviceAdvanced.errors [:]
+		DeviceAdvanced.errors.put(mapTestResultToMsgTitle[result],mapMsgTitleToMsgText[mapTestResultToMsgTitle[result]])
+	}
+	
+	Test.lastTestTime now()
+}
+
+// event to simulate delayed response to Start Hush
+onEvent(EVENT_HUSH_RESPONSE) {
+	boolean rslt = getHushStartResult()
+	log.debug "{} hush response: {}", DEVICE_NAME, rslt
+	if (rslt) {
+		Halo.hushstatus Halo.HUSHSTATUS_SUCCESS
+	} else {
+		Halo.hushstatus Halo.HUSHSTATUS_TIMEOUT
+	}
+	sendResponse 'halo:StartHushResponse', [ "hushstarted":rslt ]
+}
+
+// event scheduled to simulate completion of weather station scan by device
+onEvent(EVENT_SCAN_COMPLETED) {
+	log.debug "{} station scan completed", DEVICE_NAME
+	int idx = getNextScanResultIdx()
+	switch(idx) {
+		case 1:		// not all frequencies, not ordered by rssi
+			sendResponse 'noaa:ScanStationsResponse', [ "stations" : [ [ "id": 1, "freq": STATION_FREQS.getAt(0), "rssi": 36.2 ],
+																	   [ "id": 2, "freq": STATION_FREQS.getAt(1), "rssi": 11.0 ],
+																	   [ "id": 3, "freq": STATION_FREQS.getAt(2), "rssi": 42.8 ],
+																	   [ "id": 5, "freq": STATION_FREQS.getAt(4), "rssi": 28.6 ],
+																	   [ "id": 7, "freq": STATION_FREQS.getAt(6), "rssi": 19.75 ] ]
+													  ]
+			break
+		case 2:		// all frequencies, ordered by rssi
+			sendResponse 'noaa:ScanStationsResponse', [ "stations" : [ [ "id": 1, "freq": STATION_FREQS.getAt(0), "rssi": -0.2 ],
+																	   [ "id": 4, "freq": STATION_FREQS.getAt(3), "rssi": 14.0 ],
+																	   [ "id": 7, "freq": STATION_FREQS.getAt(6), "rssi": 24.4 ],
+																	   [ "id": 2, "freq": STATION_FREQS.getAt(1), "rssi": 27.1 ],
+																	   [ "id": 5, "freq": STATION_FREQS.getAt(4), "rssi": 32.6 ],
+																	   [ "id": 6, "freq": STATION_FREQS.getAt(5), "rssi": 38.6 ],
+																	   [ "id": 3, "freq": STATION_FREQS.getAt(2), "rssi": 49.5 ] ]
+													  ]
+			break
+		default:	// no stations found (scan timed out?)
+			sendResponse 'noaa:ScanStationsResponse', [ "stations" : [  ] ]
+			break
+	}
+}
+
+// event scheduled to simulate completion of playing weather station
+onEvent(EVENT_PLAY_COMPLETED) {
+	log.debug "{} station play completed", DEVICE_NAME
+	WeatherRadio.playingstate WeatherRadio.PLAYINGSTATE_QUIET
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Helper methods and var accessors
+////////////////////////////////////////////////////////////////////////////////
+
+// accessor for target dim level
+int getTargetLevel() {
+	return vars.KEY_TARGET_LEVEL ?: 100	// default to full ON
+}
+
+// accessor to set target dim level
+void setTargetLevel(level) {
+	if (level < 0) level = 0
+	if (level > 100) level = 100
+	vars.KEY_TARGET_LEVEL = level
+}
+
+// accessor to cycle through defined self-test results
+def getNextTestResult() {
+	return TEST_RESULTS_LIST.get(getNextTestResultIdx())
+}
+
+// accessor to index of next self-test result
+int getNextTestResultIdx() {
+	int idx = vars.KEY_TEST_RESULT_IDX ?: 0
+	idx++
+	if (idx >= TEST_RESULTS_LIST.size()) idx = 0
+	vars.KEY_TEST_RESULT_IDX = idx
+	log.trace "{} using TestResult index: {}", DEVICE_NAME, idx
+	return idx
+}
+
+// accessor to read next Start Hush result
+boolean getHushStartResult() {
+	// make sure there is always a setting (cannot use ?: with booleans)
+	if (null == vars.KEY_HUSH_RSLT) vars.KEY_HUSH_RSLT = false
+	boolean rslt =! vars.KEY_HUSH_RSLT as Boolean
+	vars.KEY_HUSH_RSLT = rslt
+	return rslt
+}
+
+// accessor to index of next scan result
+int getNextScanResultIdx() {
+	int idx = vars.KEY_SCAN_RESULT_IDX ?: 0
+	idx++
+	if (idx > 2) idx = 0
+	vars.KEY_SCAN_RESULT_IDX = idx
+	log.trace "{} using Scan result set: {}", DEVICE_NAME, idx
+	return idx
+}
+

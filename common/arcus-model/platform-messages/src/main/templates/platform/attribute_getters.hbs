@@ -1,0 +1,25 @@
+   {{#.}}
+{{> platform/type}}
+   {{/.}}
+   {{#.}}{{#enumValues}}
+   public static final String {{toUpperCase name}}_{{toUpperCase .}} = "{{.}}";
+   {{/enumValues}}{{/.}}
+   {{#.}}
+   /** {{description}} */
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(com.iris.messages.MessageBody message) {
+      if(message == null) { 
+         return null;
+      }
+      return ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(message.getAttributes().get(ATTR_{{toUpperCase name}}));
+   }
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(com.iris.messages.MessageBody message, {{{javaTypeOf type}}} dflt) {
+      if(message == null) { 
+         return null;
+      }
+      Object v = TYPE_{{toUpperCase name}}.coerce(message.getAttributes().get(ATTR_{{toUpperCase name}}));
+      if(v == null) {
+         return dflt;
+      }
+      return ({{{javaTypeOf type}}}) v;
+   }
+   {{/.}}

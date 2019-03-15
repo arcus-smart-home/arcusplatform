@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Person"
+   namespace="person"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0"
+>
+
+   <c:description>
+      Model of a person
+   </c:description>
+
+   <c:attributes>
+    	<c:attribute name="owner" readwrite="r" type="boolean"
+         optional="false" description="Returns true if the person is the owner for the place context"/>
+   </c:attributes>
+
+   <c:methods>
+   </c:methods>
+
+   <c:events>
+
+      <!-- TODO:  this should really go over the intraservice bus and not platform -->
+      <c:event
+         name="PasswordChanged"
+         description="Event emitted when the user changes their password that allows all client bridges to force current sessions to log out of the bridge."
+      >
+         <c:parameter
+            name="session"
+            type="string"
+            description="This is the session token for the user when the password was changed, it should not be logged out."
+            optional="true"
+         />
+      </c:event>
+      <c:event name="InvitationRejected" description="Emitted when an invitation for this user has been rejected">
+      	<c:parameter
+            name="invitation"
+            type="Invitation"
+            description=""
+            optional="true" />
+      
+      </c:event>
+
+   </c:events>
+
+</c:capability>

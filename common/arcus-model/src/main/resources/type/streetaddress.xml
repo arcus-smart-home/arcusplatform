@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="StreetAddress"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>A street address</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="line1"
+			type="string"
+			description="The first line of the street address"
+			/>
+		<t:attribute
+			name="line2"
+			type="string"
+			description="The second line of the street address, if needed"
+			/>
+		<t:attribute
+			name="city"
+			type="string"
+			description="The name of the city"
+			/>
+		<t:attribute
+			name="state"
+			type="string"
+			description="The 2 character state code"
+			/>
+		<t:attribute
+			name="zip"
+			type="string"
+			description="The zip code, may be 5 digit zip or zip plus 4"
+			/>
+	</t:attributes>
+ </t:type>

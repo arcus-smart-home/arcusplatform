@@ -1,0 +1,23 @@
+
+// SWITCH_TOGGLE_MULTILEVEL_SET
+message zwave.SwitchToggleMultilevel.SwitchToggleMultilevelSetV1<id="0x01", group="V1"> {
+}
+
+message zwave.SwitchToggleMultilevel.SwitchToggleMultilevelGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SwitchToggleMultilevel.SwitchToggleMultilevelReportV1<id="0x03", group="V1"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchToggleMultilevel.SwitchToggleMultilevelStartLevelChangeV1<id="0x04", group="V1"> {
+    const u8 LEVEL_IGNORE_START_LEVEL = 0x20;
+    const u8 LEVEL_ROLL_OVER = 0x80;
+    u8 level;
+    u8 startLevel;
+}
+
+message zwave.SwitchToggleMultilevel.SwitchToggleMultilevelStopLevelChangeV1<id="0x05", group="V1"> {
+}

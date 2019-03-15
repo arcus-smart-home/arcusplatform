@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Garage Door Obstruction Cleared
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}} is no longer obstructed.  It is {{{enum doorState CLOSED ="closed" CLOSING ="closing" OBSTRUCTION ="obstructed" OPENING ="opening" OPEN="open"}}}.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}} is no longer obstructed.  It is {{enum doorState CLOSED ="closed" CLOSING ="closing" OBSTRUCTION ="obstructed" OPENING ="opening" OPEN="open"}}.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

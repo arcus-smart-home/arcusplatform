@@ -1,0 +1,29 @@
+
+message zwave.MeterTblPush.MeterTblPushConfigurationGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.MeterTblPush.MeterTblPushConfigurationReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_OPERATING_STATUS_PUSH_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_OPERATING_STATUS_PUSH_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_PS = 0x10;
+    u8 properties1;
+    u8[3] pushDataset;
+    u8 intervalMonths;
+    u8 intervalDays;
+    u8 intervalHours;
+    u8 intervalMinutes;
+    u8 pushNodeId;
+}
+
+message zwave.MeterTblPush.MeterTblPushConfigurationSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_OPERATING_STATUS_PUSH_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_OPERATING_STATUS_PUSH_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_PS = 0x10;
+    u8 properties1;
+    u8[3] pushDataset;
+    u8 intervalMonths;
+    u8 intervalDays;
+    u8 intervalHours;
+    u8 intervalMinutes;
+    u8 pushNodeId;
+}

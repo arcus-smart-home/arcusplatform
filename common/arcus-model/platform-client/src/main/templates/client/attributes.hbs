@@ -1,0 +1,6 @@
+   {{#.}}
+   /** {{description}} */
+   public static final String ATTR_{{toUpperCase name}} = "{{namespace}}:{{name}}";
+   {{#enumValues}}
+   public static final String {{toUpperCase name}}_{{toUpperCase .}} = "{{.}}";{{/enumValues}}
+   {{/.}}

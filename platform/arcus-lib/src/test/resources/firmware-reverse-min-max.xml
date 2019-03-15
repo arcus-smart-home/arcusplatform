@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<f:firmwares xmlns:f="http://arcus.com/firmware_1.0.0" >
+
+   <f:metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
+   
+   <f:firmware min="2.2.0.009" max="2.1.1.002" target="HubOS_2.1.2.0" population="alpha,beta" />
+   
+</f:firmwares>

@@ -1,0 +1,248 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Linear WO15Z-1 In-Wall Switch
+ * 
+ * Note: To remove the device, I usually have to push the button several times rather quickly, not just once.
+ * 
+ * Note: The device does not send any notification of local changes.
+ * 
+ */
+driver			"ZWLinearWS15ZDriver"
+description		"Driver for a Linear WS15Z In-Wall Switch"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+productId		"3cbddc"
+vendor 			"Uncertified"		// "Linear"
+model 			"WS15Z"
+
+matcher			'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x5257, 'ZWAV:ProductId': 0x3533
+
+
+capabilities	DevicePower, Switch, Indicator
+
+importCapability 'zwave/GenericZWaveSwitch'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Device Type:
+//		Binary Power Switch
+//
+// Command Classes:
+//		0x25   (37) Switch_Binary
+//		0x27   (39) Switch_All
+//      0x2B   (43) Scene_Activation
+//      0x2C   (44) Scene_Actuator_Conf
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//		0x75  (117) Protection
+//		0x86 (-122) Version
+
+//DevicePower attributes are assumed
+DevicePower.battery 			 0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+final String DEVICE_NAME        = "Linear WS15Z Switch"
+final int POLLING_INTERVAL_SEC  = 120		// every 120 seconds, because it does not notify us of local changes
+final int OFFLINE_TIMEOUT_SECS  = 600       // 10 minutes
+
+final byte SWITCH_ON		    = 0xff
+final byte SWITCH_OFF		    = 0x00
+
+// config definitions/constants
+// ----------------------------
+final byte CNFG_LED_PARAM_NO    = 0x03      // LED Indicator
+final byte CNFG_LED_SIZE        = 0x01
+final byte CNFG_LED_NORMAL      = 0x01		// LED 'ON' when outlet is 'OFF'
+final byte CNFG_LED_INVERSE     = 0x00		// LED 'ON' when outlet is 'ON' (default for this device)
+
+final byte CNFG_TOGGLE_PARAM_NO = 0x04		// parameter number for 'Toggle' setting, used to invert operation if installed upside down
+final byte CNFG_TOGGLE_SIZE     = 0x01		// size of 'Toggle' parameter field, in bytes
+final byte CNFG_TOGGLE_NORMAL   = 0x00		// Top/Up is 'ON' (default)
+final byte CNFG_TOGGLE_INVERT   = 0x01		// Top/Up is 'OFF'
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes
+	
+	ZWave.association.set( 1, 1, 0, 0, 0);
+
+	// make sure LED is Configured to default mode
+	ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_INVERSE)
+	
+	Switch.inverted                     false
+	
+	Indicator.enabled                   true
+	Indicator.enableSupported           false		// user cannot change the Indicator.enabled attribute for this device
+	Indicator.inverted                  true		// default to inverted because most people prefer that
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected"
+	
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+	
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	
+	// get configuration settings
+	ZWave.configuration.get(CNFG_LED_PARAM_NO)
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected"
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed"
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('indicator') {
+	log.debug "${DEVICE_NAME} received SetAttributes(indicator') {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Indicator.inverted:
+				// set the LED configuration
+				ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+				// get the current LED configuration from the device (to verify the config was set)
+				ZWave.configuration.get(CNFG_LED_PARAM_NO)
+				break
+
+			case Indicator.enabled:
+				// The indicator cannot be enabled/disabled, only inverted
+				log.warn "${DEVICE_NAME} does not support enable/disable of Indicator"
+				break
+
+			default:
+				break
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+	log.debug "${DEVICE_NAME} received Set Switch Attributes {}", message
+	GenericZWaveSwitch.handleSwitchState(this,DEVICE_NAME,message)
+	
+	def attributes = message.attributes;
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.inverted:
+				// only accept this if the Switch.inverted attribute is not null, indicating that it can be set
+				if (null != Switch.inverted.get()) {
+					// set the Switch Orientation configuration
+					ZWave.configuration.set(CNFG_TOGGLE_PARAM_NO, CNFG_TOGGLE_SIZE, attribute.value ? CNFG_TOGGLE_INVERT : CNFG_TOGGLE_NORMAL)
+					// get the current Switch Orientation configuration from the device (to verify the config was set)
+					ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
+				} else {
+					log.warn "Attempted to set Switch.inverted attribute on device that does not support it"
+				}
+				break
+	
+			default:
+				break
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	GenericZWaveSwitch.handleBinarySwitchReport(this,DEVICE_NAME,message)
+	
+	boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
+	if (SWITCH_ON == message.command.get('value')) {
+		// update the indicator attribute to match (or inverse of) the state attribute
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+	} else {
+		// update the indicator attribute to match (or inverse of) the state attribute
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+	}
+}
+
+onZWaveMessage.configuration.report {
+	log.debug "${DEVICE_NAME} sent configuration report: {}", message
+	byte param = message.command.get('param')
+	byte level = message.command.get('level')
+	byte val1 = message.command.get('val1')
+	log.debug "param: {}, level: {}, val1: {}", param, level, val1
+
+	if (CNFG_LED_PARAM_NO == param) {
+		log.debug "LED Inverted: {}", val1
+		if (1 == val1) {
+			// set/save the inverted attribute of the LED indicator
+			Indicator.inverted false
+			// update the indicator attribute to match (or inverse of) the current state attribute
+			Indicator.indicator ((Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+		} else {
+			// set/save the inverted attribute of the LED indicator
+			Indicator.inverted true
+			// update the indicator attribute to match (or inverse of) the current state attribute
+			Indicator.indicator ((Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+		}
+	}
+
+	if (CNFG_TOGGLE_PARAM_NO == param) {
+		log.debug "Toggle Switch Inverted: {}", val1
+		// set/save the inverted attribute of the switch
+		Switch.inverted ((0 == val1) ? false : true)
+	}
+}
+
+onZWaveNodeInfo {
+	log.debug "${DEVICE_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	// devices report a Node Info every time their state is changed locally,
+	// so do a Binary Switch Get to get the current state (delay this so device does not report back "busy")
+	GenericZWaveSwitch.readSwitchState(this, DEVICE_NAME)
+	
+}
+
+onZWaveMessage.application_status.busy {
+	log.debug "${DEVICE_NAME} reported Busy"
+	// when device reports that it is busy, do another Binary Switch Get, if we haven't done too many already
+	GenericZWaveSwitch.readSwitchStateAgain(this, DEVICE_NAME)
+}
+
+onZWaveMessage.hail.hail {
+	log.debug "${DEVICE_NAME} sent a Hail"
+}
+
+onZWaveMessage {
+    log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
+    return false;
+}
+
+

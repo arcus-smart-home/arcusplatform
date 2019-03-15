@@ -1,0 +1,117 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+/**
+ * To Use this Mock MotorizedDoor, set OPEN_CLOSE_DELAY_MSEC (switch delay in msec) and 
+ * CURRENT_NAME (device name) during onConnect or onAdd in your driver logic if you don't want the default values.
+ */
+
+
+capability		MotorizedDoor
+description		"Mock implementation for the MotorizedDoor capability"
+version			"1.0"
+
+
+@Field final long OPEN_CLOSE_DELAY_MSEC = 5000		// simulate door open/close delay
+@Field final String ERR_OBSTRUCTION_KEY = 'ERR_OBSTRUCTION'
+@Field final String ERR_OBSTRUCTION_VALUE = 'Garage door may be obstructed'
+
+DeviceAdvanced.errors               [:]
+DeviceConnection.signal             92
+DevicePower.source                  DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.backupbatterycapable    false
+MotorizedDoor.doorstate             MotorizedDoor.DOORSTATE_CLOSED
+
+// ########### capability support ##################
+onAdded {
+	log.debug "Motorized door added."
+
+	// set initial attribute values
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	MotorizedDoor.doorstatechanged      ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	vars.'obstructionCnt' = 0
+}
+
+setAttributes('motdoor') {
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case MotorizedDoor.doorstate:
+				switch(attribute.value) {
+					case MotorizedDoor.DOORSTATE_OPEN:
+						log.debug "Motorized door is opening"
+						// set current state to Opening
+						MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPENING
+						MotorizedDoor.doorstatechanged new Date()
+						// do a delayed setting of the value to Open
+						Scheduler.scheduleIn 'OpenDoor', OPEN_CLOSE_DELAY_MSEC
+						break
+					case MotorizedDoor.DOORSTATE_CLOSED:
+						if (1 < vars.'obstructionCnt') {
+							log.warn "Motorized door - Cannot remotely close garage door after 2 consecutive obstructions until door is operated locally."
+							return false
+						} else {
+							log.debug "Closing Garage Door"
+							// set the current state to Closing
+							MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSING
+							MotorizedDoor.doorstatechanged new Date()
+							// do a delayed setting of the state to Closed
+							Scheduler.scheduleIn 'CloseDoor', OPEN_CLOSE_DELAY_MSEC
+						}
+						break
+					case MotorizedDoor.DOORSTATE_CLOSING:
+					case MotorizedDoor.DOORSTATE_OPENING:
+						MotorizedDoor.doorstate attribute.value
+						MotorizedDoor.doorstatechanged new Date()
+						break
+					case MotorizedDoor.DOORSTATE_OBSTRUCTION:
+						vars.'obstructionCnt' = vars.'obstructionCnt' + 1
+						// for testing, if count gets over 2, reset to 0
+						if (2 < vars.'obstructionCnt') {
+							vars.'obstructionCnt' = 0
+						}
+						log.debug "Motorized door - Obstruction Count:" + vars.'obstructionCnt'
+						MotorizedDoor.doorstate attribute.value
+						MotorizedDoor.doorstatechanged new Date()
+						DeviceAdvanced.errors.put(ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE)
+						break
+					default:
+						log.error "Motorized door - Unrecognized Door state: " + attribute.value
+				}
+				break
+			default:
+				log.error "Motorized door - Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+onEvent('OpenDoor') {
+	MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPEN
+	MotorizedDoor.doorstatechanged new Date()
+	DeviceAdvanced.errors.remove(ERR_OBSTRUCTION_KEY)
+	log.debug "Motorized door opened"
+}
+
+onEvent('CloseDoor') {
+	MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSED
+	MotorizedDoor.doorstatechanged new Date()
+	vars.'obstructionCnt' = 0
+	DeviceAdvanced.errors.remove(ERR_OBSTRUCTION_KEY)
+	log.debug "Motorized door closed"
+}
+

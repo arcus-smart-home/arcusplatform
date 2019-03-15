@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:capability name="Scene" namespace="scene"
+   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a scene, which is a specific instance of a SceneTemplate with context necessary for evaluation
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute name="name" readwrite="rw" type="string"
+                   optional="false" description="The name of the scene"/>
+      <c:attribute name="created" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule was created"/>
+      <c:attribute name="modified" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule was last modified"/>
+      <c:attribute name="template" readwrite="r" type="string"
+                   optional="true" description="The address of the template this scene was created from."/>
+      <c:attribute name="enabled" readwrite="r" type="boolean"
+                   optional="false" description="Whether or not this scene is enabled, currently this is tied directly to PREMIUM / BASIC status and may not be changed."/>
+      <c:attribute name="notification" readwrite="rw" type="boolean"
+                   optional="false" description="Whether or not a notification should be fired when this scene is executed."/>
+      <c:attribute name="scheduler" readwrite="r" type="string"
+                   optional="false" description="The id of the associated scheduler."/>
+      <c:attribute name="firing" readwrite="r" type="boolean"
+                   optional="false" description="True while the scene is being executed, the scene may not be ran again until executing is false, at which point all actions have succeeded or failed."/>
+      <c:attribute name="actions" readwrite="rw" type="list&lt;Action&gt;"
+                   optional="false" description="The actions associated with this scene."/>
+      <c:attribute name="lastFireTime" readwrite="r" type="timestamp"
+                   optional="true" description="The last time this scene was run."/>
+      <c:attribute name="lastFireStatus" readwrite="r" type="enum" values="NOTRUN, SUCCESS, FAILURE, PARTIAL"
+                   optional="false" description="The actions associated with this scene."/>
+
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method name="Fire" description="Executes the scene"/>
+      <c:method name="Delete" description="Deletes the scene"/>
+      <!-- Not supported... yet
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this rule">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this rule" />
+      </c:method>
+       -->
+      
+   </c:methods>
+
+</c:capability>

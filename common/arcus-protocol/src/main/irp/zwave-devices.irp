@@ -1,0 +1,222 @@
+constants zwave.ZWaveBasicDevices {
+   const u8 BASIC_TYPE_CONTROLLER = 0x01; // Node is a portable controller 
+   const u8 BASIC_TYPE_ROUTING_SLAVE = 0x04; // Node is a slave with routing capabilities
+   const u8 BASIC_TYPE_SLAVE = 0x03; // Node is a slave
+   const u8 BASIC_TYPE_STATIC_CONTROLLER = 0x02; // Node is a static controller
+}
+
+constants zwave.ZWaveGenericDevices {
+   const u8 GENERIC_TYPE_AV_CONTROL_POINT = 0x03; // AV Control Point
+   const u8 GENERIC_TYPE_DISPLAY = 0x04;
+   const u8 GENERIC_TYPE_ENTRY_CONTROL = 0x40; // Entry Control
+   const u8 GENERIC_TYPE_GENERIC_CONTROLLER = 0x01; // Remote Controller
+   const u8 GENERIC_TYPE_METER = 0x31; // Meter
+   const u8 GENERIC_TYPE_METER_PULSE = 0x30; // Pulse Meter
+   const u8 GENERIC_TYPE_NON_INTEROPERABLE = 0xFF; // Non interoperable
+   const u8 GENERIC_TYPE_REPEATER_SLAVE = 0x0F; // Repeater Slave
+   const u8 GENERIC_TYPE_SECURITY_PANEL = 0x17;
+   const u8 GENERIC_TYPE_SEMI_INTEROPERABLE = 0x50; // Semi Interoperable
+   const u8 GENERIC_TYPE_SENSOR_ALARM = 0xA1;
+   const u8 GENERIC_TYPE_SENSOR_BINARY = 0x20; // Binary Sensor
+   const u8 GENERIC_TYPE_SENSOR_MULTILEVEL = 0x21; // Multilevel Sensor
+   const u8 GENERIC_TYPE_STATIC_CONTROLLER = 0x02; // Static Controller
+   const u8 GENERIC_TYPE_SWITCH_BINARY = 0x10; // Binary Switch
+   const u8 GENERIC_TYPE_SWITCH_MULTILEVEL = 0x11; // Multilevel Switch
+   const u8 GENERIC_TYPE_SWITCH_REMOTE = 0x12; // Remote Switch
+   const u8 GENERIC_TYPE_SWITCH_TOGGLE = 0x13; // Toggle Switch
+   const u8 GENERIC_TYPE_THERMOSTAT = 0x08; // Thermostat
+   const u8 GENERIC_TYPE_VENTILATION = 0x16;
+   const u8 GENERIC_TYPE_WINDOW_COVERING = 0x09; // Window Covering
+   const u8 GENERIC_TYPE_ZIP_NODE = 0x15;
+   const u8 GENERIC_TYPE_WALL_CONTROLLER = 0x18;
+   const u8 GENERIC_TYPE_NETWORK_EXTENDER = 0x05; // Network Extender Generic Device Class
+   const u8 GENERIC_TYPE_APPLIANCE = 0x06;
+   const u8 GENERIC_TYPE_SENSOR_NOTIFICATION = 0x07;
+}
+
+constants zwave.ZWaveAvControlPointSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_DOORBELL = 0x12;
+   const u8 SPECIFIC_TYPE_SATELLITE_RECEIVER = 0x04; // Satellite Receiver
+   const u8 SPECIFIC_TYPE_SATELLITE_RECEIVER_V2 = 0x11; // Satellite Receiver V2
+}
+
+constants zwave.ZWaveDisplaySpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SIMPLE_DISPLAY = 0x01; // Display (simple) Device Type
+}
+
+constants zwave.ZWaveEntryControlSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_DOOR_LOCK = 0x01; // Door Lock
+   const u8 SPECIFIC_TYPE_ADVANCED_DOOR_LOCK = 0x02; // Advanced Door Lock
+   const u8 SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK = 0x03; // Door Lock (keypad –lever) Device Type
+   const u8 SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK_DEADBOLT = 0x04; // Door Lock (keypad – deadbolt) Device Type
+   const u8 SPECIFIC_TYPE_SECURE_DOOR = 0x05; // Barrier Operator Specific Device Class
+   const u8 SPECIFIC_TYPE_SECURE_GATE = 0x06; // Barrier Operator Specific Device Class
+   const u8 SPECIFIC_TYPE_SECURE_BARRIER_ADDON = 0x07; // Barrier Operator Specific Device Class
+   const u8 SPECIFIC_TYPE_SECURE_BARRIER_OPEN_ONLY = 0x08; // Barrier Operator Specific Device Class
+   const u8 SPECIFIC_TYPE_SECURE_BARRIER_CLOSE_ONLY = 0x09; // Barrier Operator Specific Device Class
+   const u8 SPECIFIC_TYPE_SECURE_LOCKBOX = 0x0A; // SDS12724
+   const u8 SPECIFIC_TYPE_SECURE_KEYPAD = 0x0B;  // SDS13740
+}
+
+constants zwave.ZWaveGenericControllerSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_PORTABLE_REMOTE_CONTROLLER = 0x01; // Remote Control (Multi Purpose) Device Type
+   const u8 SPECIFIC_TYPE_PORTABLE_SCENE_CONTROLLER = 0x02; // Portable Scene Controller
+   const u8 SPECIFIC_TYPE_PORTABLE_INSTALLER_TOOL = 0x03;
+   const u8 SPECIFIC_TYPE_REMOTE_CONTROL_AV = 0x04; // Remote Control (AV) Device Type
+   const u8 SPECIFIC_TYPE_REMOTE_CONTROL_SIMPLE = 0x06; // Remote Control (Simple) Device Type
+}
+
+constants zwave.ZWaveMeterSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SIMPLE_METER = 0x01; // Sub Energy Meter Device Type
+   const u8 SPECIFIC_TYPE_ADV_ENERGY_CONTROL = 0x02; // Whole Home Energy Meter (Advanced) Device Type
+   const u8 SPECIFIC_TYPE_WHOLE_HOME_METER_SIMPLE = 0x03; // Whole Home Meter (Simple) Device Type
+}
+
+constants zwave.ZWaveMeterPulseSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+}
+
+constants zwave.ZWaveNonInteroperableSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+}
+
+constants zwave.ZWaveRepeaterSlaveSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_REPEATER_SLAVE = 0x01; // Basic Repeater Slave
+}
+
+constants zwave.ZWaveSecurityPanelSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ZONED_SECURITY_PANEL = 0x01;
+}
+
+constants zwave.ZWaveSemiInteroperableSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ENERGY_PRODUCTION = 0x01; // Energy Production
+}
+
+constants zwave.ZWaveSensorAlarmSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ADV_ZENSOR_NET_ALARM_SENSOR = 0x05;
+   const u8 SPECIFIC_TYPE_ADV_ZENSOR_NET_SMOKE_SENSOR = 0x0A;
+   const u8 SPECIFIC_TYPE_BASIC_ROUTING_ALARM_SENSOR = 0x01;
+   const u8 SPECIFIC_TYPE_BASIC_ROUTING_SMOKE_SENSOR = 0x06;
+   const u8 SPECIFIC_TYPE_BASIC_ZENSOR_NET_ALARM_SENSOR = 0x03;
+   const u8 SPECIFIC_TYPE_BASIC_ZENSOR_NET_SMOKE_SENSOR = 0x08;
+   const u8 SPECIFIC_TYPE_ROUTING_ALARM_SENSOR = 0x02;
+   const u8 SPECIFIC_TYPE_ROUTING_SMOKE_SENSOR = 0x07;
+   const u8 SPECIFIC_TYPE_ZENSOR_NET_ALARM_SENSOR = 0x04;
+   const u8 SPECIFIC_TYPE_ZENSOR_NET_SMOKE_SENSOR = 0x09;
+   const u8 SPECIFIC_TYPE_ALARM_SENSOR = 0x0B; // Sensor (Alarm) Device Type
+}
+
+constants zwave.ZWaveSensorBinarySpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ROUTING_SENSOR_BINARY = 0x01; // Routing Binary Sensor
+}
+
+constants zwave.ZWaveSensorMultilevelSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ROUTING_SENSOR_MULTILEVEL = 0x01; // Sensor (Multilevel) Device Type
+   const u8 SPECIFIC_TYPE_CHIMNEY_FAN = 0x02;
+}
+
+constants zwave.ZWaveStaticControllerSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_PC_CONTROLLER = 0x01; // Central Controller Device Type
+   const u8 SPECIFIC_TYPE_SCENE_CONTROLLER = 0x02; // Scene Controller
+   const u8 SPECIFIC_TYPE_STATIC_INSTALLER_TOOL = 0x03;
+   const u8 SPECIFIC_TYPE_SET_TOP_BOX = 0x04; // Set Top Box Device Type
+   const u8 SPECIFIC_TYPE_SUB_SYSTEM_CONTROLLER = 0x05; // Sub System Controller Device Type
+   const u8 SPECIFIC_TYPE_TV = 0x06; // TV Device Type
+   const u8 SPECIFIC_TYPE_GATEWAY = 0x07; // Gateway Device Type
+}
+
+constants zwave.ZWaveSwitchBinarySpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_POWER_SWITCH_BINARY = 0x01; // On/Off Power Switch Device Type
+   const u8 SPECIFIC_TYPE_SCENE_SWITCH_BINARY = 0x03; // Binary Scene Switch
+   const u8 SPECIFIC_TYPE_POWER_STRIP = 0x04; // Power Strip Device Type
+   const u8 SPECIFIC_TYPE_SIREN = 0x05; // Siren Device Type
+   const u8 SPECIFIC_TYPE_VALVE_OPEN_CLOSE = 0x06; // Valve (open/close) Device Type
+   const u8 SPECIFIC_DEVICE_BINARY_TUNABLE_COLOR_LIGHT = 0x02;
+}
+
+constants zwave.ZWaveSwitchMultilevelSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_CLASS_A_MOTOR_CONTROL = 0x05; // Window Covering No Position/Endpoint Device Type
+   const u8 SPECIFIC_TYPE_CLASS_B_MOTOR_CONTROL = 0x06; // Window Covering Endpoint Aware Device Type
+   const u8 SPECIFIC_TYPE_CLASS_C_MOTOR_CONTROL = 0x07; // Window Covering Position/Endpoint Aware Device Type
+   const u8 SPECIFIC_TYPE_MOTOR_MULTIPOSITION = 0x03; // Multiposition Motor
+   const u8 SPECIFIC_TYPE_POWER_SWITCH_MULTILEVEL = 0x01; // Light Dimmer Switch Device Type
+   const u8 SPECIFIC_TYPE_SCENE_SWITCH_MULTILEVEL = 0x04; // Multilevel Scene Switch
+   const u8 SPECIFIC_TYPE_FAN_SWITCH = 0x08; // Fan Switch Device Type
+}
+
+constants zwave.ZWaveSwitchRemoteSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SWITCH_REMOTE_BINARY = 0x01; // Binary Remote Switch
+   const u8 SPECIFIC_TYPE_SWITCH_REMOTE_MULTILEVEL = 0x02; // Multilevel Remote Switch
+   const u8 SPECIFIC_TYPE_SWITCH_REMOTE_TOGGLE_BINARY = 0x03; // Binary Toggle Remote Switch
+   const u8 SPECIFIC_TYPE_SWITCH_REMOTE_TOGGLE_MULTILEVEL = 0x04; // Multilevel Toggle Remote Switch
+}
+
+constants zwave.ZWaveSwitchToggleSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SWITCH_TOGGLE_BINARY = 0x01; // Binary Toggle Switch
+   const u8 SPECIFIC_TYPE_SWITCH_TOGGLE_MULTILEVEL = 0x02; // Multilevel Toggle Switch
+}
+
+constants zwave.ZWaveThermostatSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SETBACK_SCHEDULE_THERMOSTAT = 0x03; // Setback Schedule Thermostat
+   const u8 SPECIFIC_TYPE_SETBACK_THERMOSTAT = 0x05; // Thermostat (Setback) Device Type
+   const u8 SPECIFIC_TYPE_SETPOINT_THERMOSTAT = 0x04;
+   const u8 SPECIFIC_TYPE_THERMOSTAT_GENERAL = 0x02; // Thermostat General
+   const u8 SPECIFIC_TYPE_THERMOSTAT_GENERAL_V2 = 0x06; // Thermostat (HVAC) Device Type
+   const u8 SPECIFIC_TYPE_THERMOSTAT_HEATING = 0x01; // Thermostat Heating
+}
+
+constants zwave.ZWaveVentilationSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_RESIDENTIAL_HRV = 0x01;
+}
+
+constants zwave.ZWaveWindowCoveringSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SIMPLE_WINDOW_COVERING = 0x01; // Simple Window Covering Control
+}
+
+constants zwave.ZWaveZipNodeSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_ZIP_ADV_NODE = 0x02;
+   const u8 SPECIFIC_TYPE_ZIP_TUN_NODE = 0x01;
+}
+
+constants zwave.ZWaveWallControllerSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_BASIC_WALL_CONTROLLER = 0x01; // Wall Controller Device Type
+}
+
+constants zwave.ZWaveNetworkExtenderSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_SECURE_EXTENDER = 0x01; // Specific Device Secure Extender
+}
+
+constants zwave.ZWaveApplianceSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class Not Used
+   const u8 SPECIFIC_TYPE_GENERAL_APPLIANCE = 0x01;
+   const u8 SPECIFIC_TYPE_KITCHEN_APPLIANCE = 0x02;
+   const u8 SPECIFIC_TYPE_LAUNDRY_APPLIANCE = 0x03;
+}
+
+constants zwave.ZWaveSensorNotificationSpecificDevices {
+   const u8 SPECIFIC_TYPE_NOT_USED = 0x00; // Specific Device Class not used
+   const u8 SPECIFIC_TYPE_NOTIFICATION_SENSOR = 0x01;
+}
+

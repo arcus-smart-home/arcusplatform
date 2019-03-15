@@ -1,0 +1,3430 @@
+{
+  "@class" : ".ZWaveAllCommandClasses",
+  "Command Classes" : [ {
+    "name" : "Basic",
+    "id" : 32,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "value"],
+      "ReceiveVars" : ["value" ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value", "target", "duration"  ]
+    }
+ ]
+  }, {
+    "name" : "Battery",
+    "id" : -128,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "level" ]
+    } ]
+  }, {
+    "name" : "Clock",
+    "id" : -127,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 4,
+      "SendVars" : [ "weekday_hour", "minute" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "weekday_hour", "minute" ]
+    }]
+  }, {
+    "name" : "Switch Binary",
+    "id" : 37,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "value" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value" ]
+    } ]
+  }, {
+    "name" : "Indicator",
+    "id" : -121,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "value" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value" ]
+    } ]
+  }, {
+    "name" : "Sensor Multilevel",
+    "id" : 49,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "type", "level", "val1", "val2", "val3", "val4" ]
+    }, {
+    	"name": "supported_sensor_get",
+    	"id": 1,
+    	"response_id": 2,
+	    "SendVars" : [ ],
+	    "ReceiveVars" : [ ]
+	}, {
+    	"name": "supported_sensor_report",
+    	"id": 2,
+	    "SendVars" : [ ],
+	    "ReceiveVars" : [ ]
+	}, {
+    	"name": "supported_scale_get",
+    	"id": 3,
+    	"response_id": 6,
+	    "SendVars" : [ "sensortype" ],
+	    "ReceiveVars" : [ ]
+	}, {
+    	"name": "supported_scale_report",
+    	"id": 6,
+	    "SendVars" : [ ],
+	    "ReceiveVars" : [ "sensor_type" ]
+	} ]
+  }, {
+    "name" : "Thermostat Mode",
+    "id" : 64,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "mode", "level", "manufacturerdata1", "manufacturerdata2", "manufacturerdata3", "manufacturerdata4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "level", "val1", "val2", "val3", "val4", "val5", "val6", "val7" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "response_id":  5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "val1", "val2", "val3", "val4" ]
+    } ]
+  }, {
+    "name" : "Thermostat Operating State",
+    "id" : 66,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "logging supported get",
+      "id" : 1,
+      "response_id": 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "state", "level", "properties1" ]
+    }, {
+      "name" : "logging supported report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "logging_get",
+      "id" : 1,
+      "SendVars" : [ "bitmask1", "bitmask2", "bitmask3", "bitmask4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "logging_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reportstofollow" ]
+    } ]
+  }, {
+    "name" : "Thermostat Fan Mode",
+    "id" : 68,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    } ]
+  }, {
+    "name" : "Thermostat Fan State",
+    "id" : 69,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "state" ]
+    } ]
+  }, {
+    "name" : "Thermostat Setpoint",
+    "id" : 67,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "type", "scale", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ "type" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "type", "scale", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "response_id":  5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "type", "scale", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "capabilities_get",
+      "id" : 9,
+      "response_id":  10,
+      "SendVars" : [ "type" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "capabilities_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "type", "scale", "value1", "value2", "value3", "value4" ]
+    }
+     ]
+  }, {
+    "name" : "Version",
+    "id" : -122,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 17,
+      "response_id":  18,
+      "SendVars" : [ "class" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 18,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "type", "protocol", "sub-protocol", "firmware_0_version", "firmware_0_sub_version", "hardware_version", "number_of_firmware_targets" ]
+    }, {
+      "name" : "class get",
+      "id" : 19,
+      "response_id":  20,
+      "SendVars" : [ "class" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "class report",
+      "id" : 20,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "class", "version" ]
+    } ]
+  }, {
+    "name" : "Sensor Binary",
+    "id" : 48,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "sensorvalue" ]
+    } ]
+  }, {
+    "name" : "Manufacturer Specific",
+    "id" : 114,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "manufacturemsb", "manufacturelsb", "producttypemsb", "producttypelsb", "productidmsb", "productidlsb"  ]
+    } ]
+  }, {
+    "name" : "Configuration",
+    "id" : 112,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 4,
+      "SendVars" : [ "param", "size", "val1", "val2", "val3", "val4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ "param", "parameternumber", "parameternumber" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "param", "level", "val1", "val2", "val3", "val4" ]
+    }, {
+      "name" : "bulk_set",
+      "id" : 7,
+      "SendVars" : [ "offset_msb", "offset_lsb", "num_parameters", "size", "parameter1", "parameter2", "parameter3", "parameter4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "bulk_get",
+      "id" : 8,
+      "response_id": 9,
+      "SendVars" : [ "offset_msb", "offset_lsb", "num_parameters" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "bulk_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "offset_msb", "offset_lsb", "num_parameters", "reports_to_follow", "size", "parameter1", "parameter2", "parameter3", "parameter4" ]
+    } ]
+  }, {
+    "name" : "Association",
+    "id" : -123,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "group", "node1", "node2", "node3", "node4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "groupingidentifier", "groupingidentifier" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "group", "max", "reports", "node1", "node2", "node3", "node4" ]
+    }, {
+      "name" : "groupings_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "group" ]
+    }, {
+      "name" : "groupings_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "group" ]
+    }, {
+      "name" : "remove",
+      "id" : 4,
+      "SendVars" : [ "group", "nodeid1", "nodeid2", "nodeid3", "nodeid4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "specific_get",
+      "id" : 11,
+      "response_id": 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "specific_report",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "group" ]
+    } ]
+  }, {
+    "name" : "sensor binary v2",
+    "id" : 48,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "sensortype" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value", "type" ]
+    }, {
+      "name" : "supported_sensor_get",
+      "id" : 1,
+      "response_id":  4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_sensor_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    } ]
+  }, {
+    "name" : "Wake Up",
+    "id" : -124,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 4,
+      "SendVars" : [ "seconds1", "seconds2", "seconds3", "node" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "seconds1", "seconds2", "seconds3", "node" ]
+    }, {
+      "name" : "no_more_information",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "notification",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "interval_capabilities_get",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "interval_capabilities_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "Security",
+    "id" : 152,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "key_set",
+      "id" : 6,
+      "SendVars" : [ "byte1", "byte2", "byte3", "byte4", "byte5", "byte6", "byte7", "byte8", "byte9", "byte10", "byte11", "byte12", "byte13", "byte14", "byte15", "byte16" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "key_verify",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "commands_supported_get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "commands_supported_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "message_encapsulation",
+      "id" : -127,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "message_encapsulation_nonce_get",
+      "id" : -64,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "nonce_get",
+      "id" : 64,
+      "response_id":  -128,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "nonce_report",
+      "id" : -128,
+      "SendVars" : [ "byte1", "byte2", "byte3", "byte4", "byte5", "byte6", "byte7", "byte8" ],
+      "ReceiveVars" : [ "byte1", "byte2", "byte3", "byte4", "byte5", "byte6", "byte7", "byte8" ]
+    }, {
+      "name" : "scheme_get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ "supportedsecurityschemes" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "scheme_inherit",
+      "id" : 8,
+      "SendVars" : [ "schemes" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "scheme_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "schemes" ]
+    }, {
+      "name" : "panel_mode_version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    },  {
+      "name" : "message_encapsulation_nonce_get",
+      "id" : -63,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "commands_supported_report_command_class_mark",
+      "id" : -17,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "PowerLevel",
+    "id" : 115,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "level", "timeout" ]
+    }, {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "level", "timeout" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "test_node_get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "test_node_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "node", "status", "ack_count_msb", "ack_count_lsb" ]
+    }, {
+      "name" : "test_node_set",
+      "id" : 4,
+      "SendVars" : [ "node", "level", "frame_count_msb", "frame_count_lsb" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "ALARM",
+    "id" : 113,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "event_supported_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ "notificationtype" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "event_supported_report",
+      "id" : 2,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "notificationtype", "numbitmasks", "bitmask1", "bitmask2", "bitmask3", "bitmask4", "bitmask5", "bitmask6", "bitmask7", "bitmask8" ]
+    }, {
+      "name" : "get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ "alarmtype", "notificationtype", "event" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "alarmtype", "alarmlevel", "reserved", "notificationstatus", "notificationtype", "event", "parameterslength", "parameter1", "parameter2", "parameter3", "parameter4" ]
+    }, {
+      "name" : "set",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "alarmtype", "alarmstatus" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 7,
+      "response_id": 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "numbitmasks", "bitmask1", "bitmask2", "bitmask3", "bitmask4", "bitmask5", "bitmask6", "bitmask7", "bitmask8" ]
+    } ]
+  }, {
+    "name" : "APPLICATION_STATUS",
+    "id" : 34,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "busy",
+      "id" : 1,
+      "SendVars" : [ "status", "waittime"],
+      "ReceiveVars" : [ ]
+    }, {
+      "name": "rejected",
+      "id" : 2,
+      "SendVars" : [],
+      "ReceiveVars" : [ "status" ]
+    }
+     ]
+  }, {
+    "name" : "ASSOCIATION_COMMAND_CONFIGURATION",
+    "id" : -101,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "AV_CONTENT_DIRECTORY_MD",
+    "id" : -107,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "AV_CONTENT_SEARCH_MD",
+    "id" : -105,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "AV_RENDERER_STATUS",
+    "id" : -106,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "AV_TAGGING_MD",
+    "id" : -103,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "BASIC_TARIFF_INFO",
+    "id" : 54,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "num_rates", "current_rate_in_use_1", "consumption_reg_msb", "consumption_reg_2", "consumption_reg_3", "consumption_reg_lsb", "time_next_rate_hours", "time_next_rate_minutes", "time_next_rate_seconds" ]
+    }]
+  }, {
+    "name" : "BASIC_WINDOW_COVERING",
+    "id" : 80,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "start_level_change",
+      "id" : 1,
+      "SendVars" : [ "state" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_level_change",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "CHIMNEY_FAN",
+    "id" : 42,
+    "version" : 1,
+    "Commands" : [  {
+      "name" : "alarm_log_get",
+      "id" : 32,
+      "response_id": 33,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "alarm_log_report",
+      "id" : 33,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "alarmevent1", "alarmevent2", "alarmevent3", "alarmevent4", "alarmevent5" ]
+    }, {
+      "name" : "alarm_log_set",
+      "id" : 31,
+      "SendVars" : [ "message" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "alarm_status_get",
+      "id" : 35,
+      "response_id": 36,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "alarm_status_report",
+      "id" : 36,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "alarmstatus" ]
+    }, {
+      "name" : "alarm_status_set",
+      "id" : 34,
+      "SendVars" : [ "message" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "alarm_temp_get",
+      "id" : 14,
+      "response_id": 15,      
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "alarm_temp_report",
+      "id" : 15,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "alarm_temp_set",
+      "id" : 13,
+      "SendVars" : [ "properties1", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "boost_time_get",
+      "id" : 17,
+      "response_id": 18,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "boost_time_report",
+      "id" : 18,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "time" ]
+    }, {
+      "name" : "boost_time_set",
+      "id" : 16,
+      "SendVars" : [ "time" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "default_set",
+      "id" : 40,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "min_speed_get",
+      "id" : 38,
+      "response_id": 39,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "min_speed_report",
+      "id" : 39,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "minspeed" ]
+    }, {
+      "name" : "min_speed_set",
+      "id" : 37,
+      "SendVars" : [ "minspeed" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_get",
+      "id" : 23,
+      "response_id":  24,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_report",
+      "id" : 24,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    }, {
+      "name" : "mode_set",
+      "id" : 22,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "setup_get",
+      "id" : 26,
+      "response_id":  27,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "setup_report",
+      "id" : 27,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode", "boosttime", "stoptime", "minspeed", "properties1", "starttemperature1", "properties2", "stopTemperature1", "properties3", "alarmTemperatureValue1" ]
+    }, {
+      "name" : "setup_set",
+      "id" : 25,
+      "SendVars" : [ "mode", "boosttime", "stoptime", "minspeed", "properties1", "starttemperature1", "properties2", "stopTemperature1", "properties3", "alarmTemperatureValue1"  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "speed_get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "speed_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "speed" ]
+    }, {
+      "name" : "speed_set",
+      "id" : 4,
+      "SendVars" : [ "speed" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_temp_get",
+      "id" : 8,
+      "response_id": 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_temp_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "start_temp_set",
+      "id" : 7,
+      "SendVars" : [ "properties1", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "state_get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "state_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "state" ]
+    }, {
+      "name" : "status_get",
+      "id" : 29,
+      "response_id": 30,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_report",
+      "id" : 30,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "state", "speed", "alarmstatus", "properties1", "value1", "alarmstatus", "value2", "alarmstatus", "value3", "alarmstatus", "value4" ]
+    }, {
+      "name" : "stop_temp_get",
+      "id" : 11,
+      "response_id": 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_temp_report",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "stop_temp_set",
+      "id" : 10,
+      "SendVars" : [ "properties1", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_time_get",
+      "id" : 20,
+      "response_id": 21,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_time_report",
+      "id" : 21,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "time" ]
+    }, {
+      "name" : "stop_time_set",
+      "id" : 19,
+      "SendVars" : [ "time" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "CLIMATE_CONTROL_SCHEDULE",
+    "id" : 70,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "weekday", "switchpoint_0_byte_1", "switchpoint_0_byte_2", "switchpoint_0_byte_3", "switchpoint_1_byte_1", "switchpoint_1_byte_2", "switchpoint_1_byte_3", "switchpoint_2_byte_1", "switchpoint_2_byte_2", "switchpoint_2_byte_3", "switchpoint_3_byte_1", "switchpoint_3_byte_2", "switchpoint_3_byte_3", "switchpoint_4_byte_1", "switchpoint_4_byte_2", "switchpoint_4_byte_3", "switchpoint_5_byte_1", "switchpoint_5_byte_2", "switchpoint_5_byte_3", "switchpoint_6_byte_1", "switchpoint_6_byte_2", "switchpoint_6_byte_3", "switchpoint_7_byte_1", "switchpoint_7_byte_2", "switchpoint_7_byte_3", "switchpoint_8_byte_1", "switchpoint_8_byte_2", "switchpoint_8_byte_3"],
+      "ReceiveVars" : [  ]
+    },  {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ "weekday"],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "weekday", "switchpoint_0_byte_1", "switchpoint_0_byte_2", "switchpoint_0_byte_3", "switchpoint_1_byte_1", "switchpoint_1_byte_2", "switchpoint_1_byte_3", "switchpoint_2_byte_1", "switchpoint_2_byte_2", "switchpoint_2_byte_3", "switchpoint_3_byte_1", "switchpoint_3_byte_2", "switchpoint_3_byte_3", "switchpoint_4_byte_1", "switchpoint_4_byte_2", "switchpoint_4_byte_3", "switchpoint_5_byte_1", "switchpoint_5_byte_2", "switchpoint_5_byte_3", "switchpoint_6_byte_1", "switchpoint_6_byte_2", "switchpoint_6_byte_3", "switchpoint_7_byte_1", "switchpoint_7_byte_2", "switchpoint_7_byte_3", "switchpoint_8_byte_1", "switchpoint_8_byte_2", "switchpoint_8_byte_3" ]
+    }]
+  }, {
+    "name" : "CONTROLLER_REPLICATION",
+    "id" : 33,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "transfer_group",
+      "id" : 49,
+      "SendVars" : [ "sequence", "group", "node" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "transfer_name",
+      "id" : 50,
+      "SendVars" : [ "sequence", "group", "name1", "name2", "name3", "name4" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "transfer_scene",
+      "id" : 51,
+      "SendVars" : [ "sequence", "scene", "node", "level" ],
+      "ReceiveVars" : [  ]
+    },  {
+      "name" : "transfer_scene_name",
+      "id" : 52,
+      "SendVars" : [ "sequence", "scene", "name1", "name2", "name3", "name4" ],
+      "ReceiveVars" : [  ]
+    }  ]
+  }, {
+    "name" : "CRC_16_ENCAP",
+    "id" : 86,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "DCP_CONFIG",
+    "id" : 58,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "DCP_MONITOR",
+    "id" : 59,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "DOOR_LOCK_LOGGING",
+    "id" : 76,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "records_supported_get",
+      "id" : 1,
+      "response_id": 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "records_supported_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "maxrecordsstored" ]
+    }, {
+      "name" : "record_get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ "record" ],
+      "ReceiveVars" : [ ]
+    },{
+      "name" : "record_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "record", "year1", "year2", "month", "day", "hour", "minute", "second", "type" , "user", "code1", "code2", "code3", "code4", "code5", "code6", "code7", "code8", "code9", "code10" ]
+    } ]
+  }, {
+    "name" : "DOOR_LOCK",
+    "id" : 98,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "operation_set",
+      "id" : 1,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "operationtype", "properties1", "locktimeoutminutes", "locktimeoutseconds" ]
+    }, {
+      "name" : "configuration_set",
+      "id" : 4,
+      "SendVars" : [ "operationtype", "properties1", "locktimeoutminutes", "locktimeoutseconds" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "operation_get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "operation_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "doorlockmode", "properties1", "doorcondition", "locktimeoutminutes", "locktimeoutseconds" ]
+    } ]
+  }, {
+    "name" : "ENERGY_PRODUCTION",
+    "id" : -112,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "parameternumber" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "parameternumber", "level", "value1", "value2",  "value3", "value4" ]
+    }, {
+      "name" : "get_instant_energy_production",
+      "id" : 0,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "FIRMWARE_UPDATE_MD",
+    "id" : 122,
+    "version" : 1,
+    "Commands" : [  {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ ]
+    },  {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "manufacturer_id_1", "manufacturer_id_2", "firmware_id_1", "firmware_id_2", "checksum_1", "checksum_2" ]
+    }, {
+      "name" : "update_get",
+      "id" : 5,
+      "response_id":  2,
+      "SendVars" : [ "num_reports", "report1", "report2" ],
+      "ReceiveVars" : [ ]
+    },{
+      "name" : "update_report",
+      "id" : 6,
+      "response_id":  2,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "report1", "report2", "data" ]
+    },{
+      "name" : "request_get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ "manufacturerid1", "manufacturerid2", "firmwareid1", "firmwareid2", "checksum1", "checksum2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "request_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "status" ]
+    }, {
+      "name" : "status_report",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "status", "waittime1", "waittime2" ]
+    } ]
+  }, {
+    "name" : "GEOGRAPHIC_LOCATION",
+    "id" : -116,
+    "version" : 1,
+    "Commands" : [     {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "longitude_degrees", "longitude_minutes", "latitude_degrees", "latitude_minutes" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "longitude_degrees", "longitude_minutes", "latitude_degrees", "latitude_minutes" ]
+    } ]
+  }, {
+    "name" : "GROUPING_NAME",
+    "id" : 123,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "grouping_id", "properties1", "groupingname1", "groupingname2", "groupingname3", "groupingname4", "groupingname5", "groupingname6", "groupingname7", "groupingname8", "groupingname9", "groupingname10", "groupingname11", "groupingname12", "groupingname13", "groupingname14", "groupingname15", "groupingname16" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "grouping_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "grouping_id", "properties1", "groupingname1", "groupingname2", "groupingname3", "groupingname4", "groupingname5", "groupingname6", "groupingname7", "groupingname8", "groupingname9", "groupingname10", "groupingname11", "groupingname12", "groupingname13", "groupingname14", "groupingname15", "groupingname16" ]
+    } ]
+  }, {
+    "name" : "HAIL",
+    "id" : -126,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "hail",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "HRV_CONTROL",
+    "id" : 57,
+    "version" : 1,
+    "Commands" : [  {
+      "name" : "bypass_get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [ "" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "bypass_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bypass" ]
+    }, {
+      "name" : "bypass_set",
+      "id" : 4,
+      "SendVars" : [ "bypass" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_set",
+      "id" : 1,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    },{
+      "name" : "mode_get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    }, {
+      "name" : "mode_supported_get",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_supported_report",
+      "id" : 11,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "bitmask1", "bitmask1", "bitmask2", "bitmask1", "bitmask2", "bitmask3", "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    }, {
+      "name" : "ventilation_rate_get",
+      "id" : 8,
+      "response_id":  9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "ventilation_rate_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "ventilationrate" ]
+    }, {
+      "name" : "ventilation_rate_set",
+      "id" : 7,
+      "SendVars" : [ "ventilationrate" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "HRV_STATUS",
+    "id" : 55,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ "parameter" ],
+      "ReceiveVars" : [  ]
+    },  {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "statusparameter", "properties1", "value1", "statusparameter", "value2", "statusparameter", "value3", "statusparameter", "value4" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask1", "bitmask2", "bitmask1", "bitmask2", "bitmask3", "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    } ]
+  }, {
+    "name" : "IP_CONFIGURATION",
+    "id" : -102,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "properties1", "ipaddress1", "ipaddress2", "ipaddress3", "ipaddress4", "subnetmask1", "subnetmask2", "subnetmask3", "subnetmask4", "gateway1", "gateway2", "gateway3", "gateway4", "dns11", "dns12", "dns13", "dns14", "dns21", "dns22", "dns23", "dns24" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "release",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "renew",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "ipaddress1", "ipaddress2", "ipaddress3", "ipaddress4", "subnetmask1", "subnetmask2", "subnetmask3", "subnetmask4", "gateway1", "gateway2", "gateway3", "gateway4", "dns11", "dns12", "dns13", "dns14", "dns21", "dns22", "dns23", "dns24", "leasetime1", "leasetime2", "leasetime3", "leasetime4" ]
+    }, {
+      "name" : "report_properties1_reserved_mask",
+      "id" : -4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "LANGUAGE",
+    "id" : -119,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : ["language1", "language2", "language3", "country1", "country2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "language1", "language2", "language3", "country1", "country2" ]
+    } ]
+  }, {
+    "name" : "LOCK",
+    "id" : 118,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "lockstate" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "lockstate" ]
+    } ]
+  }, {
+    "name" : "MANUFACTURER_PROPRIETARY",
+    "id" : -111,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "command",
+      "id" : 1,
+      "SendVars" : [ "manufacturer1", "manufacturer2", "Data"],
+      "ReceiveVars" : [ "manufacturer1", "manufacturer2", "Data" ]
+    } ]
+  }, {
+    "name" : "MARK",
+    "id" : -17,
+    "version" : 1,
+    "Commands" : [  ]
+  }, {
+    "name" : "METER_PULSE",
+    "id" : 53,
+    "version" : 1,
+    "Commands" : [  {
+      "name" : "get",
+      "id" : 4,
+      "response_id":  5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "pulsecount1", "pulsecount2", "pulsecount3", "pulsecount4" ]
+    } ]
+  }, {
+    "name" : "METER_TBL_CONFIG",
+    "id" : 60,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "table_point_adm_no_set",
+      "id" : 1,
+      "SendVars" : [ "num_chars", "char1", "char1", "char2", "char3", "char4", "char5", "char6", "char7", "char8" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "METER_TBL_MONITOR",
+    "id" : 61,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "table_point_adm_no_get",
+      "id" : 1,
+      "response_id": 2,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "table_point_adm_no_report",
+      "id" : 1,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "num_chars", "char1", "char1", "char2", "char3", "char4", "char5", "char6", "char7", "char8" ]
+    }, {
+      "name" : "table_id_get",
+      "id" : 3,
+      "response_id": 4,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "table_id_report",
+      "id" : 1,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "num_chars", "char1", "char1", "char2", "char3", "char4", "char5", "char6", "char7", "char8" ]
+    }, {
+      "name" : "table_capability_get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [  ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "table_capability_report",
+      "id" : 6,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "type", "paymeter", "dataset_support_1", "dataset_support_2","dataset_support_3", "dataset_history_1", "dataset_history_2", "dataset_history_3", "data_history_1", "data_history_2", "data_history_3" ]
+    }, {
+      "name" : "status_supported_get",
+      "id" : 7,
+      "response_id": 8,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_supported_report",
+      "id" : 8,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "status1", "status2", "status3", "depth" ]
+    }, {
+      "name" : "status_depth_get",
+      "id" : 9,
+      "SendVars" : [ "depth" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_date_get",
+      "id" : 10,
+      "response_id":  11,
+      "SendVars" : [ "max", "start_year1", "start_year2", "start_month", "start_day", "start_hour", "start_minute", "start_second", "stop_year1", "stop_year2", "stop_month", "stop_day", "stop_hour", "stop_minute", "stop_second" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_report",
+      "id" : 11,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "status1", "status2", "status3", "event1_id", "event1_year1", "event1_year2", "event1_month", "event1_day", "event1_hour", "event1_minute", "event1_second" ]
+    }, {
+      "name" : "current_data_get",
+      "id" : 12,
+      "response_id":  13,
+      "SendVars" : [ "dataset1", "dataset2", "dataset3" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "current_data_report",
+      "id" : 13,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "rate_type", "dataset1", "dataset2", "dataset3", "year1", "year2", "month", "day", "hour", "minute", "second", "scale", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "historical_data_get",
+      "id" : 14,
+      "response_id":  15,
+      "SendVars" : [ "max", "dataset1", "dataset2", "dataset3", "start_year1", "start_year2", "start_month", "start_day", "start_hour", "start_minute", "start_second", "stop_year1", "stop_year2", "stop_month", "stop_day", "stop_hour", "stop_minute", "stop_second"  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "historical_data_report",
+      "id" : 15,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "rate_type", "dataset1", "dataset2", "dataset3", "year1", "year2", "month", "day", "hour", "minute", "second", "scale", "value1", "value2", "value3", "value4" ]
+    } ]
+  }, {
+    "name" : "METER_TBL_PUSH",
+    "id" : 62,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "configuration_set",
+      "id" : 1,
+      "SendVars" : [ "properties1", "pushdataset1", "pushdataset2", "pushdataset3", "intervalmonths", "intervaldays", "intervalhours", "intervalminutes", "pushnodeid"],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "pushdataset1", "pushdataset2", "pushdataset3", "intervalmonths", "intervaldays", "intervalhours", "intervalminutes", "pushnodeid" ]
+    } ]
+  }, {
+    "name" : "METER",
+    "id" : 50,
+    "version" : 2,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ "Scale" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "MeterType", "Scale", "Value1", "Value2", "Value3", "Value4" ]
+    }, {
+      "name" : "reset",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_get",
+      "id" : 3,
+      "SendVars" : [ "Scale" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "MeterType", "ScaleSupported", "N", "Scale1" ]
+    } ]
+  }, {
+    "name" : "MTP_WINDOW_COVERING",
+    "id" : 81,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "MULTI_CHANNEL",
+    "id" : 96,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "instance_get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ "command_class" ],
+      "ReceiveVars" : [ ]
+    },  {
+      "name" : "instance_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "command_class", "properties1" ]
+    },  {
+      "name" : "instance_cmd_encap",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "source", "destination", "command_class", "command", "parameter1", "parameter2", "parameter3", "parameter4", "parameter5", "parameter6", "parameter7", "parameter8", "parameter9", "parameter10", "parameter11", "parameter12", "parameter13", "parameter14", "parameter15", "parameter16"]
+    },  {
+      "name" : "end_point_get",
+      "id" : 7,
+      "response_id": 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "end_point_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "parameters", "num_end_points" ]
+    },{
+      "name" : "capability_get",
+      "id" : 9,
+      "response_id": 10,
+      "SendVars" : [ "end_point" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "capability_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "generic", "specific", "cc1", "cc2", "cc3", "cc4", "cc5", "cc6", "cc7", "cc8", "cc9", "cc10", "cc11", "cc12", "cc13", "cc14", "cc15", "cc16" ]
+    }, {
+      "name" : "end_point_find",
+      "id" : 11,
+      "response_id": 12,
+      "SendVars" : [ "generic", "specific" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "end_point_find_report",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "generic", "specific", "endpoint1", "endpoint2", "endpoint3", "endpoint4", "endpoint5", "endpoint6", "endpoint7", "endpoint8", "endpoint9", "endpoint10", "endpoint11", "endpoint12", "endpoint13", "endpoint14", "endpoint15", "endpoint16" ]
+    },{
+      "name" : "encapsulate",
+      "id" : 13,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "source", "destination", "command_class", "command", "parameter1", "parameter2", "parameter3", "parameter4", "parameter5", "parameter6", "parameter7", "parameter8", "parameter9", "parameter10", "parameter11", "parameter12", "parameter13", "parameter14", "parameter15", "parameter16"]
+    } ]
+  }, {
+    "name" : "MULTI_CHANNEL_ASSOCIATION",
+    "id" : -114,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "group", "node1", "node2", "set_marker", "mc_node_id1", "endpoint1", "mc_node_id2", "endpoint2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "group" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "group", "max", "reports", "node1", "node2", "set_marker", "mc_node_id1", "endpoint1", "mc_node_id2", "endpoint2"  ]
+    }, {
+      "name" : "remove",
+      "id" : 4,
+      "SendVars" : [ "group", "node1", "node2", "set_marker", "mc_node_id1", "endpoint1", "mc_node_id2", "endpoint2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "groupings_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ "group" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "groupings_report",
+      "id" : 6,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "groupings" ]
+    } ]
+  }, {
+    "name" : "MULTI_CMD",
+    "id" : -113,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "encapsulate",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "NETWORK_MANAGEMENT_PROXY",
+    "id" : 82,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "NETWORK_MANAGEMENT_BASIC",
+    "id" : 77,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "NETWORK_MANAGEMENT_INCLUSION",
+    "id" : 52,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "NO_OPERATION",
+    "id" : 0,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "NODE_NAMING",
+    "id" : 119,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "name_set",
+      "id" : 1,
+      "SendVars" : [ "presentation", "nodenamechar1", "nodenamechar2", "nodenamechar3", "nodenamechar4", "nodenamechar5", "nodenamechar6", "nodenamechar7", "nodenamechar8", "nodenamechar9", "nodenamechar10", "nodenamechar11", "nodenamechar12", "nodenamechar13", "nodenamechar14", "nodenamechar15", "nodenamechar16" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "node_location_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "level", "nodelocationchar1", "nodelocationchar2", "nodelocationchar3", "nodelocationchar4", "nodelocationchar5", "nodelocationchar6", "nodelocationchar7", "nodelocationchar8", "nodelocationchar9", "nodelocationchar10", "nodelocationchar11", "nodelocationchar12", "nodelocationchar13", "nodelocationchar14", "nodelocationchar15", "nodelocationchar16" ]
+    }, {
+      "name" : "node_location_set",
+      "id" : 4,
+      "SendVars" : [ "level", "nodelocationchar1", "nodelocationchar2", "nodelocationchar3", "nodelocationchar4", "nodelocationchar5", "nodelocationchar6", "nodelocationchar7", "nodelocationchar8", "nodelocationchar9", "nodelocationchar10", "nodelocationchar11", "nodelocationchar12", "nodelocationchar13", "nodelocationchar14", "nodelocationchar15", "nodelocationchar16" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "node_location_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "node_name_get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "node_name_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "presentation", "nodenamechar1", "nodenamechar2", "nodenamechar3", "nodenamechar4", "nodenamechar5", "nodenamechar6", "nodenamechar7", "nodenamechar8", "nodenamechar9", "nodenamechar10", "nodenamechar11", "nodenamechar12", "nodenamechar13", "nodenamechar14", "nodenamechar15", "nodenamechar16" ]
+    } ]
+  }, {
+    "name" : "NON_INTEROPERABLE",
+    "id" : -16,
+    "version" : 1,
+    "Commands" : [  ]
+  }, {
+    "name" : "PREPAYMENT_ENCAPSULATION",
+    "id" : 65,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "encapsulation",
+      "id" : 1,
+      "SendVars" : [ "data1", "data2", "data3", "data4", "data5", "data6", "data7", "data7", "data8", "data9", "data10", "data11", "data12", "data13", "data14", "data15", "data16" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "PREPAYMENT",
+    "id" : 63,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "balance_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ "reserved" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "balance_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "properties2", "balancevalue1", "balancevalue2", "balancevalue3", "balancevalue4", "properties3", "debt1", "debt2", "debt3", "debt4", "properties4", "emercredit1", "emercredit2", "emercredit3", "emercredit4", "currency1", "currency2", "currency3", "debtrecoverypercentage" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 3,
+      "response_id": 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1" ]
+    } ]
+  }, {
+    "name" : "PROPRIETARY",
+    "id" : -120,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "data1", "data2", "data3", "data4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "data1", "data2", "data3", "data4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "data1", "data2", "data3", "data4" ]
+    } ]
+  }, {
+    "name" : "PROTECTION",
+    "id" : 117,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "local", "rf" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3, 
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "local", "rf" ]
+    }, {
+      "name" : "report_unprotected",
+      "id" : 0,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "ec_get",
+      "id" : 7,
+      "response_id":  8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "ec_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "node" ]
+    }, {
+      "name" : "ec_set",
+      "id" : 6,
+      "SendVars" : [ "node" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "parameters1", "local1", "local2", "rf1", "rf2" ]
+    }, {
+      "name" : "timeout_get",
+      "id" : 10,
+      "response_id": 11,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "timeout_report",
+      "id" : 11,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "timeout" ]
+    }, {
+      "name" : "timeout_set",
+      "id" : 9,
+      "SendVars" : [ "timeout" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "RATE_TBL_CONFIG",
+    "id" : 72,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "remove",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "RATE_TBL_MONITOR",
+    "id" : 73,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "supported_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "bitmask1", "bitmask2" ]
+    }, {
+      "name" : "get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ "parameter" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "parameter", "numchars" ]
+    }, {
+      "name" : "active_rate_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "active_rate_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "parameter" ]
+    }, {
+      "name" : "current_data_get",
+      "id" : 7,
+      "response_id":  8,
+      "SendVars" : [ "parameter", "dataset1", "dataset2", "dataset3" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "current_data_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "parameter", "dataset1", "dataset2", "dataset3", "year1", "year2", "month", "day", "hour", "minute", "second"  ]
+    }, {
+      "name" : "historical_data_get",
+      "id" : 9,
+      "response_id":  10,
+      "SendVars" : [ "parameter", "dataset1", "dataset2", "dataset3", "startyear1", "startyear2", "startmonth", "startday", "starthour", "startminute", "startsecond", "stopyear1", "stopyear2", "stopmonth", "stopday", "stophour", "stopminute", "stopsecond" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "historical_data_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reports", "parameter", "dataset1", "dataset2", "dataset3", "year1", "year2", "month", "day", "hour", "minute", "second"  ]
+    } ]
+  }, {
+    "name" : "REMOTE_ASSOCIATION_ACTIVATE",
+    "id" : 124,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "activate",
+      "id" : 1,
+      "SendVars" : [ "gropuing_id" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "REMOTE_ASSOCIATION",
+    "id" : 125,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "configuration_set",
+      "id" : 1,
+      "SendVars" : [ "local_grouping_id", "remote_node", "remote_grouping_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "localgroupingidentifier" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "configuration_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "localgroupingidentifier", "remotenodeid", "remotegroupingidentifier" ]
+    } ]
+  }, {
+    "name" : "SCENE_ACTIVATION",
+    "id" : 43,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "scene_id", "dimming_duration" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "SCENE_ACTUATOR_CONF",
+    "id" : 44,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "scene_id", "dimming_duration", "parameter", "level" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ "sceneid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "sceneid", "level", "dimmingduration" ]
+    } ]
+  }, {
+    "name" : "SCENE_CONTROLLER_CONF",
+    "id" : 45,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "group_id", "scene_id", "dimming_duration" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "groupid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "groupid", "sceneid", "dimmingduration" ]
+    } ]
+  }, {
+    "name" : "SCHEDULE_ENTRY_LOCK",
+    "id" : 78,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "enable_set",
+      "id" : 1,
+      "SendVars" : [ "user", "enabled" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "enable_all_set",
+      "id" : 2,
+      "SendVars" : [ "enabled" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "schedule_supported_get",
+      "id" : 9,
+      "response_id":  10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "schedule_supported_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "slots_week_day", "slots_year_day" ]
+    }, {
+      "name" : "week_day_get",
+      "id" : 4,
+      "response_id":  5,
+      "SendVars" : [ "useridentifier", "scheduleslotid", "useridentifier", "scheduleslotid", "useridentifier", "scheduleslotid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "week_day_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute", "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute", "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute" ]
+    }, {
+      "name" : "week_day_set",
+      "id" : 3,
+      "SendVars" : [ "setaction", "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute", "setaction", "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute", "setaction", "useridentifier", "scheduleslotid", "dayofweek", "starthour", "startminute", "stophour", "stopminute" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "year_day_get",
+      "id" : 7,
+      "response_id":  8,
+      "SendVars" : [ "useridentifier", "scheduleslotid", "useridentifier", "scheduleslotid", "useridentifier", "scheduleslotid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "year_day_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute", "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute", "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute" ]
+    }, {
+      "name" : "year_day_set",
+      "id" : 6,
+      "SendVars" : [ "setaction", "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute", "setaction", "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute", "setaction", "useridentifier", "scheduleslotid", "startyear", "startmonth", "startday", "starthour", "startminute", "stopyear", "stopmonth", "stopday", "stophour", "stopminute" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "time_offset_get",
+      "id" : 11,
+      "response_id":  12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "time_offset_report",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "HourTZO", "MinuteTZO", "MinuteOffsetDST" ]
+    }, {
+      "name" : "time_offset_set",
+      "id" : 13,
+      "SendVars" : [ "HourTZO", "MinuteTZO", "MinuteOffsetDST" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "daily_repeating_get",
+      "id" : 14,
+      "response_id":  15,
+      "SendVars" : [ "userid", "schedule_slot_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "daily_repeating_report",
+      "id" : 15,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "userid", "schedule_slot_id", "weekday", "start_hour", "start_minute", "duration_hour", "duration_minute" ]
+    }, {
+      "name" : "daily_repeating_set",
+      "id" : 16,
+      "SendVars" : [ "set_action", "userid", "schedule_slot_id", "weekday", "start_hour", "start_minute", "duration_hour", "duration_minute" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "SCREEN_ATTRIBUTES",
+    "id" : -109,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "numberoflines", "numberofcharactersperline", "sizeoflinebuffer", "numericalpresentationofacharacter", "screentimeout" ]
+    }, {
+      "name" : "report_v2",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "numberoflines", "numberofcharactersperline", "sizeoflinebuffer", "numericalpresentationofacharacter", "screentimeout" ]
+    } ]
+  }, {
+    "name" : "SCREEN_MD",
+    "id" : -110,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ "num_reports", "node_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "properties2" ]
+    } ]
+  }, {
+    "name" : "SECURITY_PANEL_MODE",
+    "id" : 36,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    }, {
+      "name" : "set",
+      "id" : 5,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask2" ]
+    } ]
+  }, {
+    "name" : "SECURITY_PANEL_ZONE_SENSOR",
+    "id" : 47,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "SECURITY_PANEL_ZONE",
+    "id" : 46,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "SENSOR_ALARM",
+    "id" : -100,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ "sensortype" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "sourcenodeid", "sensortype", "sensorstate", "seconds1", "seconds2" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "numberofbitmasks", "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    } ]
+  }, {
+    "name" : "SENSOR_CONFIGURATION",
+    "id" : -98,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "trigger_level_set",
+      "id" : 1,
+      "SendVars" : [ "parameter1", "type", "scale", "value" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "trigger_level_get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "trigger_level_report",
+      "id" : 1,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "type", "scale", "value" ]
+    } ]
+  }, {
+    "name" : "SILENCE_ALARM",
+    "id" : -99,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "SIMPLE_AV_CONTROL",
+    "id" : -108,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "sequence", "key_attributes", "item_id_msb", "item_id_lsb", "command_1_msb", "command_1_lsb" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "numberofreports" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "SendVars" : [ "reportno" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "reportno", "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    }]
+  }, {
+    "name" : "SWITCH_ALL",
+    "id" : 39,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "off",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "on",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    } ]
+  }, {
+    "name" : "SWITCH_MULTILEVEL",
+    "id" : 38,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "level" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value" ]
+    }, {
+      "name" : "start_level_change",
+      "id" : 4,
+      "SendVars" : [ "level", "startlevel" ], 
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_level_change",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_level_reserved1_mask",
+      "id" : 31,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_level_ignore_start_level_bit_mask",
+      "id" : 32,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_level_up_down_bit_mask",
+      "id" : 64,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_level_reserved2_bit_mask",
+      "id" : -128,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_get_v3",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report_v3",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_properties1_inc_dec_mask_v3",
+      "id" : 24,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_inc_dec_increment_v3",
+      "id" : 0,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change_properties1_up_down_mask_v3",
+      "id" : -64,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report_properties1_reserved_mask_v3",
+      "id" : -32,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "SWITCH_TOGGLE_BINARY",
+    "id" : 40,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "value" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value" ]
+    } ]
+  }, {
+    "name" : "SWITCH_TOGGLE_MULTILEVEL",
+    "id" : 41,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "value" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "value" ]
+    }, {
+      "name" : "start_level_change",
+      "id" : 4,
+      "SendVars" : [ "level", "startlevel" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "stop_level_change",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "TARIFF_CONFIG",
+    "id" : 74,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "supplier_set",
+      "id" : 1,
+      "SendVars" : [ "year1", "year2", "month", "day", "hour", "second", "currency1", "currency2", "currency3", "standingchange", "charge1", "charge2", "charge3", "charge4", "numchars", "char1","char2", "char3", "char4", "char5", "char6", "char7", "char8", "char9", "char10", "char11", "char12", "char13", "char14", "char15", "char16"],
+      "ReceiveVars" : [ ]
+    },  {
+      "name" : "set",
+      "id" : 2,
+      "SendVars" : [ "setid", "precision", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "remove",
+      "id": 3,
+      "SendVars" : [ "ratesetid", "id1", "id2", "id3", "id4" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "TARIFF_TBL_MONITOR",
+    "id" : 75,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "supplier_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supplier_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "year1", "year2", "month", "day", "hour", "second", "currency1", "currency2", "currency3", "standingchange", "charge1", "charge2", "charge3", "charge4", "numchars", "char1","char2", "char3", "char4", "char5", "char6", "char7", "char8", "char9", "char10", "char11", "char12", "char13", "char14", "char15", "char16" ]
+    }, {
+      "name" : "get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ "set_id" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "ratesetid", "precision", "id1", "id2", "id3", "id4" ]
+    }, {
+      "name" : "cost_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ "set_id", "startyear1", "startyear2", "startmonth", "startday", "starthour", "startsecond", "stopyear1", "stopyear2", "stopmonth", "stopday", "stophour", "stopsecond" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "cost_report",
+      "id" : 6,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "set_id", "startyear1", "startyear2", "startmonth", "startday", "starthour", "startsecond", "currency1", "currency2", "currency3", "precision", "value1", "value2", "value3", "value4" ]
+    } ]
+  }, {
+    "name" : "THERMOSTAT_HEATING",
+    "id" : 56,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "mode_set",
+      "id" : 1,
+      "SendVars" : [ "mode" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_report",
+      "id" : 13,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "status" ]
+    }, {
+      "name" : "mode_get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "mode_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode" ]
+    }, {
+      "name" : "relay_status_get",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "relay_status_report",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "relaystatus" ]
+    }, {
+      "name" : "setpoint_get",
+      "id" : 5,
+      "response_id":  6,
+      "SendVars" : [ "setpointnr" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "setpoint_report",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "setpointnr", "properties1", "value1", "value2",  "value3",  "value4" ]
+    }, {
+      "name" : "setpoint_set",
+      "id" : 4,
+      "SendVars" : [ "setpointnr", "properties1", "value1",  "value2",  "value3",  "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_get",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "status_set",
+      "id" : 11,
+      "SendVars" : [ "status" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "timed_off_set",
+      "id" : 17,
+      "SendVars" : [ "minutes", "hours" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "THERMOSTAT_SETBACK",
+    "id" : 71,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "type", "state" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "setbackstate" ]
+    } ]
+  }, {
+    "name" : "TIME_PARAMETERS",
+    "id" : -117,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "year1", "year2", "month", "day", "hourutc", "minuteutc", "secondutc" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "year1", "year2", "month", "day", "hourutc", "minuteutc", "secondutc" ]
+    } ]
+  }, {
+    "name" : "TIME",
+    "id" : -118,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "hourlocaltime", "minutelocaltime", "secondlocaltime", "hourlocaltime", "minutelocaltime", "secondlocaltime" ]
+    }, {
+      "name" : "date_get",
+      "id" : 3,
+      "response_id":  4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "date_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "year1", "year2", "month", "day" ]
+    }, {
+      "name" : "offset_set",
+      "id" : 5,
+      "SendVars" : [ "hourtzo", "minutetzo", "minuteoffsetdst", "monthstartdst", "daystartdst", "hourstartdst", "monthenddst", "dayenddst", "hourenddst" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "offset_get",
+      "id" : 6,
+      "response_id": 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "offset_report",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "hourtzo", "minutetzo", "minuteoffsetdst", "monthstartdst", "daystartdst", "hourstartdst", "monthenddst", "dayenddst", "hourenddst" ]
+    } ]
+  }, {
+    "name" : "TRANSPORT_SERVICE",
+    "id" : 85,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "USER_CODE",
+    "id" : 99,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "useridentifier", "useridstatus", "usercode1", "usercode2", "usercode3", "usercode4", "usercode5", "usercode6", "usercode7", "usercode8", "usercode9", "usercode10" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id":  3,
+      "SendVars" : [ "useridentifier" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "useridentifier", "useridstatus", "usercode1", "usercode2", "usercode3", "usercode4", "usercode5", "usercode6", "usercode7", "usercode8", "usercode9", "usercode10" ]
+    } ]
+  }, {
+    "name" : "ZIP_6LOWPAN",
+    "id" : 79,
+    "version" : 1,
+    "Commands" : [  ]
+  }, {
+    "name" : "ZIP",
+    "id" : 35,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "node_solicitation",
+      "id" : 3,
+      "SendVars" : [ "reserved", "nodeid", "ipv6address1", "ipv6address2", "ipv6address3", "ipv6address4", "ipv6address5", "ipv6address6", "ipv6address7", "ipv6address8", "ipv6address9", "ipv6address10", "ipv6address11", "ipv6address12", "ipv6address13", "ipv6address14", "ipv6address15", "ipv6address16" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "inv_node_solicitation",
+      "id" : 4,
+      "SendVars" : [ "properties1", "nodeid" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "APPLICATION_CAPABILITY",
+    "id" : 87,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "command_class_not_supported",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "dynamic", "commandclassmsb", "commandclasslsb", "command"]
+    } ]
+  }, {
+    "name" : "COLOR_CONTROL",
+    "id" : 51,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "capability_get",
+      "id" : 1,
+      "response_id": 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "capability_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mask1", "mask2" ]
+    }, {
+      "name" : "state_get",
+      "id" : 3,
+      "response_id": 4,
+      "SendVars" : [ "component" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "state_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "component", "value" ]
+    }, {
+      "name" : "state_set",
+      "id" : 5,
+      "SendVars" : [ "component1", "value1", "component2", "value2", "component3", "value3", "component4", "value4", "component5", "value5", "component6", "value6", "component7", "value7","component8", "value8"],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "start_level_change",
+      "id" : 6,
+      "SendVars" : [ "parameters", "component", "level" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "stop_state_change",
+      "id" : 7,
+      "SendVars" : [ "component" ],
+      "ReceiveVars" : [  ]
+    }  ]
+  }, {
+    "name" : "SCHEDULE",
+    "id" : 83,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "supported_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "num_schedule_ids", "start_time", "num_supported_cc", "supported_command_class1", "supported_command1", "supported_command_class2", "supported_command2" ]
+    }, {
+      "name" : "set",
+      "id" : 3,
+      "SendVars" : [ "schedule_id", "reserved", "start_year", "start_month", "start_dat", "start_weekday", "duration_and_hour", "start_minute", "duration_1", "duration_2", "num_reports", "num_commands", "cmd_length_1", "command1_byte1", "command1_byte2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 4,
+      "response_id": 5,
+      "SendVars" : [ "schedule_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "schedule_id", "reserved", "start_year", "start_month", "start_dat", "start_weekday", "duration_and_hour", "start_minute", "duration_1", "duration_2", "num_reports", "num_commands", "cmd_length_1", "command1_byte1", "command1_byte2" ]
+    }, {
+      "name" : "remove",
+      "id" : 6,
+      "SendVars" : [ "schedule_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "state_set",
+      "id" : 7,
+      "SendVars" : [ "schedule_id", "state" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "state_get",
+      "id" : 8,
+      "response_id":  9,
+      "SendVars" : [ "schedule_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "state_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "schedule_id", "reports_to_follow", "active_1_2", "active_3_4" ]
+    } ]
+  }, {
+    "name" : "NETWORK_MANAGEMENT_PRIMARY",
+    "id" : 84,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "ZIP_ND",
+    "id" : 88,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "ASSOCIATION_GRP_INFO",
+    "id" : 89,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "name_get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ "grouping_id" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "name_report",
+      "id" : 2,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "grouping_id", "length", "name1", "name2", "name3", "name4", "name5", "name6", "name7", "name8"  ]
+    }, {
+      "name" : "info_get",
+      "id" : 3,
+      "response_id": 4,
+      "SendVars" : [ "mode", "grouping_id" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "info_report",
+      "id" : 4,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "grouping_id", "mode", "profile_msb", "profile_lsb", "event_code_msb", "event_code_lsb" ]
+    }, {
+      "name" : "command_list_get",
+      "id" : 5,
+      "response_id": 6,
+      "SendVars" : [ "parameters", "grouping_id" ],
+      "ReceiveVars" : [  ]
+    }, {
+      "name" : "command_list_report",
+      "id" : 6,
+      "SendVars" : [  ],
+      "ReceiveVars" : [ "grouping_id", "list_length", "command_class_A", "command_A", "command_class_B", "command_B", "command_class_C", "command_C"  ]
+    } ]
+  }, {
+    "name" : "DEVICE_RESET_LOCALLY",
+    "id" : 90,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "notification",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "CENTRAL_SCENE",
+    "id" : 91,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "supported_get",
+      "id" : 1,
+      "response_id": 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "supportedscenes" ]
+    }, {
+      "name" : "notification",
+      "id" : 3,
+      "SendVars" : [ "sequencenumber", "properties1", "scenenumber" ],
+      "ReceiveVars" : [ "sequencenumber", "properties1", "scenenumber" ]
+    } ]
+  }, {
+    "name" : "IP_ASSOCIATION",
+    "id" : 92,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "groupingidentifier", "ipv6address1", "ipv6address2", "ipv6address3", "ipv6address4", "ipv6address5", "ipv6address6", "ipv6address7", "ipv6address8", "ipv6address9", "ipv6address10", "ipv6address11", "ipv6address12", "ipv6address13", "ipv6address14", "ipv6address15", "ipv6address16", "endpoint" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ "groupingidentifier", "index" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [  "groupingidentifier", "index", "actualnodes", "ipv6address1", "ipv6address2", "ipv6address3", "ipv6address4", "ipv6address5", "ipv6address6", "ipv6address7", "ipv6address8", "ipv6address9", "ipv6address10", "ipv6address11", "ipv6address12", "ipv6address13", "ipv6address14", "ipv6address15", "ipv6address16", "endpoint" ]
+    }, {
+      "name" : "remove",
+      "id" : 4,
+      "SendVars" : [ "groupingidentifier", "ipv6address1", "ipv6address2", "ipv6address3", "ipv6address4", "ipv6address5", "ipv6address6", "ipv6address7", "ipv6address8", "ipv6address9", "ipv6address10", "ipv6address11", "ipv6address12", "ipv6address13", "ipv6address14", "ipv6address15", "ipv6address16", "endpoint" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "ANTITHEFT",
+    "id" : 93,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "bytes", "code1", "code2", "code3", "code4", "code5", "code6", "code7", "code8", "manufacturer_msb", "manufacturer_lsb", "hint_bytes", "hint_byte1", "hint_byte2", "hint_byte3", "hint_byte4", "hint_byte5", "hint_byte6", "hint_byte7", "hint_byte8"  ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "response_id": 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antithefthintbyte3", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antithefthintbyte3", "antithefthintbyte4", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antithefthintbyte3", "antitheftprotectionstatus", "manufacturerid1", "manufacturerid2", "antithefthintnumberbytes", "antithefthintbyte1", "antithefthintbyte2", "antithefthintbyte3", "antithefthintbyte4" ]
+    } ]
+  }, {
+    "name" : "ZWAVEPLUS_INFO",
+    "id" : 94,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "response_id":  2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "zwaveversion", "roletype", "nodetype", "installericontype1", "installericontype2", "usericontype1", "usericontype2" ]
+    } ]
+  }, {
+    "name" : "ZIP_GATEWAY",
+    "id" : 95,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "ZIP_PORTAL",
+    "id" : 97,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "APPLIANCE",
+    "id" : 100,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "type_get",
+      "id" : 1,
+      "response_id": 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "type_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "appliancemodesupportedbitmask1", "appliancemodesupportedbitmask2", "appliancemodesupportedbitmask3", "appliancemodesupportedbitmask4" ]
+    }, {
+      "name" : "program_supported_get",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "program_supported_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    }, {
+      "name" : "set",
+      "id" : 5,
+      "SendVars" : [ "properties1",  "applianceprogram", "manufacturerdata1", "manufacturerdata2", "manufacturerdata3", "manufacturerdata4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 6,
+      "response_id":  7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1",  "applianceprogram", "manufacturerdata1", "manufacturerdata2", "manufacturerdata3", "manufacturerdata4" ]
+    } ]
+  }, {
+    "name" : "DMX",
+    "id" : 101,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "version",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "address_get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "address_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1", "channelid" ]
+    }, {
+      "name" : "capability_get",
+      "id" : 4,
+      "SendVars" : [ "channelid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "capability_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "channelid", "propertyid1", "propertyid2", "devicechannels", "maxchannels" ]
+    }, {
+      "name" : "data_40",
+      "id" : 6,
+      "SendVars" : [ "source", "properties1", "dmxchannel1", "dmxchannel2", "dmxchannel3", "dmxchannel4", "dmxchannel5", "dmxchannel6", "dmxchannel7", "dmxchannel8", "dmxchannel9", "dmxchannel10", "dmxchannel11", "dmxchannel12", "dmxchannel13", "dmxchannel14", "dmxchannel15", "dmxchannel16", "dmxchannel17", "dmxchannel18", "dmxchannel19", "dmxchannel20", "dmxchannel21", "dmxchannel22", "dmxchannel23", "dmxchannel24", "dmxchannel25", "dmxchannel26", "dmxchannel27", "dmxchannel28", "dmxchannel29", "dmxchannel30", "dmxchannel31", "dmxchannel32", "dmxchannel33", "dmxchannel34", "dmxchannel35", "dmxchannel36", "dmxchannel37", "dmxchannel38", "dmxchannel39", "dmxchannel40" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "address_set_properties1_page_id_mask",
+      "id" : 15,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "address_set_properties1_reserved_mask",
+      "id" : -16,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "data_40_properties1_sequence_no_mask",
+      "id" : 48,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "data_40_properties1_reserved_mask",
+      "id" : -64,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "BARRIER_OPERATOR",
+    "id" : 102,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "barrierstate" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "barrierstate" ]
+    }, {
+      "name" : "signal_supported_get",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "signal_supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmask1", "bitmask2", "bitmask3", "bitmask4" ]
+    }, {
+      "name" : "signal_set",
+      "id" : 6,
+      "SendVars" : [ "subsystemtype", "subsystemstate" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "signal_get",
+      "id" : 7,
+      "SendVars" : [ "subsystemtype" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "signal_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "subsystemtype", "subsystemstate" ]
+    }, {
+      "name" : "set_close",
+      "id" : 0,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "set_open",
+      "id" : -1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report_unknown_position_moving_to_close",
+      "id" : -4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report_unknown_position_stopped",
+      "id" : -3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report_unknown_position_moving_to_open",
+      "id" : -2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "SECURITY_PANEL_ZONE_SENSOR_INSTALLED_REPORT",
+    "id" : 2,
+    "version" : 1,
+    "Commands" : [ ]
+  }, {
+    "name" : "HUMIDITY_CONTROL_OPERATING_STATE",
+    "id" : 110,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1" ]
+    } ]
+  }, {
+    "name" : "HUMIDITY_CONTROL_MODE",
+    "id" : 109,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "properties1" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties1" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "supportedmodes" ]
+    } ]
+  }, {
+    "name" : "HUMIDITY_CONTROL_SETPOINT",
+    "id" : 100,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "set",
+      "id" : 1,
+      "SendVars" : [ "setpoint_type", "precision", "value1", "value2", "value3", "value4" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "get",
+      "id" : 2,
+      "SendVars" : [ "setpoint_type" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "setpoint_type", "precision", "value1", "value2", "value3", "value4" ]
+    }, {
+      "name" : "supported_get",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "supportedtypes" ]
+    }, {
+      "name" : "scale_supported_get",
+      "id" : 6,
+      "SendVars" : [ "setpoint_type" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "scale_supported_report",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "supportedtypes" ]
+    }, {
+      "name" : "capabilities_get",
+      "id" : 8,
+      "SendVars" : [ "setpoint_type" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "capabilities_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "IRRIGATION",
+    "id" : 107,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "system_info_get",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "system_info_report",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mastervalve", "valvecnt", "valvetblcnt", "valvemax" ]
+    }, {
+      "name" : "system_status_get",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "system_status_report",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "voltage", "sensorstatus" ]
+    }, {
+      "name" : "system_config_set",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "system_config_get",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "system_config_report",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mastervalvedelay" ]
+    }, {
+      "name" : "valve_info_get",
+      "id" : 8,
+      "SendVars" : [ "mastervalve", "valveid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_info_report",
+      "id" : 9,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mastervalve", "valveid", "nominalcurrent", "valveerrorstatus" ]
+    }, {
+      "name" : "valve_config_set",
+      "id" : 10,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_config_get",
+      "id" : 11,
+      "SendVars" : [ "mastervalve", "valveid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_config_report",
+      "id" : 12,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_run",
+      "id" : 13,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_table_set",
+      "id" : 14,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_table_get",
+      "id" : 15,
+      "SendVars" : [ "valvetableid" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_table_report",
+      "id" : 16,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "valve_table_run",
+      "id" : 17,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "valvetableid1", "valvetableid2", "valvetableid3", "valvetableid4" ]
+    }, {
+      "name" : "system_shutoff",
+      "id" : 18,
+      "SendVars" : [ "duration" ],
+      "ReceiveVars" : [ ]
+    } ]
+  }, {
+    "name" : "MAILBOX",
+    "id" : 105,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "config_get",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "config_set",
+      "id" : 2,
+      "SendVars" : [ "mode", "ipv6addr1", "ipv6addr2", "ipv6addr3", "ipv6addr4", "ipv6addr5", "ipv6addr6", "ipv6addr7", "ipv6addr8", "ipv6addr9", "ipv6addr10", "ipv6addr11", "ipv6addr12", "ipv6addr13", "ipv6addr14", "ipv6addr15", "ipv6addr16", "port1", "port2" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "config_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "mode", "capacity1", "capacity2" ]
+    }, {
+      "name" : "queue",
+      "id" : 4,
+      "SendVars" : [ "operation", "queuehandle", "entry" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "wakeup_notification",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "queuehandle" ]
+    }, {
+      "name" : "node_failing",
+      "id" : 6,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "queuehandle" ]
+    } ]
+  }, {
+    "name" : "ENTRY_CONTROL",
+    "id" : 111,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "notification",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "sequencenumber", "datatype", "eventtype", "datalength", "databyte1", "databyte2", "databyte3", "databyte4" ]
+    }, {
+      "name" : "key_supported_get",
+      "id" : 2,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "key_supported_report",
+      "id" : 3,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "bitmasklength", "byte1", "byte2", "byte3", "byte4" ]
+    }, {
+      "name" : "event_supported_get",
+      "id" : 4,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "event_supported_report",
+      "id" : 5,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "config_set",
+      "id" : 6,
+      "SendVars" : [ "keycachesize", "keycachetimeout" ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "config_get",
+      "id" : 7,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ ]
+    }, {
+      "name" : "config_report",
+      "id" : 8,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "keycachesize", "keycachetimeout" ]
+    } ]
+  } ]
+}

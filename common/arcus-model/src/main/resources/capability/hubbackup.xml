@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubBackup"
+   namespace="hubbackup"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="Backup"
+         description="Performs a backup in the hub, returning a binary blob in response.">
+         <c:parameters>
+            <c:parameter 
+               name="type"
+               type="enum"
+               values="V2"
+               description="The requested format of the backup data."
+               optional="false"/>
+            <c:return
+               name="data"
+               type="string"
+               description="A Base 64 encoded binary blob."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="Restore"
+         description="Performs a restore on the hub.">
+         <c:parameters>
+            <c:parameter 
+               name="type"
+               type="enum"
+               values="V1,V2"
+               description="The format of the backup data."
+               optional="false"/>
+            <c:parameter 
+               name="data"
+               type="string"
+               description="A Base 64 encoded binary blob."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   </c:methods>
+   
+   <c:events>
+      <c:event
+         name="RestoreFinished"
+         description="An event indicating that the migration process has finished.">
+         <c:parameters>
+            <c:parameter
+               name="report"
+               type="list&lt;object&gt;"
+               description="A report of migrated devices."
+               optional="false"/>
+         </c:parameters>
+      </c:event> 
+
+      <c:event
+         name="RestoreProgress"
+         description="A progress report for migration.">
+         <c:parameters>
+            <c:parameter
+               name="progress"
+               type="double"
+               description="A progress percentage from 0.0 to 1.0"
+               optional="false"/>
+         </c:parameters>
+      </c:event> 
+   </c:events>
+</c:capability>

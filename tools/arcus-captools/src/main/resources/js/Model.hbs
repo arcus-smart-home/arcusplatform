@@ -1,0 +1,33 @@
+'use strict';
+
+var Iris = require('backbone.khs');
+var _ = require('underscore');
+{{#if enhances}}var {{enhances}} = require('./{{enhances}}'); {{/if}}
+
+var ws = {};
+
+var defaults = { {{#each attributes}}
+{{docs this}}
+    {{name}}: undefined{{#unless @last}},{{/unless}} {{/each}}
+};
+
+{{#if enhances}}_.extend(defaults,{{enhances}}.prototype.defaults){{/if}}
+
+var validate = function(attributes, options) {
+{{#if enhances}}    var val = {{enhances}}.prototype.validate.apply(agruments)
+    if(val) return val{{/if}}{{#each attributes}}
+    {{{validate this}}}{{/each}}
+};
+
+/**
+* @name {{name}}
+* @namespace {{namespace}}
+* @description {{description}}
+* @version {{version}}
+* @mixin {{enhances}}
+*/
+module.exports = Iris.Model.extend({
+    ws: ws,
+    defautls: defaults,
+    validat: validate
+});

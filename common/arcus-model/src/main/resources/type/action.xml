@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="Action"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an action that may be executed by a Scene</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="template"
+			type="string"
+			description="The id of the template that this action was created from."
+			/>
+		<t:attribute
+			name="name"
+			type="string"
+			description="The name of this action, generally taken from the ActionTemplate."
+			/>
+		<t:attribute
+			name="context"
+			type="map&lt;map&lt;any&gt;&gt;"
+			description="A map from device address to selector values.  The inner map is keyed by selector name with the value based on selector type, as follows:
+    BOOLEAN - true or false
+    LIST - The value selected from the list
+    GROUP - The value of the group this device is a part of.  Note that depending on the group additional selector values may or may not be required.
+    RANGE - A numeric value
+    PERCENT - A numeric values between 0 and 100
+    THERMOSTAT - A ThermostatAction
+    TEMPERATURE - A TemperatureAction
+    		"
+    		/>
+    	<t:attribute
+			name="premium"
+			type="boolean"
+			description="If this action requires PREMIUM service level to be executed."
+			/>
+	</t:attributes>
+ </t:type>

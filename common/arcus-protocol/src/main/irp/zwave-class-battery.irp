@@ -1,0 +1,8 @@
+
+message zwave.Battery.BatteryGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Battery.BatteryReportV1<id="0x03", group="V1"> {
+    const u8 BATTERY_LEVEL_BATTERY_LOW_WARNING = 0xFF;
+    u8 batteryLevel;
+}

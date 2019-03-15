@@ -1,0 +1,20 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Senior Care Pendant
+//    From "Iris Senior Care Pendant ZigBee Protocol"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.Pendant {
+   const u8 DEVICE_TYPE = 0x1D;
+
+   const u8 ATTR_HELP_STATE = 0x20;
+   const u8 ATTR_CUSTOM_SOUND = 0x21;
+   const u8 ATTR_WALKTEST_TIMEOUT_S = 0x22;
+   const u8 ATTR_LAST_HOME_LQI = 0x23;
+   const u8 ATTR_LQI_THRESHOLD = 0x24;
+
+   const u8 HELP_STATE_IDLE = 0x00;
+   const u8 HELP_STATE_HELP_NEEDED = 0x01;
+   const u8 HELP_STATE_HELP_NEEDED_ACK = 0x02;
+   const u8 HELP_STATE_HELP_CALLED = 0x03;
+   const u8 HELP_STATE_HELP_COMING = 0x04;
+}

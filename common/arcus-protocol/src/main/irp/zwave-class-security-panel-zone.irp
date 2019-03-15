@@ -1,0 +1,34 @@
+
+message zwave.SecurityPanelZone.SecurityPanelZoneNumberSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.SecurityPanelZone.SecurityPanelZoneStateGetV1<id="0x05", group="V1"> {
+    u8 zoneNumber;
+}
+
+message zwave.SecurityPanelZone.SecurityPanelZoneStateReportV1<id="0x06", group="V1"> {
+    const u8 ZONE_STATE_FAULTED = 0x00;
+    const u8 ZONE_STATE_NOT_FAULTED = 0x01;
+    const u8 ZONE_STATE_BYPASS_FAULTED = 0x02;
+    const u8 ZONE_STATE_BYPASS_NOT_FAULTED = 0x03;
+    u8 zoneNumber;
+    u8 zoneState;
+}
+
+message zwave.SecurityPanelZone.SecurityPanelZoneSupportedReportV1<id="0x02", group="V1"> {
+    const u8 PARAMETERS1_ZONES_SUPPORTED_MASK = 0x7F;
+    const u8 PARAMETERS1_ZONES_SUPPORTED_SHIFT = 0;
+    const u8 PARAMETERS1_ZM = 0x80;
+    u8 parameters1;
+}
+
+message zwave.SecurityPanelZone.SecurityPanelZoneTypeGetV1<id="0x03", group="V1"> {
+    u8 zoneNumber;
+}
+
+message zwave.SecurityPanelZone.SecurityPanelZoneTypeReportV1<id="0x04", group="V1"> {
+    const u8 ZONE_TYPE_ALARM_ZONE = 0x01;
+    const u8 ZONE_TYPE_NOTIFICATION_ZONE = 0x02;
+    u8 zoneNumber;
+    u8 zoneType;
+}

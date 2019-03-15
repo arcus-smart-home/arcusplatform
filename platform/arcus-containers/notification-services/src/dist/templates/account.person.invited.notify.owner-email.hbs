@@ -1,0 +1,31 @@
+{{#section "subject"}}
+{{{inviterFirstName}}} Invited Someone To Join Your Place
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_owner.firstName}}},
+
+{{{inviterFirstName}}} {{{inviterLastName}}} invited {{{inviteeFirstName}}} {{{inviteeLastName}}} 
+to have access to your place called {{{_place.name}}}.
+
+We recommend contacting {{{inviterFirstName}}} if you have any concerns about this invitation.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_owner.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{inviterFirstName}} {{inviterLastName}} invited {{inviteeFirstName}} {{inviteeLastName}} to have access to your place called {{_place.name}}.<br/><br/>
+
+We recommend contacting {{inviterFirstName}} if you have any concerns about this invitation.<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

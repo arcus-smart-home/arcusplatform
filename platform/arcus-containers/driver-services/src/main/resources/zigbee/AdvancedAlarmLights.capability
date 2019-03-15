@@ -1,0 +1,190 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Alert Implementation for Colored Lights
+ */
+ 
+import groovy.transform.Field
+ 
+capability		Alert
+description		"Blink Lights on Alert"
+version			"1.0"
+
+
+
+def final String STATE_KEY = 		"state"
+def final String MODE_KEY = 		"mode"
+def final String LIGHT_KEY = 		"colormode"
+def final String HUE_KEY   = 		"hue"
+def final String SAT_KEY   = 		"saturation"
+def final String DIM_KEY   = 		"brightness"
+def final String SWITCH_KEY = 		"state"
+def final String COLORTEMP_KEY = 	"colortemp"
+
+
+def String TAG			  = 		"AdvancedAlarmLights"
+@Field def final short IDENT_PERIOD_SECS = 		20 //20 seconds (fast refresh during Alarm)
+@Field def final short DFLT_CLR_TRANS_SECS =	2   
+@Field def final long DFLT_READBACK_DELAY   = 3000       // delay before reading
+@Field def final short DFLT_TRANS_SECS             = 2
+
+//OSRAM Hack
+@Field def onOffCluster = Zigbee.endpoint((byte)3).OnOff
+@Field def levelCluster = Zigbee.endpoint((byte)3).Level
+@Field def identCluster = Zigbee.endpoint((byte)3).Identify
+@Field def colorCluster = Zigbee.endpoint((byte)3).Color
+
+setAttributes('alert') {
+	log.debug "{} set 'alert':{}", TAG, message
+	
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+
+			case Alert.state:
+				log.debug "Processing state change of attribute {} with value {}", attribute.key, attribute.value
+				switch (attribute.value){
+					
+					case 'ALERTING':
+						log.debug "{} set state ALERTING", TAG
+						//Record current light state
+						recordState()
+						//Start Blink
+						startBlink()
+						Alert.state Alert.STATE_ALERTING					
+						break
+					
+					case 'QUIET':
+						Alert.state Alert.STATE_QUIET
+						log.debug "{} set state QUIET", TAG
+						//Stop Blink
+						stopBlink()
+						//Reset Prior State
+						resetState()
+						break
+					
+					default:
+						log.error "Unrecognized value:{}", value
+						break
+					}			
+				sendResponse 'alert:SetAttributesResponse', [:]			
+			break
+				
+			default:
+				log.error "Unrecognized attribute:{}", attribute
+				break
+		}
+	}
+}
+
+void recordState(){
+	vars.LIGHT_KEY = Light.colormode.get()
+	vars.HUE_KEY   = Color.hue.get()
+	vars.SAT_KEY   = Color.saturation.get()
+	vars.DIM_KEY   = Dimmer.brightness.get()
+	vars.SWITCH_KEY = Switch.state.get()
+	vars.COLORTEMP_KEY = ColorTemperature.colortemp.get()
+	log.debug "Current State Saved {} mode, level {}", vars.LIGHT_KEY, vars.DIM_KEY
+}
+
+void brightRedLight(){
+	short QUICKLY = 1 //10th second
+	colorCluster.moveToHueAndSaturation((byte)0, (byte)254, QUICKLY) //hue 0, sat 100%
+}
+
+
+void startBlink(){
+	brightRedLight()
+	log.debug "Starting Blink, color set to red "
+	Scheduler.scheduleIn( 'Blink', 100) //Let color change before ident cmd
+	}
+
+onEvent('Blink'){
+	alertState = Alert.state.get()
+	log.debug "Current Alert State is {} to see if we should still be blinking", alertState
+	if (Alert.STATE_ALERTING == alertState){
+	// ask the device to identify itself again
+	log.debug "Refreshing Identify"
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	Scheduler.scheduleIn('Blink', IDENT_PERIOD_SECS*900)
+	brightRedLight()
+	}
+	else {
+	//else alert was silenced so no need to blink
+	log.debug "Identify Not Refreshed"
+	}
+}	
+	
+void stopBlink(){
+	log.debug "Stopping Blink"
+	identCluster.identifyCmd( (short)0 )
+	}
+	
+void resetState(){
+	log.debug "Restoring State"
+	if ("ON" == vars.SWITCH_KEY){
+		onOffCluster.on()
+	} else {
+		onOffCluster.off()
+	}
+
+	if (null != vars.DIM_KEY){
+	log.debug "Restoring level to {}", vars.DIM_KEY
+	level = vars.DIM_KEY
+	if (100 < level) { level = 100 }		// make sure level is 0 - 100
+	if (0 > level) { level = 0 }
+	def short transitionTime = DFLT_TRANS_SECS * 10
+	if (0 > transitionTime) { transitionTime = 0 }
+	double dLevel = level * 254 / 100
+	short actualLevel = dLevel.intValue()	//convert from percentage to actual zigbee level value 0 - 254
+
+	log.debug " reset levelCluster.moveToLevel[level, transitionTime] = [{}, {}]", actualLevel, transitionTime
+	levelCluster.moveToLevel( (byte)actualLevel, transitionTime )
+
+	// read current OnOff attributes
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+
+	// read back the level (delay this so ramping is completed first)
+	Scheduler.scheduleIn 'DeferredReadLevel', (transitionTime * 100) + DFLT_READBACK_DELAY		// transition time is in tenths of seconds, delay is in mSec
+	}
+	
+	if (null != vars.LIGHT_KEY)	{
+	log.debug "Last tight type was {}", vars.LIGHT_KEY
+		switch (vars.LIGHT_KEY){
+			case "COLOR":
+				double dHue = vars.HUE_KEY *254/360
+				short zHue = dHue.intValue()
+				double dSat = vars.SAT_KEY *254/100
+				short zSat = dSat.intValue()
+				colorCluster.moveToHueAndSaturation((byte)zHue, (byte)zSat, DFLT_CLR_TRANS_SECS)
+				log.debug "Restored color to hue:{} and sat:{}", vars.HUE_KEY, vars.SAT_KEY
+			break
+			case "COLORTEMP":
+				actualTemp = 1000000.0 / vars.COLORTEMP_KEY
+				def temp = Math.round(actualTemp).shortValue()							
+				colorCluster.moveToColorTemperature(temp, DFLT_CLR_TRANS_SECS)
+				log.debug "restore moveToColorTemperature {}", temp
+			break
+			default:
+				log.error "Unhandled light capability recovery from state {}", vars.LIGHT_KEY
+			}
+	}		
+		// read back the level (delay this by a few seconds so default ramping is completed first)
+		Scheduler.scheduleIn 'DeferredReadColor', DFLT_READBACK_DELAY		
+
+}
+
+

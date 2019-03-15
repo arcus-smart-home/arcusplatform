@@ -1,0 +1,129 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for an Air Vent
+ */
+driver			"MOCK_Vent"
+description		"Driver for the Mock Air Vent"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"vent"
+productId		"dc328e"
+vendor 			"Mockitron"
+model 			"AirVent"
+
+matcher         'MOCK:Capability' : 'Vent'
+matcher        'MOCK:ProductId'  : 'dc328e'
+
+capabilities    DevicePower, Identify, Vent, Switch, Temperature, DeviceMock
+
+
+def final long VENT_DELAY_MSEC = 2000		// delay 2 seconds for louver adjustment operation
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Air Vent started."
+	Device.name 'Mock Air Vent'
+	
+	// set inital attribute values
+	DeviceConnection.signal             64
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 50
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+    Vent.ventstate                      Vent.VENTSTATE_OK
+    Vent.level                          50
+	Vent.airpressure                    (50.0 / 100000.0)
+	
+	Switch.state                        Switch.STATE_OFF
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Temperature.temperature             22.5
+}
+
+onConnected {
+	log.debug "Mock Air Vent connected."
+}
+
+onDisconnected {
+	log.debug "Mock Air Vent disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Air Vent removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('swit') {
+	def prevSwitch = Switch.state.get()
+	attributes << message.attributes
+	if ((message.attributes['swit:state']) && (Switch.state.get() != prevSwitch)) {
+		Switch.statechanged new Date()
+	}
+}
+
+setAttributes('vent') {
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Vent.level:
+				// do a delayed setting of the Vent level
+				vars.'setLevel' = attribute.value
+				Scheduler.scheduleIn 'SetVentLevel', VENT_DELAY_MSEC
+				break
+			default:
+				log.error "Unrecognized vent attribute: " + attribute
+				break
+		}
+	}
+}
+
+onEvent('SetVentLevel') {
+	Vent.ventstate Vent.VENTSTATE_OK
+	double openLevel = vars.'setLevel'
+	Vent.level openLevel
+	double pressure = 0.002 - (openLevel / 100000.0)
+	Vent.airpressure pressure
+	log.debug 'SetVent Level:' + openLevel + ', State:' + Vent.VENTSTATE_OK + ', Pressure:' + pressure
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+	log.debug "devmock:Connect"
+	connected()
+}
+
+onPlatform ("devmock:Disconnect") {
+	log.debug "devmock:Disconnect"
+	disconnected()
+}
+
+onPlatform ("devmock:SetAttributes") {
+	log.debug "devmock:SetAttributes:" + message.attributes.attrs
+	attributes << message.attributes.attrs
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+

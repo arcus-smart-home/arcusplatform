@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Contact"
+   namespace="cont"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a contact sensor.
+   </c:description>
+   
+   <c:attributes>
+   <c:attribute
+      name="contact" 
+      readwrite="r" 
+      type="enum"
+      values="OPENED,CLOSED"
+      optional="false" 
+      description="Reflects the state of the contact sensor (opened or closed)."/>
+   <c:attribute 
+      name="contactchanged" 
+      readwrite="r" 
+      type="timestamp" 
+      optional="false" 
+      description="UTC date time of last contact change"/>
+   <c:attribute 
+      name="usehint" 
+      readwrite="rw" 
+      type="enum"
+      values="DOOR,WINDOW,OTHER,UNKNOWN" 
+      optional="false" 
+      description="How the device should be treated for display to the user.  UNKNOWN indicates this value hasn't been set and the user should be queried for how it was installed.  Some devices, such as door hinges, may populate this with an initial value of DOOR or WINDOW, but most drivers will initialize it to UNKNOWN"/>
+   </c:attributes>
+   
+</c:capability>

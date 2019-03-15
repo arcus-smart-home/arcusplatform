@@ -1,0 +1,117 @@
+{{{header}}}
+
+<tr>
+	<td style="padding: 0 30px 5px">
+		<p style="float: right; font-size: 12px;">
+			<strong>{{invoice_date}}</strong>
+		</p>
+
+		<h2 style="font-size: 16px;">Invoice {{invoice_number}}</h2>
+
+	</td>
+</tr>
+
+<tr>
+	<td style="padding: 0 30px 15px">
+		<h1 style="font-size: 20px;">Payment Declined</h1>
+
+		<table width="100%" cellpadding="0" cellspacing="0"
+			style="margin-bottom: 10px">
+			<tr>
+				<td width="320" id="message-body" align="left" valign="middle"
+					style="font-size: 12px;">
+					<p style="font-size: 14px; color: red">Your payment was
+						declined.</p>
+					<p>
+						Your most recent payment of {{{invoice_total_due}}} was <b>declined</b>.
+						{{#company_hosted_account_management_enabled?}} Please <a
+							href="{{account_hosted_maintenance_url}}"> update your
+							billing information</a>.
+					</p>
+
+					<p>
+						<a href="{{invoice_guest_view_url}}">View your invoice online.</a>
+						{{/company_hosted_account_management_enabled?}}
+					</p>
+
+				</td>
+				<td width="20">&nbsp;</td>
+				<td width="260" align="right" valign="top">
+					{{#company_hosted_account_management_enabled?}}
+					<div
+						style="background: #f3f3f3; border-radius: 1.5em; -moz-border-radius: 1.5em; -webkit-border-radius: 1.5em; padding: 1.5em 20px; width: 260px; margin: 1em 0; text-align: left;">
+						<p class="nospace">
+							<a class="button" href="{{account_hosted_maintenance_url}}">Update
+								Your Billing Info &rarr;</a>
+						</p>
+					</div> {{/company_hosted_account_management_enabled?}}
+				</td>
+			</tr>
+		</table>
+
+		<table id="invoice-table" width="100%" cellpadding="4" cellspacing="0">
+			<thead>
+				<tr bgcolor="#CCCCCC">
+					<th align="left" style="font-size: 12px"><strong>Date</strong>
+					</th>
+					<th align="left" style="font-size: 12px"><strong>Description</strong>
+					</th>
+					<th align="right" width="20" style="font-size: 12px"><strong>Amount</strong></th>
+				</tr>
+			</thead>
+
+			<tfoot>
+				<tr>
+					<td align="right" colspan="2"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>Subtotal:</strong></td>
+					<td align="right" width="20"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>{{{invoice_subtotal}}}</strong></td>
+				</tr>
+				{{#invoice_has_tax?}}
+				<tr>
+					<td align="right" colspan="2"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>
+							{{#invoice_has_vat?}}VAT:{{/invoice_has_vat?}}
+							{{^invoice_has_vat?}} {{invoice_tax_region}} Tax
+							{{invoice_tax_rate}}: {{/invoice_has_vat?}} </strong></td>
+					<td align="right" width="20"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>{{{invoice_tax_amount}}}</strong>
+					</td>
+				</tr>
+				{{/invoice_has_tax?}}
+				<tr style="border-bottom: 1px solid #f3f3f3;">
+					<td align="right" colspan="2"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>Paid:</strong></td>
+					<td align="right" width="20"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>{{{invoice_total_paid}}}</strong>
+					</td>
+				</tr>
+				<tr id="invoice-total" bgcolor="#F3F3F3"
+					style="border-bottom: 1px solid #cccccc;">
+					<td align="right" colspan="2"
+						style="border-bottom: 1px solid #cccccc; font-size: 12px;"><strong>Total:</strong></td>
+					<td align="right" width="20"
+						style="border-bottom: 1px solid #cccccc; font-size: 12px;"><strong>{{{invoice_total_due}}}</strong>
+					</td>
+				</tr>
+			</tfoot>
+			<tbody>
+				{{#invoice_line_items}}
+				<tr>
+					<td align="left" valign="top"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;">
+						{{{line_date}}}</td>
+					<td align="left" valign="top"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;">
+						{{line_description}}</td>
+					<td align="right" valign="top" width="20"
+						style="border-bottom: 1px solid #f3f3f3; font-size: 12px;"><strong>{{{line_amount}}}</strong></td>
+				</tr>
+				{{/invoice_line_items}}
+			</tbody>
+		</table>
+
+	</td>
+</tr>
+
+{{{footer}}}

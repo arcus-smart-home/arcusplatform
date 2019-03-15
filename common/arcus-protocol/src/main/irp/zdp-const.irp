@@ -1,0 +1,101 @@
+constants zdp.Constants {
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.3.2 from the Zigbee specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZDP_LOGICAL_TYPE_COORDINATOR = 0x00;
+   const u8 ZDP_LOGICAL_TYPE_ROUTER = 0x01;
+   const u8 ZDP_LOGICAL_TYPE_END_DEVICE = 0x02;
+
+   const u8 ZDP_FREQ_BAND_868 = 0x00;
+   const u8 ZDP_FREQ_BAND_902 = 0x02;
+   const u8 ZDP_FREQ_BAND_2400 = 0x03;
+
+   const u8 ZDP_NODE_DESC_COMPLEX_DESC_AVAIL = 0x0008;
+   const u8 ZDP_NODE_DESC_USER_DESC_AVAIL = 0x0010;
+
+   const u8 ZDP_MAC_CAP_ALT_PAN_COORD = 0x01;
+   const u8 ZDP_MAC_CAP_DEVICE_TYPE = 0x02;
+   const u8 ZDP_MAC_CAP_POWER_SOURCE = 0x04;
+   const u8 ZDP_MAC_CAP_RX_ON_IDLE = 0x08;
+   const u8 ZDP_MAC_CAP_SECURITY = 0x40;
+   const u8 ZDP_MAC_CAP_ALLOC_ADDR = 0x80;
+
+   const u16 ZDP_SERVER_MASK_PRIMARY_TC = 0x0001;
+   const u16 ZDP_SERVER_MASK_BACKUP_TC = 0x0002;
+   const u16 ZDP_SERVER_MASK_PRIARY_BTC = 0x0004;
+   const u16 ZDP_SERVER_MASK_BACKUP_BTC = 0x0008;
+   const u16 ZDP_SERVER_MASK_PRIMARY_DC = 0x0010;
+   const u16 ZDP_SERVER_MASK_BACKUP_DC = 0x0020;
+   const u16 ZDP_SERVER_MASK_NWK_MGR = 0x0040;
+
+   const u8 ZDP_DESC_CAP_EXT_ACTIVE_EP_AVAIL = 0x01;
+   const u8 ZDP_DESC_CAP_EXT_SIMPLE_DESC_AVAIL = 0x02;
+
+   const u8 ZDP_POWER_MODE_ALWAYS_ON = 0x00;
+   const u8 ZDP_POWER_MODE_PERIODIC = 0x01;
+   const u8 ZDP_POWER_MODE_STIMULATED = 0x02;
+
+   const u8 ZDP_POWER_CONSTANT = 0x01;
+   const u8 ZDP_POWER_BATTERY_RECHARGEABLE = 0x02;
+   const u8 ZDP_POWER_BATTERY_DISPOSABLE = 0x04;
+
+   const u8 ZDP_POWER_LEVEL_CRITICAL = 0x00;
+   const u8 ZDP_POWER_LEVEL_33 = 0x04;
+   const u8 ZDP_POWER_LEVEL_66 = 0x08;
+   const u8 ZDP_POWER_LEVEL_100 = 0x0C;
+
+   const u8 ZDP_RELATIONSHIP_PARENT = 0x00;
+   const u8 ZDP_RELATIONSHIP_CHILD = 0x01;
+   const u8 ZDP_RELATIONSHIP_SIBLING = 0x02;
+   const u8 ZDP_RELATIONSHIP_NONE = 0x03;
+   const u8 ZDP_RELATIONSHIP_PREVIOUS_CHILD = 0x04;
+
+   const u8 ZDP_ROUTING_STATUS_ACTIVE = 0x00;
+   const u8 ZDP_ROUTING_STATUS_DISC_UNDERWAY = 0x01;
+   const u8 ZDP_ROUTING_STATUS_DISC_FAILED = 0x02;
+   const u8 ZDP_ROUTING_STATUS_INACTIVE = 0x03;
+   const u8 ZDP_ROUTING_STATUS_VALIDATION_UNDERWAY = 0x04;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Sections 2.4.3 and 2.4.4 from the Zigbee specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZDP_ADDR_SINGLE_DEVICE_RESPONSE = 0x00;
+   const u8 ZDP_EXTENDED_RESPONSE = 0x01;
+
+   const u8 ZDP_ADDR_MODE_GROUP = 0x01;
+   const u8 ZDP_ADDR_MODE_EXTENDED = 0x03;
+
+   const u8 ZDP_LEAVE_REMOVE_CHILDREN = 0x40;
+   const u8 ZDP_LEAVE_REJOIN = 0x80;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.4.5 from the Zigbee specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZDP_SUCCESS = 0x00;
+   const u8 ZDP_INV_REQUESTTYPE = 0x80;
+   const u8 ZDP_DEVICE_NOT_FOUND = 0x81;
+   const u8 ZDP_INVALID_EP = 0x82;
+   const u8 ZDP_NOT_ACTIVE = 0x83;
+   const u8 ZDP_NOT_SUPPORTED = 0x84;
+   const u8 ZDP_TIMEOUT = 0x85;
+   const u8 ZDP_NO_MATCH = 0x86;
+   const u8 ZDP_NO_ENTRY = 0x88;
+   const u8 ZDP_NO_DESCRIPTOR = 0x89;
+   const u8 ZDP_INSUFFICIENT_SPACE = 0x8a;
+   const u8 ZDP_NOT_PERMITTED = 0x8b;
+   const u8 ZDP_TABLE_FULL = 0x8c;
+   const u8 ZDP_NOT_AUTHORIZED = 0x8d;
+   const u8 ZDP_DEVICE_BINDING_TABLE_FULL = 0x8e;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 3.6.5 from the Zigbee specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZB_BROADCAST_ALL = 0xFFFF;
+   const u16 ZB_BROADCAST_RX_ON_IDLE = 0xFFFD;
+   const u16 ZB_BROADCAST_ROUTERS = 0xFFFC;
+   const u16 ZB_BROADCAST_LOW_POWER_DEVICES = 0xFFFB;
+}

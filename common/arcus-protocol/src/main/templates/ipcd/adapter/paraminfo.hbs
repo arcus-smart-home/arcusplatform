@@ -1,0 +1,20 @@
+{{#file . "com/iris/protocol/ipcd/adapter/aosmith/{{capitalize aosName}}ParamInfo.java"}}
+package com.iris.protocol.ipcd.adapter.aosmith;
+
+import java.util.Arrays;
+
+import com.iris.protocol.ipcd.adapter.AdapterParameterInfo;
+
+public class {{capitalize aosName}}ParamInfo extends AdapterParameterInfo {
+   
+   public {{capitalize aosName}}ParamInfo() {
+      super("{{type}}", 
+            {{{valuesBuilder}}},
+            "{{attrib}}", 
+            {{{unitValue}}}, 
+            {{floorValue}}, 
+            {{ceilingValue}}, 
+            {{{descriptionValue}}});
+   }
+}
+{{/file}}

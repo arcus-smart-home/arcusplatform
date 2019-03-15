@@ -1,0 +1,28 @@
+{{#section "subject"}}
+{{{ _ruleName }}} Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+Hi {{{_person.firstName}}},
+
+{{{ device }}} at {{{_place.name}}} is {{{celsiusToFahrenheit current }}} degrees.
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{ device }} at {{_place.name}} is {{celsiusToFahrenheit current }} degrees.
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

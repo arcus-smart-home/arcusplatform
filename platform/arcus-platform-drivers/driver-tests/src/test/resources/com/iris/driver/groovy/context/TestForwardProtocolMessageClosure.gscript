@@ -1,0 +1,32 @@
+
+def forwardBytes(dest, a1) {
+   forwardToDevice(dest, a1)
+}
+
+def forwardBytesWithTimeout(dest, a1, a2) {
+   forwardToDevice(dest, a1, a2)
+}
+
+def forwardBytesWithProtocol(dest, a1, a2) {
+   forwardToDevice(dest, a1, a2)
+}
+
+def forwardBytesWithTimeoutAndProtocol(dest, a1, a2, a3) {
+   forwardToDevice(dest, a1, a2, a3)
+}
+
+def forwardPayload(dest, a1) {
+   forwardToDevice(dest, a1)
+}
+
+def forwardPayloadWithProtocol(dest, a1, a2) {
+   forwardToDevice(dest, a1, a2);
+}
+
+def forwardPayloadWithTimeout(dest, a1, a2) {
+   forwardToDevice(dest, a1, a2)
+}
+
+def forwardPayloadWithTimeoutAndProtocol(dest, a1, a2, a3) {
+   forwardToDevice(dest, a1, a2, a3)
+}

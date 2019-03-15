@@ -1,0 +1,609 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+
+/**
+ * Driver for the PetSafe SmartDoor
+ */
+driver			"ZB_PetSafe_SmartDoor"
+description		"Driver for the PetSafe SmartDoor"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Pet Door"
+productId		"ca9471"
+vendor 			"PetSafe"
+model 			"APA11-113808"			// Shows up with productId of 2048.
+
+matcher			'ZIGB:manufacturer': 0x0000, 'ZIGB:vendor': 'PetSafe', 'ZIGB:model': 'APA11-113808'
+
+capabilities	DevicePower, PetDoor, Identify
+
+/*
+ * Cluster Declaration
+ * INPUT
+ * 0x0000	Basic
+ * 0x0001	Power
+ * 0x0003	Identify
+ * 0x0009	Alarms   ?
+ * 0x000A	Time     ?
+ * 0x0101	DoorLock ?
+ * 
+ * OUTPUT ???
+ * 0x0000	Basic
+ * 0x0001	Power
+ * 0x0003	Identify
+ * 0x0009	Alarms
+ * 0x000A	Time
+ * 0x0101	DoorLock
+ */
+
+@Field def basicCluster = Zigbee.endpoint((byte)12).Basic
+@Field def pwrCluster = Zigbee.endpoint((byte)12).Power
+@Field def doorLockCluster = Zigbee.endpoint((byte)12).DoorLock
+@Field def alarmsCluster = Zigbee.endpoint((byte)12).Alarms
+@Field def timeCluster = Zigbee.endpoint((byte)12).Time
+@Field def identCluster = Zigbee.endpoint((byte)12).Identify
+
+
+/*
+ * Hard code metaInfo
+ */
+@Field def final short 	PROFILE_HA           	= 0x0104
+@Field def final short 	CLUSTER_BASIC     		= 0x0000
+@Field def final short 	CLUSTER_PWR_CNFG     	= 0x0001
+@Field def final CMD_CNFG_RPT               	= 0x06
+@Field def final CMD_CNFG_RPT_RSP           	= 0x07
+
+@Field def final String	TOKEN_PREFIX			= 'pt'
+@Field def final int 	TOKENS_SUPPORTED		= 5
+@Field def final short 	IDENT_PERIOD_SECS		= 300
+@Field def final int	TOKEN_INST_NOT_USED		= -1
+
+@Field def final String CNFG_PWR_RPT        	= 'CNFG_PWR_RPT'
+@Field def final String CNFG_BASIC_RPT        	= 'CNFG_BASIC_RPT'
+
+@Field def final long 	CNFG_RETRY_DELAY_MSEC   = 10000     // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field def final int 	MAX_CNFG_ATTEMPTS      	= 10
+
+@Field def final byte 	SOURCE_MANUAL 			= 0x02
+@Field def final byte 	SOURCE_RFID 			= 0x03
+@Field def final byte 	CODE_RFIDCODEADDED 		= 0x05
+@Field def final byte 	CODE_RFIDCODEDELETED 	= 0x06
+@Field def final String DEVICE_NAME = 'PetSafe SmartDoor'
+
+/*
+ * Operational constants
+ */
+def final OFFLINE_TIMEOUT_SECS				= 600           // 10 minutes
+
+DevicePower.source							DevicePower.SOURCE_BATTERY
+DevicePower.linecapable						false
+DevicePower.backupbatterycapable			false
+
+PetDoor.numPetTokensSupported				TOKENS_SUPPORTED
+
+/*
+ * Setup the pet token instances
+ */
+1.upto(TOKENS_SUPPORTED,{
+	// declare named instances of the Pet Token (pettoken) capability
+	def tokenInst = TOKEN_PREFIX+it
+	
+	instance tokenInst, PetToken
+	PetToken.tokenNum."$tokenInst" it
+	PetToken.tokenId."$tokenInst" TOKEN_INST_NOT_USED
+	PetToken.paired."$tokenInst" false
+})
+
+onAdded {
+	log.debug "${DEVICE_NAME} device started."
+	
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	// Bind all of the enpoints
+	Zigbee.bindAll()
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+}
+
+
+onConnected {
+	log.debug "${DEVICE_NAME} device connected."
+
+	// read current Basic attributes (to determine power source, batteries, or mains)
+	log.debug "Read Basic:"
+	basicCluster.zclReadAttributes(
+		basicCluster.ATTR_ZCL_VERSION,
+		basicCluster.ATTR_APPLICATION_VERSION,
+		basicCluster.ATTR_HARDWARE_VERSION,
+		basicCluster.ATTR_MODEL_IDENTIFIER,
+		basicCluster.ATTR_POWER_SOURCE)
+		
+	// read current Power attributes
+	// 0x0020, 0x0034, 0x0035, 0x0036
+	log.debug "Read Power:Battery Levels Attribute"
+	pwrCluster.zclReadAttributes(
+		pwrCluster.ATTR_BATTERY_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_RATED_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_ALARM_MASK,
+		pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD
+		)
+	
+	// read current door state
+	log.debug "Read DoorLock Attribute"
+	doorLockCluster.zclReadAttributes(
+		doorLockCluster.ATTR_DOOR_STATE,
+		doorLockCluster.ATTR_LOCK_TYPE,
+		doorLockCluster.ATTR_ACTUATOR_ENABLED,
+		doorLockCluster.ATTR_DOOR_STATE,
+		doorLockCluster.ATTR_DOOR_OPEN_EVENTS,
+		doorLockCluster.ATTR_DOOR_CLOSED_EVENTS,
+		doorLockCluster.ATTR_OPEN_PERIOD
+		)
+	
+	log.debug "Read Alarm Attribute"
+	alarmsCluster.zclReadAttributes(
+		alarmsCluster.ATTR_ALARM_COUNT
+		)
+
+	vars.CNFG_PWR_RPT = 0
+	Scheduler.defer CNFG_PWR_RPT
+
+	Scheduler.defer CNFG_BASIC_RPT
+
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} device disconnected."
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} device removed."
+}
+
+
+onEvent(CNFG_PWR_RPT) {
+	if ((0 <= vars.CNFG_PWR_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PWR_RPT)) {
+		log.debug "${DEVICE_NAME} - $CNFG_PWR_RPT:$vars.CNFG_PWR_RPT"
+		// configure reporting of Power Config cluster Battery Voltage attribute (as per Iris1)
+		byte[] rptPwrCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0020) Battery Voltage
+			0x20, 0x00,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0078) 120 secs (at most once per hour)
+			0x78, 0x00,
+			// Max Interval (0x1C20) 7200 seconds (at least once every 12 hours)
+			//0xC0, 0xA8,
+			0x20, 0x1C,
+			// Reportable Change 
+			0x01 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_PWR_CNFG,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 12,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptPwrCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_PWR_RPT++
+		Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PWR_RPT)
+	}
+}
+
+onEvent(CNFG_BASIC_RPT){
+	// This is set to let the device to report the existing key previous added
+	/* The device reply with configure report response with status INVALID_DATA_TYPE, 
+	 * when send a configure report.
+	 * If there are any pre-existing keys, then device response as ProgrammingEventNotification
+	 * Hence, the monitor of report configuration is not applied.
+	 */
+	log.debug "${DEVICE_NAME} - Configure Basic Report (cluster : 0x0000) - Power (Attribute : 0x0007)"
+	byte[] payload = [
+		// Direction
+		0x00,
+		// Attribute
+		0x07, 0x00,
+		// Attribute Data Type
+		0x30,
+		// Min Interval (iris1 : 0x0078)
+		0x78, 0x00, // (10 sec)
+		// Max Interval (iris1 : 0x1C20)
+		0x20, 0x1C,
+		]
+
+	Zigbee.send(
+		"cluster" : CLUSTER_BASIC,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 12,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : payload )
+
+	// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+}
+
+setAttributes('petdoor') {
+	log.debug "${DEVICE_NAME} - petdoor:SetAttributes:" + message
+	
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case PetDoor.lockstate:
+				switch(attribute.value) {
+					case PetDoor.LOCKSTATE_LOCKED:
+						log.debug "Manually Locking Door"
+						
+						byte[] lock = [0x25,0x00,0x30,0x02]
+						Zigbee.send("cluster" : 0x0101, "command" : 0x02, "profile" : 0x0104, "endpoint" : 12, "clusterspecific" : false, "defaultresponse" : true,
+							"data" : lock )
+
+						PetDoor.lockstate PetDoor.LOCKSTATE_LOCKED
+						doorLockCluster.lockDoor()
+						break
+					case PetDoor.LOCKSTATE_UNLOCKED:
+						log.debug "Manually Unlocking Door"
+						
+						byte[] unlock = [0x25,0x00,0x30,0x00]
+						Zigbee.send("cluster" : 0x0101, "command" : 0x02, "profile" : 0x0104, "endpoint" : 12, "clusterspecific" : false, "defaultresponse" : true,
+							"data" : unlock )
+						
+						PetDoor.lockstate PetDoor.LOCKSTATE_UNLOCKED
+						doorLockCluster.unlockDoor()
+						break
+					case PetDoor.LOCKSTATE_AUTO:
+						log.debug "Setting Door to Auto"
+						PetDoor.lockstate PetDoor.LOCKSTATE_AUTO
+						
+						byte[] data = [0x25,0x00,0x30,0x00]
+						Zigbee.send("cluster" : 0x0101, "command" : 0x02, "profile" : 0x0104, "endpoint" : 12, "clusterspecific" : false, "defaultresponse" : true,
+							"data" : data )
+						doorLockCluster.lockDoor()
+						break
+					default:
+						log.error "Unrecognized PetDoor lock state: " + attribute.value
+						break
+				}
+				break
+			default:
+				log.error "petdoor:SetAttributes unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+
+setAttributes('pettoken') {
+	def attrs = message.attributes;
+	log.debug "${DEVICE_NAME} - setAttributes for 'pet token' (pettoken):" + attrs
+	
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case PetToken.petName :
+				def instance = attribute.key.split(':')[2]				// assumes attributes are namespace:attributeName:instanceName
+				PetToken.petName."$instance"  attribute.value
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "${DEVICE_NAME} driver received onIdentify.Identify: " + message
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} driver received Basic Attributes Response: " + message
+	def attributes = Zigbee.Message.decodeZclAttributes(message);
+	def pwrSrc = attributes[basicCluster.ATTR_POWER_SOURCE]
+	def zclVers = attributes[basicCluster.ATTR_ZCL_VERSION]
+	def appVers = attributes[basicCluster.ATTR_APPLICATION_VERSION]
+	def hwVers = attributes[basicCluster.ATTR_HARDWARE_VERSION]
+	def mfgName = attributes[basicCluster.ATTR_MANUFACTURER_NAME]
+	def model = attributes[basicCluster.ATTR_MODEL_IDENTIFIER]
+	log.debug "ZCL-Ver:" + zclVers + ", App-Ver:" + appVers + ", HW-Ver:" + hwVers + ", Mfg:" + mfgName + ", Model:" + model + ", PwrSrc:" + pwrSrc
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - Driver received Power Attributes Response: " + message
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def battVolt = attributes[pwrCluster.ATTR_BATTERY_VOLTAGE]
+	def battMinThreshold = attributes[pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+	def battAlarmMask = attributes[pwrCluster.ATTR_BATTERY_ALARM_MASK] // What is this for?
+	def battRatedVoltage = attributes[pwrCluster.ATTR_BATTERY_RATED_VOLTAGE] 
+	log.debug "BatteryVoltage:${battVolt}, Rated Voltage:${battRatedVoltage}, Min Thrshld:${battMinThreshold}, Alarm Mask:${battAlarmMask}"
+	
+	vars.battMinThreshold = battMinThreshold / 10.0
+	//vars.battAlarmMask    = battAlarmMask
+	vars.battRatedVoltage = battRatedVoltage / 10.0
+	
+	handlePowerMsg( battVolt )
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.debug "${DEVICE_NAME} - Driver received Power Attributes Report: " + message
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def battVolt = attributes[pwrCluster.ATTR_BATTERY_VOLTAGE]
+	log.debug "BatteryVoltage:${battVolt}"
+	handlePowerMsg( battVolt )
+}
+
+
+void handlePowerMsg( battVolt ){
+	log.debug "${DEVICE_NAME} - BatteryVoltage:" + battVolt + ", Min Thrshld:" + vars.battMinThreshold + ", Alarm Mask:" + vars.battAlarmMask
+
+	double minVolts = (null != vars.battMinThreshold) ? (vars.battMinThreshold / 10.0) : 4.1		// default to 4.1 volts (from spec)
+	double nomVolts =(null != vars.battRatedVoltage) ? vars.battRatedVoltage : 6.0
+
+	// NOTE: Ignore this for now.  Voltage Too Low bit appears to always be set
+	//	if ( (null != battAlarmMask) && (battAlarmMask & cluster.BATTERY_ALARM_MASK_VOLTAGE_TOO_LOW) ) {		// battery alarm mask, bit 0, 1 = battery voltage too low
+	//		log.warn "Alarm: Battery voltage too low"
+	//	}
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+		// battery Voltage is reported in tenths of Volts
+		double volts = (battVolt / 10.0)
+		log.debug "Battery Volts:" + volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (nomVolts - minVolts)) {	// prevent division by zero
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = battPercent
+			log.debug "Battery Percent:" + intBattPercent
+			DevicePower.battery intBattPercent
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Door Lock Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+onZigbeeMessage.Zcl.doorlock.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - PetSafe SmartDoor Sensor driver received DoorLock Attributes Response: " + message
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	def lockState = attributes[doorLockCluster.ATTR_LOCK_STATE]
+	def lockType = attributes[doorLockCluster.ATTR_LOCK_TYPE]
+	def actuatorEnabled = attributes[doorLockCluster.ATTR_ACTUATOR_ENABLED]
+	
+	def doorState = attributes[doorLockCluster.ATTR_DOOR_STATE]
+	def openEvents = attributes[doorLockCluster.ATTR_DOOR_OPEN_EVENTS]
+	def closedEvents = attributes[doorLockCluster.ATTR_DOOR_CLOSED_EVENTS]
+	def openPeriod = attributes[doorLockCluster.ATTR_OPEN_PERIOD]
+
+	log.debug 	"${DEVICE_NAME} - lockState:" + lockState + 
+				" lockType:" + lockType + 
+				" actuatorEnabled:" + actuatorEnabled + 
+				" doorState:" + doorState + 
+				" openEvents:" + openEvents +
+				" openPeriod:" + openPeriod
+				
+	if(1 == doorState) {
+		PetDoor.lockstate PetDoor.LOCKSTATE_LOCKED
+		PetDoor.lastlockstatechangedtime new Date()
+	}
+}
+
+onZigbeeMessage.Zcl.doorlock.programmingeventnotification() {	
+	def notification = Zigbee.Message.decodeZcl(message)
+	log.debug "${DEVICE_NAME} driver received programming event notification: " + notification
+	if(notification.source == SOURCE_RFID){
+		switch(notification.code) {
+			case CODE_RFIDCODEADDED:
+				log.debug "${DEVICE_NAME} - Process new RFID"
+
+				boolean existing = false;
+				1.upto( TOKENS_SUPPORTED, {
+					def inst = TOKEN_PREFIX+it
+					if( PetToken.tokenId."$inst".get() == notification.userId) {
+						existing = true;
+						return false;
+					}
+				})
+				
+				if(!existing) {
+					log.debug "${DEVICE_NAME} - Adding RFID ${notification.userId} "
+					addToken(notification.userId)
+				} else {
+					log.debug "${DEVICE_NAME} - RFID ${notification.userId} already exist"
+				}
+				break;
+			case CODE_RFIDCODEDELETED:
+				// remove token
+				1.upto( TOKENS_SUPPORTED, {
+					def inst = TOKEN_PREFIX+it
+					if( PetToken.tokenId."$inst".get() ==  notification.userId) {
+						log.debug "${DEVICE_NAME} - Removing RFID ${notification.userId} "
+						PetToken.tokenId."$inst" TOKEN_INST_NOT_USED
+						PetToken.petName."$inst" null
+						PetToken.lastAccessDirection."$inst" null
+						PetToken.lastAccessTime."$inst" null
+						PetToken.paired."$inst" false
+						emit 'PetDoor:TokenRemoved', ['tokenId':notification.userId]
+					}
+				})
+				break;
+			default:
+				break;
+		}
+	} 
+}
+
+
+onZigbeeMessage.Zcl.doorlock.operationeventnotification() {
+	def notification = Zigbee.Message.decodeZcl(message);
+	log.debug "${DEVICE_NAME} driver received operation event notification: " + notification
+	Date now = now()
+	switch(notification.code) {
+		case 0x02:	
+			// pet activity
+			def tokenId = notification.userId
+			def direction = notification.data[0]
+			for(int i=1; i<=TOKENS_SUPPORTED; i++) {
+				def tokenInst = TOKEN_PREFIX+i
+				if( tokenId == PetToken.tokenId."$tokenInst".get() ) {
+					log.debug "${DEVICE_NAME} - pet activity [ tokenInst:${tokenInst} tokenId:${tokenId}, direction:${direction} ]"
+					if(2 == direction ) {
+						PetToken.lastAccessDirection."$tokenInst" PetToken.LASTACCESSDIRECTION_IN
+						PetDoor.direction PetDoor.DIRECTION_IN
+					} else {
+						PetToken.lastAccessDirection."$tokenInst" PetToken.LASTACCESSDIRECTION_OUT
+						PetDoor.direction PetDoor.DIRECTION_OUT
+					}
+					
+					PetToken.lastAccessTime."$tokenInst" now
+					PetDoor.lastaccesstime now
+						
+					// emit event
+					emit 'PetDoor:TokenUsed', ['tokenId':tokenId, 'petName':PetToken.petName."$tokenInst".get(), 'direction':PetToken.lastAccessDirection."$tokenInst".get()]
+					break;
+				}
+			}
+			break;
+		case 0x0A:
+			PetDoor.lockstate PetDoor.LOCKSTATE_AUTO
+			PetDoor.lastlockstatechangedtime now
+			break;
+		case 0x0D:
+			PetDoor.lockstate PetDoor.LOCKSTATE_LOCKED
+			PetDoor.lastlockstatechangedtime now
+			break;
+		case 0x0E:
+			PetDoor.lockstate PetDoor.LOCKSTATE_UNLOCKED
+			PetDoor.lastlockstatechangedtime now
+			break;
+		default: break;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.debug "${DEVICE_NAME} driver received zigbee ZCL message: " + message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	log.debug "${DEVICE_NAME} - Profile:${profile}, ClusterId:${clusterId}, MsgId:${msgId}, EndPoint:${endpoint}, Flags:${flags}, Data:${data}"
+	
+	// if Config Reporting Response for Power Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_PWR_CNFG == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (12 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "${DEVICE_NAME} - Power reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_PWR_RPT = -1
+		} else {
+			log.warn "${DEVICE_NAME} - Power reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+}
+
+onPetDoor.RemoveToken {
+	int tokID = message.attributes['tokenId']
+	log.debug "${DEVICE_NAME} - remove the pet from the pet door ${tokID}"  
+	boolean removed = false
+	def byte[] tokenIdBytes = new byte[2]
+	
+	1.upto( TOKENS_SUPPORTED, {	
+		def removeInst = TOKEN_PREFIX+it
+		if( tokID == PetToken.tokenId."$removeInst".get() ) {
+			PetToken.tokenId."$removeInst" TOKEN_INST_NOT_USED
+			PetToken.petName."$removeInst" ''
+			PetToken.lastAccessDirection."$removeInst" null
+			PetToken.lastAccessTime."$removeInst" null
+			PetToken.paired."$removeInst" false
+			java.nio.ByteBuffer.wrap(tokenIdBytes)
+			.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+			.putShort((short)tokID)
+			log.debug("tokenIdBytes : ${tokenIdBytes}")
+			Zigbee.send(
+				"cluster" : 0x0101, 
+				"command" : 0x18, 
+				"profile" : 0x0104, 
+				"endpoint" : 12, 
+				"clusterspecific" : true, 
+				"defaultresponse" : true,
+				"data" : tokenIdBytes )
+			
+			removed = true
+			emit 'PetDoor:TokenRemoved', ['tokenId':tokID]
+			return false
+		}
+	})
+	
+	sendResponse( 'petdoor:RemoveKeyResponse', ['removed':removed] )
+}	
+
+/**
+ * 
+ * @param tokenId
+ * @return
+ */
+def addToken(int tokenId) { 
+	log.debug "${DEVICE_NAME} - token id added: ${tokenId}" 
+	boolean found = false;
+	for (def i=1; i<=TOKENS_SUPPORTED; i++) {
+		def tokenInst = TOKEN_PREFIX+i
+		if( -1 == PetToken.tokenId."$tokenInst".get() ) {
+			log.debug "${DEVICE_NAME} - adding token: ${tokenId} at instance: ${tokenInst}" 
+			PetToken.tokenId."$tokenInst" tokenId
+			PetToken.petName."$tokenInst" ''
+			PetToken.lastAccessDirection."$tokenInst" PetToken.LASTACCESSDIRECTION_IN
+			PetToken.lastAccessTime."$tokenInst" now()
+			PetToken.paired."$tokenInst" true
+			emit 'PetDoor:TokenAdded', ['tokenId':tokenId]
+			break;
+		}
+	}
+}
+

@@ -1,0 +1,122 @@
+
+message zwave.ThermostatFanMode.ThermostatFanModeGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_FAN_MODE_MASK = 0x0F;
+    const u8 LEVEL_FAN_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSetV1<id="0x01", group="V1"> {
+    const u8 LEVEL_FAN_MODE_MASK = 0x0F;
+    const u8 LEVEL_FAN_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedReportV1<id="0x05", group="V1"> {
+    const u8 BIT_MASK_AUTO = 0x00;
+    const u8 BIT_MASK_ON = 0x01;
+    const u8 BIT_MASK_AUTO_HIGH = 0x02;
+    const u8 BIT_MASK_ON_HIGH = 0x03;
+    u8 bitMask;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeReportV2<id="0x03", group="V2"> {
+    const u8 LEVEL_FAN_MODE_MASK = 0x0F;
+    const u8 LEVEL_FAN_MODE_SHIFT = 0;
+    u8 level;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSetV2<id="0x01", group="V2"> {
+    const u8 LEVEL_FAN_MODE_MASK = 0x0F;
+    const u8 LEVEL_FAN_MODE_SHIFT = 0;
+    const u8 LEVEL_OFF = 0x80;
+    u8 level;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedGetV2<id="0x04", group="V2"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedReportV2<id="0x05", group="V2"> {
+    const u8 BIT_MASK_AUTO = 0x00;
+    const u8 BIT_MASK_LOW = 0x01;
+    const u8 BIT_MASK_AUTO_HIGH = 0x02;
+    const u8 BIT_MASK_HIGH = 0x03;
+    const u8 BIT_MASK_AUTO_MEDIUM = 0x04;
+    const u8 BIT_MASK_MEDIUM = 0x05;
+    u8 bitMask;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeGetV3<id="0x02", group="V3"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeReportV3<id="0x03", group="V3"> {
+    const u8 PROPERTIES1_FAN_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_FAN_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OFF = 0x80;
+    u8 properties1;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSetV3<id="0x01", group="V3"> {
+    const u8 PROPERTIES1_FAN_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_FAN_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OFF = 0x80;
+    u8 properties1;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedGetV3<id="0x04", group="V3"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedReportV3<id="0x05", group="V3"> {
+    const u8 BIT_MASK_AUTO = 0x00;
+    const u8 BIT_MASK_LOW = 0x01;
+    const u8 BIT_MASK_AUTO_HIGH = 0x02;
+    const u8 BIT_MASK_HIGH = 0x03;
+    const u8 BIT_MASK_AUTO_MEDIUM = 0x04;
+    const u8 BIT_MASK_MEDIUM = 0x05;
+    const u8 BIT_MASK_CIRCULATION = 0x06;
+    const u8 BIT_MASK_HUMIDITY_CIRCULATION = 0x07;
+    u8 bitMask;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeGetV4<id="0x02", group="V4"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeReportV4<id="0x03", group="V4"> {
+    const u8 PROPERTIES1_FAN_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_FAN_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OFF = 0x80;
+    u8 properties1;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSetV4<id="0x01", group="V4"> {
+    const u8 PROPERTIES1_FAN_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_FAN_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_OFF = 0x80;
+    u8 properties1;
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedGetV4<id="0x04", group="V4"> {
+}
+
+message zwave.ThermostatFanMode.ThermostatFanModeSupportedReportV4<id="0x05", group="V4"> {
+    const u8 BIT_MASK_AUTO = 0x00;
+    const u8 BIT_MASK_LOW = 0x01;
+    const u8 BIT_MASK_AUTO_HIGH = 0x02;
+    const u8 BIT_MASK_HIGH = 0x03;
+    const u8 BIT_MASK_AUTO_MEDIUM = 0x04;
+    const u8 BIT_MASK_MEDIUM = 0x05;
+    const u8 BIT_MASK_CIRCULATION = 0x06;
+    const u8 BIT_MASK_HUMIDITY_CIRCULATION = 0x07;
+    const u8 BIT_MASK_LEFT_RIGHT = 0x08;
+    const u8 BIT_MASK_UP_DOWN = 0x09;
+    const u8 BIT_MASK_QUIET = 0x0A;
+    u8 bitMask;
+}

@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubAV"
+   namespace="hubav"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="numAvailable"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="Number of AV devices available for pairing"/>
+      <c:attribute
+         name="numPaired"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="Number of AV devices paired to the hub"/>
+      <c:attribute
+         name="numDisconnected"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="Number of AV devices that are no longer connected"/>
+      <c:attribute
+         name="avdevs"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="false"
+         description="List of AV devices (by UUID) with current mode"/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="pair"
+         description="Pair an AV device to the hub">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the pairing"
+               optional="false"/>
+            <c:return
+               name="message"
+               type="string"
+               description="An informative message about the status"
+               optional="true"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="release"
+         description="Release an AV device from the hub">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the release"
+               optional="false"/>
+            <c:return
+               name="message"
+               type="string"
+               description="An informative message about the status"
+               optional="true"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="getState"
+         description="Get current state of AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="state"
+               type="enum"
+	       values="UNINITIALIZED,INITIALIZED,PAIRED,DISCONNECTED,RETRY"
+               description="Current state of device"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="getIPAddress"
+         description="Get IPv4 address of AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="ipAddress"
+               type="string"
+               description="The IPv4 address of the device"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="getModel"
+         description="Get model of AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="model"
+               type="string"
+               description="The model name of the device"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="audioStart"
+         description="Start audio on an AV device given an URL">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:parameter
+               name="url"
+               type="string"
+               description="URL of media to play"
+               optional="true"/>
+            <c:parameter
+               name="metadata"
+               type="string"
+               description="Metadata of media to play"
+               optional="true"/>	    
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="audioStop"
+         description="Stop audio on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>      
+      <c:method
+         name="audioPause"
+         description="Pause audio on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="audioSeekTo"
+         description="Seek audio on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:parameter
+               name="unit"
+               type="enum"
+               values="REL_TIME,TRACK_NR"
+               description="Seek mode of operation"
+               optional="false"/>	    
+	    <c:parameter
+               name="target"
+               type="int"
+               description="The offset (in milliseconds) or track number."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="setVolume"
+         description="Set volume on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:parameter
+               name="volume"
+               type="int"
+               description="The volume, 0-100"
+               optional="false"/>	    
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="getVolume"
+         description="Get volume on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="level"
+               type="int"
+               description="The volume level of the device, 0-100"
+               optional="false"/>	    
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="setMute"
+         description="Set mute on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:parameter
+               name="mute"
+               type="boolean"
+               description="The mute setting"
+               optional="false"/>	    
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="getMute"
+         description="Get mute on an AV device">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="mute"
+               type="boolean"
+               description="The mute setting of the device"
+               optional="false"/>	    
+         </c:parameters>
+      </c:method>
+      <c:method
+         name="audioInfo"
+         description="Get information about current audio track">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="The UUID of the device."
+               optional="false"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the method"
+               optional="false"/>
+            <c:return
+               name="track"
+               type="int"
+               description="The track number"
+               optional="false"/>
+            <c:return
+               name="uri"
+               type="string"
+               description="The track URI"
+               optional="false"/>
+            <c:return
+               name="metadata"
+               type="string"
+               description="The track metadata"
+               optional="false"/>
+            <c:return
+               name="duration"
+               type="string"
+               description="The track duration"
+               optional="false"/>
+            <c:return
+               name="reltime"
+               type="string"
+               description="The track relative time"
+               optional="false"/>	    
+         </c:parameters>
+      </c:method>
+    </c:methods>
+
+   <c:events>
+      <c:event
+         name="AVDevicePairingStatus"
+         description="Sent when the status of an AV device pairing changes.">
+         <c:parameters>
+            <c:parameter
+               name="uuid"
+               type="string"
+               description="UUID of the device"
+               optional="false"/>
+            <c:parameter
+               name="status"
+               type="enum"
+	       values="STARTED,ERROR,COMPLETE"
+               description="Current device pairing status"
+               optional="false"/>
+            <c:parameter
+               name="message"
+               type="string"
+               description="Optional error message"
+               optional="true"/>
+         </c:parameters>
+      </c:event>
+   </c:events>
+
+</c:capability>

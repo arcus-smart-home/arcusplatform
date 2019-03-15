@@ -1,0 +1,29 @@
+[ {
+    "id": "tbd",
+    "name": "Alexa SHS",
+    "secret": "tbd",
+    "redirect": "https://pitangui.amazon.com/api/skill/link/M1JHQYU05ES1DZ",
+    "scope": "IrisSHS",
+    "permissions": [ {
+        "icon": "o/dtypes/thermostat/type_small-and-xxhdpi.png",
+        "name": "Thermostats",
+        "invertIcon": false
+    }, {
+        "icon": "o/categories/lightsswitches/icon_lightsswitches-and-xxhdpi.png",
+        "name": "Lights & Switches",
+        "invertIcon": false
+    }, {
+        "icon": "o/categories/doorslocks/icon_doorslocks-and-xxhdpi.png",
+        "name": "Door Locks",
+        "invertIcon": false
+    }, {
+        "icon": "o/categories/scenes/icon_scenes_white-and-xxhdpi.png",
+        "name": "Scenes",
+        "invertIcon": true
+    } ],
+    "extraQueryParams": ["defaultplace"],
+    "sendsRedirectQueryParam": false,
+    "thirdParty": "Amazon",
+    "thirdPartyApp": "Alexa",
+    "thirdPartyDisplayName": "Amazon Alexa"
+} ]

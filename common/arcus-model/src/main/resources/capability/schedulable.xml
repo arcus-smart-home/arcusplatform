@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Schedulable"
+   namespace="schedulable"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Capability for denoting what type of scheduling a device supports.  To maintain backwards
+   compatibility before this capability was added, any device that is typically schedulable should
+   be considered as such when this capability is not present.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="type" 
+         readwrite="r" 
+         type="enum" 
+         values="NOT_SUPPORTED, DEVICE_ONLY, DRIVER_READ_ONLY, DRIVER_WRITE_ONLY, SUPPORTED_DRIVER, SUPPORTED_CLOUD"
+         optional="false" 
+         description="The type of scheduling that is possible on this device.
+NOT_SUPPORTED:  No scheduling is possible either via Iris or the physical device
+DEVICE_ONLY:  Scheduling is not possible via Iris, but can be configured on the physical device
+DRIVER_READ_ONLY:  Iris may read scheduling information via a driver specific implementation but cannot write schedule information
+DRIVER_WRITE_ONLY:  Iris may write scheduling information via a driver specific implementation but cnnot read schedule information
+SUPPORTED_DRIVER:  Iris may completely control scheduling of the device via a driver specific implementation (i.e. schedule is likely read and pushed to the device)
+SUPPORTED_CLOUD:  Iris may completely control scheduling of the device via an internal mechanism (i.e. cloud or hub based)
+"/>
+
+      <c:attribute
+         name="scheduleEnabled"
+         readwrite="r"
+         type="boolean"
+         description="Whether or not a schedule is currently enabled for this device"/>
+     
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+            name="EnableSchedule"
+            description="Enables scheduling for this device"/>
+      
+      <c:method
+            name="DisableSchedule"
+            description="Disables scheduling for this device"/>
+            
+   </c:methods>
+      
+</c:capability>

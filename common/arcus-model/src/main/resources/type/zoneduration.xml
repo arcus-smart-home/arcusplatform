@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="ZoneDuration"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Representation of an irrigation zone and the length of time to water.
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="zone"
+         type="string"
+         description="The identifier for the zone"/>
+
+      <t:attribute
+         name="duration"
+         type="int"
+         description="The amount of time in minutes to water the zone"/>
+
+   </t:attributes>
+
+</t:type>

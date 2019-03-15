@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="NwsSameCodeService"
+           namespace="nwssamecode"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Service methods for retrieving SAME Codes from the NWS SAME Code database.
+   </s:description>
+	
+   <s:methods>
+
+       <s:method
+             name="ListSameCounties"
+             description=""
+             isRESTful="true">
+          <s:parameter name="stateCode" type="string" description="2 or 3 char state or territory postal code from the NWS SAME Code database" optional="false"/>
+          <s:return name="counties" type="List&lt;string&gt;" description="" />
+       </s:method>
+
+       <s:method
+             name="ListSameStates"
+             description=""
+             isRESTful="true">
+          <s:return name="sameStates" type="List&lt;SameState&gt;" description="" />
+       </s:method>
+
+       <s:method
+             name="GetSameCode"
+             description=""
+             isRESTful="true">
+          <s:parameter name="stateCode" type="string" description="2 or 3 char state or territory postal code from the NWS SAME Code database" optional="false"/>
+          <s:parameter name="county" type="string" description="county name specific to weather station as listed in the NWS SAME Code database" optional="false"/>
+          <s:return name="code" type="string" description="" />
+       </s:method>
+
+   </s:methods>
+
+</s:service>

@@ -1,0 +1,30 @@
+{{#section "subject"}}
+Smoke Alarm Cancelled
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+The Smoke Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  
+
+If you experienced fire related damage to your property and need assistance, go to {{{_redirectBaseUrl}}}/e_smokealert.
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The Smoke Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  </p>
+	<p>If you experienced fire related damage to your property and need assistance, <a href="{{_redirectBaseUrl}}/e_smokealert">click here</a>.</p>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   targetNamespace="urn:com/iris/protocol/ipcd/xml/model"
+   xmlns="urn:com/iris/protocol/ipcd/xml/model"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified"
+   >
+
+   <xs:annotation>
+     <xs:documentation xml:lang="en">
+     Iris IPCD Definition Schema
+     Copyright 2015 Lowe's Companies, Inc. All rights reserved.
+     </xs:documentation>
+   </xs:annotation>
+
+   <xs:element name="definition">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="messages" type="messagesType" />
+            <xs:element name="commands" type="commandsType" />
+            <xs:element name="enums" type="enumsType" />
+            <xs:element name="types" type="typesType" />
+         </xs:sequence>
+         <xs:attribute name="name" type="xs:string" use="required" />
+         <xs:attribute name="version" type="xs:string" use="required" />
+      </xs:complexType>
+   </xs:element>
+
+   <xs:complexType name="messagesType" >
+      <xs:sequence>
+         <xs:element name="message" type="messageType" minOccurs="1" maxOccurs="unbounded" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="commandsType" >
+      <xs:sequence>
+         <xs:element name="command" type="commandType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="enumsType" >
+      <xs:sequence>
+         <xs:element name="enum" type="enumType" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="typesType" >
+      <xs:sequence>
+         <xs:element name="type" type="typeType" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="messageType" >
+      <xs:sequence>
+         <xs:element name="property" type="propertyType" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="type" use="required" >
+         <xs:simpleType>
+            <xs:restriction base="xs:string" >
+               <xs:enumeration value="client" />
+               <xs:enumeration value="server" />
+               <xs:enumeration value="both" />
+            </xs:restriction>
+         </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="commandElement" type="xs:string" />
+      <xs:attribute name="closures" type="xs:boolean" default="false" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="commandType" >
+      <xs:sequence>
+         <xs:element name="parameters" type="parametersType" minOccurs="0" maxOccurs="1" />
+         <xs:element name="response" type="responseType" minOccurs="0" maxOccurs="1" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="enumType">
+      <xs:sequence>
+         <xs:element name="option" type="optionType" minOccurs="1" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="typeType" >
+      <xs:sequence>
+         <xs:element name="property" type="propertyType" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="parametersType" >
+      <xs:sequence>
+         <xs:element name="property" type="propertyType" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+      <xs:attribute name="allowNone" type="xs:boolean" default="true" />
+   </xs:complexType>
+
+   <xs:complexType name="responseType" >
+      <xs:attribute name="type" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="propertyType" >
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="type" type="xs:string" use="required" />
+      <xs:attribute name="key" type="xs:boolean" default="false" />
+      <xs:attribute name="sample" type="xs:string" />
+      <xs:attribute name="virtual" type="xs:boolean" default="false" />
+      <xs:attribute name="required" type="xs:boolean" default="true" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="optionType" >
+      <xs:attribute name="value" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+   </xs:complexType>
+
+</xs:schema>

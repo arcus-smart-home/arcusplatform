@@ -1,0 +1,39 @@
+# OS and editor files
+RemoteSystemsTempFiles
+*.swp
+*.tmp
+.vimrc
+.lvimrc
+*~
+.DS_Store
+
+# Build dirs
+build
+**/build
+**/bin
+
+# Gradle files
+.gradle
+
+# Eclipse files
+.metadata
+.classpath
+.project
+.settings
+/bin/
+
+# Intellij files
+.idea/
+*.iml
+
+# Generated source
+arcus-protocol/src/generated
+
+arcus-security/eyeris-cassandra
+
+arcus-billing/src/generated
+
+arcus-drivers/groovy-bindings/src/generated
+arcus-protocol/protocol-generator/src/generated
+
+*.orig

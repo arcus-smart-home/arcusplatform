@@ -1,0 +1,404 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+driver         "IPCDSwannPlug"
+description    "Driver for Swann Iris WiFi Smart Plug"
+version        "1.0"
+protocol       "IPCD"
+deviceTypeHint "Switch"
+productId	   "162918"
+vendor         "Iris"
+model          "IRIS-WSP1PA-LW"
+
+matcher        'IPCD:vendor' : 'Swann', 'IPCD:model' : 'IrisWifiPlug'
+
+capabilities   DevicePower, WiFi, DeviceOta, Switch
+
+DevicePower.source                 DevicePower.SOURCE_LINE
+DevicePower.linecapable            true
+DevicePower.backupbatterycapable   false
+
+@Field final String DEVICE_NAME                 = "Iris Wifi Smart Plug"
+@Field final String PARAMETER_WIFI_SSID			= "wifi.SSID"
+@Field final String PARAMETER_WIFI_RSSI			= "wifi.RSSI"
+@Field final String PARAMETER_SWITCH			= "switch.state"
+@Field final String PARAMETER_FIRMWARE_VERSION  = "fwver"
+@Field final String EVENT_ON_BOOT				= "onBoot"
+@Field final String EVENT_ON_CONNECT			= "onConnect"
+@Field final String EVENT_ON_VALUE_CHANGE		= "onValueChange"
+@Field final String EVENT_ON_DOWNLOAD_COMPLETE	= "onDownloadComplete"
+@Field final String EVENT_ON_DOWNLOAD_FAILED	= "onDownloadFailed"
+@Field final String EVENT_ON_UPDATE				= "onUpdate"
+@Field final String KEY_VALUE_CHANGES			= "valueChanges"
+@Field final String KEY_SUCCESS					= "success"
+@Field final String KEY_RESPONSE				= "response"
+@Field final String KEY_REPORT					= "report"
+@Field final String KEY_EVENTS					= "events"
+@Field final int SWITCH_DELAY_MS				= 500
+
+@Field final String FAIL_REASON_OFFLINE			= "Offline"
+
+final String CALL_GPV							= "callGPV"
+final long DELAY_CONFIG        					= 500		// .5 second delay
+final String OFFLINE_CHECK						= "offlineCheck"
+final long DELAY_FOR_REBOOT						= 30000		// 30 second delay
+
+@Field static final long OTA_TIMEOUT = 30L * 60L * 1000L;
+@Field final Pattern datePattern = Pattern.compile("([0-9]{6,6})")
+
+//--------------------------------------------------------------------------------------------------
+// Driver Life Cycle Implementation
+//--------------------------------------------------------------------------------------------------
+
+onAdded {
+   log.debug "{} Added", DEVICE_NAME
+   
+   Switch.state                     Switch.STATE_OFF
+   Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   
+   DevicePower.sourcechanged  		((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   DeviceOta.status           		DeviceOta.STATUS_IDLE
+   
+   //Needed for initial pairing, because onConnect was already sent and did not get passed to driver.
+   Scheduler.scheduleIn CALL_GPV, DELAY_CONFIG
+   Ipcd.Commands.getDeviceInfo()
+      
+}
+
+onConnected {
+   log.debug "{} Connected.", DEVICE_NAME   
+   
+//   Ipcd.Commands.setReportConfiguration(60, [
+//      PARAMETER_WIFI_RSSI, PARAMETER_SWITCH ])
+}
+
+onDisconnected {
+   log.debug "{} Disconnected.", DEVICE_NAME
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+		Scheduler.scheduleIn OFFLINE_CHECK, DELAY_FOR_REBOOT
+   	}
+}
+
+onRemoved {
+	Ipcd.Commands.factoryReset()
+	log.debug "{} Removed.", DEVICE_NAME
+}
+
+//--------------------------------------------------------------------------------------------------
+// Switch Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+setAttributes('swit') {
+	log.debug "{} driver received 'swit' set Attribute message {}", DEVICE_NAME,  message
+   	if (switchIsPending()){
+   		log.warn "{} has a switch state change in progress, dropping this one", DEVICE_NAME
+   	} else {
+	    def attributes = message.attributes
+	    for (attribute in attributes) {
+	    	switch(attribute.key) {
+	        	case Switch.state:
+	         		switch(attribute.value){
+		         		case "ON":
+			            	Ipcd.Commands.setParameterValues("txnid", [ (PARAMETER_SWITCH) : "ON" ])
+			               	markSwitchPending()
+			               	break;
+			            case "OFF":
+			            	Ipcd.Commands.setParameterValues("txnid", [ (PARAMETER_SWITCH) : "OFF" ])
+		            		markSwitchPending()
+		            		break;
+		            	default:
+		            		log.error "{} received unrecognized set attribute {}", DEVICE_NAME, attribute
+		            		break;
+		            }	
+		         	break;
+		         default:
+		            log.error "unrecognized attribute:{} ", attribute
+	      	}
+		}
+	      
+   }
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// OTA Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+onEvent('DeviceOtaCheckTimeout') {
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      // The ota isn't in progress any more so there isn't anything
+      // left to do.
+      return
+   }
+
+   def checkAttempt = message.data.attempt
+   def checkTarget = message.data.target
+
+   def curAttempt = DeviceOta.lastAttempt.get()
+   def curTarget = DeviceOta.targetVersion.get()
+
+   if (checkAttempt != curAttempt || checkTarget != curTarget) {
+      // This ota timeout check has been invalidated by another OTA that 
+      // has started since this check was scheduled for execution.
+      return
+   }
+
+   // The OTA is still in progress and the last attempt time and the
+   // attempted target version match what the timeout was looking for.
+   DeviceOta.status           DeviceOta.STATUS_FAILED
+   DeviceOta.lastFailReason   "Timeout"
+}
+
+onDeviceOta.FirmwareUpdate {
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()) {
+      log.warn "{} rejecting OTA because another OTA is currently in progress", DEVICE_NAME
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"already in progress", message:"Dropping request. Another OTA is already in progress"]
+      return
+   }
+
+   log.debug "{} driver received DeviceOta.FirmwareUpdate message: {}", DEVICE_NAME, message
+   updateUrl = message.attributes['url']
+   if (updateUrl == null || !updateUrl.endsWith(".bin") || !updateUrl.contains("://") || countOf(updateUrl, '/') <= 2) {
+      log.warn "{} rejecting OTA because of poorly formatted url: {}", DEVICE_NAME, updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path/<filename>.bin"]
+      return
+   }
+
+   def tgtver = updateUrl.substring(updateUrl.lastIndexOf("/") + 1, updateUrl.lastIndexOf("."))
+   if (!tgtver?.trim()) {
+      log.warn "{} rejecting OTA because of poorly formatted url: {} (empty target version)", DEVICE_NAME, updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path/<filename>.bin"]
+      return
+   }
+
+   Matcher matcher = datePattern.matcher(tgtver);
+   if (!matcher.find()) {
+      log.warn "{} rejecting OTA because of poorly formatted url: {} (target version does not contain a date)", DEVICE_NAME, updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path/<filename>.bin"]
+      return
+   }
+
+   def lstAttempt = new Date()
+   Scheduler.scheduleIn 'DeviceOtaCheckTimeout', ['attempt': lstAttempt, 'target': tgtver], OTA_TIMEOUT
+
+   DeviceOta.status           DeviceOta.STATUS_INPROGRESS
+   DeviceOta.lastFailReason   ""
+   DeviceOta.lastAttempt      lstAttempt
+   DeviceOta.progressPercent  0
+   DeviceOta.targetVersion    tgtver
+    
+   Ipcd.Commands.download(null, updateUrl, null, null)
+   sendResponse "devota:FirmwareUpdateResponse", ["status":"OK"]
+}
+
+onDeviceOta.FirmwareUpdateCancel {
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      log.warn "{} rejecting OTA Cancel because no OTA is in progress", DEVICE_NAME
+      sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"no ota in progress", message:"Dropping request. No OTA is in progress"]
+      return
+   }
+
+   log.warn "onFirmwareUpdateCancel request, but no IPCD Command to cancel " + message
+   DeviceOta.status           DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason   "Cancelled"
+   sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"cancel.unsupported", message:"Clearing updating flag, but the OTA itself can't be cancelled"]
+}
+
+onIpcdMessage.event {
+	def data = message.mapify()
+	def events = message.mapify()[KEY_EVENTS]
+	log.debug "{} sent event:{} in data{}", DEVICE_NAME, events, data
+   	for (event in events) {
+ 	   	switch (event) {
+   			case EVENT_ON_VALUE_CHANGE:
+ 		   		def valueChanges = data[KEY_VALUE_CHANGES]
+ 		   		log.debug "{} sent value changes: {}", DEVICE_NAME, valueChanges
+   				for (valueChange in valueChanges){
+      				update(valueChange["parameter"], valueChange["value"])
+	   			}
+   				break;
+   			case EVENT_ON_DOWNLOAD_COMPLETE:   
+   				DeviceOta.progressPercent  50
+   				break;
+   			case EVENT_ON_UPDATE:
+   				//Swann fires onUpgrade at the same time as ON_DOWNLOAD_COMPLETE, so no need to handle it also.
+   				break;
+   			case EVENT_ON_DOWNLOAD_FAILED:	
+   				DeviceOta.status           DeviceOta.STATUS_FAILED
+   				DeviceOta.lastFailReason   "Download Failed"
+   				break;
+   			case EVENT_ON_BOOT:
+				//Do Nothing Let EVENT_ON_CONNECT Handle
+   				break;
+   			case EVENT_ON_CONNECT:
+   					Scheduler.scheduleIn CALL_GPV, DELAY_CONFIG
+   					Ipcd.Commands.getDeviceInfo()	
+   				break;
+   			default:
+   				log.warn "{} received unhandled event [{}]", DEVICE_NAME, event
+   				break;
+   		}
+   	}
+}
+
+onIpcdMessage.report {
+	def report = message.mapify()[KEY_REPORT]
+	log.debug("{} sent a report: {} ", DEVICE_NAME, report)
+	doUpdateDataModel(report)
+}
+
+onIpcdMessage.response.getParameterValues(KEY_SUCCESS){
+   def response = message.mapify()[KEY_RESPONSE]
+   log.debug("{} sent a response to getParameterValues: {} ", DEVICE_NAME, response)
+   doUpdateDataModel(response)
+}
+
+onIpcdMessage.response.getDeviceInfo(KEY_SUCCESS) {
+   def response = message.mapify()[KEY_RESPONSE]
+   log.debug("{} Responded to GetDeviceInfo with: {}", DEVICE_NAME, response)
+
+   for (value in response) {
+   		switch (value.key) {
+   			case PARAMETER_FIRMWARE_VERSION:
+		      update(value.key, value.value)
+		      break;
+		   default:
+		   	  // unused parameters in getDeviceInfo
+		   	 break;
+		}
+   }
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// Utility Functions
+//--------------------------------------------------------------------------------------------------
+
+void doUpdateDataModel(responses) {
+	for (response in responses){
+		update(response.key, response.value)		
+		}
+}
+
+void update(parameter, value) {
+	switch(parameter){
+		case PARAMETER_WIFI_RSSI:
+			if (value != ""){
+		      	WiFi.rssi Math.round(Double.valueOf(value))
+		    }
+		    break;
+		case PARAMETER_WIFI_SSID:   
+	    	WiFi.ssid value
+    		break;
+    	case PARAMETER_SWITCH:
+	    	def prevState = Switch.state.get()
+    		switch(value){
+    			case "ON":
+	    			Switch.state Switch.STATE_ON
+	    			break;
+	    		case "OFF":
+	    			Switch.state Switch.STATE_OFF
+	    			break;
+	    		default:
+	    			log.warn "{} received unrecognized switch state [{}]", DEVICE_NAME, value
+	    			break;
+	    	}
+			if (Switch.state.get() != prevState) {
+				Switch.statechanged new Date()
+			}
+			clearSwitchPending()
+			break;
+		case PARAMETER_FIRMWARE_VERSION:
+		   if (value?.trim()) {
+			   DeviceOta.currentVersion value
+		   }
+
+			def target = DeviceOta.targetVersion.get()
+			def inProgress = DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()
+			def failedOffline = DeviceOta.STATUS_FAILED == DeviceOta.status.get() && FAIL_REASON_OFFLINE == DeviceOta.lastFailReason.get()
+			if (null != target && (inProgress || failedOffline)) {
+			   processOtaStatus(value, target, inProgress, failedOffline)
+	      }
+   		break;
+		default:
+			log.warn "{} received unrecognized parameter {}, with value {}", DEVICE_NAME, parameter, value
+			break;
+	}
+}
+
+void processOtaStatus(newVersion,targetVersion,inProgress,failedOffline) {
+   Matcher matcher = datePattern.matcher(targetVersion);
+   if (!matcher.find()) {
+      // This shouldn't happen because we verify the target version with the same matcher
+      // before allowing the OTA to start. In case something goes horribly wrong, however,
+      // we will still fail here and log the reason.
+      log.warn "{} failed OTA because target version did not contain a date", DEVICE_NAME
+      DeviceOta.status           DeviceOta.STATUS_FAILED
+      DeviceOta.lastFailReason   "No Date in Target Version"  				
+      return
+   }
+
+   String targetDate = matcher.group(1);
+   log.debug "{} comparing firmware against target date {} with updated version {}", DEVICE_NAME, targetDate, newVersion
+   if (newVersion != null && newVersion.contains(targetDate)){
+      DeviceOta.status           DeviceOta.STATUS_COMPLETED
+      DeviceOta.progressPercent  100
+      DeviceOta.lastFailReason   ""
+   } else {
+      // Failed or File Titled Wrong
+      DeviceOta.status           DeviceOta.STATUS_FAILED
+      DeviceOta.lastFailReason   "Unexpected Version"
+   }
+}
+
+onEvent(CALL_GPV) {
+   Ipcd.Commands.getParameterValues("tnxid", [])
+}
+
+onEvent(OFFLINE_CHECK){
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+   		DeviceOta.status DeviceOta.STATUS_FAILED
+   		DeviceOta.lastFailReason FAIL_REASON_OFFLINE
+   	}
+
+}
+
+int countOf(String inputString, String letter){
+	int count = 0;
+	input = inputString.toCharArray()
+	for (int i = 0; i < inputString.length(); i++){
+		if (input[i] == letter){
+			count++
+		}
+	}
+	return count
+}
+
+boolean switchIsPending() {
+   return vars.KEY_PENDING_SWITCH != null && (now().getTime() - vars.KEY_PENDING_SWITCH.getTime()) < SWITCH_DELAY_MS;
+}
+
+void markSwitchPending() {
+   vars.KEY_PENDING_SWITCH = now();
+}
+
+ void clearSwitchPending() {
+   vars.KEY_PENDING_SWITCH = null;
+}
+

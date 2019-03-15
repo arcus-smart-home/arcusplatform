@@ -1,0 +1,28 @@
+{{#section "subject"}}
+Continuous Water Use
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+{{{deviceName}}} has detected continuous water flow of at least {{{continuousRate}}} gpm at {{{_place.name}}} for over {{{continuousDuration}}} minutes.     
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>{{deviceName}} has detected continuous water flow of at least {{continuousRate}} gpm at {{_place.name}} for over {{continuousDuration}} minutes.</p>
+    <p/>	
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

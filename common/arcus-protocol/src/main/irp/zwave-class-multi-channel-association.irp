@@ -1,0 +1,31 @@
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationGetV2<id="0x02", group="V2"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationGroupingsGetV2<id="0x05", group="V2"> {
+}
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationGroupingsReportV2<id="0x06", group="V2"> {
+    u8 supportedGroupings;
+}
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationRemoveV2<id="0x04", group="V2"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+    // marker contained in previous field
+}
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationReportV2<id="0x03", group="V2"> {
+    u8 groupingIdentifier;
+    u8 maxNodesSupported;
+    u8 reportsToFollow;
+    u8[] nodeId;
+    // marker contained in previous field
+}
+
+message zwave.MultiChannelAssociation.MultiChannelAssociationSetV2<id="0x01", group="V2"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+    // marker contained in previous field
+}

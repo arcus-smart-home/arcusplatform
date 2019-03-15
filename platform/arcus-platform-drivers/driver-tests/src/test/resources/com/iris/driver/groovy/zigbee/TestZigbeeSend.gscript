@@ -1,0 +1,75 @@
+def sendFromZigbeeWithDefaults() {
+   Zigbee.send("cluster" : 4, "command" : 7, "endpoint" : 1, "clusterspecific" : true)
+}
+
+def sendFromZigbeeWithEverything() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.send("cluster" : 4, "command" : 7, "profile" : 0x0105, "endpoint" : 1, "clusterspecific" : false, "defaultresponse" : true, "data" : bytes )
+}
+
+def sendFromZigbeeUsingEndpointClusterSpecific() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.endpoint((byte)1).send(true, false, (short) 4, (byte) 7, bytes)
+}
+
+def sendFromZigbeeUsingEndpointGeneral() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.endpoint((byte)1).send(false, false, (short) 4, (byte) 7, bytes)
+}
+
+def sendFromZigbeeUsingEndpointGeneralNoBytes() {
+   Zigbee.endpoint((byte)1).send(false, false, (short) 4, (byte) 7)
+}
+
+def sendFromZigbeeUsingEndpointSendDefaultResponse() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.endpoint((byte)1).send(true, false, true, (short) 4, (byte) 7, bytes)
+}
+
+def sendFromZigbeeUsingEndpointSendDefaultResponseFalseNoBytes() {
+   Zigbee.endpoint((byte)1).send(true, false, (short) 4, (byte) 7)
+}
+
+def sendFromZigbeeUsingEndpointFlags() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.endpoint((byte)1).send((byte)7, (short) 4, (byte) 7, bytes)
+}
+
+def sendFromZigbeeUsingEndpointFlagsNoBytes() {
+   Zigbee.endpoint((byte)1).send((byte)9, (short) 4, (byte) 7)
+}
+
+def sendFromZigbeeUsingCustomEndpoint() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   def customEndpoint = Zigbee.endpoint((byte)3, (short) 0x0111)
+   customEndpoint.send((byte)10, (short)4, (byte)7, bytes)
+}
+
+def sendFromZigbeeUsingCluster() {
+   def onOffEp = Zigbee.endpoint((byte)1)
+   onOffEp.OnOff.on()
+}
+
+def sendGeneralCommandUsingCluster() {
+   def fanCluster = Zigbee.endpoint((byte)1).Fan
+   def value = Zigbee.Data.encode8BitEnum(fanCluster.FAN_MODE_HIGH)
+   def attributeRecord = Zigbee.Data.Zcl.createZclWriteAttributeRecord(fanCluster.ATTR_FAN_MODE, value)
+   fanCluster.zclWriteAttributes(attributeRecord)
+}
+
+def sendWriteAttributesUsingHelper() {
+   def fanCluster = Zigbee.endpoint((byte)1).Fan
+   fanCluster.zclWriteAttributes(fanCluster.ATTR_FAN_MODE, Zigbee.Data.encode8BitEnum(fanCluster.FAN_MODE_HIGH))
+}
+
+def sendWriteAttributesUsingMap() {
+   def fanCluster = Zigbee.endpoint((byte)1).Fan
+   def attributes = [ (fanCluster.ATTR_FAN_MODE) : Zigbee.Data.encode8BitEnum(fanCluster.FAN_MODE_HIGH),
+                      (fanCluster.ATTR_FAN_MODE_SEQUENCE) : Zigbee.Data.encode8BitEnum(fanCluster.FAN_MODE_SEQUENCE_LOW_HIGH) ];
+   fanCluster.zclWriteAttributes(attributes);
+}
+
+def sendZdpByIdAndByteArray() {
+   byte[] bytes = [0x08, 0x0f, 0x10, 0x17, 0x2a, 0xff]
+   Zigbee.sendZdpCommand( (short)11, bytes );
+}

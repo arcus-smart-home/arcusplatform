@@ -1,0 +1,31 @@
+{{> ipcd/message/serializer }}
+{{> ipcd/message/messagetype }}
+{{> ipcd/message/commandtype }}
+
+{{#messages}}
+{{> ipcd/message/messagedef }}
+{{/messages}}
+
+{{#messages}}
+{{> ipcd/message/parsers }}
+{{/messages}}
+
+{{#commands}}
+{{> ipcd/message/adapters }}
+{{/commands}}
+
+{{#commands}}
+{{> ipcd/message/commands }}
+{{/commands}}
+
+{{#responses}}
+{{> ipcd/message/responses }}
+{{/responses}}
+
+{{#enums}}
+{{> ipcd/message/enums }}
+{{/enums}}
+
+{{#types}}
+{{> ipcd/message/types }}
+{{/types}}

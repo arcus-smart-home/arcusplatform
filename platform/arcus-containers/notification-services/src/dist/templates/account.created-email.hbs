@@ -1,0 +1,35 @@
+{{#section "subject"}}
+Arcus Account Created
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Welcome to Arcus, the premier smart home + security system. We're excited that you've chosen us as your partner. At Arcus, we pride ourselves in providing you with an easy to use smart home for greater peace of mind for you and your family.
+
+Remember to check us out on Facebook at {{{_redirectBaseUrl}}}/e_facebook & Twitter at {{{_redirectBaseUrl}}}/e_twitter to get the latest news and promotions from Arcus.
+
+Creating a smart home has never been easier. Thanks for choosing Arcus!
+
+The Arcus Team
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>Welcome to Arcus, the premier smart home + security system. We're excited that you've chosen us as your partner. At Arcus, we pride ourselves in providing you with an easy to use smart home for greater peace of mind for you and your family.</p>
+	<p>Remember to check us out on <a href="{{_redirectBaseUrl}}/e_facebook">Facebook</a> & <a href="{{_redirectBaseUrl}}/e_twitter">Twitter</a> to get the latest news and promotions from Arcus.</p>
+	<p>Creating a smart home has never been easier. Thanks for choosing Arcus!</p>
+	<p>The Arcus Team</p>
+	{{/partial}}
+	
+	{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,242 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for an Irrigation Controller with one Zone
+ */
+driver			"MOCK_IrrigationController1Zone"
+description		"Driver for an Irrigation Controller with one Zone"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Irrigation"
+vendor 			"Mockitron"
+model 			"IrrigationController"
+productId		"deda9d"
+
+matcher         'MOCK:Capability' : 'IrrigationController1Zone'
+matcher         'MOCK:ProductId'  : 'deda9d'
+
+capabilities	DevicePower, IrrigationController, 'devmock', IrrigationSchedulable
+
+instance	'z1', IrrigationZone
+
+
+importCapability 'mock/MOCK_IrrigationSchedulable'
+
+def zonesInFault 							= [] as Set
+
+onAdded {
+	log.debug "Mock Irrigation Controller with one Zone device started."
+
+	Device.name        							'Mock IrrigationController1Zone'
+
+	DeviceConnection.signal						79
+	
+	DevicePower.source 							DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable						false
+	DevicePower.backupbatterycapable			false
+	DevicePower.battery							80
+	DevicePower.sourcechanged                   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	IrrigationController.numZones				1
+	IrrigationController.controllerState		IrrigationController.CONTROLLERSTATE_NOT_WATERING
+	IrrigationController.maxtransitions			32
+	IrrigationController.maxdailytransitions	8
+	IrrigationController.maxirrigationtime		20
+	IrrigationController.budget					100
+	IrrigationController.zonesinfault			zonesInFault
+   IrrigationController.rainDelayDuration    (-1)
+
+	IrrigationZone.zonenum.z1					1
+	IrrigationZone.zoneState.z1					IrrigationZone.ZONESTATE_NOT_WATERING
+	IrrigationZone.wateringDuration.z1		0
+	IrrigationZone.zonename.z1					'Garden'
+	IrrigationZone.zonecolor.z1					IrrigationZone.ZONECOLOR_DARKGREEN
+
+	vars.'cancelIndex'							= 0
+}
+ 
+onConnected {
+	log.debug "Mock Irrigation Controller with one Zone device connected."
+}
+
+onDisconnected {
+	log.debug "Mock Irrigation Controller with one Zone device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Irrigation Controller with one Zone device removed."
+}
+
+setAttributes('irr') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'irr':" + attrs
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case IrrigationZone.zonename.z1 : 
+				IrrigationZone.zonename.z1  attribute.value
+				break;
+			case IrrigationZone.zonecolor.z1 : 
+				IrrigationZone.zonecolor.z1  attribute.value
+				break;
+			case IrrigationZone.defaultDuration.z1 : 
+				IrrigationZone.defaultDuration.z1  attribute.value
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+onIrrigationController.WaterNow {
+	log.debug "Mock Irrigation Controller received onIrrigationController.WaterNow: " + message
+	
+	cancelRainDelay() // assuming WaterNow cancels rain delay
+	
+	long duration = message.attributes['duration']
+	
+	vars.'cancelIndex' = ++vars.'cancelIndex'
+	Scheduler.scheduleIn 'CancelWaterNow', vars.'cancelIndex', duration * 60000 // duration in minutes
+
+	IrrigationZone.zoneState.z1 IrrigationZone.ZONESTATE_WATERING
+	IrrigationZone.wateringDuration.z1 duration
+   IrrigationZone.wateringStart.z1 new Date()
+	IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+	
+	sendResponse 'irrigationcontroller:WaterNowResponse', ['result':true]
+}
+
+onIrrigationController.WaterNowV2 {
+   log.debug "Mock Irrigation Controller received onIrrigationController.WaterNowV2: " + message
+   
+   cancelRainDelay() // assuming WaterNow cancels rain delay
+   
+   long duration = message.attributes['duration']
+   
+   vars.'cancelIndex' = ++vars.'cancelIndex'
+   Scheduler.scheduleIn 'CancelWaterNow', vars.'cancelIndex', duration * 60000 // duration in minutes
+
+   IrrigationZone.zoneState.z1 IrrigationZone.ZONESTATE_WATERING
+   IrrigationZone.wateringDuration.z1 duration
+   IrrigationZone.wateringStart.z1 new Date()
+   IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+   
+   sendResponse 'irrigationcontroller:WaterNowResponse', ['result':true]
+}
+
+void cancelWaterNow() {
+	cancelWaterNow(vars.'cancelIndex')
+}
+
+void cancelWaterNow(int cancelIndex) {
+	if (cancelIndex == vars.'cancelIndex') {
+		IrrigationZone.wateringDuration.z1 0
+		IrrigationZone.zoneState.z1 IrrigationZone.ZONESTATE_NOT_WATERING
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_NOT_WATERING
+	}
+}
+
+onIrrigationController.Cancel {
+	log.debug "Mock Irrigation Controller received onIrrigationController.Cancel: " + message
+	cancelWaterNow()
+	sendResponse 'irrigationcontroller:CancelResponse', ['result':true]
+}
+
+onIrrigationController.CancelV2 {
+   log.debug "Mock Irrigation Controller received onIrrigationController.CancelV2: " + message
+   cancelWaterNow()
+   sendResponse 'irrigationcontroller:CancelResponse', ['result':true]
+}
+
+onEvent('CancelWaterNow') {
+	log.debug "Mock Irrigation Controller CancelWaterNow event handler"
+	cancelWaterNow(message.data)
+}
+
+
+setAttributes('irrcont') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'irrcont':" + attrs
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case IrrigationController.rainDelay :
+				rainDelay((int)attribute.value)
+				break;
+			case IrrigationController.budget :
+				int percent = (int)attribute.value
+				if (0 > percent) {
+					percent = 0
+				}
+				else if (200 < percent) {
+					percent = 200
+				}
+				IrrigationController.budget  percent
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+void cancelRainDelay() {
+	rainDelay(0)
+}
+
+void rainDelay(int delay) {
+	if (0 < delay) {	
+		cancelWaterNow() // assuming RainDelay cancels WaterNow
+		
+		vars.'rainDelayEnabled' = true
+		IrrigationController.rainDelayDuration  delay
+      IrrigationController.rainDelayStart new Date()
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_RAIN_DELAY
+		IrrigationZone.zoneState.z1 IrrigationZone.ZONESTATE_NOT_WATERING
+	
+		Scheduler.scheduleIn 'CancelRainDelay', delay * 60000 // duration in minutes
+	}
+	else if (0 >= delay && vars.'rainDelayEnabled') {
+		vars.'rainDelayEnabled' = false
+		IrrigationController.rainDelayDuration  0
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+		IrrigationZone.zoneState.z1 IrrigationZone.ZONESTATE_WATERING
+	}
+}
+
+onEvent('CancelRainDelay') {
+	log.debug "Mock Irrigation Controller CancelRainDelay event handler"
+	cancelRainDelay()
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

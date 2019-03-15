@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.3.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="addHubRegistration1" author="dpatrow">
+      <cl:description>Create hub_registration table</cl:description>
+      <cl:tracking>ITWO-11640</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS hub_registration (
+         	id varchar PRIMARY KEY,
+         	created timestamp,
+            modified timestamp,
+            lastConnected timestamp,
+            state varchar, 
+            upgradeRequestTime timestamp,
+            firmwareVersion varchar,
+            targetVersion varchar,
+            downloadProgress int,
+            upgradeErrorCode varchar,
+            upgradeErrorMessage varchar,
+            tags set&lt;varchar&gt;,
+            imageMap map&lt;varchar,uuid&gt;
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE hub_registration</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="addHubLocalProcessingAttributesToDevice" author="peckw">
+		<cl:description>
+		   Adds additional field to device to support additional attributes on DeviceAdvanced used to support hub local processing.
+	   </cl:description>
+		<cl:tracking>ITWO-8653</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE device ADD degraded text</cl:update>
+			<cl:rollback>ALTER TABLE device DROP degraded</cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+   <cl:changeset identifier="addHubLocalAttributeToDevice" author="peckw">
+		<cl:description>
+		   Adds additional field to device to support the hubLocal attribute on DeviceAdvanced used to support hub local processing.
+	   </cl:description>
+		<cl:tracking>ITWO-11745</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE device ADD hublocal boolean</cl:update>
+			<cl:rollback>ALTER TABLE device DROP hublocal</cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+
+</cl:changelog>

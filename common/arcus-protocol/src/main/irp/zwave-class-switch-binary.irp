@@ -1,0 +1,15 @@
+
+message zwave.SwitchBinary.SwitchBinaryGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SwitchBinary.SwitchBinaryReportV1<id="0x03", group="V1"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchBinary.SwitchBinarySetV1<id="0x01", group="V1"> {
+    const u8 SWITCH_VALUE_OFF_DISABLE = 0x00;
+    const u8 SWITCH_VALUE_ON_ENABLE = 0xFF;
+    u8 switchValue;
+}

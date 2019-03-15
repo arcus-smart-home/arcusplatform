@@ -1,0 +1,140 @@
+<xs:schema attributeFormDefault="unqualified"
+   elementFormDefault="qualified" targetNamespace="http://arcus.com/scene-catalog_1.0.0"
+   xmlns:tns="http://arcus.com/scene-catalog_1.0.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+   <xs:element name="scene-catalog">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="metadata" type="tns:metadataType" />
+            <xs:element name="scenes" type="tns:scenesType" />
+            <xs:element name="action-templates" type="tns:actionTemplatesType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:complexType name="metadataType">
+      <xs:simpleContent>
+         <xs:extension base="xs:string">
+            <xs:attribute type="xs:string" name="version" />
+            <xs:attribute type="xs:string" name="publisher" />
+         </xs:extension>
+      </xs:simpleContent>
+   </xs:complexType>
+   <xs:complexType name="scenesType">
+      <xs:sequence>
+         <xs:element name="scene" type="tns:sceneType" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="actionTemplatesType">
+      <xs:sequence>
+         <xs:element name="actionTemplate" type="tns:actionTemplateType" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="sceneType">
+      <xs:attribute name="id" type="xs:string" use="required" />
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="description" type="xs:string" />
+      <xs:attribute name="populations" type="xs:string" />
+   </xs:complexType>
+   <xs:complexType name="actionTemplateType">
+      <xs:sequence>
+         <xs:element name="selector" type="tns:selectorType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+       <xs:attribute name="id" type="xs:string" use="required" />
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="satifisable-if" type="xs:string" />
+      <xs:attribute name="default-scenes" type="xs:string" />
+      <xs:attribute name="type-hint" type="xs:string" />
+      <xs:attribute name="premium" type="xs:boolean" use="optional" default="false"/>
+   </xs:complexType>
+   <xs:complexType name="selectorsType">
+      <xs:all>
+         <xs:element name="options" type="tns:optionsType"></xs:element>
+      </xs:all>
+   </xs:complexType>
+
+   <xs:complexType name="selectorType">
+      <xs:sequence>
+         <xs:element name="groups" type="tns:groupsType"></xs:element>
+         <xs:element name="options" type="tns:optionsType"></xs:element>
+         <xs:element name="set-attributes" type="tns:setAttributesType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+      <xs:attribute name="type" type="tns:selectorTypeType" use="required" />
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="query" type="xs:string" />
+      <xs:attribute name="var" type="xs:string" />
+      <xs:attribute name="min" type="xs:int" />
+      <xs:attribute name="max" type="xs:int" />
+      <xs:attribute name="step" type="xs:int" />
+      <xs:attribute name="unit" type="tns:durationUnitType" />
+   </xs:complexType>
+
+   <xs:simpleType name="durationUnitType">
+         <xs:restriction base="xs:string">
+            <xs:enumeration value="SEC" />
+            <xs:enumeration value="MIN" />
+            <xs:enumeration value="HOUR" />
+            <xs:enumeration value="F" />
+            <xs:enumeration value="C" />                        
+         </xs:restriction>
+   </xs:simpleType>
+
+   <xs:simpleType name="selectorTypeType">
+         <xs:restriction base="xs:string">
+            <xs:enumeration value="group" />
+            <xs:enumeration value="boolean" />
+            <xs:enumeration value="list" />
+            <xs:enumeration value="duration" />
+            <xs:enumeration value="range" />
+            <xs:enumeration value="percent" />
+            <xs:enumeration value="thermostat"/>
+            <xs:enumeration value="temperature"/>
+            <xs:enumeration value="fan"/>
+         </xs:restriction>
+   </xs:simpleType>
+
+   <xs:complexType name="optionsType">
+      <xs:sequence>
+         <xs:element name="option" type="tns:optionType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="optionType">
+      <xs:attribute name="label" type="xs:string" use="required"/>
+      <xs:attribute name="value" type="xs:string" />
+      <xs:attribute name="var" type="xs:string" />
+   </xs:complexType>
+
+   <xs:complexType name="actionsType">
+      <xs:sequence>
+         <xs:element name="set-attributes" type="tns:setAttributesType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="groupsType">
+      <xs:sequence>
+         <xs:element name="group" type="tns:groupType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:complexType name="groupType">
+      <xs:sequence>
+         <xs:element name="set-attributes" type="tns:setAttributesType" maxOccurs="unbounded" minOccurs="0" />
+         <xs:element name="selector" type="tns:selectorType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+       <xs:attribute name="label" type="xs:string" use="required" />
+       <xs:attribute name="value" type="xs:string" use="required" />
+   </xs:complexType>
+   
+   <xs:complexType name="setAttributesType">
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="value" type="xs:string" use="required" />
+      <xs:attribute name="valueType" type="tns:setAttributeValueType" />
+   </xs:complexType>
+   
+      <xs:simpleType name="setAttributeValueType">
+         <xs:restriction base="xs:string">
+            <xs:enumeration value="string" />
+            <xs:enumeration value="int" />
+         </xs:restriction>
+   </xs:simpleType>
+
+</xs:schema>

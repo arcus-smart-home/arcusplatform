@@ -1,0 +1,119 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the LeakH2O capability
+ */
+driver			"MOCK_WaterLeakDetector"
+description		"Driver for the Mockitron LeakH2O device"
+version			"1.1"
+protocol		"MOCK"
+productId		"f80f79"
+deviceTypeHint	"waterleak"
+vendor 			"Mockitron"
+model 			"Water Leak Detector"
+
+matcher        'MOCK:Capability' : 'WaterLeakDetector'
+matcher        'MOCK:ProductId'  : 'f80f79'
+
+capabilities   DevicePower, LeakH2O, DeviceMock
+
+
+// alarm states
+def final int SAFE              = 0x00
+def final int LEAK_DETECTED     = 0xFF
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mockitron Water Leak Detector device started."
+	Device.name 'Mock Water Leak Detector'
+	
+	DeviceConnection.signal             82
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 23
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	LeakH2O.state           LeakH2O.STATE_SAFE
+	LeakH2O.statechanged    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "Mockitron Water Leak Detector device connected."
+	
+}
+
+onDisconnected {
+	log.debug "Mockitron Water Leak Detector device disconnected."
+	
+}
+
+onRemoved {
+	log.debug "Mockitron Water Leak Detector device removed."
+}
+
+// ########### capability support ##################
+setAttributes('leakh2o') {
+	def prevState = LeakH2O.state.get()
+	attributes << message.attributes
+	if (LeakH2O.state.get() != prevState) {
+		LeakH2O.statechanged new Date()
+	}
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['leakh2o:state']) {
+    LeakH2O.statechanged new Date()
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onLeakH2O.leakh2o {
+	log.debug "MOCK Water Leak Detector received onLeakH2O.leakh2o message: " + message
+	
+	newState = message.attributes['state']
+	if( newState.contains( 'x' ) )
+		newState = newState.split( "x" )[1]
+	
+	int alarmState = Integer.parseInt( newState, 16 )
+	log.debug "MOCK Water Leak Detector new state: " + alarmState
+
+	def prevState = LeakH2O.state.get()
+	LeakH2O.state alarmState == SAFE ? LeakH2O.STATE_SAFE : LeakH2O.STATE_LEAK;
+	if (LeakH2O.state.get() != prevState) {
+		LeakH2O.statechanged new Date()
+	}
+}
+

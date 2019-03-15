@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<populations xmlns="http://arcus.com/population_1.0.0" >
+
+   <metadata version="2018-04-25T00:00:00" publisher="Danielle P."/>
+   
+   <population name="general" description="Default population" minhubv2version="2.0.1.004" minhubv3version="3.0.0.008" /> 
+   <population name="beta" description="Beta population will be a slice of approved/invited end users for testing beta functionality" minhubv2version="2.0.1.004" minhubv3version="3.0.0.008" />
+   <population name="qa" description="QA population will be used for exposing early development functionality" minhubv2version="2.0.1.004" minhubv3version="3.0.0.008" />
+   
+</populations>

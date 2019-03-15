@@ -1,0 +1,31 @@
+{{#section "subject"}}
+{{{actorFirstName}}}'s Place ({{{placeName}}}) Has Been Removed
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{actorFirstName}}} {{{actorLastName}}} removed their place ({{{placeName}}}). You will no longer be able to access this place.
+
+If you do not have access to any other places, you will no longer be able to log in to Iris.   
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>{{{actorFirstName}}} {{{actorLastName}}} removed their place ({{{placeName}}}). You will no longer be able to access this place.</p>
+	<p/>
+	<p>If you do not have access to any other places, you will no longer be able to log in to Iris.</p>
+	{{/partial}}
+	
+	{{#partial "extra" }}
+
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

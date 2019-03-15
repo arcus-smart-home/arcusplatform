@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.7.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="dropAccountRecording" author="tweidlin">
+      <cl:description>Drop the stale account_recording table</cl:description>
+      <cl:tracking>I2-12</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE account_recordings</cl:update>
+         <cl:rollback>
+         CREATE TABLE account_recordings (
+            placeid uuid,
+            recordingid timeuuid,
+            column text,
+            value text,
+            PRIMARY KEY (placeid, recordingid, column)
+         ) 
+         WITH COMPACT STORAGE
+         AND CLUSTERING ORDER BY (recordingid ASC, column ASC)
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

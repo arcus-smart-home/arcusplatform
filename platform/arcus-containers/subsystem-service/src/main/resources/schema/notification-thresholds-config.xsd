@@ -1,0 +1,52 @@
+<schema
+  attributeFormDefault="unqualified"
+  elementFormDefault="qualified"
+  xmlns="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://arcus.com/notification-thresholds_1.0.0">
+
+  <element name="notificationThresholdsConfig">
+    <complexType>
+      <sequence>
+        <element name="metadata">
+          <complexType>
+            <attribute name="version"   type="dateTime" />
+            <attribute name="publisher" type="string" />
+          </complexType>
+        </element>      
+        <element name="configDefaults">
+          <complexType>
+            <attribute name="hubOfflineTimeoutSec"       type="int" use="required" />
+            <attribute name="deviceOfflineTimeoutSec"    type="int" use="required" />
+            <attribute name="deviceBatteryFull"          type="int" use="required" />
+            <attribute name="deviceBatteryFullClear"     type="int" use="required" />
+            <attribute name="deviceBatteryLow"           type="int" use="required" />
+            <attribute name="deviceBatteryLowClear"      type="int" use="required" />
+            <attribute name="deviceBatteryVeryLow"       type="int" use="required" />
+            <attribute name="deviceBatteryVeryLowClear"  type="int" use="required" />
+            <attribute name="deviceBatteryCritical"      type="int" use="required" />
+            <attribute name="deviceBatteryCriticalClear" type="int" use="required" />
+            <attribute name="deviceBatteryDead"          type="int" use="required" />
+            <attribute name="deviceBatteryDeadClear"     type="int" use="required" />
+          </complexType>
+        </element>
+        <element name="deviceOverride" minOccurs="0" maxOccurs="unbounded">
+          <complexType>
+            <attribute name="productId"            type="string" use="required" />
+            <attribute name="offlineTimeoutSec"    type="int" />
+            <attribute name="batteryFull"          type="int" />
+            <attribute name="batteryFullClear"     type="int" />
+            <attribute name="batteryLow"           type="int" />
+            <attribute name="batteryLowClear"      type="int" />
+            <attribute name="batteryVeryLow"       type="int" />
+            <attribute name="batteryVeryLowClear"  type="int" />
+            <attribute name="batteryCritical"      type="int" />
+            <attribute name="batteryCriticalClear" type="int" />
+            <attribute name="batteryDead"          type="int" />
+            <attribute name="batteryDeadClear"     type="int" />
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

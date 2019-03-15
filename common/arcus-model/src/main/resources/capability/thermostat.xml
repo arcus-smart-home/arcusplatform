@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Thermostat"
+   namespace="therm"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a thermostat.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="coolsetpoint" 
+         readwrite="rw" 
+         type="double" 
+         unit="C"
+         optional="false" 
+         description="The desired low temperature when the HVAC unit is in cooling or auto mode. May also be used to set the target temperature."/>
+      <c:attribute 
+         name="heatsetpoint" 
+         readwrite="rw" 
+         type="double" 
+         unit="C"
+         optional="false" 
+         description="The desired high temperature when the HVAC unit is in heating or auto mode. May also be used to set the target temperature."/>
+      <c:attribute
+         name="minsetpoint"
+         readwrite="r"
+         type="double"
+         unit="C"
+         optional="false"
+         since="2.4"
+         description="The minimum setpoint for the thermostat, inclusive.  The heatsetpoint can't be set below this and the coolsetpoint can't be set below minsetpoint + setpointseparation."/>
+      <c:attribute
+         name="maxsetpoint"
+         readwrite="r"
+         type="double"
+         unit="C"
+         optional="false"
+         since="2.4"
+         description="The maximum setpoint for the thermostat, inclusive.  The coolsetpoint can't be set above this and the heatsetpoint can't be set above maxsetpoint - setpointseparation."/>
+      <c:attribute
+         name="setpointseparation"
+         readwrite="r"
+         type="double"
+         unit="C"
+         optional="false"
+         since="2.4"
+         description="The heatsetpoint and coolsetpoint should be kept apart by at least this many degrees.  If only heatsetpoint or coolsetpoint are changed then the driver must automatically adjust the other setpoint if needed.  If both are specified and within setpointseparation of each other the driver may adjust either setpoint as needed to maintain the proper amount of separation."/>
+      <c:attribute 
+         name="hvacmode" 
+         readwrite="rw" 
+         type="enum"
+         values="OFF,AUTO,COOL,HEAT,ECO"
+         optional="false"
+         description="The current mode of the HVAC system."/>
+      <c:attribute
+         name="supportedmodes"
+         readwrite="r"
+         type="set&lt;String&gt;"
+         values="OFF,AUTO,COOL,HEAT,ECO"
+         optional="false"
+         since="2.4"
+         description="Modes supported by this thermostat"/>
+      <c:attribute
+         name="supportsAuto"
+         readwrite="r"
+         type="boolean"
+         optional="true"
+         description="Whether or not the thermostat supports AUTO mode.  If not present, assume true"/>
+      <c:attribute
+      	name="fanmode"
+      	readwrite="rw"
+      	type="int"
+      	min="0"
+      	max="7"
+      	optional="true"
+      	description="Current fan mode setting." />
+      <c:attribute 
+      	name="maxfanspeed"
+      	readwrite="r"
+      	type="int"
+      	min="1"
+      	max="7"
+      	optional="true"
+      	description="The maximum speed supported by the fan." />
+      <c:attribute
+      	name="autofanspeed"
+      	readwrite="r"
+      	type="int"
+      	min="1"
+      	max="7"
+      	optional="true"
+      	description="Set the speed of the fan when in auto mode." />
+      <c:attribute 
+         name="emergencyheat" 
+         readwrite="rw" 
+         type="enum"
+         values="ON,OFF"
+         optional="true"
+         description="Useful only for 2 stage heat pumps that require a secondary (usually electric) heater when the external temperature is below a certain threshold."/>
+      <c:attribute 
+         name="controlmode" 
+         readwrite="rw" 
+         type="enum"
+         values="PRESENCE,MANUAL,SCHEDULESIMPLE,SCHEDULEADVANCED"
+         optional="false"
+         description="The current mode of the HVAC system."/>
+      <c:attribute 
+         name="filtertype" 
+         readwrite="rw" 
+         type="string" 
+         optional="false" 
+         description="Placeholder for user to enter filter type like 16x25x1."/>
+      <c:attribute 
+         name="filterlifespanruntime" 
+         readwrite="rw" 
+         type="int"
+         unit="hours"
+         optional="false" 
+         description="Placeholder for user to enter life span (in runtime hours) of the filter."/>
+      <c:attribute 
+         name="filterlifespandays" 
+         readwrite="rw" 
+         type="int"
+         unit="days"
+         optional="false" 
+         description="Placeholder for user to enter life span (in total days) of the filter."/>
+      <c:attribute 
+         name="runtimesincefilterchange" 
+         readwrite="r" 
+         type="int"
+         unit="hours"
+         optional="false" 
+         description="Number of hours of runtime since the last filter change."/>
+      <c:attribute 
+         name="dayssincefilterchange" 
+         readwrite="r" 
+         type="int"
+         unit="days"
+         optional="false" 
+         description="Number of days elapsed since the last filter change."/>
+      <c:attribute 
+         name="active" 
+         readwrite="r" 
+         type="enum"
+         values="RUNNING,NOTRUNNING"
+         optional="false"
+         description="Indicator of whether the HVAC system is actively running or not.  Interpreted as fan is blowing, not necessarily heating or cooling."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="changeFilter"
+         description="Indicates that the filter has been changed and that runtimesincefilterchange and dayssincefilterchange should be reset.">
+      </c:method>
+      
+      <!-- Alexa Related Methods -->
+      
+      <c:method
+         name="SetIdealTemperature"
+         description="Updates the heat and/or cool set point depending on the current mode.  When in heat mode this will adjust only the heat set point, when in cool mode it will adjust only the cool set point.  When in auto mode, it will set each 2 degrees F from the desired temp.  If the OFF no action should be taken.">
+        
+         <c:parameters>
+            <c:parameter name="temperature" type="double" required="true" unit="C" description="The target temperature to set."/>
+         </c:parameters>
+         <c:return name="result" type="boolean" description="True if Ideal Temperature will be set, False if setting specified is out of range"/>
+         <c:return name="idealTempSet" type="double" description="The ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="hvacmode" type="enum" values="AUTO,HEAT,COOL,OFF" description="The current mode of the thermostat"/>
+         <c:return name="prevIdealTemp" type="double" description="The previous ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="maxSetPoint" type="double" description="The maximum allowed Set Point temperature on the device for the current HVAC Mode."/>
+         <c:return name="minSetPoint" type="double" description="The minimum allowed Set Point temperature on the device for the current HVAC Mode."/>
+      </c:method>
+      
+      <c:method name="IncrementIdealTemperature" description="Updates the heat and/or cool set point depending on the current mode.  When in heat mode this will adjust only the heat set point, when in cool mode it will adjust only the cool set point.  When in auto mode, it will attempt to determine the current ideal temp then adjust cool and heat points.">
+         <c:parameters>
+            <c:parameter name="amount" type="double" required="true" unit="C" description="The amount to increment the temperature"/>
+         </c:parameters>
+         <c:return name="result" type="boolean" description="True if Ideal Temperature will be incremented, False if increase would move temperature setting out of range"/>
+         <c:return name="idealTempSet" type="double" description="The ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="hvacmode" type="enum" values="AUTO,HEAT,COOL,OFF" description="The current mode of the thermostat"/>
+         <c:return name="prevIdealTemp" type="double" description="The previous ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="maxSetPoint" type="double" description="The maximum allowed Set Point temperature on the device for the current HVAC Mode."/>
+         <c:return name="minSetPoint" type="double" description="The minimum allowed Set Point temperature on the device for the current HVAC Mode."/>
+      </c:method>
+      
+      <c:method name="DecrementIdealTemperature" description="Updates the heat and/or cool set point depending on the current mode.  When in heat mode this will adjust only the heat set point, when in cool mode it will adjust only the cool set point.  When in auto mode, it will attempt to determine the current ideal temp then adjust cool and heat points.">
+         <c:parameters>
+            <c:parameter name="amount" type="double" required="true" unit="C" description="The amount to decrement the temperature"/>
+         </c:parameters>
+         <c:return name="result" type="boolean" description="True if Ideal Temperature will be decreased, False if decrease would move temperature setting out of range"/>
+         <c:return name="idealTempSet" type="double" description="The ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="hvacmode" type="enum" values="AUTO,HEAT,COOL,OFF" description="The current mode of the thermostat"/>
+         <c:return name="prevIdealTemp" type="double" description="The previous ideal temperature set on the device.  When in auto mode this should be the midpoint between the cool/heat set point"/>
+         <c:return name="maxSetPoint" type="double" description="The maximum allowed Set Point temperature on the device for the current HVAC Mode."/>
+         <c:return name="minSetPoint" type="double" description="The minimum allowed Set Point temperature on the device for the current HVAC Mode."/>
+      </c:method>
+      
+      
+   </c:methods>
+
+   <c:events>
+      <c:event
+         name="SetPointChanged"
+         description="Notifies the system that a thermostat setpoint has been changed.">
+         <c:parameters>
+            <c:parameter
+               name="type"
+               type="enum"
+               values="COOL,HEAT"
+               description="The type of setpoint that was changed."
+               optional="false" />
+            <c:parameter
+               name="hvacmode"
+               type="enum"
+               values="AUTO,COOL,HEAT"
+               description="The current mode of the HVAC system."
+               optional="false"/>            
+            <c:parameter
+               name="setpoint"
+               type="double" 
+               description="Value of setpoint in degrees C."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+   </c:events>
+
+</c:capability>

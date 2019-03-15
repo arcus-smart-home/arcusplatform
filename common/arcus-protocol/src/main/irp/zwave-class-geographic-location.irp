@@ -1,0 +1,29 @@
+
+message zwave.GeographicLocation.GeographicLocationGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.GeographicLocation.GeographicLocationReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_LONGITUDE_MINUTES_MASK = 0x7F;
+    const u8 LEVEL_LONGITUDE_MINUTES_SHIFT = 0;
+    const u8 LEVEL_LONG_SIGN = 0x80;
+    const u8 LEVEL2_LATITUDE_MINUTES_MASK = 0x7F;
+    const u8 LEVEL2_LATITUDE_MINUTES_SHIFT = 0;
+    const u8 LEVEL2_LAT_SIGN = 0x80;
+    u8 longitudeDegrees;
+    u8 level;
+    u8 latitudeDegrees;
+    u8 level2;
+}
+
+message zwave.GeographicLocation.GeographicLocationSetV1<id="0x01", group="V1"> {
+    const u8 LEVEL_LONGITUDE_MINUTES_MASK = 0x7F;
+    const u8 LEVEL_LONGITUDE_MINUTES_SHIFT = 0;
+    const u8 LEVEL_LONG_SIGN = 0x80;
+    const u8 LEVEL2_LATITUDE_MINUTES_MASK = 0x7F;
+    const u8 LEVEL2_LATITUDE_MINUTES_SHIFT = 0;
+    const u8 LEVEL2_LAT_SIGN = 0x80;
+    u8 longitudeDegrees;
+    u8 level;
+    u8 latitudeDegrees;
+    u8 level2;
+}

@@ -1,0 +1,18 @@
+{{#file . "com/iris/protocol/ipcd/adapter/aosmith/AosDeviceBuilder.java"}}
+package com.iris.protocol.ipcd.adapter.aosmith;
+
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.model.Device;
+
+public class AosDeviceBuilder {
+   public static Device buildDevice(Map<String, String> params) {
+      Device device = new Device();
+      device.setVendor({{#if vendor.parameter}}params.get("{{vendor.value}}"){{else}}"{{vendor.value}}"{{/if}});
+      device.setModel({{#if model.parameter}}params.get("{{model.value}}"){{else}}"{{model.value}}"{{/if}});
+      device.setSn({{#if sn.parameter}}params.get("{{sn.value}}"){{else}}"{{sn.value}}"{{/if}});
+      device.setIpcdver({{#if ipcdver.parameter}}params.get("{{ipcdver.value}}"){{else}}"{{ipcdver.value}}"{{/if}});
+      return device;
+   }
+}
+{{/file}}

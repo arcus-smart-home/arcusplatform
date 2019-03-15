@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	POST https://:subdomain.recurly.com/v2/coupons/:coupon_code/redeem
+
+	Most coupons are redeemed during a new subscription. 
+	This endpoint allows you to redeem a coupon for a customer after their initial 
+	subscription, or in anticipation of a future subscription. When you redeem a 
+	coupon on an account, the coupon will be applied to the next subscription creation 
+	(new subscription), modification (e.g. upgrade or downgrade), or renewal.
+-->
+<redemption>
+  <account_code>1</account_code>
+  <currency>USD</currency>
+</redemption>

@@ -1,0 +1,24 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Key Fob Cluster
+//    From "Implementing the AlertMe Tamper, Button & KeyFob Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.KeyFob {
+   const u16 CLUSTER_ID = 0x00F4;
+}
+
+message alertme.KeyFob.Response<id="0x00"> {
+   const u8 RESPONSE_ALARM_IN_HOUSE = 0x00;
+   const u8 RESPONSE_ARM_HAPPY = 0x01;
+   const u8 RESPONSE_ARM_UNHAPPY = 0x02;
+   const u8 RESPONSE_DISARM_HAPPY = 0x03;
+   const u8 RESPONSE_DISARM_UNHAPPY = 0x04;
+   const u8 RESPONSE_FAILED_IN_HOME_CMD = 0x05;
+   const u8 RESPONSE_HAPPY_IN_HOME_CMD = 0x06;
+
+   u8 response;
+}
+
+message alertme.KeyFob.GoToSleep<id="0x0F"> {
+   // AlertMe Documentation: superseded by General.StopPolling
+}

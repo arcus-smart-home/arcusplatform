@@ -1,0 +1,31 @@
+{{#section "subject"}}
+Panic Alarm Cancelled
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+The Panic Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  
+
+Check the Iris app for details. To cancel Police dispatch, call the monitoring station at 1-844-571-6006. 
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{{_person.firstName}}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The Panic Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.</p>
+	<p/>
+	<p>Check the Iris app for details. To cancel Police dispatch, call the monitoring station at 1-844-571-6006. </p>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

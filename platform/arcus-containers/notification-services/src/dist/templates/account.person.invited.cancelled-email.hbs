@@ -1,0 +1,26 @@
+{{#section "subject"}}
+{{{inviteeFirstName}}} {{{inviteeLastName}}}'s Invitation To {{{_place.name}}} Was Cancelled.
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{_person.firstName}},
+
+The invitation for {{{inviteeFirstName}}} {{{inviteeLastName}}} to join {{{_place.name}}} was cancelled by {{{personCancelledFirstName}}} {{{personCancelledLastName}}}.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	The invitation for {{inviteeFirstName}} {{inviteeLastName}} to join {{_place.name}} was cancelled by {{personCancelledFirstName}} {{personCancelledLastName}}.<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

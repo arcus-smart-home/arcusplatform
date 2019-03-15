@@ -1,0 +1,31 @@
+{{#section "subject"}}
+Security Alarm Triggered 
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}}, 
+
+The Security Alarm at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place {{{_place.name}}} was triggered by panic.
+
+{{{_place.name}}}
+{{{_place.streetAddress1}}}
+{{{_place.city}}}, {{{_place.state}}}, {{{_place.zipCode}}}
+
+{{/section}}
+{{#section "html-body"}}
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The Security Alarm at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) was triggered by panic.</p>
+	<p/>
+	<p>{{_place.name}}<br/>
+	{{_place.streetAddress1}}<br/>
+	{{_place.city}}, {{_place.state}}, {{_place.zipCode}}</p>
+	{{/partial}}
+
+{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

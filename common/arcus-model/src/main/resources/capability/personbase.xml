@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability name="Person" namespace="person" version="1.0"
+	xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+	<c:description>
+		Model of a person
+	</c:description>
+
+	<c:attributes>
+		<c:attribute name="firstName" readwrite="rw" type="string"
+			optional="false" description="First name of the person" />
+
+		<c:attribute name="lastName" readwrite="rw" type="string"
+			optional="false" description="Last name of the person" />
+
+		<c:attribute name="email" readwrite="rw" type="string"
+			optional="true" description="The email address for the person" />
+			
+		<c:attribute name="emailVerified" readwrite="r" type="boolean"
+			optional="true" description="Indicates the user has verified the current email address.  This field is reset if the user changes their email address." />
+			
+		<c:attribute name="mobileNumber" readwrite="rw" type="string"
+			optional="true" description="The mobile phone number for the person" />
+
+		<c:attribute name="mobileNotificationEndpoints" readwrite="rw"
+			type="list&lt;string&gt;" optional="true"
+			description="The list of mobile endpoints where notifications may be sent" />
+
+		<c:attribute name="currPlace" readwrite="rw" type="uuid"
+			optional="true" description="The ID of the current place where the person is present" />
+
+		<c:attribute name="currPlaceMethod" readwrite="rw" type="string"
+			optional="true" description="The methodology used for determining the current place" />
+
+		<c:attribute name="currLocation" readwrite="rw" type="string"
+			optional="true" description="The current location of the person" />
+
+		<c:attribute name="currLocationTime" readwrite="rw" type="timestamp"
+			optional="true" description="The time that the current location was determined" />
+
+		<c:attribute name="currLocationMethod" readwrite="rw"
+			type="string" optional="true"
+			description="The methodology used for determining the current location" />
+
+		<c:attribute name="consentOffersPromotions" readwrite="rw" type="timestamp"
+			optional="false" description="The date and time when this person provided consent to receive communications of offers and promotions" />
+
+		<c:attribute name="consentStatement" readwrite="rw" type="timestamp"
+			optional="false" description="The date and time where person provided consent to receive monthly statement communications" />
+         
+      <c:attribute name="hasPin" readwrite="r" type="boolean"
+         optional="false" description="Returns true if the person has a pin, false otherwise.  This is deprecated and only returns true if the person at a pin at currPlace, placesWithPin is preferred"/>
+      
+      <c:attribute name="placesWithPin" readwrite="r" type="set&lt;string&gt;"
+         optional="false" description="Returns the set of places the person has a pin assigned"/>
+         
+      <c:attribute name="hasLogin" readwrite="r" type="boolean"
+         optional="false" description="Returns true if the person has a login, false otherwise"/> 
+      
+      <c:attribute name="securityAnswerCount" readwrite="r" type="int"
+         optional="false" description="The number of security answers the user has filled out"/>        			
+
+	</c:attributes>
+
+	<c:methods>
+
+		<c:method name="SetSecurityAnswers"
+			description="Sets the security answers for the given person.  The first question and answer are required, those for the second and third are optional.">
+			<c:parameters>
+				<c:parameter name="securityQuestion1" type="string"
+					description="The identifier for the first question answered"
+					optional="false" />
+				<c:parameter name="securityAnswer1" type="string"
+					description="The user's answer for the question identified in securityQuestion1"
+					optional="false" />
+				<c:parameter name="securityQuestion2" type="string"
+					description="The identifier for the second question answered"
+					optional="true" />
+				<c:parameter name="securityAnswer2" type="string"
+					description="The user's answer for the question identified in securityQuestion2"
+					optional="true" />
+				<c:parameter name="securityQuestion3" type="string"
+					description="The identifier for the third question answered"
+					optional="true" />
+				<c:parameter name="securityAnswer3" type="string"
+					description="The user's answer for the question identified in securityQuestion3"
+					optional="true" />
+			</c:parameters>
+		</c:method>
+
+		<c:method name="GetSecurityAnswers"
+			description="Retrieves the security responses for the given person">
+			<c:return
+				description="A map where the key is the identifier for the security question and the value is the user's answer"
+				type="map&lt;string&gt;" name="securityAnswers" optional="false" />
+		</c:method>
+
+		<c:method name="AddMobileDevice"
+			description="Adds and associates a mobile device for the given person">
+
+			<c:parameter name="name" type="string" optional="true"
+				description="A user-assigned name for this mobile device; useful when specifying which devices will receive notifications."/>
+			<c:parameter name="appVersion" type="string" optional="true"
+				description="The version of the Iris app running on the device."/>
+			<c:parameter name="osType" type="string" optional="false"
+				description="The type of operating system the mobile device is running (iOS, Android for example)." />
+			<c:parameter name="osVersion" type="string" optional="true"
+				description="The version of the operating system running on the mobile device." />
+			<c:parameter name="formFactor" type="string" optional="true"
+				description="The form factor of the device (phone, tablet for example)." />
+			<c:parameter name="phoneNumber" type="string" optional="true"
+				description="The phone number of the device if present." />
+			<c:parameter name="deviceIdentifier" type="string"
+				optional="true"
+				description="Device specific unique identifier for the mobile device if possible." />
+			<c:parameter name="deviceModel" type="string" optional="true"
+				description="The model of the device if known." />
+			<c:parameter name="deviceVendor" type="string" optional="true"
+				description="The vendor of the device if known." />
+			<c:parameter name="resolution" type="string" optional="true"
+				description="The screen resolution of the device (ex. xhdpi)" />
+			<c:parameter name="notificationToken" type="string"
+				optional="true"
+				description="The token for sending push notifications to this device if it is registered to do so." />
+			<c:parameter name="lastLatitude" type="double" optional="true"
+				description="The last measured latitude if collected." />
+			<c:parameter name="lastLongitude" type="double" optional="true"
+				description="The last measured longitude if collected." />
+
+		</c:method>
+
+		<c:method name="RemoveMobileDevice"
+			description="Removes/disassociates a mobile device from this person">
+
+			<c:parameter name="deviceIndex" type="int" optional="false"
+				description="Platform-owned index for the device that uniquely identifies it within the context of this person" />
+		</c:method>
+
+		<c:method name="ListMobileDevices"
+			description="Lists all mobile devices associated with this person">
+
+			<c:return name="mobileDevices" type="list&lt;MobileDevice&gt;"
+				description="The list of mobile devices associated with this person"
+				optional="false" />
+		</c:method>
+
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this person">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this person" />
+      </c:method>
+      
+		<c:method name="Delete"
+			description="Remove/Deactivate the person record indicated.">
+		</c:method>
+      
+      <c:method name="RemoveFromPlace"
+         description="Removes a person from a specific place.  If the person is a hobbit they will be completely deleted.">
+         
+         <c:parameter
+            name="placeId"
+            type="string"
+            description="The place to remove the person from.  If not provided the place header (active place) from the message will be used."
+            optional="true"/>
+      </c:method>
+      
+      <c:method name="ChangePin"
+         description="Changes the person's pin at their currPlace.  Deprecated, use ChangePinV2 instead."
+         isRESTful="true">
+         
+         <c:parameters>
+            <c:parameter
+               name="currentPin"
+               type="string"
+               description="The current pin of the person if they have one.  If they have a pin this must match their existing pin"
+               optional="true"/>
+            <c:parameter
+               name="newPin"
+               type="string"
+               description="The new pin for the person"
+               optional="false"/>
+            
+         </c:parameters>
+         
+         <c:return
+            name="success"
+            type="boolean"
+            description="True if the pin was successfully changed, false otherwise"
+            optional="false"/>
+         
+         <c:errors>
+            <c:error code="person.notFound"      description="If no person exists with that ID." />
+            <c:error code="pin.notUniqueAtPlace" description="If the pin isn't unique at this place." />
+         </c:errors>
+
+      </c:method>
+      
+      <c:method name="ChangePinV2"
+         description="Changes the person's pin at the specified place.  People are allowed to change their own pin or a hobbit at the specified place assuming the person invoking the call has access to the place."
+         isRESTful="true">
+         
+         <c:parameters>
+            <c:parameter
+               name="place"
+               type="string"
+               description="The identifier for the place where the person will use the pin"
+               optional="false"/>
+            <c:parameter
+               name="pin"
+               type="string"
+               description="The pin to set for the person"
+               optional="false"/>
+            
+         </c:parameters>
+         
+         <c:return
+            name="success"
+            type="boolean"
+            description="True if the pin was successfully changed, false otherwise"
+            optional="false"/>
+         
+         <c:errors>
+            <c:error code="person.notFound"      description="If no person exists with that ID." />
+            <c:error code="place.missing"        description="If the place is blank, empty, or missing." />
+            <c:error code="pin.missing"          description="If the pin is blank, empty, or missing." />
+            <c:error code="pin.invalid"          description="If the pin doesn't have exactly 4 characters or contains non-digit characters." />
+            <c:error code="pin.notUniqueAtPlace" description="If the pin isn't unique at this place." />
+         </c:errors>
+
+      </c:method>
+      
+       <c:method 
+      	name="VerifyPin" 
+      	description="Verifies that the pins match and that the requester is logged in as the person that the pin is being verified for."
+      	isRESTful="true">
+      	
+         <c:parameters>
+            <c:parameter
+               name="place"
+               type="string"
+               description="The identifier of the place with the pin for the person to compare against"
+               optional="false"/>
+            <c:parameter
+               name="pin"
+               type="string"
+               description="The pin to compare against"
+               optional="false"/>
+            
+         </c:parameters>
+         
+         <c:return
+            name="success"
+            type="boolean"
+            description="True if the pin successfully matches current pin, false otherwise"
+            optional="false"/>         
+ 		
+      </c:method>          
+      
+      <c:method name="AcceptInvitation"
+         description="Accepts an invitation">
+         
+         <c:parameters>
+            <c:parameter
+               name="code"
+               type="string"
+               description="The invitation code the person is accepting"
+               optional="false"/>
+            <c:parameter
+               name="inviteeEmail"
+               type="string"
+               description="The email the invitation was sent to"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method name="RejectInvitation"
+         description="Rejects an invitation">
+         
+         <c:parameters>
+            <c:parameter
+               name="code"
+               type="string"
+               description="The invitation code the person is rejecting"
+               optional="false"/>
+            <c:parameter
+               name="inviteeEmail"
+               type="string"
+               description="The email the invitation was sent to"
+               optional="false"/>
+            <c:parameter
+               name="reason"
+               type="string"
+               description="The reason the person is rejecting the code"
+               optional="true"/>
+         </c:parameters>
+         
+      </c:method>
+      
+      <c:method name="PendingInvitations"
+         description="Retrieves the list of pending invitations for this user">
+         
+         <c:return name="invitations"
+            type="list&lt;Invitation&gt;"
+            description="The list of all pending invitations that could be associated with this user or empty"
+            optional="false"/>
+      </c:method>
+      
+      <c:method
+         name="PromoteToAccount"
+         description="Promotes a user with a login to full fledged IRIS account">
+         
+         <c:parameter
+            name="place"
+            type="Place"
+            description="The place information or the new account"
+            optional="false"/>
+          
+         <c:return name="account" type="Account" description="The instance of AccountModel created for the new registration" optional="false"/>
+         <c:return name="place" type="Place" description="The instance of PlaceModel created for the place" optional="false"/>
+         
+      </c:method>
+      
+      <c:method
+         name="DeleteLogin"
+         description="Deletes complete the login and any associations with it"/>
+         
+      <c:method
+         name="ListAvailablePlaces"
+         description="Lists the available places for a person.  Returns the same structure as the session service's method">
+         
+         <c:return
+            name="places"
+            type="list&lt;PlaceAccessDescriptor&gt;"
+            description="The places this person has access to"
+            optional="false"/>
+      </c:method>
+      
+      <c:method name="AcceptPolicy"
+			description="Accept terms &amp; conditions and/or privacy policy">
+
+			<c:parameter name="type" type="enum" optional="false" values="PRIVACY,TERMS"
+				description="PRIVACY for privacy policy, TERMS for terms &amp; condition.  In order to accept both, need to call the method twice." />
+	  </c:method>
+      
+      <c:method name="RejectPolicy"
+			description="Reject terms &amp; conditions and/or privacy policy. NOTE THIS IS GENERALLY FOR TESTING ONLY">
+
+			<c:parameter name="type" type="enum" optional="false" values="PRIVACY,TERMS"
+				description="PRIVACY for privacy policy, TERMS for terms &amp; condition.  In order to reject both, need to call the method twice." />
+	  </c:method>
+	  
+	  <c:method name="SendVerificationEmail"
+			description="Generates an email address verification email." 
+			isRESTful="true">
+			<c:parameter name="source" type="enum" optional="true" values="ANDROID,IOS,WEB" description="The source where the email verification request comes from.  Default is WEB." />
+	  </c:method>
+	  
+	  <c:method name="VerifyEmail"
+			description="Verifies that the user has access to their current email address by providing the token from the email."
+			isRESTful="true">
+
+			<c:parameter name="token" type="string" optional="false" 
+				description="The verification token." />
+			<c:errors>
+            	<c:error code="token.invalid" description="If the token does not match the current email address." />
+         	</c:errors>
+	  </c:method>
+      
+	</c:methods>
+
+	<c:events>
+   
+      <c:event name="PinChangedEvent" description="Emitted when the the user changes their pin"/>
+      <c:event name="InvitationPending" description="Emitted when an invitation has been sent to this user"/>
+      <c:event name="InvitationCancelled" description="Emitted when an invitation for this user has been cancelled"/>
+      
+      <!-- internal events -->
+      <c:event name="AuthorizationRemoved" description="Emitted when authorization to a place is removed for this user.  This is an internal platform event that the client-bridge listens.">
+         <c:parameter name="placeId" type="string" description="The place the person's authorization was removed from"/>
+      </c:event>
+
+	</c:events>
+
+</c:capability>

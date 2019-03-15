@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Bridge"
+   namespace="bridge"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a bridge device used to manage instances of other devices.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="pairedDevices"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="false"
+         description="Map from bridge-owned device identifier to the protocol address of paired children devices"/>
+      
+      <c:attribute
+         name="unpairedDevices"
+         readwrite="r"
+         type="set&lt;string&gt;"
+         optional="false"
+         description="Set of bridge-owned device identifiers that have been seen but not paired."/>
+       
+      <c:attribute
+         name="pairingState"
+         readwrite="r"
+         type="enum"
+         values="PAIRING,UNPAIRING,IDLE"
+         optional="false"
+         description="The current pairing state of the bridge device.  PAIRING indicates that any new devices seen will be paired, UNPAIRING that devices are being removed and IDLE means neither"/>
+         
+      <c:attribute 
+         name="numDevicesSupported" 
+         readwrite="r" 
+         type="int" 
+         optional="false" 
+         description="Total number of devices this bridge can support."/>
+    </c:attributes>
+
+	<c:methods>
+       <c:method 
+         name="StartPairing"
+         description="Puts bridge into pairing mode for timeout seconds.  Any devices seen while not in pairing mode will be immediately paired as well as any new devices discovered within the timeout period">
+         
+         <c:parameters>
+         	<c:parameter name="timeout" type="long" optional="false" description="Amount of time that the bridge device will stay in pairing mode in milliseconds."/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method
+         name="StopPairing"
+         description="Removes the bridge from pairing mode."/>
+      
+   </c:methods>
+</c:capability>

@@ -1,0 +1,15 @@
+   public static final com.iris.capability.definition.AttributeType TYPE_{{toUpperCase name}} = 
+   {{#if type.enum}}
+      com.iris.capability.definition.AttributeTypes.enumOf(
+         java.util.Arrays.<String>asList({{#enumValues}}"{{.}}"{{#unless @last}}, {{/unless}}{{/enumValues}})
+      );
+   {{else}}
+      com.iris.capability.definition.AttributeTypes.parse("{{{type.representation}}}");
+   {{/if}}
+
+   public static final com.iris.device.attributes.AttributeKey<{{{typeRepresentationToJavaType type.representation}}}> KEY_{{toUpperCase name}} =
+    {{#if type.enum}}
+      com.iris.device.attributes.AttributeKey.create(ATTR_{{toUpperCase name}}, String.class);
+   {{else}}
+      (com.iris.device.attributes.AttributeKey<{{{typeRepresentationToJavaType type.representation}}}>) com.iris.device.attributes.AttributeKey.createType(ATTR_{{toUpperCase name}}, com.iris.capability.definition.AttributeTypes.parse("{{{type.representation}}}").getJavaType());
+   {{/if}}

@@ -1,0 +1,46 @@
+{{#file . "com/iris/capability/definition/StaticDefinitionRegistry.java"}}
+package com.iris.capability.definition;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public class StaticDefinitionRegistry extends BaseDefinitionRegistry {
+
+   public static StaticDefinitionRegistry getInstance() {
+      return Holder.INSTANCE;
+   }
+
+   private static final class Holder {
+      private static final StaticDefinitionRegistry INSTANCE;
+       
+      static {
+         List<CapabilityDefinition> capabilities = new LinkedList<CapabilityDefinition>();
+         capabilities.add(com.iris.client.capability.Capability.DEFINITION);
+         {{#capabilities}}
+         capabilities.add(com.iris.client.capability.{{name}}.DEFINITION);
+         {{/capabilities}}
+
+         List<TypeDefinition> types = new LinkedList<TypeDefinition>();
+         {{#types}}
+         types.add(com.iris.client.bean.{{name}}.DEFINITION);
+         {{/types}}
+          
+         List<ServiceDefinition> services = new LinkedList<ServiceDefinition>();
+         {{#services}}
+         services.add(com.iris.client.service.{{name}}.DEFINITION);
+         {{/services}}
+          
+         INSTANCE = new StaticDefinitionRegistry(capabilities, types, services);
+      }
+   }
+    
+   protected StaticDefinitionRegistry(
+      List<CapabilityDefinition> capabilities,
+      List<TypeDefinition> types,
+      List<ServiceDefinition> services
+   ) {
+      super(capabilities, types, services);
+   }
+    
+}
+{{/file}}

@@ -1,0 +1,456 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the CentraLite Water Sensor
+ * 
+ *    05/08/17 - Version 2.3 for Reflexes.  If hub is OFFLINE, Diagnostics, Battery, and Temperature reporting are ignored, 
+ *               and Identify feature is unavailable.
+ * 
+ * FACTORY RESET
+ *  - Hold down the "connect" button (tamper switch) while inserting the battery and when LED glows amber release button.
+ *  
+ * IDENTIFY
+ *  - Performing an Identify operation turns the LED on and cycles the color for 3 minutes (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:
+ *    195 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *    60 minutes
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours, at most every 60 minutes
+ *  - Read each time device connects (delayed 15 seconds so device does not report 'INVALID')
+ * 
+ * TEMPERATURE REPORTING:
+ *  - At least every 3 hours, at most every 60 minutes
+ *  - Read each time device connects
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async, per wiki page specs; https://eyeris.atlassian.net/wiki/display/I2D/Device+Reporting+Settings
+ * 
+ * 
+ * ISSUES/NOTES:
+ *  - See CentraLite Notes at: http://centralite.readthedocs.org/en/latest/devices/sensors/water.html
+ * 
+ * 
+ * IN Clusters
+ *   0x0000     Basic
+ *   0x0001     Power Configuration
+ *   0x0003     Identify
+ *   0x0020     Poll Control
+ *   0x0402     Temperature Measurement
+ *   0x0500     IAS Zone
+ *   0x0B05     Diagnostics
+ * OUT Clusters
+ *   0x0019     OTA Upgrade
+ *
+ */
+
+import groovy.transform.Field                    // not needed to compile, but used in eclipse
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+import static com.iris.protocol.zigbee.zcl.IasZone.ZoneEnrollResponse.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse.*
+
+uses "zigbee.GenericZigbeeDeviceOta"
+
+
+driver          "ZBCentraLiteWaterSensor"
+description     "Driver for the CentraLite Water Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Water Leak"
+productId       "7b8fd3"
+vendor          "Iris"
+model           "WaterSensor"
+
+
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3315'
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3315-L'
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3315-Geu'
+matcher			'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3315-S'
+
+
+capabilities    Identify, DeviceOta
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+LeakH2O {
+    LeakH2O.state LeakH2O.STATE_SAFE
+    bind LeakH2O.statechanged to LeakH2O.state
+}
+
+Temperature {
+    temperature null
+}
+
+
+@Field def dvcEndPoint  = Zigbee.endpoint((byte)1)
+
+@Field def pwrCluster   = dvcEndPoint.Power
+@Field def zoneCluster  = dvcEndPoint.IasZone
+@Field def identCluster = dvcEndPoint.Identify
+@Field def pollCluster  = dvcEndPoint.PollControl
+@Field def tempCluster  = dvcEndPoint.TemperatureMeasurement
+@Field def diagCluster  = dvcEndPoint.Diagnostics
+@Field def otaCluster   = dvcEndPoint.Ota
+
+
+// operational constants
+final short IDENT_PERIOD_SECS = 180  // number of seconds (0-600) for device to Identify itself (LED changes color) when Identify method is called
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    offlineTimeout 195, MINUTES
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    poll reflex {
+        on added
+
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.Power.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.IasZone.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.PollControl.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.Diagnostics.CLUSTER_ID, server: true
+        
+        iaszone enroll
+    }
+    
+    poll reflex {
+        on connected
+        ordered {
+            read endpoint: 1, cluster: Zcl.IasZone.CLUSTER_ID, attr: Zcl.IasZone.ATTR_ZONE_STATUS
+            read endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: Zcl.Power.ATTR_BATTERY_VOLTAGE
+            read endpoint: 1, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, attr: Zcl.TemperatureMeasurement.ATTR_MEASURED_VALUE
+            read endpoint: 1, cluster: Zcl.Diagnostics.CLUSTER_ID, attr: Zcl.Diagnostics.ATTR_LAST_MESSAGE_LQI
+            
+            // configure battery level reporting at most once an hour, at least once every 12 hours
+            report endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: pwrCluster.ATTR_BATTERY_VOLTAGE, type: Data.TYPE_UNSIGNED_8BIT, min: 3600, max: 43200
+
+            // configure temperature reporting at most once every 60 minutes, at least once every 3 hours
+            report endpoint: 1, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, attr: tempCluster.ATTR_MEASURED_VALUE, type: Data.TYPE_SIGNED_16BIT, min: 3600, max: 10800
+  
+            send zcl.pollcontrol.setLongPollInterval, newLongPollInterval: 24
+            send zcl.pollcontrol.setShortPollInterval, newShortPollInterval: 4
+        
+            // Set Poll Control Check-In interval to 60 minutes (14400 1/4 seconds)
+            write endpoint: 1, cluster: Zcl.PollControl.CLUSTER_ID, attr:Zcl.PollControl.ATTR_CHECKIN_INTERVAL, value: Data.encode32BitUnsigned(14400)
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process IAS Zone Status reports locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        // if alarm1 status reported SET with 'delay' of 30 seconds or less, change LeakH2O.state to LEAK
+        on iaszone, endpoint: 1, set: ["alarm1"], maxDelay: 30
+        set LeakH2O.state, LeakH2O.STATE_LEAK
+    }
+
+    match reflex {
+        // if alarm1 status reported CLEAR with 'delay' of 30 seconds or less, change LeakH2O.state to SAFE
+        on iaszone, endpoint: 1, clear: ["alarm1"], maxDelay: 30
+        set LeakH2O.state, LeakH2O.STATE_SAFE
+    }
+    
+    match reflex {
+        // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+        on iaszone, set: ["battery"]
+        emit DevicePower.battery, 0
+    }
+    
+    match reflex {
+        on zcl.iaszone.zoneEnrollRequest
+        send zcl.iaszone.zoneEnrollResponse, zoneId: 0xFF, enrollResponseCode: REPONSE_CODE_SUCCESS
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process Poll Control Check-Ins locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on zcl.pollcontrol.checkIn
+        // tell device to resume without short polling
+        send zcl.pollcontrol.checkInResponse, startFastPolling: START_FAST_POLLING_DISABLED, fastPollTimeout: 0
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+    log.trace "BatteryVoltage:{}", battVolt
+
+    double minVolts = 2.1
+    double nomVolts = 3.0
+
+    if ((null != battVolt) && ('INVALID' != battVolt.toString()) && (0 != battVolt)) {
+        // battery Voltage is reported in tenths of Volts
+        double volts = (battVolt / 10.0)
+        log.trace "Battery Volts:{}", volts
+        // battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+        if (0 < (nomVolts - minVolts)) {    // prevent division by zero
+            double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+            battPercent = (100.0 < battPercent) ? 100.0 : battPercent        // limit maximum to 100%
+            battPercent = (0.0 > battPercent) ? 0.0 : battPercent            // limit minimum to 0%
+            int intBattPercent = battPercent
+            log.trace "Battery Percent:{}", intBattPercent
+            DevicePower.battery intBattPercent
+        }
+    }
+}
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    log.trace "Driver received Power Attributes Response:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    log.trace "Driver received Power Attributes Report:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+    def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+    def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+    log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "Driver received Poll Control Attributes Response:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "Driver received Poll Control Attributes Report:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg);
+    def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+    log.trace "Temp:{}", tempVal
+    
+    if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+        // temperature is reported in 100ths degree C, so convert to C and save
+        double tempC = tempVal
+        tempC /= 100
+        log.trace "Set Temp:{}", tempC
+        Temperature.temperature tempC
+    }
+}
+
+// called when device responds to a Temperature Measurement Read Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+    log.trace "Driver received Temperature Measurement Attributes Response:{}", message
+    handleTemperatureMeasurement(tempCluster, message)
+}
+
+// called when device asynchronously sends a Temperature Measurement Report Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+    log.trace "Driver received Temperature Measurement Attributes Report:{}", message
+    handleTemperatureMeasurement(tempCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+    def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+    
+    if (lqi != null) {
+        if ('INVALID' == lqi.toString()) lqi = 255    // helper parses 255 value as 'INVALID', but it just means 100%
+        if (0 > lqi) lqi = 256 + lqi    // convert signed value to unsigned
+        int sigPct = Math.round( (lqi * 100.0) / 255.0)
+        log.trace "LQI:{}, (percent:{})", lqi, sigPct
+        DeviceConnection.signal sigPct
+    }
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+    log.trace "Driver received Diagnostics Attributes Response:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+    return true
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+    log.trace "Driver received Diagnostics Attributes Report:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+    return true
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this, DEVICE_NAME, dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this, DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this, DEVICE_NAME, otaCluster, message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this, DEVICE_NAME, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+    log.debug "Driver received onIdentify.Identify:{}", message
+    // ask the device to identify itself for the defined interval
+    identCluster.identifyCmd( IDENT_PERIOD_SECS )
+    sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+
+    // capture any expected responses and log any failures
+
+    if (260 == profile) {      // Home Automation Profile (0x0104)
+        
+        if (ZHA_CLUSTER_POWER_CONFIGURATION == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Power reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_TEMPERATURE_MEASUREMENT == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Temperature reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "Poll Control configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "Poll Control default response"
+            return
+        }
+
+        if (ZHA_CLUSTER_DIAGNOSTICS == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Diagnostics reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "IAS Zone Write")
+            return
+        }
+
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "IAS Zone default response"
+            return
+        }
+    }
+
+    log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}",
+            profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+void logResponse(data, msgType) {
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "{} was successful: {}", msgType, data
+    } else {
+        log.warn "{} FAILED: {}", msgType, data
+    }
+}
+
+

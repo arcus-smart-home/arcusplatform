@@ -1,0 +1,55 @@
+{{#file . "com/iris/protocol/ipcd/message/serialize/{{capitalize name}}ParserAdapter.java"}}
+package com.iris.protocol.ipcd.message.serialize;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.iris.protocol.ipcd.message.IpcdMessage;
+import com.iris.protocol.ipcd.message.ParserAdapter;
+import com.iris.protocol.ipcd.message.model.*;
+
+class {{capitalize name}}ParserAdapter extends ParserAdapter {
+    private final static Set<String> requiredElements;
+    
+    static {
+        Set<String> set = new HashSet<>();
+    	{{#properties}}{{#if required}}set.add("{{name}}");{{/if}}
+    	{{/properties}}
+    	{{#virtualProperties}}{{#if required}}set.add("{{name}}");{{/if}}
+    	{{/virtualProperties}}
+    	requiredElements = Collections.unmodifiableSet(set);
+    }
+    
+    @Override
+    public MessageType getMessageType() {
+    	return MessageType.{{name}};
+    }
+
+	@Override
+	public Set<String> requiredElements() {
+		return requiredElements;
+	}	
+	
+	@Override
+	public IpcdMessage parse(Gson gson, JsonObject jsonObject) {
+		{{#if hasCommands}}
+		String command = getCommand("{{commandElement}}", jsonObject);
+		CommandType type = CommandType.fromString(command);
+		if (type == null) {
+			return null;
+		}
+		switch(type) {
+		{{#commands}}
+		case {{name}}: return gson.fromJson(jsonObject, {{capitalize name}}{{capitalize ../name}}.class);
+		{{/commands}}
+		}
+		return null;
+		{{else}}
+	    return gson.fromJson(jsonObject, Ipcd{{capitalize name}}.class);
+		{{/if}}
+	}
+}
+{{/file}}

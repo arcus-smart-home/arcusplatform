@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="SyncDeviceInfo"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the currently defined reflexes for a given device from the hub's perspective</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="protocol"
+			type="string"
+			description="The protocol address of the device"
+		   optional="false"/>
+		<t:attribute
+			name="driver"
+			type="string"
+			description="The name of the driver that defined the current reflexes"
+		   optional="true"/>
+		<t:attribute
+			name="version"
+			type="string"
+			description="The version of the driver that defined the current reflexes"
+		   optional="true"/>
+		<t:attribute
+			name="hash"
+			type="string"
+			description="The hash code of the driver that defined the current reflexes"
+		   optional="true"/>
+		<t:attribute
+			name="online"
+			type="boolean"
+			description="Indicates whether the device is online or offline"
+		   optional="false"/>
+		<t:attribute
+			name="degraded"
+			type="boolean"
+			description="Indicates whether the device is operating in a degraded state"
+		   optional="false"/>
+		<t:attribute
+			name="attrs"
+			type="map&lt;any&gt;"
+			description="All of the current attributes for the device."
+		   optional="false"/>
+	</t:attributes>
+ </t:type>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Scheduler"
+   namespace="scheduler"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   A scheduler associated with one target object (device, subsystem, etc).
+   The specific schedules for the device are multi-instance capabilities. 
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute
+         name="placeId"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The ID of the place that this object is associated with."/>
+
+      <c:attribute
+         name="target"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The target that scheduled messages will be sent to."/>
+
+      <c:attribute
+         name="nextFireTime"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="The next time a scheduled command will fire.  This may be null if all schedules are disabled."/>
+      
+      <c:attribute
+         name="nextFireSchedule"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="ID of the schedule that will fire next."/>
+      
+      <c:attribute
+         name="lastFireTime"
+         readwrite="r"
+         type="timestamp"
+         optional="true"
+         description="The last time the schedule executed a command."/>
+      
+      <c:attribute
+         name="lastFireSchedule"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="ID of the schedule that fired previously."/>
+         
+      <c:attribute
+         name="commands"
+         readwrite="r"
+         type="map&lt;object&gt;"
+         optional="true"
+         description="
+The commands that this schedule may send. 
+This is a derived, read-only view.  The specific format of the ScheduledCommand depends on the type of schedule this is.  Currently only WeeklySchedule and TimeOfDayCommand are supported.
+         "/>
+      
+   </c:attributes>
+   
+   <c:methods>
+   
+     <c:method 
+   		name="FireCommand" 
+   		description="Fires the requested command right now, generally used for testing.">
+        <c:parameter 
+      	   name="commandId" 
+      	   type="string" 
+      	   description="The id of the command to fire" 
+      	   optional="false"/>
+      </c:method>
+      <c:method
+         name="AddWeeklySchedule"
+         description="
+Creates a new schedule which will appear as a new multi-instance object on the Scheduler with the given id.
+If a schedule with the given id already exists with the same type this will be a no-op.  If a schedule with the same id and a different type exists, this will return an error.
+         ">
+         <c:parameters>
+            <c:parameter 
+               name="id"
+               type="string"
+               description="The instance id of the schedule to create."
+               optional="false"/>
+            <c:parameter 
+               name="group"
+               type="string"
+               description="Default: id. The group to associate this schedule with, when not specified the id will be used."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+     
+      <c:method
+         name="Delete"
+         description="Deletes this scheduler object and all associated schedules, this is generally not recommended.  If the target object is deleted, this Scheduler will automatically be deleted.">
+      </c:method>
+   
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

@@ -1,0 +1,65 @@
+[
+   {
+      "id" : "0a875067-76de-4f1c-82f5-6e0a2f15554e",
+      "created" : 1419012584398,
+      "modified" : 1419012632501,
+      "tags" : [],
+      "state" : "online",
+      "accountId" : "c24b0e18-3394-4f81-b762-274ba3605ccc",
+      "protocol" : "Ipcd",
+      "protocolId" : "BlackBox-ContactSensor1-05102034A7B5",
+      "driverName": "IpcdContactSensorDriver",
+      "driverVersion": { "representation": "1.0"},
+      "driverAddress" : "DRIV::0a875067-76de-4f1c-82f5-6e0a2f15554e",
+      "protocolAddress" : "PROT:IPCD:3/Z//HH/4XLLVsfu5urezCz0mMA=",
+      "hubId" : null
+   },
+   
+   {
+      "id" : "4f2397e1-1f0f-45ba-abdc-4c1e829fa538",
+      "created" : 1419012584398,
+      "modified" : 1419012632501,
+      "tags" : [],
+      "state" : "online",
+      "accountId" : "c24b0e18-3394-4f81-b762-274ba3605ccc",
+      "protocol" : "Ipcd",
+      "protocolId" : "BlackBox-Switch1-123456789",
+      "driverName": "IpcdSwitchDriver",
+      "driverVersion": { "representation": "1.0"},
+      "driverAddress" : "DRIV::4f2397e1-1f0f-45ba-abdc-4c1e829fa538",
+      "protocolAddress" : "PROT:IPCD:qvIT3SYt1xQKbMPX6qzeHdNJA3U=",
+      "hubId" : null
+   },
+   
+   {
+   	  "id" : "93de863d-d6d9-446b-939b-97f845662139",
+   	  "created" : 1419012584398,
+   	  "modified" : 1419012632501,
+   	  "tags" : [],
+   	  "state" : "active",
+   	  "accountId" : "c24b0e18-3394-4f81-b762-274ba3605ccc",
+   	  "protocol" : "Hub",
+   	  "protocolId" : "34efd213",
+   	  "driverId" : null,
+   	  "driverAddress" : null,
+   	  "protocolAddress" : null,
+   	  "hubId" : null
+   },
+   
+   {
+   	  "id" : "6ff3a5ff-4650-4ce7-82e0-682a58392316",
+   	  "created" : 1419012584398,
+   	  "modified" : 1419012632501,
+   	  "tags" : [],
+   	  "state" : "active",
+   	  "accountId" : "c24b0e18-3394-4f81-b762-274ba3605ccc",
+   	  "protocol" : "ZWave",
+   	  "protocolId" : "34efd213-22",
+   	  "driverName": "ZWaveGenericSwitchDriver",
+   	  "driverVersion": { "representation": "1.0"},
+   	  "driverAddress" : "DRIV:6ff3a5ff-4650-4ce7-82e0-682a58392316",
+   	  "protocolAddress" : "PROT:ZWAV-93de863d-d6d9-446b-939b-97f845662139:ChYAAAAAAAAAAAAAAAAAAAAAAAA=",
+   	  "hubId" : "93de863d-d6d9-446b-939b-97f845662139"
+   }
+]
+

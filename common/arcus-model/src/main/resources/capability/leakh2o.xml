@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="LeakH2O"
+   namespace="leakh2o"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a leak detection sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="state" 
+         readwrite="rw" 
+         type="enum"
+         values="SAFE,LEAK"
+         optional="false"
+         description="Reflects the state of the leak detector."/>
+		<c:attribute 
+         name="statechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last state change"/>
+   </c:attributes>
+
+   <c:methods>
+       <c:method 
+         name="leakh2o"
+         description="">
+         <c:parameter
+             name="state"
+             type="string"/>
+      </c:method>
+   </c:methods>
+</c:capability>

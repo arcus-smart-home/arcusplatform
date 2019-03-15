@@ -1,0 +1,34 @@
+{{#section "subject"}}
+Smoke Alarm Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+The Smoke Alarm at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}) was triggered because smoke was detected by {{{deviceName}}} ({{{deviceType}}}).
+
+{{_place.name}}
+{{_place.streetAddress1}}
+{{_place.city}}, {{_place.state}}, {{_place.zipCode}}
+  
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	The Smoke Alarm at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}) was triggered because smoke was detected by {{{deviceName}}} ({{{deviceType}}}).  <br/><br/>
+	{{_place.name}}<br/>
+	{{_place.streetAddress1}}<br/>
+	{{_place.city}}, {{_place.state}}, {{_place.zipCode}}<br/>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

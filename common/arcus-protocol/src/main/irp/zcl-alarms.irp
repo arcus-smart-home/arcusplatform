@@ -1,0 +1,42 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.11 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Alarms {
+   const u16 CLUSTER_ID = 0x0009;
+
+   const u16 ATTR_ALARM_COUNT = 0x0000;
+}
+
+struct zcl.Alarms.AlarmTableEntry {
+   u8 alarmCode;
+   u16 clusterId;
+   u32 timestamp;
+}
+
+message zcl.Alarms.ResetAlarm<id="0x00",group="client"> {
+   u8 alarmCode;
+   u16 clusterId;
+}
+
+message zcl.Alarms.ResetAllAlarms<id="0x01",group="client"> {
+}
+
+message zcl.Alarms.GetAlarm<id="0x02",group="client"> {
+}
+
+message zcl.Alarms.GetAlarmLog<id="0x03",group="client"> {
+}
+
+message zcl.Alarms.Alarm<id="0x00",group="server"> {
+   u8 alarmCode;
+   u16 clusterId;
+}
+
+message zcl.Alarms.GetAlarmResponse<id="0x01",group="server"> {
+   u8 status;
+   u8 alarmCode when (status == ZB_STATUS_SUCCESS);
+   u16 clusterId when (status == ZB_STATUS_SUCCESS);
+   u32 timestamp when (status == ZB_STATUS_SUCCESS);
+}

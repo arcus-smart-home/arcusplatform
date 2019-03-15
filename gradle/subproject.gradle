@@ -1,0 +1,139 @@
+repositories {
+   if ("${use_maven_local}" == "true") {
+      mavenLocal()
+   }
+
+   mavenCentral()
+   jcenter()
+
+    flatDir {
+        dirs "$rootDir/libs"
+    }
+}
+
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'docker'
+apply plugin: 'nebula.contacts'
+apply plugin: 'project-report'
+apply plugin: 'eclipse'
+apply plugin: 'findbugs'
+
+if (project.hasProperty('eyeris_owasp')) {
+    if (eyeris_owasp?.trim()) {
+        apply plugin: "org.owasp.dependencycheck"
+
+        dependencyCheck {
+            format = "ALL"
+            suppressionFile = "${rootDir}/build/gradle/owasp/suppression.xml"
+            hintsFile = "${rootDir}/build/gradle/owasp/hints.xml"
+            skipConfigurations = ["test", "testRuntime", "systemTest", "systemTestRuntime"]
+        }
+    }
+}
+
+apply from: file("${rootDir}/gradle/dependencies.gradle")
+
+ext.cpus = project.hasProperty('cpus') ? project.cpus : 2;
+ext.mem = project.hasProperty('mem') ? project.mem.toInteger() : 512; // docker memory max
+ext.instances = project.hasProperty('instances') ? project.instances : 1;
+ext.jvmMem = (0.8 * mem).intValue(); // jvm memory max
+
+
+version = buildVersion
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+sourceSets {
+
+    systemTests {
+        java.srcDir file('src/system-test/java')
+        resources.srcDir file('src/system-test/resources')
+        compileClasspath += sourceSets.test.compileClasspath
+        compileClasspath += sourceSets.test.output
+        runtimeClasspath += sourceSets.test.runtimeClasspath
+        runtimeClasspath += sourceSets.test.output
+    }
+}
+
+task individualSystemTest(type: Exec,dependsOn: testClasses) {
+    group "Verification"
+    description "Runs a single system test - DOES call startPlatform DOES start services DOES pre load data DOES NOT STOP services/platform"
+
+    args "$rootProject.projectDir", "singleSystemTest"
+    executable "$rootProject.projectDir/testRunner.sh"
+}
+
+// This assumes you have already run startPlatform and can be used for individual tests.
+task systemTestRunner(type: Test,dependsOn: testClasses) {
+    group "Verification"
+    dependsOn testClasses
+    testClassesDirs = sourceSets.systemTests.output
+    classpath = sourceSets.systemTests.runtimeClasspath
+
+    description = "Runs the system tests located in src/system-test/java. Assumes you have already called startPlatform"
+    reports.junitXml.destination = file("$buildDir/reports/system-tests/xml")
+    reports.html.destination = file("$buildDir/reports/system-tests/html")
+	
+	testLogging {
+	   events "passed", "failed"
+	   showExceptions true
+	   showCauses true
+	   minGranularity 3 // Shows down to the method.
+   }
+	   
+   outputs.upToDateWhen { // Always run these tests. Even if "Up-to-date"
+	   false
+	}
+}
+
+tasks.withType(Tar) {
+   compression = Compression.GZIP
+   extension = "tar.gz"
+}
+
+test {
+    //we want display the following test events
+    testLogging {
+        events "STARTED", "PASSED", "FAILED", "SKIPPED"
+    }
+}
+
+if ("${use_jacoco}" == "true") {
+   apply plugin: 'jacoco'
+
+   jacoco {
+      toolVersion = "0.7.4.201502262128"
+   }
+
+   jacocoTestReport.dependsOn 'test'
+   check.dependsOn 'jacocoTestReport'
+}
+
+ext.sharedManifest = manifest {
+   attributes(
+      'Implementation-Title': project.name,
+      'Implementation-Version': project.version,
+      'Implementation-Vendor': "Arcus Project"
+   )
+}
+
+jar.manifest = sharedManifest
+jar {
+   entryCompression = ZipEntryCompression.STORED
+}
+
+findbugs {
+   ignoreFailures = true
+   reportsDir = file("$project.buildDir/findbugsReports")
+   effort = "max"
+   reportLevel = "medium"
+}
+
+tasks.withType(FindBugs) {
+   reports {
+      xml.enabled false
+      html.enabled true
+   }
+}

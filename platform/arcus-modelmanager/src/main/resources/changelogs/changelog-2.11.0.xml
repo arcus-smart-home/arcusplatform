@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.11.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="addLastPasswordChange" author="rob">
+      <cl:description>Adds the last password change to the login</cl:description>
+      <cl:tracking>I2-2722</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE login ADD lastPassChange timestamp</cl:update>
+         <cl:rollback>ALTER TABLE login DROP lastPassChange</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addManufactureKit" author="hharmon">
+      <cl:description>Adds manufacture kit information for storing a kit.</cl:description>
+      <cl:tracking>I2-2584</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS manufacture_kit (
+            hubid varchar PRIMARY KEY,
+            type varchar,
+            devices list&lt;varchar&gt;
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS manufacture_kit</cl:rollback>
+      </cl:cql>
+    </cl:changeset>
+
+</cl:changelog>

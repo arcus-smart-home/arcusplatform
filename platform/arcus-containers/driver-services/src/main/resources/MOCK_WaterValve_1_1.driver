@@ -1,0 +1,149 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Water Valve
+ */
+driver			"MOCK_WaterValve"
+description		"Driver for the Mock Water Valve"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"watervalve"
+productId		"832217"
+vendor 			"Mockitron"
+model 			"WaterValve"
+
+matcher         'MOCK:Capability' : 'WaterValve'
+matcher         'MOCK:ProductId'  : '832217'
+
+capabilities    DevicePower, Valve, Test, Identify, DeviceMock
+
+def final long OPEN_CLOSE_DELAY_MSEC = 3000		// delay 3 seconds for Open/Close operation
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Water Valve started."
+	Device.name 'Mock Water Valve'
+	// set inital attribute values
+	DeviceConnection.signal	93
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             true
+	DevicePower.battery                 75
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Valve.valvestate		Valve.VALVESTATE_OPEN
+	Valve.valvestatechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Test.lastTestTime		((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "Mock Water Valve connected."
+}
+
+onDisconnected {
+	log.debug "Mock Water Valve disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Water Valve removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('valv') {
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Valve.valvestate:
+				switch(attribute.value) {
+					case Valve.VALVESTATE_OPEN:
+						log.debug "Opening Valve"
+						// set current state to Opening
+						Valve.valvestate Valve.VALVESTATE_OPENING
+						Valve.valvestatechanged new Date()
+						// do a delayed setting of the value to Open
+						Scheduler.scheduleIn 'OpenValve', OPEN_CLOSE_DELAY_MSEC
+						break
+					case Valve.VALVESTATE_CLOSED:
+						log.debug "Closing Valve"
+						// set the current state to Closing
+						Valve.valvestate Valve.VALVESTATE_CLOSING
+						Valve.valvestatechanged new Date()
+						// do a delayed setting of the state to Closed
+						Scheduler.scheduleIn 'CloseValve', OPEN_CLOSE_DELAY_MSEC
+						break
+					case Valve.VALVESTATE_CLOSING:
+					case Valve.VALVESTATE_OPENING:
+					case Valve.VALVESTATE_OBSTRUCTION:
+						Valve.valvestate attribute.value
+						Valve.valvestatechanged new Date()
+						break
+					default:
+						log.error "Unrecognized valve state: " + attribute.value
+						break
+				}
+				break
+			default:
+				log.error "Unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+
+onEvent('OpenValve') {
+	Valve.valvestate Valve.VALVESTATE_OPEN
+	Valve.valvestatechanged new Date()
+	log.debug "Valve Open"
+}
+
+onEvent('CloseValve') {
+	Valve.valvestate Valve.VALVESTATE_CLOSED
+	Valve.valvestatechanged new Date()
+	log.debug "Valve Closed"
+}
+
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "onIdentify.Identify"
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

@@ -1,0 +1,170 @@
+////////////////////////////////////////////////////////////////////////////////
+// configuration common to containers
+// Projects that need to be dockerized should include the following:
+//    apply from: file("${rootDir}/build/gradle/container.gradle")
+//
+// Projects that are containers must be applications and they should not
+// include the application build scripts because they are included here.
+////////////////////////////////////////////////////////////////////////////////
+
+import java.security.MessageDigest
+import groovy.io.FileType
+import java.nio.file.Files;
+
+
+apply from: file("${rootDir}/gradle/application.gradle")
+
+project.ext.dockerGroup = 'eyeris'
+project.ext.containerName = "${project.name}.${project.dockerGroup}"
+project.ext.containerTag = "${project.dockerGroup}/${project.name}"
+project.ext.containerVersion = "${version_major}.${version_minor}.${version_patch}"
+
+project.ext.cpus = 2;
+project.ext.mem = 512
+project.ext.instances = 1;
+
+def filesha1(file) {
+   MessageDigest md = MessageDigest.getInstance("SHA-1");
+   file.eachByte 4096, {bytes, size ->
+      md.update(bytes, 0, size);
+   }
+
+   return md.digest().collect {String.format "%02x", it}.join();
+}
+
+task uberDistInstall() {
+   dependsOn distTar
+
+   doLast {
+      copy {
+         from tarTree(distTar.archivePath)
+         into "${rootDir}/build/uber/"
+      }
+   }
+}
+
+task uberDist {
+   dependsOn uberDistInstall
+   finalizedBy ":uberdocker"
+
+   doLast {
+      def install = new File("${rootDir}/build/uber/${project.name}-${buildVersion}/lib")
+      def shared = new File("${rootDir}/build/uber/libs-shared/")
+      shared.mkdirs()
+
+      install.eachFileRecurse (FileType.FILES) { file ->
+         def shaval = filesha1(file)
+         def flname = shaval + ".jar"
+         def shafile = new File(shared, flname)
+
+         def srcPath = file.toPath()
+         def dstPath = shafile.toPath()
+
+         if (!Files.exists(dstPath)) {
+            Files.copy(srcPath, dstPath)
+         }
+
+         Files.deleteIfExists(srcPath)
+         Files.createSymbolicLink(srcPath, new File("../../libs-shared/" + flname).toPath())
+      }
+   }
+}
+
+task uberDocker {
+   dependsOn uberDist
+   finalizedBy ":uberdocker"
+}
+
+
+docker {
+   baseImage "eyeris/java"
+}
+
+distDocker {
+   tag = project.containerTag;
+   tagVersion = project.dockerVersion;
+
+   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
+   defaultCommand(['-c', irisConfig])
+}
+
+task rmiDocker(type: Exec) {
+   group "Docker"
+   dependsOn 'rmDocker'
+   commandLine 'docker', 'rmi', "${project.containerTag}:${project.dockerVersion}"
+}
+
+task rmDocker(type: Exec) {
+   group "Docker"
+   ignoreExitValue true
+   commandLine 'docker', 'rm', '--force', project.containerName
+}
+
+def addLocalProps(cLine) {
+   def localPropsHome = System.env['LOCAL_PROPS_HOME']
+   if (localPropsHome != null) {
+      def localPropsPath = localPropsHome + '/' + project.name + '.properties'
+      if (file(localPropsPath).exists()) {
+         cLine.add('--env-file=' + localPropsPath);
+      }
+   }
+}
+
+task runDocker(type: Exec) {
+   group "Docker"
+   dependsOn 'rmDocker', 'distDocker'
+   def List<String> cLine = new ArrayList<String>()
+   cLine.add('docker');
+   cLine.add('run');
+   cLine.add('--name=' + project.containerName);
+   cLine.add('--link=eyeris-zookeeper:zookeeper.eyeris');
+   cLine.add('--link=eyeris-zookeeper:zookeeperops.eyeris');
+   cLine.add('--link=eyeris-kafka:kafka.eyeris');
+   cLine.add('--link=eyeris-kafka:kafkaops.eyeris');
+   cLine.add('--link=eyeris-cassandra:cassandra.eyeris');
+   if (project.hasProperty('exposePort')) {
+      def values = project.exposePort.split(',')
+      values.each { port ->
+         cLine.add('-p');
+         cLine.add(port + ":" + port);
+
+      }
+   }
+   addLocalProps(cLine);
+   cLine.add(project.containerTag + ':' + project.dockerVersion);
+
+   commandLine cLine
+}
+
+task startService(type: Exec) {
+   group "Docker"
+   dependsOn 'rmDocker', 'distDocker'
+   def List<String> cLine = new ArrayList<String>()
+   cLine.add('docker');
+   cLine.add('run');
+   cLine.add('-d');
+   cLine.add('--name=' + project.containerName);
+   cLine.add('--link=eyeris-zookeeper:zookeeper.eyeris');
+   cLine.add('--link=eyeris-zookeeper:zookeeperops.eyeris');
+   cLine.add('--link=eyeris-kafka:kafka.eyeris');
+   cLine.add('--link=eyeris-kafka:kafkaops.eyeris');
+   cLine.add('--link=eyeris-cassandra:cassandra.eyeris');
+   if (project.hasProperty('exposePort')) {
+      def values = project.exposePort.split(',')
+      values.each { port ->
+         cLine.add('-p');
+         cLine.add(port + ":" + port);
+
+      }
+   }
+   addLocalProps(cLine);
+   cLine.add(project.containerTag + ':' + project.dockerVersion);
+
+   commandLine cLine
+}
+task stopService(type: Exec) {
+   group "Docker"
+   // keep going even if it fails on one
+   ignoreExitValue true
+   commandLine 'docker', 'stop', project.containerName
+}

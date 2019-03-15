@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DoorLock"
+   namespace="doorlock"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a door lock.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="lockstate" 
+         readwrite="rw" 
+         type="enum"
+         values="LOCKED,UNLOCKED,LOCKING,UNLOCKING"
+         optional="false"
+         description="Reflects the state of the lock mechanism."/>
+      <c:attribute 
+         name="type" 
+         readwrite="r" 
+         type="enum"
+         values="DEADBOLT,LEVERLOCK,OTHER"
+         optional="false"
+         description="Reflects the type of door lock."/>
+      <c:attribute
+         name="slots"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="false"
+         description="Reflects the mapping between slots and people"/>
+      <c:attribute
+         name="numPinsSupported"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="The number of pins that this device supports"/>
+      <c:attribute
+         name="supportsInvalidPin"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="True if this driver will fire an event when an invalid pin is used"/>
+      <c:attribute
+         name="supportsBuzzIn" 
+         readwrite="r" 
+         type="boolean"
+         optional="false" 
+         description="Indicates whether or not the driver supports the BuzzIn method."/>
+		<c:attribute 
+         name="lockstatechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last lockstate change"/>
+   </c:attributes>
+
+   <c:methods>
+   
+      <c:method
+         name="AuthorizePerson"
+         description="Authorizes a person on this lock by adding the person's pin on the lock and returns the slot ID used">
+         
+         <c:parameter
+            name="personId"
+            type="uuid"
+            description="The ID of the person to add to the lock"
+            optional="false"/>
+         
+         <c:return
+            name="slotId"
+            type="string"
+            description="The slot ID that was assigned to the user"
+            optional="false"/>
+      </c:method>
+      
+      <c:method
+         name="DeauthorizePerson"
+         description="Remove the pin for the given user from the lock and sets the slot state to UNUSED">
+         
+         <c:parameter
+            name="personId"
+            type="uuid"
+            description="The ID of the person to remove from the lock"
+            optional="false"/>
+            
+      </c:method>
+      
+      <c:method 
+         name="BuzzIn"
+         description="Temporarily unlock the lock if locked.  Automatically relock in 30 seconds.">
+         <c:return
+            description="True or false, the lock was unlocked."
+            type="boolean"
+            name="unlocked"
+            optional="false"/>
+      </c:method>
+      
+      <c:method 
+         name="ClearAllPins"
+         description="Clear all the pins currently set in the lock.">
+         <c:return
+            description="True or false, the pins were removed from the lock."
+            type="boolean"
+            name="unlocked"
+            optional="false"/>
+      </c:method>
+      
+   </c:methods>
+   
+   <c:events>
+      <c:event
+         name="InvalidPin"
+         description="If the driver supports it this will be emitted when an invalid pin is entered"/>
+
+      <c:event
+         name="PinUsed"
+         description="Fired when a pin is used to lock or unlock the lock"/>
+         
+      <c:event
+         name="PinAddedAtLock"
+         description="Fired when a pin is added manually at the lock."/>
+         
+      <c:event
+         name="PinRemovedAtLock"
+         description="Fired when a pin is removed manually at the lock."/>
+         
+      <c:event
+         name="PinChangedAtLock"
+         description="Fired when a pin is changed manually at the lock."/>
+         
+      <c:event
+         name="PersonAuthorized"
+         description="Emitted when the driver receives a report that a person has been provisioned on the device">
+         
+         <c:parameter
+            name="personId"
+            description="The ID of the person that was authorized on the lock"
+            optional="false"
+            type="string"/>
+            
+         <c:parameter
+            name="slot"
+            description="The slot on the door lock the person's pin was set"
+            optional="true"
+            type="string"/>
+            
+      </c:event>
+      
+      <c:event
+         name="PersonDeauthorized"
+         description="Emitted when the driver receives a report that a person has been deprovisioned from the device">
+         
+         
+         <c:parameter
+            name="personId"
+            description="The ID of the person that was deauthorized from the lock"
+            optional="false"
+            type="string"/>
+            
+         <c:parameter
+            name="slot"
+            description="The slot on the door lock that person's pin was previously set"
+            optional="true"
+            type="string"/>
+         
+      </c:event>
+         
+      <c:event
+         name="PinOperationFailed"
+         description="Emitted when the driver receives report that a person's PIN operation failed on the device">
+         
+         <c:parameter
+            name="personId"
+            description="The ID of the person that was authorized on the lock"
+            optional="false"
+            type="string"/>
+            
+         <c:parameter
+            name="slot"
+            description="The slot on the door lock the person's pin was set"
+            optional="true"
+            type="string"/>
+            
+         <c:parameter
+            name="message"
+            description="A high level message describing the failure"
+            optional="true"
+            type="string"/>
+            
+      </c:event>
+      
+      <c:event
+         name="AllPinsCleared"
+         desription="Emitted when the driver receives confirmation from the device that the pins have been cleared"/>
+         
+      <c:event
+         name="ClearAllPinsFailed"
+         description="Emitted when the drivers receives a failure clearing the pins or fails to recieve confirmation"/>
+         
+   </c:events>
+</c:capability>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CamerasSubsystem"
+   namespace="subcameras"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Cameras Subsystem
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="cameras"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of cameras defined at this place"/>
+      <c:attribute
+         name="offlineCameras"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of offline cameras defined at this place"/>
+      <c:attribute
+         name="warnings"
+         type="map&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="A set of warnings about devices.  The key is the address of the device with a warning and the value is an I18N code with the description of the problem."/>
+      <c:attribute
+         name="recordingEnabled"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Whether or not recording is enabled based on the service level"/>
+      <c:attribute
+         name="maxSimultaneousStreams"
+         type="int"
+         min="1"
+         max="6"
+         readwrite="rw"
+         optional="false"
+         description="An estimate of how many simultaneous streams can be supported.  NOTE: While this is currently r/w for testing purposes, it will likely be made read-only in the future and should not be directly exposed as a writable attribute to the end-user."/>
+   </c:attributes>
+   
+   <c:methods>
+   </c:methods>
+
+</c:capability>

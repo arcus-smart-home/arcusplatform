@@ -1,0 +1,23 @@
+<t:type
+   name="CardPreference"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents preferences about a single service card on the Dashboard</t:description>
+
+   <t:attributes>
+
+      <t:attribute
+         name="serviceName"
+         type="enum"
+         values="FAVORITES, HISTORY, LIGHTS_N_SWITCHES, ALARMS, CLIMATE, DOORS_N_LOCKS, CAMERAS, CARE, HOME_N_FAMILY, LAWN_N_GARDEN, WATER, SANTA_TRACKER"
+         description="name of the service card"/>
+
+      <t:attribute
+         name="hideCard"
+         type="boolean"
+         description="When specified and true, the card with the given serviceName should be hidden"/>
+
+   </t:attributes>
+
+</t:type>

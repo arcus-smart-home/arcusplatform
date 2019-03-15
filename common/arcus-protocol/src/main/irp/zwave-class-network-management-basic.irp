@@ -1,0 +1,59 @@
+
+message zwave.NetworkManagementBasic.LearnModeSetV1<id="0x01", group="V1"> {
+    const u8 MODE_LEARN_MODE_SET_CLASSIC = 0x01;
+    const u8 MODE_LEARN_MODE_SET_NWI = 0x02;
+    const u8 MODE_LEARN_MODE_SET_DISABLE = 0x00;
+    u8 seqNo;
+    u8 reserved;
+    u8 mode;
+}
+
+message zwave.NetworkManagementBasic.LearnModeSetStatusV1<id="0x02", group="V1"> {
+    const u8 STATUS_LEARN_MODE_DONE = 0x06;
+    const u8 STATUS_LEARN_MODE_FAILED_TIMEOUT = 0x01;
+    const u8 STATUS_LEARN_MODE_FAILED = 0x07;
+    const u8 STATUS_LEARN_MODE_SECURITY_FAILED = 0x09;
+    u8 seqNo;
+    u8 status;
+    u8 reserved;
+    u8 newNodeId;
+}
+
+message zwave.NetworkManagementBasic.NodeInformationSendV1<id="0x05", group="V1"> {
+    const u8 TX_OPTIONS_ACK = 0x01;
+    const u8 TX_OPTIONS_LOW_POWER = 0x02;
+    const u8 TX_OPTIONS_AUTO_ROUTE = 0x04;
+    const u8 TX_OPTIONS_NO_ROUTE = 0x10;
+    const u8 TX_OPTIONS_EXPLORE = 0x20;
+    const u8 TX_OPTIONS_NO_RETRANSMISSION = 0x40;
+    const u8 TX_OPTIONS_HIGH_POWER = 0x80;
+    u8 seqNo;
+    u8 reserved;
+    u8 destinationNodeId;
+    u8 txOptions;
+}
+
+message zwave.NetworkManagementBasic.NetworkUpdateRequestV1<id="0x03", group="V1"> {
+    u8 seqNo;
+}
+
+message zwave.NetworkManagementBasic.NetworkUpdateRequestStatusV1<id="0x04", group="V1"> {
+    const u8 STATUS_SUC_UPDATE_DONE = 0x00;
+    const u8 STATUS_SUC_UPDATE_ABORT = 0x01;
+    const u8 STATUS_SUC_UPDATE_WAIT = 0x02;
+    const u8 STATUS_SUC_UPDATE_DISABLED = 0x03;
+    const u8 STATUS_SUC_UPDATE_OVERFLOW = 0x04;
+    u8 seqNo;
+    u8 status;
+}
+
+message zwave.NetworkManagementBasic.DefaultSetV1<id="0x06", group="V1"> {
+    u8 seqNo;
+}
+
+message zwave.NetworkManagementBasic.DefaultSetCompleteV1<id="0x07", group="V1"> {
+    const u8 STATUS_DEFAULT_SET_DONE = 0x06;
+    const u8 STATUS_DEFAULT_SET_BUSY = 0x07;
+    u8 seqNo;
+    u8 status;
+}

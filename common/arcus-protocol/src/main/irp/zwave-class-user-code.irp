@@ -1,0 +1,29 @@
+
+message zwave.UserCode.UserCodeGetV1<id="0x02", group="V1"> {
+    u8 userIdentifier;
+}
+
+message zwave.UserCode.UserCodeReportV1<id="0x03", group="V1"> {
+    const u8 USER_ID_STATUS_AVAILABLE_NOT_SET_ = 0x00;
+    const u8 USER_ID_STATUS_OCCUPIED = 0x01;
+    const u8 USER_ID_STATUS_STATUS_NOT_AVAILABLE = 0xFE;
+    u8 userIdentifier;
+    u8 userIdStatus;
+    u8[10] userCode;
+}
+
+message zwave.UserCode.UserCodeSetV1<id="0x01", group="V1"> {
+    const u8 USER_ID_STATUS_AVAILABLE_NOT_SET_ = 0x00;
+    const u8 USER_ID_STATUS_OCCUPIED = 0x01;
+    const u8 USER_ID_STATUS_STATUS_NOT_AVAILABLE = 0xFE;
+    u8 userIdentifier;
+    u8 userIdStatus;
+    u8[10] userCode;
+}
+
+message zwave.UserCode.UsersNumberGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.UserCode.UsersNumberReportV1<id="0x05", group="V1"> {
+    u8 supportedUsers;
+}

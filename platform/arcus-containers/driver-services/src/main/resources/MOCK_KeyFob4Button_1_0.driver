@@ -1,0 +1,183 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Key Fob with 4 buttons
+ * 
+ * Notes: When button state is set to PRESSED, it will automatically be reset to RELEASED 1 second later.
+ * 
+ */
+driver			"MOCK_KeyFob4Button"
+description		"Driver for a Key Fob with a square, circle, x and o buttons"
+version			"1.0"
+protocol		"MOCK"
+deviceTypeHint	"Keyfob"
+productId		"4fccbb"
+vendor 			"Mockitron"
+model 			"KeyFob4Button"
+
+matcher         'MOCK:Capability' : 'KeyFob4Button'
+matcher         'MOCK:ProductId'  : '4fccbb'
+
+capabilities	DevicePower, Presence, DeviceMock
+
+importCapability 'generic/PresenceDeviceConnection'
+
+
+instance	'square', Button
+instance	'circle', Button
+instance	'diamond', Button
+instance	'hexagon', Button
+
+
+def final long RELEASE_DELAY_MSEC = 1000		// simulate button RELEASED 1 second after PRESSED
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock KeyFob1Button device started."
+	Device.name 'Mock 4 Button Key Fob'
+
+	DeviceConnection.signal	49
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 60
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Button.state.square           Button.STATE_RELEASED
+	Button.statechanged.square    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Button.state.circle           Button.STATE_RELEASED
+	Button.statechanged.circle    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Button.state.diamond          Button.STATE_RELEASED
+	Button.statechanged.diamond   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Button.state.hexagon          Button.STATE_RELEASED
+	Button.statechanged.hexagon   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Presence.presence                   Presence.PRESENCE_PRESENT
+	presence.presencechanged            ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Presence.usehint                    Presence.USEHINT_UNKNOWN
+   Presence.person                     'UNSET'
+}
+
+onRemoved {
+	log.debug "Mock KeyFob4Button device removed."
+}
+
+
+// ########### capability support ##################
+//Release button square
+onEvent( "ReleaseButtonS" ) {
+	releaseButton(Button.state.square)
+	Button.statechanged.square new Date()
+}
+//Release button circle
+onEvent( "ReleaseButtonC" ) {
+	releaseButton(Button.state.circle)
+	Button.statechanged.circle new Date()
+}
+
+onEvent( "ReleaseButtonX" ) {
+	releaseButton(Button.state.diamond)
+	Button.statechanged.diamond new Date()
+}
+
+onEvent( "ReleaseButtonO" ) {
+	releaseButton(Button.state.hexagon)
+	Button.statechanged.hexagon new Date()
+}
+
+void releaseButton(Object curButton) {
+	log.debug "Button Release for button " + curButton.key
+	curButton  Button.STATE_RELEASED
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+setAttributes('but') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'but'"
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Button.state.square:
+				pressButton(Button.state.square, attribute.value, 'ReleaseButtonS', RELEASE_DELAY_MSEC)
+				break;
+			case Button.state.circle:
+				pressButton(Button.state.circle, attribute.value, 'ReleaseButtonC', RELEASE_DELAY_MSEC)
+				break;
+			case Button.state.diamond:
+				pressButton(Button.state.diamond, attribute.value, 'ReleaseButtonX', RELEASE_DELAY_MSEC)
+				break;
+			case Button.state.hexagon:
+				pressButton(Button.state.hexagon, attribute.value, 'ReleaseButtonO', RELEASE_DELAY_MSEC)
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute: " + attribute
+      }
+   }
+}
+
+void pressButton(Object curButton, Object curButtonState, String eventName, long delay) {
+	// if value is PRESSED, do a delayed setting of the value to RELEASED
+	if (Button.STATE_PRESSED == curButtonState) {
+		log.debug "Button Pressed for button "+curButton.key
+		curButton Button.STATE_PRESSED
+		Scheduler.scheduleIn eventName, delay
+	}
+	else if(Button.STATE_RELEASED == curButtonState) {
+		log.debug "Button Released for button "+curButton.key
+		curButton Button.STATE_RELEASED
+	} 
+}
+
+

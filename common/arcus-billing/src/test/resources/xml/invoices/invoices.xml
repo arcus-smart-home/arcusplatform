@@ -1,0 +1,3695 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<invoices type="array">
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/15099">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3296436477505f6a8cb3614938b0fb24</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">15099</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-11-21T00:36:04Z</created_at>
+    <closed_at type="datetime">2015-11-21T00:36:04Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/329643643a91fbbc5ceb394802bf634c" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/15099"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>329643643a91fbbc5ceb394802bf634c</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-21T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-21T00:36:04Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/329643646421fed4f0f0fa4f19b6ab48" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/15099"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>329643646421fed4f0f0fa4f19b6ab48</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-21T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-21T00:36:04Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/32964365fdd8935b46da904ab3b5fc6c" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/15099"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>32964365fdd8935b46da904ab3b5fc6c</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8444366</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-11-21T00:36:04Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/32964365fdd8935b46da904ab3b5fc6c" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/15099/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/14313">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3272374e23888cfbc56d9849a38dbe9f</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">14313</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-11-14T00:36:31Z</created_at>
+    <closed_at type="datetime">2015-11-14T00:36:32Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3272374e0a4dade55576014cc88c41a4" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/14313"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3272374e0a4dade55576014cc88c41a4</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-14T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-21T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-14T00:36:32Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3272374e1ad74889c93a0c41d29541df" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/14313"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3272374e1ad74889c93a0c41d29541df</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-14T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-21T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-14T00:36:32Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3272374f94a2e0ad9f24f5440b9f90cc" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/14313"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3272374f94a2e0ad9f24f5440b9f90cc</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>1471148</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-11-14T00:36:32Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3272374f94a2e0ad9f24f5440b9f90cc" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/14313/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/13532">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>324e2a6fabcb0e78db44de47e7a82f64</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">13532</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-11-07T00:36:08Z</created_at>
+    <closed_at type="datetime">2015-11-07T00:36:09Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/324e2a6f8ed445328d201c49d5ab3350" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/13532"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>324e2a6f8ed445328d201c49d5ab3350</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-07T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-14T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-07T00:36:08Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/324e2a6fa18221401904f146eca3b9b5" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/13532"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>324e2a6fa18221401904f146eca3b9b5</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-07T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-14T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-07T00:36:08Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/324e2a7135a130de9dc6864561a32e9f" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/13532"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>324e2a7135a130de9dc6864561a32e9f</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8091521</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-11-07T00:36:09Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/324e2a7135a130de9dc6864561a32e9f" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/13532/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12771">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>32346aeebe17e20a0dd8134d078aad93</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">12771</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-11-02T00:36:28Z</created_at>
+    <closed_at type="datetime">2015-11-02T00:36:29Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/32346aedbdb5bb27f688184f579638b4" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12771"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>32346aedbdb5bb27f688184f579638b4</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-02T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-07T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-02T00:36:29Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/32346aee72c48e6ff688104289b31a30" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12771"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>32346aee72c48e6ff688104289b31a30</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-11-02T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-07T00:35:58Z</end_date>
+        <created_at type="datetime">2015-11-02T00:36:29Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/32346af4dceae345f4f568427bbdf574" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12771"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>32346af4dceae345f4f568427bbdf574</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>6576419</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-11-02T00:36:29Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/32346af4dceae345f4f568427bbdf574" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/12771/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12042">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>321aaac879a11878c7f43d4a19bb0ad9</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">12042</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-28T00:36:05Z</created_at>
+    <closed_at type="datetime">2015-10-28T00:36:05Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/321aaac5fd85ef1c650be24314b809e9" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12042"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>321aaac5fd85ef1c650be24314b809e9</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-28T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-02T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-28T00:36:05Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/321aaac83c87ad7c6e63104f75948e09" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12042"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>321aaac83c87ad7c6e63104f75948e09</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-28T00:35:58Z</start_date>
+        <end_date type="datetime">2015-11-02T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-28T00:36:05Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/321aaaca5e3f0183e8bbce4c01969a9d" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/12042"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>321aaaca5e3f0183e8bbce4c01969a9d</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>6264365</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-28T00:36:05Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/321aaaca5e3f0183e8bbce4c01969a9d" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/12042/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/11324">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3200eb2bb552070f630bd14c71ab513d</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">11324</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-23T00:36:17Z</created_at>
+    <closed_at type="datetime">2015-10-23T00:36:17Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3200eb2b97b615ed7f1fcf415a90c553" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/11324"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3200eb2b97b615ed7f1fcf415a90c553</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-23T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-23T00:36:17Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3200eb2bad6d42ee4a16b645d791b163" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/11324"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3200eb2bad6d42ee4a16b645d791b163</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-23T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-23T00:36:17Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3200eb2d1ccee709269f554dd6839627" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/11324"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3200eb2d1ccee709269f554dd6839627</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>2456437</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-23T00:36:17Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3200eb2d1ccee709269f554dd6839627" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/11324/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/10646">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31e72b84956b46dc805171459594eb8e</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">10646</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-18T00:36:26Z</created_at>
+    <closed_at type="datetime">2015-10-18T00:36:26Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31e72b846479848a0eb10044288fc627" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/10646"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31e72b846479848a0eb10044288fc627</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-18T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-23T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-18T00:36:26Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31e72b847fd5f69f8e77c0457d817e85" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/10646"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31e72b847fd5f69f8e77c0457d817e85</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-18T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-23T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-18T00:36:26Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31e72b85a43032817192e74766962ecc" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/10646"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31e72b85a43032817192e74766962ecc</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>2845931</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-18T00:36:26Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31e72b85a43032817192e74766962ecc" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/10646/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9976">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31cd6b60512a70bcca84a346549136cc</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">9976</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-13T00:36:03Z</created_at>
+    <closed_at type="datetime">2015-10-13T00:36:04Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31cd6b6042173fa184e7884a08ac2517" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9976"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31cd6b6042173fa184e7884a08ac2517</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-13T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-18T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-13T00:36:03Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31cd6b604b0a0253f833b4450c959f04" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9976"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31cd6b604b0a0253f833b4450c959f04</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-13T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-18T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-13T00:36:03Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31cd6b6125efd01f8154dc4f40926d9b" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9976"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31cd6b6125efd01f8154dc4f40926d9b</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>9511027</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-13T00:36:04Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31cd6b6125efd01f8154dc4f40926d9b" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/9976/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9317">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31b3abc01385d8314ed8db4597b4ed03</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">9317</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-08T00:36:15Z</created_at>
+    <closed_at type="datetime">2015-10-08T00:36:16Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31b3abbffeff4a5952a8b549168550e7" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9317"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31b3abbffeff4a5952a8b549168550e7</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-08T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-13T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-08T00:36:15Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31b3abc00b52160a8ee4784330b12907" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9317"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31b3abc00b52160a8ee4784330b12907</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-08T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-13T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-08T00:36:15Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31b3abc34156fc7ad7c97a4862a93df5" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/9317"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31b3abc34156fc7ad7c97a4862a93df5</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>1175039</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-08T00:36:15Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31b3abc34156fc7ad7c97a4862a93df5" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/9317/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8664">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3199ebdb66cfdea53e9dc14d5a8d401c</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">8664</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-10-03T00:36:08Z</created_at>
+    <closed_at type="datetime">2015-10-03T00:36:09Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3199ebda9a5abfa706501e4034abbf26" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8664"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3199ebda9a5abfa706501e4034abbf26</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-03T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-08T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-03T00:36:08Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3199ebdb2410b41c22cd0c421086bcc1" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8664"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3199ebdb2410b41c22cd0c421086bcc1</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-10-03T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-08T00:35:58Z</end_date>
+        <created_at type="datetime">2015-10-03T00:36:08Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3199ebdecace57f59a225e4aa7be8b84" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8664"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3199ebdecace57f59a225e4aa7be8b84</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>415136</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-10-03T00:36:09Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3199ebdecace57f59a225e4aa7be8b84" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/8664/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8022">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31802ce1842b620360cd204b38916c18</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">8022</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-28T00:37:02Z</created_at>
+    <closed_at type="datetime">2015-09-28T00:37:03Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31802ce16612df335ddb9948b79a4df8" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8022"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31802ce16612df335ddb9948b79a4df8</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-28T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-03T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-28T00:37:02Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31802ce176b68503f8926a4014b0cbe9" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8022"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31802ce176b68503f8926a4014b0cbe9</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-28T00:35:58Z</start_date>
+        <end_date type="datetime">2015-10-03T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-28T00:37:02Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31802ce2f5a4a56a3c96224511a23af2" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/8022"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31802ce2f5a4a56a3c96224511a23af2</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>2301632</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-28T00:37:02Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31802ce2f5a4a56a3c96224511a23af2" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/8022/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/7427">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31666c5f34ca358533d61e48d59ae21b</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">7427</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-23T00:36:15Z</created_at>
+    <closed_at type="datetime">2015-09-23T00:36:16Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31666c5f22804355336be246fca2466e" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/7427"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31666c5f22804355336be246fca2466e</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-23T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-23T00:36:15Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31666c5f2c498441e8900848cf921b59" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/7427"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31666c5f2c498441e8900848cf921b59</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-23T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-28T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-23T00:36:15Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31666c60a94c45a36c38ba401a95b5f5" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/7427"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31666c60a94c45a36c38ba401a95b5f5</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>7698545</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-23T00:36:16Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31666c60a94c45a36c38ba401a95b5f5" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/7427/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6853">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>314cac9b3edd54425d6f604e42a20235</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">6853</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-18T00:36:18Z</created_at>
+    <closed_at type="datetime">2015-09-18T00:36:20Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/314cac99d5841ad4816b5c45ef847bad" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6853"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>314cac99d5841ad4816b5c45ef847bad</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-18T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-23T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-18T00:36:18Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/314cac9adcf1cd1f42d88749bea7ea87" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6853"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>314cac9adcf1cd1f42d88749bea7ea87</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-18T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-23T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-18T00:36:18Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/314caca2538512acb26ff84eda9df70e" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6853"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>314caca2538512acb26ff84eda9df70e</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8999421</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-18T00:36:19Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/314caca2538512acb26ff84eda9df70e" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/6853/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6228">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3132ec86474904674cba6949bdb93ada</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">6228</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-13T00:35:59Z</created_at>
+    <closed_at type="datetime">2015-09-13T00:35:59Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3132ec8629f0788e0b279b42569bee4d" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6228"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3132ec8629f0788e0b279b42569bee4d</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-13T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-18T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-13T00:35:59Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3132ec863927601d71efed4914b27a4b" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6228"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3132ec863927601d71efed4914b27a4b</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-13T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-18T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-13T00:35:59Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3132ec87b9c94e2cd732644f8dabd02b" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/6228"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3132ec87b9c94e2cd732644f8dabd02b</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>6041420</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-13T00:35:59Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3132ec87b9c94e2cd732644f8dabd02b" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/6228/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5650">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>31192cfe4bdde109ea34954295bbb23c</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">5650</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-08T00:36:16Z</created_at>
+    <closed_at type="datetime">2015-09-08T00:36:17Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31192cfe33d2972516768945efab30dc" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5650"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31192cfe33d2972516768945efab30dc</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-08T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-13T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-08T00:36:16Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/31192cfe42f9809d878cfb4693a5e608" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5650"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31192cfe42f9809d878cfb4693a5e608</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-08T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-13T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-08T00:36:16Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/31192cffd3fd005006801942f0a5870e" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5650"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>31192cffd3fd005006801942f0a5870e</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>7829320</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-08T00:36:16Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/31192cffd3fd005006801942f0a5870e" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/5650/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5076">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30ff6d6df277595c78dea4488ba4eb6b</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">5076</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-09-03T00:36:31Z</created_at>
+    <closed_at type="datetime">2015-09-03T00:36:32Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30ff6d6dcae48d1531cec949ce8e4ffc" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5076"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30ff6d6dcae48d1531cec949ce8e4ffc</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-03T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-08T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-03T00:36:31Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30ff6d6de1a1076d2f3efa417ba9013b" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5076"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30ff6d6de1a1076d2f3efa417ba9013b</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-09-03T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-08T00:35:58Z</end_date>
+        <created_at type="datetime">2015-09-03T00:36:31Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30ff6d6ec93acd37e0e8764615b53024" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/5076"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30ff6d6ec93acd37e0e8764615b53024</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>4616291</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-09-03T00:36:32Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30ff6d6ec93acd37e0e8764615b53024" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/5076/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4553">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30e5ad232f36a056faa49946c0b57ffe</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">4553</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-29T00:35:59Z</created_at>
+    <closed_at type="datetime">2015-08-29T00:35:59Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30e5ad23166c52d017b3814b9a8ad7de" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4553"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30e5ad23166c52d017b3814b9a8ad7de</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-29T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-03T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-29T00:35:59Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30e5ad232847f7c75f604e451c981d4f" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4553"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30e5ad232847f7c75f604e451c981d4f</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-29T00:35:58Z</start_date>
+        <end_date type="datetime">2015-09-03T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-29T00:35:59Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30e5ad247cfd85f76de08743e6b775cf" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4553"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30e5ad247cfd85f76de08743e6b775cf</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>4894573</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-29T00:35:59Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30e5ad247cfd85f76de08743e6b775cf" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/4553/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4069">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30cbed77dc732a9aace1644a65b2bdce</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">4069</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-24T00:36:07Z</created_at>
+    <closed_at type="datetime">2015-08-24T00:36:08Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30cbed77b0cb46ae2d2ab14f4bb35cb2" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4069"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30cbed77b0cb46ae2d2ab14f4bb35cb2</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-24T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-29T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-24T00:36:07Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30cbed77c78de6ba8dba6b4601a17f84" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4069"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30cbed77c78de6ba8dba6b4601a17f84</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-24T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-29T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-24T00:36:07Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30cbed79ab32007aa28b834cb382e427" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/4069"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30cbed79ab32007aa28b834cb382e427</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8960155</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-24T00:36:08Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30cbed79ab32007aa28b834cb382e427" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/4069/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3614">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30b22df4b3222c037901ed406485ab2d</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">3614</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-19T00:36:26Z</created_at>
+    <closed_at type="datetime">2015-08-19T00:36:27Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30b22df4a23de183c87c3c46b5b2e94f" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3614"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30b22df4a23de183c87c3c46b5b2e94f</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-19T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-24T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-19T00:36:26Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30b22df4ad538db9e9a25d4b5da15404" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3614"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30b22df4ad538db9e9a25d4b5da15404</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-19T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-24T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-19T00:36:26Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30b22df6255a446e1e7d8940899c83b4" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3614"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30b22df6255a446e1e7d8940899c83b4</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>9347803</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-19T00:36:26Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30b22df6255a446e1e7d8940899c83b4" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/3614/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3181">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30986dd1c2a2c023dc220f4c5082f6e9</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">3181</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-14T00:36:04Z</created_at>
+    <closed_at type="datetime">2015-08-14T00:36:05Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30986dd146f133f70a5c4a414b86f2ef" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3181"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30986dd146f133f70a5c4a414b86f2ef</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-14T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-19T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-14T00:36:04Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30986dd19da0602c37dd7f46bfbc1f32" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3181"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30986dd19da0602c37dd7f46bfbc1f32</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-14T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-19T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-14T00:36:04Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30986dd54d1ba11a03e01942468df779" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/3181"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30986dd54d1ba11a03e01942468df779</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>2349429</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-14T00:36:05Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30986dd54d1ba11a03e01942468df779" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/3181/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2767">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>307eae37080d0a74fd6bf84486afa337</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">2767</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-09T00:36:16Z</created_at>
+    <closed_at type="datetime">2015-08-09T00:36:17Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/307eae36afd683041aa8c14d9d9c7bd8" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2767"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>307eae36afd683041aa8c14d9d9c7bd8</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-09T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-14T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-09T00:36:16Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/307eae36cf680faccd261f42ac9d5b3b" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2767"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>307eae36cf680faccd261f42ac9d5b3b</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-09T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-14T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-09T00:36:16Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/307eae3963fed48f33478f4ff4a9526b" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2767"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>307eae3963fed48f33478f4ff4a9526b</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>6870795</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-09T00:36:17Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/307eae3963fed48f33478f4ff4a9526b" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/2767/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2428">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3064ee29c3d02ad3c4fbe94c49a7e7ff</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">2428</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-08-04T00:36:00Z</created_at>
+    <closed_at type="datetime">2015-08-04T00:36:00Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3064ee298a036dd16913304553a629bd" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2428"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3064ee298a036dd16913304553a629bd</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-04T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-09T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-04T00:36:00Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3064ee29b5ab0539aae1034012beee3a" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2428"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3064ee29b5ab0539aae1034012beee3a</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-08-04T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-09T00:35:58Z</end_date>
+        <created_at type="datetime">2015-08-04T00:36:00Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3064ee2aee7599703de0ba45e2a147e3" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2428"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3064ee2aee7599703de0ba45e2a147e3</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>2356652</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-08-04T00:36:00Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3064ee2aee7599703de0ba45e2a147e3" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/2428/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2111">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>304b2efc3bea0b6a696b874929af6935</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">2111</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-07-30T00:36:40Z</created_at>
+    <closed_at type="datetime">2015-07-30T00:36:41Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/304b2efc25c3a18860651b4b6fa08277" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2111"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>304b2efc25c3a18860651b4b6fa08277</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-30T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-04T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-30T00:36:40Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/304b2efc31b1dbebe9d4e543eb909e0c" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2111"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>304b2efc31b1dbebe9d4e543eb909e0c</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-30T00:35:58Z</start_date>
+        <end_date type="datetime">2015-08-04T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-30T00:36:40Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/304b2efed3a57898349e0649ffbe49b4" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/2111"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>304b2efed3a57898349e0649ffbe49b4</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>5793898</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-07-30T00:36:41Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/304b2efed3a57898349e0649ffbe49b4" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/2111/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1866">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>30316ee1e4ada9fc08c3dd44f38e6e91</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">1866</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-07-25T00:36:20Z</created_at>
+    <closed_at type="datetime">2015-07-25T00:36:21Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30316ee1b22acea91d1c0a4a1c952ad9" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1866"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30316ee1b22acea91d1c0a4a1c952ad9</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-25T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-30T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-25T00:36:20Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/30316ee1ddf6a64582e3db42a9b34e7b" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1866"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30316ee1ddf6a64582e3db42a9b34e7b</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-25T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-30T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-25T00:36:20Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/30316ee3f36820236939a44e6798f675" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1866"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>30316ee3f36820236939a44e6798f675</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8571134</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-07-25T00:36:21Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/30316ee3f36820236939a44e6798f675" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/1866/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1600">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>3017aeed2baaa6c451e1cd40da9049a5</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">1600</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-07-20T00:36:10Z</created_at>
+    <closed_at type="datetime">2015-07-20T00:36:11Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3017aeed06ebc793f794fe4730b1cc33" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1600"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3017aeed06ebc793f794fe4730b1cc33</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-20T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-25T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-20T00:36:10Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/3017aeed2265b0a117efc54f27b59318" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1600"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3017aeed2265b0a117efc54f27b59318</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-20T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-25T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-20T00:36:10Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/3017aef0492c2c966ae4774298babb47" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1600"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>3017aef0492c2c966ae4774298babb47</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8338497</reference>
+        <source>subscription</source>
+        <recurring type="boolean">true</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-07-20T00:36:10Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/3017aef0492c2c966ae4774298babb47" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/1600/refund" method="post"/>
+  </invoice>
+  <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1466">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+    <address>
+      <address1>123 Fake St.</address1>
+      <address2></address2>
+      <city>Overland Park</city>
+      <state>KS</state>
+      <zip>66210</zip>
+      <country>US</country>
+      <phone></phone>
+    </address>
+    <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+    <uuid>2ffdeef473572889fc60a546749c4eec</uuid>
+    <state>collected</state>
+    <invoice_number_prefix></invoice_number_prefix>
+    <invoice_number type="integer">1466</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number></vat_number>
+    <subtotal_in_cents type="integer">1498</subtotal_in_cents>
+    <tax_in_cents type="integer">127</tax_in_cents>
+    <total_in_cents type="integer">1625</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2015-07-15T00:35:58Z</created_at>
+    <closed_at type="datetime">2015-07-15T00:35:58Z</closed_at>
+    <terms_and_conditions>1. Introduction 
+
+2. Other Things
+
+3. Other Other Things</terms_and_conditions>
+    <customer_notes>Thanks for being an Arcus Customer.</customer_notes>
+    <tax_type>usst</tax_type>
+    <tax_region>KS</tax_region>
+    <tax_rate type="float">0.085</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <line_items type="array">
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/2ffdeef46d6ce784d67dbf47f5825f44" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1466"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>2ffdeef46d6ce784d67dbf47f5825f44</uuid>
+        <state>invoiced</state>
+        <description>Premium</description>
+        <accounting_code>0012345</accounting_code>
+        <product_code>premium</product_code>
+        <origin>plan</origin>
+        <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">85</tax_in_cents>
+        <total_in_cents type="integer">1084</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-15T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-20T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-15T00:35:58Z</created_at>
+      </adjustment>
+      <adjustment href="https://fakesubdomain.recurly.com/v2/adjustments/2ffdeef46f976e8f1d6d2a4a3698039d" type="charge">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1466"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>2ffdeef46f976e8f1d6d2a4a3698039d</uuid>
+        <state>invoiced</state>
+        <description>1 Care Add On</description>
+        <accounting_code></accounting_code>
+        <product_code>care</product_code>
+        <origin>add_on</origin>
+        <unit_amount_in_cents type="integer">499</unit_amount_in_cents>
+        <quantity type="integer">1</quantity>
+        <discount_in_cents type="integer">0</discount_in_cents>
+        <tax_in_cents type="integer">42</tax_in_cents>
+        <total_in_cents type="integer">541</total_in_cents>
+        <currency>USD</currency>
+        <taxable type="boolean">false</taxable>
+        <tax_type>usst</tax_type>
+        <tax_region>KS</tax_region>
+        <tax_rate type="float">0.085</tax_rate>
+        <tax_exempt type="boolean">false</tax_exempt>
+        <start_date type="datetime">2015-07-15T00:35:58Z</start_date>
+        <end_date type="datetime">2015-07-20T00:35:58Z</end_date>
+        <created_at type="datetime">2015-07-15T00:35:58Z</created_at>
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+      <transaction href="https://fakesubdomain.recurly.com/v2/transactions/2ffdeef4b0f83ac4a7d8f44c3899c361" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/a3af48ee-a9ee-4950-b209-ec5573cfd951"/>
+        <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1466"/>
+        <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/2ffdeef414371e6ad634394d45a6ea04"/>
+        <uuid>2ffdeef4b0f83ac4a7d8f44c3899c361</uuid>
+        <action>purchase</action>
+        <amount_in_cents type="integer">1625</amount_in_cents>
+        <tax_in_cents type="integer">127</tax_in_cents>
+        <currency>USD</currency>
+        <status>success</status>
+        <payment_method>credit_card</payment_method>
+        <reference>4423859</reference>
+        <source>subscription</source>
+        <recurring type="boolean">false</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">true</refundable>
+        <ip_address nil="nil"></ip_address>
+        <cvv_result code="" nil="nil"></cvv_result>
+        <avs_result code="D">Street address and postal code match.</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-07-15T00:35:58Z</created_at>
+        <details>
+          <account>
+            <account_code>a3af48ee-a9ee-4950-b209-ec5573cfd951</account_code>
+            <first_name></first_name>
+            <last_name></last_name>
+            <company></company>
+            <email>William.E.Larson@fakeemail.com</email>
+            <billing_info type="credit_card">
+              <first_name>John</first_name>
+              <last_name>Doe</last_name>
+              <address1>123 Fake St.</address1>
+              <address2></address2>
+              <city>Overland Park</city>
+              <state>KS</state>
+              <zip>66210</zip>
+              <country>US</country>
+              <phone></phone>
+              <vat_number></vat_number>
+              <card_type>Visa</card_type>
+              <year type="integer">2018</year>
+              <month type="integer">7</month>
+              <first_six>411111</first_six>
+              <last_four>1111</last_four>
+            </billing_info>
+          </account>
+        </details>
+        <a name="refund" href="https://fakesubdomain.recurly.com/v2/transactions/2ffdeef4b0f83ac4a7d8f44c3899c361" method="delete"/>
+      </transaction>
+    </transactions>
+    <a name="refund" href="https://fakesubdomain.recurly.com/v2/invoices/1466/refund" method="post"/>
+  </invoice>
+</invoices>

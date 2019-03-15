@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Subsystem"
+   namespace="subs"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Base attributes and methods for subsystems
+   </c:description>
+   
+   <c:attributes>
+   
+       <c:attribute
+         name="name"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="A display name for the subsystem, generally not shown to end-users" />
+         
+       <c:attribute
+         name="version"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The published version of the subsystem" />
+      
+      <c:attribute
+         name="hash"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="A hash of the subsystem may be used to ensure the exact version that is being run" />
+      
+      <c:attribute
+         name="account"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="The account associated with the this subsystem."/>
+
+      <c:attribute
+         name="place"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="The place the subsystem is associated with, there may be only one instance of each subsystem per place."/>
+      
+      <c:attribute
+         name="available"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="Indicates whether the subsystem is available on the current place or not. When this is false it generally means there need to be more devices added to the place."/>
+         
+      <c:attribute
+         name="state"
+         readwrite="r"
+         type="enum"
+         optional="true"
+         values="ACTIVE,SUSPENDED"
+         description="Indicates the current state of a subsystem.  A SUSPENDED subsystem will not collect any new data or enable associated rules, but may still allow previously collected data to be viewed."/>
+         
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+         name="Activate"
+         description="Puts the subsystem into an 'active' state, this only applies to previously suspended subsystems, see Place#AddSubsystem(subsystemType: String) for adding new subsystems to a place."
+         />
+     
+      <c:method
+         name="Suspend"
+         description="Puts the subsystem into a 'suspended' state."
+         />
+   
+      <c:method
+         name="Delete"
+         description="Removes the subsystem and all data from the associated place."
+         />
+
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this subsystem">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+             <c:parameter 
+                name="includeIncidents"
+                type="boolean"
+                description="Whether or not incidents should be included in history, defaults to false for backwards compatibility"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this subsystem" />
+      </c:method>
+      
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

@@ -1,0 +1,48 @@
+
+message zwave.WakeUp.WakeUpIntervalGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.WakeUp.WakeUpIntervalReportV1<id="0x06", group="V1"> {
+    u8[3] seconds;
+    u8 nodeid;
+}
+
+message zwave.WakeUp.WakeUpIntervalSetV1<id="0x04", group="V1"> {
+    u8[3] seconds;
+    u8 nodeid;
+}
+
+message zwave.WakeUp.WakeUpNoMoreInformationV1<id="0x08", group="V1"> {
+}
+
+message zwave.WakeUp.WakeUpNotificationV1<id="0x07", group="V1"> {
+}
+
+message zwave.WakeUp.WakeUpIntervalCapabilitiesGetV2<id="0x09", group="V2"> {
+}
+
+message zwave.WakeUp.WakeUpIntervalCapabilitiesReportV2<id="0x0A", group="V2"> {
+    u8[3] minimumWakeUpIntervalSeconds;
+    u8[3] maximumWakeUpIntervalSeconds;
+    u8[3] defaultWakeUpIntervalSeconds;
+    u8[3] wakeUpIntervalStepSeconds;
+}
+
+message zwave.WakeUp.WakeUpIntervalGetV2<id="0x05", group="V2"> {
+}
+
+message zwave.WakeUp.WakeUpIntervalReportV2<id="0x06", group="V2"> {
+    u8[3] seconds;
+    u8 nodeid;
+}
+
+message zwave.WakeUp.WakeUpIntervalSetV2<id="0x04", group="V2"> {
+    u8[3] seconds;
+    u8 nodeid;
+}
+
+message zwave.WakeUp.WakeUpNoMoreInformationV2<id="0x08", group="V2"> {
+}
+
+message zwave.WakeUp.WakeUpNotificationV2<id="0x07", group="V2"> {
+}

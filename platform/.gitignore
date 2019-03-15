@@ -1,0 +1,39 @@
+# OS and editor files
+RemoteSystemsTempFiles
+*.swp
+*.tmp
+.vimrc
+.lvimrc
+*~
+
+# Build dirs
+build
+**/build
+**/bin
+**/generated
+
+# Gradle files
+.gradle
+
+# Eclipse files
+.metadata
+.classpath
+.project
+.settings
+/bin/
+**/.DS_Store
+
+# Intellij files
+.idea/
+*.iml
+
+*.orig
+
+**/rebel.xml
+
+*.log
+
+*.csv
+
+*.psv
+

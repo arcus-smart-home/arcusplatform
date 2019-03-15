@@ -1,0 +1,19 @@
+
+message zwave.SceneControllerConf.SceneControllerConfGetV1<id="0x02", group="V1"> {
+    u8 groupId;
+}
+
+message zwave.SceneControllerConf.SceneControllerConfReportV1<id="0x03", group="V1"> {
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    u8 groupId;
+    u8 sceneId;
+    u8 dimmingDuration;
+}
+
+message zwave.SceneControllerConf.SceneControllerConfSetV1<id="0x01", group="V1"> {
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    const u8 DIMMING_DURATION_FACTORY_DEFAULT = 0xFF;
+    u8 groupId;
+    u8 sceneId;
+    u8 dimmingDuration;
+}

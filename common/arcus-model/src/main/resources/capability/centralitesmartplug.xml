@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CentraLiteSmartPlug"
+   namespace="centralitesmartplug"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model for the Z-Wave side of the CentraLite.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="homeid"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description=""
+         />
+      <c:attribute
+         name="nodeid"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description=""
+         />
+   </c:attributes>
+
+   <c:methods>
+      <c:method name="SetLearnMode" description="Causes the Z-Wave side of the device to enter into learn mode for the specified duration.">
+      </c:method>
+      <c:method name="SendNif" description="Causes the Z-Wave side of the device to send a NIF frame.">
+      </c:method>
+      <c:method name="Reset" description="Causes the Z-Wave side of the device to reset.">
+      </c:method>
+      <c:method name="Pair" description="Attempt to pair the Z-Wave side of the device.">
+      </c:method>
+      <c:method name="Query" description="Attempt to determine the Z-Wave side node and home id.">
+      </c:method>
+   </c:methods>
+</c:capability>

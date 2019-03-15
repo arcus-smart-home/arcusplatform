@@ -1,0 +1,37 @@
+{{#section "subject"}}
+Your Iris Account Email Has Been Changed
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+The email address associated with your Iris account was
+recently changed from {{{oldemail}}}
+to {{{_person.email}}}. 
+
+From now on, please login using the new email address. 
+If you requested the change, please ignore this email. If
+you did not request any changes be made, then your account
+may have been compromised.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	The email address associated with your Iris account was recently changed from {{oldemail}} to {{_person.email}}. 
+	{{/partial}}
+	
+{{#partial "extra" }}
+<tr><td class="innerpadding borderbottom" style="border-bottom-width: 1px; border-bottom-color: #f2eeed; border-bottom-style: solid; padding: 30px;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr><td class="bodycopy" style="color: #153643; font-family: 'AvenirNextRegular', sans-serif; font-size: 16px; line-height: 22px;">
+From now on, please login using the new email address. If you requested the change, please ignore this email. If you did not request any changes be made, then your account may have been compromised.
+<p></p></td></tr></table></td></tr>
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

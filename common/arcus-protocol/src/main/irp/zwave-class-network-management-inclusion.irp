@@ -1,0 +1,137 @@
+
+message zwave.NetworkManagementInclusion.FailedNodeRemoveV1<id="0x07", group="V1"> {
+    u8 seqNo;
+    u8 nodeId;
+}
+
+message zwave.NetworkManagementInclusion.FailedNodeRemoveStatusV1<id="0x08", group="V1"> {
+    const u8 STATUS_DONE = 0x04;
+    const u8 STATUS_FAILED_NODE_NOT_FOUND = 0x03;
+    const u8 STATUS_FAILED_NODE_REMOVE_FAIL = 0x05;
+    u8 seqNo;
+    u8 status;
+    u8 nodeId;
+}
+
+message zwave.NetworkManagementInclusion.NodeAddV1<id="0x01", group="V1"> {
+    const u8 MODE_NODE_ADD_ANY = 0x01;
+    const u8 MODE_NODE_ADD_CONTROLLER = 0x02;
+    const u8 MODE_NODE_ADD_SLAVE = 0x03;
+    const u8 MODE_NODE_ADD_EXISTING = 0x04;
+    const u8 MODE_NODE_ADD_STOP = 0x05;
+    const u8 MODE_NODE_ADD_STOP_FAILED = 0x06;
+    const u8 TX_OPTIONS_ACK = 0x01;
+    const u8 TX_OPTIONS_LOW_POWER = 0x02;
+    const u8 TX_OPTIONS_AUTO_ROUTE = 0x04;
+    const u8 TX_OPTIONS_NO_ROUTE = 0x10;
+    const u8 TX_OPTIONS_EXPLORE = 0x20;
+    const u8 TX_OPTIONS_NO_RETRANSMISSION = 0x40;
+    const u8 TX_OPTIONS_HIGH_POWER = 0x80;
+    u8 seqNo;
+    u8 reserved;
+    u8 mode;
+    u8 txOptions;
+}
+
+message zwave.NetworkManagementInclusion.NodeAddStatusV1<id="0x02", group="V1"> {
+    const u8 STATUS_NODE_ADD_STATUS_DONE = 0x06;
+    const u8 STATUS_NODE_ADD_STATUS_FAILED = 0x07;
+    const u8 STATUS_NODE_ADD_STATUS_SECURITY_FAILED = 0x09;
+    const u8 PROPERTIES1_CAPABILITY_MASK = 0x7F;
+    const u8 PROPERTIES1_CAPABILITY_SHIFT = 0;
+    const u8 PROPERTIES1_LISTENING = 0x80;
+    const u8 PROPERTIES2_SECURITY_MASK = 0x7F;
+    const u8 PROPERTIES2_SECURITY_SHIFT = 0;
+    const u8 PROPERTIES2_OPT = 0x80;
+    u8 seqNo;
+    u8 status;
+    u8 reserved;
+    u8 newNodeId;
+    u8 nodeInfoLength;
+    u8 properties1;
+    u8 properties2;
+    u8 basicDeviceClass;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+    u8[] commandClass;
+}
+
+message zwave.NetworkManagementInclusion.NodeRemoveV1<id="0x03", group="V1"> {
+    const u8 MODE_NODE_REMOVE_ANY = 0x01;
+    const u8 MODE_NODE_REMOVE_CONTROLLER = 0x02;
+    const u8 MODE_NODE_REMOVE_SLAVE = 0x03;
+    const u8 MODE_NODE_REMOVE_STOP = 0x05;
+    u8 seqNo;
+    u8 reserved;
+    u8 mode;
+}
+
+message zwave.NetworkManagementInclusion.NodeRemoveStatusV1<id="0x04", group="V1"> {
+    const u8 STATUS_NODE_REMOVE_STATUS_DONE = 0x06;
+    const u8 STATUS_NODE_REMOVE_STATUS_FAILED = 0x07;
+    u8 seqNo;
+    u8 status;
+    u8 nodeid;
+}
+
+message zwave.NetworkManagementInclusion.FailedNodeReplaceV1<id="0x09", group="V1"> {
+    const u8 TX_OPTIONS_ACK = 0x01;
+    const u8 TX_OPTIONS_LOW_POWER = 0x02;
+    const u8 TX_OPTIONS_AUTO_ROUTE = 0x04;
+    const u8 TX_OPTIONS_NO_ROUTE = 0x10;
+    const u8 TX_OPTIONS_EXPLORE = 0x20;
+    const u8 TX_OPTIONS_NO_RETRANSMISSION = 0x40;
+    const u8 TX_OPTIONS_HIGH_POWER = 0x80;
+    u8 seqNo;
+    u8 nodeId;
+    u8 txOptions;
+    u8 mode;
+}
+
+message zwave.NetworkManagementInclusion.FailedNodeReplaceStatusV1<id="0x0A", group="V1"> {
+    const u8 STATUS_DONE = 0x04;
+    const u8 STATUS_FAILED_NODE_REPLACE_FAIL = 0x05;
+    const u8 STATUS_FAILED_NODE_REPLACE_SECURITY_FAILED = 0x09;
+    u8 seqNo;
+    u8 status;
+    u8 nodeId;
+}
+
+message zwave.NetworkManagementInclusion.NodeNeighborUpdateRequestV1<id="0x0B", group="V1"> {
+    u8 seqNo;
+    u8 nodeId;
+}
+
+message zwave.NetworkManagementInclusion.NodeNeighborUpdateStatusV1<id="0x0C", group="V1"> {
+    const u8 STATUS_NEIGHBOR_UPDATE_STATUS_DONE = 0x22;
+    const u8 STATUS_NEIGHBOR_UPDATE_STATUS_FAIL = 0x23;
+    u8 seqNo;
+    u8 status;
+}
+
+message zwave.NetworkManagementInclusion.ReturnRouteAssignV1<id="0x0D", group="V1"> {
+    u8 seqNo;
+    u8 sourceNodeId;
+    u8 destinationNodeId;
+}
+
+message zwave.NetworkManagementInclusion.ReturnRouteAssignCompleteV1<id="0x0E", group="V1"> {
+    const u8 STATUS_TRANSMIT_COMPLETE_OK = 0x00;
+    const u8 STATUS_TRANSMIT_COMPLETE_NO_ACK = 0x01;
+    const u8 STATUS_TRANSMIT_COMPLETE_FAIL = 0x02;
+    u8 seqNo;
+    u8 status;
+}
+
+message zwave.NetworkManagementInclusion.ReturnRouteDeleteV1<id="0x0F", group="V1"> {
+    u8 seqNo;
+    u8 nodeId;
+}
+
+message zwave.NetworkManagementInclusion.ReturnRouteDeleteCompleteV1<id="0x10", group="V1"> {
+    const u8 STATUS_TRANSMIT_COMPLETE_OK = 0x00;
+    const u8 STATUS_TRANSMIT_COMPLETE_NO_ACK = 0x01;
+    const u8 STATUS_TRANSMIT_COMPLETE_FAIL = 0x02;
+    u8 seqNo;
+    u8 status;
+}

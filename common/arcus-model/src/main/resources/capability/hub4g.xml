@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Hub4g"
+   namespace="hub4g"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="present"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="True if a 4G dongle is installed on the hub"/>
+
+      <c:attribute
+         name="simPresent"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="True if the installed 4G dongle has a sim card present"/>
+
+      <c:attribute
+         name="simProvisioned"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="True if the installed 4G sim card has been provisioned"/>
+
+      <c:attribute
+         name="simDisabled"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="True if the installed 4G sim card has been marked invalid"/>
+
+      <c:attribute
+         name="simDisabledDate"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="Date when 4G sim card was disabled, if any"/>
+
+      <c:attribute
+         name="connectionState"
+         readwrite="r"
+         type="enum"
+         values="CONNECTING,CONNECTED,DISCONNECTING,DISCONNECTED"
+         optional="false"
+         description="Current state of 4g connection"/>
+
+      <c:attribute
+         name="vendor"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="String description of the 4G dongle vendor"/>
+
+      <c:attribute
+         name="model"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="String description of the 4G dongle model"/>
+
+      <c:attribute
+         name="serialNumber"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="Serial number of 4G dongle"/>
+
+      <c:attribute
+         name="imei"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="IMEI of 4G dongle"/>
+
+      <c:attribute
+         name="imsi"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="IMSI of 4G dongle"/>
+
+      <c:attribute
+         name="iccid"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="ICCID of 4G dongle"/>
+
+      <c:attribute
+         name="phoneNumber"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="Phone number of 4G dongle"/>
+
+      <c:attribute
+         name="mode"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="Network connection mode"/>
+
+      <c:attribute
+         name="signalBars"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="Signal strength in bars"/>
+
+      <c:attribute
+         name="connectionStatus"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="Vendor specific connection status code"/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="GetInfo"
+         description="Get 4G dongle information">
+         <c:parameters>
+            <c:return
+               name="info"
+               type="string"
+               description="The 4G dongle information"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="ResetStatistics"
+         description="Reset 4g connection statistics">
+      </c:method>
+
+      <c:method
+         name="GetStatistics"
+         description="Get 4g connection statistics">
+         <c:parameters>
+            <c:return
+               name="sample"
+               type="StatsSample4G"
+               description="The sample"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+    </c:methods>
+
+   <c:events>
+   </c:events>
+</c:capability>

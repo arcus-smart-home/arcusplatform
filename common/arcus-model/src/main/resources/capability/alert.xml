@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Alert"
+   namespace="alert"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of an Alert indication on a device.
+   </c:description>
+
+   <c:attributes>
+
+      <c:attribute 
+         name="state" 
+         readwrite="rw" 
+         type="enum"
+         values="QUIET,ALERTING"
+         optional="false"
+         description="Reflects the current state of the alert where quiet means that whatever alarm the device is now silent and alerting implies the device is currently alarming (blinking lights, making some noise)."/>
+
+      <c:attribute 
+         name="maxAlertSecs" 
+         readwrite="rw" 
+         type="int"
+         optional="false"
+        description="Maximum number of seconds that the alert device will stay in alerting state before it will be reset to quiet automatically by its driver. 0 = No Limit."/>
+
+      <c:attribute 
+         name="defaultMaxAlertSecs" 
+         readwrite="r" 
+         type="int"
+         optional="false"
+         description="Default value of maxAlertSecs."/>
+
+   	<c:attribute
+         name="lastAlertTime"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="The last time this device went to alert state."/>
+
+   </c:attributes>
+
+</c:capability>

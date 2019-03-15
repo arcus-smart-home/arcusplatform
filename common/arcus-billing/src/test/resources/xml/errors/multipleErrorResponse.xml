@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<errors>
+  <error field="first_error_name" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="long_name_here_instead_of_a_short_name" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="short_name" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="model_name" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="model_name.that_field" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="model_name.this_field" symbol="not_a_number" lang="en-US">is not a number</error>
+  <error field="model_name.other_field_name" symbol="not_a_number" lang="en-US">is not a number</error>
+</errors>

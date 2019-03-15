@@ -1,0 +1,247 @@
+Transaction Errors
+
+When Recurly encounters an error submitting a payment to your gateway, it parses the error code. From your gateway's error code, Recurly generates a friendly error message that can be displayed to your user and returns it in the XML error document. In addition, Recurly sets a code on the error document to let you know exactly why the transaction was declined. These errors can be returned when you are creating a new subscription, updating billing information, and processing a one-time transaction.
+
+Error Codes
+
+The following error codes are return by Recurly. The description is specific to the error code to help you understand why it was declined.
+
+approved
+	Approved
+	Approved
+approved_fraud_review
+	Approved
+	Approved, flagged for fraud review in your payment gateway.
+declined
+	The transaction was declined. Please use a different card or contact your bank.
+	The transaction was declined without specific information. Please contact your payment gateway for more details or ask the customer to contact their bank.
+insufficient_funds
+	The transaction was declined due to insufficient funds in your account. Please use a different card or contact your bank.
+	The card has insufficient funds to cover the cost of the transaction.
+temporary_hold
+	Your card has a temporary hold. Please use a different card or contact your bank.
+	The issuing bank has a temporary hold on the card. This is known as a 'Do Not Honor' response.
+too_many_attempts
+	The transaction was declined. You have exceeded a reasonable number of attempts. Please wait a while before retrying your card, or try a different card.
+	The transaction was declined because of too many authorization attempts.
+call_issuer
+	Your transaction was declined. Please contact your bank for further details or try another card.
+	The transaction was declined by the payment gateway. Contact the card issuer for more details.
+call_issuer_update_cardholder_data
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	The transaction was declined by the payment gateway. Contact the card issuer for more details.
+paypal_primary_declined
+	Your primary funding source was declined. Please try again or update your billing information with PayPal.
+	The primary funding source failed but the transaction can be attempted again. The next attempt will use the alternate funding source.
+paypal_declined_use_alternate
+	Your primary funding source was declined. Please try again to use your secondary funding source.
+	The primary funding source failed but the transaction can be attempted again. The next attempt will use the alternate funding source.
+declined_security_code
+	The security code you entered does not match. Please update the CVV and try again.
+	The payment gateway declined the transaction because the security code (CVV) did not match.
+declined_exception
+	The transaction was declined. Please try again or try another card.
+	An exception occurred with your payment gateway while processing this transaction. The transaction may be missing required information or the information is not properly formatted. Please contact your gateway for details.
+declined_missing_data
+	Your billing information is missing some required information.
+	The payment gateway declined the transaction for missing a required field. Please verify your configuration with Recurly and your gateway is correct. You may need to require more address information.
+invalid_data
+	The transaction was declined due to invalid data.
+	The payment gateway declined the transaction due to invalid data. Please check the response details for more information.
+invalid_email
+	Your email address is not valid.
+	The payment gateway requires a valid email address for this transaction.
+declined_card_number
+	Your card number is not valid. Please update your card number.
+	The credit card number is not valid. The customer needs to try a different number.
+invalid_card_number
+	Your card number is not valid. Please update your card number.
+	The credit card number is not valid. The customer needs to try a different number.
+invalid_account_number
+	Your account number is not valid. Please update your account number.
+	The account number is not valid. The customer needs to try a different number.
+gateway_token_not_found
+	Your payment details were not found. Please update your billing information.
+	The payment details were not found in your payment gateway. The customer needs to update their billing information.
+expired_card
+	Your credit card is expired, please update your card.
+	The payment gateway declined the transaction because the expiration date is expired or does not match.
+declined_expiration_date
+	Your expiration date is invalid or does not match.
+	The payment gateway declined the transaction because the expiration date is expired or does not match.
+exceeds_daily_limit
+	The transaction exceeds your daily approval limit. Please contact your bank or try another card.
+	The transaction exceeds the cardholder's daily approval limit.
+invalid_merchant_type
+	Your card is not allowed to complete this transaction. Please try another card.
+	The card is not allowed to make purchases from you (e.g. a Travel only card trying to purchase electronics).
+invalid_transaction
+	Your card is not allowed to complete this transaction. Please contact your bank or try another card.
+	The card type cannot perform the transaction type. The card is likely restricted. The customer needs to contact their bank for details.
+invalid_issuer
+	Your card number is not valid. Please try another card or contact your bank.
+	The card number references an issuer (bank) that does not exist. It is not a valid card number.
+card_type_not_accepted
+	Your card type is not accepted. Please try another card.
+	Your merchant account does not accept this card type or specific transaction.
+payment_not_accepted
+	Your payment type is not accepted. Please try another card.
+	Your merchant account does not accept this payment type or specific transaction.
+restricted_card
+	Your card cannot be accepted. Please contact your issuing bank for details or try another card.
+	The card number has restrictions that prevent it from being used with your merchant account. It is likely a corporate card. The customer needs to use a different card.
+restricted_card_chargeback
+	Your card cannot be accepted. Please contact your issuing bank for details or try another card.
+	The card has a restriction preventing approval if there are any chargebacks against it.
+card_not_activated
+	Your card has not been activated. Please call your bank to activate your card and try again.
+	The card is brand new and has not been activated yet.
+deposit_referenced_chargeback
+	The refund cannot be processed because of a chargeback.
+	The deposit is already referenced by a chargeback; therefore, a refund cannot be processed against this transaction.
+customer_canceled_transaction
+	You canceled the transaction after it was approved. Please update your billing information to authorize a new transaction.
+	The cardholder requested this particular payment be stopped before it settled.
+cardholder_requested_stop
+	You requested recurring payments no longer be accepted on this card. Please update your billing information.
+	The cardholder requested recurring payments be stopped. This card will no longer work with your merchant account.
+no_billing_information
+	Your billing information is not on file. Please add your billing information.
+	This transaction cannot be processed because Recurly has no billing information for this account.
+paypal_invalid_billing_agreement
+	Your PayPal billing agreement is no longer valid. Please update your billing information.
+	The billing agreement is no longer valid. The customer may have canceled the agreement.
+paypal_hard_decline
+	Your primary funding source was declined. Please update your billing information with PayPal or try again.
+	PayPal failed to run the transaction with the primary funding source.
+paypal_account_issue
+	Your primary funding source was declined. Please update your billing information with PayPal or try again.
+	PayPal indicated the transaction failed due to an issue with the buyer account.
+fraud_address
+	Your billing address does not match the address on your account. Please fix your address or contact your bank.
+	The payment gateway declined the transaction because the billing address did not match.
+fraud_security_code
+	The security code you entered does not match. Please update the CVV and try again.
+	The payment gateway declined the transaction because the security code (CVV) did not match.
+fraud_stolen_card
+	The transaction was declined. Please use a different card or contact your bank.
+	The card has been designated as lost or stolen; contact the issuing bank.
+fraud_ip_address
+	The transaction was declined. Please contact support.
+	The payment gateway declined the transaction because it originated from an IP address known for fraudulent transactions.
+fraud_gateway
+	The transaction was declined. Please use a different card or contact your bank.
+	The payment gateway declined the transaction because it originated from an IP address known for fraudulent transactions.
+fraud_too_many_attempts
+	You attempted to use this card too many times. Please wait 15 minutes before trying again, or use a different card.
+	The card number was used unsuccessfully too many times consecutively. The cardholder must wait before the card number will work again.
+fraud_advanced_verification
+	The transaction was declined. Please use a different card or contact your bank.
+	The payment gateway declined the transaction because it failed the advanced verification.
+invalid_gateway_configuration
+	Please contact support: the payment system is configured incorrectly. Your card was not charged.
+	Your payment gateway is not configured correctly. Please contact your payment gateway for more information.
+invalid_login
+	Please contact support: the payment system is configured incorrectly. Your card was not charged.
+	Your payment gateway login is incorrect. Please check your login credentials.
+gateway_unavailable
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	The payment gateway was unavailable for transaction. Contact your payment gateway for more details.
+processor_unavailable
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	The payment processor was unavailable for the transaction. Contact your payment gateway for more details.
+issuer_unavailable
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	The issuer was unavailable to authorize the transaction. Contact the card issuer or your payment gateway for more details.
+gateway_timeout
+	Please contact support: the payment system did not respond in time to process your transaction.
+	The payment gateway timed out while processing this transaction. Please verify that the transaction did not process. Contact your payment gateway for more details.
+gateway_error
+	An error occurred while processing your transaction. Please contact support.
+	The payment gateway encountered an unknown error. Please contact your payment gateway for details.
+contact_gateway
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	This error requires you to contact your payment gateway for a resolution.
+try_again
+	The payment system would like you to please try again.
+	The payment gateway is too busy or experienced another temporary problem, and cannot process the transaction at the moment. Please try again.
+cvv_required
+	Please contact support: the payment system experienced an error. Your card was not charged.
+	Your payment gateway account is requiring the security code (CVV) for all transactions. Recurly cannot process recurring/subscription transactions. Please contact your payment gateway to disable the CVV requirement.
+currency_not_supported
+	Please contact support: the requested currency is not supported for this merchant. Your card was not charged.
+	The currency configured on your Recurly account is not accepted by your gateway. Please use a supported currency or contact your payment gateway for more details.
+ssl_error
+	Please contact support: the payment system experienced an error. Your card was not charged.
+	Your PEM certificate is configured incorrectly. Recurly cannot communicate with your payment gateway.
+zero_dollar_auth_not_supported
+	Please contact support: the payment system experienced an error while authorizing your card. Your card was not charged.
+	Zero dollar authorizations are not supported for this card type or by your payment processor.
+no_gateway
+	Please contact support: the payment system experienced an unspecified error with your card issuer.
+	There is no available payment gateway on your account capable of processing this transaction.
+ach_transactions_not_supported
+	Please contact support: ACH/EFT transfers are not supported.
+	ACH/EFT transfers are not enabled on your account.
+three_d_secure_not_supported
+	Please contact support: the payment system experienced an error. Your card was not charged.
+	3D Secure was attempted but is not enabled on your account.
+transaction_not_found
+	The original transaction was not found.
+	The original transaction was not found.
+transaction_settled
+	The transaction has already been settled, so it cannot be voided. Please try a refund.
+	The transaction has already been settled, so it cannot be voided. Please try a refund.
+transaction_already_voided
+	The transaction has already been voided, so it cannot be settled or refunded.
+	The transaction has already been voided, so it cannot be settled or refunded.
+transaction_failed_to_settled
+	The transaction did not settle successfully. Please update your billing information.
+	The transaction authorized successfully, but failed to settle. The settlement request may have expired or have been canceled.
+payment_cannot_void_authorization
+	An error occurred while voiding your payment authorization. Please contact support.
+	The credit exceeds the amount of the original transaction.
+partial_credits_not_supported
+	An error occurred while refunding your transaction. Please contact support.
+	Your payment gateway does not support partially refunding a transaction. Please refund the entire amount.
+cannot_refund_unsettled_transactions
+	An error occurred while refunding your transaction. Please contact support.
+	The transaction has not settled yet, so it cannot be refunded. Please try voiding the transaction instead.
+transaction_cannot_be_refunded
+	The transaction cannot be refunded. Please contact support.
+	The transaction cannot be refunded. Please contact your payment gateway for details.
+transaction_cannot_be_voided
+	The transaction cannot be voided. Please contact support.
+	The transaction cannot be void. It may have settled, already been voided, or otherwise be illegible for voiding. Please contact your payment gateway for details.
+total_credit_exceeds_capture
+	An error occurred while refunding your transaction. Please contact support.
+	The credit exceeds the amount of the original transaction.
+authorization_expired
+	An error occurred while processing your transaction. Please contact update your billing information.
+	The purchase authorization expired and can no longer be used to collect payment. Please attempt another transaction.
+authorization_already_captured
+	An error occurred while processing your transaction. Please contact support.
+	The purchase amount was already captured. This authorization cannot be used again.
+authorization_amount_depleted
+	An error occurred while processing your transaction. Please contact support.
+	The amount of purchases exceeds the original authorized amount. You cannot collect more money using this authorization.
+recurly_error
+	An error occurred while processing your transaction. Please contact support.
+	An error occurred while processing the transaction. Please contact Recurly support.
+unknown
+	The transaction was declined or failed for an unknown reason. Please try again or contact support.
+	The transaction was declined or failed for an unknown reason. Please try again or contact support.
+api_error
+	An error occurred while processing your transaction. Please contact support.
+	The payment gateway returned an error code that usually indicates its API specs have changed. Please contact Recurly support.
+duplicate_transaction
+	A similar transaction was recently submitted. Please wait a few minutes and try again.
+	A transaction was recently submitted with the same Invoice Number, or the same card number and amount. The payment gateway refused to process this transaction in order to prevent a duplicate transaction.
+recurly_failed_to_get_token
+	An error occurred while initializing the transaction. Please try again.
+	An error occurred while initializing the transaction. Please try again.
+recurly_token_not_found
+	An error occurred while processing your transaction. Please contact support.
+	An error occurred while processing the transaction. Please contact Recurly support.
+
+	

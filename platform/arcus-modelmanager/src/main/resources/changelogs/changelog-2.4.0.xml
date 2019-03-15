@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.4.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+	<cl:changeset identifier="addErrorTimeToHubRegistration" author="ppatrow">
+      <cl:description>Add error timestamp field to hub_registration table</cl:description>
+      <cl:tracking>ITWO-12100</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub_registration ADD upgradeErrorTime timestamp</cl:update>
+         <cl:rollback>ALTER TABLE hub_registration DROP upgradeErrorTime</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

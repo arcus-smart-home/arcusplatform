@@ -1,0 +1,403 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Aeon Labs Smart Energy Switch
+ * (JDH)
+ *
+ * HACK: Autonomous reporting of power does NOT appear to work reliably, but since the driver polls for the
+ *    power state (ON/OFF) every two minutes to make sure we did not miss a state change, if OFF,
+ *    the power usage is set to zero, and if ON, the power usage is read.
+ *    So Polling is:
+ *     - ON/OFF polling is every 2 minutes, and power usage is read while device is switched ON.
+ *
+ * HACK: Device always initially reports power state as OFF, even if turned on while pairing (perhaps
+ *    the factory reset we do in onAdded is causing this), so we always set the power state to OFF while
+ *    adding the device, to make sure it matches the initial value it reports.
+ *
+ * ISSUES/NOTES:
+ * - When we reset the device to factory configuration while adding the device, it appears to reset its cumulative
+ *   power usage reading, so removing and re-pairing a device will reset the cumulative power reading reported by
+ *   the device.
+ * - The device tested with did not seem to be able to asynch report any power usage other than kWh, and
+ *   only Group 1 reporting appeared to work.  I could not get Group 2 or Group 3 to report kWh or any other scale.
+ * - Occasionally while testing would get device in a mode where it would not ACK requests.  Usually powering down
+ *   device for awhile and reseting Hub would eventually address the issue.  Not sure of root cause, and it may be
+ *   a Hub issue.
+ *
+ */
+import groovy.transform.Field
+
+driver          'ZWAeonSmartEnergySwitchDriver'
+description     'Driver for a Aeon Labs Smart Energy Switch'
+version         '1.0'
+protocol        'ZWAV'
+deviceTypeHint  'Switch'
+productId       'cec8c4'
+vendor          'AEOTEC'
+model           'DSC06106-ZWUS'
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as
+// a negative number (similar to codes greater than 0x7FFF)
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0006
+matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0006
+
+capabilities    DevicePower, Switch, PowerUse
+
+// Device Type:
+//		Switch Binary
+//
+// Command Classes:
+//		0x20   (32) Basic
+//		0x25   (37) Switch_Binary
+//		0x27   (39) Switch_All
+//		0x31   (49) Multilevel Sensor
+//		0x32   (50) Meter
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_LINE
+DevicePower.linecapable	         true
+DevicePower.backupbatterycapable false
+
+PowerUse.wholehome               false
+
+
+@Field def final String DEVICE_NAME			= 'Aeon Smart Energy Switch'
+
+@Field def final int POLLING_INTERVAL_SEC   = 120
+@Field def final OFFLINE_TIMEOUT_SECS       = 600          // 10 minutes
+
+@Field def final byte SWITCH_ON             = 0xff
+@Field def final byte SWITCH_OFF            = 0x00
+
+@Field def final byte METER_SCALE_WATTS     = 0x10
+@Field def final byte METER_SCALE_KW_HRS    = 0x00
+
+
+// Config Parameters  (see http://www.pepper1.net/zwavedb/device/410)
+// ------------------------------------------------------------------
+@Field def byte CNFG_RESET_PARAM_NO           = 0xFF       // parameter number to reset configuration to factory default
+def byte CNFG_RESET_SIZE                      = 0x01
+def byte CNFG_RESET_VALUE                     = 0x00
+
+@Field def byte CNFG_BLINK_PARAM_NO           = 0x02       // parameter number to set LED Blink
+def byte CNFG_BLINK_SIZE                      = 0x02       // size is 2 bytes
+def byte CNFG_BLINK_VALUE_1                   = 0x1E       // (30) first byte is numder seconds
+def byte CNFG_BLINK_VALUE_2                   = 0x32       // (50) 5 second byte is blink interval in 10ths of seconds
+
+@Field def byte CNFG_NOTIFY_PARAM_NO          = 0x50       // (80) parameter number to set Automatic Notifications configuration
+def byte CNFG_NOTIFY_SIZE                     = 0x01
+def byte CNFG_NOTIFY_VALUE                    = 0x02       // 0=none(default), 1=hail, 2=basic report
+
+@Field def byte CNFG_ENABLE_THRESH_PARAM_NO   = 0x5A       // (90) parameter number to set Thresholds Enabled configuration
+def byte CNFG_ENABLE_THRESH_SIZE              = 0x01
+def byte CNFG_ENABLE_THRESH_VALUE             = 0x01       // 0=disabled(default), 1=enabled
+
+@Field def byte CNFG_WATT_THRESH_PARAM_NO     = 0x5B       // (91) parameter number to set Change in Watts Threshold configuration
+def byte CNFG_WATT_THRESH_SIZE                = 0x02
+def byte CNFG_WATT_THRESH_VALUE_1             = 0x00       // (00) high order byte for change threshold
+def byte CNFG_WATT_THRESH_VALUE_2             = 0x05       // (5) set to report changes of 5 watts or more (default is 50)
+
+@Field def byte CNFG_WATT_PCT_THRESH_PARAM_NO = 0x5C       // (92) parameter number to set Change in Wattage Percent Threshold configuration
+def byte CNFG_WATT_PCT_THRESH_SIZE            = 0x01
+def byte CNFG_WATT_PCT_THRESH_VALUE           = 0x05       // (5) set to report changes of 5% watts or more (default is 10)
+
+@Field def byte CNFG_RPT_GRP_1_PARAM_NO       = 0x65       // (101) parameter number to set what is included in Report Group 1
+@Field def byte CNFG_RPT_GRP_2_PARAM_NO       = 0x66       // (102) parameter number to set what is included in Report Group 2
+@Field def byte CNFG_RPT_GRP_3_PARAM_NO       = 0x67       // (103) parameter number to set what is included in Report Group 3
+def byte CNFG_RPT_GRP_SIZE                    = 0x04       // I don't know why these 3 parameters are 4 bytes long, but that's what the spec says
+def byte CNFG_RPT_GRP_1_VALUE                 = 0x04       // 0=None, 2=Multi-Sensor, 4=Meter Report for Watts, 8=Meter Report for kWh
+def byte CNFG_RPT_GRP_2_VALUE                 = 0x08
+def byte CNFG_RPT_GRP_3_VALUE                 = 0x00
+
+@Field def byte CNFG_RPT_GRP_1_INTVL_PARAM_NO = 0x6F       // (111) parameter number to set interval in seconds for Report Group 1
+@Field def byte CNFG_RPT_GRP_2_INTVL_PARAM_NO = 0x70       // (112) parameter number to set interval in seconds for Report Group 2
+@Field def byte CNFG_RPT_GRP_3_INTVL_PARAM_NO = 0x71       // (113) parameter number to set interval in seconds for Report Group 3
+def byte CNFG_RPT_GRP_INTVL_SIZE              = 0x04
+
+@Field def byte CNFG_PARTNER_ID_PARAM_NO      = 0xC8       // (200) parameter number for Partner ID, size 1 byte, (0 = Aeon Labs Standard Product, 1 = AT&T)
+@Field def byte CNFG_LOCK_PARAM_NO            = 0xFC       // (252) parameter number for Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+@Field def byte CNFG_DVC_TAG_PARAM_NO         = 0xFE       // (254) parameter number for Device Tag, size 2 bytes, pairing and/or reset will not change the value
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} added", DEVICE_NAME
+
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Switch.state                        Switch.STATE_OFF
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	PowerUse.instantaneous              0.0
+	PowerUse.cumulative                 0.0
+	PowerUse.wholehome                  false
+
+	// reset the device configuration to factory defaults (should also reset cumulative power reading)
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+
+	// HACK: even if switch is ON when we pair, device will report it as OFF until turned OFF and then back ON,
+	// so we always set/force switch to OFF after pairing so reported state matches actual state
+	ZWave.switch_binary.set SWITCH_OFF
+}
+
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+
+	// set Association to Group 1, Node 1 (supports upto 5 nodes)
+	//ZWave.association.set( 1, 1, 0, 0, 0);
+
+	// read the configuration settings, if needed
+//	readConfigSettings()
+
+	// set configuration for Automatic Notifications
+	ZWave.configuration.set(CNFG_NOTIFY_PARAM_NO, CNFG_NOTIFY_SIZE, CNFG_NOTIFY_VALUE)
+
+	// set configuration to Enable Thresholds
+	ZWave.configuration.set(CNFG_ENABLE_THRESH_PARAM_NO, CNFG_ENABLE_THRESH_SIZE, CNFG_ENABLE_THRESH_VALUE)
+
+	// set Change in Wattage Threshold
+	ZWave.configuration.set(CNFG_WATT_THRESH_PARAM_NO, CNFG_WATT_THRESH_SIZE, CNFG_WATT_THRESH_VALUE_1, CNFG_WATT_THRESH_VALUE_2)
+
+	// set Change in Wattage Percent Threshold
+	ZWave.configuration.set(CNFG_WATT_PCT_THRESH_PARAM_NO, CNFG_WATT_PCT_THRESH_SIZE, CNFG_WATT_PCT_THRESH_VALUE)
+
+	// configure contents of Report Group 1, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_1_PARAM_NO, CNFG_RPT_GRP_SIZE,
+		(byte)0x00, (byte)0x00, (byte)0x00, CNFG_RPT_GRP_1_VALUE)
+
+	// configure interval for Report Group 1, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_1_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+		(byte)0x00, (byte)0x00, (byte)0x01, (byte)0x2C)			// 0x0000012c = 300 Seconds
+
+//	// configure contents of Report Group 2, if needed
+//	ZWave.configuration.set(CNFG_RPT_GRP_2_PARAM_NO, CNFG_RPT_GRP_SIZE,
+//		(byte)0x00, (byte)0x00, (byte)0x00, CNFG_RPT_GRP_2_VALUE)
+//
+//	// configure interval for Report Group 2, if needed
+//	ZWave.configuration.set(CNFG_RPT_GRP_2_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+//		(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x3C)
+
+//	// configure contents of Report Group 3, if needed
+//	ZWave.configuration.set(CNFG_RPT_GRP_3_PARAM_NO, CNFG_RPT_GRP_SIZE,
+//		(byte)0x00, (byte)0x00, (byte)0x00, CNFG_RPT_GRP_3_VALUE)
+//
+//	// configure interval for Report Group 3, if needed
+//	ZWave.configuration.set(CNFG_RPT_GRP_3_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+//		CNFG_RPT_GRP_INTVL_VALUE_1, CNFG_RPT_GRP_INTVL_VALUE_2, CNFG_RPT_GRP_INTVL_VALUE_3, CNFG_RPT_GRP_INTVL_VALUE_4)
+
+	// read the configuration settings, if needed
+//	readConfigSettings()
+
+	// get the supported features of the meter (if needed)
+//	ZWave.meter.supported_get(METER_SCALE_WATTS)
+
+	// get the current switch state
+	ZWave.switch_binary.get()
+
+	// periodically poll for the current switch state.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+void readConfigSettings() {
+	ZWave.configuration.get( CNFG_BLINK_PARAM_NO )
+	ZWave.configuration.get( CNFG_NOTIFY_PARAM_NO )
+	ZWave.configuration.get( CNFG_ENABLE_THRESH_PARAM_NO )
+	ZWave.configuration.get( CNFG_WATT_THRESH_PARAM_NO )
+	ZWave.configuration.get( CNFG_WATT_PCT_THRESH_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_1_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_2_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_3_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_1_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_2_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_3_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_PARTNER_ID_PARAM_NO )
+	ZWave.configuration.get( CNFG_LOCK_PARAM_NO )
+	ZWave.configuration.get( CNFG_DVC_TAG_PARAM_NO )
+}
+
+
+setAttributes('swit') {
+	log.debug "{} received message {}", DEVICE_NAME, message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+				// we need to get the current switch state because the device will not automatically report it
+				ZWave.switch_binary.get()
+				break
+
+			case Switch.inverted:
+				log.warn "Attempt to set unsupported attribute Switch.inverted for Aeon Labs Smart Energy Switch"
+				break
+
+			default:
+				log.warn "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+onZWaveMessage.meter.report {
+	log.debug "{} sent meter report: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+
+	def byte meterType = message.command.get('MeterType')
+	def byte scaleByte = message.command.get('Scale')
+
+	if (6 <= bytes.length) {
+		// read int value
+		def int val1 = bytes[2]
+		if (0 > val1) val1 = 256 + val1
+		val1 *= 256 * 256 * 256
+		def int val2 = bytes[3]
+		if (0 > val2) val2 = 256 + val2
+		val2 *= 256 * 256
+		def int val3 = bytes[4]
+		if (0 > val3) val3 = 256 + val3
+		val3 *= 256
+		def int val4 = bytes[5]
+		if (0 > val4) val4 = 256 + val4
+		def int val = val1 + val2 + val3 + val4
+		log.debug "MeterType:{}, Scale:{}, Val:{}", meterType, scaleByte, val
+	
+		def prec = (scaleByte >> 5)					// bits 5-7 are precision
+		def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
+		def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
+		log.debug "Precision:{}, Scale:{}, Size:{}", prec, scale, vSize
+	
+		if (0 == scale) {			// kWh cumulative reading reported
+			def double kwh = val / Math.pow( 10, prec )
+			log.debug "Cumulative kWh:{}", kwh
+			PowerUse.cumulative kwh * 1000		// capability units are Watt Hours, not kWh
+		} else if (2 == scale) {		// Watts instantanious power reading reported
+			def double watts = val / Math.pow( 10, prec )
+			log.debug "Instantaneous Watts:{}", watts
+			PowerUse.instantaneous watts
+		}
+	}
+}
+
+onZWaveMessage.meter.supported_report {
+	log.debug "{} sent meter supported report: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+
+//	def byte meterType = message.command.get('MeterType')
+//	def byte scaleSupported = message.command.get('ScaleSupported')
+	def byte meterType = bytes[0]
+	def byte scaleSupported = bytes[1]
+	log.debug "MeterType:{}, ScalesSupported:{}", meterType, scaleSupported
+
+	// this should be an Electrical Meter that supports Reset, and reports Watts and kWh
+
+	if (0x01 == (0x1F & meterType)) {
+		log.debug "Electrical Meter"
+	}
+
+	if (0 < (0x80 & meterType)) {
+		log.debug "Meter supports RESET"
+	}
+
+	if (0x01 & scaleSupported) {
+		log.debug "Meter reports kWatt hours cumulative power"
+	}
+
+	if (0x04 & scaleSupported) {
+		log.debug "Meter reports Watts"
+	}
+}
+
+
+void handleSwitchStateMsg(Object currentState) {
+	def prevState = Switch.state.get()
+	log.debug "{} reported Switch State as: {}", DEVICE_NAME, (currentState == SWITCH_ON ? 'ON' : 'OFF')
+	Switch.state (currentState == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+	// if state changed, capture timestamp and read/reset power
+	if (Switch.state.get() != prevState) {
+		Switch.statechanged new Date()
+	}
+
+	// kind of a hack, but just in case autonomous power reporting is not working, everytime
+	// we poll the switch state and see that it is on, request the power readings also.
+	if (SWITCH_ON == currentState) {
+		// get the current power reading
+		ZWave.meter.get(METER_SCALE_WATTS)
+		// get the current cumulative power reading
+		ZWave.meter.get(METER_SCALE_KW_HRS)
+	} else {
+		// set instantaneous power to 0.0
+		double watts = 0.0
+		PowerUse.instantaneous watts
+	}
+}
+
+
+
+
+onZWaveMessage.switch_binary.report {
+	log.debug "{} sent binary switch report: {}", DEVICE_NAME, message
+	handleSwitchStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.report {
+	log.debug "{} sent basic report: {}", DEVICE_NAME, message
+
+	handleSwitchStateMsg message.command.get('value')
+}
+
+
+onZWaveNodeInfo {
+	log.debug "{} reported Node Info: {}, {}, {}, {}, {}", DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+
+	// these devices report a Node Info everytime their state is changed locally,
+	// if parameter 0x50 is not configured to a value of 2,
+	// so if we receive this, issue a switch binary get() to read the current state
+	ZWave.switch_binary.get()
+}
+
+
+

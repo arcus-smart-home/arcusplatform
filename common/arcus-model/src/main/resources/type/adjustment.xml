@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+        name="Adjustment"
+        version="1.0"
+        xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+       Represents an adjustment as returned by the recurlybillingclient
+    </t:description>
+
+    <t:attributes>
+        <t:attribute
+                name="accountingCode"
+                type="string"
+                description="Accounting Code"
+        />
+        <t:attribute
+                name="adjustmentId"
+                type="string"
+                description="The type of the adjustment"
+        />
+        <t:attribute
+                name="adjustmentType"
+                type="string"
+                description="The Id of the adjustment"
+        />
+        <t:attribute
+                name="createdAt"
+                type="timestamp"
+                description="Time adjustment created"/>
+
+        <t:attribute
+                name="description"
+                type="string"
+                description="Description of the adjustment"
+        />
+
+        <t:attribute
+                name="discountInDollars"
+                type="double"
+                description="Recurly discount converted from cents to dollars"
+        />
+        <t:attribute
+                name="endDate"
+                type="timestamp"
+                description="The date the adjustment ended"/>
+        <t:attribute
+                name="origin"
+                type="string"
+                description="Origin"
+        />
+        <t:attribute
+                name="productCode"
+                type="string"
+                description="Product Code"
+        />
+        <t:attribute
+                name="state"
+                type="string"
+                description="The state of the adjustment"
+        />
+        <t:attribute
+                name="startDate"
+                type="timestamp"
+                description="The date the adjustment started"/>
+
+        <t:attribute
+                name="taxInDollars"
+                type="double"
+                description="Recurly tax converted from cents to dollars"
+        />
+        <t:attribute
+                name="totalInDollars"
+                type="double"
+                description="Recurly total converted from cents to dollars"
+        />
+        <t:attribute
+                name="unitInDollars"
+                type="double"
+                description="Recurly unit converted from cents to dollars"
+        />
+
+        <t:attribute
+                name="quantity"
+                type="int"
+                description="Quantity"/>
+
+
+    </t:attributes>
+</t:type>

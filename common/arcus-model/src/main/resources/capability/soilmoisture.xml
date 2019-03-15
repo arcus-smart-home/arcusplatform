@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="SoilMoisture"
+   namespace="soilmoisture"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>Model of water content within soil.</c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="watercontent" 
+         readwrite="r" 
+         type="double" 
+         unit="vol/vol"
+         min="0.0"
+         max="0.5"
+         optional="false" 
+         description="Reflects the ratio of volume of water per volume of soil (0.0 = No Moisture, 0.5 = Completely Saturated)."/>
+	   <c:attribute
+	      name="soiltype" 
+	      readwrite="rw" 
+	      type="enum"
+	      values="NORMAL,SANDY,CLAY"
+	      optional="false" 
+	      description="Reflects the type of soil in which the water content is being measured. Defaults to NORMAL."/>
+	   <c:attribute 
+	      name="watercontentupdated" 
+	      readwrite="r" 
+	      type="timestamp" 
+	      optional="false" 
+	      description="UTC date time of when Water Content value was reported by sensor."/>
+   </c:attributes>
+   
+</c:capability>

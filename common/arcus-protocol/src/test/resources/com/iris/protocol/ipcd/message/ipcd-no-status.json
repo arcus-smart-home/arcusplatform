@@ -1,0 +1,13 @@
+{
+"device":
+{ "vendor": "Genie", "model": "Aladdin", "ipcdver": "0.2", "sn": "20C38FF59F40" }
+
+,
+"request":
+{ "command": "GetParameterValues" }
+
+,
+"response":
+{ "dcm.wifi_ssid": "IPCD Madness", "dcm.wifi_rssi": -31, "dcm.error_code": "None", "dcm.hw_version": "4.0", "dcm.fw_version": "00047", "dcm.fw_version_wifi": "1.0.0", "dcm.fw_version_ble": "1.0.0", "dps1.link_status": "Connected", "dps1.desired_status": "", "dps1.battery_level": 84, "dps1.temperature": 16, "dps1.ble_strength": -67, "dps1.fault": "None", "dps1.fw_version": "1.0.0", "dps1.hw_version": "5.0", "dps3.link_status": "Connected", "dps3.desired_status": "", "dps3.battery_level": 87, "dps3.temperature": 33, "dps3.ble_strength": -53, "dps3.fault": "None", "dps3.fw_version": "1.0.0", "dps3.hw_version": "5.0" }
+
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adjustment>
+  <description>Charge for extra bandwidth</description>
+  <unit_amount_in_cents>5000</unit_amount_in_cents>
+  <currency>USD</currency>
+  <quantity>1</quantity>
+  <accounting_code>bandwidth</accounting_code>
+  <tax_exempt>false</tax_exempt>
+</adjustment>

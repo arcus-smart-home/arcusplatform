@@ -1,0 +1,31 @@
+{{#file . "com/iris/messages/capability/{{name}}Capability.java"}}
+package com.iris.messages.capability;
+
+public class {{name}}Capability {{#if enhances}}extends {{enhances}}Capability{{else}}implements Capability{{/if}} {
+   public static final String NAMESPACE = "{{namespace}}";
+   public static final String NAME = "{{name}}";
+
+   {{#attributes}}
+   /** {{description}} */
+   public static final String ATTR_{{toUpperCase name}} = "{{namespace}}:{{name}}";
+   {{/attributes}}
+{{> platform/attribute_getters attributes}}
+   
+   {{#methods}}
+   /** {{description}} */
+{{> platform/Request}}
+{{> platform/Response}}
+   {{/methods}}
+   
+   {{#errorEventExceptions}}
+{{> platform/ErrorEventException}}   
+   {{/errorEventExceptions}}   
+   
+   {{#events}}
+{{> platform/Event}}
+   {{/events}}
+
+   // not instantiable
+   protected {{name}}Capability() { }
+}
+{{/file}}

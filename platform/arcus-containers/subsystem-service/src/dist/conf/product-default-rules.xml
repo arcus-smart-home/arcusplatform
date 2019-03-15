@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<productDefaultRules>
+
+   <metadata version="2015-10-07T00:00:00" publisher="Louis Parks"/>
+   
+   <ruleSet productId="4fccbb" productName="Centralite KeyFob">
+      <rule template="smartfob-arm-on" name="Arm On with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="circle"/>
+      </rule>
+      <rule template="smartfob-arm-partial" name="Arm Partial with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="square"/>
+      </rule>
+      <rule template="smartfob-disarm" name="Disarm with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="diamond"/>
+      </rule>
+      <rule template="smartfob-chime" name="Chime with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="hexagon"/>
+      </rule>
+   </ruleSet>
+   
+   
+   <ruleSet productId="4fcccc" productName="Centralite KeyFob">
+      <rule template="smartfobgen3-arm-on" name="Arm On with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="away"/>
+      </rule>
+      <rule template="smartfobgen3-arm-partial" name="Arm Partial with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="a"/>
+      </rule>
+      <rule template="smartfobgen3-disarm" name="Disarm with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="home"/>
+      </rule>
+      <rule template="smartfobgen3-chime" name="Chime with the Smart Fob">
+         <context name="smart fob" value="${base:address}"/>
+         <context name="button" value="b"/>
+      </rule>
+   </ruleSet>
+   
+   
+   
+   <ruleSet productId="486390" productName="AlertMe KeyFob">
+      <rule template="smartfobgen1-arm-on" name="Arm On with the 1st Gen Key Fob">
+         <context name="key fob" value="${base:address}"/>
+         <context name="button" value="away"/>
+      </rule>
+      <rule template="smartfobgen1-disarm" name="Disarm with the 1st Gen Key Fob">
+         <context name="key fob" value="${base:address}"/>
+         <context name="button" value="home"/>
+      </rule>
+   </ruleSet>   
+   
+   <ruleSet productId="f93033" productName="CentraLite Care Pendant">
+      <rule template="pendant-panic" name="Pendant Panic">
+         <context name="care pendent" value="${base:address}"/>
+      </rule>
+   </ruleSet>   
+   
+   <ruleSet productId="2c982d" productName="AlertMe Care Pendant">
+      <rule template="pendant-panic" name="Pendant Panic">
+         <context name="care pendent" value="${base:address}"/>
+      </rule>
+   </ruleSet>   
+   
+   <ruleSet productId="bbf1cf" productName="CentraLite Button">
+      <rule template="button-chime" name="Door Bell Button">
+         <context name="button" value="${base:address}"/>
+      </rule>
+   </ruleSet>   
+   
+   <ruleSet productId="bca135" productName="AlertMe Button">
+      <rule template="button-chime" name="Door Bell Button">
+         <context name="button" value="${base:address}"/>
+      </rule>
+   </ruleSet>   
+
+</productDefaultRules>

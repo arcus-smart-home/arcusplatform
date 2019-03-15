@@ -1,0 +1,28 @@
+{{#section "subject"}}
+Your Arcus Service Has Been Downgraded
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Your most recent payment was declined. The credit card information you entered 
+cannot be processed. Your Arcus system will now be downgraded to the Basic Service.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>Your most recent payment was declined. The credit card information you entered cannot be processed. Your Arcus system will now be downgraded to the Basic Service.
+	</p>
+	<p>	
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

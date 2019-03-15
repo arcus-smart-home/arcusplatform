@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+   <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <!-- reset all previous level configurations of all j.u.l. loggers -->
+        <resetJUL>true</resetJUL>
+    </contextListener> 
+
+  <conversionRule conversionWord="hst" converterClass="com.iris.log.IrisHostConverter" />
+  <conversionRule conversionWord="cnt" converterClass="com.iris.log.IrisContainerConverter" />
+  <conversionRule conversionWord="svc" converterClass="com.iris.log.IrisServiceConverter" />
+  <conversionRule conversionWord="ver" converterClass="com.iris.log.IrisVersionConverter" />
+  <conversionRule conversionWord="ix" converterClass="com.iris.log.IrisMdcConverter" />
+
+  <appender name="STDOUT" class="com.iris.log.IrisAppender">
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="com.iris.log.IrisLayout">
+         <pattern>%.-1level%d{MMdd} %d{HH:mm:ss.SSS} &lt;%thread&gt; %ix{:target:system} %ix{place} %ix{from:from} %ix{to:to} %ix{id:id} %ix{ip:ip} %ix{loc:loc} %ix{slvl:slvl} [%logger{32}] %msg%n</pattern>
+      </layout>
+    </encoder>
+  </appender>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+    </encoder>
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="com.iris.log.IrisLayout">
+         <pattern>%highlight(%.-1level%d{MMdd}) %gray(%d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}]) %msg%n</pattern>
+      </layout>
+    </encoder>
+  </appender>
+
+  <logger name="io.netty" level="INFO" />
+  <logger name="org.apache" level="WARN"/>
+  <logger name="kafka" level="WARN" />
+  <logger name="com.datastax" level="WARN"/>
+  <logger name="org.I0Itec" level="WARN" />
+  <logger name="com.ning" level="WARN" />
+  <logger name="state.change.logger" level="WARN" />
+  <logger name="org.atmosphere" level="INFO"/>
+  <logger name="com.relayrides" level="TRACE"/>
+  <logger name="org.jivesoftware" level="TRACE"/>
+  <logger name="org.apache.http" level="WARN"/>
+  <logger name="com.sun.jersey" level="INFO"/>
+  <logger name="sun.net.www" level="INFO"/>
+  <logger name="com.sun.xml" level="WARN"/>
+  <logger name="javax.activation" level="WARN" />
+  <logger name="javax.xml.bind" level="INFO" />
+  <logger name="com.netflix" level="WARN" />
+  <logger name="org.hibernate" level="WARN" />
+  <logger name="COMLOG" level="INFO" />
+  <logger name="BRIDGE" level="INFO" />
+  <logger name="org.eclipse.jetty" level="WARN" />
+
+
+  <root level="DEBUG">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="PlaceService"
+           namespace="place"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Static services related to places.
+   </s:description>
+
+   <s:methods>
+      <s:method 
+         name="ListTimezones"
+         description="Creates an initial account, which includes the billing account, account owning person, default place, login credentials and default authorization grants"
+         internal="false"
+         isRESTful="true">
+   
+         <s:return name="timezones" type="list&lt;TimeZone&gt;" description="The available time zones in the system."/>
+
+      </s:method>
+
+      <s:method
+         name="ValidateAddress"
+         description="Validates the place's address. Usually when the address is invalid a set of suggestions may be used to prompt the user with alternatives."
+         internal="false"
+         isRESTful="false"
+      >
+
+         <s:parameter
+            name="placeId"
+            type="string"
+            description="Optional identifier or the place to validate"
+            optional="true"/>
+
+         <s:parameter
+            name="streetAddress"
+            type="StreetAddress"
+            optional="false"
+            description="If specified this address will be validated instead of the default place address."/>
+
+         <s:return name="valid" type="boolean" description="True if the given address is recognized, false otherwise."/>
+         <s:return name="errorCode" type="enum" optional="true" values="POBOX_FORBIDDEN,UNKNOWN_ADDRESS" description="An optional errorCode explaining why the address is invalid"/>
+         <s:return name="suggestions" type="list&lt;StreetAddress&gt;" description="A list of validated addresses that are similar to the place's address."/>
+      </s:method>
+
+   </s:methods>
+
+   <!-- TODO EstimateTimeZone, using the requestors IP address or browser headers attempt to guess the most likely time zone --> 
+
+</s:service>

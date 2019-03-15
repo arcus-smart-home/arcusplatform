@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="NotificationLog"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a single entry in a notification_log table</t:description>
+    <t:attributes>
+		<t:attribute
+			name="notificationKey"
+			type="string"
+			description="message/notification key to identify the message"
+			/>
+		<t:attribute
+			name="hourOfDay"
+			type="timestamp"
+			description="The hour of day the notification is sent"
+			/>
+		<t:attribute
+			name="sendTime"
+			type="timestamp"
+			description="The timestamp when the notification is sent"
+			/>
+		<t:attribute
+			name="method"
+			type="string"
+			description="The notification method such as EMAIL, PUSH or IVR"
+			/>
+		<t:attribute
+			name="personId"
+			type="uuid"
+			description="The UUID of the person the notification is sent to"
+			/>				
+	</t:attributes>
+ </t:type>

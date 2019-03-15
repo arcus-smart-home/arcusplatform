@@ -1,0 +1,12 @@
+
+def send1(a1) {
+	sendToDevice(a1);
+}
+
+def send2(a1, a2) {
+	sendToDevice(a1, a2);
+}
+
+def send3(a1, a2, a3) {
+	sendToDevice(a1, a2, a3);
+}

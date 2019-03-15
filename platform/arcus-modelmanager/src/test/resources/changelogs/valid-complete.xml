@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changelog
+   xmlns="http://www.iris.com/schema/changelog/1.0.0"
+   version="1.0.0">
+   
+   <changeset identifier="changeset1" author="rob">
+   
+      <description>Some description</description>
+      <tracking>ITWO-0</tracking>
+      
+      <cql>
+         <update>
+         CREATE TABLE foobar (
+            id uuid PRIMARY KEY
+         )
+         </update>
+         <rollback>DROP TABLE foobar</rollback>
+      </cql>
+      <cql>
+         <update>
+         CREATE TABLE foobaz (
+            id uuid PRIMARY KEY
+         )
+         </update>
+         <rollback>DROP TABLE foobaz</rollback>
+      </cql>
+   </changeset>
+   
+   <changeset identifier="changeset2" author="rob">
+   
+      <description>Another description</description>
+      <tracking>ITWO-1</tracking>
+      
+      <cql>
+         <update>
+         CREATE TABLE foobar2 (
+            id uuid PRIMARY KEY
+         )
+         </update>
+         <rollback>DROP TABLE foobar2</rollback>
+      </cql>
+      
+      <cql>
+         <update>
+         CREATE TABLE foobaz2 (
+            id uuid PRIMARY KEY
+         )
+         </update>
+         <rollback>DROP TABLE foobaz2</rollback>
+      </cql>
+   
+   </changeset>
+   
+</changelog>

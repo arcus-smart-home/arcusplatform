@@ -1,0 +1,174 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+uses "zigbee.GenericZigbeeDeviceOta"
+
+driver		"ZBGreatStarKeyPad"
+description	"Driver for the GreatStar KeyPad"
+version		"2.12"
+protocol	"ZIGB"
+deviceTypeHint	"KeyPad"
+productId	"432031"
+vendor 		"Iris"
+model 		"KeyPad"
+
+matcher		'ZIGB:vendor': 'iMagic by GreatStar', 'ZIGB:model': '1112-S'
+
+@Field def final byte ENDPOINT = 1;
+@Field def final dvcEndPoint = Zigbee.endpoint(ENDPOINT)
+@Field def final otaCluster = dvcEndPoint.Ota
+
+Identify {
+   handle request {
+      on Identify.Identify
+
+      forward
+	   sendResponse 'ident:IdentifyResponse'
+   }
+}
+
+Temperature {
+   temperature null
+}
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Alert {
+   state Alert.STATE_QUIET
+
+	handle setattr {
+	   on Alert.state
+	   on Alert.maxAlertSecs
+
+	   forward
+	}
+}
+	
+KeyPad {
+   alarmState KeyPad.ALARMSTATE_DISARMED
+   alarmMode KeyPad.ALARMMODE_ON
+   alarmSounder KeyPad.ALARMSOUNDER_ON
+   enabledSounds (["BUTTONS", "DISARMED", "ARMED", "ARMING", "SOAKING", "ALERTING"])
+
+   handle setattr {
+      on KeyPad.alarmState
+      on KeyPad.alarmMode
+      on KeyPad.alarmSounder
+      on KeyPad.enabledSounds
+
+      forward
+   }
+
+   handle request {
+      on KeyPad.BeginArming
+
+      forward
+      sendResponse 'keypad:BeginArmingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Armed
+
+      forward
+      sendResponse 'keypad:ArmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Disarmed
+
+      forward
+      sendResponse 'keypad:DisarmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Soaking
+
+      forward
+      sendResponse 'keypad:SoakingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Alerting
+
+      forward
+      sendResponse 'keypad:AlertingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.ArmingUnavailable
+
+      forward
+      sendResponse 'keypad:ArmingUnavailableResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Chime
+
+      forward
+      sendResponse 'keypad:ChimeResponse', [:]
+   }
+
+}
+
+DeviceOta {
+   status DeviceOta.STATUS_IDLE
+   retryCount 0
+   lastAttempt null
+   progressPercent 0
+   lastFailReason "" 
+}
+
+Zigbee {
+   builtin reflex
+   offlineTimeout 10, MINUTES
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+

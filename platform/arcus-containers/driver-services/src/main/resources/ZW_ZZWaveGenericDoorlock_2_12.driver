@@ -1,0 +1,175 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Generic Z-wave Doorlock
+ *
+ */
+import groovy.transform.Field
+import com.iris.protocol.zwave.ZWaveGenericDevices;
+import com.iris.protocol.zwave.ZWaveEntryControlSpecificDevices;
+
+uses 'zwave.GenericZWaveDoorLock_2_12'
+
+ 
+driver           'ZZWaveGenericDoorlock'        // must be after "ZW*" but before "_Z", note "Z" < "_" < "a", so must start with "ZX" to "Zz"
+description      'Driver for a Generic ZWave Doorlock'
+version          '2.12'
+protocol         'ZWAV'
+deviceTypeHint   'Lock'
+productId        'a593ae'
+vendor           'Z-Wave'
+model            'Lock'
+
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_NOT_USED                             // 0x40, 0x00
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_DOOR_LOCK                            // 0x40, 0x01
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_ADVANCED_DOOR_LOCK                   // 0x40, 0x02
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK              // 0x40, 0x03
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK_DEADBOLT     // 0x40, 0x04
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_LOCKBOX                       // 0x40, 0x0A
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific':ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_KEYPAD                        // 0x40, 0x0B
+
+
+final int MAX_SUPPORTED_PINS            = 0
+final int OFFLINE_TIMEOUT_SECS          = 44100     // 12 hours 15minutes
+final int DOOR_STATE_POLL_SECS          = 14400     // every 4 hours
+final int BATTERY_POLLING_INTERVAL_SEC  = 86400     // read battery level every 24 hours
+
+@Field static final String DO_DELAYED_READ   = 'DelayedReadSettings'
+@Field static final int    DELAYED_READ_MSEC = 20000    // 20 seconds (in mSec)
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+DoorLock {
+    type DoorLock.TYPE_OTHER
+    supportsBuzzIn false
+    supportsInvalidPin false
+    numPinsSupported MAX_SUPPORTED_PINS
+    lockstate LOCKSTATE_UNLOCKED
+    bind lockstatechanged to lockstate
+    slots [:]
+}
+
+DeviceAdvanced.errors [:]
+     
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+    
+    ZWave.poll( DOOR_STATE_POLL_SECS, ZWave.door_lock.operation_get )
+    ZWave.poll( BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get )
+    
+    // delay reading back current settings for ~20 seconds after pairing, to allow device time to 'settle'
+    Scheduler.scheduleIn DO_DELAYED_READ, DELAYED_READ_MSEC
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled event handlers
+////////////////////////////////////////////////////////////////////////////////
+ 
+onEvent( DO_DELAYED_READ ) {
+    log.trace DO_DELAYED_READ
+    ZWave.battery.get()
+    ZWave.door_lock.operation_get()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('doorlock') {
+    GenericZWaveDoorLock_2_12.handleSetAttributes(this, message)
+    Scheduler.scheduleIn DO_DELAYED_READ, DELAYED_READ_MSEC
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+    GenericZWaveDoorLock_2_12.handleBatteryLevelReport( this, message )
+} 
+
+onZWaveMessage.door_lock.operation_report {
+    GenericZWaveDoorLock_2_12.handleLockOperationReport( this ,message )
+    Scheduler.cancel DO_DELAYED_READ
+}
+
+onZWaveMessage.user_code.report {
+    log.trace "user_code.report: {}", message
+}
+
+
+// see Z-Wave Command Class Specification, A-M (Access Control Alarm)
+onZWaveMessage.alarm.report {
+    log.trace "received an alarm report message: {}", message
+    def zWaveAlarmType = message.command.get( 'notificationType' ) & 0xFF
+    def zWaveAlarmEvent = message.command.get( 'event' ) & 0xFF
+    log.trace "received an alarm report type: {}, event: {}", zWaveAlarmType, zWaveAlarmEvent
+    
+    if (0x06 == zWaveAlarmType) {      // Access Control
+        switch( zWaveAlarmEvent ) {
+            case 0x01:        // manual lock
+            case 0x03:        // radio lock
+            case 0x05:        // keypad lock
+                GenericZWaveDoorLock_2_12.updateLockState( this, DoorLock.LOCKSTATE_LOCKED )
+                Scheduler.cancel DO_DELAYED_READ
+                break;
+            case 0x02:        // manual unlock
+            case 0x04:        // radio unlock
+            case 0x06:        // keypad unlock
+                GenericZWaveDoorLock_2_12.updateLockState( this, DoorLock.LOCKSTATE_UNLOCKED )
+                Scheduler.cancel DO_DELAYED_READ
+                break;
+            case 0xFE:
+                log.debug "Unknown Event"
+                break;
+            default:
+                log.info "received an unhandled alarm report ZWave Alarm Type: {}, ZWave Alarm Event: {}", zWaveAlarmType, zWaveAlarmEvent
+                break;
+        }
+    } else {
+        log.info "received an unexpected alarm report ZWave Alarm Type: {}, ZWave Alarm Event: {}", zWaveAlarmType, zWaveAlarmEvent
+    }
+}
+
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get( 'zwaveversion' )
+    def roleType = message.command.get( 'roletype' )
+    def nodeType = message.command.get( 'nodetype' )
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+

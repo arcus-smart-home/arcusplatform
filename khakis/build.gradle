@@ -1,0 +1,29 @@
+apply from: 'build-release.gradle'
+
+version = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"
+ext.platformVersion = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"
+ext.dockerVersion = "${version_major}.${version_minor}.${version_patch}"
+println "Building v${platformVersion} for docker: ${dockerVersion}"
+
+task distDocker(type: Exec) {
+   commandLine 'bin/build.sh' 
+}
+
+task startPlatformContainers(type: Exec) {
+    dependsOn 'distDocker'
+    commandLine 'bin/start.sh'
+}
+
+task startPlatform(dependsOn: ['startPlatformContainers', ':iris2-modelmanager:run']) {
+}
+
+task startProdPlatform(type: Exec) {
+    dependsOn 'distDocker'
+    commandLine 'bin/start-prod.sh'
+}
+task stopPlatform(type: Exec) {
+   commandLine 'bin/stop.sh'
+}
+task stopProdPlatform(type: Exec) {
+    commandLine 'bin/stop-prod.sh'
+}

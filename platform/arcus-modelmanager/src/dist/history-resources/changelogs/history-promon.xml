@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="pro"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   <cl:changeset identifier="alarmHistoryTable" author="rob">
+      <cl:description>Creates the table for alarm history events to be appended</cl:description>
+      <cl:tracking>ITWO-9051</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_alarm_detailed (
+         incidentId timeuuid,
+         time timeuuid,
+         subjectAddress varchar,
+         messageKey varchar,
+         params list&lt;varchar&gt;,
+         PRIMARY KEY (incidentId, time)
+         ) 
+         WITH CLUSTERING ORDER BY (time DESC) 
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_alarm_detailed</cl:rollback>
+      </cl:cql>
+  </cl:changeset>
+</cl:changelog>

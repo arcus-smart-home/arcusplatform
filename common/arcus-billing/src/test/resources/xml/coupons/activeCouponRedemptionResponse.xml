@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GET https://:subdomain.recurly.com/v2/accounts/:account_code/redemption -->
+<redemption href="https://your-subdomain.recurly.com/v2/accounts/1/redemption">
+  <coupon href="https://your-subdomain.recurly.com/v2/coupons/special"/>
+  <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+  <single_use type="boolean">false</single_use>
+  <total_discounted_in_cents type="integer">0</total_discounted_in_cents>
+  <currency>USD</currency>
+  <state>active</state>
+  <created_at type="datetime">2011-06-27T12:34:56Z</created_at>
+</redemption>

@@ -1,0 +1,140 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Pendant (Help Button) device
+ * 
+ * Notes: When button state is set to PRESSED, it will automatically be reset to RELEASED 1 second later.
+ * 
+ */
+driver			"MOCK_Pendant"
+description		"Driver for a Pendant device"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Pendant"
+productId		"f93033"
+vendor 			"Mockitron"
+model 			"Pendant"
+
+matcher        'MOCK:Capability' : 'Pendant'
+matcher        'MOCK:ProductId'  : 'f93033'
+
+capabilities	DevicePower, Button, Presence, DeviceMock
+
+importCapability 'generic/PresenceDeviceConnection'
+
+def final long RELEASE_DELAY_MSEC = 1000		// simulate button RELEASED 1 second after PRESSED
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Pendant device started."
+	Device.name 'Mock Pendant'
+	
+	// set inital attribute values remove eventually
+	DeviceConnection.signal             38
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 40
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Button.state                        Button.STATE_RELEASED
+	Button.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Presence.presence                   Presence.PRESENCE_PRESENT
+	Presence.presencechanged            ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Presence.usehint                    Presence.USEHINT_UNKNOWN
+   Presence.person                     'UNSET'
+}
+
+onRemoved {
+	log.debug "Mock Pendant device removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('but') {
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Button.state:
+				if (Button.state.get() != attribute.value) {
+					Button.statechanged new Date()
+				}
+				Button.state attribute.value
+				// if value is PRESSED, do a delayed setting of the value to RELEASED
+				if (Button.STATE_PRESSED == attribute.value) {
+					log.debug "Button Pressed"
+					Scheduler.scheduleIn 'ReleaseButton', RELEASE_DELAY_MSEC
+				}
+				break
+			default:
+				log.error "Unrecognized Button attribute: " + attribute
+				break
+		}
+	}
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute: " + attribute
+      }
+   }
+}
+
+onEvent('ReleaseButton') {
+	Button.state Button.STATE_RELEASED
+	Button.statechanged new Date()
+	log.debug "Button Released"
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['but:state']) {
+    Button.statechanged new Date()
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

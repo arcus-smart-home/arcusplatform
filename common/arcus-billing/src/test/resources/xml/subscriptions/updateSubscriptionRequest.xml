@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PUT https://:subdomain.recurly.com/v2/subscriptions/:uuid -->
+<subscription>
+  <timeframe>now</timeframe>
+  <quantity>2</quantity>
+  <subscription_add_ons>
+    <subscription_add_on>
+      <add_on_code>ipaddresses</add_on_code>
+      <quantity>10</quantity>
+      <unit_amount_in_cents>150</unit_amount_in_cents>
+    </subscription_add_on>
+  </subscription_add_ons>
+</subscription>

@@ -1,0 +1,20 @@
+
+def sendBytes(byte commandClass, byte command) {
+	zwave.sendCommand(commandClass, command);
+}
+
+def sendBytes(byte commandClass, byte command, byte v1) {
+	zwave.sendCommand(commandClass, command, v1);
+}
+
+def sendNamed(String commandClass, String command, Map bytes=[:]) {
+	zwave.sendCommand(commandClass, command, bytes);
+}
+
+def sendArguments(Map<String, Object> arguments) {
+	zwave.sendCommand(arguments);
+}
+
+def sendViaAttributes(String commandClass, String command, bytes) {
+	zwave[commandClass][command](bytes);
+}

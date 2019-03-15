@@ -1,0 +1,4 @@
+# Double beep (decending fifth) when device is unpaired
+B5,100,70
+B5,0,70
+F#4,100,70

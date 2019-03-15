@@ -1,0 +1,390 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the Thermostat with no humidity
+ */
+import groovy.transform.Field
+
+driver           "MOCK_ThermostatNoHumidity"
+description      "Driver for the Mockitron Thermostat with no humidity capability"
+version          "2.4"
+protocol         "MOCK"
+deviceTypeHint   "Thermostat"
+productId        "840941"
+vendor           "Mockitron"
+model            "Thermostat Without Humidity Sensor"
+
+matcher          'MOCK:Capability' : 'ThermostatNoHumidity'
+matcher          'MOCK:ProductId'  : '840941'
+
+capabilities     DevicePower, Thermostat, Temperature, Clock, Indicator, DeviceMock
+
+def byte SETPOINT_SCALE_C       = 0x00
+def byte SETPOINT_SCALE_F       = 0x01
+def byte SETPOINT_PRECISION_0   = 0x00
+def byte SETPOINT_PRECISION_1   = 0x20
+def byte SETPOINT_PRECISION_2   = 0x40
+def byte SETPOINT_SIZE_1        = 0x01
+def byte SETPOINT_SIZE_2        = 0x02
+def byte SETPOINT_SIZE_4        = 0x04
+@Field def final double MAX_SETPOINT_C = 35.0
+@Field def final double MIN_SETPOINT_C = 1.67
+
+def final thermModes = ["OFF", "AUTO", "COOL", "HEAT", "ECO"]
+
+DeviceConnection.signal             34
+
+DevicePower.source                  DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.backupbatterycapable    true
+DevicePower.backupbattery           86
+DevicePower.battery                 0
+
+Thermostat.coolsetpoint             22.5
+Thermostat.heatsetpoint             20.5
+Thermostat.minsetpoint              MIN_SETPOINT_C
+Thermostat.maxsetpoint              MAX_SETPOINT_C
+Thermostat.setpointseparation       1.67
+Thermostat.supportedmodes           thermModes
+Thermostat.supportsAuto             true
+Thermostat.hvacmode                 Thermostat.HVACMODE_AUTO
+Thermostat.fanmode                  1
+Thermostat.maxfanspeed              1
+Thermostat.autofanspeed             1
+Thermostat.emergencyheat            Thermostat.EMERGENCYHEAT_OFF
+Thermostat.controlmode              Thermostat.CONTROLMODE_MANUAL
+Thermostat.filtertype               '16x25x1'
+Thermostat.filterlifespanruntime    300
+Thermostat.filterlifespandays       90
+Thermostat.runtimesincefilterchange 67
+Thermostat.dayssincefilterchange    53
+Thermostat.active                   Thermostat.ACTIVE_RUNNING
+
+Temperature.temperature             23.7
+
+Indicator.indicator                 Indicator.INDICATOR_OFF
+Indicator.enabled                   true
+Indicator.enableSupported           false
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+    log.debug "Mockitron Thermostat device started."
+    if( null == vars.'precision' ) vars.'precision' = 1
+    if( null == vars.'scale' ) vars.'scale' = 1
+    if( null == vars.'size' ) vars.'size' = 2
+    Device.name 'Mock Thermostat No Humidity'
+    
+    DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+    Calendar c = Calendar.getInstance()
+    Clock.year        c.get( Calendar.YEAR )
+    Clock.month       ( c.get( Calendar.MONTH )  + 1 )
+    Clock.day         c.get( Calendar.DAY_OF_MONTH )
+    Clock.hour        c.get( Calendar.HOUR_OF_DAY )
+    Clock.minute      c.get( Calendar.MINUTE )
+    Clock.second      c.get( Calendar.SECOND )
+    Clock.day_of_week c.get( Calendar.DAY_OF_WEEK )
+}
+ 
+onConnected {
+    log.debug "Mockitron Thermostat device connected."
+    
+}
+
+onDisconnected {
+    log.debug "Mockitron Thermostat device disconnected."
+    
+}
+
+onRemoved {
+    log.debug "Mockitron Thermostat device removed."
+}
+
+// ########### capability support ##################
+setAttributes('therm') {
+   attributes << message.attributes
+}
+
+setAttributes('temp') {
+    attributes << message.attributes
+}
+
+setAttributes('clock') {
+    attributes << message.attributes
+}
+
+setAttributes('indicator') {
+    attributes << message.attributes
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected()
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected()
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  
+  if( null == vars.'precision' ) vars.'precision' = 1
+  if( null == vars.'scale' ) vars.'scale' = 1
+  if( null == vars.'size' ) vars.'size' = 2
+  
+  def handledAttrs = []
+
+  for(attribute in message.attributes.attrs) {
+      log.debug 'key: ' + attribute.key + ' - value: ' + attribute.value
+      handledAttrs.add( attribute.key )
+      switch(attribute.key) {
+      case Thermostat.hvacmode:
+          Thermostat.hvacmode attribute.value
+          if( Thermostat.hvacmode.get() == Thermostat.HVACMODE_OFF )
+              Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+          break
+      case Thermostat.coolsetpoint:
+      case Thermostat.heatsetpoint:
+          double value = attribute.value
+          temp = Temperature.temperature.get()
+          
+          value /= Math.pow(10, vars.'precision')
+          
+          // temps communicated between the platform and the device will alway be in C
+          // so if the device reports a temp in F convert to C
+          if ( SETPOINT_SCALE_F == vars.'scale' ) {
+              value = 5 * (value-32) / 9
+          }
+          
+          value = Math.round( value * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+          
+          if( 'therm:coolsetpoint' == attribute.key ) {
+              Thermostat.coolsetpoint value
+              if( ( ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_AUTO ) ||
+                  ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_COOL ) ) &&
+                  ( temp > value ) ) {
+                  Thermostat.active Thermostat.ACTIVE_RUNNING
+                  break
+              }
+          } else {
+              Thermostat.heatsetpoint value
+              if( ( ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_AUTO ) ||
+                  ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_HEAT ) ) &&
+                  ( temp < value ) ) {
+                  Thermostat.active Thermostat.ACTIVE_RUNNING
+                  break
+              }
+          }
+          
+          Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+          break
+      case Thermostat.fanmode:
+          fan_mode = attribute.value
+          Thermostat.fanmode fan_mode
+          break
+      case Temperature.temperature:
+            // Remove "temp:temperature" from handledAttrs, so that it will be included in the emitted ValueChange event
+            handledAttrs.remove(attribute.key)
+
+            double temp = attribute.value
+          Temperature.temperature temp
+          if( ( ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_AUTO ) ||
+              ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_COOL ) ) &&
+              ( temp > Thermostat.coolsetpoint.get() ) ) {
+              Thermostat.active Thermostat.ACTIVE_RUNNING
+              break
+          }
+          
+          if( ( ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_AUTO ) ||
+              ( Thermostat.hvacmode.get() == Thermostat.HVACMODE_HEAT ) ) &&
+              ( temp < Thermostat.heatsetpoint.get() ) ) {
+              Thermostat.active Thermostat.ACTIVE_RUNNING
+              break
+          }
+              
+          Thermostat.active Thermostat.ACTIVE_NOTRUNNING  
+          break
+      case DevicePower.backupbattery:
+          DevicePower.backupbattery attribute.value
+          break
+      default:
+          // TODO throw an exception?
+            handledAttrs.remove( attribute.key )
+          log.error 'Mockitron Thermostat driver setAttributes Unrecognized attribute: ' + attribute
+      }
+  }
+  for( attr in handledAttrs ) message.attributes.attrs.remove( attr )
+  attributes << message.attributes.attrs
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onThermostat.changeFilter {
+    vars.'filterChangeDate' = Calendar.getInstance().getTimeInMillis()
+    vars.'filterRuntimeTotal' = 0
+    Thermostat.dayssincefilterchange 0
+    Thermostat.runtimesincefilterchange 0
+}
+
+onEvent('DevicePower.BackupBattery') {
+    log.debug 'Mockitron Thermostat driver received backup battery event'
+    DevicePower.source DevicePower.SOURCE_BACKUPBATTERY
+}
+
+onEvent('DevicePower.LinePowerRestored') {
+    log.debug 'Mockitron Thermostat driver received line power restored event'
+    DevicePower.source DevicePower.SOURCE_LINE
+}
+
+
+onThermostat.SetIdealTemperature {
+   def newIdeal = message.attributes['temperature']
+   newIdeal = Math.round( newIdeal * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+   def curMode = Thermostat.hvacmode.get()
+   def result = false
+
+   def prevIdeal
+   if(curMode == Thermostat.HVACMODE_COOL) {
+      prevIdeal = Thermostat.coolsetpoint.get()
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.coolsetpoint newIdeal
+      }
+   } else if(curMode == Thermostat.HVACMODE_HEAT) {
+      prevIdeal = Thermostat.heatsetpoint.get()
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.coolsetpoint newIdeal
+      }
+   } else if(curMode == Thermostat.HVACMODE_AUTO) {
+      prevIdeal = (Thermostat.coolsetpoint.get() + Thermostat.heatsetpoint.get()) / 2
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         def tmpF = ((newIdeal * 9) / 5) + 32
+         def cool = ((((tmpF + 2) - 32) / 9) * 5)
+         def heat = ((((tmpF - 2) - 32) / 9) * 5)
+         Thermostat.coolsetpoint Math.round( cool * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+         Thermostat.heatsetpoint Math.round( heat * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   }
+   sendResponse 'therm:SetIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': (Double)newIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'minSetPoint': MIN_SETPOINT_C,
+      'maxSetPoint': MAX_SETPOINT_C
+   ]
+}
+
+onThermostat.IncrementIdealTemperature {
+   def temp = message.attributes['amount']
+   def curMode = Thermostat.hvacmode.get()
+
+   def result = false
+   def prevIdeal
+   def newIdeal
+   if(curMode == Thermostat.HVACMODE_COOL) {
+      prevIdeal = Thermostat.coolsetpoint.get()
+      newIdeal = prevIdeal + temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.coolsetpoint Math.round( newIdeal * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   } else if(curMode == Thermostat.HVACMODE_HEAT) {
+      prevIdeal = Thermostat.heatsetpoint.get()
+      newIdeal = prevIdeal + temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.heatsetpoint Math.round( newIdeal * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   } else if(curMode == Thermostat.HVACMODE_AUTO) {
+      prevIdeal = (Thermostat.coolsetpoint.get() + Thermostat.heatsetpoint.get()) / 2
+      newIdeal = prevIdeal + temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         def tmpF = ((newIdeal * 9) / 5) + 32
+         def cool = ((((tmpF + 2) - 32) / 9) * 5)
+         def heat = ((((tmpF - 2) - 32) / 9) * 5)
+         Thermostat.coolsetpoint Math.round( cool * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+         Thermostat.heatsetpoint Math.round( heat * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   }
+   sendResponse 'therm:IncrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': (Double)newIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'minSetPoint': MIN_SETPOINT_C,
+      'maxSetPoint': MAX_SETPOINT_C
+   ]
+}
+
+onThermostat.DecrementIdealTemperature {
+   def temp = message.attributes['amount']
+   def curMode = Thermostat.hvacmode.get()
+
+   def prevIdeal
+   def newIdeal
+   def result = false
+   if(curMode == Thermostat.HVACMODE_COOL) {
+      prevIdeal = Thermostat.coolsetpoint.get()
+      newIdeal = prevIdeal - temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.coolsetpoint Math.round( newIdeal * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   } else if(curMode == Thermostat.HVACMODE_HEAT) {
+      prevIdeal = Thermostat.heatsetpoint.get()
+      newIdeal = prevIdeal - temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         Thermostat.heatsetpoint Math.round( newIdeal * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   } else if(curMode == Thermostat.HVACMODE_AUTO) {
+      prevIdeal = (Thermostat.coolsetpoint.get() + Thermostat.heatsetpoint.get()) / 2
+      newIdeal = prevIdeal - temp
+      result = shouldSetIdeal(newIdeal, prevIdeal)
+      if(result) {
+         def tmpF = ((newIdeal * 9) / 5) + 32
+         def cool = ((((tmpF + 2) - 32) / 9) * 5)
+         def heat = ((((tmpF - 2) - 32) / 9) * 5)
+         Thermostat.coolsetpoint Math.round( cool * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+         Thermostat.heatsetpoint Math.round( heat * Math.pow(10, vars.'precision') ) / Math.pow(10, vars.'precision')
+      }
+   }
+   sendResponse 'therm:DecrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': (Double)newIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'minSetPoint': MIN_SETPOINT_C,
+      'maxSetPoint': MAX_SETPOINT_C
+   ]
+}
+
+boolean shouldSetIdeal(def newIdeal, def prevIdeal) {
+   if(newIdeal < MIN_SETPOINT_C || newIdeal > MAX_SETPOINT_C) {
+      return false
+   }
+   return true
+}
+

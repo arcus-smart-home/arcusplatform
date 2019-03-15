@@ -1,0 +1,250 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+capability		Switch
+description		"Default implementation for the Zigbee Switch capability"
+version			"2.9"
+
+@Field static final int   MAX_READBACK_CNT        = 9
+@Field static final long  SET_ON_DELAY_MSEC       = 400			// wait this long after setting Level before setting On/Off to ON
+@Field static final long  READBACK_DELAY_MSEC     = 750			// wait twice this interval before reading back settings, and then keap reading back at this interval until target values reached, or max readback count is reached
+@Field static final long  CNFG_RETRY_DELAY_MSEC   = 10000
+@Field static final String TARGET_STATE           = 'targetState'
+
+@Field static final String DEFERRED_ON_EVENT      = 'DeferredSetOn'
+@Field static final String READ_SWITCH_EVENT      = 'DeferredSwitchRead'
+@Field static final String DEFERRED_CNFG_ONOFF_EVENT = 'DeferredCnfgOnOff'
+@Field static final String DEFERRED_CNFG_LEVEL_EVENT = 'DeferredCnfgLevel'
+
+@Field static final String READ_SWITCH_COUNTER    = 'readSwitchCnt'
+
+@Field static final short PROFILE_HA              = 0x0104
+@Field static final short CLUSTER_ON_OFF          = 0x0006
+
+@Field static final int MAX_CNFG_ATTEMPTS                = 10               // maximumn number of attempts to make trying to configure reporting
+@Field static final String CNFG_ONOFF_RPT                = 'CnfgOnOffRpt'   // name of the report
+@Field static final byte CMD_CNFG_RPT             = 0x06		         // General Command Frame - Configure Reporting
+@Field static final byte CMD_CNFG_RPT_RSP         = 0x07		         // General Command Frame - Configure Reporting Response
+@Field static final byte CMD_READ_RPT_CNFG        = 0x08		         // General Command Frame - Read Reporting Configuration
+@Field static final byte CMD_READ_RPT_CNFG_RSP    = 0x09		         // General Command Frame - Read Reporting Configuration Response
+
+@Field static final byte SWITCH_ON = 0xff
+@Field static final byte SWITCH_OFF = 0x00
+@Field static final byte SWITCH_NOTSET = 0x02
+
+static void handleOnConnected(ctx,onOffCluster) {
+   // read current OnOff attributes
+   onOffCluster.zclReadAttributes(ctx.onOffCluster.ATTR_ONOFF )
+
+   // configure reporting of OnOff cluster OnOff attribute
+   ctx.vars.CNFG_ONOFF_RPT = 0
+   ctx.Scheduler.defer CNFG_ONOFF_RPT
+}
+
+static void handleOnCfgOnOffReport(ctx) {
+   if ((0 <= ctx.vars.CNFG_ONOFF_RPT) && (MAX_CNFG_ATTEMPTS > ctx.vars.CNFG_ONOFF_RPT)) {
+      ctx.log.debug "{}:{}", CNFG_ONOFF_RPT, ctx.vars.CNFG_ONOFF_RPT
+      // configure reporting of OnOff cluster OnOff attribute
+      byte[] rptOnOffCnfgBytes = [
+              // Dir (0x00)
+              0x00,
+              // Attr Id (0x0000) OnOff
+              0x00, 0x00,
+              // Attr Data Type (0x10) Boolean
+              0x10,
+              // Min Interval (0x0001) 1 secs (at most once a second)
+              0x01, 0x00,
+              // Max Interval (0x0078) 120 secs (at least once every 2 minutes)
+              0x78, 0x00 ]
+      ctx.Zigbee.send(
+              "cluster" : CLUSTER_ON_OFF,
+              "command" : CMD_CNFG_RPT,
+              "profile" : PROFILE_HA,
+              "endpoint" : 1,
+              "clusterspecific" : false,
+              "defaultresponse" : true,
+              "data" : rptOnOffCnfgBytes )
+      // schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+      ctx.vars.CNFG_ONOFF_RPT++
+      ctx.Scheduler.scheduleIn CNFG_ONOFF_RPT, (CNFG_RETRY_DELAY_MSEC * ctx.vars.CNFG_ONOFF_RPT)
+   }
+}
+
+static void handleSetAttributes( ctx, onOffCluster, message ) {
+   ctx.log.debug "Generic zb switch setAttributes message: {}", message
+   byte onoff = SWITCH_NOTSET
+
+   def attributes = message.attributes
+   for(attribute in attributes) {
+      switch(attribute.key) {
+         case ctx.Switch.state:
+            onoff = attribute.value == ctx.Switch.STATE_ON ? SWITCH_ON : SWITCH_OFF
+            break
+
+         case ctx.Device.name:
+            ctx.Device.name attribute.value
+            break
+
+         default:
+            break
+      }
+   }
+
+   if (SWITCH_OFF == onoff) {
+      ctx.log.trace "Set device to OFF"
+      setDeviceToOff( ctx, onOffCluster )
+   } else {
+      ctx.log.trace "Set device to ON"
+      setDeviceToOn( ctx, onOffCluster )
+   }
+}
+
+static boolean handleOnZigbeeMessage(ctx, profile, clusterId, msgId, endpoint, data) {
+   // if Config Reporting Response for On/Off cluster,
+   if ((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+      if ((0 < data.length) && (0 == data[0])) {
+         ctx.log.debug "On/Off reporting config was successful"
+         // set flag to disable future attempts to configure reporting
+         ctx.vars.CNFG_ONOFF_RPT = -1
+      } else {
+         ctx.log.warn "On/Off reporting config FAILED: ${data}"
+      }
+      return true
+   }
+   return false
+}
+
+static void handleDeferredOnEvent(ctx, onOffCluster) {
+   onOffCluster.on()
+}
+
+//
+// Use this handler if Switch State can be changed locally on device so any unexpected states should be saved,
+// for example, with Sengled light bulbs which have a local switch, or dimmer modules.
+//
+static void handleOnOffMsg(ctx, onOffCluster, msg) {
+   ctx.log.trace "Generic driver received OnOff Attributes: {}", msg
+   def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+   def onoff = attributes[onOffCluster.ATTR_ONOFF]
+   ctx.log.trace "OnOff: {}", onoff
+
+   if (onoff != null) {
+      def prevState = ctx.Switch.state.get()
+      def currState = onoff ? ctx.Switch.STATE_ON : ctx.Switch.STATE_OFF
+
+      if (!waitingForReadSwitch(ctx)) {
+         ctx.Switch.state currState
+      } else {
+         // if current device state matches target, we are done with any switch (on/off) readbacks
+         if (currState == getTargetState(ctx)) {
+            ctx.Switch.state currState
+            clearReadSwitchCnt(ctx)
+         } else {
+            ctx.log.trace "Generic ignoring reported state {} while waiting for device to report {}", currState, getTargetState(ctx)
+         }
+      }
+      // if state changed, capture timestamp
+      if (ctx.Switch.state.get() != prevState) {
+         ctx.Switch.statechanged new Date()
+      }
+   }
+}
+
+
+////////////////////////////////////////////////
+//Switch Reading
+////////////////////////////////////////////////
+static int getReadSwitchCnt(ctx) {
+   if (null == ctx.vars[READ_SWITCH_COUNTER])
+      ctx.vars[READ_SWITCH_COUNTER] = -1
+   return ctx.vars[READ_SWITCH_COUNTER]
+}
+
+// clear Read Switch counter because we are no longer trying to read back On/Off setting
+static void clearReadSwitchCnt(ctx) {
+   if (0 <= getReadSwitchCnt(ctx))
+      ctx.Scheduler.cancel READ_SWITCH_EVENT
+   ctx.vars[READ_SWITCH_COUNTER] = -1
+}
+
+static void incReadSwitchCnt(ctx) {
+   int readCnt = getReadSwitchCnt(ctx)
+   ctx.vars[READ_SWITCH_COUNTER] = ++readCnt
+}
+
+static void resetReadSwitchCnt(ctx) {
+   if (0 != getReadSwitchCnt(ctx))
+      ctx.Scheduler.cancel READ_SWITCH_EVENT
+   ctx.vars[READ_SWITCH_COUNTER] = 0
+}
+
+// check if readback loop has reached end
+static boolean readSwitchDone(ctx) {
+   return (getReadSwitchCnt(ctx) >= MAX_READBACK_CNT)
+}
+
+// check if we are waiting to readback a switch state because a command was recently sent
+// NOTE: returns false if counter has been cleared (-1) so not expecting any response
+static boolean waitingForReadSwitch(ctx) {
+   return ((0 <= getReadSwitchCnt(ctx)) && !readSwitchDone(ctx))
+}
+
+// call to determine if another On/Off readback request should be sent
+static boolean shouldReadSwitchAgain(ctx) {
+   if (waitingForReadSwitch(ctx)) {
+      incReadSwitchCnt(ctx)
+      return true
+   }
+   return false
+}
+
+static void handleReadSwitchEvent(ctx, onOffCluster) {
+   if (shouldReadSwitchAgain(ctx)) {
+      onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+      ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, READBACK_DELAY_MSEC
+   }
+}
+
+//////////////////////////////////////////////
+//Switch setting
+//////////////////////////////////////////////
+static void setTargetState( ctx, state ) {
+   ctx.log.trace "setTargetState:{}", state
+   ctx.vars[TARGET_STATE] = state
+}
+
+static def getTargetState( ctx ) {
+   if (null == ctx.vars[TARGET_STATE])
+      ctx.vars[TARGET_STATE] = ctx.Switch.STATE_ON
+   return ctx.vars[TARGET_STATE]
+}
+
+static void setDeviceToOff(ctx, onOffCluster) {
+   ctx.log.trace "Generic Set device to OFF"
+   setTargetState( ctx, ctx.Switch.STATE_OFF )
+   onOffCluster.off()
+   resetReadSwitchCnt(ctx)
+   ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, (READBACK_DELAY_MSEC * 2)
+}
+
+static void setDeviceToOn(ctx, onOffCluster) {
+   ctx.log.trace "Generic Set device to ON"
+   setTargetState( ctx, ctx.Switch.STATE_ON )
+   onOffCluster.on()
+   resetReadSwitchCnt(ctx)
+   ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, (READBACK_DELAY_MSEC * 2)
+}
+

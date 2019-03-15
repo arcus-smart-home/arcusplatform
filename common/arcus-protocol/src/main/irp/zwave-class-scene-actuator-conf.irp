@@ -1,0 +1,21 @@
+
+message zwave.SceneActuatorConf.SceneActuatorConfGetV1<id="0x02", group="V1"> {
+    u8 sceneId;
+}
+
+message zwave.SceneActuatorConf.SceneActuatorConfReportV1<id="0x03", group="V1"> {
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    u8 sceneId;
+    u8 level;
+    u8 dimmingDuration;
+}
+
+message zwave.SceneActuatorConf.SceneActuatorConfSetV1<id="0x01", group="V1"> {
+    const u8 DIMMING_DURATION_SPECIFY_INSTANTLY = 0x00;
+    const u8 DIMMING_DURATION_FACTORY_DEFAULT = 0xFF;
+    const u8 LEVEL2_OVERRIDE = 0x80;
+    u8 sceneId;
+    u8 dimmingDuration;
+    u8 level2;
+    u8 level;
+}

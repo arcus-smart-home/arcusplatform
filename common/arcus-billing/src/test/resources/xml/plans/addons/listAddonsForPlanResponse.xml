@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	For individual addons use:
+	GET https://:subdomain.recurly.com/v2/plans/:plan_code/add_ons/:addon_code
+		Uses <add_on> as root tag
+
+	For all addons on a plan:
+	GET https://:subdomain.recurly.com/v2/plans/:plan_code/add_ons
+		Uses <add_ons> as root tag
+-->
+<add_ons type="array">
+  <add_on href="https://your-subdomain.recurly.com/v2/plans/gold/add_ons/ipaddresses">
+    <plan href="https://your-subdomain.recurly.com/v2/plans/gold"/>
+    <add_on_code>ipaddresses</add_on_code>
+    <name>IP Addresses</name>
+    <display_quantity_on_hosted_page type="boolean">false</display_quantity_on_hosted_page>
+    <default_quantity type="integer">1</default_quantity>
+    <unit_amount_in_cents>
+      <USD>200</USD>
+    </unit_amount_in_cents>
+    <created_at type="datetime">2011-06-28T12:34:56Z</created_at>
+  </add_on>
+  <!-- Continued... -->
+</add_ons>

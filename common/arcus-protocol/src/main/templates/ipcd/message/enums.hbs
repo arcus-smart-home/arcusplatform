@@ -1,0 +1,17 @@
+{{#file . "com/iris/protocol/ipcd/message/model/{{capitalize name}}.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+public enum {{capitalize name}} {
+   {{#values}}{{value}}{{#unless @last}}, {{/unless}}
+   {{/values}};
+   
+   public static {{capitalize name}} fromString(String value) {
+      for ({{capitalize name}} e : {{capitalize name}}.values()) {
+      	if (e.name().equalsIgnoreCase(value)) {
+      		return e;
+      	}
+      }
+      return null;
+   }
+}
+{{/file}}

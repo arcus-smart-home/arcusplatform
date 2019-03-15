@@ -1,0 +1,573 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+driver          "IPCDAOSmithWaterHeaterB2"
+description     "Driver for A.O. Smith Water Heater Controller on Heat Pump Water Heater"
+version         "2.10"
+protocol        "IPCD"
+deviceTypeHint  "WaterHeater"
+vendor          "A.O. Smith"
+model           "B2.00"
+productId       "cf441c"
+matcher         'IPCD:vendor' : 'A.O. Smith', 'IPCD:model' : 'B2.00'
+
+capabilities    DevicePower, 'WaterHeater', 'AOSmithWaterHeaterController', 'WiFi'
+
+
+/////////////////// Constants ///////////////////////
+@Field def final DEV_NAME = "Water Heater"
+@Field def final DEV_TYPE = "water heater"
+@Field def final VALUE_CHANGES = "valueChanges"
+
+@Field def final WATCHDOG_TIMEOUT = 300000 // 300 seconds = 5 minutes. 
+
+// PARAMETERS
+@Field def final ATTR_DEVICE_TEXT        = "aos.devicetext"
+@Field def final ATTR_PASSWORD           = "aos.password"
+@Field def final ATTR_MODULE_API         = "aos.moduleapi"
+@Field def final ATTR_MOD_FW_VER         = "aos.modfwver"
+@Field def final ATTR_MASTER_FW_VER      = "aos.masterfwver"
+@Field def final ATTR_MASTER_MODEL_ID    = "aos.mastermodelid"
+@Field def final ATTR_DISPLAY_FW_VER     = "aos.displayfwver"
+@Field def final ATTR_WIFI_FW_VER        = "aos.wififwver"
+@Field def final ATTR_UPDATE_RATE        = "aos.updaterate"
+@Field def final ATTR_MODE               = "aos.mode"
+@Field def final ATTR_AVAILABLE_MODES    = "aos.availablemodes"
+@Field def final ATTR_SET_POINT          = "aos.setpoint"
+@Field def final ATTR_UNITS              = "aos.units"
+@Field def final ATTR_LEAK_DETECT        = "aos.leakdetect"
+@Field def final ATTR_GRID               = "aos.grid"
+@Field def final ATTR_MAX_SET_POINT      = "aos.maxsetpoint"
+@Field def final ATTR_HOT_WATER_VOL      = "aos.hotwatervol"
+@Field def final ATTR_SYSTEM_IN_HEATING  = "aos.systeminheating"
+@Field def final ATTR_LEAK               = "aos.leak"
+@Field def final ATTR_DRY_FIRE           = "aos.dryfire"
+@Field def final ATTR_ELEMENT_FAIL       = "aos.elementfail"
+@Field def final ATTR_TANK_SENSOR_FAIL   = "aos.tanksensorfail"
+@Field def final ATTR_ECO_ERROR          = "aos.ecoerror"
+@Field def final ATTR_MASTER_DISP_FAIL   = "aos.masterdispfail"
+@Field def final ATTR_SIGNAL_STRENGTH    = "aos.signalstrength"
+
+// CAPABILITY VALUES
+@Field def final CAP_HOTWATERLEVEL_LOW           = "LOW"
+@Field def final CAP_HOTWATERLEVEL_MEDIUM        = "MEDIUM"
+@Field def final CAP_HOTWATERLEVEL_HIGH          = "HIGH"
+
+@Field def final CAP_CONTROLMODE_STANDARD        = "STANDARD"
+@Field def final CAP_CONTROLMODE_VACATION        = "VACATION"
+@Field def final CAP_CONTROLMODE_ENERGY_SMART    = "ENERGY_SMART"
+
+@Field def final CAP_UNITS_F                     = "F"
+@Field def final CAP_UNITS_C                     = "C"
+
+@Field def final CAP_ELEMENTFAIL_NONE            = "NONE"
+@Field def final CAP_ELEMENTFAIL_UPPER           = "UPPER"
+@Field def final CAP_ELEMENTFAIL_LOWER           = "LOWER"
+@Field def final CAP_ELEMENTFAIL_UPPER_LOWER     = "UPPER_LOWER"
+
+@Field def final CAP_TANKSENSORFAIL_NONE         = "NONE"
+@Field def final CAP_TANKSENSORFAIL_UPPER        = "UPPER"
+@Field def final CAP_TANKSENSORFAIL_LOWER        = "LOWER"
+@Field def final CAP_TANKSENSORFAIL_UPPER_LOWER  = "UPPER_LOWER"
+
+@Field def final CAP_MASTERDISPFAIL_NONE         = "NONE"
+@Field def final CAP_MASTERDISPFAIL_MASTER       = "MASTER"
+@Field def final CAP_MASTERDISPFAIL_DISPLAY      = "DISPLAY"
+
+@Field def final CAP_LEAKDETECT_DISABLED         = "DISABLED"
+@Field def final CAP_LEAKDETECT_ENABLED          = "ENABLED"
+@Field def final CAP_LEAKDETECT_NOTDETECTED      = "NOTDETECTED"
+
+@Field def final CAP_LEAK_NONE                   = "NONE"
+@Field def final CAP_LEAK_DETECTED               = "DETECTED"
+@Field def final CAP_LEAK_UNPLUGGED              = "UNPLUGGED"
+@Field def final CAP_LEAK_ERROR                  = "ERROR"
+
+//// A.O. Smith VALUES
+@Field def final ATTR_SYSTEM_IN_HEATING_TRUE        = "True"
+@Field def final ATTR_SYSTEM_IN_HEATING_FALSE       = "False"
+
+@Field def final ATTR_MODE_STANDARD                 = "Standard"
+@Field def final ATTR_MODE_VACATION                 = "Vacation"
+@Field def final ATTR_MODE_ENERGY_SMART             = "EnergySmart"
+
+@Field def final ATTR_LEAK_DETECT_DISABLED          = "Disabled"
+@Field def final ATTR_LEAK_DETECT_ENABLED           = "Enabled"
+@Field def final ATTR_LEAK_DETECT_NOTDETECTED      = "NotDetected"
+
+@Field def final ATTR_GRID_DISABLED                 = "Disabled"
+@Field def final ATTR_GRID_ENABLED                  = "Enabled"
+
+@Field def final ATTR_HOT_WATER_VOL_LOW             = "Low"
+@Field def final ATTR_HOT_WATER_VOL_MEDIUM          = "Medium"
+@Field def final ATTR_HOT_WATER_VOL_HIGH            = "High"
+
+@Field def final ATTR_LEAK_NONE                     = "None"
+@Field def final ATTR_LEAK_DETECTED                 = "Detected"
+@Field def final ATTR_LEAK_UNPLUGGED                = "Unplugged"
+@Field def final ATTR_LEAK_ERROR                    = "Error"
+
+@Field def final ATTR_DRY_FIRE_NONE                 = "None"
+@Field def final ATTR_DRY_FIRE_DETECTED             = "Detected"
+
+@Field def final ATTR_ELEMENT_FAIL_NONE             = "None"
+@Field def final ATTR_ELEMENT_FAIL_UPPER            = "Upper"
+@Field def final ATTR_ELEMENT_FAIL_LOWER            = "Lower"
+@Field def final ATTR_ELEMENT_FAIL_UPPER_LOWER      = "Upper_Lower"
+
+@Field def final ATTR_TANK_SENSOR_FAIL_NONE         = "None"
+@Field def final ATTR_TANK_SENSOR_FAIL_LOWER        = "Lower"
+@Field def final ATTR_TANK_SENSOR_FAIL_UPPER        = "Upper"
+@Field def final ATTR_TANK_SENSOR_FAIL_UPPER_LOWER  = "Upper_Lower"
+
+@Field def final ATTR_ECO_ERROR_FALSE               = "False"
+@Field def final ATTR_ECO_ERROR_TRUE                = "True"
+
+@Field def final ATTR_MASTER_DISP_FAIL_NONE         = "None"
+@Field def final ATTR_MASTER_DISP_FAIL_MASTER       = "Master"
+@Field def final ATTR_MASTER_DISP_FAIL_DISPLAY      = "Display"
+
+@Field def final ERROR_O1 ="Dry fire risk as there is an insufficient amount of water in tank."
+@Field def final ERROR_02="The water temperature in the tank has exceeded 170°F. "
+@Field def final ERROR_03="The upper temperature sensor in your hot water heater has failed. "
+@Field def final ERROR_04="The upper heating element in your hot water heater has failed."
+@Field def final ERROR_05="The lower heating element in your hot water heater has failed."
+@Field def final ERROR_06="The electronic thermostat in your hot water heater has failed. "
+@Field def final ERROR_07="The lower temperature sensor in your hot water heater has failed. "
+@Field def final ERROR_08="Energy Smart Module (ESM) periodic test has failed."
+@Field def final ERROR_09="The electronic thermostat in your hot water heater has reported an error."
+@Field def final ERROR_10="The electronic thermostat in your hot water heater has reported an error."
+@Field def final ERROR_11="The electronic thermostat in your hot water heater has reported an error."
+@Field def final ERROR_12="The electronic thermostat in your hot water heater has reported an error."
+@Field def final ERROR_51="The Energy Smart Module on your hot water heater has failed."
+@Field def final ERROR_52="The Energy Smart Module on your hot water heater is not working properly."
+@Field def final ERROR_71="The Energy Smart Module thermistor on your hot water heater has failed. "
+
+
+/////////////////// Driver Lifecycle ////////////////
+
+onAdded {
+   log.debug DEV_NAME + " " + DEV_TYPE + " added."
+   Device.name DEV_NAME
+
+   initialize()
+   getAll()
+   increaseSpeed(10)
+   startWatchDog()
+}
+
+
+void initialize() {
+   DevicePower.source                DevicePower.SOURCE_LINE
+   DevicePower.linecapable           true
+   DevicePower.backupbatterycapable  false
+   DevicePower.sourcechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   
+   WaterHeater.heatingstate          false
+   WaterHeater.maxsetpoint           100
+   WaterHeater.setpoint              100
+   WaterHeater.hotwaterlevel         CAP_HOTWATERLEVEL_MEDIUM
+   
+   AOSmithWaterHeaterController.updaterate      60
+   AOSmithWaterHeaterController.units           CAP_UNITS_C
+   AOSmithWaterHeaterController.controlmode     CAP_CONTROLMODE_STANDARD
+   AOSmithWaterHeaterController.leakdetect      CAP_LEAKDETECT_NOTDETECTED
+   AOSmithWaterHeaterController.leak            CAP_LEAK_NONE
+   AOSmithWaterHeaterController.gridenabled     false
+   AOSmithWaterHeaterController.dryfire         false
+   AOSmithWaterHeaterController.elementfail     CAP_ELEMENTFAIL_NONE
+   AOSmithWaterHeaterController.tanksensorfail  CAP_TANKSENSORFAIL_NONE  
+   AOSmithWaterHeaterController.ecoerror        false
+   AOSmithWaterHeaterController.masterdispfail  CAP_MASTERDISPFAIL_NONE
+
+   AOSmithWaterHeaterController.modelnumber     Ipcd.Attributes.modelcode
+   AOSmithWaterHeaterController.serialnumber    Ipcd.Attributes.serialcode
+   
+   WiFi.ssid        "Unknown"
+   WiFi.rssi        "0"
+   WiFi.enabled     true
+   WiFi.state       "CONNECTED"
+   WiFi.bssid       "Unknown"
+   WiFi.security    "NONE"
+   WiFi.channel     "0"
+   WiFi.noise       "0"
+   
+}
+
+void getAll() {
+   log.debug DEV_NAME + "Getting all parameters."
+   
+   // No parameter call retrieves all parameter values.
+   Ipcd.Commands.getParameterValues()
+}
+
+void increaseSpeed(speed) {
+            Ipcd.Commands.setParameterValues([ (ATTR_UPDATE_RATE) : speed ])
+}
+
+onDisconnected {
+   log.debug DEV_NAME + " Disconnected."
+}
+
+onRemoved {
+   Ipcd.Commands.factoryReset()
+   log.debug DEV_NAME + " Removed."
+}
+
+////////////// Capabilities ///////////////
+
+setAttributes('waterheater') {
+   def attrs = message.attributes
+   log.debug DEV_NAME + " :: setAttributes :: " + attrs
+   
+   for (attribute in attrs) {
+      switch(attribute.key) {
+         case WaterHeater.setpoint:
+            Ipcd.Commands.setParameterValues([ (ATTR_SET_POINT) : attribute.value ])
+            break;
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+setAttributes('aosmithwaterheatercontroller') {
+   def attrs = message.attributes
+   log.debug DEV_NAME + " :: setAttributes :: " + attrs
+   
+   for (attribute in attrs) {
+      switch(attribute.key) {
+         case AOSmithWaterHeaterController.updaterate:
+            Ipcd.Commands.setParameterValues([ (ATTR_UPDATE_RATE) : attribute.value ])
+            break
+         case AOSmithWaterHeaterController.units:
+            Ipcd.Commands.setParameterValues([ (ATTR_UNITS) : attribute.value ])
+            break
+         case AOSmithWaterHeaterController.controlmode:
+            def capModeValue = attribute.value;
+            def ipcdModeValue = "";
+            if (CAP_CONTROLMODE_STANDARD.equalsIgnoreCase(capModeValue)) {
+               ipcdModeValue = ATTR_MODE_STANDARD
+            }
+            else if (CAP_CONTROLMODE_VACATION.equalsIgnoreCase(capModeValue)) {
+               ipcdModeValue = ATTR_MODE_VACATION
+            }
+            else {
+               ipcdModeValue = ATTR_MODE_ENERGY_SMART   
+            }
+            Ipcd.Commands.setParameterValues([ (ATTR_MODE) : ipcdModeValue ])
+            break
+         case AOSmithWaterHeaterController.leakdetect:
+            Ipcd.Commands.setParameterValues([ (ATTR_LEAK_DETECT) : attribute.value ])
+            break
+         case AOSmithWaterHeaterController.modelnumber:
+            AOSmithWaterHeaterController.modelnumber attribute.value
+            break
+         case AOSmithWaterHeaterController.serialnumber:
+            AOSmithWaterHeaterController.serialnumber attribute.value
+            break
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+///////////// Protocol Message Handling ////////////////////////
+
+onIpcdMessage.event {
+	resetWatchDog()
+   def eventMap = message.mapify()
+   log.debug("Got event from IPCD Device " + eventMap)
+   if (eventMap.containsKey(VALUE_CHANGES)) {
+      def valueChanges = eventMap[VALUE_CHANGES]
+      for (valueChange in valueChanges) {
+         update(valueChange["parameter"], valueChange["value"] )
+      }
+   }
+   checkErrors()
+}
+
+onIpcdMessage.report {
+	resetWatchDog()
+   log.debug("Got report from IPCD Device " + message) 
+   def reportMap = message.mapify()["report"]
+   for (value in reportMap) {
+      update(value.key, value.value)
+   }
+   checkErrors()
+}
+
+onIpcdMessage.response.getParameterValues("success") {
+	resetWatchDog()
+   log.debug("Got Response from IPCD Device " + message)
+   def response = message.mapify()["response"]
+   for (value in response) {
+      update(value.key, value.value)
+   }
+   checkErrors()
+}
+
+///////////// Utility Methods //////////////////////////////////
+
+void update(param, value) {
+   if (value == null) {
+      log.error( "Parameter {} has invalid null value", param )
+      return
+   }
+
+   // log.debug( "Updating {} to value {}", param, value )
+   
+   if (param == ATTR_SYSTEM_IN_HEATING) {
+      if (value.equalsIgnoreCase( ATTR_SYSTEM_IN_HEATING_TRUE )) {
+         WaterHeater.heatingstate( true )
+      }
+      else if (value.equalsIgnoreCase( ATTR_SYSTEM_IN_HEATING_FALSE )) {
+         WaterHeater.heatingstate( false )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   } 
+   else if (param == ATTR_MAX_SET_POINT) {
+      WaterHeater.maxsetpoint( value )
+   }
+   else if (param == ATTR_SET_POINT) {
+      WaterHeater.setpoint( value )
+   }
+   else if (param == ATTR_HOT_WATER_VOL) {
+      if (value.equalsIgnoreCase( ATTR_HOT_WATER_VOL_HIGH )) {
+         WaterHeater.hotwaterlevel( CAP_HOTWATERLEVEL_HIGH )
+      }
+      else if (value.equalsIgnoreCase( ATTR_HOT_WATER_VOL_MEDIUM )) {
+         WaterHeater.hotwaterlevel( CAP_HOTWATERLEVEL_MEDIUM )
+      }
+      else if (value.equalsIgnoreCase( ATTR_HOT_WATER_VOL_LOW )) {
+         WaterHeater.hotwaterlevel( CAP_HOTWATERLEVEL_LOW )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_UPDATE_RATE) {
+      AOSmithWaterHeaterController.updaterate( value )
+   }
+   else if (param == ATTR_UNITS) {
+      AOSmithWaterHeaterController.units( value )
+   }
+   else if (param == ATTR_MODE) {
+      if (value.equalsIgnoreCase( ATTR_MODE_ENERGY_SMART )) {
+         AOSmithWaterHeaterController.controlmode( CAP_CONTROLMODE_ENERGY_SMART )
+      }
+      else if (value.equalsIgnoreCase( ATTR_MODE_VACATION )) {
+         AOSmithWaterHeaterController.controlmode( CAP_CONTROLMODE_VACATION )
+      }
+      else if (value.equalsIgnoreCase( ATTR_MODE_STANDARD )) {
+         AOSmithWaterHeaterController.controlmode( CAP_CONTROLMODE_STANDARD )
+      }
+      else {
+         log.info( "Parameter {} has invalid value {}", param, value )
+         //Temporarily until we can get the heater modes for Hybrid  so when
+         //vacation ends it changes.
+         AOSmithWaterHeaterController.controlmode( CAP_CONTROLMODE_STANDARD )
+      }
+   }
+   else if (param == ATTR_LEAK_DETECT) {
+      if (value.equalsIgnoreCase( ATTR_LEAK_DETECT_DISABLED )) {
+         AOSmithWaterHeaterController.leakdetect( CAP_LEAKDETECT_DISABLED )
+      }
+      else if (value.equalsIgnoreCase( ATTR_LEAK_DETECT_ENABLED )) {
+         AOSmithWaterHeaterController.leakdetect( CAP_LEAKDETECT_ENABLED )
+      }
+      else if (value.equalsIgnoreCase( ATTR_LEAK_DETECT_NOTDETECTED )) {
+         AOSmithWaterHeaterController.leakdetect( CAP_LEAKDETECT_NOTDETECTED )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_LEAK) {
+      if (value.equalsIgnoreCase( ATTR_LEAK_NONE )) {
+         AOSmithWaterHeaterController.leak( CAP_LEAK_NONE )
+      }
+      else if (value.equalsIgnoreCase( ATTR_LEAK_DETECTED )) {
+         AOSmithWaterHeaterController.leak( CAP_LEAK_DETECTED )
+      }
+      else if (value.equalsIgnoreCase( ATTR_LEAK_UNPLUGGED )) {
+         AOSmithWaterHeaterController.leak( CAP_LEAK_UNPLUGGED )
+      }
+      else if (value.equalsIgnoreCase( ATTR_LEAK_ERROR )) {
+         AOSmithWaterHeaterController.leak( CAP_LEAK_ERROR )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_GRID) {
+      if (value.equalsIgnoreCase( ATTR_GRID_ENABLED )) {
+         AOSmithWaterHeaterController.gridenabled( true )
+      }
+      else if (value.equalsIgnoreCase( ATTR_GRID_DISABLED )) {
+         AOSmithWaterHeaterController.gridenabled( false )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_DRY_FIRE) {
+      if (value.equalsIgnoreCase( ATTR_DRY_FIRE_DETECTED )) {
+         AOSmithWaterHeaterController.dryfire( true )
+      }
+      else if (value.equalsIgnoreCase( ATTR_DRY_FIRE_NONE )) {
+         AOSmithWaterHeaterController.dryfire( false )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_ELEMENT_FAIL) {
+      if (value.equalsIgnoreCase( ATTR_ELEMENT_FAIL_NONE )) {
+         AOSmithWaterHeaterController.elementfail( CAP_ELEMENTFAIL_NONE )
+      }
+      else if (value.equalsIgnoreCase( ATTR_ELEMENT_FAIL_UPPER )) {
+         AOSmithWaterHeaterController.elementfail( CAP_ELEMENTFAIL_UPPER )
+      }
+      else if (value.equalsIgnoreCase( ATTR_ELEMENT_FAIL_LOWER )) {
+         AOSmithWaterHeaterController.elementfail( CAP_ELEMENTFAIL_LOWER )
+      }
+      else if (value.equalsIgnoreCase( ATTR_ELEMENT_FAIL_UPPER_LOWER )) {
+         AOSmithWaterHeaterController.elementfail( CAP_ELEMENTFAIL_UPPER_LOWER )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_TANK_SENSOR_FAIL) {
+      if (value.equalsIgnoreCase( ATTR_TANK_SENSOR_FAIL_NONE )) {
+         AOSmithWaterHeaterController.tanksensorfail( CAP_TANKSENSORFAIL_NONE )
+      }
+      else if (value.equalsIgnoreCase( ATTR_TANK_SENSOR_FAIL_LOWER )) {
+         AOSmithWaterHeaterController.tanksensorfail( CAP_TANKSENSORFAIL_LOWER )
+      }
+      else if (value.equalsIgnoreCase( ATTR_TANK_SENSOR_FAIL_UPPER )) {
+         AOSmithWaterHeaterController.tanksensorfail( CAP_TANKSENSORFAIL_UPPER )
+      }
+      else if (value.equalsIgnoreCase( ATTR_TANK_SENSOR_FAIL_UPPER_LOWER )) {
+         AOSmithWaterHeaterController.tanksensorfail( CAP_TANKSENSORFAIL_UPPER_LOWER )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_ECO_ERROR) {
+      if (value.equalsIgnoreCase( ATTR_ECO_ERROR_TRUE )) {
+         AOSmithWaterHeaterController.ecoerror( true )
+      }
+      else if (value.equalsIgnoreCase( ATTR_ECO_ERROR_FALSE )) {
+         AOSmithWaterHeaterController.ecoerror( false )
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_MASTER_DISP_FAIL) {
+      if (value.equalsIgnoreCase( ATTR_MASTER_DISP_FAIL_NONE )) {
+         AOSmithWaterHeaterController.masterdispfail( CAP_MASTERDISPFAIL_NONE )
+      }
+      else if (value.equalsIgnoreCase( ATTR_MASTER_DISP_FAIL_MASTER )) {
+         AOSmithWaterHeaterController.masterdispfail( CAP_MASTERDISPFAIL_MASTER )
+      }
+      else if (value.equalsIgnoreCase( ATTR_MASTER_DISP_FAIL_DISPLAY )) {
+         AOSmithWaterHeaterController.masterdispfail( CAP_MASTERDISPFAIL_DISPLAY ) 
+      }
+      else {
+         log.error( "Parameter {} has invalid value {}", param, value )
+      }
+   }
+   else if (param == ATTR_SIGNAL_STRENGTH) {
+      WiFi.rssi( value )
+   }
+}
+
+void checkErrors() {
+	log.debug("Checking for Errors")
+	new_errors = [:]
+	
+	if ( AOSmithWaterHeaterController.dryfire.get() ) {
+		new_errors [ "E01" ] = "Dry fire risk as there is an insufficient amount of water in tank."
+	}
+
+	// Heating Element
+	if ( AOSmithWaterHeaterController.elementfail.get() == "UPPER") {
+		new_errors [ "E04" ] = "The upper heating element in your hot water heater has failed."
+	}
+	if ( AOSmithWaterHeaterController.elementfail.get() == "LOWER") {
+		new_errors [ "E05" ] = "The lower heating element in your hot water heater has failed."
+	}
+	if ( AOSmithWaterHeaterController.elementfail.get() == "UPPER_LOWER") {
+		new_errors [ "E04" ] = "The upper heating element in your hot water heater has failed."
+		new_errors [ "E05" ] = "The lower heating element in your hot water heater has failed."
+	}
+
+	// Temperature sensor
+	if ( AOSmithWaterHeaterController.tanksensorfail.get() == "UPPER" ) {
+		new_errors [ "E03" ] = "The upper temperature sensor in your hot water heater has failed."
+	}
+	if ( AOSmithWaterHeaterController.tanksensorfail.get() == "LOWER" ) {
+		new_errors [ "E07" ] = "The lower temperature sensor in your hot water heater has failed."
+	}
+	if ( AOSmithWaterHeaterController.tanksensorfail.get() == "UPPER_LOWER" ) {
+		new_errors [ "E03" ] = "The upper temperature sensor in your hot water heater has failed."
+		new_errors [ "E07" ] = "The lower temperature sensor in your hot water heater has failed."
+	}
+
+	if ( AOSmithWaterHeaterController.ecoerror.get()) {
+		new_errors [ "E02" ] = "The water temperature in the tank has exceeded 170°F. "		// This is displayed, but not sure that this is correct.
+	}
+
+	if ( AOSmithWaterHeaterController.masterdispfail.get() == "DISPLAY" ) {
+		new_errors [ "E08" ] = "Energy Smart Module (ESM) periodic test has failed."
+	}
+	if ( AOSmithWaterHeaterController.masterdispfail.get() == "MASTER" ) {
+		new_errors [ "E06" ] = "The electronic thermostat in your hot water heater has failed."
+	}
+
+	log.debug ("Errors:  " + new_errors )
+
+	AOSmithWaterHeaterController.errors  new_errors
+}
+
+
+///////////////////////////////////////////////////////////////
+// watchdog for online/offline determination
+void startWatchDog() {
+	Scheduler.scheduleIn 'notConnected', WATCHDOG_TIMEOUT
+}
+
+onEvent('notConnected') {
+	DeviceConnection.state ( DeviceConnection.STATE_OFFLINE )
+}
+
+void stopWatchDog() {
+	Scheduler.cancel('notConnected')
+}
+
+void resetWatchDog() {
+	DeviceConnection.state ( DeviceConnection.STATE_ONLINE )
+	stopWatchDog()
+	startWatchDog()
+}
+

@@ -1,0 +1,376 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+driver         "IPCDGreatStarIndoorPlug"
+description    "Driver for Greatstar Iris WiFi Indoor Smart Plug"
+version        "2.12"
+protocol       "IPCD"
+deviceTypeHint "Switch"
+productId	   "220a4a"
+vendor         "Iris"
+model          "GL08-1"
+
+matcher        'IPCD:vendor' : 'GreatStar', 'IPCD:model' : 'plug_indoor'
+
+@Field final String PARAMETER_WIFI_SSID			= "wifi.SSID"
+@Field final String PARAMETER_WIFI_RSSI			= "wifi.RSSI"
+@Field final String PARAMETER_SWITCH			= "switch.state"
+@Field final String PARAMETER_FIRMWARE_VERSION  = "fwver"
+@Field final String EVENT_ON_BOOT				= "onBoot"
+@Field final String EVENT_ON_CONNECT			= "onConnect"
+@Field final String EVENT_ON_VALUE_CHANGE		= "onValueChange"
+@Field final String EVENT_ON_DOWNLOAD_COMPLETE	= "onDownloadComplete"
+@Field final String EVENT_ON_DOWNLOAD_FAILED	= "onDownloadFailed"
+@Field final String EVENT_ON_UPDATE				= "onUpdate"
+@Field final String KEY_VALUE_CHANGES			= "valueChanges"
+@Field final String KEY_SUCCESS					= "success"
+@Field final String KEY_RESPONSE				= "response"
+@Field final String KEY_REPORT					= "report"
+@Field final String KEY_EVENTS					= "events"
+@Field final int SWITCH_DELAY_MS				= 500
+
+@Field final String FAIL_REASON_OFFLINE			= "Offline"
+
+final String CALL_GPV							= "callGPV"
+final long DELAY_CONFIG        					= 5000		// 5 second delay
+final String SET_REPORT							= "setReport"
+final long DELAY_REPORT        					= 10000		// 10 second delay
+final String OFFLINE_CHECK						= "offlineCheck"
+final long DELAY_FOR_REBOOT						= 30000		// 30 second delay
+
+@Field static final long OTA_TIMEOUT = 30L * 60L * 1000L;
+final String TIMEOUT_CHECK						= "DeviceOtaCheckTimeout"
+
+//--------------------------------------------------------------------------------------------------
+// Driver Life Cycle Implementation
+//--------------------------------------------------------------------------------------------------
+
+DevicePower {
+   DevicePower.source DevicePower.SOURCE_LINE
+   DevicePower.linecapable true
+   DevicePower.backupbatterycapable false
+ 
+   bind DevicePower.sourcechanged to DevicePower.source
+}
+
+DeviceOta {
+   DeviceOta.status DeviceOta.STATUS_IDLE
+}
+
+Switch {
+   Switch.state Switch.STATE_OFF 
+   bind Switch.statechanged to Switch.state
+}
+
+WiFi {
+}
+
+//onConnect event is sent before the driver is started
+onAdded {
+   	Scheduler.scheduleIn CALL_GPV, DELAY_CONFIG
+  	Scheduler.scheduleIn SET_REPORT, DELAY_REPORT
+  	Ipcd.Commands.getDeviceInfo()	  
+}
+
+onDisconnected {
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+		Scheduler.scheduleIn OFFLINE_CHECK, DELAY_FOR_REBOOT
+   	}
+}
+
+onRemoved {
+	Ipcd.Commands.leave()
+}
+
+//--------------------------------------------------------------------------------------------------
+// Switch Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+setAttributes('swit') {
+	log.debug "{} driver received 'swit' set Attribute message {}", DEVICE_NAME,  message
+// TODO: Evaluate removing debounce if device handles.
+   	if (switchIsPending()){
+   		log.warn "{} has a switch state change in progress, dropping this one", DEVICE_NAME
+   	} else {
+	    def attributes = message.attributes
+	    for (attribute in attributes) {
+	    	switch(attribute.key) {
+	        	case Switch.state:
+	         		switch(attribute.value){
+		         		case "ON":
+			            	Ipcd.Commands.setParameterValues("txnid", [ (PARAMETER_SWITCH) : "ON" ])
+			               	markSwitchPending()
+			               	break;
+			            case "OFF":
+			            	Ipcd.Commands.setParameterValues("txnid", [ (PARAMETER_SWITCH) : "OFF" ])
+		            		markSwitchPending()
+		            		break;
+		            	default:
+		            		log.error "{} received unrecognized set attribute {}", DEVICE_NAME, attribute
+		            		break;
+		            }	
+		         	break;
+		         default:
+		            log.error "unrecognized attribute:{} ", attribute
+	      	}
+		}
+	      
+   }
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// OTA Capability Implementation
+//--------------------------------------------------------------------------------------------------
+
+onEvent(TIMEOUT_CHECK) {
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      // The ota isn't in progress any more so there isn't anything
+      // left to do.
+      return
+   }
+
+   def checkAttempt = message.data.attempt
+
+   def curAttempt = DeviceOta.lastAttempt.get()
+
+   if (checkAttempt != curAttempt) {
+      // This ota timeout check has been invalidated by another OTA that 
+      // has started since this check was scheduled for execution.
+      return
+   }
+
+   // The OTA is still in progress and the last attempt time matches what the timeout was looking for.
+   DeviceOta.status           DeviceOta.STATUS_FAILED
+   DeviceOta.lastFailReason   "Timeout"
+}
+
+onDeviceOta.FirmwareUpdate {
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()) {
+      log.warn "{} rejecting OTA because another OTA is currently in progress", DEVICE_NAME
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"already in progress", message:"Dropping request. Another OTA is already in progress"]
+      return
+   }
+
+   log.debug "{} driver received DeviceOta.FirmwareUpdate message: {}", DEVICE_NAME, message
+   updateUrl = message.attributes['url']
+   if (updateUrl == null || !updateUrl.endsWith(".bin") || !updateUrl.contains("://") || countOf(updateUrl, '/') <= 2) {
+      log.warn "{} rejecting OTA because of poorly formatted url: {}", DEVICE_NAME, updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path/<filename>.bin"]
+      return
+   }
+
+   def tgtver = updateUrl.substring(updateUrl.lastIndexOf("/") + 1, updateUrl.lastIndexOf("."))
+   if (!tgtver?.trim()) {
+      log.warn "{} rejecting OTA because of poorly formatted url: {} (empty target version)", DEVICE_NAME, updateUrl
+      sendResponse "devota:FirmwareUpdateResponse",  ["status":"FAILED", "code":"bad url", message:"Dropping request.  Expecting format <protocol>://server/path/<filename>.bin"]
+      return
+   }
+
+   count = DeviceOta.retryCount.get()
+   if (null == count) count = 0   
+   if ( DeviceOta.status.get() == DeviceOta.STATUS_COMPLETED){
+      count = 0
+      DeviceOta.lastFailReason   ""
+   }
+ 
+   def lstAttempt = now()  	
+   Scheduler.scheduleIn TIMEOUT_CHECK, ['attempt': lstAttempt], OTA_TIMEOUT
+
+   DeviceOta.status           DeviceOta.STATUS_INPROGRESS
+   DeviceOta.lastAttempt      lstAttempt
+   DeviceOta.progressPercent  0
+   DeviceOta.targetVersion    tgtver
+   
+   DeviceOta.retryCount		  count+1
+   
+    
+   Ipcd.Commands.download(null, updateUrl, null, null)
+   sendResponse "devota:FirmwareUpdateResponse", ["status":"OK"]
+}
+
+onDeviceOta.FirmwareUpdateCancel {
+   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+      log.warn "{} rejecting OTA Cancel because no OTA is in progress", DEVICE_NAME
+      sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"no ota in progress", message:"Dropping request. No OTA is in progress"]
+      return
+   }
+
+   log.warn "onFirmwareUpdateCancel request, but no IPCD Command to cancel " + message
+   DeviceOta.status           DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason   "Cancelled"
+   sendResponse "devota:FirmwareUpdateCancelResponse",  ["status":"FAILED", "code":"cancel.unsupported", message:"Clearing updating flag, but the OTA itself can't be cancelled"]
+}
+
+onIpcdMessage.event {
+	def data = message.mapify()
+	def events = message.mapify()[KEY_EVENTS]
+	log.debug "Events:{} with data{}", events, data
+   	for (event in events) {
+ 	   	switch (event) {
+   			case EVENT_ON_VALUE_CHANGE:
+ 		   		def valueChanges = data[KEY_VALUE_CHANGES]
+ 		   		log.debug "{} sent value changes: {}", DEVICE_NAME, valueChanges
+   				for (valueChange in valueChanges){
+      				update(valueChange["parameter"], valueChange["value"])
+	   			}
+   				break;
+   			case EVENT_ON_DOWNLOAD_COMPLETE:   
+   				DeviceOta.progressPercent  50
+   				break;
+   			case EVENT_ON_UPDATE:
+   				//onUpgrade only comes on success
+   				DeviceOta.status			DeviceOta.STATUS_COMPLETED
+   				DeviceOta.progressPercent	100
+   				DeviceOta.lastFailReason	null
+   				break;
+   			case EVENT_ON_DOWNLOAD_FAILED:	
+   				DeviceOta.status           DeviceOta.STATUS_FAILED
+   				DeviceOta.lastFailReason   "Download Failed"
+   				break;
+   			case EVENT_ON_BOOT:
+				//Do Nothing Let EVENT_ON_CONNECT Handle
+   				break;
+   			case EVENT_ON_CONNECT:
+   					Scheduler.scheduleIn CALL_GPV, DELAY_CONFIG
+  					Scheduler.scheduleIn SET_REPORT, DELAY_REPORT
+  					Ipcd.Commands.getDeviceInfo()	  
+   				break;
+   			default:
+   				log.warn "{} received unhandled event [{}]", DEVICE_NAME, event
+   				break;
+   		}
+   	}
+}
+
+onIpcdMessage.report {
+	def report = message.mapify()[KEY_REPORT]
+	log.debug("{} sent a report: {} ", DEVICE_NAME, report)
+	doUpdateDataModel(report)
+}
+
+onIpcdMessage.response.getParameterValues(KEY_SUCCESS){
+   def response = message.mapify()[KEY_RESPONSE]
+   log.debug("{} sent a response to getParameterValues: {} ", DEVICE_NAME, response)
+   doUpdateDataModel(response)
+}
+
+onIpcdMessage.response.getDeviceInfo(KEY_SUCCESS) {
+   def response = message.mapify()[KEY_RESPONSE]
+   log.debug("{} Responded to GetDeviceInfo with: {}", DEVICE_NAME, response)
+
+   for (value in response) {
+   		switch (value.key) {
+   			case PARAMETER_FIRMWARE_VERSION:
+		      update(value.key, value.value)
+		      break;
+		   default:
+		   	  // unused parameters in getDeviceInfo
+		   	 break;
+		}
+   }
+}
+
+
+//--------------------------------------------------------------------------------------------------
+// Utility Functions
+//--------------------------------------------------------------------------------------------------
+
+void doUpdateDataModel(responses) {
+	for (response in responses){
+		update(response.key, response.value)		
+		}
+}
+
+void update(parameter, value) {
+	switch(parameter){
+		case PARAMETER_WIFI_RSSI:
+			if (value != ""){
+		      	WiFi.rssi Math.round(Double.valueOf(value))
+		    }
+		    break;
+		case PARAMETER_WIFI_SSID:   
+	    	WiFi.ssid value
+    		break;
+    	case PARAMETER_SWITCH:
+	    	def prevState = Switch.state.get()
+    		switch(value){
+    			case "ON":
+	    			Switch.state Switch.STATE_ON
+	    			break;
+	    		case "OFF":
+	    			Switch.state Switch.STATE_OFF
+	    			break;
+	    		default:
+	    			log.warn "{} received unrecognized switch state [{}]", DEVICE_NAME, value
+	    			break;
+	    	}
+			if (Switch.state.get() != prevState) {
+				Switch.statechanged new Date()
+			}
+			clearSwitchPending()
+			break;
+		case PARAMETER_FIRMWARE_VERSION:
+		   if (value?.trim()) {
+			   DeviceOta.currentVersion value
+		   }
+   		break;
+		default:
+			log.warn "{} received unrecognized parameter {}, with value {}", DEVICE_NAME, parameter, value
+			break;
+	}
+}
+
+onEvent(CALL_GPV) {
+   Ipcd.Commands.getParameterValues("tnxid", [])
+}
+
+onEvent(SET_REPORT) {
+   Ipcd.Commands.setReportConfiguration(600, [ PARAMETER_SWITCH ])
+}
+
+onEvent(OFFLINE_CHECK){
+   if (DeviceOta.STATUS_INPROGRESS == DeviceOta.status.get()){
+   		DeviceOta.status DeviceOta.STATUS_FAILED
+   		DeviceOta.lastFailReason FAIL_REASON_OFFLINE
+   	}
+
+}
+
+int countOf(String inputString, String letter){
+	int count = 0;
+	input = inputString.toCharArray()
+	for (int i = 0; i < inputString.length(); i++){
+		if (input[i] == letter){
+			count++
+		}
+	}
+	return count
+}
+
+boolean switchIsPending() {
+   return vars.KEY_PENDING_SWITCH != null && (now().getTime() - vars.KEY_PENDING_SWITCH.getTime()) < SWITCH_DELAY_MS;
+}
+
+void markSwitchPending() {
+   vars.KEY_PENDING_SWITCH = now();
+}
+
+ void clearSwitchPending() {
+   vars.KEY_PENDING_SWITCH = null;
+}
+

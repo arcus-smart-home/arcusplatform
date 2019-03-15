@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="IrrigationSchedule"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Represents an irrigation schedule
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="events"
+         type="list&lt;Object&gt;"
+         description="The list events within the schedule.  The structure of each will be identical within a schedule, which will be one of IrrigationEvent or WeeklyIrrigationEvent depending on the type."/>
+
+      <t:attribute
+         name="controller"
+         type="string"
+         description="The address of the controller to which the schedule applies"/>
+
+      <t:attribute
+         name="type"
+         type="enum"
+         values="INTERVAL, ODD, EVEN, WEEKLY"
+         description="The type of schedule.  When INTERVAL, the structure of the events will be IntervalIrrigationEvent, when ODD or EVEN they will be IrrigationEvent and when WEEKLY will be WeeklyIrrigationEvent."/>
+
+      <t:attribute
+         name="status"
+         type="enum"
+         values="NOT_APPLIED, UPDATING, APPLIED, FAILED"
+         description="The current state of the schedule with respect to progress applying the events.  UPDATING implies the schedule is currently being applied, APPLIED implies the schedule has been fully applied, FAILED implies at least one transition failed to be applied"/>
+
+   </t:attributes>
+
+</t:type>

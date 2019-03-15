@@ -1,0 +1,25 @@
+{{#section "subject"}}
+Emergency: Gas Leak Detected
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+A gas leak has been detected at {{{_person.firstName}}} {{{_person.lastName}}}'s
+property.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	A gas leak has been detected at {{_person.firstName}} {{_person.lastName}}'s property
+	{{/partial}}
+	
+{{#partial "extra" }}{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

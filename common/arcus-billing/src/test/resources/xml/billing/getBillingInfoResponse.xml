@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GET https://:subdomain.recurly.com/v2/accounts/:account_code/billing_info -->
+<billing_info href="http://api.test.host/v2/accounts/1/billing_info" type="paypal">
+  <account href="http://api.test.host/v2/accounts/1"/>
+  <first_name>Verena</first_name>
+  <last_name>Example</last_name>
+  <company nil="nil"></company>
+  <address1>123 Main St.</address1>
+  <address2 nil="nil"></address2>
+  <city>San Francisco</city>
+  <state>CA</state>
+  <zip>94105</zip>
+  <country>US</country>
+  <phone nil="nil"></phone>
+  <vat_number>US1234567890</vat_number>
+  <ip_address>127.0.0.1</ip_address>
+  <ip_address_country>US</ip_address_country>
+  <paypal_billing_agreement_id>B-1234567890</paypal_billing_agreement_id>
+  <amazon_billing_agreement_id>A-1234567890</amazon_billing_agreement_id>
+</billing_info>

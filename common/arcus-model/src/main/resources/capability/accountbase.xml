@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Account"
+   namespace="account"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of an account
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute
+         name="state"
+         readwrite="rw"
+         type="string"
+         optional="false"
+         description="Platform-owned state of the account"/>
+
+      <c:attribute
+         name="taxExempt"
+         readwrite="r"
+         type="boolean"
+         optional="true"
+         description="Platform-owned indicator of whether or not the billing account is tax-exempt.  If not present it implies that it is not"/>
+      
+      <c:attribute
+         name="billingFirstName"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned first name on the billing account."/>
+      
+      <c:attribute
+         name="billingLastName"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platfrom-owned last name on the billing account."/>
+      
+      <c:attribute
+         name="billingCCType"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned type of CC on the billing account."/>
+         
+      <c:attribute
+         name="billingCCLast4"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned last 4 digits of the CC on the billing account"/>
+      
+      <c:attribute
+         name="billingStreet1"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned street address on the billing account"/>
+         
+      <c:attribute
+         name="billingStreet2"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned street address on the billing account"/>
+      
+      <c:attribute
+         name="billingCity"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned city on the billing account's address"/>
+      
+      <c:attribute
+         name="billingState"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned state on the billing account's address"/>
+      
+      <c:attribute
+         name="billingZip"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned zip code on the billing account's address"/>
+         
+      <c:attribute
+         name="billingZipPlusFour"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Platform-owned digits of the zip code after the plus sign on the billing account's address"/>
+      
+      <c:attribute
+         name="owner"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The person ID of the account owner"/>
+
+      <c:attribute
+      	 name="created"
+      	 readwrite="r"
+      	 type="timestamp"
+      	 optional="true"
+      	 description="Date of creation of the account."/>
+
+      <c:attribute
+      	 name="modified"
+      	 readwrite="r"
+      	 type="timestamp"
+      	 optional="true"
+      	 description="Last time that something was changed on the account."/>
+
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+         name="ListDevices"
+         description="Lists all devices associated with this account">
+         <c:return
+            name="devices"
+            type="list&lt;Device&gt;"
+            description="The list of devices associated with this account"/>
+      </c:method> 
+     
+      <c:method
+         name="ListHubs"
+         description="Lists all hubs associated with this account">
+         <c:return
+            name="hubs"
+            type="list&lt;Hub&gt;"
+            description="The list of hubs associated with this account"/>
+      </c:method>
+   
+      <c:method
+         name="ListPlaces"
+         description="Lists all the places associated with this account">
+         <c:return
+            name="places"
+            type="list&lt;Place&gt;"
+            description="The list of places associated with this account"/>
+      </c:method>
+      
+      <c:method
+         name="ListInvoices"
+         description="Lists all Recurly invoices associated with this account">
+         <c:return
+            name="invoices"
+            type="list&lt;Invoice&gt;"
+            description="The list of invoices associated with this account"/>
+      </c:method>
+
+      <c:method
+              name="ListAdjustments"
+              description="Lists all adjustments associated with this account">
+         <c:return
+                 name="adjustments"
+                 type="list&lt;Adjustments&gt;"
+                 description="The list of adjustments associated with this account"/>
+      </c:method>
+      <c:method
+          name="SignupTransition"
+          description="Send a state transition to indicate where in the sign-up process the account is">
+          <c:parameters>
+             <c:parameter 
+                name="stepcompleted"
+                type="string"
+                description="The last step the account has completed during the signup process"
+                optional="false"/>
+          </c:parameters>
+      </c:method>
+
+      <c:method
+         name="UpdateBillingInfoCC"
+         description="Updates billing info that contains Credit Card information using a token from ReCurly.">
+         <c:parameters>
+            <c:parameter
+               name="billingToken"
+               type="string"
+               description="Billing token recevied from ReCurly"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method
+         name="SkipPremiumTrial"
+         description="Method invoked to inform the platform that the user has explicitly decided to skip the premium trial.">
+      </c:method>
+
+      <c:method
+          name="CreateBillingAccount"
+          description="Create a users billing account and sets up the initial subscription">
+         <c:parameters>
+            <c:parameter
+               name="billingToken"
+               type="string"
+               description="Billing token recevied from ReCurly"
+               optional="false"/>
+            <c:parameter
+               name="placeID"
+               type="string"
+               description="Place ID to associate the initial subscription to"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method
+          name="UpdateServicePlan"
+          description="Updates the subscription level and addons for the specified place ID.">
+          <c:parameters>
+            <c:parameter
+                name="placeID"
+                type="uuid"
+                description="Place ID to associate the new service plan info with." />
+            <c:parameter
+                name="serviceLevel"
+                type="enum"
+                values="BASIC,PREMIUM,PREMIUM_FREE,PREMIUM_PROMON_FREE,PREMIUM_PROMON,PREMIUM_ANNUAL,PREMIUM_PROMON_ANNUAL"
+                description="The new service level for the specified place." />
+            <c:parameter 
+                name="addons"
+                type="object"
+                description="Map of addons to booleans indicating if the addon is active for the specified place."/>
+          </c:parameters>
+      </c:method>
+      
+      <c:method
+         name="AddPlace"
+         description="Adds a place for this account">
+         
+         <c:parameters>
+            <c:parameter
+               name="place"
+               type="Place" 
+               description="Instance of the writable place model attributes represented as a map"
+               optional="false"/>
+          <c:parameter
+               name="population"
+               type="uuid"
+               description="Deprecated - population will always be assigned as general for the new place."
+               optional="true"/>     
+                           
+            <c:parameter
+               name="serviceLevel"
+               type="enum"
+               values="BASIC,PREMIUM,PREMIUM_FREE"
+               description="The service level the new place will be at."
+               optional="false"/>
+            
+            <c:parameter 
+                name="addons"
+                type="object"
+                description="Map of addons to booleans indicating if the addon will be actived for the new place."
+                optional="true"/>
+                
+             <c:return
+               name="place"
+               type="Place"
+               description="The newly created place"
+               optional="false"/>
+            
+         </c:parameters>
+      </c:method>
+         
+      <c:method
+         name="Delete"
+         description="Deletes an account with optional removal of the login">
+            
+         <c:parameters>
+            <c:parameter
+               name="deleteOwnerLogin"
+               type="boolean"
+               description="When set to true will also remove the login for the owner of the account, false will leave it.  If not specified, defaults to false"
+               optional="true"/>
+         </c:parameters>
+            
+      </c:method>
+
+      <c:method
+         name="DelinquentAccountEvent"
+         description="An account has be marked Delinquent">
+         <c:parameters>
+            <c:parameter
+               name="accountId"
+               type="string"
+               description="The account id for the deliquent invoice"
+               optional="false"/>
+         </c:parameters>
+            
+      </c:method>
+
+      <c:method
+         name="IssueCredit"
+         description="Creates a credit adjustment using ReCurly.">
+         <c:parameters>
+            <c:parameter
+                    name="amountInCents"
+                    type="string"
+                    description="The amount to credit. Must be a negative amount of cents"
+                    optional="false"/>
+            <c:parameter
+                    name="description"
+                    type="string"
+                    description="The reason for the credit, or empty"
+                    optional="true"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+              name="IssueInvoiceRefund"
+              description="Creates a refund of an entire invoice using ReCurly.">
+         <c:parameters>
+            <c:parameter
+                    name="invoiceNumber"
+                    type="string"
+                    description="The invoice number to refund."
+                    optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="Activate"
+         description="Method invoked to signal that account signup is complete.">
+      </c:method>
+
+      <c:method
+         name="RedeemCoupon"
+         description="Redeem a coupon on the account">
+
+         <c:parameters>
+            <c:parameter name="couponCode" type="string"
+                description="Identifying code for an account level coupon in billing"
+                optional="false" />
+            <c:parameter name="subscriptionId" type="string"
+                description="The coupon will be applied to this subscription"
+                optional="true" />
+         </c:parameters>
+
+         <c:errors>
+            <c:error code="coupon.notFound"
+               description="The specified coupon code was not found.  It is either not defined or expired." />
+         </c:errors>
+      </c:method>
+
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

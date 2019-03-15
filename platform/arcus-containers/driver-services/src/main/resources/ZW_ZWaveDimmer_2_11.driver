@@ -1,0 +1,146 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a default ZWave Dimmer
+ *
+ *
+ */
+import groovy.transform.Field
+import com.iris.protocol.zwave.ZWaveGenericDevices;
+import com.iris.protocol.zwave.ZWaveSwitchMultilevelSpecificDevices;
+
+uses 'zwave/GenericZWaveDim'
+uses 'zwave/GenericZWaveVersion'
+
+
+driver           "ZWZWaveDimmer"
+description      "Driver for a ZWave Dimmer Switch"
+version          "2.11"
+protocol         "ZWAV"
+deviceTypeHint   "Dimmer"
+productId        "c77180a"
+vendor           "ZWave"
+model            "Dimmer"
+populations      []			// do NOT use this driver for any new devices
+
+
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_MULTILEVEL, 'ZWAV:Specific':ZWaveSwitchMultilevelSpecificDevices.SPECIFIC_TYPE_NOT_USED                  // 0x11, 0x00
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_MULTILEVEL, 'ZWAV:Specific':ZWaveSwitchMultilevelSpecificDevices.SPECIFIC_TYPE_POWER_SWITCH_MULTILEVEL   // 0x11, 0x01
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_MULTILEVEL, 'ZWAV:Specific':ZWaveSwitchMultilevelSpecificDevices.SPECIFIC_TYPE_MOTOR_MULTIPOSITION       // 0x11, 0x03
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_MULTILEVEL, 'ZWAV:Specific':ZWaveSwitchMultilevelSpecificDevices.SPECIFIC_TYPE_SCENE_SWITCH_MULTILEVEL   // 0x11, 0x04
+
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Switch {
+    state Switch.STATE_OFF
+    inverted false
+    bind statechanged to state
+}
+
+Dimmer {
+    brightness 100
+}
+
+
+@Field final int OFFLINE_TIMEOUT_SECS      = 11400       // 190 minutes
+@Field final int POLLING_INTERVAL_SEC      = 3600        // Ask for current state every 60 minutes
+@Field final long DEFERRED_READ_DELAY_MSEC = 2000
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    vars.'MAX_READBACKS' = 10                // used by GenericZWaveDim to limit maximum read operations
+    vars.'DFLT_READBACK_DELAY' = 1000        // used by GenericZWaveDim to determine delay between read retries (in mSec)
+
+    ZWave.switch_multilevel.get()
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+    GenericZWaveDim.handleSetAttributes(this, message)
+}
+
+onDimmer.RampBrightness {
+    GenericZWaveDim.handleRampBrightness(this, message)
+}
+
+onDimmer.IncrementBrightness {
+    GenericZWaveDim.handleIncrementBrightness(this, message)
+}
+ 
+onDimmer.DecrementBrightness {
+    GenericZWaveDim.handleDecrementBrightness(this, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+    GenericZWaveDim.handleMultilevelReport(this, message)
+}
+
+// supported in case the device supports this and sends it
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+// supported in case the device supports this and sends it
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveMessage.application_status.busy {
+    log.debug "Device reported Busy"
+    // when device reports that it is busy, read again after a delay
+    GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage.hail.hail {
+    log.trace "Device sent a Hail"
+    GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage {
+    log.debug "received unhandled ZWave message {}", message
+    return false;
+}
+

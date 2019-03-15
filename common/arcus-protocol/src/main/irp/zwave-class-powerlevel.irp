@@ -1,0 +1,62 @@
+
+message zwave.Powerlevel.PowerlevelGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Powerlevel.PowerlevelReportV1<id="0x03", group="V1"> {
+    const u8 POWER_LEVEL_NORMALPOWER = 0x00;
+    const u8 POWER_LEVEL_MINUS1DBM = 0x01;
+    const u8 POWER_LEVEL_MINUS2DBM = 0x02;
+    const u8 POWER_LEVEL_MINUS3DBM = 0x03;
+    const u8 POWER_LEVEL_MINUS4DBM = 0x04;
+    const u8 POWER_LEVEL_MINUS5DBM = 0x05;
+    const u8 POWER_LEVEL_MINUS6DBM = 0x06;
+    const u8 POWER_LEVEL_MINUS7DBM = 0x07;
+    const u8 POWER_LEVEL_MINUS8DBM = 0x08;
+    const u8 POWER_LEVEL_MINUS9DBM = 0x09;
+    u8 powerLevel;
+    u8 timeout;
+}
+
+message zwave.Powerlevel.PowerlevelSetV1<id="0x01", group="V1"> {
+    const u8 POWER_LEVEL_NORMALPOWER = 0x00;
+    const u8 POWER_LEVEL_MINUS1DBM = 0x01;
+    const u8 POWER_LEVEL_MINUS2DBM = 0x02;
+    const u8 POWER_LEVEL_MINUS3DBM = 0x03;
+    const u8 POWER_LEVEL_MINUS4DBM = 0x04;
+    const u8 POWER_LEVEL_MINUS5DBM = 0x05;
+    const u8 POWER_LEVEL_MINUS6DBM = 0x06;
+    const u8 POWER_LEVEL_MINUS7DBM = 0x07;
+    const u8 POWER_LEVEL_MINUS8DBM = 0x08;
+    const u8 POWER_LEVEL_MINUS9DBM = 0x09;
+    u8 powerLevel;
+    u8 timeout;
+}
+
+message zwave.Powerlevel.PowerlevelTestNodeGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.Powerlevel.PowerlevelTestNodeReportV1<id="0x06", group="V1"> {
+    const u8 TEST_NODEID_ZW_TEST_NOT_A_NODEID = 0x00;
+    const u8 STATUS_OF_OPERATION_ZW_TEST_FAILED = 0x00;
+    const u8 STATUS_OF_OPERATION_ZW_TEST_SUCCES = 0x01;
+    const u8 STATUS_OF_OPERATION_ZW_TEST_INPROGRESS = 0x02;
+    u8 testNodeid;
+    u8 statusOfOperation;
+    u16 testFrameCount;
+}
+
+message zwave.Powerlevel.PowerlevelTestNodeSetV1<id="0x04", group="V1"> {
+    const u8 POWER_LEVEL_NORMALPOWER = 0x00;
+    const u8 POWER_LEVEL_MINUS1DBM = 0x01;
+    const u8 POWER_LEVEL_MINUS2DBM = 0x02;
+    const u8 POWER_LEVEL_MINUS3DBM = 0x03;
+    const u8 POWER_LEVEL_MINUS4DBM = 0x04;
+    const u8 POWER_LEVEL_MINUS5DBM = 0x05;
+    const u8 POWER_LEVEL_MINUS6DBM = 0x06;
+    const u8 POWER_LEVEL_MINUS7DBM = 0x07;
+    const u8 POWER_LEVEL_MINUS8DBM = 0x08;
+    const u8 POWER_LEVEL_MINUS9DBM = 0x09;
+    u8 testNodeid;
+    u8 powerLevel;
+    u16 testFrameCount;
+}

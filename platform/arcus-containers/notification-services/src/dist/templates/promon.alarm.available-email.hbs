@@ -1,0 +1,35 @@
+{{#section "subject"}}
+New Professionally Monitored Services
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+You just unlocked a new professionally monitored service. This email confirms you are monitored for the following alarm types:
+
+{{{monitoredAlarms}}}
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>You just unlocked a new professionally monitored service. 
+	This email confirms you are monitored for the following alarm types:
+	</p>
+	<p>
+	{{{monitoredAlarms}}}
+	</p>
+	</p>
+	<p>	
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

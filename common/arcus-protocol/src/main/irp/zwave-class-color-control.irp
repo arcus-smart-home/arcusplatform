@@ -1,0 +1,75 @@
+
+message zwave.ColorControl.CapabilityGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.ColorControl.CapabilityReportV1<id="0x02", group="V1"> {
+    u16 capabilityMask;
+}
+
+message zwave.ColorControl.StateGetV1<id="0x03", group="V1"> {
+    u8 capabilityId;
+}
+
+message zwave.ColorControl.StateReportV1<id="0x04", group="V1"> {
+    u8 capabilityId;
+    u8 state;
+}
+
+message zwave.ColorControl.StateSetV1<id="0x05", group="V1"> {
+    const u8 PROPERTIES1_STATE_DATA_LENGTH_MASK = 0x1F;
+    const u8 PROPERTIES1_STATE_DATA_LENGTH_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.ColorControl.StartCapabilityLevelChangeV1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_RES1_MASK = 0x1F;
+    const u8 PROPERTIES1_RES1_SHIFT = 0;
+    const u8 PROPERTIES1_IGNORE_START_STATE = 0x20;
+    const u8 PROPERTIES1_UP_DOWN = 0x40;
+    const u8 PROPERTIES1_RES2 = 0x80;
+    u8 properties1;
+    u8 capabilityId;
+    u8 startState;
+}
+
+message zwave.ColorControl.StopStateChangeV1<id="0x07", group="V1"> {
+    u8 capabilityId;
+}
+
+message zwave.ColorControl.CapabilityGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.ColorControl.CapabilityReportV2<id="0x02", group="V2"> {
+    u16 capabilityMask;
+}
+
+message zwave.ColorControl.StateGetV2<id="0x03", group="V2"> {
+    u8 capabilityId;
+}
+
+message zwave.ColorControl.StateReportV2<id="0x04", group="V2"> {
+    u8 capabilityId;
+    u8 state;
+}
+
+message zwave.ColorControl.StateSetV2<id="0x05", group="V2"> {
+    const u8 PROPERTIES1_STATE_DATA_LENGTH_MASK = 0x1F;
+    const u8 PROPERTIES1_STATE_DATA_LENGTH_SHIFT = 0;
+    u8 properties1;
+    u8 dimmingDuration;
+}
+
+message zwave.ColorControl.StartCapabilityLevelChangeV2<id="0x06", group="V2"> {
+    const u8 PROPERTIES1_RES1_MASK = 0x1F;
+    const u8 PROPERTIES1_RES1_SHIFT = 0;
+    const u8 PROPERTIES1_IGNORE_START_STATE = 0x20;
+    const u8 PROPERTIES1_UP_DOWN = 0x40;
+    const u8 PROPERTIES1_RES2 = 0x80;
+    u8 properties1;
+    u8 capabilityId;
+    u8 startState;
+}
+
+message zwave.ColorControl.StopStateChangeV2<id="0x07", group="V2"> {
+    u8 capabilityId;
+}

@@ -1,0 +1,25 @@
+
+def getProperty(name) {
+	return this[name];
+}
+
+def getProperties(capabilityName) {
+	return this[capabilityName].properties
+}
+
+def getAttributeValue(capabilityName, attribute) {
+	return this[capabilityName][attribute]();
+}
+
+def setAttributeValue(capabilityName, attribute, value) {
+	this[capabilityName][attribute](value);
+}
+
+def getAttributeProperty(capabilityName, property) {
+	return this[capabilityName][property];
+}
+
+def setAttributeProperty(capabilityName, property, value) {
+	this[capabilityName][property] = value;
+}
+

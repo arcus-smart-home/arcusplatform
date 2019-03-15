@@ -1,0 +1,26 @@
+{{#file . "com/iris/protocol/ipcd/message/model/{{capitalize name}}.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+import java.util.List;
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.Mapifier;
+
+public class {{capitalize name}} extends IpcdResponse {
+	{{#properties}}{{#unless def}}
+	private {{{type}}} {{name}};
+	{{/unless}}{{/properties}}
+	
+	@Override
+	public Map<String, Object> mapify() {
+	  Map<String, Object> map = super.mapify();
+	  {{#properties}}{{#unless def}}map.put("{{name}}", Mapifier.Mapper.map({{name}}));
+     {{/unless}}{{/properties}}  
+     return map;
+	}
+	
+	{{#properties}}{{#unless def}}
+	{{> ipcd/message/getset }}
+	{{/unless}}{{/properties}}
+}
+{{/file}}

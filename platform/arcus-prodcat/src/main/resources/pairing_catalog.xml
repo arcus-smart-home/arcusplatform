@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<pairing-catalog xmlns="http://arcus.com/pairing_1.0.0">
+   <customizations>
+      <!-- PM asked for this customization to be listed first for contact sensors, so it must be kept at the top -->
+      <customization
+         id="contactTest"
+         type="contactTest"
+         query="is cont"
+         header="Attention"
+         title="Test Your Contact Sensor"
+         linkText="Test didn't work?"
+         linkUrl="{{redirectBaseUrl}}/s_contact_sensor_test">
+         <p>Separate the Contact Sensor from the magnet to see the device's open and close status update.</p>
+      </customization>
+
+      <!-- ====================================== -->
+      <!-- Generic Things                         -->
+      <!-- ====================================== -->
+      
+      <!-- name all things? -->
+      <customization 
+         type="name" 
+         query="devadv:driverstate != 'UNSUPPORTED'"
+         title="Give Your Device a Name"
+         header="Customize Device"
+         note="We recommend using simple, identifying language that is easily recognized by voice assistants."
+         />
+      <!-- don't favorite bridges -->
+      <customization 
+         type="favorite" 
+         query="!(base:caps contains 'bridge') AND devadv:driverstate != 'UNSUPPORTED'"
+         title="Add Your Device to Favorites"
+         header="Add to Favorites"
+         note="Favoriting a device makes it easily accessible from the Dashboard of both the Iris Mobile app and Iris Web Portal."
+         /> 
+      <!-- Button, but not a care pendant -->
+      <!-- <customization
+         type="buttonAssignment"
+         query="is but AND NOT (dev:productId == 'f93033' OR dev:productId == '2c982d')" 
+         title="What do you want this button to do?"
+         /> -->
+      <!-- Key Fobs -->
+      <customization
+         type="multiButtonAssignment"
+         query="has but"
+         title="What would you like each button to do?"
+         header="Customize Device"
+         />
+      <customization
+         type="presenceAssignment"
+         query="base:caps contains 'pres'" 
+         title="Who is going to use this device?"
+         header="Customize Device"
+         >
+         <p>Don't see the Person you would like to assign it to? Select "Unassigned" and you can assign this device to them after you invite that Person to Iris.</p>
+      </customization>
+      <!-- Contact sensors that don't have a pre-assigned type -->
+      <customization
+      	 id="contactUseHint"
+         type="contactUseHint"
+         query="base:caps contains 'cont' AND cont:useHint != 'DOOR' AND cont:useHint != 'WINDOW'" 
+         header="Customize Device"
+         title="Will this contact sensor be used on a door or a window?"
+         />
+
+      <!-- ====================================== -->
+      <!-- Specific Products                      -->
+      <!-- ====================================== -->
+
+      <!-- Care Pendant -->
+      <customization
+         id="careCoverage"
+         type="info" 
+         query="dev:productId == 'f93033' OR dev:productId == '2c982d'" 
+         title="Test Your Coverage"
+         header="Attention">
+         <p>While the pendant can communicate with the hub from up-to 130 ft. away, results may vary based on the layout of your home. Press the button at the furthermost areas of the home.</p>
+         <p>The device is out of range when you do not receive a notification for each button press. Consider adding Smart Plugs, which serve as range extenders, to increase coverage.</p>
+      </customization>
+      <customization 
+         id="careAlarm"
+         type="info" 
+         query="dev:productId == 'f93033' OR dev:productId == '2c982d'" 
+         title="What Does This Button Do?"
+         header="Attention" >
+         <p>Pressing the Care Pendant will trigger a Care Alarm on the Premium and Pro-Monitoring plans, which will immediately alert everyone in the Care Alarm notification list.</p>
+         <p>Pressing the Care Pendant will trigger a Panic Alarm on the Basic plan, which will immediately alert everyone in the Alarm notification list.</p>
+         <p>To cancel the Alarm, enter your PIN on the Keypad and press "Off", or cancel in the Iris app or web portal.</p>
+      </customization>
+      <!-- Door Hinges -->
+      <customization 
+         id="hinge"
+         type="info" 
+         query="dev:productId == 'bea612'" 
+         title="Important Info"
+         header="Attention" >
+         <p>If the Door Hinge Sensor does not update its status as 'Closed', when you close your door, then your door may not have good alignment.</p>
+         <p>If you cannot achieve a 'Closed' status with the supplied set screws, resolve by inserting a longer set screw or tapping a small brad nail into the hole.</p>
+      </customization>
+      <!-- Halo -->
+      <customization
+              type="haloRoom"
+              query="dev:devtypehint == 'Halo'"
+              title="In what room will this device be installed?"
+              header="Choose a Room" >
+         <p>Halo will use this room name when speaking to you in the event of an alarm.</p>
+      </customization>
+      <customization 
+         type="stateCountySelect" 
+         query="is noaa" 
+         header="Choose Your County"
+         title="Select a county and state for the Weather Radio">         
+      </customization>
+      <customization 
+         type="weatherStation" 
+         query="is noaa" 
+         header="Weather Radio"
+         title="Select an Emergency Weather Station"
+         note="Station quality should increase when plugged into AC power during installation.">  
+         <p>Select the play button to determine which radio station is the clearest.  You'll hear the radio playing through Halo.</p>             
+      </customization>
+      <customization 
+      	 id="haloAlerts"
+         type="info" 
+         query="is noaa" 
+         header="Attention"
+         title="Emergency and Weather Alerts"
+         linkText="Learn More"
+         linkUrl="{{redirectBaseUrl}}/s_halo_alerts">  
+         <p>Halo is pre-programmed to alert you with over 25 emergency and weather alerts.</p> 
+         <p>Manage these and over 50 more alerts on Halo's detail page.</p>            
+      </customization>
+      <customization
+      	 id="haloTest"
+         type="info" 
+         query="dev:devtypehint == 'Halo'" 
+         header="Attention"
+         title="Test Halo">
+         <p>Test the device by pressing the center Halo button and confirm that Halo is sounding properly.</p>
+      </customization>
+      <!-- Sirens -->
+      <customization
+         id="siren"
+         type="info" 
+         query="is alert"
+         title="Sounding Device"
+         header="Attention" >
+         <p>The device will sound by default when a Security, Panic, Smoke, or CO Alarm is triggered. To cancel the Alarm, enter your PIN on the Keypad and press "Off", or cancel in the Iris app or web portal.</p>
+      </customization>
+      <!-- Somfy Blinds -->
+      <customization
+         id="favorite"
+         type="info"
+         query="dev:productId == 'f05b37'"
+         title="Create a Favorites Position"
+         header="Attention" >
+         <p>Move the blind to the desired height, then press and hold the 'MY' button on the remote until the blind moves slightly.</p>
+         <p>On the Blinds device page, select the 'Favorite' button to move the blind to the Favorite position. When the blind is moving, selecting the 'Favorite' button to stop it from moving.</p>
+      </customization>
+      <!-- Vents -->
+      <customization
+         id="vent"
+         type="info" 
+         query="dev:devtypehint == 'vent'"
+         title="Vents"
+         header="Attention" >
+         <p>Please consult an HVAC professional or the device manufacturer for best practices on maintaining your HVAC system.</p>
+      </customization>
+      
+      <!-- Firmware Upgrade Needed for (Sercomm Camera, Orbit Single Zone, & Orbit 12 Zone) -->
+      <customization
+         type="otaUpgrade" 
+         query="dev:productId == '606501' OR dev:productId == '242a43' OR dev:productId == '5c3966' OR dev:productId == 'deda9d' OR dev:productId == '02a3f9'"
+         header="Attention"
+         title="Firmware Upgrade Needed" 
+         note="Select the button below to continue setting up your device. The update will continue in the background.">
+         <p>Updates to your recently paired devices may take a few minutes, during which your device may not be controllable or work optimally.</p>
+         <p>Please do not remove power or any ethernet cords (if applicable) from the device until the firmware update is complete.</p>
+      </customization>
+      
+      <!-- Water Heater -->
+      <customization
+         type="waterHeater" 
+         query="base:caps contains 'aosmithwaterheatercontroller'"
+         header="Water Heater"
+         title="Water Heater Assistance" >
+         <p>Should your water heater ever have a problem, this information will be passed along to the Contact Center.</p>
+         <p>This information is typically found on the water heater's data plate.</p>
+      </customization>
+      <customization
+      	 id="waterheater"
+         type="info" 
+         query="base:caps contains 'aosmithwaterheatercontroller'"
+         header="Water Heater"
+         title="Reminder" >
+         <p>The LCD screen on your water heater will display the maximum water temperature set point.</p>
+         <p>For safety reasons, Iris cannot increase the temperature beyond the maximum set point on the device.</p>
+      </customization>
+      
+	  <!-- Orbit 12 Zone Irrigation -->
+      <customization
+      	 id="orbitZone"
+         type="multiIrrigationZone" 
+         query="dev:productId == '02a3f9'"
+         header="Customize Zones"
+         title="Select and rename each zone you want to use." >
+         <p>(e.g. Front Yard, Flower bed)</p>
+      </customization>
+      <customization
+      	 id="orbitZone"
+         type="irrigationZone" 
+         query="dev:productId == 'deda9d'"
+         header="Customize Zone">
+         <p>Edit the name and default watering time on your device.</p>
+      </customization>
+      
+		
+      <!-- ====================================== -->
+      <!-- Weird Things                           -->
+      <!-- Things which can't be directly queried -->
+      <!-- from the device model                  -->
+      <!-- ====================================== -->
+
+      <customization
+         id="securityMode"
+         type="securityMode"
+         title="Security Alarm Updated" 
+         header="Attention" 
+         note="Any changes made will take effect next time you arm your system. Change these settings any time in the Alarm card."
+         >
+         <p>You have paired a device that automatically participates in your Security Alarm system. Review the default settings below and customize your preferred settings.</p>
+      </customization>
+      <customization
+      	 id="uncertified"
+         type="uncertified"
+         title="Uncertified Device"
+         header="Attention"
+         >
+         <p>This device was paired as an uncertified device. Uncertified items may work but are not supported by the Iris Support Team. If your device malfunctions, please contact the device’s manufacturer.</p>
+      </customization>
+      <customization
+         id="unknown"
+         type="unknown"
+         title="Unsupported Device"
+         header="Attention"
+         >
+         <p>This device was paired as an unsupported device. Unsupported items will not work correctly.</p>
+         <p>If you think this is a mistake and believe this is a supported device, try removing and re-pairing the device.</p>
+      </customization>
+      <!-- ====================================== -->
+      <!-- Schedules and Rules                    -->
+      <!-- ====================================== -->
+
+      <!-- Schedulable Things -->
+      <customization
+              type="schedule"
+              query="is swit"
+              title="Set a Schedule"
+              header="Schedule"
+      >
+         <p>Set up a schedule to automate your device while you are away from home.</p>
+      </customization>
+      <customization
+              type="schedule"
+              query="base:caps contains 'therm' AND ((!(base:caps contains 'schedulable')) OR schedulable:type == 'SUPPORTED_DRIVER' OR schedulable:type == 'SUPPORTED_CLOUD')"
+              title="Set a Schedule"
+              header="Schedule"
+      >
+         <p>To help get started, Iris created a default schedule.</p>
+
+
+      </customization>
+      <!-- Rules -->
+      <!-- <customization
+         type="rule"
+         query="is but AND (dev:productId == 'bca135' OR dev:productId == 'bbf1cf')">
+         <rule-templates>button-chime</rule-templates>
+      </customization> -->
+      <customization
+              id="smartButton"
+              type="info"
+              query="is but AND (dev:productId == 'bca135' OR dev:productId == 'bbf1cf')"
+              header="Attention"
+              title="Smart Button">
+         <p>We set up your newly added button to triple-beep the hub when you press it.</p>
+         <p>You can change this by visiting the Rules section in the Iris Web Portal or Mobile Application.</p>
+      </customization>
+
+      <!-- iris branded cameras -->
+      <customization
+              type="rule"
+              query="dev:productId == '606501' OR dev:productId == '242a43' OR dev:productId == '5c3966'"
+      >
+         <rule-templates>05f8a5,a9242b,669619</rule-templates>
+      </customization>
+
+      <!-- for initial launch only allow iris branded contact sensors -->
+      <customization
+              type="rule"
+              query="is cont AND (dev:productId == '4ff66a' OR dev:productId == '4dd18a' OR dev:productId == '432021')"
+      >
+         <rule-templates>3cdbb0,902a41,55b0ce</rule-templates>
+      </customization>
+
+      <!-- for initial launch only allow iris branded motion sensors -->
+      <customization
+              type="rule"
+              query="is mot AND (dev:productId == '60e426' OR dev:productId == 'df44d5' OR dev:productId == '432011')"
+      >
+         <rule-templates>1e1f0d,a9242b,55b0ce</rule-templates>
+      </customization>
+
+      <!-- for initial launch only allow iris branded switches -->
+      <customization
+              type="rule"
+              query="is swit AND (dev:productId == 'b48370' OR dev:productId == 'd9ac87' OR dev:productId == '162918' OR dev:productId == '432041' OR dev:productId == '220a4a' OR dev:productId == '2a97b9')"
+      >
+         <rule-templates>426783,19cd1c,3dbfc6</rule-templates>
+      </customization>
+
+      <!-- for intial launch only allow iris branded water leak sensors -->
+      <customization
+              type="rule"
+              query="is leakh2o AND dev:productId == '7b8fd3'"
+      >
+         <rule-templates>4b7308,c117e7</rule-templates>
+      </customization>
+
+      <!-- for initial launch only allow iris branded garage door openers -->
+      <customization
+              type="rule"
+              query="is motdoor AND dev:productId == '73add4'"
+      >
+         <rule-templates>890b7e,0bb95a0,0bb95aa,839b9a</rule-templates>
+      </customization>
+   </customizations>
+</pairing-catalog>

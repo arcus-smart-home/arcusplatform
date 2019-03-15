@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="LawnNGardenSubsystem"
+   namespace="sublawnngarden"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Lawn &amp; Garden Subsystem
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="controllers"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all irrigation controllers at this place"/>
+      <c:attribute
+         name="scheduleStatus"
+         type="map&lt;IrrigationScheduleStatus&gt;"
+         readwrite="r"
+         optional="false"
+         description="The current scheduling status of all controllers"/>
+      <c:attribute
+         name="oddSchedules"
+         type="map&lt;IrrigationSchedule&gt;"
+         readwrite="r"
+         optional="false"
+         description="The odd day schedules for all controllers"/>
+      <c:attribute
+         name="evenSchedules"
+         type="map&lt;IrrigationSchedule&gt;"
+         readwrite="r"
+         optional="false"
+         description="The even day schedules for all controllers"/>
+      <c:attribute
+         name="weeklySchedules"
+         type="map&lt;IrrigationSchedule&gt;"
+         readwrite="r"
+         optional="false"
+         description="The weekly schedules for all controllers"/>
+      <c:attribute
+         name="intervalSchedules"
+         type="map&lt;IntervalIrrigationSchedule&gt;"
+         readwrite="r"
+         optional="false"
+         description="The interval schedules for all controllers"/>
+      <c:attribute
+         name="nextEvent"
+         type="IrrigationTransitionEvent"
+         readwrite="r"
+         optional="false"
+         description="The immediate next event across all active schedules"/>
+      <c:attribute
+         name="zonesWatering"
+         type="map&lt;ZoneWatering&gt;"
+         readwrite="r"
+         optional="false"
+         description="Metadata about the current watering zone for each controller."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="StopWatering"
+         description="Stops a controller from watering whether it was started manually or not.">
+
+         <c:parameter
+            name="controller"
+            type="String"
+            description="The address of the controller to stop"/>
+         <c:parameter
+            name="currentOnly"
+            type="boolean"
+            optional="true"
+            description="Ignored if watering was triggered manually.  If watering was triggered on a schedule this controls whether just this zone is stopped or all zones in the scheduled event.  If not provided, it will be assumed to be true"/>
+
+      </c:method>
+
+      <c:method
+         name="SwitchScheduleMode"
+         description="Changes the scheduling mode on a controller between the various types">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="WEEKLY,ODD,EVEN,INTERVAL"
+            description="The new mode to enable on the device"/>
+
+      </c:method>
+
+      <c:method
+         name="EnableScheduling"
+         description="Enables the current schedule">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+      </c:method>
+
+
+      <c:method
+         name="DisableScheduling"
+         description="Disables the current schedule">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+      </c:method>
+
+      <c:method
+         name="Skip"
+         description="Skips scheduled watering events for a specific length of time">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter name="hours" type="int" description="The number of hours to skip"/>
+
+      </c:method>
+
+      <c:method
+         name="CancelSkip"
+         description="Cancels skipping (rain delay)">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+
+      </c:method>
+
+      <c:method
+         name="ConfigureIntervalSchedule"
+         description="Configures the start time and interval for the interval schedule">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter name="startTime" type="timestamp" description="The time on which the interval starts.  Technically it will start on midnight of the date given"/>
+         <c:parameter name="days" type="int" description="The number of interval days"/>
+
+      </c:method>
+
+      <c:method
+         name="CreateWeeklyEvent"
+         description="Creates a weekly schedule event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter name="days" type="set&lt;string&gt;" description="The days the event will fire.  Must be MON, TUE, WED, THU, FRI, SAT, SUN"/>
+         <c:parameter name="timeOfDay" type="string" description="The time of day the event starts.  Must be of the form HH:mm in the 24 our clock"/>
+         <c:parameter name="zoneDurations" type="list&lt;ZoneDuration&gt;" description="The length of time to water for each zone"/>
+
+      </c:method>
+
+      <c:method
+         name="UpdateWeeklyEvent"
+         description="Updates a weekly schedule event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter name="eventId" type="string" description="The identifier for the event to remove"/>
+         <c:parameter name="days" type="set&lt;string&gt;" description="The days the event will fire.  Must be MON, TUE, WED, THU, FRI, SAT, SUN"/>
+         <c:parameter name="timeOfDay" type="string" description="The time of day the event starts.  Must be of the form HH:mm in the 24 our clock"/>
+         <c:parameter name="zoneDurations" type="list&lt;ZoneDuration&gt;" description="The length of time to water for each zone"/>
+         <c:parameter
+            name="day"
+            type="enum"
+            values="MON,TUE,WED,THU,FRI,SAT,SUN"
+            optional="true"
+            description="The day to update.  If not provided all days will be updated"/>
+
+      </c:method>
+
+      <c:method
+         name="RemoveWeeklyEvent"
+         description="Removes a weekly schedule event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter name="eventId" type="string" description="The identifier for the event to remove"/>
+         <c:parameter
+            name="day"
+            type="enum"
+            values="MON,TUE,WED,THU,FRI,SAT,SUN"
+            optional="true"
+            description="The specific day to remove.  If not provided all days (i.e. the entire event) will be removed"/>
+
+      </c:method>
+
+      <c:method
+         name="CreateScheduleEvent"
+         description="Creates a non-weekly scheduling event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ODD,EVEN,INTERVAL"
+            description="The mode of the schedule to add the event to"/>
+         <c:parameter name="timeOfDay" type="string" description="The time of day the event starts.  Must be of the form HH:mm in the 24 our clock"/>
+         <c:parameter name="zoneDurations" type="list&lt;ZoneDuration&gt;" description="The length of time to water for each zone"/>
+
+      </c:method>
+
+      <c:method
+         name="UpdateScheduleEvent"
+         description="Updates an existing non-weekly schedule event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ODD,EVEN,INTERVAL"
+            description="The mode of the schedule"/>
+         <c:parameter name="eventId" type="string" description="The identifier for the event to remove"/>
+         <c:parameter name="timeOfDay" type="string" description="The time of day the event starts.  Must be of the form HH:mm in the 24 our clock"/>
+         <c:parameter name="zoneDurations" type="list&lt;ZoneDuration&gt;" description="The length of time to water for each zone"/>
+
+      </c:method>
+
+      <c:method
+         name="RemoveScheduleEvent"
+         description="Removes an existing non-weekly schedule event">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ODD,EVEN,INTERVAL"
+            description="The mode of the schedule"/>
+         <c:parameter name="eventId" type="string" description="The identifier for the event to remove"/>
+
+      </c:method>
+
+      <c:method
+         name="SyncSchedule"
+         description="Attempts to repush an entire scheduled identified by the mode down to the device, typically useful when applying some event has failed">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ODD,EVEN,INTERVAL,WEEKLY"
+            description="The mode of the schedule"/>
+
+      </c:method>
+
+      <c:method
+         name="SyncScheduleEvent"
+         description="Attempts to repush an entire scheduled event down to the device, typically useful when applying some event has failed">
+
+         <c:parameter name="controller" type="string" description="The address of the controller"/>
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ODD,EVEN,INTERVAL,WEEKLY"
+            description="The mode of the schedule"/>
+         <c:parameter name="eventId" type="string" description="The identifier for the event to remove"/>
+
+      </c:method>
+
+   </c:methods>
+
+   <c:events>
+      <c:event
+      	name="StartWatering"
+      	description="Fired when a zone starts watering.">
+      	<c:parameters>
+      		<c:parameter
+      			name="zone"
+      			type="string"
+      			description="The identifier for the zone."
+      			optional="false" />
+      	    <c:parameter
+                name="zoneName"
+                type="string"
+                description="The custom name for the zone."
+                optional="true" />
+      		<c:parameter
+      			name="controller"
+		         type="string"
+		         description="The address of the controller that manages the zone."
+		         optional="false" />
+      		<c:parameter
+      			name="trigger"
+      			type="enum"
+      			values="MANUAL,SCHEDULED"
+         		description="What triggered the watering.  MANUAL, the end user triggered it or SCHEDULED"
+      			optional="false" />
+      	</c:parameters>
+      </c:event>
+      <c:event
+      	name="StopWatering"
+      	description="Fired when a zone stops watering.">
+      	<c:parameters>
+      		<c:parameter
+      			name="zone"
+      			type="string"
+      			description="The identifier for the zone."
+      			optional="false" />
+      		<c:parameter
+                name="zoneName"
+                type="string"
+                description="The custom name for the zone."
+                optional="true" />
+      		<c:parameter
+      			name="controller"
+		         type="string"
+		         description="The address of the controller that manages the zone."
+		         optional="false" />
+      		<c:parameter
+      			name="trigger"
+      			type="enum"
+      			values="MANUAL,SCHEDULED"
+         		description="What triggered the watering.  MANUAL, the end user triggered it or SCHEDULED"
+      			optional="false" />
+      	</c:parameters>
+      </c:event>
+      <c:event
+      	name="SkipWatering"
+      	description="Fired a controller is set to skip watering.">
+      	<c:parameters>
+      		<c:parameter
+      			name="controller"
+		        type="string"
+		        description="The address of the controller that manages the zone."
+		        optional="false" />
+      		<c:parameter
+      			name="hours"
+      			type="int"
+         		description="How long watering should be skipped."
+      			optional="false" />
+      	</c:parameters>
+      </c:event>
+      <c:event
+      	name="UpdateSchedule"
+      	description="Fired when the subsystem schedule is updated.">
+      	<c:parameters>
+      		<c:parameter
+      			name="mode"
+      			type="enum"
+      			values="WEEKLY,INTERVAL,ODD,EVEN"
+      			description="The scheduling mode."
+      			optional="false" />
+      	</c:parameters>
+      </c:event>
+      <c:event
+      	name="ApplyScheduleToDevice"
+      	description="Fired when a schedule is applied to a controller.">
+      	<c:parameters>
+      		<c:parameter
+      			name="mode"
+      			type="enum"
+      			values="WEEKLY,INTERVAL,ODD,EVEN"
+      			description="The scheduling mode."
+      			optional="false" />
+      		<c:parameter
+      			name="controller"
+		        type="string"
+		        description="The address of the controller that manages the zone."
+		        optional="false" />
+      	</c:parameters>
+      </c:event>
+      <c:event
+      	name="ApplyScheduleToDeviceFailed"
+      	description="Fired when a schedule fails to be applied to a controller.">
+      	<c:parameters>
+      		<c:parameter
+      			name="mode"
+      			type="enum"
+      			values="WEEKLY,INTERVAL,ODD,EVEN"
+      			description="The scheduling mode."
+      			optional="false" />
+      		<c:parameter
+      			name="controller"
+		        type="string"
+		        description="The address of the controller that manages the zone."
+		        optional="false" />
+      	</c:parameters>
+      </c:event>
+   </c:events>
+
+</c:capability>

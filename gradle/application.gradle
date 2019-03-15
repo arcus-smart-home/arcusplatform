@@ -1,0 +1,101 @@
+////////////////////////////////////////////////////////////////////////////////
+// configuration common to applications
+// Projects that need to be dockerized should include the following:
+//    apply from: file("${rootDir}/build/gradle/application.gradle")
+////////////////////////////////////////////////////////////////////////////////
+
+apply plugin: 'application'
+
+mainClassName = "com.iris.core.IrisApplication"
+project.ext.mem = 512
+
+distZip.enabled = false
+
+configurations.archives.with {
+   artifacts.remove artifacts.find { it.type == 'zip' }
+}
+
+
+jar {
+   manifest {
+      attributes(
+         'Implementation-Title': project.name,
+         'Implementation-Version': project.version,
+         'Implementation-Vendor': "Lowe's Companies, Inc.",
+         'Created': buildTime
+      )
+   }
+}
+
+def getLocalProps() {
+   def localPropsMap = new HashMap()
+   def localPropsHome = System.env['LOCAL_PROPS_HOME']
+   if (localPropsHome != null) {
+      def localPropsPath = localPropsHome + '/' + project.name + '.properties'
+      if (file(localPropsPath).exists()) {
+         def localProps = new Properties()
+         file(localPropsPath).withInputStream { localProps.load(it) }
+         localProps.each { key, value -> localPropsMap.put(key, value) }
+      }
+   }
+   return localPropsMap
+}
+
+run {
+   classpath = files("$projectDir/src/dist/conf") + classpath
+   systemProperty "sun.net.inetaddr.ttl", "10"
+   systemProperty "sun.net.inetaddr.negative.ttl", "5"
+   systemProperty "jdk.tls.ephemeralDHKeySize", "2048"
+   systemProperty 'kafka.consumerTimeoutMs', '3600000'
+   environment getLocalProps()
+   args '-c', 'src/dist/conf/' + project.name + '.properties'
+}
+
+
+startScripts {
+   classpath += files('XXX_CONF_PLACEHOLDER_XXX')
+   defaultJvmOpts = [
+           '-Dsun.net.inetaddr.ttl=10',
+           '-Dsun.net.inetaddr.negative.ttl=5',
+           "-Djdk.tls.ephemeralDHKeySize=2048",
+           '-Djava.security.egd=file:/dev/./urandom', // increased SSL performance
+           "-Dio.netty.leakDetectionLevel=disabled",
+           "-Dio.netty.buffer.bytebuf.checkAccessible=false",
+           '-XX:StringTableSize=1000003',
+           "-Xms${jvmMem}m",
+           "-Xmx${jvmMem}m",
+           '-XX:+UseMontgomeryMultiplyIntrinsic',
+           '-XX:+UseMontgomerySquareIntrinsic',
+           '-XX:+UseSquareToLenIntrinsic',
+           '-XX:+UseMultiplyToLenIntrinsic',
+           '-XX:+UseSHA',
+           '-XX:+UseSHA1Intrinsics',
+           '-XX:+UseSHA256Intrinsics',
+           '-XX:+UseSHA512Intrinsics',
+           '-XX:+UseMulAddIntrinsic',
+           '-XX:+UseXmmI2D',
+           '-XX:+UseXmmI2F',
+           '-XX:+UseNUMA',
+           '-XX:+UseNUMAInterleaving'
+   ]
+
+   doLast {
+      def windowsScriptFile = file getWindowsScript()
+      def unixScriptFile    = file getUnixScript()
+      windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib\\XXX_CONF_PLACEHOLDER_XXX', '%APP_HOME%\\conf')
+      unixScriptFile.text  = unixScriptFile.text.replace('$APP_HOME/lib/XXX_CONF_PLACEHOLDER_XXX', '$APP_HOME/conf')
+   }
+}
+
+task createApplicationInfo {
+   doLast{
+      def f = new File(sourceSets.main.java.outputDir, "META-INF/application.properties");
+      f.delete();
+      f.parentFile.mkdirs();
+      f << "application.name=" + project.name + "\n"
+      f << "application.version=" + platformVersion + "\n"
+      f << "build.timestamp=" + new Date() + "\n"
+   }
+}
+
+classes.dependsOn << createApplicationInfo

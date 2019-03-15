@@ -1,0 +1,7 @@
+
+message zwave.MeterTblConfig.MeterTblTablePointAdmNoSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_SHIFT = 0;
+    u8 properties1;
+    u8[] meterPointAdmNumberCharacter;
+}

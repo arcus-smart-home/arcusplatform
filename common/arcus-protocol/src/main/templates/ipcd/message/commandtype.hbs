@@ -1,0 +1,17 @@
+{{#file . "com/iris/protocol/ipcd/message/model/CommandType.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+public enum CommandType {
+   {{#commands}}{{name}}{{#unless @last}},{{/unless}}
+   {{/commands}};
+   
+   public static CommandType fromString(String value) {
+      for (CommandType e : CommandType.values()) {
+      	if (e.name().equalsIgnoreCase(value)) {
+      		return e;
+      	}
+      }
+      return null;
+   }
+}
+{{/file}}

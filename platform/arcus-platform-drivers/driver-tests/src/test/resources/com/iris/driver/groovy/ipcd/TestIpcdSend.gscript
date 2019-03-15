@@ -1,0 +1,11 @@
+def sendRawJsonFromIpcd() {
+   Ipcd.send("{\"command\":\"GetDeviceInfo\"}");
+}
+
+def sendGetDeviceInfo() {
+   Ipcd.Commands.getDeviceInfo("1000");
+}
+
+def sendSetDeviceInfo() {
+   Ipcd.Commands.setDeviceInfo("1001", ["connectUrl" : "https://things.iot.net/ipcd"]);
+}

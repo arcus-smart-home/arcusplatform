@@ -1,0 +1,148 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: file("${rootDir}/gradle/subproject.gradle")
+apply from: file("${rootDir}/gradle/application.gradle")
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+// TODO add a Main which can multiplex these or generate multiple distributions
+mainClassName = 'com.iris.capability.generator.html.HtmlGenerator'
+
+ext.jsTemplateDir = "src/main/resources/js"
+ext.outputJSDir   = "$buildDir/js"
+ext.outputHtmlDir = "$buildDir/doc"
+ext.capabilityDir = "$buildDir/capability"
+
+configurations {
+    generator {
+        description "Classpath for source generators"
+        transitive true
+    }
+    
+    capabilities {
+    	description "Classpath to get the capabilities"
+    }
+}
+
+dependencies {
+    compile libraries.slf4j
+    compile libraries.logback
+    compile libraries.handlebars
+    compile libraries.jcommander
+
+    compile project(':common:arcus-model')
+}
+
+
+tasks.addRule("Pattern: <CodeGenerationType>Code") {
+    String taskName ->
+        if (taskName.toLowerCase().startsWith("htmlcode")) {
+            task(taskName) {
+                mainClassName = "com.iris.capability.generator.html.HtmlGenerator"
+                finalizedBy installApp
+            }
+        } else if (taskName.toLowerCase().startsWith("jscode")) {
+            task(taskName) {
+                mainClassName = "com.iris.capability.generator.java.BackboneGenerator"
+                finalizedBy installApp
+            }
+        }
+}
+
+task cleanGeneratedJSSource(type: Delete) {
+    delete outputJSDir
+}
+
+clean.dependsOn cleanGeneratedJSSource
+
+configurations {
+    generateJSSource { extendsFrom runtime }
+}
+
+task extractCapabilities(type: Copy) {
+	from(zipTree(
+		project
+			.configurations
+			.compile.files({ it.name == 'arcus-model'; })
+			.find({ it.name.indexOf('arcus-model') > -1 })
+	)) {
+		include "capability/**"
+		include "protocol/**"
+		include "service/**"
+	}
+	into capabilityDir		
+}
+
+task generateJSSource(type: JavaExec) {
+    dependsOn 'extractCapabilities'
+    inputs.dir capabilityDir
+    inputs.dir jsTemplateDir
+    outputs.dir outputJSDir
+
+    doFirst {
+        delete(outputJSDir)
+        file(outputJSDir).mkdirs()
+        println "Generating js capablities into ${outputJSDir}..."
+    }
+
+    classpath = sourceSets.main.runtimeClasspath
+    args '-i', capabilityDir, '-o', outputJSDir
+    main "com.iris.capability.generator.js.BackboneGenerator"
+
+}
+
+task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
+	inputs.dir  capabilityDir
+	outputs.dir outputHtmlDir
+
+    classpath = sourceSets.main.runtimeClasspath
+    args '-i', capabilityDir, '-o', outputHtmlDir
+    main "com.iris.capability.generator.html.HtmlGenerator"
+
+	doFirst {
+		delete(outputHtmlDir)
+		file(outputHtmlDir).mkdirs()
+        println "Generating HTML dics into ${outputHtmlDir}..."
+	}
+}
+
+run {
+    if ( project.hasProperty("scriptParams") ) {
+        args(scriptParams.split(','))
+    }
+
+    if ( project.hasProperty("mainClass") ) {
+        mainClassName = mainClass
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Update generated node module: i2-capabilities.
+///////////////////////////////////////////////////////////////////////////////
+task createPackageJson(type: Copy) {
+    from "src/main/resources/js"
+    include "package.tmpl.json"
+    rename { file -> "package.json" }
+    into "${outputJSDir}/i2-capabilities" 
+    expand(version: "${version_major}.${version_minor}.${System.getenv()['bamboo_buildNumber']}")
+    outputs.upToDateWhen { false }
+}
+
+installDist.doLast {
+    println '\n\nRun with build/install/arcus-captools/bin/arcus-captools'
+}
+

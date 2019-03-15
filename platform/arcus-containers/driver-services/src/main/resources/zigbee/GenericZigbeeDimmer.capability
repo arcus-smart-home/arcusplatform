@@ -1,0 +1,810 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+////////////////////////////////////////////////////////////////////////////////
+// Default implementation of Dimmer for Zigbee Devices:
+//
+// Required onEvent delegation:
+//    onEvent( GenericZigbeeDimmer.DEFERRED_ON_EVENT ) {
+//        GenericZigbeeDimmer.doDeferredOnEvent this, DEVICE_NAME, onOffCluster
+//    }
+//
+//    onEvent( GenericZigbeeDimmer.READ_SWITCH_EVENT ) {
+//        GenericZigbeeDimmer.doReadSwitchEvent this, DEVICE_NAME, onOffCluster
+//    }
+//
+//    onEvent( GenericZigbeeDimmer.READ_LEVEL_EVENT ) {
+//        GenericZigbeeDimmer.doReadLevelEvent this, DEVICE_NAME, levelCluster
+//    }
+//
+//    onEvent( GenericZigbeeDimmer.DEFERRED_CNFG_ONOFF_EVENT ) {
+//        GenericZigbeeDimmer.doOnOffConfiguration this, DEVICE_NAME, DVC_ENDPOINT, MIN_ONOFF_RPT, MAX_ONOFF_RPT
+//    }
+//
+//    onEvent( GenericZigbeeDimmer.DEFERRED_CNFG_LEVEL_EVENT ) {
+//        GenericZigbeeDimmer.doLevelConfiguration this, DEVICE_NAME, DVC_ENDPOINT, MIN_LVL_RPT, MAX_LVL_RPT
+//    }
+//
+////////////////////////////////////////////////////////////////////////////////
+
+import groovy.transform.Field
+capability		Dimmer
+description		"Default implementation for the Zigbee Dimmer capability"
+version			"1.0"
+
+@Field static final short DFLT_TRANS_SECS         = 1
+@Field static final short ALEXA_TRANS_SECS        = 2
+
+@Field static final int   MAX_LEVEL               = 100
+
+@Field static final int   MAX_READBACK_CNT        = 9
+@Field static final long  SET_ON_DELAY_MSEC       = 400			// wait this long after setting Level before setting On/Off to ON
+@Field static final long  READBACK_DELAY_MSEC     = 750			// wait twice this interval before reading back settings, and then keap reading back at this interval until target values reached, or max readback count is reached
+@Field static final long  CNFG_RETRY_DELAY_MSEC   = 10000
+@Field static final int   MAX_CNFG_ATTEMPTS       = 10               // maximumn number of attempts to make trying to configure reporting
+
+@Field static final String DEFERRED_ON_EVENT      = 'DeferredSetOn'
+@Field static final String READ_SWITCH_EVENT      = 'DeferredSwitchRead'
+@Field static final String READ_LEVEL_EVENT       = 'DeferredLevelRead'
+@Field static final String DEFERRED_CNFG_ONOFF_EVENT = 'DeferredCnfgOnOff'
+@Field static final String DEFERRED_CNFG_LEVEL_EVENT = 'DeferredCnfgLevel'
+
+@Field static final String TARGET_STATE           = 'targetState'
+@Field static final String TARGET_LEVEL           = 'targetLevel'
+@Field static final String READ_SWITCH_COUNTER    = 'readSwitchCnt'
+@Field static final String READ_LEVEL_COUNTER     = 'readLevelCnt'
+
+@Field static final short PROFILE_HA              = 0x0104
+@Field static final short CLUSTER_ON_OFF          = 0x0006
+@Field static final short CLUSTER_LEVEL_CTRL      = 0x0008
+
+@Field static final byte CMD_CNFG_RPT             = 0x06		// General Command Frame - Configure Reporting
+@Field static final byte CMD_CNFG_RPT_RSP         = 0x07		// General Command Frame - Configure Reporting Response
+@Field static final byte CMD_READ_RPT_CNFG        = 0x08		// General Command Frame - Read Reporting Configuration
+@Field static final byte CMD_READ_RPT_CNFG_RSP    = 0x09		// General Command Frame - Read Reporting Configuration Response
+@Field static final String CNFG_LEVEL_RPT         = 'CnfgLevelRpt'
+
+@Field static final byte SWITCH_ON = 0xff
+@Field static final byte SWITCH_OFF = 0x00
+@Field static final byte SWITCH_NOTSET = 0x02
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////  
+
+// Note: this method must handle if both Dimmer.brightness and Switch.state are set in the same message.
+//
+// Dimmer Test Cases:
+//	1.	Changing the brightness while the device is OFF will turn the device ON.
+//	2.	Setting an ON device to OFF and a brightness at the same time will turn the device OFF and set the brightness as the default to use if the device is turned back ON.
+//	3.	Setting the brightness of a device that was just turned OFF but has not yet reported back that it is OFF should be treated
+//		the same as test case 1, and result in the device then being turned back ON at the brightness that was set.
+//	4.	Setting an OFF device to a lower brightness and turning it ON at the same time should try to not “flash” the device (it should not
+//		turn the device on to the previous higher brightness first and then set the brightness, but instead turn the device on to the new brightness)
+//  5.  Setting the brightness to 0 will be ignored.
+//
+// Resulting Expected Behavior:
+// - Apps should not set the Dimmer.brightness to zero.
+//
+// - Setting just the Dimmer.brightness to 1-100 will adjust the brightness to that value and turn the device ON, whatever state it was previously in.
+// - Setting just the Dimmer.brightness to 0 will be ignored (Apps should not be doing this).
+// - Setting just the Switch.state to OFF, will turn the device off and leave the brightness setting at whatever brightness it was previously.
+// - Setting just the Switch.state to ON, will turn the device on at the current Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100).
+// - Setting the Switch.state to OFF and Dimmer.brightness to 1-100 will turn the device OFF and set the driver brightness to the specified brightness so that value is used as the default when turned back ON.
+// - Setting the Switch.state to OFF and Dimmer.brightness to 0 will turn the device off and leave the brightness setting at whatever value it was previously.
+// - Setting the Switch.state to ON and Dimmer.brightness to 1-100 will set the device to the specified brightness first and then turn the device ON (after a short delay), to try and prevent the device from "flashing" on bright and then lowering to the new brightness if the new brightness is lower than the previous brightness.
+// - Setting the Switch.state to ON and Dimmer.brightness to 0 will turn the device on at the previous Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100).
+//
+// - If OFF, and power is removed & restored (device reset), device should be restored back to OFF state, if possible.
+// - If ON at brightness 20, and power is removed & restored (device reset), device should be restored back to ON at brightness 20, if possible.
+//
+static void doOnConnected(ctx, levelCluster) {
+   // configure reporting of Level cluster Current Level attribute
+   ctx.vars.CNFG_LEVEL_RPT = 0
+   ctx.Scheduler.defer CNFG_LEVEL_RPT
+   // read current Level attributes
+   levelCluster.zclReadAttributes(levelCluster.ATTR_CURRENT_LEVEL, levelCluster.ATTR_ON_LEVEL)
+}
+static boolean doOnZigbeeMessage(ctx, profile, clusterId, msgId, endpoint, data) {
+   // if Config Reporting Response for Level cluster,
+   if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+      if ((0 < data.length) && (0 == data[0])) {
+         ctx.log.debug "Level reporting config was successful"
+         // set flag to disable future attempts to configure reporting
+         ctx.vars.CNFG_LEVEL_RPT = -1
+      } else {
+         ctx.log.warn "Level reporting config FAILED: ${data}"
+      }
+      return true
+   }
+   return false
+}
+static void doOnCfgLevelReport(ctx) {
+   if ((0 <= ctx.vars.CNFG_LEVEL_RPT) && (MAX_CNFG_ATTEMPTS > ctx.vars.CNFG_LEVEL_RPT)) {
+      ctx.log.trace "{}:{}", CNFG_LEVEL_RPT, ctx.vars.CNFG_LEVEL_RPT
+      // configure reporting of Level cluster Current Level attribute
+      byte[] rptLvlCnfgBytes = [
+              // Dir (0x00)
+              0x00,
+              // Attr Id (0x0000) Current Level
+              0x00, 0x00,
+              // Attr Data Type (0x20) Unsigned 8-Bit Int
+              0x20,
+              // Min Interval (0x0002) 2 secs
+              0x02, 0x00,
+              // Max Interval (0x0078) 120 secs
+              0x78, 0x00,
+              // Reportable Change (0x01)
+              0x01 ]
+      ctx.Zigbee.send(
+              "cluster" : CLUSTER_LEVEL_CTRL,
+              "command" : CMD_CNFG_RPT,
+              "profile" : PROFILE_HA,
+              "endpoint" : 1,
+              "clusterspecific" : false,
+              "defaultresponse" : true,
+              "data" : rptLvlCnfgBytes )
+      // schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+      ctx.vars.CNFG_LEVEL_RPT++
+      ctx.Scheduler.scheduleIn CNFG_LEVEL_RPT, (CNFG_RETRY_DELAY_MSEC * ctx.vars.CNFG_LEVEL_RPT)
+   }
+}
+
+static void doSetAttributes( ctx, name, levelCluster, onOffCluster, message ) {
+	ctx.log.debug "{} setAttributes message: {}", name, message
+	int level = -1
+	byte onoff = SWITCH_NOTSET
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Dimmer.brightness:
+				level = attribute.value
+				break
+				
+			case ctx.Switch.state:
+				onoff = attribute.value == ctx.Switch.STATE_ON ? SWITCH_ON : SWITCH_OFF
+				break
+	
+			case ctx.Device.name:
+				ctx.Device.name attribute.value
+				break
+	
+			default:
+				break
+		}
+	}
+
+	// apps should not be sending brightness=0
+	if (0 == level) {
+		ctx.log.warn "{} ignored invalid attribute setting: dim:brightness=0", name
+	}
+
+	if (SWITCH_OFF == onoff) {
+		ctx.log.trace "Set device to OFF"
+		setDeviceToOff( ctx, name, onOffCluster )
+		if (0 < level) {
+			level = normalizeBrightness(ctx, name, level)
+			ctx.log.trace "Adjust driver brightness setting of OFF device to restore to: {}", level
+			// if dim:brightness was included, remember that as the last level
+			ctx.Dimmer.brightness level
+			setTargetLevel( ctx, level )
+		}
+	} else if (SWITCH_ON == onoff) {
+		if (0 < level) {
+			level = normalizeBrightness(ctx, name, level)
+			ctx.log.trace "Set device to ON at brightness: {}", level
+			setDeviceToLevelAndOn( ctx, name, level, levelCluster, onOffCluster, DFLT_TRANS_SECS )
+		} else {
+			// recieved a swit:state=ON, but no dim:brightness setting, so force device to last used 'target' level
+			level = getTargetLevel( ctx )
+			if (0 == level) level = 100		// if by some chance 0, reset to default of 100
+			ctx.log.trace "Set device to ON at previous brightness: {}", level
+			setDeviceToLevelAndOn( ctx, name, level, levelCluster, onOffCluster, DFLT_TRANS_SECS )
+		}
+	} else {
+		// if only level was set turn device ON to that level, if it is not 0
+		if (0 < level) {
+			level = normalizeBrightness(ctx, name, level)
+			ctx.log.trace "Forcing device to ON, at brightness: {}", level
+			setDeviceToLevelAndOn( ctx, name, level, levelCluster, onOffCluster, DFLT_TRANS_SECS )
+		}
+	}
+}
+
+static void setDeviceToLevelAndOn(ctx, name, level, levelCluster, onOffCluster, short interval) {
+	ctx.log.trace "{} Set device ON at Level: {}", name, level
+	setTargetLevel( ctx, level )
+	setTargetState( ctx, ctx.Switch.STATE_ON )
+	// set level before making sure device is ON
+	handleRampToBrightness( ctx, name, levelCluster, level, interval )
+	// and schedule a delayed readback of the level
+	resetReadLevelCnt(ctx)
+	ctx.Scheduler.scheduleIn READ_LEVEL_EVENT, (READBACK_DELAY_MSEC + (interval*1000))
+	// many/most ZigBee devices (but not all) allow level to be adjusted without automatically turning ON, so now make sure device is also set to ON
+	// BUT NOTE: some bulbs (OSRAM F/W 492 for example) behave funny, and stop adjusting to the level specified above if we send the ON command too soon, so delay it for a bit
+	resetReadSwitchCnt(ctx)
+	ctx.Scheduler.scheduleIn DEFERRED_ON_EVENT, (SET_ON_DELAY_MSEC + (interval*1000))
+	ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, (READBACK_DELAY_MSEC + SET_ON_DELAY_MSEC + (interval*1000))
+}
+
+static void setDeviceToOff(ctx, name, onOffCluster) {
+	ctx.log.trace "{} Set device to OFF", name
+	setTargetState( ctx, ctx.Switch.STATE_OFF )
+	onOffCluster.off()
+	resetReadSwitchCnt(ctx)
+	ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, (READBACK_DELAY_MSEC * 2)
+}
+
+// call this method to restore the device settings to the current Switch and Dimmer settings (for example if a device reset is detected)
+static void restoreDeviceSettings(ctx, name, levelCluster, onOffCluster) {
+	ctx.log.trace "{} Restore reset device: {}", name
+	// TODO: would be nice if this could be configurable, for example, don't restore reset devices if they have a specific Tag set, ie. NoRestoreOnReset
+	if (ctx.Switch.STATE_ON == ctx.Switch.state.get()) {
+		int level = getTargetLevel(ctx)
+		ctx.log.info "{} Restore reset device to ON at level: {}", name, level
+		setDeviceToLevelAndOn(ctx, name, level, levelCluster, onOffCluster, DFLT_TRANS_SECS)
+	} else {
+		ctx.log.info "{} Restore reset device to OFF", name
+		setDeviceToOff(ctx, name, onOffCluster)
+	}
+}
+
+
+static int normalizeBrightness (ctx, name, levelParam) {
+	if (MAX_LEVEL < levelParam) {
+		levelParam = MAX_LEVEL
+	}
+	if ( 1 > levelParam) {
+		levelParam = 1
+	}
+	return levelParam
+}
+
+/**
+ * This method is the execution of Zigbee commands to process the ramp brightness
+ */
+static void handleRampToBrightness(ctx, name, lvlClstr, level, short seconds) {
+	short transitionTime = (seconds?:1) * 10	// zigbee needs value in tenths of seconds
+	if (0 > transitionTime) { transitionTime = 0 }
+	
+	double dLevel = (double)level * 254.0 / (double)MAX_LEVEL
+	byte actualLevel = (byte)(dLevel.intValue())	//convert from percentage to actual zigbee level value 0 - 254
+
+	ctx.log.trace "{} levelCluster.moveToLevel[level, transitionTime] = [{}, {}]", name, actualLevel, transitionTime
+	lvlClstr.moveToLevel( actualLevel, transitionTime )
+}
+
+/**
+ * This method is used by the driver to implement the onDimmer.RampBrightness
+ */
+static void doRampBrightness(ctx, name, levelCluster, onOffCluster, message)
+{
+	ctx.log.trace "{} driver received onDimmer.RampBrightness message: {}", name, message
+	// read the brightness and seconds parameters for the method
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+	
+	ctx.log.trace "Parameter Values (brightness,seconds):{}, {}", targetBrightness, targetSeconds
+
+	targetBrightness = normalizeBrightness( ctx, name, targetBrightness )
+	setDeviceToLevelAndOn( ctx, name, (byte)targetBrightness, levelCluster, onOffCluster, (short)targetSeconds )
+
+	ctx.sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+
+/**
+ * This method is used by the Alexa integration to increment the current brightness by a specified amount, up to the maximum brightness
+ */
+static void doIncrementBrightness(ctx, name, levelCluster, onOffCluster, message) {
+	ctx.log.trace "{} driver received onDimmer.IncrementBrightness message: {}", name, message
+	
+	int currentLevel = getTargetLevel( ctx )
+
+	int newBrightness = currentLevel + (new Double(message.attributes['amount']).intValue())
+	newBrightness = normalizeBrightness(ctx, name, newBrightness)
+	
+	setDeviceToLevelAndOn( ctx, name, newBrightness, levelCluster, onOffCluster, ALEXA_TRANS_SECS )
+	
+	ctx.sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+
+/**
+ * This method is used by the Alexa integration to deccrement the current brightness by a specified amount, down until the brightness would
+ * drop below the minimum setting, at which time the brightness is left at whatever setting it is at and the device is simply turned OFF instead.
+ */
+static void doDecrementBrightness(ctx, name, levelCluster, onOffCluster, message) {
+	ctx.log.trace "{} driver received onDimmer.DecrementBrightness message: {}", name, message
+	
+	int currentLevel = getTargetLevel( ctx )
+	int newBrightness = currentLevel - (new Double(message.attributes['amount']).intValue())
+	
+	// If new level would be 0 or less, turn the device OFF and leave level at current value
+	if (0 >= newBrightness) {
+		setDeviceToOff( ctx, name, onOffCluster )
+	}
+	else {
+		newBrightness = normalizeBrightness(ctx, name, newBrightness)
+		setDeviceToLevelAndOn( ctx, name, newBrightness, levelCluster, onOffCluster, ALEXA_TRANS_SECS )
+	}
+	
+	ctx.sendResponse 'dim:DecrementBrightnessResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Use this handler if Switch State can be changed locally on device so any unexpected states should be saved,
+// for example, with Sengled light bulbs which have a local switch, or dimmer modules.
+//
+static void handleOnOffMsg(ctx, name, onOffCluster, msg) {
+	ctx.log.trace "{} driver received OnOff Attributes: {}", name, msg
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[onOffCluster.ATTR_ONOFF]
+	ctx.log.trace "OnOff: {}", onoff
+	
+	if (onoff != null) {
+		def prevState = ctx.Switch.state.get()
+		def currState = onoff ? ctx.Switch.STATE_ON : ctx.Switch.STATE_OFF
+		
+		if (!waitingForReadSwitch(ctx)) {
+			ctx.Switch.state currState
+		} else {
+			// if current device state matches target, we are done with any switch (on/off) readbacks
+			if (currState == getTargetState(ctx)) {
+				ctx.Switch.state currState
+				clearReadSwitchCnt(ctx)
+			} else {
+				ctx.log.trace "{} ignoring reported state {} while waiting for device to report {}", name, currState, getTargetState(ctx)
+			}
+		}
+		// if state changed, capture timestamp
+		if (ctx.Switch.state.get() != prevState) {
+			ctx.Switch.statechanged new Date()
+		}
+	}
+}
+
+//
+// Use this handler if Switch State cannot be changed locally on device and if unexpected states should be reset back to what the platform expects,
+// for example, with light bulbs that cannot be switched ON/OFF locally
+//
+static void handleOnOffMsgWithRestore(ctx, name, levelCluster, onOffCluster, msg) {
+	ctx.log.trace "{} driver received OnOff Attributes: {}", name, msg
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[onOffCluster.ATTR_ONOFF]
+	ctx.log.trace "OnOff: {}", onoff
+	
+	if (onoff != null) {
+		def prevState = ctx.Switch.state.get()
+		def currState = onoff ? ctx.Switch.STATE_ON : ctx.Switch.STATE_OFF
+		// if current device state matches target, we are done with any switch (on/off) readbacks
+		if (currState == getTargetState(ctx)) {
+			ctx.Switch.state currState
+			// if state changed, capture timestamp
+			if (ctx.Switch.state.get() != prevState) {
+				ctx.Switch.statechanged new Date()
+			}
+			clearReadSwitchCnt(ctx)
+		} else {
+			if (waitingForReadSwitch(ctx)) {
+				ctx.log.trace "{} ignoring reported state {} while waiting for device to report {}", name, currState, getTargetState(ctx)
+			} else {
+				// if not waiting for a response/ack then device is reporting state we don't expect,
+				// restore it to expected state
+				ctx.log.info "{} Device reported state {} when expected to be {}", name, currState, getTargetState(ctx)
+				restoreDeviceSettings(ctx, name, levelCluster, onOffCluster)
+			}
+		}
+	}
+}
+
+
+//
+// NOTE: if device sends an invalid level of 0xFF (-1) when it is uninitialized (reset), then set followsLevelSpec=FALSE
+//       to detect those levels and restore the device to the previous level when the INVALID value is reported.
+//
+static void handleLevelMsg(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg) {
+	handleLevelMsg(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg, true)
+}
+static void handleLevelMsgWithRestore(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg) {
+	handleLevelMsg(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg, true)
+}
+static void handleLevelMsgNoRestore(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg) {
+	handleLevelMsg(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg, false)
+}
+
+static void handleLevelMsg(ctx, name, levelCluster, onOffCluster, followsLevelSpec, msg, doRestore, invalidLevel = -1) {
+	ctx.log.debug "{} driver received Level Attributes: {}", name, msg
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def currLevel = attributes[levelCluster.ATTR_CURRENT_LEVEL]
+	def remainTime = attributes[levelCluster.ATTR_REMAINING_TIME]
+	def transTime = attributes[levelCluster.ATTR_ON_OFF_TRANSITION_TIME]
+	def onLevel = attributes[levelCluster.ATTR_ON_LEVEL]
+	ctx.log.trace "{} handleLevelMsg - Current Level:{}, On Level:{}, Transition Time:{}, Remaining Time:{}", name, currLevel, onLevel, transTime, remainTime
+	int rampingtime, brightness, rampingtarget
+	int targetLevel = getTargetLevel( ctx )
+	ctx.log.trace "{} - previously stored target level:{}", name, targetLevel
+	//added in 2.8 to support leviton DL6HD, etc. If you set the brightness on the switch to 100, it gets returned as 'INVALID'.
+	//to test, turn off switch, set brightness to 100,
+	if ('INVALID' == currLevel.toString() && 0 < invalidLevel) {
+		ctx.log.trace 'Level was INVALID. Setting to {}', invalidLevel
+		currLevel = invalidLevel
+	}
+	// set Dimmer Brightness attribute to Current Level
+	if (null != currLevel && ('INVALID' != currLevel.toString())) {
+		brightness = currLevel & 0xff
+		ctx.log.trace "raw level:{}", brightness
+		brightness = Math.round(brightness * 100.0 / 254.0)
+		if (0 < brightness) {
+			ctx.log.trace "Level is currently:{}, target level is:{}, read Cnt:{}", brightness, targetLevel, getReadLevelCnt(ctx)
+			if (brightness == getTargetLevel(ctx)) {
+				ctx.Dimmer.brightness brightness
+				clearReadLevelCnt(ctx)
+			} else {
+				if (!waitingForReadLevel(ctx)) {
+					if (doRestore) {
+						// if bulb is OFF and last level was 50, after power cycle it will report state as ON (and we will restore it to OFF) but it will also report
+						// its level as 50, so when we get that report we want to ignore it and only restore the level if the target state is ON
+						if (ctx.Switch.STATE_ON == getTargetState(ctx)) {
+							ctx.log.info "{} Restore device to ON at level: {}", name, getTargetLevel(ctx)
+							setDeviceToLevelAndOn(ctx, name, getTargetLevel(ctx), levelCluster, onOffCluster, DFLT_TRANS_SECS)
+						}
+					} else {
+						// if doRestore is not true, then the device's level can be changed locally, so adjust our level to match the device's
+						ctx.Dimmer.brightness brightness
+						setTargetLevel( ctx, brightness )
+					}
+				} else if (readLevelDone(ctx)) {
+					// reported level does not match 'target' level after Max Readbacks, accept that it is probably done and sync the 'target' to the actual device level
+					ctx.log.info "{} Level:{} has not reached target level:{} after {} readbacks", name, brightness, targetLevel, MAX_READBACK_CNT
+					ctx.Dimmer.brightness brightness
+					setTargetLevel( ctx, brightness )
+				}
+			}
+		}
+	} else if ('INVALID' == currLevel.toString()  && !followsLevelSpec) {		// if device reports invalid level '0xFF' when at 100%
+		ctx.log.trace "{} Device reported INVALID level", name
+		// if doRestore, and previous state was ON, then restore invalid level to previous level
+		if (doRestore && (ctx.Switch.STATE_ON == ctx.Switch.state.get())) {
+			ctx.log.info "{} Restore reset device to ON at level: {}", name, targetLevel
+			setDeviceToLevelAndOn(ctx, name, targetLevel, levelCluster, onOffCluster, DFLT_TRANS_SECS)
+		}
+	}
+	
+	// set Dimmer Ramping Time attribute to Remaining Time
+	if (null != remainTime && 'INVALID' != remainTime.toString()) {
+		double remainingDbl =  remainTime
+		remainingDbl /= 10	// ZigBee reamining time is reported in 10ths of seconds, Dimmer ramping time is in seconds
+		rampingtime = remainingDbl.intValue()
+		ctx.Dimmer.rampingtime rampingtime
+	}
+}
+
+
+/////////////////////////////////////////////////
+///  Event Handlers
+/////////////////////////////////////////////////
+
+//DEPRICATED - New approach is to read settings, and if values are not as expected, then they will be configured to desired values
+//             (this new approach appears to be less likely to trigger a device reset in OSRAM bulbs)
+static void doDefaultConfiguration(ctx, name, endpoint){
+	ctx.log.trace "{} performing deferred Reporting Configurations for level & onOff Clusters", name
+	doLevelConfiguration(ctx, name, endpoint, (short)0x0002, (short)0x0078)
+	doOnOffConfiguration(ctx, name, endpoint, (short)0x0001, (short)0x0078)
+}
+
+static void doOnOffConfiguration(ctx, name, endpoint, short minRpt, short maxRpt){
+	byte[] onOffCnfgBytes = [
+		//Direction Server-to-client
+		0x00,
+		//Attr ID (0x0000) OnOff
+		0x00, 0x00,
+		//Data Type (0x10) Boolean
+		0x10,
+		//Min Interval
+		minRpt & 0x00FF, minRpt >> 8,
+		//Max Interval
+		maxRpt & 0x00FF, maxRpt >> 8 ]		// no Reportable Change value included for discrete data types
+	ctx.Zigbee.send("cluster" : CLUSTER_ON_OFF, "command" : CMD_CNFG_RPT, "profile" : PROFILE_HA, "endpoint" : (byte)endpoint, "clusterspecific" : false, "defaultresponse" : true, "data" : onOffCnfgBytes )
+}
+
+static void doLevelConfiguration(ctx, name, endpoint, short minRpt, short maxRpt){
+	byte[] levelCnfgBytes = [
+		//Direction Server - to -client
+	    0x00,
+		// Attr Id (0x0000) Current Level
+		0x00, 0x00, 
+		//Attr Data Type (Uint 8)
+		0x20,
+		//Min Interval
+		minRpt & 0x00FF, minRpt >> 8,
+		//Max Interval
+		maxRpt & 0x00FF, maxRpt >> 8,
+		// Reportable Change
+		0x01 ]
+	ctx.Zigbee.send("cluster" : CLUSTER_LEVEL_CTRL, "command" : CMD_CNFG_RPT, "profile" : PROFILE_HA, "endpoint" : (byte)endpoint, "clusterspecific" : false, "defaultresponse" : true, "data" : levelCnfgBytes )
+}
+
+static void doProcessReadLevel(ctx, name, levelCluster){
+	ctx.log.trace "{} performed deferred ReadAttributes for levelCluster", name
+	// read current Level attributes
+	levelCluster.zclReadAttributes( 
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_REMAINING_TIME,
+		levelCluster.ATTR_ON_OFF_TRANSITION_TIME,
+		levelCluster.ATTR_ON_LEVEL )
+}
+
+static void doReadOnOffReportAttr(ctx, name, endpoint){
+	ctx.log.trace "{} read Reporting Configuration for On/Off Cluster", name
+	byte[] msgBytes = [
+		//Direction Server - to -client
+		0x00,
+		//Attr ID (0x0000) OnOff
+		0x00, 0x00 ]
+	ctx.Zigbee.send("cluster" : CLUSTER_ON_OFF, "command" : CMD_READ_RPT_CNFG, "profile" : PROFILE_HA, "endpoint" : (byte)endpoint, "clusterspecific" : false, "defaultresponse" : true, "data" : msgBytes )
+}
+
+static void doReadLevelfReportAttr(ctx, name, endpoint){
+	ctx.log.trace "{} read Reporting Configuration for Level Cluster", name
+	byte[] msgBytes = [
+		//Direction Server - to -client
+		0x00,
+		//Attr ID (0x0000) OnOff
+		0x00, 0x00 ]
+	ctx.Zigbee.send("cluster" : CLUSTER_LEVEL_CTRL, "command" : CMD_READ_RPT_CNFG, "profile" : PROFILE_HA, "endpoint" : (byte)endpoint, "clusterspecific" : false, "defaultresponse" : true, "data" : msgBytes )
+}
+
+static boolean handleReportingCnfgResponses(ctx, name, endpoint, message, short minOnOffRpt, short maxOnOffRpt, short minLvlRpt, short maxLvlRpt){
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def epoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// if Config Reporting Response for On/Off cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (epoint == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			ctx.log.debug "{} On/Off reporting config was successful", name
+		} else {
+			ctx.log.info "{} On/Off reporting config FAILED: {}", name, data
+		}
+		// read it back now, just to be sure, or to trigger re-write if it failed
+		doReadOnOffReportAttr(ctx, name, endpoint)
+		return true
+	}
+	
+	// if Config Reporting Response for Level cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (epoint == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			ctx.log.debug "{} Level reporting config was successful", name
+		} else {
+			ctx.log.info "{} Level reporting config FAILED: {}", name, data
+		}
+		// read it back now, just to be sure, or to trigger re-write if it failed
+		doReadLevelfReportAttr(ctx, name, endpoint)
+		return true
+	}
+
+	// if Read Reporting Config for On/Off cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_READ_RPT_CNFG_RSP == msgId) && (epoint == endpoint)) {
+		if ((8 <= data.length)
+			&& (0 == data[0])								// status is SUCESS
+			&& (0x00 == data[2]) && (0x00 == data[3])		// Attr. ID is 0x0000
+			&& ((minOnOffRpt & 0x00FF) == data[5]) && ((minOnOffRpt >> 8) == data[6])		// Min. Reporting Interval (byte order is little endian)
+			&& ((maxOnOffRpt & 0x00FF) == data[7]) && ((maxOnOffRpt >> 8) == data[8]) ) {	// Max. Reporting Interval (byte order is little endian)
+			ctx.log.debug "{} On/Off reporting config is expected value:{}", name, data
+			ctx.vars.KEY_CNFG_ONOFF_RPT_CNT = 0
+		} else {
+			ctx.log.debug "{} On/Off reporting config is NOT expected value:{}", name, data
+			if (null == ctx.vars.KEY_CNFG_ONOFF_RPT_CNT) {
+				ctx.vars.KEY_CNFG_ONOFF_RPT_CNT = 0
+			}
+			if (8 > ctx.vars.KEY_CNFG_ONOFF_RPT_CNT) {
+				ctx.vars.KEY_CNFG_ONOFF_RPT_CNT++
+				ctx.Scheduler.scheduleIn DEFERRED_CNFG_ONOFF_EVENT, CNFG_RETRY_DELAY_MSEC
+			}
+		}
+		return true
+	}
+	
+	// if Read Reporting Config Response for Level cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_READ_RPT_CNFG_RSP == msgId) && (epoint == endpoint)) {
+		if ((8 <= data.length)
+			&& (0 == data[0])								// status is SUCESS
+			&& (0x00 == data[2]) && (0x00 == data[3])		// Attr. ID is 0x0000
+			&& ((minLvlRpt & 0x00FF) == data[5]) && ((minLvlRpt >> 8) == data[6])		// Min. Reporting Interval (byte order is little endian)
+			&& ((maxLvlRpt & 0x00FF) == data[7]) && ((maxLvlRpt >> 8) == data[8]) ) {	// Max. Reporting Interval (byte order is little endian)
+			ctx.log.debug "{} Level reporting config is expected value:{}", name, data
+			ctx.vars.KEY_CNFG_LEVEL_RPT_CNT = 0
+		} else {
+			ctx.log.debug "{} Level reporting config is NOT expected value:{}", name, data
+			if (null == ctx.vars.KEY_CNFG_LEVEL_RPT_CNT) {
+				ctx.vars.KEY_CNFG_LEVEL_RPT_CNT = 0
+			}
+			if (8 > ctx.vars.KEY_CNFG_LEVEL_RPT_CNT) {
+				ctx.vars.KEY_CNFG_LEVEL_RPT_CNT++
+				ctx.Scheduler.scheduleIn DEFERRED_CNFG_LEVEL_EVENT, CNFG_RETRY_DELAY_MSEC
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
+	
+
+static void doDeferredOnEvent(ctx, name, onOffCluster) {
+	onOffCluster.on()
+}
+
+static void doReadSwitchEvent(ctx, name, onOffCluster) {
+	if (shouldReadSwitchAgain(ctx)) {
+		onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+		ctx.Scheduler.scheduleIn READ_SWITCH_EVENT, READBACK_DELAY_MSEC
+	}
+}
+
+static void doReadLevelEvent(ctx, name, levelCluster) {
+	if (shouldReadLevelAgain(ctx)) {
+		levelCluster.zclReadAttributes(
+			levelCluster.ATTR_CURRENT_LEVEL,
+			levelCluster.ATTR_REMAINING_TIME,
+			levelCluster.ATTR_ON_OFF_TRANSITION_TIME,
+			levelCluster.ATTR_ON_LEVEL )
+		ctx.Scheduler.scheduleIn READ_LEVEL_EVENT, READBACK_DELAY_MSEC
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Helper Accessor methods
+////////////////////////////////////////////////////////////////////////////////
+
+static int getTargetLevel( ctx ) {
+	if (null == ctx.vars[TARGET_LEVEL]) {
+		if (null != ctx.Dimmer.brightness.get())
+			ctx.vars[TARGET_LEVEL] = ctx.Dimmer.brightness.get()
+		else
+			ctx.vars[TARGET_LEVEL] = MAX_LEVEL
+	}
+	return ctx.vars[TARGET_LEVEL]
+}
+
+static void setTargetLevel( ctx, int level ) {
+	int targetLevel = level
+	if (MAX_LEVEL < level) targetLevel = MAX_LEVEL
+	if (1 > level) targetLevel = 1
+	ctx.log.trace "setTargetLevel:{}", targetLevel
+	ctx.vars[TARGET_LEVEL] = targetLevel
+}
+
+
+static void setTargetState( ctx, state ) {
+	ctx.log.trace "setTargetState:{}", state
+	ctx.vars[TARGET_STATE] = state
+}
+
+static def getTargetState( ctx ) {
+	if (null == ctx.vars[TARGET_STATE])
+		ctx.vars[TARGET_STATE] = ctx.Switch.STATE_ON
+	return ctx.vars[TARGET_STATE]
+}
+
+
+static int getReadSwitchCnt(ctx) {
+	if (null == ctx.vars[READ_SWITCH_COUNTER])
+		ctx.vars[READ_SWITCH_COUNTER] = -1
+	return ctx.vars[READ_SWITCH_COUNTER]
+}
+
+static void incReadSwitchCnt(ctx) {
+	int readCnt = getReadSwitchCnt(ctx)
+	ctx.vars[READ_SWITCH_COUNTER] = ++readCnt
+}
+
+static void resetReadSwitchCnt(ctx) {
+	if (0 != getReadSwitchCnt(ctx))
+		ctx.Scheduler.cancel READ_SWITCH_EVENT
+	ctx.vars[READ_SWITCH_COUNTER] = 0
+}
+
+// check if readback loop has reached end
+static boolean readSwitchDone(ctx) {
+	return (getReadSwitchCnt(ctx) >= MAX_READBACK_CNT)
+}
+
+// clear Read Switch counter because we are no longer trying to read back On/Off setting
+static void clearReadSwitchCnt(ctx) {
+	if (0 <= getReadSwitchCnt(ctx))
+		ctx.Scheduler.cancel READ_SWITCH_EVENT
+	ctx.vars[READ_SWITCH_COUNTER] = -1
+}
+
+// check if we are waiting to readback a switch state because a command was recently sent
+// NOTE: returns false if counter has been cleared (-1) so not expecting any response
+static boolean waitingForReadSwitch(ctx) {
+	return ((0 <= getReadSwitchCnt(ctx)) && !readSwitchDone(ctx))
+}
+
+// call to determine if another On/Off readback request should be sent
+static boolean shouldReadSwitchAgain(ctx) {
+	if (waitingForReadSwitch(ctx)) {
+		incReadSwitchCnt(ctx)
+		return true
+	}
+	return false
+}
+
+
+
+
+static int getReadLevelCnt(ctx) {
+	if (null == ctx.vars[READ_LEVEL_COUNTER])
+		ctx.vars[READ_LEVEL_COUNTER] = -1
+	return ctx.vars[READ_LEVEL_COUNTER]
+}
+
+static void incReadLevelCnt(ctx) {
+	int readCnt = getReadLevelCnt(ctx)
+	ctx.vars[READ_LEVEL_COUNTER] = ++readCnt
+}
+
+// reset Read Level counter to start readback loop
+static void resetReadLevelCnt(ctx) {
+	if (0 != getReadLevelCnt(ctx))
+		ctx.Scheduler.cancel READ_LEVEL_EVENT
+	ctx.vars[READ_LEVEL_COUNTER] = 0
+}
+
+// check if we are still waiting to readback a level because a command was recently sent
+// NOTE: returns false if counter has been cleared (-1) so not expecting any response
+static boolean waitingForReadLevel(ctx) {
+	return ((0 <= getReadLevelCnt(ctx)) && !readLevelDone(ctx))
+}
+
+// check if readback loop has reached end
+static boolean readLevelDone(ctx) {
+	return (getReadLevelCnt(ctx) >= MAX_READBACK_CNT)
+}
+
+// clear Read Level counter because we are no longer trying to read back level
+static void clearReadLevelCnt(ctx) {
+	if (0 <= getReadLevelCnt(ctx))
+		ctx.Scheduler.cancel READ_LEVEL_EVENT
+	ctx.vars[READ_LEVEL_COUNTER] = -1
+}
+
+// call to determine if another Level readback request should be sent
+static boolean shouldReadLevelAgain(ctx) {
+	if (waitingForReadLevel(ctx)) {
+		incReadLevelCnt(ctx)
+		return true
+	}
+	return false
+}
+

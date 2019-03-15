@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="CareBehaviorTemplate"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a care behavior template</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="id"
+         type="string"
+         description="The id for this behavior template" />
+      <t:attribute
+         name="type"
+         type="enum"
+         values="INACTIVITY, OPEN, PRESENCE, OPEN_COUNT, TEMPERATURE"
+         description="The type of behavior." />
+      <t:attribute
+         name="name"
+         type="string"
+         description="The name for this behavior template" />
+      <t:attribute
+         name="description"
+         type="string"
+         description="The description for this behavior template" />
+      <t:attribute
+         name="timeWindowSupport"
+         type="enum"
+         values="NONE, OPTIONAL, REQUIRED"
+         description="Defines whether or not a TimeWindow is required." />
+      <t:attribute
+         name="availableDevices"
+         type="set&lt;string&gt;"
+         description="This addresses of all the devices currently available to participate in this behavior." />
+      <t:attribute
+         name="fieldLabels"
+         type="map&lt;string&gt;"
+         description="Labels for the fields." />
+      <t:attribute
+         name="fieldDescriptions"
+         type="map&lt;string&gt;"
+         description="Descriptions for the fields." />
+      <t:attribute
+         name="fieldUnits"
+         type="map&lt;string&gt;"
+         description="Unit for the field." />
+      <t:attribute
+         name="fieldValues"
+         type="map&lt;string&gt;"
+         description="Options for the fields" />
+   </t:attributes>
+</t:type>

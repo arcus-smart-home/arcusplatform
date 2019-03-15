@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Test"
+   namespace="test"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+This capability is used for devices which support a test mode.  Generally text/instructions will be associated with the device in the device repository that will let the user know when they should press a test button (or something similar) in order to emit the test event.
+	</c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="lastTestTime" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="The last time the device was tested (a test:Test event was emitted)."
+         />
+   </c:attributes>
+   
+   <c:events>
+      <c:event 
+         name="Test" 
+         description="Emitted when the test button or other test procedure is executed." />
+   </c:events>
+   
+</c:capability>

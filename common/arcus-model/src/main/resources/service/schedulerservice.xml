@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="SchedulerService"
+           namespace="scheduler"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Handler for creating and modifying schedules.
+   </s:description>
+   
+   <s:methods>
+   
+   	<s:method name="ListSchedulers" description="Lists all the schedulers for a given place.">
+      <s:parameter 
+      	name="placeId" 
+      	type="string" 
+      	description="The id of the place to list the schedulers for." 
+      	optional="false"/>
+      <s:parameter 
+      	name="includeWeekdays" 
+      	type="boolean" 
+      	description="if the results should include schedule for each day of the week.  Default value is true." 
+      	optional="true"/>
+      <s:return name="schedulers" 
+      	type="list&lt;Scheduler&gt;" 
+      	description="The subsystems"/>
+   	</s:method>
+   	<s:method name="GetScheduler" description="Creates a new Scheduler or returns the existing scheduler for target.  Generally this is used when there is no Scheduler in ListSchedulers for the given object.">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing to schedule." 
+      	optional="false"/>
+      <s:return name="scheduler" 
+      	type="Scheduler" 
+      	description="A scheduler object that may be used to create schedules for the given target."/>
+   	</s:method>
+   	<s:method 
+   		name="FireCommand" 
+   		description="Fires the requested command right now, generally used for testing.">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing to schedule." 
+      	optional="false"/>
+      <s:parameter 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command to fire" 
+      	optional="false"/>
+   	</s:method>
+   	<s:method name="ScheduleCommands" description="
+Adds or modifies a scheduled weekly event running at the given time on the requested days.
+Note that if an event with the same messageType, attributes and time of day exists this call will modify that event.
+If no Scheduler exists for the given target then it will be created.  If no Schedule exists for the given schedule, it will be created.   	
+   	">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing to schedule." 
+      	optional="false"/>
+      <s:parameter
+        name="group"
+        type="string"
+        description="The group for the schedules if they are being created.  If they already exist and are part of a different group, this will return an error"
+        optional="false"/>
+      <s:parameter 
+      	name="commands" 
+      	type="list&lt;TimeOfDayCommand&gt;" 
+      	description="A list of commands to insert/update/delete.  The referenced schedule ids will be created if needed.  If the id is null this will be considered an insert, if the id is populated and there are days this will be an update, if there is an id and no days it will be a delete." 
+      	optional="false"/>
+      <s:return
+      	name="schedulerAddress" 
+      	type="string" 
+      	description="The address of the scheduler that was created / modified."/>
+      <s:return 
+      	name="commandIds" 
+      	type="list&lt;string&gt;" 
+      	description="The ids of the commands that were created / modified / deleted."/>
+   	</s:method>
+   	<s:method name="ScheduleWeeklyCommand" description="
+This is a convenience for Scheduler#GetScheduler(target)#AddSchedule(schedule, 'WEEKLY')#ScheduleWeeklyEvent(time, messageType, attributeMap).
+Adds or modifies a scheduled weekly event running at the given time on the requested days.
+Note that if an event with the same messageType, attributes and time of day exists this call will modify that event.
+If no Scheduler exists for the given target then it will be created.  If no Schedule exists for the given schedule, it will be created.   	
+   	">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing to schedule." 
+      	optional="false"/>
+      <s:parameter 
+      	name="schedule" 
+      	type="string" 
+      	description="The name of the schedule to update or create." 
+      	optional="false"/>
+      <s:parameter 
+      	name="days" 
+      	type="set&lt;string&gt;"
+      	values="MON,TUE,WED,THU,FRI,SAT,SUN" 
+      	description="The days of the week that this command should be run on.  There must be at least one day in this set." 
+      	optional="false"/>
+      <s:parameter
+        name="mode"
+        type="enum"
+        values="ABSOLUTE,SUNRISE,SUNSET"
+        description="What mode this command is scheduled in:
+    ABSOLUTE - The time reported in time will be used.
+    SUNRISE - The command will execute at local sunrise + offsetMin.  The time reported in the time field will be the calculated run time for today.
+    SUNSET - The command will execute at local sunset + offsetMin. The time reported in the time field will be the calculated run time for today."
+        optional="true"/>
+      <s:parameter 
+      	name="time" 
+      	type="string"
+      	description="The time of day formatted as HH:MM using a 24-hour clock, in place-local time (see Place#TimeZone), that the command should be sent." 
+      	optional="true"/>
+      <s:parameter
+         name="offsetMinutes"
+         type="int"
+         description="This will always be 0 if the mode is set to ABSOLUTE.  If mode is set to SUNRISE or SUNSET this will be the offset / delta from sunrise or sunset that the event should run at.  A negative number means the event should happen before sunrise/sunset, a postive means after."
+      	 optional="true"/>
+      <s:parameter 
+      	name="messageType" 
+      	type="string"
+      	description="Default: base:SetAttributes. Type of message to be sent." 
+      	optional="false"/>
+      <s:parameter 
+      	name="attributes" 
+      	type="map&lt;any&gt;"
+      	description="The attributes to send with the request." 
+      	optional="false"/>
+      <s:return
+      	name="schedulerAddress" 
+      	type="string" 
+      	description="The address of the scheduler that was created / modified."/>
+      <s:return 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command that was created or modified."/>
+   	</s:method>
+   	<s:method name="UpdateWeeklyCommand" description="
+This is a convenience for Scheduler#GetScheduler(target)[schedule]#UpdateWeeklyEvent(commandId, time, attributes).
+Updates schedule for an existing scheduled event.
+	">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing being scheduled." 
+      	optional="false"/>
+      <s:parameter 
+      	name="schedule" 
+      	type="string" 
+      	description="The name of the schedule being modified." 
+      	optional="false"/>
+      <s:parameter 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command to update. Only the specified fields will be changed." 
+      	optional="false"/>
+      <s:parameter 
+      	name="days" 
+      	type="set&lt;string&gt;"
+      	values="MON,TUE,WED,THU,FRI,SAT,SUN" 
+      	description="If specified it will update the schedule to only run on the requested days." 
+      	optional="true"/>
+      <s:parameter
+        name="mode"
+        type="enum"
+        values="ABSOLUTE,SUNRISE,SUNSET"
+        description="What mode this command is scheduled in:
+    ABSOLUTE - The time reported in time will be used.
+    SUNRISE - The command will execute at local sunrise + offsetMin.  The time reported in the time field will be the calculated run time for today.
+    SUNSET - The command will execute at local sunset + offsetMin. The time reported in the time field will be the calculated run time for today."
+        optional="true"/>
+      <s:parameter 
+      	name="time" 
+      	type="string"
+      	description="The time of day formatted as HH:MM using a 24-hour clock, in place-local time (see Place#TimeZone), that the command should be sent." 
+      	optional="true"/>
+      <s:parameter
+         name="offsetMinutes"
+         type="int"
+         description="This will always be 0 if the mode is set to ABSOLUTE.  If mode is set to SUNRISE or SUNSET this will be the offset / delta from sunrise or sunset that the event should run at.  A negative number means the event should happen before sunrise/sunset, a postive means after."
+      	 optional="true"/>
+      <s:parameter 
+      	name="messageType" 
+      	type="string"
+      	description="Default: base:SetAttributes. Type of message to be sent." 
+      	optional="true"/>
+      <s:parameter 
+      	name="attributes" 
+      	type="map&lt;any&gt;"
+      	description="If specified it will update the attributes to be included in the message." 
+      	optional="true"/>
+   	</s:method>
+   	<s:method name="DeleteCommand" description="
+This is a convenience for Scheduler#GetScheduler(target)[schedule]#DeleteCommand(comandId).
+Deletes any occurrence of the specified command from the week.
+	">
+      <s:parameter 
+      	name="target" 
+      	type="string" 
+      	description="The address of the thing being scheduled." 
+      	optional="false"/>
+      <s:parameter 
+      	name="schedule" 
+      	type="string" 
+      	description="The name of the schedule being modified." 
+      	optional="false"/>
+      <s:parameter 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command to update. Only the specified fields will be changed." 
+      	optional="false"/>
+   	</s:method>
+   
+   </s:methods>
+   
+</s:service>

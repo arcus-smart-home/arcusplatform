@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+      name="MockEvent"
+      version="1.0"
+      xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a mock event</t:description>
+
+   <t:attributes>
+      <t:attribute
+            name="eventType"
+            type="enum"
+            values="DISPATCHING,CONTACTED,DISPATCHED,DISPATCH_REFUSED,DISPATCH_CANCELLED"
+            description="The state of the mock incident event, should be used to guide iconography"/>
+
+      <t:attribute
+            name="person"
+            type="string"
+            description="Address"/>
+
+   </t:attributes>
+</t:type>

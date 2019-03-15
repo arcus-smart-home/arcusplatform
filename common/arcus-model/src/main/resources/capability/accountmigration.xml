@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="AccountMigration"
+   namespace="accountmig"
+   enhances="Account"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Add additional methods necessary to migration an account from V1 to V2
+   </c:description>
+   
+   <c:attributes>
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+          name="MigrateBillingAccount"
+          description="Creates a new V2 billing account for the user based on their V1 service level">
+         <c:parameters>
+            <c:parameter
+               name="billingToken"
+               type="string"
+               description="Billing token recevied from ReCurly"
+               optional="false"/>
+            <c:parameter
+               name="placeID"
+               type="string"
+               description="Place ID to associate the initial subscription to"
+               optional="false"/>
+            <c:parameter
+               name="serviceLevel"
+               type="enum"
+               values="BASIC,PREMIUM"
+               description="The current v1 service level translated into the V2 enumeration"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

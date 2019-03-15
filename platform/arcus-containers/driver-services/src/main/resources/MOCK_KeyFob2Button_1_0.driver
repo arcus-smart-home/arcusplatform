@@ -1,0 +1,159 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Key Fob with 2 buttons
+ * 
+ * Notes: When button state is set to PRESSED, it will automatically be reset to RELEASED 1 second later.
+ * 
+ */
+driver			"MOCK_KeyFob2Button"
+description		"Driver for a Key Fob with a x and o buttons"
+version			"1.0"
+protocol		"MOCK"
+deviceTypeHint	"Keyfob"
+productId		"486390"
+vendor 			"Mockitron"
+model 			"KeyFob2Button"
+
+matcher         'MOCK:Capability' : 'KeyFob2Button'
+matcher         'MOCK:ProductId'  : '486390'
+
+capabilities	DevicePower, Presence, DeviceMock
+
+importCapability 'generic/PresenceDeviceConnection'
+
+instance	'home', Button
+instance	'away', Button
+
+def final long RELEASE_DELAY_MSEC = 1000		// simulate button RELEASED 1 second after PRESSED
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock KeyFob2Button device started."
+	Device.name 'Mock 2 Button Key Fob'
+
+	DeviceConnection.signal          49
+
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.battery              60
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Button.state.home                Button.STATE_RELEASED
+	Button.state.away                Button.STATE_RELEASED
+	Button.statechanged.home         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Button.statechanged.away         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Presence.presence                Presence.PRESENCE_PRESENT
+	presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Presence.usehint                 Presence.USEHINT_UNKNOWN
+   Presence.person                  'UNSET'
+}
+
+onRemoved {
+	log.debug "Mock KeyFob2Button device removed."
+}
+
+
+// ########### capability support ##################
+
+onEvent( "ReleaseButtonX" ) {
+	releaseButton(Button.state.home)
+	Button.statechanged.home new Date()
+}
+
+onEvent( "ReleaseButtonO" ) {
+	releaseButton(Button.state.away)
+	Button.statechanged.away new Date()
+}
+
+void releaseButton(Object curButton) {
+	log.debug "Button Release for button " + curButton.key
+	curButton  Button.STATE_RELEASED
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+setAttributes('but') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'but'"
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Button.state.home:
+				pressButton(Button.state.home, attribute.value, 'ReleaseButtonX', RELEASE_DELAY_MSEC)
+				break;
+			case Button.state.away:
+				pressButton(Button.state.away, attribute.value, 'ReleaseButtonO', RELEASE_DELAY_MSEC)
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute: " + attribute
+      }
+   }
+}
+
+void pressButton(Object curButton, Object curButtonState, String eventName, long delay) {
+	// if value is PRESSED, do a delayed setting of the value to RELEASED
+	if (Button.STATE_PRESSED == curButtonState) {
+		log.debug "Button Pressed for button "+curButton.key
+		curButton Button.STATE_PRESSED
+		Scheduler.scheduleIn eventName, delay
+	}
+	else if(Button.STATE_RELEASED == curButtonState) {
+		log.debug "Button Released for button "+curButton.key
+		curButton Button.STATE_RELEASED
+	}
+}
+

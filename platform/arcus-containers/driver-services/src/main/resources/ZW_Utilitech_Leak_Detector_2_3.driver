@@ -1,0 +1,226 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZWave Driver for a Utilitech Water Leak Detector
+ * 
+ *    05/11/17 - Version 2.3 for Reflexes. If hub is OFFLINE, Battery reporting is ignored.
+ *    
+ * PAIR/UNPAIR
+ *    With batteries inserted, press the pair key once. The pair key is located under the battery cover.
+ *    
+ * OFFLINE TIMEOUT:
+ *    70 minutes
+ * 
+ * CHECK-IN/WAKEUP INTERVAL:
+ *    20 minutes
+ * 
+ * BATTERY LEVEL:
+ *  - Read approximately every 12 hours
+ * 
+ * COMMAND CLASSES:
+ *    0x20   (32) Basic
+ *    0x70  (112) Configuration
+ *    0x71  (113) Alarm (V1)
+ *    0x72  (114) Manufacturer_Specific
+ *    0x80 (-128) Battery
+ *    0x84 (-124) Wake_Up (V2)
+ *    0x85 (-123) Association (V2)
+ *    0x86 (-122) Version
+ *    0x9C (-100) Sensor_Alarm
+ */
+
+import static java.util.concurrent.TimeUnit.*        // needed when running Unit Tests
+import static com.iris.protocol.zwave.SensorAlarm.*
+
+uses 'zwave.GenericZWaveBattery'
+
+
+driver          "ZWaveUtilitechLeakDetectorDriver"
+description     "Driver for a Z-wave Utilitech Water Leak Detector"
+version         "2.3"
+protocol        "ZWAV"
+deviceTypeHint  "Water Leak"
+productId       "f80f79"
+vendor          "Utilitech"
+model           "TST01-1"
+
+
+matcher         'ZWAV:Manufacturer': 0x0060, 'ZWAV:ProductType': 0x000B, 'ZWAV:ProductId': 0x0001
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+LeakH2O {
+    LeakH2O.state LeakH2O.STATE_SAFE
+    bind LeakH2O.statechanged to LeakH2O.state
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+    offlineTimeout 70, MINUTES      // 3 times 20 minute interval, plus small buffer
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    poll reflex {
+        on connected
+        // set the wake up interval to 20 minutes (1200 (0x0004B0) seconds) and have the reports sent to the hub (node id 1)
+        send wake_up.set, seconds1: 0x00, seconds2: 0x04, seconds3: 0xB0, node: 0x01
+        send sensor_alarm.get, sensortype: SensorAlarmGetV1.SENSOR_TYPE_WATER_LEAK_ALARM
+        send battery.get
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////
+    // Periodic Polls done locally from the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    // approximately every 20 minutes, queue a read of the Water Leak sensor the next time the device wakes up
+    poll reflex {
+        after 1170, SECONDS
+        send sensor_alarm.get, sensortype: SensorAlarmGetV1.SENSOR_TYPE_WATER_LEAK_ALARM
+    }
+
+    // approximately every 12 hours, queue a read of the battery level the next time the device wakes up
+    poll reflex {
+        after 43000, SECONDS
+        send battery.get
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process Sensor Alarm Reports locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: SensorAlarmReportV1.SENSOR_STATE_NO_ALARM
+        // also map single bit set errors to 0x00 (SAFE), see JIRA issue ITWO-6483
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)1)   // single bit 0 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)2)   // single bit 1 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)4)   // single bit 2 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)8)   // single bit 3 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)16)  // single bit 4 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)32)  // single bit 5 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)64)  // single bit 6 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)128) // single bit 7 error
+        set LeakH2O.state, LeakH2O.STATE_SAFE
+    }
+    
+    match reflex {
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: SensorAlarmReportV1.SENSOR_STATE_ALARM
+        // also map single bit clear errors to 0xFF (LEAK), see JIRA issue ITWO-6483
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)254)  // single bit 0 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)253)  // single bit 1 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)251)  // single bit 2 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)247)  // single bit 3 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)239)  // single bit 4 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)223)  // single bit 5 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)191)  // single bit 6 error
+        on sensor_alarm.report, sensortype: SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM, sensorstate: ((byte)127)  // single bit 7 error
+        set LeakH2O.state, LeakH2O.STATE_LEAK
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process Alarm Reports locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on alarm.report, alarmtype: 0x01        // Manufacturer defined LOW BATTERY
+        emit DevicePower.battery, 0
+    }
+    
+    match reflex {
+        on alarm.report, alarmtype: 0x02        // Manufacturer defined POWER APPLIED
+        send battery.get
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// this handler should only be called if reflex to handle defined sensor states was not called
+onZWaveMessage.sensor_alarm.report {
+    def sensorType = message.command.get('sensortype')
+    def sensorState = message.command.get('sensorstate')
+    
+    if (SensorAlarmReportV1.SENSOR_TYPE_WATER_LEAK_ALARM == sensorType) {
+        int alarmState = sensorState & 0xFF
+
+        // Per JIRA issue ITWO-6483, device is supposed to report state as either 0x00 (SAFE) or (0xFF) LEAK
+        // but sometimes (on average a few times a day) we see non-zero state values reported by devices where
+        // there is only a single bit set in the value, in which case we now assume those map to a state of 0x00, SAFE,
+        // to try and avoid false alarms.  If more than one bit is set, but not all 8 bits, we assume 0xFF, LEAK.
+
+        switch ( alarmState ) {
+            case 0x00: // should not really happen, but just in case
+                log.debug "Handling SAFE reported but not handled by reflex match"
+                LeakH2O.state LeakH2O.STATE_SAFE
+                break
+
+            case 0xFF: // should not really happen, but just in case
+                log.warn "Handling LEAK reported but not handled by reflex match"
+                LeakH2O.state LeakH2O.STATE_LEAK
+                break
+
+            case 0x01:
+            case 0x02:
+            case 0x04:
+            case 0x08:
+            case 0x10: // (16)
+            case 0x20: // (32)
+            case 0x40: // (64)
+            case 0x80: // (-128)
+                log.info "Reported unexpected sensor state:{} mapping single bit error to (0x00) SAFE", alarmState
+                LeakH2O.state LeakH2O.STATE_SAFE
+                break
+
+            default:
+                log.info "Reported ambiguous sensor state:{} mapping multiple bit error to (0xFF) LEAK", alarmState
+                LeakH2O.state LeakH2O.STATE_LEAK
+                break
+        }
+    } else {
+        log.warn "Reported unknown sensor alarm type:{}, state:{}", sensorType,sensorState
+    }
+}
+    
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Received WakeUp Message:{}", message
+}
+
+onZWaveMessage {
+    log.debug "Received unhandled ZWave message {}", message
+    return false;
+}
+

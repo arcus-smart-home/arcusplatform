@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://arcus.com/pairing_1.0.0"
+        xmlns:tns="http://arcus.com/pairing_1.0.0" elementFormDefault="qualified">
+
+   <xs:annotation>
+      <xs:documentation xml:lang="en">
+      Iris Product Pairing Catalog schema
+      Copyright 2018 Lowe's Companies, Inc. All rights reserved.
+      </xs:documentation>
+   </xs:annotation>
+  
+   <xs:element name="pairing-catalog">
+      <xs:complexType>
+         <xs:sequence>
+<!-- 
+            <xs:element name="metadata" type="tns:metadataType" />
+ -->
+            <xs:element name="customizations" type="tns:customizations" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   
+   <xs:complexType name="customizations">
+      <xs:sequence>
+         <xs:element name="customization" type="tns:customization" maxOccurs="unbounded" minOccurs="1"/>
+      </xs:sequence>
+   </xs:complexType>
+
+   <xs:simpleType name="customizationType">
+      <xs:restriction base="xs:string">
+         <xs:enumeration value="name"/>
+         <xs:enumeration value="favorite"/>
+         <xs:enumeration value="buttonAssignment"/>
+         <xs:enumeration value="multiButtonAssignment"/>
+         <xs:enumeration value="contactUseHint" />
+         <xs:enumeration value="contactTest" />
+         <xs:enumeration value="presenceAssignment" />
+         <xs:enumeration value="haloRoom" />
+         <xs:enumeration value="rule" />
+         <xs:enumeration value="schedule" />
+         <xs:enumeration value="stateCountySelect" />
+         <xs:enumeration value="weatherStation" />
+         <xs:enumeration value="info" />
+         <xs:enumeration value="securityMode" />
+         <xs:enumeration value="uncertified" />
+         <xs:enumeration value="unknown" />
+         <xs:enumeration value="otaUpgrade" />
+         <xs:enumeration value="waterHeater" />
+         <xs:enumeration value="irrigationZone" />
+         <xs:enumeration value="multiIrrigationZone" />
+      </xs:restriction>
+   </xs:simpleType>
+
+   <xs:complexType name="customization">
+      <xs:sequence>
+         <xs:element name="rule-templates" type="xs:string" minOccurs="0" maxOccurs="1"/>
+         <xs:element name="p" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="type"     type="tns:customizationType"  use="required" />
+      <xs:attribute name="id"       type="xs:string"              use="optional" />
+      <xs:attribute name="header"   type="xs:string"              use="optional" />
+      <xs:attribute name="title"    type="xs:string"              use="optional" />
+      <xs:attribute name="query"    type="xs:string"              use="optional" />
+      <xs:attribute name="note"     type="xs:string"              use="optional" />
+      <xs:attribute name="linkText" type="xs:string"              use="optional" />
+      <xs:attribute name="linkUrl"  type="xs:string"              use="optional" />
+   </xs:complexType>
+
+</xs:schema>

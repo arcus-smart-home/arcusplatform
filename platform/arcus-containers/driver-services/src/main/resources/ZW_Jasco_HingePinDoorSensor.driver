@@ -1,0 +1,252 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco Hinge Pin Door Sensor
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZWJascoHingePinDoorSensorDriver"
+description		"Driver for a Jasco Hinge Pin Door Sensor"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Contact"
+productId		"bea612"
+vendor 			"GE"
+model 			"32562"
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4953, 'ZWAV:ProductId': 0x3032 //GE Brand
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4953, 'ZWAV:ProductId': 0x3031 //Jasco Brand
+
+
+capabilities	DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave battery handling
+
+// Command Classes:
+//		0x20   (32) Basic
+//		0x30   (48) Sensor_Binary
+//		0x70  (112) Configuration
+//		0x71  (113) Alarm (Notification)
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//      0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+// this is a door by default
+Contact.usehint	Contact.USEHINT_DOOR
+
+@Field final String DEVICE_NAME        = "Jasco Hinge Pin Door Sensor"
+final String EVENT_CONFIG_COMPLETE		= 'config_complete'
+final int POLLING_INTERVAL_SEC  = 3600		// every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+
+final int BATTERY_POLLING_INTERVAL_SEC = 86400   // Ask for battery level every 24 hours
+
+@Field byte CONTACT_OPEN		= 0xFF
+@Field byte CONTACT_CLOSED		= 0x00
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "{} added with Attributes {}",DEVICE_NAME, message.attributes
+
+	// set default attribute values
+	Contact.contact                     Contact.CONTACT_OPENED
+	Contact.contactchanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// get the version
+	ZWave.version.get()
+
+	//get the current state
+	ZWave.basic.get()
+
+	// setup polling for the current state
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+	
+	// set the wakeup interval to 7.5 min (0x0001C2 = 450 seconds) 
+	// Hinge SW version 1.x cannot handle a wake-up >8 minutes
+	// if we find out it's newer we can make it longer.
+	ZWave.wake_up.set((byte)0x00, (byte)0x01, (byte)0xC2, (byte)0x01)
+
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+
+	// setup polling for battery level
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+		
+	Scheduler.scheduleIn( EVENT_CONFIG_COMPLETE, 2000)
+}
+
+onEvent(EVENT_CONFIG_COMPLETE){
+	//go to sleep config should be done.
+	ZWave.wake_up.no_more_information()
+
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object message){
+	log.debug "{} received: {} with data {}",DEVICE_NAME, message, message.command.recvBytes
+	byte[] bytes = message.command.recvBytes
+	byte currentState = bytes[0]
+	handleState(currentState)
+	}
+
+void handleState(byte currentState) {
+	def prevState = Contact.contact.get()
+	if (CONTACT_OPEN == currentState ) {
+		Contact.contact Contact.CONTACT_OPENED
+		log.trace "Contact: OPENED"
+	} else if (CONTACT_CLOSED == currentState ) {
+		Contact.contact Contact.CONTACT_CLOSED
+		log.trace "Contact: CLOSED"
+	}
+	// if previous state is not the same as newly reported state, record timestamp of change
+	if (Contact.contact.get() != prevState) {
+		def now = new Date()
+		Contact.contactchanged now
+	}
+}
+
+/**
+ * Basic.Set message sent if device is operating in communications mode 2
+ */
+onZWaveMessage.basic.set {
+	handleStateMsg (message)
+}
+
+/**
+ * Basic.Report message is sent in response to any Basic.Get messages we send or if
+ * device is operating in communications mode 3
+ */
+onZWaveMessage.basic.report {
+	handleStateMsg (message)
+}
+
+/**
+ * Currently device does not send this message, but we include handling just in case, since
+ * the device supports the Command Class.
+ */
+onZWaveMessage.sensor_binary.report {
+	handleStateMsg(message)
+}
+
+/**
+ * Alarm(Notification).Report message sent if device is operating in communications mode 1 (default)
+ * This is sent by device when state changes.
+ */
+onZWaveMessage.alarm.report {
+	log.debug "{} sent Alarm/Notification Report", DEVICE_NAME
+	def alarmType =  message.command.get('alarmtype')
+	def alarmLevel =  message.command.get('alarmlevel')
+	def notificationStatus =  message.command.get('notificationstatus')
+	def notificationType =  message.command.get('notificationtype')
+	def event =  message.command.get('event')
+	byte[] bytes = message.command.recvBytes
+	log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${}", alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+	
+	// Closed:  Alarm Type: 0, Alarm Level: 0, Event: 23, Notification Type: 6, Notification Status: -1
+	// Open:    Alarm Type: 0, Alarm Level: 0, Event: 22, Notification Type: 6, Notification Status: -1
+	if ((0 == alarmType) && (0 == alarmLevel) && (6 == notificationType) && (-1 == notificationStatus)&&(( 22 == event)|| (23 == event))) {
+		byte currentState = (22 == event) ? CONTACT_OPEN : CONTACT_CLOSED
+		handleState (currentState)
+	} else {
+	log.debug "Garbled report, possible state change"
+	}
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+	log.trace "{} sent Wakeup Notification", DEVICE_NAME
+}
+	
+onZWaveNodeInfo {
+}
+
+onZWaveMessage.version.report {
+	log.debug "Received version message: {} ", message.command
+	String versionstr = getVersionUnsigned(message, 'protocol', "null" )+'.'+getVersionUnsigned(message, 'sub-protocol', "null" )+'.'+getVersionUnsigned(message, 'firmware_0_version', "null" )+'.'+getVersionUnsigned(message, 'firmware_0_sub_version', "null" )
+	log.trace "Reported version: {}", versionstr
+	// Update version if a valid version received
+	Integer appMainVersion = message.command.get('firmware_0_version');
+	log.trace "Application Main Version [{}]", appMainVersion
+	if ( null != appMainVersion){
+		switch (appMainVersion){
+			case 1:
+				log.trace "Old Hinge"
+				DeviceAdvanced.firmwareVersion  versionstr
+				// Don't change default, old firmware forgets to wake up after 8 minutes
+			break;
+			case 5:
+				log.trace "New Hinge"
+				DeviceAdvanced.firmwareVersion  versionstr 	
+				// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) 
+				// for application major 5 (new firmware)
+				ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+			break;
+			default:
+				log.debug "Bad version, ask again"
+			}
+		}
+	if (null == DeviceAdvanced.firmwareVersion.get()){
+		ZWave.version.get()
+		} 
+}
+
+static String getVersionUnsigned(message, name, dflt) {
+    Integer field = message.command.get(name)
+    return (field != null) ? field & 0xFF : dflt
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {}",DEVICE_NAME, message
+    return false;
+}
+
+

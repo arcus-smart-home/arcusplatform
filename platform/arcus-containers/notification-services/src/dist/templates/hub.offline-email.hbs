@@ -1,0 +1,47 @@
+{{#section "subject"}}
+Hub Lost Connection
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+The hub at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}})
+lost its connection to the Arcus cloud platform on {{{offlineTime}}}. You
+will not be able to remotely monitor, control devices, or receive alerts until it
+is reconnected. This may be due to a loss of Internet connection, or the hub is not
+receiving power.
+To restore service, please try the following:
+1. Confirm that the hub has AC power.
+2. Check the backup batteries.
+3. Restart your router.
+4. Check your internet connection.
+If your hub is still not connected, you may need to press the reset button on the back of the hub for 2 seconds.
+You will receive an email when the hub is reconnected.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>The hub at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) lost its connection to the Arcus cloud platform on {{offlineTime}}. You will not be able to remotely monitor, control devices, or receive alerts until it is reconnected. This may be due to a loss of Internet connection, or the hub is not receiving power.</p>
+		<p>To restore service, please try the following:</p>
+		<ol>
+		<li>Confirm that the hub has AC power.</li>
+		<li>Check the backup batteries.</li>
+		<li>Restart your router.</li>
+		<li>Check your internet connection.</li>
+		</ol>
+		<p>If your hub is still not connected, you may need to press the reset button on the back of the hub for 2 seconds.</p>  
+		<p>You will receive an email when the hub is reconnected.</p>
+	{{/partial}}
+
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

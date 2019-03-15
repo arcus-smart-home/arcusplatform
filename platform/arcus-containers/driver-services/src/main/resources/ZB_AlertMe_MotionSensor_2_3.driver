@@ -1,0 +1,201 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Motion Sensor
+ *
+ * To Reset Device:  Insert battery and then press button inside device 5 times within the first 10 seconds.
+ *
+ * Check-in/Offline: These devices send a heartbeat command approximately every 120 seconds (two minutes).
+ * The offline timeout is set to 6.5 minutes, marking the device as offline if three consecutive checkins are missed.
+ *
+ * 05/04/17 - Initial reflex motion detection support.
+ *
+ */
+
+driver          "ZB_AlertMe_MotionSensor"
+description     "Driver for the AlertMe Motion Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Motion"
+productId       "60e426"
+vendor          "Iris"
+model           "MotionSensor"
+
+matcher         'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'PIR Device'
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver capability support - DevicePower, Motion, Temperature
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   DevicePower.source DevicePower.SOURCE_BATTERY
+   DevicePower.linecapable false
+   DevicePower.backupbatterycapable false
+
+   bind DevicePower.sourcechanged to DevicePower.source
+}
+
+Motion {
+   Motion.motion Motion.MOTION_NONE
+
+   bind Motion.motionchanged to Motion.motion
+}
+
+Temperature {
+   Temperature.temperature null
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Reflex support
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+
+    match reflex {
+        on amlifesign, endpoint: 2, profile: 0xC216
+        amlifesign battery, minimumVolts:2.1, nominalVolts:3.0
+        amlifesign signal
+        amlifesign temperature
+        send alertme.amgeneral.stopPolling
+    }
+
+	match reflex {
+		// if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+		// NOTE: AlertMe device uses endpoint 2, and profile 0xC216 (not default HA of 0x0104)
+		on iaszone, endpoint: 2, profile: 0xC216, set: ["battery"]
+		emit DevicePower.battery, 0
+	}
+
+   // If alarm2 or alarm2 set, motion detected
+   match reflex {
+      on iaszone, endpoint: 2, profile: 0xC216, set: ["alarm1"]
+      on iaszone, endpoint: 2, profile: 0xC216, set: ["alarm2"]
+      on amlifesign, endpoint: 2, profile: 0xC216, set: ["sensor"]
+      trace "Sensor setting state to DETECTED"
+      set Motion.motion, Motion.MOTION_DETECTED
+   }
+
+   // If alarm1 and alarm2 cleared, no motion detected
+   match reflex {
+      on iaszone, endpoint: 2, profile: 0xC216, clear: ["alarm1", "alarm2"]
+      on amlifesign, endpoint: 2, profile: 0xC216, clear: ["sensor"]
+      trace "Sensor setting state to NONE"
+      set Motion.motion, Motion.MOTION_NONE
+   }
+
+   match reflex {
+      on zcl.iaszone.zoneEnrollRequest, endpoint: 2, profile: 0xC216
+      send zcl.iaszone.zoneEnrollResponse, profile: 0xC216, zoneId: 0xFF, enrollResponseCode: 0x00
+   }
+
+   poll reflex {
+      on added
+      send alertme.amgeneral.modeChange, endpoint: 2, profile: 0xC216, cluster: 0x00F0, clusterSpecific: true, disableDefaultResponse: true, mode: 0x00, flags: 0x01
+   }
+
+   poll reflex {
+      on connected
+      read endpoint: 2, cluster: Zcl.IasZone.CLUSTER_ID, attr: Zcl.IasZone.ATTR_ZONE_STATE
+      send alertme.join.helloRequest, endpoint: 2, profile: 0xC216, cluster: 0x00F6, clusterSpecific: true, disableDefaultResponse: true
+      send alertme.amgeneral.stopPolling
+   }
+
+   offlineTimeout 10, MINUTES
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onDisconnected {
+   log.debug "AlertMe MotionSensor device disconnected."
+}
+
+onRemoved {
+   log.debug "AlertMe MotionSensor device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// User defined methods
+////////////////////////////////////////////////////////////////////////////////
+
+// Just for logging...
+void decodeIASZoneState(byte[] data){
+   def activeBitFieldByte = data[0]
+   log.trace "activeBitFieldByte:{}", (byte)activeBitFieldByte
+   if (0 == (activeBitFieldByte & 0x04)) {
+      log.trace "Sensor Tamper: DETECTED (cover removed)"
+   } else{
+      log.trace "Sensor Tamper: NONE"
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   log.trace "Sensor received message:{}", message
+
+   def clusterId = zclMsg.getClusterId()
+   def messageId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def profile = zclMsg.getProfileId()
+   def flags = zclMsg.getFlags()
+   def payloadLen = zclMsg.getLength()
+   byte[] data = zclMsg.getPayload()
+
+   // Join Cluster 0xF6, Hello Response 0xFE
+   if ((246 == clusterId) && (254 == messageId)) {
+      log.trace "Sensor received Hello Response"
+      if (18 <= payloadLen) {		// should be 63 bytes, but we are only looking at first 18
+         int nodeId = ((data[1] * 256) + data[0]) & 0xFFFF
+         int mfgId = ((data[11] * 256) + data[10]) & 0xFFFF
+         int dvcType = (data[13] * 256) + data[12]
+         byte appRel = data[14]
+         double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+         double hwVer = new Double(data[17]) + (new Double(data[16]) / 10)
+         log.trace "NodeId:0x{}, MfgId:0x{}, DvcType:{}, App Release:{}, App Ver:{}, HW Ver:{}",
+         Integer.toHexString(nodeId).toUpperCase(), Integer.toHexString(mfgId).toUpperCase(), dvcType, appRel, appVer, hwVer
+         DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+      }
+      return
+   }
+
+   // Cluster 0x0500, Message 0, Zone Status Change Notification
+   if ((1280 == clusterId) && (messageId == 0)) {
+      // Just for logging due to reflex support
+      decodeIASZoneState(data)
+      return
+   }
+
+   // Cluster 0x00F2 is Tamper Cluster
+   if (242 == clusterId) {
+      if (messageId == 0) {
+         log.trace "Sensor Tamper: DETECTED (cover removed)"
+      }
+      if (messageId == 1) {
+         log.trace "Sensor Tamper: NONE"
+      }
+      return
+   }
+
+   log.debug "Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+

@@ -1,0 +1,553 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Samsung SmartThings Multipurpose Sensor
+ * 
+ *    05/08/17 - Version 2.3 for Reflexes.  If hub is OFFLINE, Diagnostics, Battery, and Temperature reporting are ignored, 
+ *               Identify feature is unavailable, and Tilt changes are unavailable and do not map to Contact changes.
+ *  
+ * FACTORY RESET
+ *  - Hold down the "connect" button (tamper switch) while inserting the battery and when LED glows amber release button.
+ *  
+ * IDENTIFY
+ *  - Performing an Identify operation turns the LED on and cycles the color for 3 minutes (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:
+ *    10 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *    Every 2 minutes
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours, at most every 60 minutes
+ *  - Read each time device connects (delayed 15 seconds so device does not report 'INVALID')
+ * 
+ * TEMPERATURE REPORTING:
+ *  - At least every 30 minutes, at most every 5 minutes
+ *  - Read each time device connects
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async, per wiki page specs; https://eyeris.atlassian.net/wiki/display/I2D/Device+Reporting+Settings
+ * 
+ * ISSUES/NOTES:
+ *  - The device reports an initial status of Alarm 1 CLEAR (contact closed) even if the contact is not closed, so it may
+ *    be out of sync until it goes through at least one cycle.
+ *  
+ *  - add a Tag of ["tiltActivatesContact"] to configure device's tilt sensor to act as the contact setting (assumes magnet is not being used to activate real contact sensor)
+ *  - add a Tag of ["closedOnUpright"] to configure device to set Contact state "CLOSED" when upright (like a Garage Door), otherwise it sets Contact state to "CLOSED" when flat (like a Jewelry box lid)
+ *  
+ * 
+ * IN Clusters
+ *   0x0000     Basic
+ *   0x0001     Power Configuration
+ *   0x0003     Identify
+ *   0x0020     Poll Control
+ *   0x0402     Temperature Measurement
+ *   0x0500     IAS Zone
+ *   0x0B05     Diagnostics
+ *   0xFC02     (64514) Manufacturer Specific Accelerometer
+ * OUT Clusters
+ *   0x0019     OTA Upgrade
+ * 
+ */
+
+import groovy.transform.Field                    // not needed to compile, but used in eclipse
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+import static com.iris.protocol.zigbee.zcl.IasZone.ZoneEnrollResponse.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse.*
+
+uses "generic.GenericContact"
+uses "generic.GenericTiltWithContact"
+uses "zigbee.GenericZigbeeDeviceOta"
+
+
+driver          "ZBSmartThingsMultipurposeSensor"
+description     "Driver for the Samsung SmartThings Multipurpose Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Contact"
+productId       "a21130"
+vendor          "Uncertified"        // "SmartThings"
+model           "SST-MLT-V2-1"
+
+
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite',  'ZIGB:model': '3321-S'    // -S is probably Samsung/SmartThings designation
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite',  'ZIGB:model': '3321'
+
+
+capabilities    Identify, DeviceOta
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_UNKNOWN
+    bind contactchanged to Contact.contact
+}
+
+Tilt {
+    Tilt.tiltstate  Tilt.TILTSTATE_FLAT
+    bind tiltstatechanged to Tilt.tiltstate
+}
+
+Temperature {
+    temperature null
+}
+
+
+@Field def dvcEndPoint  = Zigbee.endpoint((byte)1)
+
+@Field def pwrCluster   = dvcEndPoint.Power
+@Field def zoneCluster  = dvcEndPoint.IasZone
+@Field def identCluster = dvcEndPoint.Identify
+@Field def pollCluster  = dvcEndPoint.PollControl
+@Field def tempCluster  = dvcEndPoint.TemperatureMeasurement
+@Field def diagCluster  = dvcEndPoint.Diagnostics
+@Field def otaCluster   = dvcEndPoint.Ota
+
+
+// operational constants
+def final short IDENT_PERIOD_SECS = 180       // number of seconds for device to Identify itself (LED changes color) when Identify method is called
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    offlineTimeout 195, MINUTES
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    poll reflex {
+        on added
+
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.Power.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.IasZone.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.PollControl.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.Diagnostics.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: 0xFC02, server: true
+        
+        iaszone enroll
+    }
+    
+    poll reflex {
+        on connected
+        ordered {
+            read endpoint: 1, cluster: Zcl.IasZone.CLUSTER_ID, attr: Zcl.IasZone.ATTR_ZONE_STATUS
+            read endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: Zcl.Power.ATTR_BATTERY_VOLTAGE
+            read endpoint: 1, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, attr: Zcl.TemperatureMeasurement.ATTR_MEASURED_VALUE
+            read endpoint: 1, cluster: Zcl.Diagnostics.CLUSTER_ID, attr: Zcl.Diagnostics.ATTR_LAST_MESSAGE_LQI
+
+            // configure battery level reporting at most once an hour, at least once every 12 hours
+            report endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: pwrCluster.ATTR_BATTERY_VOLTAGE, type: Data.TYPE_UNSIGNED_8BIT, min: 3600, max: 43200
+
+            // configure temperature reporting at most once every 5 minutes, at least once every 30 minutes
+            report endpoint: 1, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, attr: tempCluster.ATTR_MEASURED_VALUE, type: Data.TYPE_SIGNED_16BIT, min: 300, max: 1800
+  
+            send zcl.pollcontrol.setLongPollInterval, newLongPollInterval: 24
+            send zcl.pollcontrol.setShortPollInterval, newShortPollInterval: 4
+        
+            // Set Poll Control Check-In interval to 2 minutes (480 1/4 seconds)
+            write endpoint: 1, cluster: Zcl.PollControl.CLUSTER_ID, attr:Zcl.PollControl.ATTR_CHECKIN_INTERVAL, value: Data.encode32BitUnsigned(480)
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process IAS Zone Status reports locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        // if alarm1 status reported SET with 'delay' of 30 seconds or less, change Contact.contact to OPEN
+        on iaszone, endpoint: 1, set: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_OPENED
+    }
+
+    match reflex {
+        // if alarm1 status reported CLEAR with 'delay' of 30 seconds or less, change Contact.contact to CLOSED
+        on iaszone, endpoint: 1, clear: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_CLOSED
+    }
+    
+    match reflex {
+        // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+        on iaszone, set: ["battery"]
+        emit DevicePower.battery, 0
+    }
+    
+    match reflex {
+        on zcl.iaszone.zoneEnrollRequest
+        send zcl.iaszone.zoneEnrollResponse, zoneId: 0x01, enrollResponseCode: REPONSE_CODE_SUCCESS
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process Poll Control Check-Ins locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on zcl.pollcontrol.checkIn
+        // tell device to resume without short polling
+        send zcl.pollcontrol.checkInResponse, startFastPolling: START_FAST_POLLING_DISABLED, fastPollTimeout: 0
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+    log.trace "BatteryVoltage:{}", battVolt
+
+    double minVolts = 2.1
+    double nomVolts = 3.0
+
+    if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+        // battery Voltage is reported in tenths of Volts
+        double volts = (battVolt / 10.0)
+        log.trace "Battery Volts:{}", volts
+        // battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+        if (0 < (nomVolts - minVolts)) {    // prevent division by zero
+            double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+            battPercent = (100.0 < battPercent) ? 100.0 : battPercent        // limit maximum to 100%
+            battPercent = (0.0 > battPercent) ? 0.0 : battPercent            // limit minimum to 0%
+            int intBattPercent = battPercent
+            log.trace "Battery Percent:{}", intBattPercent
+            DevicePower.battery intBattPercent
+        }
+    }
+}
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    log.trace "Driver received Power Attributes Response:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    log.trace "Driver received Power Attributes Report:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+    def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+    def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+    log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "Driver received Poll Control Attributes Response:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "Driver received Poll Control Attributes Report:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg);
+    def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+    log.trace "Temp:{}", tempVal
+    
+    if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+        // temperature is reported in 100ths degree C, so convert to C and save
+        double tempC = tempVal
+        tempC /= 100
+        log.debug "Set Temp:" + tempC
+        Temperature.temperature tempC
+    }
+}
+
+// called when device responds to a Temperature Measurement Read Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+    log.trace "Driver received Temperature Measurement Attributes Response:{}", message
+    handleTemperatureMeasurement(tempCluster, message)
+}
+
+// called when device asynchronously sends a Temperature Measurement Report Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+    log.trace "Driver received Temperature Measurement Attributes Report:{}", message
+    handleTemperatureMeasurement(tempCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleDiagnosticMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+    def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+    
+    if (lqi != null) {
+        if ('INVALID' == lqi.toString()) lqi = 255    // helper parses 255 value as 'INVALID', but it just means 100%
+        if (0 > lqi) lqi = 256 + lqi    // convert signed value to unsigned
+        int sigPct = Math.round( (lqi * 100.0) / 255.0)
+        log.trace "LQI:{}, (percent:{})", lqi, sigPct
+        DeviceConnection.signal sigPct
+    }
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+    log.trace "Driver received Diagnostics Attributes Response:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+    log.trace "Driver received Diagnostics Attributes Report:{}", message
+    handleDiagnosticMsg(diagCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+    log.debug "Driver received onIdentify.Identify:{}", message
+    // ask the device to identify itself for the defined interval
+    identCluster.identifyCmd( IDENT_PERIOD_SECS )
+    sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+    
+    // capture any expected responses and log any failures
+
+    if (260 == profile) {      // Home Automation Profile (0x0104)
+        
+        if (0xFC02 == clusterId && 10 == messageId) {
+            processAccelerometerData(data)
+            return
+        }
+    
+        if (ZHA_CLUSTER_POWER_CONFIGURATION == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Power reporting configuration")
+            return
+        }
+    
+        if (ZHA_CLUSTER_TEMPERATURE_MEASUREMENT == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Temperature reporting configuration")
+            return
+        }
+    
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "Poll Control configuration")
+            return
+        }
+    
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "Poll Control default response"
+            return
+        }
+    
+        if (ZHA_CLUSTER_DIAGNOSTICS == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Diagnostics reporting configuration")
+            return
+        }
+    
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "IAS Zone Write")
+            return
+        }
+    
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "IAS Zone default response"
+            return
+        }
+    }
+
+    log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+            profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+void logResponse(data, msgType) {
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "{} was successful: {}", msgType, data
+    } else {
+        log.warn "{} FAILED: {}", msgType, data
+    }
+}
+
+void processAccelerometerData( byte[] data) {
+    def int i = 0;
+    def int len = data.length
+    def int x = 65536        // 0x00010000
+    def int y = 65536
+    def int z = 65536
+    def int xOrientation = 0
+    def int yOrientation = 0
+    def int zOrientation = 0
+    while (i < len) {
+        // if at least 4 bytes left, bytes 0 & 1 are 0x0010, and byte 2 is 0x18 (8-Bit bitmap),
+        if ((len >= i+4) && (0x10 == data[i]) && (0x00 == data[i+1])  && (0x18 == data[i+2])) {            // movement attribute
+            // Seems to be: (0=Still, 1=Motion)
+            if (0 == (data[i+3] & 0x01)) {
+                log.trace "STILL"
+            } else {
+                log.trace "MOVING"
+            }
+            i += 4
+        }
+        // if at least 4 bytes left, bytes 1 is 0x00, and byte 2 is 0x29 (16-Bit Signed Int),
+        else if ((len >= i+5) && (0x00 == data[i+1])  && (0x29 == data[i+2])) {            // axis attribute
+            def int val = ((0 > data[i+3]) ? (256 + data[i+3]) : data[i+3]) + (((0 > data[i+4]) ? (256 + data[i+4]) : data[i+4]) * 256)
+            if (32767 < val) val -= 65536
+            if (0x12 == data[i]) {        // x axis
+                x = val
+                if (512 < x) xOrientation = 1
+                if (-512 > x) xOrientation = -1
+            } else if (0x13 == data[i]) {        // y axis
+                y = val
+                if (512 < y) yOrientation = 1
+                if (-512 > y) yOrientation = -1
+            } else if (0x14 == data[i]) {        // z axis
+                z = val
+                if (512 < z) zOrientation = 1
+                if (-512 > z) zOrientation = -1
+            }
+            i += 5
+        } else {
+            break
+        }
+    }
+    log.trace "Received XYZ Report [x:{}, y:{}, z:{}]", x, y, z
+    log.trace "Orientation [x:{}, y:{}, z:{}]", xOrientation, yOrientation, zOrientation
+    // if we recieved x, y, and z axis values, process them
+    if ((65536 > x) && (65536 > x) && (65536 > x)) {    
+        def prevState = Tilt.tiltstate.get()
+        if (0 != zOrientation) {        // if Z Orientation is +1 or -1, then device is horizontal
+            Tilt.tiltstate Tilt.TILTSTATE_FLAT
+        } else {    // if Z Orientation is 0, then device is vertical
+            Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+        }
+        // if previous state is not the same as newly reported state, record timestamp of change
+        if (Tilt.tiltstate.get() != prevState) {
+            def now = new Date()
+            Tilt.tiltstatechanged now
+            if (Base.tags.get().contains('tiltActivatesContact')) {
+                adjustContactState(Tilt.tiltstate.get(), now)
+            }
+        }
+    }
+}
+
+
+void adjustContactState(Object newTiltState, Object now) {
+    boolean isClosedOnUpright = Base.tags.get().contains('closedOnUpright')
+    if ((Tilt.TILTSTATE_UPRIGHT == newTiltState && isClosedOnUpright) || (Tilt.TILTSTATE_FLAT == newTiltState && !isClosedOnUpright)) {
+        Contact.contact Contact.CONTACT_CLOSED
+        Contact.contactchanged now
+    } else {
+        Contact.contact Contact.CONTACT_OPENED
+        Contact.contactchanged now
+    }
+}
+
+// Handling tags
+onBase.AddTags {
+    GenericTiltWithContact.doAddTags(this, message, DEVICE_NAME)
+}
+
+onBase.RemoveTags {
+    GenericTiltWithContact.doRemoveTags(this, message, DEVICE_NAME)
+}
+
+

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+        name="EcowaterWaterSoftener"
+        namespace="ecowater"
+        enhances="Device"
+        version="1.0"
+        xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+    <c:description>
+        Model of an Ecowater Water Softener which monitors water usage.
+    </c:description>
+
+    <c:attributes>
+        <c:attribute
+                name="excessiveUse"
+                readwrite="r"
+                type="boolean"
+                optional="false"
+                description="Indicates whether or not the device is experiencing excessive water flow"/>
+
+
+        <c:attribute
+                name="continuousUse"
+                readwrite="r"
+                type="boolean"
+                optional="false"
+                description="Indicates whether or not the device is experiencing continuous water flow"/>
+
+
+        <c:attribute
+                name="continuousDuration"
+                readwrite="rw"
+                type="int"
+                unit="seconds"
+                optional="false"
+                description="Number of seconds where flow must meet or exceed continuousRate before continuousUse will be marked true"/>
+
+
+        <c:attribute
+                name="continuousRate"
+                readwrite="rw"
+                type="double"
+                unit="gpm"
+                optional="false"
+                description="Flow threshold in gallons per minute used to determine continuousUse"/>
+
+
+        <c:attribute
+                name="alertOnContinuousUse"
+                readwrite="rw"
+                type="boolean"
+                optional="false"
+                description="Indicates whether the user wants to receive continuous use notifications"/>
+
+
+        <c:attribute
+                name="alertOnExcessiveUse"
+                readwrite="rw"
+                type="boolean"
+                optional="false"
+                description="Indicates whether the user wants to receive excessive use notifications"/>
+
+
+    </c:attributes>
+
+</c:capability>

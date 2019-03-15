@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WiFi"
+   namespace="wifi"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of WiFi information.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="enabled" 
+         readwrite="rw" 
+         type="boolean"
+         optional="true"
+         description="When true, wireless interface is enabled."/>
+      <c:attribute 
+         name="state" 
+         readwrite="r" 
+         type="enum"
+         values="CONNECTED,DISCONNECTED"
+         optional="false" 
+         description="Indicates whether or not this device has a WiFi connection to an access point."/>
+      <c:attribute 
+         name="ssid" 
+         readwrite="r" 
+         type="string"
+         optional="false" 
+         description="SSID of base station connected to."/>
+      <c:attribute 
+         name="bssid" 
+         readwrite="r" 
+         type="string"
+         optional="true" 
+         description="BSSID of base station connected to."/>
+      <c:attribute 
+         name="security" 
+         readwrite="r" 
+         type="enum"
+         values="NONE,WEP,WPA_PSK,WPA2_PSK,WPA_ENTERPRISE,WPA2_ENTERPRISE"
+         optional="true" 
+         description="Security of connection."/>
+      <c:attribute 
+         name="channel" 
+         readwrite="r" 
+         type="int"
+         optional="true" 
+         description="Channel in use."/>
+      <c:attribute 
+         name="noise" 
+         readwrite="r" 
+         type="int"
+         unit="dBm"
+         optional="true" 
+         description="Noise level in dBm"/>
+      <c:attribute 
+         name="rssi" 
+         readwrite="r" 
+         type="int"
+         unit="dB"
+         optional="true" 
+         description="Received signal stength indicator in dB."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="Connect"
+         description="Attempts to connect to the access point with the given properties.">
+        <c:parameters>
+          <c:parameter name="ssid" type="string" optional="false" description="SSID of base station connected to."></c:parameter>
+          <c:parameter name="bssid" type="string" optional="true" description="BSSID of base station connected to."></c:parameter>
+          <c:parameter name="security" type="string" optional="false" description="Security of connection."></c:parameter>
+          <c:parameter name="key" type="string" optional="true" description="Security key."></c:parameter>
+          <c:return
+              name="status"
+              type="enum"
+              values="OK,REFUSED"
+              description="A status indicating status of the wireless connect"
+              optional="false"/>
+          <c:return
+              name="message"
+              type="string"
+              description="An informative message about the status"
+              optional="true"/>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="Disconnect"
+         description="Disconnects from current access point. USE WITH CAUTION.">
+        <c:parameters>
+         <c:return
+             name="status"
+             type="enum"
+             values="OK,REFUSED"
+             description="A status indicating status of the wireless connect"
+            optional="false"/>
+         <c:return
+             name="message"
+             type="string"
+             description="An informative message about the status"
+             optional="true"/>
+        </c:parameters>
+      </c:method>
+   </c:methods>
+   
+</c:capability>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="DeviceService"
+           namespace="dev"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for the device service, which covers global operations on devices not handled by the device object capabilities.
+   </s:description>
+
+   <s:methods>
+      <s:method 
+         name="SyncDevices"
+         description="A request to synchronize the hub local reflexes with device services">
+
+         <s:parameter 
+            name="accountId" 
+            type="string"
+            description="The account identifier of the hub requesting synchronization"
+            optional="false"/>
+
+         <s:parameter 
+            name="placeId" 
+            type="string"
+            description="The place identifier of the hub requesting synchronization"
+            optional="false"/>
+
+         <s:parameter 
+            name="reflexVersion" 
+            type="int"
+            description="The version of hub local reflexes currently supported by the hub"
+            optional="false"/>
+
+         <s:parameter 
+            name="devices"
+            type="string" 
+            description="A base64 encoded and gzipped json list of SyncDeviceInfo objects"
+            optional="false"/>
+
+         <s:return
+            name="pins"
+            type="map&lt;string&gt;" 
+            description="A map from person id to SHA-1 hashed pin for that person"
+            optional="false"/>
+
+         <s:return
+            name="devices"
+            type="string" 
+            description="A base64 encoded and gzipped json list of SyncDeviceState objects"
+            optional="false"/>
+
+         <s:return
+            name="drivers"
+            type="string" 
+            description="A base64 encoded and gzipped json list of ReflexDriverDefinition objects"
+            optional="false"/>
+      </s:method>
+   </s:methods>
+   
+   <s:events>
+      <s:event
+         name="DevicesDegraded"
+         description="Emitted by the hub to driver services when the hub detects that the degraded state of some devices has changed">
+         <s:parameter 
+            name="placeId" 
+            type="string"
+            description="The place identifier of the hub sending the degraded device information."
+            optional="false"/>
+         <s:parameter 
+            name="devices" 
+            type="string" 
+            description="A base64 encoded and gzipped json list of DegradedInfo objects"/>
+      </s:event>
+   </s:events>
+</s:service>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="TimeWindow"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a window of time during the week.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="day"
+         type="enum"
+         values="MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY"
+         description="The days that this window begins. Maps to com.iris.common.time.TimeOfDay" />
+
+      <t:attribute
+         name="startTime"
+         type="string"
+         description="Time of day to start window. 'HH:MM:SS'" />
+
+      <t:attribute
+         name="durationSecs"
+         type="int"
+         description="Duration of the window in seconds." />
+
+   </t:attributes>
+</t:type>

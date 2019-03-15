@@ -1,0 +1,4 @@
+include "zwave-devices.irp";
+include "zwave-classes.irp";
+include "zwave-struct.irp";
+include "zwave-protocol-messages.irp";

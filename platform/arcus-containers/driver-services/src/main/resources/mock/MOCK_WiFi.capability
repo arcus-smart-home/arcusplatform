@@ -1,0 +1,63 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+capability		WiFi
+description		"Mock implementation for the WiFi capability"
+version			"1.0"
+
+onConnected {
+	WiFi.enabled						true
+	WiFi.state							WiFi.STATE_CONNECTED
+	WiFi.ssid							'mockNet1'
+	WiFi.bssid							'mn1'
+	WiFi.security						WiFi.SECURITY_WPA2_PSK
+	WiFi.channel						11
+	WiFi.noise							12
+	WiFi.rssi							78
+}
+
+onWiFi.Connect {
+	ssid = message.attributes['ssid']
+	bssid = message.attributes['bssid']
+	security = message.attributes['security']
+	key = message.attributes['key']
+	
+	if( 'invalid' == key )
+		WiFi.state WiFi.state.get()
+	else {
+		WiFi.state WiFi.STATE_CONNECTED
+		WiFi.ssid ssid
+		WiFi.bssid bssid
+		WiFi.security security
+		WiFi.channel 8
+		WiFi.noise 12
+		WiFi.rssi 98
+	}
+	sendResponse('wifi:ConnectResponse', [ 'status' : 'OK' ])
+}
+
+onWiFi.Disconnect {
+	WiFi.state WiFi.STATE_DISCONNECTED
+	
+	WiFi.ssid ''
+	WiFi.bssid ''
+	WiFi.security WiFi.SECURITY_NONE
+	WiFi.channel 0
+	WiFi.noise 0
+	WiFi.rssi 0
+
+	sendResponse('wifi:DisconnectResponse', [ 'status' : 'OK' ])
+}
+

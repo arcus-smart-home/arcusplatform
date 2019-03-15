@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="PairingCustomizationStep"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Optional steps for a user to customize a device after it is fully paired.  Clients should ignore steps they don't recognize.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="id"
+         type="string"
+         description="The ID of the step, used for looking up images, eg 'customization/name'."/>
+      <t:attribute
+         name="order"
+         type="int"
+         description="The order this step occurs in."/>
+      <t:attribute
+         name="action"
+         type="enum"
+         values="NAME, FAVORITE, RULES, BUTTON_ASSIGNMENT, MULTI_BUTTON_ASSIGNMENT, CONTACT_TYPE, CONTACT_TEST, PRESENCE_ASSIGNMENT, SCHEDULE, INFO, ROOM, WEATHER_RADIO_STATION, PROMON_ALARM, SECURITY_MODE, STATE_COUNTY_SELECT, OTA_UPGRADE,WATER_HEATER,IRRIGATION_ZONE,MULTI_IRRIGATION_ZONE"
+         description="The type of action to take / screen to display for this step."/>
+      <t:attribute
+         name="header"
+         type="string"
+         description="The section header text."/>
+      <t:attribute
+         name="title"
+         type="string"
+         description="
+An optional title.
+Generally displayed in bold between the image and the contents.
+         "/>
+      <t:attribute
+         name="info"
+         type="string"
+         description="
+An optional info message.
+Generally displayed in bold between the image and the contents.
+         "/>
+      <t:attribute
+         name="description"
+         type="list&lt;string&gt;"
+         description="
+A list of instructions to display describing the step.
+There will always be at least one entry.
+Generally each entry is displayed as a paragraph.
+         "/>
+      <t:attribute
+         name="linkText"
+         type="string"
+         description="If a link is included this is the text to display for that link."/>
+      <t:attribute
+         name="linkUrl"
+         type="string"
+         description="If a link is included this is the destination for that link."/>      
+      <t:attribute
+         name="choices"
+         type="list&lt;string&gt;"
+         description="A list of choices that can be displayed.  The context in the choices depends on the type of action.  i.e. For RULES Customization, it will contain the list of rule addressses.  For PROMON_ALARM Customization, it will contain the list of newly available alarms."/>            
+   </t:attributes>
+</t:type>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaTemperature"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the temperature object used by Alexa V3</t:description>
+
+   <t:attributes>
+      <t:attribute name="value" type="double" description="The temperature value" optional="false"/>
+      <t:attribute name="scale" type="enum" values="FAHRENHEIT,CELSIUS" description="Temperatue units" optional="false"/>
+   </t:attributes>
+
+</t:type>

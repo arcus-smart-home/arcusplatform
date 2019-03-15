@@ -1,0 +1,60 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library Messages
+////////////////////////////////////////////////////////////////////////////////
+
+irpheader {
+import com.iris.protocol.zigbee.ZclData;
+import com.iris.protocol.zigbee.ZclDataUtil;
+
+import static com.iris.protocol.zigbee.zcl.Constants.*;
+}
+
+include "zcl-const.irp";
+include "zcl-general.irp";
+
+include "zcl-basic.irp";
+include "zcl-power.irp";
+include "zcl-device-temperature.irp";
+include "zcl-identify.irp";
+include "zcl-groups.irp";
+include "zcl-scenes.irp";
+include "zcl-onoff.irp";
+include "zcl-onoff-switch.irp";
+include "zcl-level-control.irp";
+include "zcl-alarms.irp";
+include "zcl-time.irp";
+
+include "zcl-illuminance-measurement.irp";
+include "zcl-illuminance-sensing.irp";
+include "zcl-temperature-measurement.irp";
+include "zcl-pressure-measurement.irp";
+include "zcl-flow-measurement.irp";
+include "zcl-humidity-measurement.irp";
+include "zcl-occupancy-sensing.irp";
+
+include "zcl-color-control.irp";
+include "zcl-ballast.irp";
+
+include "zcl-pump.irp";
+include "zcl-thermostat.irp";
+include "zcl-fan.irp";
+include "zcl-dehumidification.irp";
+include "zcl-thermostat-ui.irp";
+
+include "zcl-shade.irp";
+include "zcl-door-lock.irp";
+
+include "zcl-ias-zone.irp";
+include "zcl-ias-ace.irp";
+include "zcl-ias-wd.irp";
+
+include "zha-appliance-alerts.irp";
+include "zha-diagnostics.irp";
+include "zha-pollcontrol.irp";
+include "zha-electrical-measurement.irp";
+include "zha-window-covering.irp";
+include "zha-power-profile.irp";
+
+include "zcl-ota.irp";
+
+include "zcl-metering.irp";

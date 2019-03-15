@@ -1,0 +1,16 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Range Extender Attributes
+//    From "Range Extender Attributes"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.RangeExtender {
+   const u8 ATTR_ZWAVE_HOMEID = 0x20;
+   const u8 ATTR_ZWAVE_NODEID = 0x21;
+   const u8 ATTR_ZWAVE_LEARN = 0x22;
+   const u8 ATTR_ZWAVE_SEND_NODEINFO = 0x23;
+   const u8 ATTR_ZWAVE_CUSTOM = 0x24;
+
+   const u8 ZWAVE_LEARN_DISABLE = 0x00;
+   const u8 ZWAVE_LEARN_CLASSIC = 0x01;
+   const u8 ZWAVE_LEARN_NWKWIDE = 0x02;
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="IpcdDeviceType"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an IPCD device type available in the platform</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="vendor"
+         type="string"
+         description="The vendor of the IPCD device"/>
+      <t:attribute
+         name="model"
+         type="string"
+         description="The model of the IPCD device"/>
+   </t:attributes> 
+</t:type>

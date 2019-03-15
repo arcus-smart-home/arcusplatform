@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adjustments type="array">
+  <adjustment href="ADJ_1_HREF" type="charge">
+    <account href="ADJ_1_ACCOUNT"/>
+    <invoice href="ADJ_1_INVOICE"/>
+    <subscription href="ADJ_1_SUB"/>
+    <uuid>ADJ_1_ID</uuid>
+    <state>ADJ_1_STATE</state>
+    <description>ADJ_1_DESC</description>
+    <accounting_code nil="nil"/>
+    <product_code>ADJ_1_PROD_CODE</product_code>
+    <origin>ADJ_1_ORIGIN</origin>
+    <unit_amount_in_cents type="integer">2000</unit_amount_in_cents>
+    <quantity type="integer">1</quantity>
+    <original_adjustment_uuid>ADJ_1_ORIG_ADJ_ID</original_adjustment_uuid> <!-- Only shows if adjustment is a credit created from another credit. -->
+    <discount_in_cents type="integer">0</discount_in_cents>
+    <tax_in_cents type="integer">180</tax_in_cents>
+    <total_in_cents type="integer">2180</total_in_cents>
+    <currency>USD</currency>
+    <taxable type="boolean">false</taxable>
+    <tax_exempt type="boolean">false</tax_exempt>
+    <tax_code nil="nil"/>
+    <start_date type="datetime">2011-08-31T03:30:00Z</start_date>
+    <end_date nil="nil"/>
+    <created_at type="datetime">2011-08-31T03:30:00Z</created_at>
+    <tax_details type="array">
+      <tax_detail>
+        <name>ADJ_1_TD_NAME</name>
+        <type>ADJ_1_TD_STATE</type>
+        <tax_rate type="float">1</tax_rate>
+        <tax_in_cents type="integer">1</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name nil="nil"/>
+        <type>ADJ_1_TD_STATE</type>
+        <tax_rate type="float">2</tax_rate>
+        <tax_in_cents type="integer">2</tax_in_cents>
+      </tax_detail>
+    </tax_details>
+  </adjustment>
+  <adjustment href="ADJ_2_HREF" type="charge">
+    <account href="ADJ_2_ACCOUNT"/>
+    <invoice href="ADJ_2_INVOICE"/>
+    <subscription href="ADJ_2_SUB"/>
+    <uuid>ADJ_2_ID</uuid>
+    <state>ADJ_2_STATE</state>
+    <description>ADJ_2_DESC</description>
+    <accounting_code nil="nil"/>
+    <product_code>ADJ_2_PROD_CODE</product_code>
+    <origin>ADJ_2_ORIGIN</origin>
+    <unit_amount_in_cents type="integer">2000</unit_amount_in_cents>
+    <quantity type="integer">1</quantity>
+    <original_adjustment_uuid>ADJ_2_ORIG_ADJ_ID</original_adjustment_uuid> <!-- Only shows if adjustment is a credit created from another credit. -->
+    <discount_in_cents type="integer">0</discount_in_cents>
+    <tax_in_cents type="integer">180</tax_in_cents>
+    <total_in_cents type="integer">2180</total_in_cents>
+    <currency>USD</currency>
+    <taxable type="boolean">false</taxable>
+    <tax_exempt type="boolean">false</tax_exempt>
+    <tax_code nil="nil"/>
+    <start_date type="datetime">2011-08-31T03:30:00Z</start_date>
+    <end_date nil="nil"/>
+    <created_at type="datetime">2011-08-31T03:30:00Z</created_at>
+    <tax_details type="array">
+      <tax_detail>
+        <name>ADJ_2_TD_NAME</name>
+        <type>ADJ_2_TD_STATE</type>
+        <tax_rate type="float">1</tax_rate>
+        <tax_in_cents type="integer">1</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name nil="nil"/>
+        <type>ADJ_2_TD_STATE</type>
+        <tax_rate type="float">2</tax_rate>
+        <tax_in_cents type="integer">2</tax_in_cents>
+      </tax_detail>
+    </tax_details>
+  </adjustment>
+  <adjustment href="ADJ_3_HREF" type="charge">
+    <account href="ADJ_3_ACCOUNT"/>
+    <invoice href="ADJ_3_INVOICE"/>
+    <subscription href="ADJ_3_SUB"/>
+    <uuid>ADJ_3_ID</uuid>
+    <state>ADJ_3_STATE</state>
+    <description>ADJ_3_DESC</description>
+    <accounting_code nil="nil"/>
+    <product_code>ADJ_3_PROD_CODE</product_code>
+    <origin>ADJ_3_ORIGIN</origin>
+    <unit_amount_in_cents type="integer">2000</unit_amount_in_cents>
+    <quantity type="integer">1</quantity>
+    <original_adjustment_uuid>ADJ_3_ORIG_ADJ_ID</original_adjustment_uuid> <!-- Only shows if adjustment is a credit created from another credit. -->
+    <discount_in_cents type="integer">0</discount_in_cents>
+    <tax_in_cents type="integer">180</tax_in_cents>
+    <total_in_cents type="integer">2180</total_in_cents>
+    <currency>USD</currency>
+    <taxable type="boolean">false</taxable>
+    <tax_exempt type="boolean">false</tax_exempt>
+    <tax_code nil="nil"/>
+    <start_date type="datetime">2011-08-31T03:30:00Z</start_date>
+    <end_date nil="nil"/>
+    <created_at type="datetime">2011-08-31T03:30:00Z</created_at>
+    <tax_details type="array">
+      <tax_detail>
+        <name>ADJ_3_TD_NAME</name>
+        <type>ADJ_3_TD_STATE</type>
+        <tax_rate type="float">1</tax_rate>
+        <tax_in_cents type="integer">1</tax_in_cents>
+      </tax_detail>
+      <tax_detail>
+        <name nil="nil"/>
+        <type>ADJ_3_TD_STATE</type>
+        <tax_rate type="float">2</tax_rate>
+        <tax_in_cents type="integer">2</tax_in_cents>
+      </tax_detail>
+    </tax_details>
+  </adjustment>
+  <!-- Continued... -->
+</adjustments>

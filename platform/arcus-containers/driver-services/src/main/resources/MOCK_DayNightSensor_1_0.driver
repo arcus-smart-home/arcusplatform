@@ -1,0 +1,116 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import com.iris.messages.capability.DayNightSensorCapability;
+
+/**
+ * Mock driver for a Day Night Sensor device
+ * 
+ * 
+ */
+driver			"MOCK_DayNightSensor"
+description		"Driver for a Day Night Sensor device"
+version			"1.0"
+protocol		"MOCK"
+deviceTypeHint	"DayNightSensor"
+productId		"000000"
+vendor 			"Mockitron"
+model 			"DayNightSensor"
+
+matcher         'MOCK:Capability' : 'DayNightSensor'
+// no real product, hence no product matcher
+
+capabilities	DevicePower, DayNightSensor, DeviceMock
+
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Day Night Sensor started."
+	
+	Device.name 'Mock Day Night Sensor'
+	// set inital attribute values remove eventually
+	DeviceConnection.signal	94
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery                 15
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	DayNightSensor.mode                 DayNightSensor.MODE_DAY
+	DayNightSensor.modechanged          ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	setSensorMode()
+}
+
+onConnected {
+	log.debug "Mock Day Night Sensor connected."
+	setSensorMode()
+}
+
+def setSensorMode() {
+	Calendar now = Calendar.getInstance();
+	int hourOfDay = now.get(Calendar.HOUR_OF_DAY);
+	//If the hour of day is between 6am and 6pm (day, ignore minutes)
+	if(hourOfDay > 6 && hourOfDay < 18)
+	{
+		DayNightSensor.mode			DayNightSensor.MODE_DAY
+	}
+	else
+	{
+		DayNightSensor.mode			DayNightSensor.MODE_NIGHT
+	}
+	DayNightSensor.modechanged new Date()
+	
+}
+
+onDisconnected {
+	log.debug "Mock Day Night Sensor device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Day Night Sensor device removed."
+}
+
+
+// ########### capability support ##################
+
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['daynight:mode']) { 
+    DayNightSensor.modechanged new Date()
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

@@ -1,0 +1,11 @@
+irpheader {
+import static com.iris.protocol.zigbee.zdp.Constants.*;
+import static com.iris.protocol.zigbee.zdp.General.*;
+}
+
+
+include "zdp-const.irp";
+include "zdp-general.irp";
+include "zdp-bind.irp";
+include "zdp-discovery.irp";
+include "zdp-mgmt.irp";

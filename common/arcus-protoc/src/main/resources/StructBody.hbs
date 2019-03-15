@@ -1,0 +1,488 @@
+      {{#hasMessageId}}
+      public static final int ID = {{messageId}};
+      {{/hasMessageId}}
+
+      public static final int LENGTH_MIN = {{minLength}};
+      public static final int LENGTH_MAX = {{maxLength}};
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Declared constants
+      /////////////////////////////////////////////////////////////////////////////
+      {{#constants}}
+      public static final {{type}} {{name}} = {{value}};
+      {{/constants}}
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Declared fields
+      /////////////////////////////////////////////////////////////////////////////
+      {{#fields~}}{{#stored}}
+      private final {{type}} {{name}}; {{comment}}
+      {{/stored}}{{~/fields}}
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Constructor is private since {{classname}} should only be 
+      // created through builder methods or through the marshalling code.
+      /////////////////////////////////////////////////////////////////////////////
+
+      private {{classname}}(
+         {{~#fields~}}{{~#stored~}}
+            {{storedComma}}{{type}} {{name}}
+         {{~/stored~}}{{~/fields~}}
+      ) {
+         {{#fields~}}{{#stored}}
+         this.{{name}} = {{name}};
+         {{/stored}}{{~/fields}}
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Misc utility methods
+      /////////////////////////////////////////////////////////////////////////////
+
+{{#message}}
+      @Override
+      public boolean hasMessageId() {
+         return {{hasMessageId}};
+      }
+
+      @Override
+      public int getMessageId() {
+{{#hasMessageId}}
+         return ID;
+{{/hasMessageId}}
+{{^hasMessageId}}
+         throw new UnsupportedOperationException();
+{{/hasMessageid}}
+      }
+{{/message}}
+
+      @Override
+      public boolean isFixedSize() {
+         return LENGTH_MIN == LENGTH_MAX;
+      }
+
+      @Override
+      public boolean hasMaxLength() {
+         return LENGTH_MAX >= 0;
+      }
+
+      @Override
+      public int getMinimumSize() {
+         return LENGTH_MIN;
+      }
+
+      @Override
+      public int getMaximumSize() {
+         return LENGTH_MAX;
+      }
+
+      @Override
+      public int getByteSize() {
+         int size = 0;
+{{#fields}}
+   {{#when}}
+         if ({{when}}) {
+            size += {{byteSize}}; // byte size of {{name}} {{byteSizeExtra}}
+      {{#extraSize}}
+            size += {{extraSize}};
+      {{/extraSize}}
+         }
+   {{/when}}
+   {{^when}}
+         size += {{byteSize}}; // byte size of {{name}} {{byteSizeExtra}}
+      {{#extraSize}}
+            size += {{extraSize}};
+      {{/extraSize}}
+   {{/when}}
+{{/fields}}
+         return size;
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Getters for all fields
+      /////////////////////////////////////////////////////////////////////////////
+
+{{#fields}}
+      public {{getterType}} get{{methodName}}() {
+         return {{getterValue}};
+      }
+
+   {{#when}}
+      public boolean has{{methodName}}() {
+         return {{when}};
+      }
+   {{/when}}
+{{/fields}}
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Raw accessors for fields that require them
+      /////////////////////////////////////////////////////////////////////////////
+{{#fields}}
+   {{#hasRawGetter}}
+      public {{type}} raw{{methodName}}() {
+         return {{rawGetterValue}};
+      }
+   {{/hasRawGetter}}
+{{/fields}}
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Hash code and equality methods
+      /////////////////////////////////////////////////////////////////////////////
+
+      public boolean equalTo({{classname}} other) {
+{{#fields}}{{#stored}}
+         if ({{equalToTest}})
+            return false;
+{{/stored}}{{/fields}}
+         return true;
+      }
+
+      @Override
+      public boolean equals(Object other) {
+         if (this == other) 
+            return true;
+         if (other == null)
+            return false;
+         if (getClass() != other.getClass())
+            return false;
+         return equalTo(({{classname}})other);
+      }
+
+      @Override
+      public int hashCode() {
+         {{hashCodeHeader}}
+{{#fields}}{{#stored}}
+         {{computeHashCode}}
+{{/stored}}{{/fields}}
+         {{hashCodeFooter}}
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Pretty printing toString
+      /////////////////////////////////////////////////////////////////////////////
+
+      @Override
+      public String toString() {
+         return "{{classname}} [" + 
+{{#fields}}
+                "{{comma}}{{name}}=" + {{printField}} +
+{{/fields}}
+            "]";
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Builders to create new {{classname}} objects
+      /////////////////////////////////////////////////////////////////////////////
+
+      public static Builder builder() {
+         return new Builder();
+      }
+
+      public static Builder builder({{classname}} clone) {
+         Builder bld = new Builder();
+{{#fields}}{{#stored}}
+         bld.set{{methodName}}(clone.get{{methodName}}());
+{{/stored}}{{/fields}}
+         return bld;
+      }
+
+      public static Builder builder(Builder clone) {
+         Builder bld = new Builder();
+{{#fields}}{{#stored}}
+         bld.set{{methodName}}(clone.get{{methodName}}());
+{{/stored}}{{/fields}}
+         return bld;
+      }
+
+      public static final class Builder {
+{{#fields}}{{#stored}}
+         private {{type}} {{name}};
+{{/stored}}{{/fields}}
+
+{{#fields}}{{#stored}}
+         public {{getterType}} get{{methodName}}() {
+            return {{getterValue}};
+         }
+   {{#hasRawGetter}}
+         public {{type}} raw{{methodName}}() {
+            return this.{{name}};
+         }
+   {{/hasRawGetter}}
+
+         public Builder set{{methodName}}({{type}} {{name}}) {
+            this.{{name}} = {{assign}};
+            return this;
+         }
+
+   {{#hasExtraSetter}}
+         public Builder set{{methodName}}(int {{name}}) {
+            this.{{name}} = ({{type}})({{assign}});
+            return this;
+         }
+   {{/hasExtraSetter}}
+
+   {{#hasFixedArraySetter}}
+         public Builder set{{methodName}}({{type}} {{name}}, int offset) {
+            this.{{name}} = {{assignFixedArray}};
+            return this;
+         }
+   {{/hasFixedArraySetter}}
+
+   {{#hasSizedArraySetter}}
+         public Builder set{{methodName}}({{type}} {{name}}, int offset, int length) {
+            this.{{name}} = {{assignSizedArray}};
+            return this;
+         }
+   {{/hasSizedArraySetter}}
+
+   {{#isPayload}}
+         public Builder set{{methodName}}(ByteOrder order, com.iris.protoc.runtime.ProtocStruct payload) throws IOException {
+            this.{{name}} = payload.toBytes(order);
+            return this;
+         }
+   {{/isPayload}}
+{{/stored}}{{/fields}}
+
+         public {{classname}} create() {
+{{#fields}}{{#stored}}
+   {{#when}}
+            if ({{when}}) {
+               {{validateField}}
+            } else {
+               {{validateDefault}}
+            }
+   {{^}}
+            {{validateField}}
+   {{/when}}
+{{/stored}}{{/fields}}
+
+            return new {{classname}}({{#fields}}{{#stored}} {{storedComma}}{{name}} {{/stored}}{{/fields}});
+         }
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // SerDe accessor
+      /////////////////////////////////////////////////////////////////////////////
+
+      public static com.iris.protoc.runtime.ProtocSerDe<{{classname}}> serde() {
+         return SerDe.INSTANCE;
+      }
+
+      @Override
+      public com.iris.protoc.runtime.ProtocSerDe<{{classname}}> getSerDe() {
+         return SerDe.INSTANCE;
+      }
+      
+      private static enum SerDe implements com.iris.protoc.runtime.ProtocSerDe<{{classname}}>, 
+                                           com.iris.protoc.runtime.ProtocSerDe.Io<{{classname}}>,
+                                           com.iris.protoc.runtime.ProtocSerDe.Nio<{{classname}}>,
+                                           com.iris.protoc.runtime.ProtocSerDe.Netty<{{classname}}> {
+         INSTANCE;
+
+         @Override
+         public com.iris.protoc.runtime.ProtocSerDe.Io<{{classname}}> ioSerDe() {
+            return this;
+         }
+
+         @Override
+         public com.iris.protoc.runtime.ProtocSerDe.Nio<{{classname}}> nioSerDe() {
+            return this;
+         }
+
+         @Override
+         public com.iris.protoc.runtime.ProtocSerDe.Netty<{{classname}}> nettySerDe() {
+            return this;
+         }
+
+         @Override
+         public {{classname}} fromBytes(ByteOrder order, byte[] data) {
+            return fromBytes(order, data, 0, data.length);
+         }
+
+         @Override
+         public {{classname}} fromBytes(ByteOrder order, byte[] data, int offset, int length) {
+            try {
+               return nioSerDe().decode(ByteBuffer.wrap(data,offset,length).order(order));
+            } catch (IOException ex) {
+               throw new RuntimeException("could not deserialize {}", ex);
+            }
+         }
+
+         ///////////////////////////////////////////////////////////////////////
+         // Marshalling to/from IO streams
+         ///////////////////////////////////////////////////////////////////////
+
+         @Override
+         public {{classname}} decode(DataInput input) throws IOException {
+{{#fields}}
+            {{type}} {{name}};
+{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{ioDecoding}}
+            } else {
+               {{ioDecodeDefault}}
+            }
+   {{^}}
+            {{ioDecoding}}
+   {{/when}}
+{{/fields}}
+            return new {{classname}}({{#fields}}{{#stored}}{{storedComma}}{{name}}{{/stored}}{{/fields}});
+         }
+
+         @Override
+         public void encode(DataOutput output, {{classname}} value) throws IOException {
+{{#fields}}{{#stored}}
+            {{type}} {{name}} = value.{{name}};
+{{/stored}}{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{ioEncoding}}
+            }
+   {{^}}
+            {{ioEncoding}}
+   {{/when}}
+{{/fields}}
+         }
+
+         ///////////////////////////////////////////////////////////////////////
+         // Marshalling to/from NIO streams
+         ///////////////////////////////////////////////////////////////////////
+
+         @Override
+         public {{classname}} decode(ByteBuffer input) throws IOException {
+{{#fields}}
+            {{type}} {{name}};
+{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{nioDecoding}}
+            } else {
+               {{nioDecodeDefault}}
+            }
+   {{^}}
+            {{nioDecoding}}
+   {{/when}}
+{{/fields}}
+            return new {{classname}}({{#fields}}{{#stored}}{{storedComma}}{{name}}{{/stored}}{{/fields}});
+         }
+
+         @Override
+         public void encode(ByteBuffer output, {{classname}} value) throws IOException {
+{{#fields}}{{#stored}}
+            {{type}} {{name}} = value.{{name}};
+{{/stored}}{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{nioEncoding}}
+            }
+   {{^}}
+            {{nioEncoding}}
+   {{/when}}
+{{/fields}}
+         }
+
+         ///////////////////////////////////////////////////////////////////////
+         // Marshalling to/from Netty streams
+         ///////////////////////////////////////////////////////////////////////
+
+         @Override
+         public {{classname}} decode(ByteBuf input) throws IOException {
+{{#fields}}
+            {{type}} {{name}};
+{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{nettyDecoding}}
+            } else {
+               {{nettyDecodeDefault}}
+            }
+   {{^}}
+            {{nettyDecoding}}
+   {{/when}}
+{{/fields}}
+            return new {{classname}}({{#fields}}{{#stored}}{{storedComma}}{{name}}{{/stored}}{{/fields}});
+         }
+
+         @Override
+         public void encode(ByteBuf output, {{classname}} value) throws IOException {
+{{#fields}}{{#stored}}
+            {{type}} {{name}} = value.{{name}};
+{{/stored}}{{/fields}}
+
+{{#fields}}
+   {{#when}}
+            if ({{when}}) {
+               {{nettyEncoding}}
+            }
+   {{^}}
+            {{nettyEncoding}}
+   {{/when}}
+{{/fields}}
+         }
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // Conversion to byte array
+      /////////////////////////////////////////////////////////////////////////////
+
+      @Override
+      public byte[] toBytes(ByteOrder order) throws IOException {
+         return toByteBuf(order).array();
+      }
+
+      @Override
+      public ByteBuffer toByteBuffer(ByteOrder order) throws IOException {
+         return ByteBuffer.wrap(toBytes(order)).order(order);
+      }
+
+      @Override
+      public ByteBuf toByteBuf(ByteOrder order) throws IOException {
+         int length = getByteSize();
+         ByteBuf buffer = io.netty.buffer.Unpooled.buffer(length).order(order);
+
+         serde().nettySerDe().encode(buffer, this);
+         return buffer;
+      }
+
+      /////////////////////////////////////////////////////////////////////////////
+      // {{classname}} generators
+      /////////////////////////////////////////////////////////////////////////////
+
+      public static {{classname}} getEmptyInstance() {
+         return {{classname}}.builder().create();
+      }
+
+      public static {{classname}} getRandomInstance() {
+         Random r = ThreadLocalRandom.current();
+         {{classname}}.Builder bld = {{classname}}.builder();
+{{#fields}}{{^stored}}
+   {{#random}}
+         {{type}} {{name}} = {{random}};
+   {{/random}}
+   {{^random}}
+         // Capped to length < 16 to prevent huge random instances 
+         {{type}} {{name}} = ({{type}})(({{randomValue}}) & 0xF);
+   {{/random}}
+{{/stored}}{{/fields}}
+
+{{#fields}}{{#stored}}
+   {{#random}}
+         {{type}} {{name}} = {{random}};
+   {{/random}}
+   {{^random}}
+         {{randomExtra}} {{type}} {{name}} = {{randomValue}};
+   {{/random}}
+         bld.set{{methodName}}({{name}});
+{{/stored}}{{/fields}}
+         return bld.create();
+      }

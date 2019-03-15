@@ -1,0 +1,29 @@
+{{#section "sender-name"}}
+{{notification-sendername}}
+{{/section}}
+
+{{#section "sender-email"}}
+	{{notification-senderemail}}
+{{/section}}
+
+
+{{#section "subject"}}
+{{notification-description}}
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{notification-device}} at {{notification-place}} {{notification-description}}	
+{{/section}}
+
+{{#section "html-body"}}
+{{# partial "content" }}
+
+<h1>Notification: {{notification-title}}</h1>
+    <p>
+        The {{notification-device}} at {{notification-place}} {{notification-description}}
+    </p>
+
+{{/partial}}
+{{> email-fake-iris-template-layout}}
+
+{{/section}}

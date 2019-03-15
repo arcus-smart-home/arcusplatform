@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="ClimateSubsystem"
+   namespace="subclimate"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Climate Subsystem
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="controlDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the climate control devices in the climate subsystem, this includes thermostats, fans, vents and spaceheaters."/>
+      <c:attribute
+         name="temperatureDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the devices in the place that have the temperature capability."/>
+      <c:attribute
+         name="humidityDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the devices in the place that have the humidity capability."/>
+      <c:attribute
+         name="thermostats"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="DEPRECATED: This attribute is deprecated and will be removed in future iterations! The addresses of all the devices in the place that have the thermostat capability."/>
+      <c:attribute
+         name="thermostatSchedules"
+         type="map&lt;ThermostatScheduleStatus&gt;"
+         readwrite="r"
+         optional="false"
+         description="The current status of the schedule for each thermostat" />
+      <c:attribute
+         name="closedVents"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="	The addresses of all vents that are currently closed."/>
+      <c:attribute
+         name="activeFans"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all fans that are currently turned on."/>
+      <c:attribute
+         name="primaryTemperatureDevice"
+         type="string"
+         readwrite="rw"
+         optional="true"
+         description="The temperature sensor that should be used when displaying the temperature for the whole place.  This may be null if no devices support temperature."/>
+      <c:attribute
+         name="primaryHumidityDevice"
+         type="string"
+         readwrite="rw"
+         optional="true"
+         description="	The humidity sensor that should be used when displaying the humidity for the whole place.  This may be null if no devices support humidity."/>
+      <c:attribute
+         name="primaryThermostat"
+         type="string"
+         readwrite="rw"
+         optional="true"
+         description="The primary thermostat for the house, this may be null if there are no thermostat devices."/>
+      <c:attribute
+         name="temperature"
+         type="double"
+         readwrite="r"
+         unit="C"
+         optional="true"
+         description="The current temperature for the place, this may be null if there are no temperature devices.  This is currently calculated from primaryTemperatureDevice."/>
+      <c:attribute
+         name="humidity"
+         type="double"
+         readwrite="r"
+         unit="%"
+         optional="true"
+         description="The current humidity for the place, this may be null if there are no humidity devices.  This is currently calculated from primaryHumidityDevice."/>
+      <c:attribute
+         name="activeHeaters"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all devices that implement spaceheater and have heatstate value of ON"/>   
+         
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="EnableScheduler"
+         description="Enables the scheduler associated with the given thermostat.  NOTE this will return a 'timezone.notset' error if the place does not have a valid timezone.">
+         
+         <c:parameter name="thermostat" type="String" description="The address of the thermostat to enable the schedule for"/>
+         
+      </c:method>
+      <c:method
+         name="DisableScheduler"
+         description="Enables the scheduler associated with the given thermostat.">
+         
+         <c:parameter name="thermostat" type="String" description="The address of the thermostat to disable the schedule for"/>
+         
+      </c:method>
+   </c:methods>
+
+</c:capability>

@@ -1,0 +1,29 @@
+{{#section "subject"}}
+{{{ _ruleName }}} Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+Hi {{{_person.firstName}}},
+
+{{{ garagedoor }}} was {{{ lower state }}} at {{{_place.name}}}.
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{ garagedoor }} was {{ lower state }} at {{_place.name}}.
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

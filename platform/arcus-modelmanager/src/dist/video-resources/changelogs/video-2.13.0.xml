@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.13.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="createRecordingV2Table" author="dpatrow">
+      <cl:description>Create recording_v2 table</cl:description>
+      <cl:tracking>I2-3768</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_v2 (
+			recordingid timeuuid,
+			expiration bigint,
+            ts double,
+            bo bigint,
+            bl blob,
+            PRIMARY KEY (recordingid, expiration, ts, bo)
+         )
+         WITH CLUSTERING ORDER BY (expiration DESC, ts ASC, bo ASC)
+         AND compaction = {'compaction_window_size': '1', 
+         	'compaction_window_unit': 'DAYS', 
+         	'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy'};
+         </cl:update>
+         <cl:rollback>DROP TABLE recording_v2</cl:rollback>
+      </cl:cql>
+   </cl:changeset>   
+   <cl:changeset identifier="createRecordingMetadataV2Table" author="dpatrow">
+      <cl:description>Add table for recording_metadata_v2</cl:description>
+      <cl:tracking>I2-3768</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_metadata_v2 (
+            recordingid timeuuid,
+            expiration bigint,
+            field text,
+            value text,
+            PRIMARY KEY ((recordingid), expiration, field) 
+         )
+         WITH CLUSTERING ORDER BY (expiration DESC, field ASC)
+         AND compaction = {'compaction_window_size': '1', 
+         	'compaction_window_unit': 'DAYS', 
+         	'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy'};
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_metadata_v2</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+	<cl:changeset identifier="createPlaceRecordingIndexV2Table" author="dpatrow">
+      <cl:description>Add table for place recording index table v2</cl:description>
+      <cl:tracking>I2-3768</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE place_recording_index_v2 (
+            placeid uuid,
+            field text,
+            value text,
+            recordingid timeuuid,
+            expiration bigint,
+            size bigint,
+            PRIMARY KEY ((placeid, field), value, recordingid) 
+         )
+         WITH CLUSTERING ORDER BY (value DESC, recordingid DESC)
+         AND compaction = {'compaction_window_size': '1', 
+         	'compaction_window_unit': 'DAYS', 
+         	'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy'};
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS place_recording_index_v2</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+     
+   <cl:changeset identifier="createPurgeRecordingsV2" author="dpatrow">
+      <cl:description>Create purge_recordings_v2 table</cl:description>
+      <cl:tracking>I2-3768</cl:tracking>
+      <cl:cql>
+         <cl:update>         
+         CREATE TABLE purge_recordings_v2 (
+            deletetime timestamp,
+            partitionid int,
+            recordingid timeuuid,
+            placeid uuid,
+            storage text,
+            PRIMARY KEY ((deletetime,partitionid),recordingid,placeid)
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (recordingid ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE purge_recordings_v2;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="createRecordingV2FavoriteTable" author="dpatrow">
+      <cl:description>Create recording_v2_favorite table</cl:description>
+      <cl:tracking>I2-4061</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_v2_favorite (
+			recordingid timeuuid,
+            ts double,
+            bo bigint,
+            bl blob,
+            PRIMARY KEY ((recordingid), ts, bo)
+         )
+         WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (ts ASC, bo ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE recording_v2_favorite</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="createRecordingMetadataV2FavoriteTable" author="dpatrow">
+      <cl:description>Add table for recording_metadata_v2_favorite</cl:description>
+      <cl:tracking>I2-4061</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_metadata_v2_favorite (
+            recordingid timeuuid,
+            field text,
+            value text,
+            PRIMARY KEY ((recordingid), field) 
+         )
+         WITH COMPACT STORAGE
+         AND CLUSTERING ORDER BY (field ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_metadata_v2_favorite</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="createPlaceRecordingIndexV2FavoriteTable" author="dpatrow">
+      <cl:description>Add table for place_recording_index_v2_favorite table</cl:description>
+      <cl:tracking>I2-4061</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE place_recording_index_v2_favorite (
+            placeid uuid,
+            field text,
+            value text,
+            recordingid timeuuid,
+            size bigint,
+            PRIMARY KEY ((placeid, field), value, recordingid) 
+         )
+         WITH CLUSTERING ORDER BY (value DESC, recordingid DESC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS place_recording_index_v2_favorite</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+</cl:changelog>

@@ -1,0 +1,175 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-Wave Everspring Screw-In Lamp Module
+ *
+ * FACTORY RESET
+ * - Within a 5 second interval press the "Learn Key" 8 times in a row.  The Home ID and Node ID will be cleared and
+ *   the device restored to factory default.
+ * 
+ * ISSUES/NOTES
+ * - When the local switch/button on the device is used to turn the bulb ON, a Node Info message is
+ *   sent, however no message is sent when it is used to turn the bulb OFF, so we read the current
+ *   state every 30 seconds to try and keep in sync with any local changes made.
+ * 
+ * IDENTIFY
+ * - Flashes the bulb once a second 10 times.
+ * 
+ */
+
+driver			"ZWEverspringLampModuleDriver"
+description		"Driver for a Z-Wave Everspring Screw-In Lamp Module"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+productId		"291db8"
+vendor 			"Uncertified"		// "Everspring"
+model 			"AN145-1"
+
+matcher			'ZWAV:Manufacturer': 0x0060, 'ZWAV:ProductType': 0x0004, 'ZWAV:ProductId': 0x0001
+
+
+capabilities	DevicePower, Switch, Light, Identify
+
+// Generic Device Class:    GENERIC_TYPE_SWITCH_BINARY
+// Specific Device Class:   SPECIFIC_TYPE_POWER_SWITCH_BINARY
+// Command Classes:
+//		0x20    (32)        COMMAND_CLASS_BASIC
+//		0x25	(37)		COMMAND_CLASS_SWITCH_BINARY
+//		0x27	(39)		COMMAND_CLASS_SWITCH_ALL
+//      0x71    (113)       COMMAND_CLASS_ALARM
+//		0x75	(117)		COMMAND_CLASS_PROTECTION
+//		0x73	(115)		COMMAND_CLASS_POWERLEVEL
+//		0x86	(134)		COMMAND_CLASS_VERSION
+//		0x72	(114)		COMMAND_CLASS_MANUFACTURER_SPECIFIC
+
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_LINE
+DevicePower.linecapable	         true
+DevicePower.backupbatterycapable false
+
+
+def final byte SWITCH_ON            = 0xff
+def final byte SWITCH_OFF           = 0x00
+def final OFFLINE_TIMEOUT_SECS      = 1800	// 30 minutes
+def final int  POLLING_INTERVAL_SEC = 71		// poll current state every 30 seconds
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Everspring Lamp Module added"
+
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Switch.state                        Switch.STATE_ON
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Light.colormode                     Light.COLORMODE_NORMAL
+}
+
+
+onConnected {
+	log.debug "Everspring Lamp Module connected"
+
+	// set the current switch state
+	ZWave.switch_binary.set( (Switch.state.get() == Switch.STATE_ON ? SWITCH_ON : SWITCH_OFF) )
+
+	// set the OFFLINE timeout
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+	// periodically poll the current state to keep the device ONLINE
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+	
+	// set Association to Group 1, Node 1 (supports upto 5 nodes)
+	ZWave.association.set( 1, 1, 0, 0, 0);
+	
+}
+
+onDisconnected {
+	log.debug "Everspring Lamp Module disconnected."
+}
+
+onRemoved {
+	log.debug "Everspring Lamp Module removed."
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Switch Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+	log.debug "Driver received message {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+				// get the current switch state
+				ZWave.switch_binary.get()
+				break
+
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+
+onZWaveNodeInfo {
+	log.debug "Device reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+
+	// these devices report a Node Info every time their state is changed locally,
+	// so do a Binary Switch Get to get the current state whenever we see a Node Info message
+	ZWave.switch_binary.get()
+}
+
+
+onZWaveMessage.switch_binary.report {
+	log.debug "Driver received binary switch report: {}", message
+	def prevState = Switch.state.get()
+	Switch.state message.command.get('value') == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF
+	// if state changed, capture timestamp
+	if (Switch.state.get() != prevState) {
+		Switch.statechanged new Date()
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify: {}", message
+	ZWave.alarm.report( (byte)0x01, (byte)0x11 )	// Alarm Type 0x01, Alarm Level 0x11 will flash the bulb for 10 times
+	sendResponse 'ident:IdentifyResponse', [:]
+}
+

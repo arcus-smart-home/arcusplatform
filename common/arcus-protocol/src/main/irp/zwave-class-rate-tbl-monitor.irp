@@ -1,0 +1,93 @@
+
+message zwave.RateTblMonitor.RateTblActiveRateGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.RateTblMonitor.RateTblActiveRateReportV1<id="0x06", group="V1"> {
+    u8 rateParameterSetId;
+}
+
+message zwave.RateTblMonitor.RateTblCurrentDataGetV1<id="0x07", group="V1"> {
+    u8 rateParameterSetId;
+    u8[3] datasetRequested;
+}
+
+message zwave.RateTblMonitor.RateTblCurrentDataReportV1<id="0x08", group="V1"> {
+    u8 reportsToFollow;
+    u8 rateParameterSetId;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.RateTblMonitor.RateTblGetV1<id="0x03", group="V1"> {
+    u8 rateParameterSetId;
+}
+
+message zwave.RateTblMonitor.RateTblHistoricalDataGetV1<id="0x09", group="V1"> {
+    u8 maximumReports;
+    u8 rateParameterSetId;
+    u8[3] datasetRequested;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8 stopSecondLocalTime;
+}
+
+message zwave.RateTblMonitor.RateTblHistoricalDataReportV1<id="0x0A", group="V1"> {
+    u8 reportsToFollow;
+    u8 rateParameterSetId;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.RateTblMonitor.RateTblReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_RATE_CHAR_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_RATE_CHAR_SHIFT = 0;
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x60;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 5;
+    const u8 PROPERTIES2_CONSUMPTION_SCALE_MASK = 0x1F;
+    const u8 PROPERTIES2_CONSUMPTION_SCALE_SHIFT = 0;
+    const u8 PROPERTIES2_CONSUMPTION_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_CONSUMPTION_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES3_MAX_DEMAND_SCALE_MASK = 0x1F;
+    const u8 PROPERTIES3_MAX_DEMAND_SCALE_SHIFT = 0;
+    const u8 PROPERTIES3_MAX_DEMAND_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES3_MAX_DEMAND_PRECISION_SHIFT = 5;
+    u8 rateParameterSetId;
+    u8 properties1;
+    u8[] rateCharacter;
+    // startHourLocalTime contained in previous field
+    // startMinuteLocalTime contained in previous field
+    // durationMinute contained in previous field
+    // properties2 contained in previous field
+    // minConsumptionValue contained in previous field
+    // maxConsumptionValue contained in previous field
+    // properties3 contained in previous field
+    // maxDemandValue contained in previous field
+    // dcpRateId contained in previous field
+}
+
+message zwave.RateTblMonitor.RateTblSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.RateTblMonitor.RateTblSupportedReportV1<id="0x02", group="V1"> {
+    u8 ratesSupported;
+    u16 parameterSetSupportedBitMask;
+}

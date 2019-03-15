@@ -1,0 +1,176 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a 500Series ZWavePlus Jasco 14287 In-Wall Fan Controller
+ *
+ *	Factory Reset
+ *  Quickly press ON (Top) button 3 times then immediately press the OFF (bottom) button 3 times. 
+ *	The LED will flash ON/OFF 5 times when completed successfully.
+ *
+ *
+ */
+driver			"ZWJasco14287InWallFanControllerDriver"
+description		"Driver for a Z-Wave Plus Jasco 14287 In-Wall Fan Controller"
+version			"2.7"
+protocol		"ZWAV"
+deviceTypeHint	"Fan Control"
+productId		"979695"
+vendor 			"GE"
+model 			"14287"
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4944, 'ZWAV:ProductId': 0x3131	//GE
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4944, 'ZWAV:ProductId': 0x3138	//Jasco
+
+capabilities	DevicePower, Switch, Fan
+
+importCapability 'zwave/GenericZWaveFan'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Command Classes:
+//		0x20 Basic
+//		0x26 SwitchMultilevel
+//		0x27 SwitchAll
+//		0x70 Configuration
+//		0x72 ManufacturerSpecific
+//		0x86 Version
+//TODO Verify
+
+// set Capability Default Values
+// ---------------
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Switch.state                        Switch.STATE_OFF
+
+Fan.maxSpeed                        3
+Fan.speed							1
+
+// ---------------
+
+final String DEVICE_NAME          = "Jasco ZWavePlus In-Wall Fan Controller"
+
+final int  POLLING_INTERVAL_SEC = 3600			// backed off becuase of reporting
+
+final byte SWITCH_ON        = 0xff
+final byte SWITCH_OFF       = 0x00
+
+final byte SPEED_LOW        = 33
+final byte SPEED_MEDIUM     = 66
+final byte SPEED_HIGH       = 99
+
+
+final int OFFLINE_TIMEOUT_SECS        = 10800 		// 3 hr
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${} added with Attributes {}", DEVICE_NAME, message.attributes
+
+	// set default attribute changed timestamps to now
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+}
+
+
+onConnected {
+	log.debug "{} connected",DEVICE_NAME
+
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveFan to determine delay before reading back level setting (in mSec)
+	
+	// get the current Fan Controller state and speed
+	ZWave.switch_multilevel.get()
+
+	// These devices send a switch_multilevel.report when their level is changed locally,
+	// but we also periodically poll in case we miss that message.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+}
+
+onDisconnected {
+	log.debug "{} disconnected",DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed",DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+	GenericZWaveFan.handleSetAttributes(this, DEVICE_NAME, message)
+	
+	def attributes = message.attributes;
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.inverted:
+				log.warn "Switch inversion not supported by this device"
+				break
+
+			case Fan.direction:
+				log.warn "Fan direction not supported by this device."
+				break
+
+			default:
+				break
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+	GenericZWaveFan.handleMultilevelReport(this, DEVICE_NAME, message)
+}
+
+onZWaveNodeInfo {
+	log.debug "{} reported Node Info: {}, {}, {}, {}, {}",DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+ }
+
+onZWaveMessage.version.report {
+	//surpress unhandled message warning
+ }
+
+onZWaveMessage.application_status.busy {
+	log.debug "{} reported Busy", DEVICE_NAME
+	// when device reports that it is busy, read again after a delay, if we haven't done too many already
+	Scheduler.scheduleIn 'DeferredSwitchReadLevel', 1000
+}
+
+onZWaveMessage.zwaveplus_info.report {
+	log.trace "{} sent ZWave Plus Info Report:{}", DEVICE_NAME, message
+	def zwVer = message.command.get('zwaveversion')
+	def roleType = message.command.get('roletype')
+	def nodeType = message.command.get('nodetype')
+	log.info "{} sent ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", DEVICE_NAME, zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "{} sent Device Reset Locally Notification", DEVICE_NAME
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {}",DEVICE_NAME, message
+    return false;
+}
+

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="GoogleDevice"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a the device model used by Google</t:description>
+
+   <t:attributes>
+      <t:attribute name="id" type="string" description="The device identifier in Iris" optional="false"/>
+      <t:attribute name="type" type="string" description="The Google type hint for the device" optional="false"/>
+      <t:attribute name="traits" type="set&lt;string&gt;" description="The set of Google traits the device supports" optional="false"/>
+      <t:attribute name="name" type="GoogleDeviceName" description="The name object for the device" optional="false"/>
+      <t:attribute name="willReportState" type="boolean" description="Whether or not Iris will issue events to Google on state changes" optional="false"/>
+      <t:attribute name="roomHint" type="string" description="Name of the room the device is in" optional="true"/>
+      <t:attribute name="structureHint" type="string" description="Structure the device is in or on" optional="true"/>
+      <t:attribute name="deviceInfo" type="GoogleDeviceInfo" description="Device details" optional="true"/>
+      <t:attribute name="attributes" type="map&lt;any&gt;" description="Attributes per the device traits." optional="true"/>
+      <t:attribute name="customData" type="map&lt;any&gt;" description="Any custom data Iris wants to attach with the device" optional="true"/>
+   </t:attributes>
+
+ </t:type>

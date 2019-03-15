@@ -1,0 +1,56 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Application Upgrade Cluster
+//    From "Implementing the AlertMe Upgrade Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.ApplicationUpgrade {
+   const u16 CLUSTER_ID = 0x0B7E;
+   const u16 PROXY_CLUSTER_ID = 0x0B7F;
+}
+
+message alertme.ApplicationUpgrade.BootloaderUpgradeRequest<id="0x00"> {
+   u64 eui64;
+}
+
+message alertme.ApplicationUpgrade.BootloaderUpgradeResponse<id="0x01"> {
+   const u8 REPLY_NOT_OK = 0x00;
+   const u8 REPLY_OK = 0x01;
+
+   u8 reply;
+   u16 mfgId;
+   u8[16] hardwareTag;
+}
+
+message alertme.ApplicationUpgrade.FirmwareUploadRequest<id="0x02"> {
+   u16 seqNo;
+   u16 blockNo;
+   u16 numBocks;
+   u8[64] data;
+}
+
+message alertme.ApplicationUpgrade.FirmwareUploadResponse<id="0x03"> {
+   const u8 REPLY_SUCCESS = 0x00;
+   const u8 REPLY_RETRY_FROM_START = 0x02;
+
+   u16 seqNo;
+   u16 blockNo;
+   u8 reply;
+}
+
+message alertme.ApplicationUpgrade.ApplicationBootloaded<id="0x04"> {
+   u64 eui64;
+   u8 appRelease;
+   u8 appVersion;
+}
+
+message alertme.ApplicationUpgrade.ProxyBootloadProgress<id="0x05"> {
+   // AlertMe Documentation: only valid for proxy upgrade cluster
+   u8 progress;
+}
+
+message alertme.ApplicationUpgrade.ProceedApplicationUpgrade<id="0x06"> {
+   const u8 COMMAND_ABORT = 0x00;
+   const u8 COMMAND_PROCEED = 0x01;
+
+   u8 command;
+}

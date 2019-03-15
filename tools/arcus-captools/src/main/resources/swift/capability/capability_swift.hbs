@@ -1,0 +1,70 @@
+{{#file . "Generated/Capabilities/{{name}}Capability.swift"}}
+//
+// {{name}}Cap.swift
+//
+// Generated on {{today}}
+
+import Foundation
+import RxSwift
+import PromiseKit
+
+// MARK: Constants
+
+extension Constants {
+  public static var {{uncapitalize name}}Namespace: String = "{{namespace}}"
+  public static var {{uncapitalize name}}Name: String = "{{name}}"
+}
+
+{{#if attributes~}}// MARK: Attributes
+fileprivate struct Attributes {
+  {{#attributes~}}
+  static let {{attributeKey name}}: String = "{{namespace}}:{{name}}"
+  {{/attributes}}
+}{{/if}}
+
+public protocol Iris{{name}}Capability: class, RxIrisService {
+  {{#attributes}}/** {{description}} */
+  func get{{parent (capitalize name)}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) -> {{swiftTypeOfParam type}}?
+  {{#if writable}}/** {{description}} */
+  func set{{parent (capitalize name)}}(_ {{name}}: {{swiftTypeOfParam type}}, model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model)
+{{/if}}{{/attributes}}
+  {{#methods}}/** {{description}} */
+  {{#if parameters}}func request{{parent (capitalize name)}}(_  model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model, {{#parameters}}{{cleanse name}}: {{swiftTypeOfRequestParam type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}})
+  {{else}}func request{{parent (capitalize name)}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model){{/if}} throws -> Observable<IrisSessionEvent>{{/methods}}
+}
+
+extension Iris{{name}}Capability {
+  {{#attributes}}public func get{{parent (capitalize name)}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) -> {{swiftTypeOfParam type}}? {
+    let attributes: [String: AnyObject] = model.get()
+    {{#isTimestamp type}}
+    if let timestamp = attributes[Attributes.{{attributeKey name}}] as? Double {
+      return Date(milliseconds: timestamp)
+    }
+    return nil{{else}}{{#isEnum type}}guard let attribute = attributes[Attributes.{{attributeKey name}}] as? String,
+      let enumAttr: {{swiftTypeOfParam type}} = {{swiftTypeOfParam type}}(rawValue: attribute) else { return nil }
+    return enumAttr{{else}}return attributes[Attributes.{{attributeKey name}}] as? {{swiftTypeOfParam type}}{{/isEnum}}{{/isTimestamp}}
+  }
+  {{#if writable}}
+  public func set{{parent (capitalize name)}}(_ {{name}}: {{swiftTypeOfParam type}}, model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) {
+    model.set([Attributes.{{attributeKey name}}: {{#isTimestamp type}}{{name}}.millisecondsSince1970{{else}}{{name}}{{#isEnum type}}.rawValue{{/isEnum}}{{/isTimestamp}} as AnyObject])
+  }{{/if}}
+  {{/attributes}}{{#methods}}
+  {{#if parameters}}public func request{{parent (capitalize name)}}(_  model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model, {{#parameters}}{{cleanse name}}: {{swiftTypeOfRequestParam type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}})
+  {{else}}public func request{{parent (capitalize name)}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model){{/if}} throws -> Observable<IrisSessionEvent> {
+    let request: {{parent (capitalize name)}}Request = {{parent (capitalize name)}}Request()
+    request.source = model.address
+    {{#if restful}}request.isRequest = true{{/if}}
+    {{#equals name "ChangePin"}}
+    request.setNewPin(newPin)
+    if (currentPin.characters.count > 0) {
+      request.setCurrentPin(currentPin)
+    }
+    {{else}}{{#if parameters}}
+    {{#parameters}}
+    request.set{{responseProperty name}}({{cleanse name}})
+    {{/parameters}}{{/if}}{{/equals}}
+    return try sendRequest(request)
+  }
+  {{/methods}}
+}
+{{/file}}

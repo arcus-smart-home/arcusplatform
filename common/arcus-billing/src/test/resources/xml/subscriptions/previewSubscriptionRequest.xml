@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- POST https://:subdomain.recurly.com/v2/subscriptions/preview -->
+<subscription>
+  <plan_code>gold</plan_code>
+  <currency>USD</currency>
+  <account>
+    <account_code>1</account_code>
+    <email>verena@example.com</email>
+    <first_name>verena</first_name>
+    <last_name>example</last_name>
+  </account>
+</subscription>

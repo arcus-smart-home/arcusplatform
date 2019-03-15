@@ -1,0 +1,23 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 7.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Shade {
+   const u16 CLUSTER_ID = 0x0100;
+
+   const u16 ATTR_PHYSICAL_CLOSED_LIMIT = 0x0000;
+   const u16 ATTR_MOTOR_STEP_SIZE = 0x0001;
+   const u16 ATTR_STATUS = 0x0002;
+
+   const u16 ATTR_CLOSED_LIMIT = 0x0010;
+   const u16 ATTR_MODE = 0x0011;
+
+   const u8 STATUS_OPERATIONAL = 0x01;
+   const u8 STATUS_ADJUSTING = 0x02;
+   const u8 STATUS_DIRECTION = 0x04;
+   const u8 STATUS_DIRECTION_CORRESPONDING_TO_FORWARD_DIRECTION_OF_MOTOR = 0x08;
+
+   const u8 MODE_NORMAL = 0x00;
+   const u8 MODE_CONFIGURE = 0x01;
+}

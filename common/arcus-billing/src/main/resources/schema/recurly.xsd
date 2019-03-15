@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema 
+   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified">
+   
+   <xs:element name="closed_invoice_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+            <xs:element name="invoice" type="invoiceType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+      <xs:complexType name="accountType">
+      <xs:sequence>
+         <xs:element name="account_code" type="xs:string"></xs:element>
+         <xs:element name="username"></xs:element>
+         <xs:element name="email" type="xs:string"></xs:element>
+         <xs:element name="first_name"></xs:element>
+         <xs:element name="last_name"></xs:element>
+         <xs:element name="company_name"></xs:element>
+      </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name="invoiceType">
+      <xs:sequence>
+         <xs:element type="xs:string" name="uuid" />
+         <xs:element name="subscription_id">
+            <xs:complexType>
+               <xs:simpleContent>
+                  <xs:extension base="xs:string">
+                     <xs:attribute type="xs:string" name="nil" />
+                  </xs:extension>
+               </xs:simpleContent>
+            </xs:complexType>
+         </xs:element>
+         <xs:element type="xs:string" name="state" />
+         <xs:element type="xs:string" name="invoice_number_prefix" />
+         <xs:element name="invoice_number">
+            <xs:complexType>
+               <xs:simpleContent>
+                  <xs:extension base="xs:int">
+                     <xs:attribute type="xs:string" name="type" />
+                  </xs:extension>
+               </xs:simpleContent>
+            </xs:complexType>
+         </xs:element>
+         <xs:element type="xs:string" name="po_number" />
+         <xs:element type="xs:string" name="vat_number" />
+         <xs:element name="total_in_cents">
+            <xs:complexType>
+               <xs:simpleContent>
+                  <xs:extension base="xs:int">
+                     <xs:attribute type="xs:string" name="type" />
+                  </xs:extension>
+               </xs:simpleContent>
+            </xs:complexType>
+         </xs:element>
+         <xs:element type="xs:string" name="currency" />
+         <xs:element name="date">
+            <xs:complexType>
+               <xs:simpleContent>
+                  <xs:extension base="xs:dateTime">
+                     <xs:attribute type="xs:string" name="type" />
+                  </xs:extension>
+               </xs:simpleContent>
+            </xs:complexType>
+         </xs:element>
+         <xs:element name="closed_at">
+            <xs:complexType>
+               <xs:simpleContent>
+                  <xs:extension base="xs:dateTime">
+                     <xs:attribute type="xs:string" name="type" />
+                  </xs:extension>
+               </xs:simpleContent>
+            </xs:complexType>
+         </xs:element>
+      </xs:sequence>
+   </xs:complexType>
+   
+<!--       
+   <xs:element name="new_account_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="canceled_account_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="billing_info_updated_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="reactivated_account_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="new_invoice_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="processing_invoice_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+
+   <xs:element name="past_due_invoice_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="new_subscription_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="updated_subscription_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="canceled_subscription_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="expired_subscription_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="renewed_subscription_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>   
+   <xs:element name="scheduled_payment_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="processing_payment_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="successful_payment_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="failed_payment_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="successful_refund_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+   <xs:element name="void_payment_notification">
+      <xs:complexType>
+         <xs:sequence>
+            <xs:element name="account" type="accountType" />
+         </xs:sequence>
+      </xs:complexType>
+   </xs:element>
+    -->   
+   
+
+</xs:schema>

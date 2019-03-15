@@ -1,0 +1,56 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: file("${rootDir}/gradle/subproject.gradle")
+
+dependencies {
+   compile project(':agent:arcus-hal:arcus-hal-api')
+   
+   compile project(':common:arcus-client')
+   compile project(':common:arcus-protocol')
+   compile project(':common:arcus-common')
+   compile project(':common:arcus-model')
+   compile project(':common:arcus-model:platform-messages')
+   compile project(':common:arcus-drivers:drivers-common')
+
+   compile libraries.guiceCore
+   compile libraries.commonsIO
+   compile libraries.commonsCodec
+   compile libraries.sqlite4java
+   compile libraries.httpCore
+   compile libraries.httpClient
+   compile libraries.httpMime
+   compile libraries.guava
+   compile libraries.logback
+   
+   compile libraries.kxml2
+
+   compile netty_handler
+   compile netty_codec_http
+   compile netty_codec
+   compile netty_transport
+   compile netty_buffer
+   compile netty_common
+   compile netty_tcnative
+   compile netty_epoll
+   compile name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
+
+   compile libraries.rxjava
+   compile libraries.rxjava_async
+
+   compile libraries.jetty_servlet
+   compile libraries.asyncHTTPClient
+}
+

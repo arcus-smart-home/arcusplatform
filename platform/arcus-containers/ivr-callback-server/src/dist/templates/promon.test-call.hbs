@@ -1,0 +1,108 @@
+{{#partial "greeting"}}
+   Hello, {{{_owner.firstName}}} {{{_owner.lastName}}}.  This is a Professional Monitoring test call from Iris.
+{{/partial}}
+
+{{#partial "continuePrompt"}}
+   Press 1 to finish your Professional Monitoring setup.  Press * to repeat this message.
+{{/partial}}
+
+{{#partial "pinPrompt"}}
+   Complete your Professional Monitoring signup for the place {{{_place.name}}}, located at
+   {{{_pronouncedPlaceAddress.line1}}}, {{{_pronouncedPlaceAddress.line2}}}, in {{{_place.city}}},
+   {{{_pronouncedPlaceAddress.state}}}, by entering your 4 digit Iris PIN code.
+{{/partial}}
+
+{{#partial "pinInvalidPrompt"}}
+   We're sorry.  The PIN code you entered doesn't seem to match.  Please enter your 4 digit Iris PIN code to try again.
+{{/partial}}
+
+{{#partial "pinTimeoutPrompt" }}
+   Please enter your 4 digit Iris PIN code, or press * to repeat.
+{{/partial}}
+
+{{#partial "pinRetriesExhausted"}}
+   We're sorry.  The PIN code you entered doesn't seem to match.  Please login to Iris, confirm your PIN code, and then
+   try again.  Thank you and goodbye.
+{{/partial}}
+
+{{#partial "timeoutRetriesExhausted"}}
+   We're sorry.  We were unable to verify your PIN code.  Please login to Iris, confirm your PIN code, and then try
+   again.  Thank you and goodbye.
+{{/partial}}
+
+{{#partial "success"}}
+   We are pleased to inform you that your connectivity test has been completed.  Welcome to Iris Professional Monitoring
+   service provided by UCC, and thank you for choosing Iris.
+{{/partial}}
+
+
+
+{{#section "greetingAndContinue"}}
+   <Response>
+      <Gather timeout="5" numDigits="1" finishOnKey="" action="{{callbackURL}}&amp;step=submitContinue" method="GET">
+         <Say voice="{{voice}}" language="{{language}}">{{block "greeting"}}</Say>
+         <Say voice="{{voice}}" language="{{language}}">{{block "continuePrompt"}}</Say>
+      </Gather>
+      <Redirect method="GET">{{callbackURL}}&amp;step=continueTimeout</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "pin"}}
+   <Response>
+      <Gather timeout="10" numDigits="4" finishOnKey="" action="{{callbackURL}}&amp;step=submitPin" method="GET">
+         <Say voice="{{voice}}" language="{{language}}">{{block "pinPrompt"}}</Say>
+      </Gather>
+      <Redirect method="GET">{{callbackURL}}&amp;step=pinTimeout</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "pinInvalid"}}
+   <Response>
+      <Gather timeout="10" numDigits="4" finishOnKey="" action="{{callbackURL}}&amp;step=submitPin" method="GET">
+         <Say voice="{{voice}}" language="{{language}}">{{block "pinInvalidPrompt"}}</Say>
+      </Gather>
+      <Redirect method="GET">{{callbackURL}}&amp;step=pinTimeout</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "pinTimeout"}}
+   <Response>
+      {{!--
+         TwiML idiosyncrasies:
+
+         1. [DOCUMENTED] Upon timeout, <Gather> submits Digits to action URL if there has been any input, else continues
+            to the next verb in the <Response>.
+
+         2. [UNDOCUMENTED] Upon pressing the "finishOnKey" key, <Gather> submits Digits to action URL if there has been
+            any other input, else continues to the next verb in the <Response>.
+
+         3. [UNDOCUMENTED] If callee hangs up early, <Gather> seems to continue to next verb in the <Response>.
+
+            For <Response>s with a <Redirect> after <Gather>, this results in an extra *script* callback (due to Twilio
+            processing the <Redirect> after callee hangs up) at the same time as the final *event* callback, both of them
+            having the parameter CallStatus=completed.
+      --}}
+      <Gather timeout="10" numDigits="4" finishOnKey="*" action="{{callbackURL}}&amp;step=submitPin" method="GET">
+         <Say voice="{{voice}}" language="{{language}}">{{block "pinTimeoutPrompt"}}</Say>
+      </Gather>
+      <Redirect method="GET">{{callbackURL}}&amp;step=pinTimeout</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "pinRetriesExhausted"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "pinRetriesExhausted"}}</Say>
+   </Response>
+{{/section}}
+
+{{#section "timeoutRetriesExhausted"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "timeoutRetriesExhausted"}}</Say>
+   </Response>
+{{/section}}
+
+{{#section "success"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "success"}}</Say>
+   </Response>
+{{/section}}

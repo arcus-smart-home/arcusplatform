@@ -1,0 +1,13 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" : "1.0"
+  },
+  "report" : {
+    "ms2.temperature" : 22.8,
+    "ms2.humidity" : 34.2,
+    "ms2.luminosity" : 10270
+  }
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="RuleService"
+           namespace="rule"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for the rule service, which covers global operations such as listing rules or rule templates for places.
+   </s:description>
+   
+   <s:methods>
+   
+   <s:method name="ListRuleTemplates" description="Lists all rule templates available for a given place">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="ruleTemplates" type="list&lt;RuleTemplate&gt;" description="The rule templates"/>
+   </s:method>
+      
+   <s:method name="ListRules" description="Lists all rules defined for a given place">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="rules" type="list&lt;Rule&gt;" description="The rules"/>
+   </s:method>
+   
+   <s:method name="GetCategories" description="Returns a map containing the names of the categories and counts of available rules">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="categories" type="map&lt;int&gt;" descriptin="Map where the key is the category name and value is the count of rules"/>
+   </s:method>
+   
+   <s:method name="GetRuleTemplatesByCategory">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:parameter name="category" type="string" description="The category name" optional="false"/>
+      <s:return name="ruleTemplates" type="list&lt;RuleTemplate&gt;" description="The rule templates that are members of the given category"/>
+   </s:method>
+   
+   </s:methods>
+   
+   <!-- TODO events --> 
+
+</s:service>

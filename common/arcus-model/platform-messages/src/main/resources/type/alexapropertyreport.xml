@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaPropertyReport"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the Alexa V3 capability structure returned in the endpoint structure</t:description>
+
+   <t:attributes>
+      <t:attribute name="namespace" type="string" description="The Alexa Namespace of the property" optional="false"/>
+      <t:attribute name="name" type="string" description="The Alexa name of the property" optional="false"/>
+      <t:attribute name="value" type="any" description="The value of the property, the type of which depends on the property." optional="false"/>
+      <t:attribute name="timeOfSample" type="string" description="The timestamp that the property value was sampled." optional="false"/>
+      <t:attribute name="uncertaintyInMilliseconds" type="long" description="The uncertainty in the sampling (polling) in milliseconds." optional="false"/>
+   </t:attributes>
+
+</t:type>

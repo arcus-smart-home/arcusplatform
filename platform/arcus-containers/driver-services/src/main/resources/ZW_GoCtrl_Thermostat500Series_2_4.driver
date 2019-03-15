@@ -1,0 +1,847 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Linear (GoControl) TBZ48 Z-Wave Thermostat.
+ * Based on the 1.1 version driver and updated for 500 series part
+ * OTA support not in driver will require an upgrade to 1.1 when we are ready to implement.
+ * 
+ * Factory Reset
+ * - Remove batteries
+ * - Install batteries while holding down both MODE and FAN buttons until RESET message is displayed
+ * 
+ * Pairing
+ * - Press and hold FAN button for 5 seconds to enter SETUP mode
+ * - Use scroll buttons to move to "Z-Wave" and press SELECT (MODE)
+ * - On the "Installation" screen press SELECT (MODE).  If the screen says "Remove", the device must be removed first before pairing.
+ * 
+ * NOTES:
+ * - The TBZ48 does not support reporting of Humidity
+ * 
+ */
+
+import groovy.transform.Field
+
+driver           "ZWGoCtrlThermostat500Series"
+description      "Driver for a ZWavePlus Thermostat"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Thermostat"
+productId        "a48ae6"
+vendor           "GoControl"
+model            "GC-TBZ48L"
+
+matcher          'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x5442, 'ZWAV:ProductId': 0x5436
+
+capabilities     DevicePower, Temperature, Thermostat, Clock
+
+importCapability 'zwave/GenericZWaveThermostat'
+
+// 1.5 - Sensors
+final byte SENSOR_TEMP= 0x01
+
+// 1.6 Thermostat Modes
+@Field final byte MODE_OFF              = 0x00
+@Field final byte MODE_HEAT             = 0x01
+@Field final byte MODE_COOL             = 0x02
+@Field final byte MODE_AUTO             = 0x03
+@Field final byte MODE_E_HEAT           = 0x04
+
+// 1.8 Thermostat Fan Mode
+@Field final byte FAN_MODE_AUTO         = 0x00
+@Field final byte FAN_MODE_ON           = 0x01
+
+// 1.9 Thermostat Fan State
+final byte FAN_OFF                      = 0x00
+final byte FAN_ON                       = 0x01
+
+// 1.10 Thermostat SetPoints
+@Field final byte SETPOINT_HEAT         = 0x01
+@Field final byte SETPOINT_COOL         = 0x02
+
+@Field final byte SETPOINT_SCALE_C      = 0x00
+@Field final byte SETPOINT_SCALE_F      = 0x01
+@Field final byte SETPOINT_PRECISION_0  = 0x00
+@Field final byte SETPOINT_PRECISION_1  = 0x20
+@Field final byte SETPOINT_PRECISION_2  = 0x40
+@Field final byte SETPOINT_SIZE_1       = 0x01
+@Field final byte SETPOINT_SIZE_2       = 0x02
+@Field final byte SETPOINT_SIZE_4       = 0x04
+
+final byte DEFAULT_GOCONTROL_FORMAT = 9  //Size 1 Byte, Scale 1 (F) , Precision 0,nearest whole degree
+
+@Field final int SHORT_WAIT_MSEC        = 2000
+@Field final int TEMP_DELAY_MSEC        = 4000
+
+@Field final int MILLIS_PER_HOUR        = 3600000
+@Field final int MILLIS_PER_DAY         = 86400000
+
+@Field final byte LIFELINE              = 0x01
+@Field final byte HUB_NODE_ID           = 0x01
+final int RETRY_RATE_LIFELINE           = 5000
+final byte MAX_LIFELINE_REPEATS         = 10
+
+//Events
+final String EVENT_SET_LIFELINE         = 'SetLifeline'
+final String EVENT_SETUP_DVC            = 'SetupDevice'
+final String EVENT_SETUP_DVC_START      = 'SetupDeviceStart'
+final String EVENT_READ_TEMP            = 'ReadTemperature'
+final String EVENT_READ_OP_STATE        = 'ReadOperatingState'
+final String EVENT_READ_MODE            = 'ReadThermostatMode'
+final String EVENT_SETUP_REPORTING      = 'SetupReporting'
+final String EVENT_WRITE_REPORTING      = 'WriteReporting'
+final String EVENT_SET_COOL_SETPOINT    = 'SetCoolSetpoint'
+final String EVENT_SET_HEAT_SETPOINT    = 'SetHeatSetpoint'
+
+@Field final String KEY_FILTER_CHANGE_DATE  = 'filterChangeDate'
+@Field final String KEY_RUNTIME_START       = 'runtimeStart'
+@Field final String KEY_RUNTIME_TOTAL       = 'filterRuntimeTotal'
+@Field final String KEY_REPORTING_VERIFIED  = 'reportingVerified'
+
+//Used to set Reporting Configuration
+@Field final byte RPT_BYTE_0                     = 32      // 0x20
+@Field final byte RPT_BYTE_1                     = 127     // 0x7F
+final byte MAX_REPORTING_REPEATS                 = 10
+@Field final int RETRY_RATE_REPORTING            = 5000
+
+@Field final byte POWER_CONFIG_PARAM             = -78     //0xB2
+@Field final byte REPORTING_CONFIG_PARAM         = 0x17
+
+// Setup timeouts, offline timeouts, polling intervals, etc.
+@Field final int OFFLINE_TIMEOUT_SEC           	 = 10800   // 3h
+@Field final int LEVEL_POLLING_INTERVAL_SEC    	 = 3600    // 1h
+@Field final int BATTERY_POLLING_INTERVAL_SEC  	 = 86400   // 24h
+
+@Field final int DELAY_CONFIRM_CONFIG            = 6000
+final int SETUP_DELAY_SHORT                      = 5000
+final int SETUP_DELAY_MED                        = 60000
+final int SETUP_DELAY_LONG                       = 120000	// Long enough for Reporting Set to have timed out
+@Field final int SETUP_REPEAT_MSEC               = 5000
+@Field final int MAX_SETUP_REPEATS               = 100
+
+//out of range values so driver knows it needs to get a response
+//can't be null becuase mobile apps crash.  Can revert to null when that fixed.
+//Not sent to device.
+@Field final float HEAT_SETPOINT_NOT_SET         = -2.0
+@Field final float COOL_SETPOINT_NOT_SET         = 45.0
+
+@Field final double DEF_MIN_COOL =  15.5
+@Field final double DEF_MAX_COOL =  44.4
+@Field final double DEF_MIN_HEAT =  -1.1
+@Field final double DEF_MAX_HEAT =  32.2
+@Field final double MIN_SET_POINT_SEPARATION = 1.67
+
+// Default Heat set point range: 30F - 90F, Default Cool set point range: 60F to 112F, Default Minimum Separation (set point H/C Delta): 3F
+@Field def final thermConstantMap = [name:'GoControl', maxHeatSetPoint:DEF_MAX_HEAT, minHeatSetPoint:DEF_MIN_HEAT, maxCoolSetPoint:DEF_MAX_COOL, minCoolSetPoint:DEF_MIN_COOL, minSetPointSeparationC:MIN_SET_POINT_SEPARATION]
+
+def final thermModes = ["OFF", "AUTO", "COOL", "HEAT"]
+
+DevicePower.linecapable 			true
+DevicePower.backupbatterycapable	false
+DevicePower.backupbattery			0
+
+Thermostat.maxfanspeed        1
+Thermostat.autofanspeed       1
+Thermostat.supportedmodes     thermModes
+Thermostat.supportsAuto       true
+Thermostat.heatsetpoint       HEAT_SETPOINT_NOT_SET
+Thermostat.coolsetpoint       COOL_SETPOINT_NOT_SET
+Thermostat.minsetpoint        DEF_MIN_HEAT
+Thermostat.maxsetpoint        DEF_MAX_COOL
+Thermostat.setpointseparation MIN_SET_POINT_SEPARATION
+
+onAdded {
+	DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	GenericZWaveThermostat.updateSetPointFmt(this, DEFAULT_GOCONTROL_FORMAT)
+}
+
+onConnected {
+	ZWave.association.get(LIFELINE)
+	//The association get sneaks in before the platform starts setting mode/temps
+	//from ~2 to ~5 seconds after pairing thermostat is busy setting mode and temp responding to the associated gets. 
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SEC)
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.clock.get)
+	ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.sensor_multilevel.get)
+	ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_mode.get)
+	ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_fan_mode.get)
+	ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': SETPOINT_COOL])
+	ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': SETPOINT_HEAT])
+	
+	// Setup reporting delay will kick in if Association Set times out, otherwise will start on success.
+	Scheduler.scheduleIn EVENT_SETUP_REPORTING, SETUP_DELAY_MED
+
+	// schedule a retry on device state
+	Scheduler.scheduleIn EVENT_SETUP_DVC_START, SETUP_DELAY_LONG
+	
+	//This should be canceled by the report coming from the get above, unless the lifeline was not set successfully by agent.
+	Scheduler.scheduleRepeating EVENT_SET_LIFELINE, RETRY_RATE_LIFELINE, MAX_LIFELINE_REPEATS	
+}
+
+onUpgraded {
+	log.debug 'onUpgraded called...'
+	Thermostat.setpointseparation  MIN_SET_POINT_SEPARATION
+	
+	if (Thermostat.HVACMODE_COOL == Thermostat.hvacmode.get()) {
+		Thermostat.minsetpoint DEF_MIN_COOL
+		Thermostat.maxsetpoint DEF_MAX_COOL
+	} else if (Thermostat.HVACMODE_HEAT == Thermostat.hvacmode.get()) {
+		Thermostat.minsetpoint DEF_MIN_HEAT
+		Thermostat.maxsetpoint DEF_MAX_HEAT
+	} else {
+		Thermostat.minsetpoint DEF_MIN_HEAT
+		Thermostat.maxsetpoint DEF_MAX_COOL
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('therm') {
+	log.trace "Driver setAttributes THERM called..."
+	
+	Double coolsp  = Thermostat.coolsetpoint.get()
+	Double heatsp  = Thermostat.heatsetpoint.get()
+	String hvacmd  = Thermostat.hvacmode.get()
+	Integer fanmd  = Thermostat.fanmode.get()
+	log.trace "Current attribute values: cool={}, heat={}, hvac={}, fan={}", coolsp, heatsp, hvacmd, fanmd
+ 
+	Boolean hvacModeSet = false
+	Boolean fanModeSet = false
+
+	def attributes = message.attributes;
+	for(attribute in attributes) {
+		switch(attribute.key) {
+		case Thermostat.hvacmode:
+			hvacmd = attribute.value
+			hvacModeSet = true
+			break;
+		case Thermostat.emergencyheat:
+			//by sending first, if there is an hvacmode attribute set also it will take priority.
+			byte eheat_mode
+			if (attribute.value == Thermostat.EMERGENCYHEAT_ON ) {
+				ZWave.thermostat_mode.set( MODE_E_HEAT );
+				ZWave.thermostat_mode.get();
+			}
+			if (attribute.value == Thermostat.EMERGENCYHEAT_OFF ) {
+				hvacmode = Thermostat.hvacmode.get()
+				hvacModeSet = true
+			}
+			break;
+		case Thermostat.coolsetpoint:
+			coolsp = attribute.value
+			break;
+		case Thermostat.heatsetpoint:
+			heatsp = attribute.value
+			break;
+		case Thermostat.fanmode:
+			fanmd = attribute.value
+			fanModeSet = true
+			break;
+		case Thermostat.filtertype:
+			log.trace "Setting filter type to: {}", attribute.value
+			Thermostat.filtertype attribute.value
+			break;
+		case Thermostat.filterlifespanruntime:
+			log.trace "Setting filter life span runtime to: {}", attribute.value
+			Thermostat.filterlifespanruntime attribute.value
+			break;
+		case Thermostat.filterlifespandays:
+			log.trace "Setting filter life span days to: {}", attribute.value
+			Thermostat.filterlifespandays attribute.value
+			break;
+		default:
+			log.info "Driver setAttributes 'therm', Unrecognized attribute: {}", attribute
+		}
+	}
+	if (hvacModeSet)	// if HVAC mode was set, make sure device is set to that mode, regardless of what mode we think it is in
+		processHvacModeSetting(hvacmd)
+
+	if (fanModeSet)		// if Fan mode was set, make sure device is set to that mode, regardless of what mode we think it is in
+		processFanSetting(fanmd)
+
+	// if HVAC mode is HEAT, ignore Cool set point changes
+	if (hvacmd == Thermostat.HVACMODE_HEAT) {
+		coolsp  = Thermostat.coolsetpoint.get()
+	}
+
+	// if HVAC mode is COOL, ignore any Heat set point changes
+	if (hvacmd == Thermostat.HVACMODE_COOL) {
+		heatsp  = Thermostat.heatsetpoint.get()
+	}
+
+	//Send heat first so default cool wins behavior still occurs
+	if (heatsp != Thermostat.heatsetpoint.get()) {
+		//allow mode processing to clear
+		if(hvacModeSet){
+			Scheduler.scheduleIn (EVENT_SET_HEAT_SETPOINT, [ 'setpoint' :heatsp], TEMP_DELAY_MSEC)
+		} else {
+			processHeatSetPointChange(heatsp)
+		}
+	}
+
+	//Delay the cool setpoint if both are set so they don't step on each other.
+	if(((coolsp != Thermostat.coolsetpoint.get()) && (heatsp != Thermostat.heatsetpoint.get()))){
+		//mode delay if mode changed also
+		if(hvacModeSet){
+			Scheduler.scheduleIn (EVENT_SET_COOL_SETPOINT, [ 'setpoint' :coolsp], 2*TEMP_DELAY_MSEC)
+		} else {
+			Scheduler.scheduleIn (EVENT_SET_COOL_SETPOINT, [ 'setpoint' :coolsp], TEMP_DELAY_MSEC)
+		}		
+	} else if (coolsp != Thermostat.coolsetpoint.get()) {
+		if(hvacModeSet){
+			Scheduler.scheduleIn (EVENT_SET_COOL_SETPOINT, [ 'setpoint' :coolsp], TEMP_DELAY_MSEC)
+		} else {
+			processCoolSetPointChange(coolsp)
+		}
+	}
+}
+
+void processCoolSetPointChange(coolsp) {
+	double set_point = coolsp
+
+	if( thermConstantMap.'maxCoolSetPoint' < set_point ) set_point = thermConstantMap.'maxCoolSetPoint'
+	if( thermConstantMap.'minCoolSetPoint' > set_point ) set_point = thermConstantMap.'minCoolSetPoint'
+	log.debug "Driver cool setpoint = {} ", set_point
+
+	GenericZWaveThermostat.handleSetpointSet(this, "", SETPOINT_COOL, set_point)
+	Scheduler.scheduleIn (GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT, SHORT_WAIT_MSEC)
+}
+
+void processHeatSetPointChange(heatsp) {
+	double set_point = heatsp
+	
+	if( thermConstantMap.'maxHeatSetPoint' < set_point ) set_point = thermConstantMap.'maxHeatSetPoint'
+	if( thermConstantMap.'minHeatSetPoint' > set_point ) set_point = thermConstantMap.'minHeatSetPoint'
+	log.debug "{} driver heat setpoint = {}", "",set_point
+	GenericZWaveThermostat.handleSetpointSet(this, "", SETPOINT_HEAT,  set_point )
+	Scheduler.scheduleIn (GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT, SHORT_WAIT_MSEC)	
+}
+
+onEvent(EVENT_SET_COOL_SETPOINT){
+	processCoolSetPointChange(message.data.setpoint)
+}
+
+onEvent(EVENT_SET_HEAT_SETPOINT){
+	processHeatSetPointChange(message.data.setpoint)
+}
+
+void processHvacModeSetting(hvacMode) {
+	byte mode
+	switch (hvacMode){
+		case Thermostat.HVACMODE_OFF:
+			mode = MODE_OFF
+			break;
+		case Thermostat.HVACMODE_HEAT:
+			mode = MODE_HEAT
+			break;
+		case Thermostat.HVACMODE_COOL:
+			mode = MODE_COOL
+			break;
+		case Thermostat.HVACMODE_AUTO:
+			mode = MODE_AUTO
+			break;
+		default:
+			log.info "Attempted to set mode to unknown value[{}]", hvacMode
+			break;
+		}
+	log.debug "setAttributes set HVAC mode: {}", mode
+	
+	ZWave.thermostat_mode.set( mode );
+	ZWave.thermostat_mode.get();
+}
+
+void processFanSetting(fanMode) {
+
+	if( 0 > fanMode ) fanMode = 0
+	if( Thermostat.maxfanspeed.get() < fanMode ) fanMode = Thermostat.maxfanspeed.get()
+
+	log.debug "setting new fan mode to: [{}]", fanMode
+
+	ZWave.thermostat_fan_mode.set( (byte)fanMode )
+	ZWave.thermostat_fan_mode.get()
+}
+	
+onThermostat.changeFilter {
+	def changeTime = now().getTime()
+	vars[KEY_FILTER_CHANGE_DATE] = changeTime
+	setRunTimeTotal 0
+	Thermostat.dayssincefilterchange 0
+	Thermostat.runtimesincefilterchange 0
+	
+	// if we changed the filter while the system was running reset the runtime start
+	if ( 0 != getRunTimeStart() ) {
+		setRunTimeStart changeTime
+	}
+
+	sendResponse('therm:changeFilterResponse', [:])
+}
+
+onThermostat.SetIdealTemperature {
+   GenericZWaveThermostat.setIdealTemperature(this, "", message, thermConstantMap)
+}
+ 
+onThermostat.IncrementIdealTemperature {
+   GenericZWaveThermostat.incrementIdealTemperature(this, "", message, thermConstantMap)
+}
+ 
+onThermostat.DecrementIdealTemperature {
+   GenericZWaveThermostat.decrementIdealTemperature(this, "", message, thermConstantMap)
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling ZWave Messages
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.thermostat_mode.report {
+	
+	log.debug"handle Thermostat Mode report [{}]", message.command
+	byte level = message.command.get('level')
+
+	int mode = ( level & 0x1F )
+	
+	if (MODE_E_HEAT != mode) Thermostat.emergencyheat Thermostat.EMERGENCYHEAT_OFF;
+
+	switch (mode){
+		case MODE_E_HEAT:
+			Thermostat.hvacmode Thermostat.HVACMODE_HEAT
+			Thermostat.emergencyheat Thermostat.EMERGENCYHEAT_ON
+			Thermostat.minsetpoint DEF_MIN_HEAT
+			Thermostat.maxsetpoint DEF_MAX_HEAT
+			break
+		case MODE_OFF:
+			Thermostat.hvacmode Thermostat.HVACMODE_OFF
+			break
+		case MODE_COOL:
+			Thermostat.hvacmode Thermostat.HVACMODE_COOL
+			Thermostat.minsetpoint DEF_MIN_COOL
+			Thermostat.maxsetpoint DEF_MAX_COOL
+			break
+		case MODE_HEAT:
+			Thermostat.hvacmode Thermostat.HVACMODE_HEAT
+			Thermostat.minsetpoint DEF_MIN_HEAT
+			Thermostat.maxsetpoint DEF_MAX_HEAT
+			break
+		case MODE_AUTO:
+			Thermostat.hvacmode Thermostat.HVACMODE_AUTO
+			Thermostat.minsetpoint DEF_MIN_HEAT
+			Thermostat.maxsetpoint DEF_MAX_COOL
+			break
+		default:
+			log.info "unknown mode report [{}]", message.command
+			break
+	}
+}
+
+onZWaveMessage.thermostat_setpoint.report {
+	log.debug "handle Thermostat Setpoint report [{}]", message.command
+	GenericZWaveThermostat.handleSetpointReport(this, "", message.command)
+}
+
+onZWaveMessage.thermostat_operating_state.report {
+	log.debug "handle Thermostat Operating State report [{}]", message.command
+}
+
+onZWaveMessage.thermostat_fan_mode.report {
+	log.debug "handle Thermostat Fan Mode report [{}]",  message.command
+
+	fan_mode = message.command.get('mode')
+	
+	mode = ( fan_mode & 0x0F )
+	
+	if( FAN_MODE_AUTO == mode ) {
+		Thermostat.fanmode 0
+	} else if( FAN_MODE_ON == mode ) {
+		Thermostat.fanmode 1
+	} else {
+		log.info "unknown fan mode [{}]",  mode
+	}
+}
+
+onZWaveMessage.thermostat_fan_state.report {
+	log.debug "handle Thermostat Fan State report [{}]", message.command
+	def fan_state = message.command.get('state')
+	
+	if( 0 == fan_state ) {
+		Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+		if( ( 0 != getRunTimeStart() ) && ( null != vars[KEY_FILTER_CHANGE_DATE] ) ) {
+			updateFilterRuntimeValues( 0 )	// Fan turned off so pass 0 as start value for next cycle
+		}
+	} else {
+		Thermostat.active Thermostat.ACTIVE_RUNNING
+		long date = now().getTime()
+		if( 0 == getRunTimeStart() ) setRunTimeStart (date)
+	}
+}
+
+onZWaveMessage.sensor_multilevel.report {
+	log.trace "driver handle Sensor Multilevel report [{}]", message.command
+	
+	byte[] vals = new byte[4]
+	sensor_type = message.command.get('type')
+	log.trace "driver received sensor report for sensor type: {}", sensor_type
+	
+	level = message.command.get('level')
+	
+	int precision = ((level & 0xE0) >> 5)
+	int scale = ((level & 0x18) >> 3)
+	int sz = (level & 0x07)
+	
+	double value = 0
+	
+	switch(sz) {
+		case GenericZWaveThermostat.SET_POINT_SIZE_1_BYTE:
+			value = message.command.get('val1')
+		break;
+		case GenericZWaveThermostat.SET_POINT_SIZE_2_BYTE:
+			vals[0] = 0
+			vals[1] = 0
+			vals[2] = message.command.get('val1')
+			vals[3] = message.command.get('val2')
+		
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		case GenericZWaveThermostat.SET_POINT_SIZE_4_BYTE:
+			vals[0] = message.command.get('val1')
+			vals[1] = message.command.get('val2')
+			vals[2] = message.command.get('val3')
+			vals[3] = message.command.get('val4')
+		
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		default:
+			log.warn "Invalid SetPoint size: {}", sz
+	}
+
+	if (SENSOR_TEMP == sensor_type) {
+		value = value / Math.pow(10,precision)	
+		if( SETPOINT_SCALE_F == scale ) value = GenericZWaveThermostat.convertFtoC(value)
+			
+		value = ( Math.round(value*10) / 10 )
+			
+		Temperature.temperature value
+	}
+}
+
+onZWaveMessage.clock.report {
+	log.trace "handle Clock report [{}]", message.command
+	byte day_hour = message.command.get( 'weekday_hour' )
+	byte minute = message.command.get( 'minute' )
+	log.trace "clock rpt day and hour: {} minute: {}", day_hour, minute
+	
+	int day = ( day_hour & 0xE0 ) >> 5
+	int hour = ( day_hour & 0x1F )
+	
+	log.trace "clock rpt day: {} and hour: {} minute: {}", day, hour, minute
+	
+	Calendar today = Calendar.getInstance();						
+
+	Clock.year today.get( Calendar.YEAR );
+	Clock.month ( today.get( Calendar.MONTH )  + 1 )
+	Clock.day today.get( Calendar.DAY_OF_MONTH )
+	Clock.day_of_week day
+	Clock.hour hour
+	Clock.minute minute
+	Clock.second 0
+}
+
+onZWaveMessage.association.report{
+	byte group = message.command.get('group')
+	byte node = message.command.get('node1')
+	if (LIFELINE == group && HUB_NODE_ID == node){
+		Scheduler.cancel(EVENT_SET_LIFELINE)
+		//Delay allows platform to set mode/temp if first read works.
+		Scheduler.scheduleIn(EVENT_SETUP_REPORTING, SETUP_DELAY_SHORT)
+		log.debug "LIFELINE Set"
+	} else {
+		log.info "unexpected association report [{}]", message.command
+	}
+}
+
+onZWaveMessage.battery.report {
+	log.trace "driver handle Battery report [{}]", message.command
+	byte batteryLevel = message.command.get( 'level' )
+	if (null != batteryLevel) {
+		int bl = batteryLevel & 0xFF
+		if (0xFF == bl) {
+			// make sure any BATTERY LOW flags reported are captured in the logs
+			log.info "device reported: BATTERY LOW"
+			DevicePower.battery 0
+		} else if (0 == bl) {
+			// devices should not really be reporting a level of 0, so this is probably a mistake
+			// so log it, but do not set the DevicePower.battery attribute
+			log.info "device reported: BATTERY LEVEL 0, Reading Ignored!"
+		} else if ((0 < bl) && (100 >= bl)) {
+			// until we get battery level processing worked out, log any reported levels at DEBUG level
+			log.debug "device reported: BATTERY LEVEL {}", message.command.get('level')
+			DevicePower.battery bl
+		} else {
+			// hmm, 1-100 make sense, but anything over 100% or less than -1% really don't make sense are are undefined in Z-Wave
+			log.info "device reported: INVALID BATTERY LEVEL {}", message.command.get('level')
+		}
+	}
+	
+	// update the days since filter change value.
+	// do it here just in case the system is off for a long time
+	if( null != vars[KEY_FILTER_CHANGE_DATE] )
+		Thermostat.dayssincefilterchange Math.round( ( now().getTime() - vars[KEY_FILTER_CHANGE_DATE] ) / MILLIS_PER_DAY )
+
+	// update the filter runtime values in case in continuous fan mode
+	if( ( 0 != getRunTimeStart() ) && ( null != vars[KEY_FILTER_CHANGE_DATE] ) ) {
+		updateFilterRuntimeValues( now().getTime() )	// Fan still on so pass current mSec as start value for next cycle
+	}
+
+
+}
+
+onZWaveMessage.configuration.report {
+	log.trace "Configuration report [{}]", message.command
+	byte param = message.command.get( 'param' )
+	byte value = message.command.get( 'val1' )
+	
+	log.trace "config report value: {}", value
+	
+	int pwrSrc = value & 0x03
+	int acInst = ( value & 0x10 ) >> 4
+	int battInst = ( value & 0x20 ) >> 5
+	int flirs = ( value & 0x40 ) >> 6
+	
+	log.debug "configuration report param: {} value: {} pwrSrc: {} ac: {} batt: {} flirs: {}", param, value, pwrSrc, acInst, battInst, flirs
+	
+	if( POWER_CONFIG_PARAM == param ) { // 0xB2
+		log.trace "driver received a line/battery configuration report..."
+		def prevSrc = DevicePower.source.get()
+		if( 0x02 == pwrSrc ) {	// 24VAC
+			log.trace "driver setting power source to LINE"
+			DevicePower.source	DevicePower.SOURCE_LINE
+		} else {
+			log.trace "driver setting power source to BATTERY"
+			DevicePower.source	DevicePower.SOURCE_BATTERY
+		}
+
+		// if power source changed, capture timestamp
+		if (DevicePower.source.get() != prevSrc) {
+			DevicePower.sourcechanged new Date()
+			// if we went from battery to line power emit the line power restored event
+			if( ( DevicePower.SOURCE_LINE == DevicePower.source.get() ) && ( DevicePower.SOURCE_BATTERY == prevSrc ) ) emit 'DevicePower:LinePowerRestored', [:]
+		}
+	} else if ( REPORTING_CONFIG_PARAM == param ) {
+		byte val2 = message.command.get( 'val2' )
+		if ((RPT_BYTE_0 != value) || (RPT_BYTE_1 != val2)) {
+			log.info "Autonomous Reporting Config param {} is {},{}; Expected {},{}", param, value, val2, RPT_BYTE_0, RPT_BYTE_1
+		} else {
+			log.debug "Config param settings verified"
+			Scheduler.cancel EVENT_WRITE_REPORTING
+			Scheduler.defer EVENT_SETUP_DVC_START         //schedule the start also cancels the one setup in onConnected
+		}
+	} else {
+		log.info "unknown configuration report for: {}", param
+	}
+}
+
+onZWaveMessage.zwaveplus_info.report {
+	log.trace "ZWave Plus Info Report:{}", message
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "Device Reset Locally Notification"
+}
+
+//Uses version V2
+onZWaveMessage.version.report {
+	log.debug "Recieved version message: {} ", message.command
+	byte[] bytes = message.command.recvBytes
+	String versionstr = getVersionUnsigned(message.command.get('protocol'), "null" )+'.'+getVersionUnsigned(message.command.get('sub-protocol'), "null" )+'.'+getVersionUnsigned(bytes[7], "null" )+'.'+getVersionUnsigned(bytes[8], "null" )
+	log.trace "Reported version: {}", versionstr
+	DeviceAdvanced.firmwareVersion  versionstr 
+}
+
+static String getVersionUnsigned(field, dflt) {
+    return (field != null) ? field & 0xFF : dflt
+}
+
+onZWaveNodeInfo {
+	log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+onZWaveMessage {
+    log.debug "unhandled ZWave message {} with data {}", message, message.command.recvBytes
+    return false;
+}
+
+
+
+////////////////////////////////////////
+// Events
+////////////////////////////////////////
+
+onEvent(EVENT_SET_LIFELINE){
+	ZWave.association.set(LIFELINE, HUB_NODE_ID)
+	ZWave.association.get(LIFELINE)
+}
+
+onEvent(EVENT_SETUP_DVC) {
+	// issue any necessary commands to get the initial values from the device
+	log.trace "Setup Device event"
+
+	if (heatSetpointNeeded()){
+		ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+		log.debug "Heat Setpoint unknown, re-request"
+		return
+	}	
+	if ( coolSetpointNeeded()){
+		ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+		log.debug "Cool Setpoint is unknown, re-request"
+		return
+	}
+	if( null == Thermostat.hvacmode.get()) {
+		log.debug "HVAC Mode is null, re-request"
+		ZWave.thermostat_mode.get()
+		return
+	}
+	if( null == Temperature.temperature.get()) {
+		log.debug "Room temperature is null, re-request"
+		ZWave.sensor_multilevel.get()
+		return
+	}
+	if( null == Thermostat.fanmode.get() ) {
+		log.debug "Thermostat fanmode is null, re-request"
+		ZWave.thermostat_fan_mode.get()
+		return
+	}
+	if( null == DevicePower.battery.get()) {
+		log.debug "Battery level is null, re-request"
+		ZWave.battery.get()
+		return
+	}
+	if( null == DevicePower.source.get()) {
+		log.debug "Thermostat power source is null, re-request"
+		ZWave.configuration.get( POWER_CONFIG_PARAM )
+		return
+	}
+	if( null == Thermostat.active.get() ){
+		log.debug "Thermostat active is null, re-request"
+		ZWave.thermostat_fan_state.get()
+		return
+	}		
+	if( null == DeviceAdvanced.firmwareVersion.get()) {
+		log.debug "Firmware version is null, re-request"
+		ZWave.version.get()
+		return
+	}
+	Scheduler.cancel EVENT_SETUP_DVC
+	log.debug "Thermostat setup complete"
+}
+
+onEvent(EVENT_SETUP_DVC_START) {
+	Scheduler.scheduleRepeating ( EVENT_SETUP_DVC, SETUP_REPEAT_MSEC, MAX_SETUP_REPEATS)
+}
+
+onEvent(EVENT_READ_OP_STATE) {
+	log.trace "Read Operating State"
+	ZWave.thermostat_operating_state.get()
+}
+
+onEvent(EVENT_READ_MODE) {
+	log.trace "Read Thermostat Mode"
+	ZWave.thermostat_mode.get()
+}
+
+onEvent(EVENT_READ_TEMP) {
+	log.trace "Read Temperature"
+	ZWave.sensor_multilevel.get()
+}
+
+onEvent(GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT) {
+	ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+}
+
+onEvent(GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT) {
+	ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+}
+
+onEvent(EVENT_SETUP_REPORTING){
+	Scheduler.scheduleRepeating EVENT_WRITE_REPORTING, RETRY_RATE_REPORTING, MAX_REPORTING_REPEATS
+}
+
+onEvent(EVENT_WRITE_REPORTING) {
+	log.trace "Configure Autonomous Reporting"
+	// 'autosend' configuration defaults to 0x201F (0x0001-Temperature, 0x0002-Heat Setpoint, 0x0004-Cool Setpoint, 0x0008-Thermostat Mode, 0x0010-Fan Mode, and 0x2000-Battery).
+	// Change to 0x207F to include 0x0020-Fan State, and 0x0040-Operating State, as well.
+	// config param 0x17, size is 2 bytes, value is 0x207F
+	ZWave.configuration.set( REPORTING_CONFIG_PARAM, (byte)0x02, RPT_BYTE_0, RPT_BYTE_1 )
+	ZWave.configuration.get( REPORTING_CONFIG_PARAM)
+}
+
+////////////////////////////////////////
+// Utility Methods
+////////////////////////////////////////
+
+boolean heatSetpointNeeded() {
+//returns true if thermostat is still at default heat setpoint
+	log.debug "Heat Set Point is [{}]",Thermostat.heatsetpoint.get()
+	return (0.5 > Math.abs( Thermostat.heatsetpoint.get() - HEAT_SETPOINT_NOT_SET))
+}
+
+boolean coolSetpointNeeded() {
+//returns true if thermostat is still at default cool setpoint
+	log.debug "Cool Set Point is [{}]",Thermostat.coolsetpoint.get()
+	return (0.5  > Math.abs( Thermostat.coolsetpoint.get() - COOL_SETPOINT_NOT_SET))
+}
+
+long getRunTimeStart() {
+	if( null == vars[KEY_RUNTIME_START] ) vars[KEY_RUNTIME_START] = 0
+	return vars[KEY_RUNTIME_START]
+}
+
+void setRunTimeStart(long val) {
+	vars[KEY_RUNTIME_START] = val
+}
+
+long getRunTimeTotal() {
+	if( null == vars[KEY_RUNTIME_TOTAL] ) vars[KEY_RUNTIME_TOTAL] = 0
+	return vars[KEY_RUNTIME_TOTAL]
+}
+
+void setRunTimeTotal(long val) {
+	vars[KEY_RUNTIME_TOTAL] = val
+}
+
+// if a 'start' timestamp has been set for the fan,
+// append current runtime mSec for fan to totals for filter and reset start timestamp for next cycle/period (or set to 0 if fan is now off)
+void updateFilterRuntimeValues( startTimeInMillisForNextCycle ) {
+	long startTimestamp = getRunTimeStart()
+	if (0 < startTimestamp) {
+	    long currentTime = now().getTime()
+		long mSecFanWasOn = currentTime - startTimestamp
+		if (0 < mSecFanWasOn) {		// should always be a positive value, but we just make sure
+			setRunTimeTotal ( getRunTimeTotal() + mSecFanWasOn )
+			log.trace "fan has been ON for another {} seconds, total runtime seconds for filter is now {}", (mSecFanWasOn/1000), (getRunTimeTotal()/1000)
+			setRunTimeStart startTimeInMillisForNextCycle
+			int runtimeHoursSinceFilterChange = Math.floor( getRunTimeTotal() / MILLIS_PER_HOUR )
+			log.trace "Runtime Hours since filter change: {}", runtimeHoursSinceFilterChange
+			Thermostat.runtimesincefilterchange runtimeHoursSinceFilterChange
+			long daysSinceFilterChange = Math.floor(( currentTime - vars[KEY_FILTER_CHANGE_DATE] ) / MILLIS_PER_DAY )
+			log.trace "Days since filter change: {}", daysSinceFilterChange
+			Thermostat.dayssincefilterchange daysSinceFilterChange
+		}
+	}
+}
+
+

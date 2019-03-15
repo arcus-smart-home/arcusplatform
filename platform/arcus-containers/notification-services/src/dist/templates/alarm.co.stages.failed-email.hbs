@@ -1,0 +1,35 @@
+{{#section "subject"}}
+CO  Alarm Update
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+Hi {{{_person.firstName}}},
+
+The monitoring station is not responding to Iris's alarm escalation. Call your local Fire Department or 911 for assistance. Immediately move everyone to fresh air. 
+
+{{{_place.name}}}
+{{{_place.streetAddress1}}}
+{{{_place.city}}}, {{{_place.state}}}, {{{_place.zipCode}}}
+  
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	The monitoring station is not responding to Iris's alarm escalation. Call your local Fire Department or 911 for assistance. Immediately move everyone to fresh air.  <br/><br/>
+	{{_place.name}}<br/>
+	{{_place.streetAddress1}}<br/>
+	{{_place.city}}, {{_place.state}}, {{_place.zipCode}}<br/>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

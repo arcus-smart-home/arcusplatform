@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="PersonAccessDescriptor"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+   Alternative view from PlaceAccessDescriptor for a persons access to a place.  This would be from the place's
+   perspective providing the person and the access they have at the place.
+   </t:description>
+
+      <t:attributes>
+         <t:attribute name="person" type="Person" description="The full person object"/>
+         <t:attribute
+            name="role"
+            type="enum"
+            values="OWNER,FULL_ACCESS,HOBBIT,OTHER"
+            description="The user's role within the place"/>
+   </t:attributes>
+</t:type>

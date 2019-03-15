@@ -1,0 +1,89 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+// project specific build settings, dependencies, etc.
+
+// should this be generated into $buildDir/generated/java?
+ext.generatedSrcDir = 'src/generated/java'
+ext.capabilityDir   = '../src/main/resources'
+ext.templateDir     = 'src/main/templates'
+ext.templateName    = 'client'
+
+configurations {
+	generator {
+		description "Classpath for source generators"
+		transitive true
+	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir generatedSrcDir
+		}
+	}
+
+	// load it up as a source folder in eclipse,
+	// but don't include in the jar
+	generator {
+		resources {
+			srcDir templateDir
+		}
+	}
+}
+
+dependencies {
+	generator project(':common:arcus-model:capability-generator')
+	generator files(templateDir)
+
+	compile project(':common:arcus-model')
+	compile netty
+	
+	compile libraries.commonsCodec
+	compile libraries.commons_lang
+	compile libraries.gson
+
+	compile libraries.guava
+
+   testCompile libraries.easymock
+}
+
+task cleanGeneratedSource(type: Delete) {
+	delete generatedSrcDir
+}
+
+clean.dependsOn cleanGeneratedSource
+
+task generateSource(type: JavaExec) {
+	dependsOn ':common:arcus-model:capability-generator:jar'
+	inputs.dir capabilityDir
+	inputs.dir templateDir
+	
+	def outputDir = file(generatedSrcDir)
+	outputs.dir outputDir
+	
+	doFirst {
+		delete(outputDir)
+		outputDir.mkdirs()
+		println "Generating templates from $templateName..."
+		classpath configurations.generator.asPath.split(':')
+		args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
+		main 'com.iris.capability.generator.java.Generator'
+	}
+}
+
+compileJava.dependsOn generateSource
+eclipseClasspath.dependsOn generateSource
+

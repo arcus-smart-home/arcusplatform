@@ -1,0 +1,68 @@
+
+message zwave.Configuration.ConfigurationGetV1<id="0x05", group="V1"> {
+    u8 parameterNumber;
+}
+
+message zwave.Configuration.ConfigurationReportV1<id="0x06", group="V1"> {
+    const u8 LEVEL_SIZE_MASK = 0x07;
+    const u8 LEVEL_SIZE_SHIFT = 0;
+    u8 parameterNumber;
+    u8 level;
+    u8[] configurationValue;
+}
+
+message zwave.Configuration.ConfigurationSetV1<id="0x04", group="V1"> {
+    const u8 LEVEL_SIZE_MASK = 0x07;
+    const u8 LEVEL_SIZE_SHIFT = 0;
+    const u8 LEVEL_DEFAULT = 0x80;
+    u8 parameterNumber;
+    u8 level;
+    u8[] configurationValue;
+}
+
+message zwave.Configuration.ConfigurationBulkGetV2<id="0x08", group="V2"> {
+    u16 parameterOffset;
+    u8 numberOfParameters;
+}
+
+message zwave.Configuration.ConfigurationBulkReportV2<id="0x09", group="V2"> {
+    const u8 PROPERTIES1_SIZE_MASK = 0x07;
+    const u8 PROPERTIES1_SIZE_SHIFT = 0;
+    const u8 PROPERTIES1_HANDSHAKE = 0x40;
+    const u8 PROPERTIES1_DEFAULT = 0x80;
+    u16 parameterOffset;
+    u8 numberOfParameters;
+    u8 reportsToFollow;
+    u8 properties1;
+}
+
+message zwave.Configuration.ConfigurationBulkSetV2<id="0x07", group="V2"> {
+    const u8 PROPERTIES1_SIZE_MASK = 0x07;
+    const u8 PROPERTIES1_SIZE_SHIFT = 0;
+    const u8 PROPERTIES1_HANDSHAKE = 0x40;
+    const u8 PROPERTIES1_DEFAULT = 0x80;
+    u16 parameterOffset;
+    u8 numberOfParameters;
+    u8 properties1;
+}
+
+message zwave.Configuration.ConfigurationGetV2<id="0x05", group="V2"> {
+    u8 parameterNumber;
+}
+
+message zwave.Configuration.ConfigurationReportV2<id="0x06", group="V2"> {
+    const u8 LEVEL_SIZE_MASK = 0x07;
+    const u8 LEVEL_SIZE_SHIFT = 0;
+    u8 parameterNumber;
+    u8 level;
+    u8[] configurationValue;
+}
+
+message zwave.Configuration.ConfigurationSetV2<id="0x04", group="V2"> {
+    const u8 LEVEL_SIZE_MASK = 0x07;
+    const u8 LEVEL_SIZE_SHIFT = 0;
+    const u8 LEVEL_DEFAULT = 0x80;
+    u8 parameterNumber;
+    u8 level;
+    u8[] configurationValue;
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Service {{name}}</title>
+      <link href="stylesheet/capability.css" type="text/css" rel="stylesheet" />
+   </head>
+   <body>
+      <p class="capability-title">{{name}}</p>
+      <p class="capability-description">{{description}}</p>
+      <table class="capability-table">
+         <tbody>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Namespace</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">{{namespace}}</td>
+            </tr>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Methods</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">
+                  {{#methods}}
+                     <div>
+                        <p class="method-title">
+                           {{name}}(
+                           {{#parameters}}
+                              {{type.representation}} {{name}}{{#unless @last}}, {{/unless}}
+                           {{/parameters}}
+                           ) :
+                        {{#if returnValues}}AttributeMap{{else}}void{{/if}}
+                        </p>
+                        {{#returnList returnValues}}{{/returnList}}
+                        <p class="method-body">
+                           {{description}}
+                        </p>
+                     </div>
+                  {{/methods}}
+               </td>
+            </tr>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Events</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">
+                  {{#events}}
+                     <div>
+                        <p class="method-title">
+                           {{name}}(
+                           {{#parameters}}
+                              {{type.representation}} {{name}}{{#unless @last}}, {{/unless}}
+                           {{/parameters}}
+                           )
+                        </p>
+                        <p class="method-body">
+                           {{description}}
+                        </p>
+                     </div>
+                  {{/events}}
+               </td>
+            </tr>
+         </tbody>
+      </table>
+   </body>
+</html>

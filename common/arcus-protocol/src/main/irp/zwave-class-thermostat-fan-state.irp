@@ -1,0 +1,9 @@
+
+message zwave.ThermostatFanState.ThermostatFanStateGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatFanState.ThermostatFanStateReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_FAN_OPERATING_STATE_MASK = 0x0F;
+    const u8 LEVEL_FAN_OPERATING_STATE_SHIFT = 0;
+    u8 level;
+}

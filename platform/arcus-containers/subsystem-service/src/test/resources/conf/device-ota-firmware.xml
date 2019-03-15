@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<firmwares xmlns="http://arcus.com/device-ota-firmware_1.0.0" >
+
+   <metadata version="2015-10-05T00:00:00" publisher="Louis Parks"/>
+  
+   <configDefaults retryIntervalMins="4" retryAttemptsMax="4"/>
+   
+   <firmware name="Hose Faucet Timer" productId="deda9d" populations="general" version="34002000" path="/orbit/ht8-111B-0000-34000200-HT8.zigbee" />
+   <firmware name="12 Station Irrigation Timer" productId="02a3f9" populations="general" version="40002503" path="/orbit/wt15-111B-0001-40002503.zigbee" />
+
+   <firmware name="Outdoor Camera" productId="242a43" populations="general" version="V1.0.04" path="/sercomm/DABFQA-309-1004.bin" />
+   <firmware name="Indoor Camera" productId="606501" populations="general" version="V1.0.06" path="/sercomm/DYWTQA-308-1006.bin" />
+   <firmware name="Mock" productId="bbf1c5" populations="general" version="V1.0.06" path="pass" retryIntervalMins="5" retryAttemptsMax="5" />
+   
+</firmwares>

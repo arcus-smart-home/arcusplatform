@@ -1,0 +1,25 @@
+
+message zwave.SwitchAll.SwitchAllGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SwitchAll.SwitchAllOffV1<id="0x05", group="V1"> {
+}
+
+message zwave.SwitchAll.SwitchAllOnV1<id="0x04", group="V1"> {
+}
+
+message zwave.SwitchAll.SwitchAllReportV1<id="0x03", group="V1"> {
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_ON_ALL_OFF_FUNCTIONALITY = 0x00;
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_ON_FUNCTIONALITY_BUT_NOT_ALL_OFF = 0x01;
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_OFF_FUNCTIONALITY_BUT_NOT_ALL_ON = 0x02;
+    const u8 MODE_INCLUDED_IN_THE_ALL_ON_ALL_OFF_FUNCTIONALITY = 0xFF;
+    u8 mode;
+}
+
+message zwave.SwitchAll.SwitchAllSetV1<id="0x01", group="V1"> {
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_ON_ALL_OFF_FUNCTIONALITY = 0x00;
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_ON_FUNCTIONALITY_BUT_NOT_ALL_OFF = 0x01;
+    const u8 MODE_EXCLUDED_FROM_THE_ALL_OFF_FUNCTIONALITY_BUT_NOT_ALL_ON = 0x02;
+    const u8 MODE_INCLUDED_IN_THE_ALL_ON_ALL_OFF_FUNCTIONALITY = 0xFF;
+    u8 mode;
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaValidRange"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the Alexa V3 valid range structure returned in certain errors</t:description>
+
+   <t:attributes>
+      <t:attribute name="minimumValue" type="any" description="Minimum value which is dependent on the controller." optional="false"/>
+      <t:attribute name="maximumValue" type="any" description="Maximum value which is dependent on the controller." optional="false"/>
+   </t:attributes>
+
+</t:type>

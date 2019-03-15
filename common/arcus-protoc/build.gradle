@@ -1,0 +1,83 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply plugin: 'groovy'
+
+ext.antlrSource = "src/main/antlr"
+ext.antlrOutput = "${buildDir}/generated-src/com/iris/protoc/parser"
+ext.groovy_version=GroovySystem.getVersion()
+
+ext.sharedManifest = manifest {
+   attributes(
+      "Implementation-Version": project.version,
+      "Implementation-Vendor": "Lowe's Companies, Inc."
+   )
+}
+
+configurations {
+   antlr
+   compile.extendsFrom antlr
+}
+configurations.all {
+       resolutionStrategy {
+            force "org.codehaus.groovy:groovy-all:${groovy_version}"
+         }
+   }
+
+dependencies {
+   antlr libraries.antlr4
+
+   compile libraries.handlebars
+   compile libraries.commons_cli
+   compile libraries.guava
+   compile libraries.groovy
+
+   compile gradleApi()
+
+   compile libraries.antlr4
+}
+
+task antlr(type: JavaExec) {
+   main = 'org.antlr.v4.Tool'
+   classpath = project.configurations.antlr
+
+   def inputFiles = fileTree(antlrSource).include('**/*.g4')
+
+   inputs.files inputFiles
+   outputs.dir antlrOutput
+
+   args = ['-listener', '-visitor', '-package', 'com.iris.protoc.parser', '-o', antlrOutput] + inputFiles.collect {it.path}
+}
+
+jar {
+   manifest = project.manifest {
+      from sharedManifest
+      attributes(
+         "Implementation-Title": project.name,
+      )
+   }
+}
+
+task libs(type: Copy) {
+   description "Copy all of the runtime dependencies to $buildDir/output/lib."
+   into "$buildDir/output/lib"
+   from configurations.runtime
+}
+
+compileGroovy.dependsOn antlr
+sourceSets.main.java.srcDirs = []
+sourceSets.main.groovy.srcDirs += "src/main/java"
+sourceSets.main.groovy.srcDirs += "${buildDir}/generated-src"
+

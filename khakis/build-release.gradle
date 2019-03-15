@@ -1,0 +1,32 @@
+buildscript {
+   repositories {
+       mavenCentral()
+       jcenter()
+   }
+}
+
+rootProject.ext.version_props = new Properties();
+version_props.load(file("version.properties").newReader())
+
+// version parts
+rootProject.ext.version_major = version_props.major
+rootProject.ext.version_minor = version_props.minor
+rootProject.ext.version_patch = version_props.patch
+rootProject.ext.version_qualifier = version_props.qualifier
+
+def loadBuild() {
+   return new File("${buildFile}").text;
+}
+
+def writeVersion(major, minor, patch, qualifier) {
+   def versionFile = file("version.properties")
+   def text = versionFile.text
+   
+   text = text.replace("major=${version_major}", "major=${major}")
+   text = text.replace("minor=${version_minor}", "minor=${minor}")
+   text = text.replace("patch=${version_patch}", "patch=${patch}")
+   text = text.replace("qualifier=${version_qualifier}", "qualifier=${qualifier}")
+   
+   versionFile.write(text)
+}
+

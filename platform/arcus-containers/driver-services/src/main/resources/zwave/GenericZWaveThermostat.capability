@@ -1,0 +1,541 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+capability		Thermostat
+description		"Default implementation for ZWave Thermostat capability"
+version			"1.0"
+
+@Field static final byte SETPOINT_HEAT				= 0x01
+@Field static final byte SETPOINT_COOL				= 0x02
+@Field static final byte SETPOINT_SCALE_F			= 0x01
+
+@Field static final int DFLT_PRECISION				= 1
+@Field static final int DFLT_SCALE					= 1		// 0=C 1=F
+@Field static final int DFLT_SIZE					= 2
+
+@Field static final byte SET_POINT_SIZE_1_BYTE		= 1
+@Field static final byte SET_POINT_SIZE_2_BYTE		= 2
+@Field static final byte SET_POINT_SIZE_4_BYTE		= 4
+
+@Field static final byte SETPOINT_SIZE_MASK         = 0x07
+@Field static final byte SETPOINT_SCALE_MASK        = 0x18
+@Field static final byte SETPOINT_PRECISION_MASK    = 0xE0
+        
+
+@Field static final int READ_BACK_DELAY_MSEC		= 2000
+
+@Field static final String EVENT_GET_HEAT_SETPOINT  = 'GetHeatSetPoint'
+@Field static final String EVENT_GET_COOL_SETPOINT  = 'GetCoolSetPoint'
+
+// Epsilon value for comparing temperature floating point values.
+@Field static final double TEMP_EPSILON = 0.05
+
+@Field static double DFLT_MAX_SETPOINT = 35				// default to 35C (95F)
+@Field static double DFLT_MIN_SETPOINT = 3				// default to 3C (35F)
+@Field static double DFLT_MIN_SEP = 1.66667				// default to .166667C (3F)
+
+static def 	handleSetpointReport(ctx, name, command){
+
+	byte[] vals = new byte[4]
+	def type 	= command.get('type')
+	def format   = command.get('scale')
+	double value = 0
+
+	def precision = ((format & SETPOINT_PRECISION_MASK) >> 5)
+	def scale = ((format & SETPOINT_SCALE_MASK) >> 3)
+	def size = (format & SETPOINT_SIZE_MASK)
+		
+	switch( size ) {
+		case SET_POINT_SIZE_1_BYTE:
+			vals[3] = command.get('value1')
+		break;
+		case SET_POINT_SIZE_2_BYTE:
+			vals[2] = command.get('value1')
+			vals[3] = command.get('value2')
+		break;
+		case SET_POINT_SIZE_4_BYTE:
+			vals[0] = command.get('value1')
+			vals[1] = command.get('value2')
+			vals[2] = command.get('value3')
+			vals[3] = command.get('value4')
+		break;
+		default:
+			ctx.log.info "{} ignoring message with Invalid SetPoint size: {}", name, size
+			return
+
+	}
+		
+	value = java.nio.ByteBuffer.wrap(vals).getInt()
+	
+	value /= Math.pow(10, precision)
+	
+	// temperatures communicated between the platform and the device will always be in C
+	// so if the device reports a temperature in F convert to C
+	if ( SETPOINT_SCALE_F == scale )
+		value = convertFtoC(value)
+	
+	if ( type == SETPOINT_COOL ) {
+		def prevCoolSetPoint = ctx.Thermostat.coolsetpoint.get()
+		ctx.Thermostat.coolsetpoint value
+		if ( prevCoolSetPoint != value ) {
+			ctx.emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":value ]
+		}
+	}
+	if ( type == SETPOINT_HEAT) {
+		def prevHeatSetPoint = ctx.Thermostat.heatsetpoint.get()
+		ctx.Thermostat.heatsetpoint value
+		if ( prevHeatSetPoint != value ) {
+			ctx.emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":value ]
+		}
+	}
+
+}
+
+static def handleSetpointSet(ctx, name, setPointKey, set_point){
+
+	// the temp from the platform will be in C
+	// convert to F if the device is expecting F
+	if( SETPOINT_SCALE_F == getSetPointScale(ctx) )	set_point = convertCtoF(set_point)
+	
+	int set_point_int = Math.round( set_point * Math.pow( 10, getSetPointPrecision(ctx)) )
+
+	updateSetPoint(ctx,setPointKey,set_point_int)
+}
+
+static def void updateSetPointFmt(ctx, byte format) {
+	ctx.vars.'precision' = ((format & 0xE0) >> 5)
+	ctx.vars.'scale' = ((format & 0x18) >> 3)
+	ctx.vars.'size' = (format & 0x07)
+}
+
+static def byte getSetPointFmt(ctx) {
+	byte precision
+	byte scale
+	byte sz
+	
+	if( null == ctx.vars.'precision' ) precision = ((DFLT_PRECISION & 0x07) << 5)
+	else precision = ((ctx.vars.'precision' & 0x07) << 5)
+	
+	if( null == ctx.vars.'scale' ) scale = ((DFLT_SCALE & 0x03) << 3)
+	else scale = ((ctx.vars.'scale' & 0x03) << 3)
+	
+	if( null == ctx.vars.'size' ) sz = (DFLT_SIZE & 0x07)
+	else sz = (ctx.vars.'size' & 0x07)
+	
+	return (precision | scale | sz)
+}
+
+static def int getSetPointSize(ctx) {
+	if( null == ctx.vars.'size' ) {
+		ctx.log.debug "Getter returning default size: {}", DFLT_SIZE
+		return DFLT_SIZE
+	} else {
+		return ctx.vars.'size'
+	}
+}
+
+static def int getSetPointScale(ctx) {
+	if( null == ctx.vars.'scale' ) {
+		ctx.log.debug "Getter returning default scale: {}", DFLT_SCALE
+		return DFLT_SCALE
+	} else {
+		return ctx.vars.'scale'
+	}
+}
+
+static def int getSetPointPrecision(ctx) {
+	if( null == ctx.vars.'precision' ) {
+		ctx.log.debug "Getter returning default precision: {}", DFLT_PRECISION
+		return DFLT_PRECISION
+	} else {
+		return ctx.vars.'precision'
+	}
+}
+
+static def updateSetPoint(ctx,setPointKey,setPointIntValue) {
+	def byte[] setPoint = new byte[4]
+
+	java.nio.ByteBuffer.wrap(setPoint).putInt(setPointIntValue)
+	
+	byte value1 = 0
+	byte value2 = 0
+	byte value3 = 0
+	byte value4 = 0
+
+	switch( getSetPointSize(ctx) ) {
+		case SET_POINT_SIZE_1_BYTE:
+			value1 = setPointIntValue
+		break;
+		case SET_POINT_SIZE_2_BYTE:
+			value1 = setPoint[2]
+			value2 = setPoint[3]
+		break;
+		case SET_POINT_SIZE_4_BYTE:
+			value1 = setPoint[0]
+			value2 = setPoint[1]
+			value3 = setPoint[2]
+			value4 = setPoint[3]
+		break;
+		default:
+			ctx.log.warn 'Invalid SetPoint size: {}', getSetPointSize(ctx)
+	}
+
+	ctx.ZWave.thermostat_setpoint.set(setPointKey, getSetPointFmt(ctx), value1, value2, value3, value4)
+}
+
+static def setIdealTemperature(ctx,name,message,thermConstantMap) {
+   def newIdeal = message.attributes['temperature']
+   def curMode = ctx.Thermostat.hvacmode.get()
+   if (curMode == null) {
+      curMode = ctx.Thermostat.HVACMODE_AUTO
+   }
+   Double maxSP = maxCoolSetPoint(thermConstantMap)
+   Double minSP = minHeatSetPoint(thermConstantMap)
+   double actualSetting = newIdeal as Double
+   def prevIdeal
+   if(curMode == ctx.Thermostat.HVACMODE_COOL) {
+      prevIdeal = ctx.Thermostat.coolsetpoint.get()
+	  maxSP = maxCoolSetPoint(thermConstantMap)
+	  minSP = minCoolSetPoint(thermConstantMap)
+      actualSetting = setIdealCoolTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_HEAT) {
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+	  maxSP = maxHeatSetPoint(thermConstantMap)
+	  minSP = minHeatSetPoint(thermConstantMap)
+      actualSetting = setIdealHeatTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_AUTO) {
+      def cool = ctx.Thermostat.coolsetpoint.get()
+      def heat = ctx.Thermostat.heatsetpoint.get()
+      prevIdeal = (cool != null && heat != null) ? ((cool + heat) / 2) : newIdeal
+ 	  maxSP = maxSetPointForAuto(thermConstantMap)
+	  minSP = minSetPointForAuto(thermConstantMap)
+      actualSetting = setIdealAutoTemp( ctx, newIdeal, maxSP, minSP, minSetPointSepForAuto(thermConstantMap) )
+   } else {  // mode is OFF, so ignore request
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+	  actualSetting = prevIdeal
+   }
+   prevIdeal = (prevIdeal == null) ? newIdeal : prevIdeal
+   boolean result = false
+   // if setting has changed, result is success (true)
+   if (!compareTemperatures(actualSetting, prevIdeal)) {
+      result = true
+   } else { // if setting is same, result is success (true) only if 'actual' is same as value requested
+      if (compareTemperatures(actualSetting, newIdeal)) {
+         result = true
+      }
+   }
+   ctx.sendResponse 'therm:SetIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': actualSetting,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'maxSetPoint': maxSP,
+      'minSetPoint': minSP
+   ]
+}
+
+static def incrementIdealTemperature(ctx,name,message,thermConstantMap) {
+   def temp = message.attributes['amount']
+   def curMode = ctx.Thermostat.hvacmode.get()
+   Double maxSP = maxCoolSetPoint(thermConstantMap)
+   Double minSP = minHeatSetPoint(thermConstantMap)
+   Double actualSetting
+   def prevIdeal
+   def newIdeal
+   if(curMode == ctx.Thermostat.HVACMODE_COOL) {
+      prevIdeal = ctx.Thermostat.coolsetpoint.get()
+      newIdeal = prevIdeal + temp
+	  maxSP = maxCoolSetPoint(thermConstantMap)
+	  minSP = minCoolSetPoint(thermConstantMap)
+      actualSetting = setIdealCoolTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_HEAT) {
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+      newIdeal = prevIdeal + temp
+	  maxSP = maxHeatSetPoint(thermConstantMap)
+	  minSP = minHeatSetPoint(thermConstantMap)
+      actualSetting = setIdealHeatTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_AUTO) {
+      prevIdeal = (ctx.Thermostat.coolsetpoint.get() + ctx.Thermostat.heatsetpoint.get()) / 2
+      newIdeal = prevIdeal + temp
+ 	  maxSP = maxSetPointForAuto(thermConstantMap)
+	  minSP = minSetPointForAuto(thermConstantMap)
+      actualSetting = setIdealAutoTemp( ctx, newIdeal, maxSP, minSP, minSetPointSepForAuto(thermConstantMap))
+   } else {  // mode is OFF, so ignore request
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+	  actualSetting = prevIdeal
+   }
+   boolean result = false
+   // if setting has changed, result is success (true)
+   if (!compareTemperatures(actualSetting, prevIdeal)) { result = true }
+   ctx.sendResponse 'therm:IncrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': actualSetting,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'maxSetPoint': maxSP,
+      'minSetPoint': minSP
+   ]
+}
+ 
+static void decrementIdealTemperature(ctx,name,message,thermConstantMap) {
+   def temp = message.attributes['amount']
+   def curMode = ctx.Thermostat.hvacmode.get()
+   Double maxSP = maxCoolSetPoint(thermConstantMap)
+   Double minSP = minHeatSetPoint(thermConstantMap)
+   Double actualSetting
+   def prevIdeal
+   def newIdeal
+   if(curMode == ctx.Thermostat.HVACMODE_COOL) {
+      prevIdeal = ctx.Thermostat.coolsetpoint.get()
+      newIdeal = prevIdeal - temp
+	  maxSP = maxCoolSetPoint(thermConstantMap)
+	  minSP = minCoolSetPoint(thermConstantMap)
+      actualSetting = setIdealCoolTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_HEAT) {
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+      newIdeal = prevIdeal - temp
+	  maxSP = maxHeatSetPoint(thermConstantMap)
+	  minSP = minHeatSetPoint(thermConstantMap)
+      actualSetting = setIdealHeatTemp( ctx, newIdeal, prevIdeal, maxSP, minSP )
+   } else if(curMode == ctx.Thermostat.HVACMODE_AUTO) {
+      prevIdeal = (ctx.Thermostat.coolsetpoint.get() + ctx.Thermostat.heatsetpoint.get()) / 2
+      newIdeal = prevIdeal - temp
+ 	  maxSP = maxSetPointForAuto(thermConstantMap)
+	  minSP = minSetPointForAuto(thermConstantMap)
+      actualSetting = setIdealAutoTemp( ctx, newIdeal, maxSP, minSP, minSetPointSepForAuto(thermConstantMap) )
+   } else {  // mode is OFF, so ignore request
+      prevIdeal = ctx.Thermostat.heatsetpoint.get()
+	  actualSetting = prevIdeal
+   }
+   boolean result = false
+   // if setting has changed, result is success (true)
+   if (!compareTemperatures(actualSetting, prevIdeal)) { result = true }
+   ctx.sendResponse 'therm:DecrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': actualSetting,
+      'hvacmode': curMode,
+      'prevIdealTemp': (Double)prevIdeal,
+      'maxSetPoint': maxSP,
+      'minSetPoint': minSP
+   ]
+}
+
+static double setIdealCoolTemp( ctx, tempC, prevTempC, maxTemp, minTemp ) {
+	byte sz = (getSetPointSize(ctx) & 0x07)
+		
+	// make sure the requested temp isn't outside min/max limits
+	if ( maxTemp < tempC ) tempC = maxTemp
+	if ( minTemp > tempC ) tempC = minTemp
+		
+	if (tempC != prevTempC) {
+		double temp = tempC
+		// the temp from the platform will be in C
+		// convert to F if the device is expecting F
+		if( SETPOINT_SCALE_F == getSetPointScale(ctx) )
+			temp = convertCtoF(tempC)
+	
+		int newSetPointInt = formatTemp(ctx,temp)
+		updateSetPoint( ctx, SETPOINT_COOL, newSetPointInt )
+		ctx.Scheduler.scheduleIn EVENT_GET_COOL_SETPOINT, READ_BACK_DELAY_MSEC
+	}
+	return tempC
+}
+
+static double setIdealHeatTemp( ctx, tempC, prevTempC, maxTemp, minTemp ) {
+	byte sz = (getSetPointSize(ctx) & 0x07)
+	
+	// make sure the requested temp isn't outside min/max limits
+	if ( maxTemp < tempC ) tempC = maxTemp
+	if ( minTemp > tempC ) tempC = minTemp
+
+	if (tempC != prevTempC) {
+		double temp = tempC
+		// the temp from the platform will be in C
+		// convert to F if the device is expecting F
+		if( SETPOINT_SCALE_F == getSetPointScale(ctx) )
+			temp = convertCtoF(tempC)
+	
+		int newSetPointInt = formatTemp(ctx,temp)
+		updateSetPoint( ctx, SETPOINT_HEAT, newSetPointInt )
+		ctx.Scheduler.scheduleIn EVENT_GET_HEAT_SETPOINT, READ_BACK_DELAY_MSEC
+	}
+	return tempC
+}
+
+static double setIdealAutoTemp( ctx, tempC, maxTemp, minTemp, minSepForAuto ) {
+	byte sz = (getSetPointSize(ctx) & 0x07)
+	
+	// default separation between Heat and Cool setpoints to minimum allowed
+	double actualSep = (minSepForAuto * 2.0)
+	// if actual separation is greater than minimum allowed, calc it
+	def cool = ctx.Thermostat.coolsetpoint.get()
+	def heat = ctx.Thermostat.heatsetpoint.get()
+	if (cool != null && heat != null && (cool-heat) > actualSep) {
+	   actualSep = cool - heat
+	}
+
+	// make sure the requested temp isn't outside min/max limits
+	if ( maxTemp < tempC ) tempC = maxTemp
+	if ( minTemp > tempC ) tempC = minTemp
+	
+	double newHeatC = tempC - ( actualSep / 2 )
+	double newCoolC = tempC + ( actualSep / 2 )
+	
+	// now make sure set points are still within range
+	// (example, if current sep if 6C, and 'Ideal' temp is set to max, Cool set point would be 3C higher, but actual limit may only be 1.66667 higher)
+	if ( (maxTemp + minSepForAuto) < newCoolC) newCoolC = maxTemp + minSepForAuto
+	if ( (minTemp - minSepForAuto) > newHeatC) newHeatC = minTemp - minSepForAuto
+	
+	// the temp from the platform will be in C
+	// convert to F if the device is expecting F
+	if( SETPOINT_SCALE_F == getSetPointScale(ctx) ) {
+		newHeatC = convertCtoF(newHeatC)
+		newCoolC = convertCtoF(newCoolC)
+	}
+	
+	int newCoolInt = formatTemp(ctx,newCoolC)
+	int newHeatInt = formatTemp(ctx,newHeatC)
+	
+	updateSetPoint( ctx, SETPOINT_COOL, newCoolInt )
+	ctx.Scheduler.scheduleIn EVENT_GET_COOL_SETPOINT, READ_BACK_DELAY_MSEC
+	updateSetPoint( ctx, SETPOINT_HEAT, newHeatInt )
+	ctx.Scheduler.scheduleIn EVENT_GET_HEAT_SETPOINT, READ_BACK_DELAY_MSEC
+	return tempC
+}
+
+static float convertCtoF(tempC) {
+	def temp = ((9/5)*tempC) + 32
+	temp = Math.round( temp * 10 ) / 10
+	
+	return temp
+}
+
+static float convertFtoC(tempF) {
+	def temp = 5 * (tempF-32) / 9;
+	temp = Math.round( temp * 10 ) / 10
+	
+	return temp
+}
+
+static int formatTemp(ctx,temp) {
+	return Math.round( temp * Math.pow( 10, getSetPointPrecision(ctx) ) )
+}
+
+static boolean compareTemperatures(val1,val2) {
+	if (val1 == null || val2 == null) return val1 == val2
+	return Math.abs(val1-val2) < TEMP_EPSILON
+}
+
+
+static double minSetPointSep(thermConstantMap) {
+	double val = DFLT_MIN_SEP
+	if (null != thermConstantMap.'minSetPointSeparationC') {
+		val = thermConstantMap.'minSetPointSeparationC' as Double
+	}
+	return val
+}
+
+static double minSetPointSepForAuto(thermConstantMap) {
+	// when in Auto, 'Ideal' set point can be set to within half the total minimum set point separation
+	return (minSetPointSep(thermConstantMap)/2.0)
+}
+
+static double maxHeatSetPoint(thermConstantMap) {
+	double val = DFLT_MAX_SETPOINT
+	if (null != thermConstantMap.'maxHeatSetPoint') {
+		val = thermConstantMap.'maxHeatSetPoint' as Double
+	}
+	// make sure max Heat set point is not within min separation of max Cool set point
+	if (null != thermConstantMap.'maxCoolSetPoint') {
+		if ((thermConstantMap.'maxCoolSetPoint' -  minSetPointSep(thermConstantMap)) < val) {
+			val = thermConstantMap.'maxCoolSetPoint' -  minSetPointSep(thermConstantMap)
+		}
+	}
+	return val
+}
+
+static double maxCoolSetPoint(thermConstantMap) {
+	double val = DFLT_MAX_SETPOINT
+	if (null != thermConstantMap.'maxCoolSetPoint') {
+		val = thermConstantMap.'maxCoolSetPoint' as Double
+	}
+	return val
+}
+
+static double minHeatSetPoint(thermConstantMap) {
+	double val = DFLT_MIN_SETPOINT
+	if (null != thermConstantMap.'minHeatSetPoint') {
+		val = thermConstantMap.'minHeatSetPoint' as Double
+	}
+	return val
+}
+
+static double minCoolSetPoint(thermConstantMap) {
+	double val = DFLT_MIN_SETPOINT
+	if (null != thermConstantMap.'minCoolSetPoint') {
+		val = thermConstantMap.'minCoolSetPoint' as Double
+	}
+	// make sure min Cool set point is not within min separation of min Heat set point
+	if (null != thermConstantMap.'minHeatSetPoint') {
+		if ((thermConstantMap.'minHeatSetPoint' +  minSetPointSep(thermConstantMap)) > val) {
+			val = thermConstantMap.'minHeatSetPoint' +  minSetPointSep(thermConstantMap)
+		}
+	}
+	return val
+}
+
+static double maxSetPointForAuto(thermConstantMap) {
+	double val = DFLT_MAX_SETPOINT
+	// if max COOL set point defined, use that
+	if (null != thermConstantMap.'maxCoolSetPoint') {
+		val = thermConstantMap.'maxCoolSetPoint' as Double
+		// but in Auto, 'Ideal' temp is between Heat and Cold, so it can only be set within half the min required separation
+		val -= minSetPointSepForAuto(thermConstantMap)
+
+		// if max Heat set point is defined and less that max Cool set point, use it
+		if (null != thermConstantMap.'maxHeatSetPoint') {
+			if (thermConstantMap.'maxHeatSetPoint' < thermConstantMap.'maxCoolSetPoint') {
+				double valHeat = ((thermConstantMap.'maxHeatSetPoint' as Double) + (thermConstantMap.'maxCoolSetPoint' as Double)) / 2.0
+				if (valHeat < val) {
+					val = valHeat
+				}
+			}
+		}
+	}
+	return val
+}
+
+static double minSetPointForAuto(thermConstantMap) {
+	double val = DFLT_MIN_SETPOINT
+	// if min HEAT set point defined, use that
+	if (null != thermConstantMap.'minHeatSetPoint') {
+		val = thermConstantMap.'minHeatSetPoint' as Double
+		// but in Auto, 'Ideal' temp is between Heat and Cold, so it can only be set within half the min required separation
+		val += minSetPointSepForAuto(thermConstantMap)
+
+		// if min Cool set point is defined and greater that min Heat set point, use it
+		if (null != thermConstantMap.'minCoolSetPoint') {
+			if (thermConstantMap.'minCoolSetPoint' > thermConstantMap.'minHeatSetPoint') {
+				double valCool = ((thermConstantMap.'minCoolSetPoint' as Double) + (thermConstantMap.'minHeatSetPoint' as Double)) / 2.0
+				if (valCool > val) {
+					val = valCool
+				}
+			}
+		}
+	}
+	return val
+}
+

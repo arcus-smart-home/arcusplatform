@@ -1,0 +1,24 @@
+
+message zwave.SimpleAvControl.SimpleAvControlGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SimpleAvControl.SimpleAvControlReportV1<id="0x03", group="V1"> {
+    u8 numberOfReports;
+}
+
+message zwave.SimpleAvControl.SimpleAvControlSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_KEY_ATTRIBUTES_MASK = 0x07;
+    const u8 PROPERTIES1_KEY_ATTRIBUTES_SHIFT = 0;
+    u8 sequenceNumber;
+    u8 properties1;
+    u16 itemId;
+}
+
+message zwave.SimpleAvControl.SimpleAvControlSupportedGetV1<id="0x04", group="V1"> {
+    u8 reportNo;
+}
+
+message zwave.SimpleAvControl.SimpleAvControlSupportedReportV1<id="0x05", group="V1"> {
+    u8 reportNo;
+    u8 bitMask;
+}

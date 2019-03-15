@@ -1,0 +1,81 @@
+
+message zwave.Time.DateGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.Time.DateReportV1<id="0x04", group="V1"> {
+    u16 year;
+    u8 month;
+    u8 day;
+}
+
+message zwave.Time.TimeGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.Time.TimeReportV1<id="0x02", group="V1"> {
+    const u8 HOUR_LOCAL_TIME_HOUR_LOCAL_TIME_MASK = 0x1F;
+    const u8 HOUR_LOCAL_TIME_HOUR_LOCAL_TIME_SHIFT = 0;
+    const u8 HOUR_LOCAL_TIME_RTC_FAILURE = 0x80;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.Time.DateGetV2<id="0x03", group="V2"> {
+}
+
+message zwave.Time.DateReportV2<id="0x04", group="V2"> {
+    u16 year;
+    u8 month;
+    u8 day;
+}
+
+message zwave.Time.TimeGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.Time.TimeOffsetGetV2<id="0x06", group="V2"> {
+}
+
+message zwave.Time.TimeOffsetReportV2<id="0x07", group="V2"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+    u8 monthStartDst;
+    u8 dayStartDst;
+    u8 hourStartDst;
+    u8 monthEndDst;
+    u8 dayEndDst;
+    u8 hourEndDst;
+}
+
+message zwave.Time.TimeOffsetSetV2<id="0x05", group="V2"> {
+    const u8 LEVEL_HOUR_TZO_MASK = 0x7F;
+    const u8 LEVEL_HOUR_TZO_SHIFT = 0;
+    const u8 LEVEL_SIGN_TZO = 0x80;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_MASK = 0x7F;
+    const u8 LEVEL2_MINUTE_OFFSET_DST_SHIFT = 0;
+    const u8 LEVEL2_SIGN_OFFSET_DST = 0x80;
+    u8 level;
+    u8 minuteTzo;
+    u8 level2;
+    u8 monthStartDst;
+    u8 dayStartDst;
+    u8 hourStartDst;
+    u8 monthEndDst;
+    u8 dayEndDst;
+    u8 hourEndDst;
+}
+
+message zwave.Time.TimeReportV2<id="0x02", group="V2"> {
+    const u8 HOUR_LOCAL_TIME_HOUR_LOCAL_TIME_MASK = 0x1F;
+    const u8 HOUR_LOCAL_TIME_HOUR_LOCAL_TIME_SHIFT = 0;
+    const u8 HOUR_LOCAL_TIME_RTC_FAILURE = 0x80;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}

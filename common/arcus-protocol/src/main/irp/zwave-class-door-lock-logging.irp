@@ -1,0 +1,29 @@
+
+message zwave.DoorLockLogging.DoorLockLoggingRecordsSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.DoorLockLogging.DoorLockLoggingRecordsSupportedReportV1<id="0x02", group="V1"> {
+    u8 maxRecordsStored;
+}
+
+message zwave.DoorLockLogging.RecordGetV1<id="0x03", group="V1"> {
+    u8 recordNumber;
+}
+
+message zwave.DoorLockLogging.RecordReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_HOUR_LOCAL_TIME_MASK = 0x1F;
+    const u8 PROPERTIES1_HOUR_LOCAL_TIME_SHIFT = 0;
+    const u8 PROPERTIES1_RECORD_STATUS_MASK = 0xE0;
+    const u8 PROPERTIES1_RECORD_STATUS_SHIFT = 5;
+    u8 recordNumber;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 properties1;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+    u8 eventType;
+    u8 userIdentifier;
+    u8 userCodeLength;
+    u8[] userCode;
+}

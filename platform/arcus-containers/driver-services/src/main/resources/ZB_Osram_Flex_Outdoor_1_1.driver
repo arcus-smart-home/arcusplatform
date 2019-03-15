@@ -1,0 +1,379 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the OSRAM Flexible RGBW Light Strips  Outdoor Rated
+ *
+ * Note: To turn the OSRAM Flexible Light Strip on and off: Unplug the controller from the power supply, but do not unplug the power supply from the outlet.
+ *
+ * To Reset the Light Strip if it is already paired,
+ *  - Unplug the controller from the power supply
+ *  - Plug the controller in to the power supply for 3 seconds
+ *  - Repeat the previous two steps 4 more times (5 cycles total)
+ *  - After the fifth time, wait 10 seconds and the light strip will flash OFF and back ON 3 times if successfully reset and ready to pair
+ *  - Repeat the process if the light strip doesn’t flash
+ *
+ *  7/26/2016 - (V1.1) Removed Power Use capability since some devices do not report correct values and OSRAM will be removing support in the future.
+ *  7/26/2016 - Only configure reporting during first onConnected. Thereafter just read in onConnected and configure only if not as expected.
+ *              (with some devices/firmware configuring the reporting interval sometimes triggers an OFF device into turning ON at full brightness)
+ * 10/18/2016 - Changed Dimmer processing to ignore dim:brightness=0 settings, and always turn device ON when dim:brightness attribute is set (ignore swit:state setting if dim:brightness is set to non-zero level in same message)
+ * 10/18/2016 - Restore previous settings to device when it reconnects (onConnected), or when it reports invalid Levels or an unexpected state (after a device reset from power loss, etc.)
+ *
+ */
+import groovy.transform.Field
+
+driver          "ZBOsramFlexOutdoor"
+description     "Driver for the OSRAM Flexible RGBW Outdoor Light Strips"
+version         "1.1"
+protocol        "ZIGB"
+deviceTypeHint  "Light"
+productId       "637a86"
+vendor          "OSRAM"
+model           "Lightify Flex Outdoor RGBW"
+
+matcher         'ZIGB:manufacturer': 0xBBAA, 'ZIGB:vendor': 'OSRAM', 'ZIGB:model': 'LIGHTIFY FLEX OUTDOOR RGBW'
+
+capabilities    DevicePower, Switch, Light, Color, ColorTemperature, Dimmer, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDimmer'
+importCapability 'zigbee/GenericZigbeeColor'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+// 1 End Point (0x03)
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x0300     Color Control
+//   0x0B04     Electrical Measurement
+//   0xFC0F
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+@Field final byte DVC_ENDPOINT = 3
+
+@Field def onOffCluster = Zigbee.endpoint(DVC_ENDPOINT).OnOff
+@Field def levelCluster = Zigbee.endpoint(DVC_ENDPOINT).Level
+@Field def colorCluster = Zigbee.endpoint(DVC_ENDPOINT).Color
+       def identCluster = Zigbee.endpoint(DVC_ENDPOINT).Identify
+       def otaCluster   = Zigbee.endpoint(DVC_ENDPOINT).Ota
+
+@Field def dvcEndPoint  = Zigbee.endpoint(DVC_ENDPOINT)
+
+
+final int DFLT_BRIGHTNESS                   = 100
+final short DFLT_TRANS_SECS                 = 1         // default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+
+final String KEY_ACTUAL_COLOR_TEMPERATURE	= "ACTUAL_COLOR_TEMP"
+final int DFLT_COLOR_TEMP                   = 2700      // in Kelvin
+final int DFLT_MIN_COLOR_TEMP               = 2700      // in Kelvin
+final int DFLT_MAX_COLOR_TEMP               = 6500
+@Field final short DFLT_CLR_TRANS_SECS      = 1         // default transition seconds to use when color attributes are set, since there is no transition time attribute
+
+final int DFLT_COLOR_HUE                    = 0
+final int DFLT_COLOR_SATURATION             = 100
+@Field final byte HUE_MOVE_DIR              = 0         // move mode when changing just hue value; 0=Shortest, 1=Longest, 2=Up, 3=Down
+
+final long DFLT_POLL_TIME                   = 120000	// 120 sec
+final long HOURLY                           = 3600000	// 1 hour
+
+final short PROFILE_HA                      = 0x0104
+final short CLUSTER_ON_OFF                  = 0x0006
+final short CLUSTER_LEVEL_CTRL              = 0x0008
+final short CLUSTER_COLOR_CTRL              = 0x0300
+
+final byte CMD_READ_ATTR                    = 0x00      // General Command Frame - Read Attributes
+final byte CMD_WRT_ATTR                     = 0x02      // General Command Frame - Write Attributes
+final byte CMD_CNFG_RPT                     = 0x06      // General Command Frame - Configure Reporting
+
+final int OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes
+final short IDENT_PERIOD_SECS               = 15        // number of seconds for device to Identify itself when Identify method is called
+
+@Field final long DFLT_READBACK_DELAY       = 3000      // delay before reading
+final long RPT_CNFG_DELAY_MSEC_1            = 10000		// 10 second delay before configuring reports
+final long RPT_CNFG_DELAY_MSEC_2            = 12000		// 12 second delay before configuring reports
+
+final short MIN_ONOFF_RPT                   = 0x0001
+final short MAX_ONOFF_RPT                   = 0x0078    // 120 seconds
+final short MIN_LVL_RPT                     = 0x0002
+final short MAX_LVL_RPT                     = 0x0078
+
+@Field final String DEVICE_NAME             = 'OSRAM Flex Outdoor Strip'
+final boolean FOLLOWS_LEVEL_SPEC            = false     // device reports invalid level of '0xFF' when device has reset
+
+final String EVENT_POLL_COLOR_TEMP          = 'PollColorTemperature'
+final String EVENT_DEFFERED_DFLT_CNFG       = 'DeferredDefaultConfig'
+final String EVENT_DEFFERED_CLR_RPT_CNFG    = 'DeferredRptCnfgHueSaturation'
+final String DEFERRED_READ_DEV_OTA_EVENT    = "DeviceOtaDeferredRead"
+final String OTA_CHECK_TIMEOUT_EVENT        = "DeviceOtaCheckFragmentRequestTimeout"
+final String EVENT_DEFFERED_READ_COLOR      = 'DeferredReadColor'
+
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+Switch.state                     Switch.STATE_ON
+Dimmer.brightness                DFLT_BRIGHTNESS
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} started with attributes:{}", DEVICE_NAME, message.attributes
+
+	DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	// Bind all of the command clusters on the end points we need
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		levelCluster.bindServerCluster(),
+		colorCluster.bindServerCluster() )
+}
+
+
+onConnected {
+	log.debug "{} connected.", DEVICE_NAME
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// restore device settings to match capability attributes
+	GenericZigbeeDimmer.restoreDeviceSettings(this, DEVICE_NAME, levelCluster, onOffCluster)
+	GenericZigbeeColor.restoreLastColor(this, DEVICE_NAME, colorCluster)
+
+	Scheduler.scheduleIn EVENT_POLL_COLOR_TEMP, HOURLY
+	
+	// after pairing, check that the reporting configurations are what we want them to be
+	Scheduler.scheduleIn EVENT_DEFFERED_DFLT_CNFG, RPT_CNFG_DELAY_MSEC_1
+	Scheduler.scheduleIn EVENT_DEFFERED_CLR_RPT_CNFG, RPT_CNFG_DELAY_MSEC_2
+}
+
+onDisconnected {
+	log.trace "{} disconnected.", DEVICE_NAME
+}
+
+
+onRemoved {
+	log.trace "{} removed.", DEVICE_NAME
+}
+
+
+////////////////////////////////////////
+///    Events
+////////////////////////////////////////
+
+onEvent(EVENT_DEFFERED_DFLT_CNFG){
+	log.debug "{} read Reporting Configs", DEVICE_NAME
+	GenericZigbeeDimmer.doReadOnOffReportAttr(this, DEVICE_NAME, DVC_ENDPOINT)
+	GenericZigbeeDimmer.doReadLevelfReportAttr(this, DEVICE_NAME, DVC_ENDPOINT)
+}
+
+onEvent(EVENT_POLL_COLOR_TEMP) {
+	log.trace "{} Polling Color Temperature", DEVICE_NAME
+	colorCluster.zclReadAttributes(colorCluster.ATTR_COLOR_TEMPERATURE)
+	Scheduler.scheduleIn EVENT_POLL_COLOR_TEMP, HOURLY
+}
+
+onEvent(EVENT_DEFFERED_CLR_RPT_CNFG) {
+	log.trace 'DeferredRptCnfgHueSaturation'
+	GenericZigbeeColor.doRptCnfgHueSaturation(this)
+}
+
+// called from GenericZigbeeColor.capability
+onEvent(EVENT_DEFFERED_READ_COLOR) {
+	GenericZigbeeColor.handleDeferredReadColorEvent(this, colorCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.DEFERRED_ON_EVENT) {
+	GenericZigbeeDimmer.doDeferredOnEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.READ_SWITCH_EVENT) {
+	GenericZigbeeDimmer.doReadSwitchEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent(GenericZigbeeDimmer.READ_LEVEL_EVENT) {
+	GenericZigbeeDimmer.doReadLevelEvent(this, DEVICE_NAME, levelCluster)
+}
+
+// may be called from GenericZigbeeDimmer.capability if GenericZigbeeDimmer.doReadOnOffReportAttr() is used
+onEvent(GenericZigbeeDimmer.DEFERRED_CNFG_ONOFF_EVENT) {
+	GenericZigbeeDimmer.doOnOffConfiguration this, DEVICE_NAME, DVC_ENDPOINT, MIN_ONOFF_RPT, MAX_ONOFF_RPT
+}
+
+// may be called from GenericZigbeeDimmer.capability if GenericZigbeeDimmer.doReadLevelfReportAttr() is used
+onEvent(GenericZigbeeDimmer.DEFERRED_CNFG_LEVEL_EVENT) {
+	GenericZigbeeDimmer.doLevelConfiguration this, DEVICE_NAME, DVC_ENDPOINT, MIN_LVL_RPT, MAX_LVL_RPT
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes() {
+	GenericZigbeeDimmer.doSetAttributes(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+	
+	GenericZigbeeColor.doSetLightAttributes(this, DEVICE_NAME, colorCluster, message)
+	GenericZigbeeColor.doSetColorAttributes(this, DEVICE_NAME, colorCluster, message)
+	GenericZigbeeColor.doSetColorTempAttributes(this, DEVICE_NAME, colorCluster, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZigbeeDimmer.doRampBrightness(this, DEVICE_NAME, levelCluster, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZigbeeDimmer.doIncrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZigbeeDimmer.doDecrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.trace "{} received OnOff Attributes Response: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleOnOffMsgWithRestore(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.trace "{} received OnOff Attributes Report: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleOnOffMsgWithRestore(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.debug "{} received Level Attributes Response: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleLevelMsg(this, DEVICE_NAME, levelCluster, onOffCluster, FOLLOWS_LEVEL_SPEC, message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.trace "{} received Level Attributes Report: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleLevelMsg(this, DEVICE_NAME, levelCluster, onOffCluster, FOLLOWS_LEVEL_SPEC, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Color Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Color Read Attributes
+onZigbeeMessage.Zcl.color.zclreadattributesresponse() {
+	log.trace "{} received Color Attributes Response: {}", DEVICE_NAME, message
+	GenericZigbeeColor.handleColorMsg(this, DEVICE_NAME, colorCluster, message)
+}
+
+// called when device asynchronously sends a Color Report Attributes
+onZigbeeMessage.Zcl.color.zclreportattributes() {
+	log.trace "{} received Color Attributes Report: {}", DEVICE_NAME, message
+	GenericZigbeeColor.handleColorMsg(this, DEVICE_NAME, colorCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.trace "Driver received onIdentify.Identify"
+	// ask the device to identify itself by flashing ON and OFF
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(DEFERRED_READ_DEV_OTA_EVENT) {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent(OTA_CHECK_TIMEOUT_EVENT) {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	if (GenericZigbeeDimmer.handleReportingCnfgResponses(this, DEVICE_NAME, DVC_ENDPOINT, message, MIN_ONOFF_RPT, MAX_ONOFF_RPT, MIN_LVL_RPT, MAX_LVL_RPT)) {
+		return
+	}
+
+	def zclMsg = Zigbee.Message.toZcl(message)
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	byte[] data = zclMsg.getPayload()
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:{}", profile, clusterId, msgId, endpoint, flags, data
+}
+
+
+

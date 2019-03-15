@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="SyncDeviceState"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the currently defined reflexes for a given device from the platform's perspective</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="protocol"
+			type="string"
+			description="The protocol address of the device"/>
+		<t:attribute
+			name="platform"
+			type="string"
+			description="The platform address of the device"/>
+		<t:attribute
+			name="driver"
+			type="string"
+			description="The name of the driver that defined the current reflexes"/>
+		<t:attribute
+			name="version"
+			type="string"
+			description="The version of the driver that defined the current reflexes"/>
+		<t:attribute
+			name="hash"
+			type="string"
+			description="The hash code of the driver that defined the current reflexes"/>
+	</t:attributes>
+ </t:type>

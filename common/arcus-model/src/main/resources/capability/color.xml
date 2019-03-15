@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Color"
+   namespace="color"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of the color setting for a device.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="hue" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="360"
+         optional="false" 
+         description="Reflects the current hue or for lack of a better word color. May also be used to set the hue. Range is 0-360 angular degrees."/>
+      <c:attribute 
+         name="saturation" 
+         readwrite="rw" 
+         type="int"
+         min="0" 
+         max="100"
+         optional="false" 
+         description="The saturation or intensity of the hue. Lower values result in less intensity (more gray) and higher values result in a more intense hue (less gray). May also be used to set the saturation."/>
+         
+   </c:attributes>
+
+</c:capability>

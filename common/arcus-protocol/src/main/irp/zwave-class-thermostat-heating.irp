@@ -1,0 +1,84 @@
+
+message zwave.ThermostatHeating.ThermostatHeatingStatusReportV1<id="0x0D", group="V1"> {
+    const u8 STATUS_HEATING = 0x00;
+    const u8 STATUS_COOLING = 0x01;
+    u8 status;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingModeGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingModeReportV1<id="0x03", group="V1"> {
+    const u8 MODE_OFF = 0x00;
+    const u8 MODE_OFF_TIMED = 0x01;
+    const u8 MODE_OFF_3_HOURS = 0x02;
+    const u8 MODE_ANTI_FREEZE = 0x03;
+    const u8 MODE_MANUAL = 0x04;
+    const u8 MODE_TEMPORARY_MANUAL = 0x05;
+    const u8 MODE_AUTOMATIC = 0x06;
+    const u8 MODE_MANUAL_TIMED = 0x07;
+    u8 mode;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingModeSetV1<id="0x01", group="V1"> {
+    const u8 MODE_OFF = 0x00;
+    const u8 MODE_OFF_TIMED = 0x01;
+    const u8 MODE_OFF_3_HOURS = 0x02;
+    const u8 MODE_ANTI_FREEZE = 0x03;
+    const u8 MODE_MANUAL = 0x04;
+    const u8 MODE_TEMPORARY_MANUAL = 0x05;
+    const u8 MODE_AUTOMATIC = 0x06;
+    const u8 MODE_MANUAL_TIMED = 0x07;
+    u8 mode;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingRelayStatusGetV1<id="0x09", group="V1"> {
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingRelayStatusReportV1<id="0x0A", group="V1"> {
+    const u8 RELAY_STATUS_OFF = 0x00;
+    const u8 RELAY_STATUS_ON = 0x01;
+    u8 relayStatus;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingSetpointGetV1<id="0x05", group="V1"> {
+    u8 setpointNr;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingSetpointReportV1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_SIZE_MASK = 0x07;
+    const u8 PROPERTIES1_SIZE_SHIFT = 0;
+    const u8 PROPERTIES1_SCALE_MASK = 0x18;
+    const u8 PROPERTIES1_SCALE_SHIFT = 3;
+    const u8 PROPERTIES1_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES1_PRECISION_SHIFT = 5;
+    u8 setpointNr;
+    u8 properties1;
+    u8[] val;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingSetpointSetV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_SIZE_MASK = 0x07;
+    const u8 PROPERTIES1_SIZE_SHIFT = 0;
+    const u8 PROPERTIES1_SCALE_MASK = 0x18;
+    const u8 PROPERTIES1_SCALE_SHIFT = 3;
+    const u8 PROPERTIES1_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES1_PRECISION_SHIFT = 5;
+    u8 setpointNr;
+    u8 properties1;
+    u8[] val;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingStatusGetV1<id="0x0C", group="V1"> {
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingStatusSetV1<id="0x0B", group="V1"> {
+    const u8 STATUS_HEATING = 0x00;
+    const u8 STATUS_COOLING = 0x01;
+    u8 status;
+}
+
+message zwave.ThermostatHeating.ThermostatHeatingTimedOffSetV1<id="0x11", group="V1"> {
+    u8 minutes;
+    u8 hours;
+}

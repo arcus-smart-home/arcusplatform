@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+      version="2.9.0"
+      xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="addEmailVerificationTokenToPerson" author="dpatrow">
+      <cl:description>Add emailVerificationToken to the Person table</cl:description>
+      <cl:tracking>I2-1646</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD emailVerificationToken varchar</cl:update>
+         <cl:rollback>ALTER TABLE person DROP emailVerificationToken</cl:rollback>
+      </cl:cql>
+	</cl:changeset>
+   <cl:changeset identifier="addPairingDeviceTable" author="tweidling">
+      <cl:description>Add tables for managing PairingDevice objects</cl:description>
+      <cl:tracking>I2-1326</cl:tracking>
+      <cl:cql>
+         <cl:update>
+            CREATE TABLE pairing_device(
+               placeId uuid,
+               protocolAddress varchar,
+               sequenceId int,
+               created timestamp,
+               modified timestamp,          
+               attributes map&lt;varchar,varchar&gt;,
+               IdSequence int static,
+               PRIMARY KEY (placeId, protocolAddress)
+            )
+         </cl:update>
+         <cl:rollback>DROP TABLE pairing_devices</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>
+

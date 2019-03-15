@@ -1,0 +1,117 @@
+<html>
+<style>
+    html {
+        background-color: #efefef;
+    }
+    
+    body {
+        font: Helvetica, Arial, sans-serif;
+        font-size: 75%;
+        line-height: 1.22;
+        font-weight: 700;
+    }
+    
+    p {
+        margin-top: 0;
+        margin-right: 0;
+        margin-bottom: 0;
+        margin-=left: 0;
+    }
+    
+    h1 {
+        font-size: 175%;
+        color: #5d5d5d
+    }
+    
+    .notificationbody {
+        font-size: 125%;
+    }
+    
+    .container {
+        background-color: #fefefe;
+        border: thin solid silver;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .footer {
+        border-top: 1px solid #cecece;
+    }
+    
+    .fright {
+        float: right;
+    }
+    
+    .toc {
+        font-weight: 700;
+        color: #004990;
+    }
+    
+    .mtop5 {
+        margin-top: 5px;
+    }
+    
+    .mtop20 {
+        margin-top: 20px;
+    }
+    
+    .icons {
+        background: transparent url({{_ssr}}/images/sprites/global-sprite.png) 0 0;
+        display: block;
+        float: left;
+    }
+    
+    .icon {
+        height: 48px;
+        width: 48px;
+        margin: 0 10px;
+    }
+    
+    .iris-color {
+        background-color: #635d83;
+    }
+    
+    .help {
+        background-position: 0 -24px;
+    }
+    
+    .clear {
+        clear: both;
+    }
+    
+    .help {
+        width: 200px;
+        border-left: thin solid #cecece;
+        float: right;
+    }
+
+</style>
+<div class="container">
+    <div class="header">
+        <img src='{{_ssr}}/campaign/iris/images/iris_logo_small.png' />
+    </div>
+    <div class="notificationbody">
+    {{#block "content" }}
+    {{/block}}
+    </div>
+    <div class="footer mtop20">
+        <div class="mtop5">
+            <div class="help">
+                <span class="icons icon help"></span>Need Help?<br/>
+            </div>
+            <div class="clear" />
+        </div>
+        <p class="toc mtop20">
+            Terms and Conditions of Use | Privacy Statement | Your California Privacy Rights | Interest-Based Advertising
+        </p>
+        <p class="mtop5">
+            This email was automatically sent to {{email}} becuase you signed up for IRIS notifications. To disable this communication please check you notificaton preferences.
+        </p>
+        <p class="mtop5" s>
+            &copy 2016 Lowe's. All rights reserved.
+        </p>
+    </div>
+</div>
+
+</html>

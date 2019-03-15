@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="ZoneWatering"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Representation of an irrigation zone that is currently watering
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="controller"
+         type="string"
+         description="The address of the controller that manages the zone"/>
+
+      <t:attribute
+         name="zone"
+         type="string"
+         description="The identifier for the zone"/>
+         
+      <t:attribute
+         name="zonename"
+         type="string"
+         description="Name of the zone on the platform. ('front yard', 'roses', etc.)"/>
+
+      <t:attribute
+         name="startTime"
+         type="timestamp"
+         description="The time that the zone started watering"/>
+
+      <t:attribute
+         name="duration"
+         type="int"
+         description="The amount of time the zone will be watering"/>
+
+      <t:attribute
+         name="trigger"
+         type="enum"
+         values="MANUAL,SCHEDULED"
+         description="What triggered the watering.  MANUAL, the end user triggered it or SCHEDULED"/>
+
+   </t:attributes>
+
+</t:type>

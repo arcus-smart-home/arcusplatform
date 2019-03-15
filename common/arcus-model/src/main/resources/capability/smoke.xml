@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Smoke"
+   namespace="smoke"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a smoke detector.
+   </c:description>
+   
+   <c:attributes>
+   <c:attribute
+      name="smoke" 
+      readwrite="r" 
+      type="enum"
+      values="SAFE,DETECTED"
+      optional="false" 
+      description="Reflects the current state of the smoke detector (safe,detected)."/>
+	<c:attribute 
+      name="smokechanged" 
+      readwrite="r" 
+      type="timestamp" 
+      optional="false" 
+      description="UTC date time of last smoke change"/>
+   </c:attributes>
+   
+</c:capability>

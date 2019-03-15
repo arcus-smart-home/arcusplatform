@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability name="Notification" namespace="note" version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of a system notification.
+   </c:description>
+
+   <c:attributes>
+      <!-- No attributes defined by this capability -->
+   </c:attributes>
+
+   <c:methods>
+      <c:method name="Notify"
+         description="Sends a pre-defined notification message to the indended user via the requested method.">
+         <c:parameters>
+            <c:parameter name="personId" type="string"
+               optional="false" description="The personId of the notification's receipient"></c:parameter>
+            <c:parameter name="placeId" type="string"
+               optional="true"
+               description="The placeId of the notification's origin (i.e., the sender)"></c:parameter>
+            <c:parameter name="msgKey" type="string"
+               optional="false"
+               description="The key indentifying the message body to be sent"></c:parameter>
+            <c:parameter name="msgParams" type="map&lt;string&gt;"
+               optional="true" description="Message placehoder replacement values"></c:parameter>
+            <c:parameter name="priority" type="enum"
+               values="low,medium,high,critical" optional="false"
+               description="'low', 'medium', 'high', or 'critical'. A high-priority notification will attempt to be delivered by IVR; if the message cannot be delivered by IRV then the system will attempt to send a mobile push notification. If the notification cannot be delivered via push notification then an email will be generated. Medium-priority messages will attempt a mobile push notification and fall back to email. Low-priority messages will be delivered via email.  Critical priority messages will be sent by all available means simultaneously"></c:parameter>
+         </c:parameters>
+      </c:method>
+      
+      <c:method name="Email"
+         description="Sends a pre-defined email to a provided email">
+         
+         <c:parameters>
+            <c:parameter
+               name="recipient"
+               type="EmailRecipient"
+               optional="false"
+               description="The recipient of the email"/>
+            <c:parameter name="placeId" type="string"
+               optional="true"
+               description="The placeId of the notification's origin (i.e., the sender)"/>
+            <c:parameter name="msgKey" type="string"
+               optional="false"
+               description="The key indentifying the message body to be sent"/>
+            <c:parameter name="msgParams" type="map&lt;string&gt;"
+               optional="true" description="Message placehoder replacement values"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method name="NotifyCustom"
+         description="Sends a caller-defined, custom notification message to the indended user via the requested method.">
+         <c:parameters>
+            <c:parameter name="personId" type="string"
+               optional="false" description="The personId of the notification's receipient"></c:parameter>
+            <c:parameter name="placeId" type="string"
+               optional="true"
+               description="The placeId of the notification's origin (i.e., the sender)"></c:parameter>
+            <c:parameter name="msg" type="string" optional="false"
+               description="The message body to be sent"></c:parameter>
+            <c:parameter name="dispatchMethod" type="enum"
+               values="log,apns,gcm,push,webhook,email,ivr" optional="false"
+               description="The means by which to notify the receipient. One of: 'log', 'apns', 'gcm', 'webhook', 'email', 'ivr'"></c:parameter>
+         </c:parameters>
+      </c:method>
+   </c:methods>
+   <c:events>
+      <c:event name="IvrNotificationAcknowledged"
+         description="Sent when an IVR notification has been fully acknowledged by the end user">
+         <c:parameter name="notificationId" type="string"
+            description="The id of the associated place" />
+         <c:parameter name="timestamp" type="timestamp"
+            description="The timestamp when the IVR message transaction began" />
+         <c:parameter name="response" type="string"
+            description="The button or series of buttons the user entered to acknowledge the call" />
+         <c:parameter name="msgKey" type="string" optional="false"
+            description="The key indentifying the message body that was sent"></c:parameter>
+      </c:event>
+
+      <c:event name="IvrNotificationRefused"
+         description="Sent when an IVR notification has been refused, either because the number was busy or the acknowledgement was not entered, or anything else">
+         <c:parameter name="notificationId" type="string"
+            description="The id of the associated place" />
+         <c:parameter name="msgKey" type="string" optional="false"
+            description="The key indentifying the message body that was sent"></c:parameter>
+         <c:parameter name="timestamp" type="timestamp"
+            description="The timestamp when the IVR message transaction began" />
+         <c:parameter name="code" type="enum"
+            values="BUSY,MACHINE,NO_RESPONSE,ERROR" description="A reason code for why the call was refused" />
+         <c:parameter name="reason" type="string"
+            description="A message describing the error, this may include additional debugging text, like the duration of the timeout, but is intended to be human readable" />
+      </c:event>
+
+      <c:event name="IvrNotificationVerifiedPin"
+         description="Sent when an IVR notification has been fully acknowledged by the end user by entering their correct PIN">
+         <c:parameter name="notificationId" type="string"
+            description="The id of the associated place" />
+         <c:parameter name="timestamp" type="timestamp"
+            description="The timestamp when the IVR message transaction began" />
+         <c:parameter name="msgKey" type="string" optional="false"
+            description="The key indentifying the message body that was sent"></c:parameter>
+      </c:event>
+   </c:events>
+</c:capability>

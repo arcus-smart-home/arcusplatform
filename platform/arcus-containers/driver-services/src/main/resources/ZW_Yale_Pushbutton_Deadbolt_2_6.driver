@@ -1,0 +1,137 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-wave Yale PushButton Deadbolt
+ *
+ */
+driver			'ZWYalePushButtonDeadbolt'
+description		'Driver for a ZWave Yale Touchscreen Deadbolt'
+version			'2.6'
+protocol		   'ZWAV'
+deviceTypeHint	'Lock'
+productId		'b40950'
+vendor 			'Yale'
+model 			'YRD210'
+
+matcher			'ZWAV:Manufacturer': 0x0109, 'ZWAV:ProductType': 0x04 //   Yale product ID is used like version and can update frequently
+matcher			'ZWAV:Manufacturer': 0x0129, 'ZWAV:ProductType': 0x04 
+
+capabilities   DevicePower, DoorLock
+importCapability 'zwave/GenericZWaveDoorLock_2_6'
+
+/////////////////////////////////////////////////////////////
+// Generic Device Class:    GENERIC_TYPE_ENTRY_CONTROL
+// Specific Device Class:   SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK
+// Command Classes:
+//      0x4C (76)   COMMAND_CLASS_DOOR_LOCK_LOGGING
+//      0x4E (78)   COMMAND_CLASS_SCHEDULE_ENTRY_LOCK
+//      0x62 (98)   COMMAND_CLASS_DOOR_LOCK
+//      0x63 (99)   COMMAND_CLASS_USER_CODE
+//		0x70 (112)  COMMAND_CLASS_CONFIGURATION
+//		0x71 (113)  COMMAND_CLASS_ALARM
+//		0x72 (114)  COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//      0x75 (117)  COMMAND_CLASS_PROTECTION
+//		0x80 (-128) COMMAND_CLASS_BATTERY
+//		0x85 (-123) COMMAND_CLASS_ASSOCIATION
+//		0x8B (-117) COMMAND_CLASS_TIME_PARAMETERS
+//      0x98 (-104) COMMAND_CLASS_SECURITY
+//		0x86 (-122)		COMMAND_CLASS_VERSION
+//		0x8A (-118)		COMMAND_CLASS_TIME
+//
+// This is a battery powered device
+/////////////////////////////////////////////////////////////
+DevicePower.battery 	            0
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+DoorLock.type			            DoorLock.TYPE_DEADBOLT
+
+def final String DEVICE_NAME = 'Yale Push Button Deadbolt'
+def final int MAX_SUPPORTED_PINS	= 249
+def final OFFLINE_TIMEOUT_SECS  =  44100  // 12h 15m
+def final DOOR_STATE_POLL_SECS	=	14400	// 4h
+def final int BATTERY_POLLING_INTERVAL_SEC	= 86400	//Ask for battery level every 24 hours
+     
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added....."
+	
+	// set default attribute values
+	DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	DoorLock.type                 DoorLock.TYPE_DEADBOLT
+	DoorLock.supportsBuzzIn		   true
+	DoorLock.supportsInvalidPin	true
+	DoorLock.numPinsSupported     MAX_SUPPORTED_PINS	
+	DoorLock.lockstate            DoorLock.LOCKSTATE_UNLOCKED
+	DoorLock.lockstatechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   DoorLock.slots			         [:]
+
+   log.debug "${DEVICE_NAME} clear out all existing pins....."
+   ZWave.user_code.set( 0, 0x00, 0x00, 0x00, 0x00, 0x00 )  //Clear out all existing pins
+   vars.'CLEAR_PINS_ON_ADD' = 0x01
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed..."
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected..."
+	ZWave.poll(DOOR_STATE_POLL_SECS, ZWave.door_lock.operation_get)
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	Scheduler.scheduleIn 'DelayedGet', 20000
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected..."
+}
+     
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+	GenericZWaveDoorLock_2_6.handleBatteryLevelReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.door_lock.operation_report {
+	GenericZWaveDoorLock_2_6.handleLockOperationReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.user_code.report {
+	GenericZWaveDoorLock_2_6.handleUserCodeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.alarm.report {
+	GenericZWaveDoorLock_2_6.handleYaleAlarmReport(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled event handlers
+////////////////////////////////////////////////////////////////////////////////
+ 
+onEvent('DelayedGet') {
+	ZWave.battery.get()	
+	ZWave.door_lock.operation_get()
+}
+
+

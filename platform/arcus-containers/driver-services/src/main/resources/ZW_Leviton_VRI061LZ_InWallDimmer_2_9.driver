@@ -1,0 +1,147 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Leviton VRI06-1LZ Dimmer Switch
+ * 
+ * NOTE:  This device requires a bulb that draws a minimum current in order to operate.  It will not work with
+ *        low wattage bulbs like LED bulbs that only draw 10 watts or less.
+ * 
+ */
+ 
+driver			"ZWLevitonVRI06DimmerDriver"
+description		"Driver for a Leviton VRI06-1LZ In-wall Dimmer Switch"
+version			"2.9"
+protocol       "ZWAV"
+deviceTypeHint	"Dimmer"
+productId		"e99058"
+vendor 			"Leviton"
+model 			"VRI06-1LZ"
+
+matcher			'ZWAV:Manufacturer': 0x001D, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0334
+
+capabilities	DevicePower, Switch, Dimmer
+
+importCapability 'zwave/GenericZWaveDim'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Command Classes:
+//		0x26   (38) Switch_Multilevel
+//		0x27   (39) Switch_All
+//      0x2B   (43) Scene_Activation
+//      0x2C   (44) Scene_Actuator_Conf
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//		0x77  (119) Node_Naming
+//      0x82 (-126) Hail
+//      0x85 (-123) Association
+//		0x86 (-122) Version
+//		0x91 (-111) Manufacturer_proprietary
+
+
+//DevicePower attributes are assumed
+DevicePower.battery 				   0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+final int POLLING_INTERVAL_SEC    = 3600        // every hour
+final int OFFLINE_TIMEOUT_SECS    = 12000       // 3 hrs 20 minutes
+
+final long DEFERRED_READ_DELAY_MSEC = 2000
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Generic device added with Attributes {}", message.attributes
+
+	// set default attribute values
+	DevicePower.sourcechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Switch.statechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Switch.state					 Switch.STATE_OFF
+	Dimmer.brightness           0
+}
+
+onConnected {
+	log.debug "Device connected"
+		
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 2000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+}
+
+onDisconnected {
+	log.debug "Device disconnected"
+}
+
+onRemoved {
+	log.debug "Device removed"
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support 
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+	GenericZWaveDim.handleSetAttributes(this, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZWaveDim.handleRampBrightness(this, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZWaveDim.handleIncrementBrightness(this, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZWaveDim.handleDecrementBrightness(this, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+ 	GenericZWaveDim.handleMultilevelReport(this, message)
+}
+
+onZWaveNodeInfo {
+	log.debug "Device reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage.application_status.busy {
+	log.debug "Device reported Busy"
+	// when device reports that it is busy, read again after a delay
+	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage.hail.hail {
+	log.debug "Device sent a Hail"
+	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage {
+    log.debug "Device received unhandled ZWave message {}", message
+    return false;
+}
+
+

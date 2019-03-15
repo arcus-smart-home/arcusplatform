@@ -1,0 +1,19 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 4.5 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.PressureMeasurement {
+   const u16 CLUSTER_ID = 0x0403;
+
+   const u16 ATTR_MEASURED_VALUE = 0x0000;
+   const u16 ATTR_MIN_MEASURED_VALUE = 0x0001;
+   const u16 ATTR_MAX_MEASURED_VALUE = 0x0002;
+   const u16 ATTR_TOLERANCE = 0x0003;
+
+   const u16 ATTR_SCALED_VALUE = 0x0010;
+   const u16 ATTR_MIN_SCALED_VALUE = 0x0011;
+   const u16 ATTR_MAX_SCALED_VALUE = 0x0012;
+   const u16 ATTR_SCALED_TOLERANCE = 0x0013;
+   const u16 ATTR_SCALE = 0x0014;
+}

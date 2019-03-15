@@ -1,0 +1,335 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the GE Link A19/BR30/PAR38 Dimmable Bulb
+ *
+ * To Reset bulb if it is already paired,
+ *  - Turn the bulb OFF (using power switch, or unscrew)
+ *  - Turn the bulb ON for 3 seconds
+ *  - Repeat the previous two steps 4 more times (5 cycles total)
+ *  - After the fifth time, wait 10 seconds and the light will flash OFF and back ON if successfully reset and ready to pair
+ *  - Repeat the process if the bulb doesn’t flash
+ *
+ * IDENTIFY:
+ *  - Performing an Identify operation flashes light for 30 seconds (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * CHECK-IN INTERVAL:		Poll Control cluster not supported, but Level is set to report at least every 2 minutes.
+ * 
+ * LEVEL REPORTING:
+ *  - At least every 2 minutes
+ *  - At most every 5 seconds, if state changes (NOTE: Device rejects 2 & 3 seconds as invalid)
+ *  - LEVEL state read each time device connects
+ *  
+ * ON/OFF REPORTING:
+ *  - At least every 2 minutes
+ *  - At most once a second, if state changes
+ *  - ON/OFF state read each time device connects
+ *  
+ * DIAGNOSTICS REPORTING:
+ *  - Device does not support Diagnostics cluster.
+ * 
+ * ISSUES/NOTES
+ * 
+ * 11/10/2015 - Updated driver to retry setting Reporting configurations upto 10 times, with progressive delay of 10 seconds times the attempt count,
+ *              until the configuration is successful (a Config Reporting Response with status of SUCCESS (0) is received).
+ * 10/18/2016 - Changed Dimmer processing to ignore dim:brightness=0 settings, and always turn device ON when dim:brightness attribute is set (ignore swit:state setting if dim:brightness is set to non-zero level in same message)
+ * 10/18/2016 - Restore previous settings to bulb when it reconnects (onConnected), or when it reports invalid Levels or an unexpected state (after a bulb reset from power loss, etc.)
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBGeLinkBulb"
+description		"Driver for the GE Link A19/BR30/PAR38 Dimmable LED Bulb"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Light"
+productId		"806362"
+vendor 			"Uncertified"		// "GE"
+model 			"ZLL Light"
+
+matcher			'ZIGB:manufacturer': 0x10DC ,'ZIGB:vendor': 'GE_Appliances', 'ZIGB:model': 'ZLL Light'
+
+capabilities	DevicePower, Dimmer, Switch, Light, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDimmer'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+// Manufacturer ID:       0x10DC
+// Manufacturer:          GE_Appliances
+// Model:                 ZLL Light
+// Power Source:          0x07
+//
+// 1 End Point (0x01)
+//
+// Profile ID:  0x0101  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x1000     ???
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+
+@Field def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+@Field def levelCluster = Zigbee.endpoint((byte)1).Level
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+
+final int DFLT_BRIGHTNESS               = 100
+final short DFLT_TRANS_SECS             = 0         // default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+
+final long DFLT_READBACK_DELAY          = 3000      // 3 second delay before reading
+
+
+// constants used if setting level reporting interval
+@Field final short PROFILE_HA           = 0x0104
+
+@Field final short CLUSTER_ON_OFF       = 0x0006
+@Field final short CLUSTER_COLOR_CTRL   = 0x0300
+@Field final short CLUSTER_LEVEL_CTRL   = 0x0008
+
+@Field final byte CMD_WRT_ATTR          = 0x02          // General Command Frame - Write Attributes
+@Field final byte CMD_WRT_ATTR_RSP      = 0x04          // General Command Frame - Write Attributes Response
+@Field final byte CMD_CNFG_RPT          = 0x06          // General Command Frame - Configure Reporting
+@Field final byte CMD_CNFG_RPT_RSP      = 0x07          // General Command Frame - Configure Reporting Response
+
+// operational constants
+final int OFFLINE_TIMEOUT_SECS          = 600
+final short IDENT_PERIOD_SECS           = 30        // number of seconds for device to Identify itself when Identify method is called
+
+@Field final long CNFG_RETRY_DELAY_MSEC = 10000     // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field final int MAX_CNFG_ATTEMPTS      = 10        // maximumn number of attempts to make trying to configure reporting
+
+@Field static final String DEVICE_NAME  = 'GE Link LED Bulb'
+
+
+DevicePower.source                  DevicePower.SOURCE_LINE
+DevicePower.linecapable             true
+DevicePower.backupbatterycapable    false
+Switch.state                        Switch.STATE_ON
+Dimmer.brightness                   DFLT_BRIGHTNESS
+Light.colormode                     Light.COLORMODE_NORMAL
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} started.", DEVICE_NAME
+
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		levelCluster.bindServerCluster() )
+}
+
+
+onConnected {
+	log.debug "{} connected.", DEVICE_NAME
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// restore device settings to match capability attributes
+	GenericZigbeeDimmer.restoreDeviceSettings(this, DEVICE_NAME, levelCluster, onOffCluster)
+	
+	GenericZigbeeDimmer.doDefaultConfiguration(this, DEVICE_NAME, (byte)1)
+}
+
+onDisconnected {
+	log.debug "{} disconnected.", DEVICE_NAME
+}
+
+
+onRemoved {
+	log.debug "{} removed.", DEVICE_NAME
+}
+
+
+////////////////////////////////////////
+///    Events
+////////////////////////////////////////
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.DEFERRED_ON_EVENT ) {
+	GenericZigbeeDimmer.doDeferredOnEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.READ_SWITCH_EVENT ) {
+	GenericZigbeeDimmer.doReadSwitchEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.READ_LEVEL_EVENT ) {
+	GenericZigbeeDimmer.doReadLevelEvent(this, DEVICE_NAME, levelCluster)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes() {
+	GenericZigbeeDimmer.doSetAttributes(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZigbeeDimmer.doRampBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZigbeeDimmer.doIncrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZigbeeDimmer.doDecrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.trace "{} driver received OnOff Attributes Response: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleOnOffMsgWithRestore(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.trace "{} driver received OnOff Attributes Report: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleOnOffMsgWithRestore(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.trace "{} driver received Level Attributes Response: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleLevelMsg(this, DEVICE_NAME, levelCluster, onOffCluster, false, message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.trace "{} driver received Level Attributes Report: {}", DEVICE_NAME, message
+	GenericZigbeeDimmer.handleLevelMsg(this, DEVICE_NAME, levelCluster, onOffCluster, false, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+	log.trace "Driver received onIdentify.Identify"
+	// ask the device to identify itself by flashing ON and OFF
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "{} driver received zigbee ZCL message: {}", DEVICE_NAME, message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	
+	// if Config Reporting Response for On/Off cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "On/Off reporting config was successful"
+		} else {
+			log.warn "On/Off reporting config FAILED: {}", data
+		}
+		return
+	}
+
+	// if Config Reporting Response for Level cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Level reporting config was successful"
+		} else {
+			log.warn "Level reporting config FAILED: {}", data
+		}
+		return
+	}
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:{}", profile, clusterId, msgId, endpoint, flags, data
+}
+
+

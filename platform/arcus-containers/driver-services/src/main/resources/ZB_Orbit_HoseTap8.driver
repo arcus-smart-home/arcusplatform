@@ -1,0 +1,385 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Orbit Hose Tap 8 Timer
+ * 
+ * FACTORY RESET:
+ *  - Press the "Reset" button 5 times in rapid secession.
+ *    
+ * IDENTIFY:
+ *  - Performing an Identify operation flashes "tESt" on the LCD display for 3 minutes (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * CHECK-IN INTERVAL:		Every 2 minutes
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours
+ *  - At most every hour, if level changes by 0.2 Volts or more (ignore 0.1 volt jitter)
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - Device does NOT support Diagnostics cluster
+ * 
+ * ISSUES/NOTES
+ *  - !!!!! The "Current ON Duration" attribute of the On/Off cluster is NOT reportable. !!!!!
+ *  - This device uses the standard Off (0x00) command from the On/Off (0x0006) cluster, but does not use the standard On (0x01) command, 
+ *    but instead uses the On-For-Duration (0x03) command with the manufacturer specific bit set, and a manufacturer code of 0x1039 (we agreed 
+ *    to use AlertMe code at the time, since Orbit and Lowe's didn't have one).
+ *  - This device requires the Iris Hub to act as a Time server and it issues ReadAttribute requests for the Local Time (0x07) attribute of 
+ *    the Time (0x000A) cluster in order to synchronize its internal clock for scheduling purposes.
+ *  - To determine what wireless chip firmware is running on your HT-8, turn the knob to OFF... then press and hold both the "Manual" and "+" button 
+ *    for five seconds. The device will flash a number.
+ * 
+ * 11/10/15 - Updated driver to retry setting Reporting configurations upto 10 times, with progressive delay of 10 seconds times the attempt count,
+ *            until the configuration is successful (a Config Reporting Response with status of SUCCESS (0) is received).
+ * 
+ */
+import groovy.transform.Field
+import com.iris.protocol.zigbee.zcl.OnOff
+import com.iris.protocol.zigbee.zcl.Thermostat
+ 
+driver			"ZBOrbitHT8"
+description		"Driver for the Orbit Hose Tap 8 Timer"
+version			"1.0"
+protocol		   "ZIGB"
+deviceTypeHint	"Irrigation"
+productId		"deda9d"
+vendor 			"Orbit"
+model 			"27087"
+
+matcher			'ZIGB:vendor': 'Orbit', 'ZIGB:model': 'HT8-ZB'
+
+capabilities	IrrigationController, IrrigationSchedulable, Identify, DevicePower, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+importCapability 'zigbee/GenericZigbeeIdentify'
+importCapability 'zigbee/GenericZigbeeDevicePower'
+importCapability 'zigbee/GenericZigbeeOrbitIrrigationZone'
+importCapability 'zigbee/GenericZigbeeOrbitIrrigationController'
+importCapability 'zigbee/HT8ZigbeeOrbitIrrigationSchedulable'
+
+////////////////////////////////////////////////////////////////////////////////
+// Manufacturer ID:       0x111B
+// Manufacturer:          Orbit
+// Model:                 HT8-ZB
+//
+// 1 End Point
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0006     On/Off
+//   0x0020     Poll Control
+//   0x0201     Thermostat
+// OUT Clusters
+//   0x000A     Time
+//   0x0019     OTA Upgrade
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower.battery					   0
+DevicePower.source                  DevicePower.SOURCE_BATTERY
+DevicePower.linecapable             false
+DevicePower.backupbatterycapable    false
+
+IrrigationController.numZones NUMBER_OF_ZONES
+IrrigationController.minirrigationtime MIN_DURATION
+IrrigationController.maxirrigationtime MAX_DURATION
+IrrigationController.maxtransitions 7
+IrrigationController.maxdailytransitions 4
+
+@Field static final String DEVICE_NAME = 'Orbit HT8'
+@Field static final int OFFLINE_TIMEOUT_SECS = 600
+@Field static final int MIN_DURATION = 1
+@Field static final int MAX_DURATION = 1440
+@Field static final short IDENTIFY_PERIOD_SECS = 120
+
+@Field static final String ZONE_PREFIX = 'z'
+@Field static final int NUMBER_OF_ZONES = 1
+@Field static final short CLUSTER_ON_OFF = 0x0006
+@Field static final short CLUSTER_THERMOSTAT = 0x0201
+
+//@Field static final double POWER_MIN_VOLTS = 2.4      // Documentation indicates 2.4V
+//@Field static final double POWER_NOMINAL_VOLTS = 3.0  // 2 AA Batteries = 3.0V
+
+@Field static final byte END_POINT = 1
+def final timeCluster = Zigbee.endpoint(END_POINT).Time
+def final identifyCluster = Zigbee.endpoint(END_POINT).Identify
+def final pwrCluster = Zigbee.endpoint(END_POINT).Power
+def final pollCluster  = Zigbee.endpoint(END_POINT).PollControl
+def final otaCluster  = Zigbee.endpoint(END_POINT).Ota
+@Field def final dvcEndPoint = Zigbee.endpoint(END_POINT)
+
+1.upto(NUMBER_OF_ZONES,{
+	// declare named instances of IrrigationZone capability
+	instance ZONE_PREFIX+it, IrrigationZone
+
+   def zoneInstance = ZONE_PREFIX + it
+   IrrigationZone.zonenum."${zoneInstance}"  it
+   IrrigationZone.defaultDuration."${zoneInstance}" 1
+
+	// declare clusters for each zone
+	["OnOff"].each { clusterName ->
+		def clusterInstanceName =  clusterName+it
+		this[clusterInstanceName] = Zigbee.endpoint((byte)it)."${clusterName}"
+	}
+})
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "{} added.", DEVICE_NAME
+	
+	vars."DVC_TYPE" = "HT8"
+	
+	// set default attribute values
+
+	Zigbee.bindAll()
+   HT8ZigbeeOrbitIrrigationSchedulable.clearAllSchedules(this,DEVICE_NAME,NUMBER_OF_ZONES)
+	DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+
+onConnected {
+	log.debug "{} connected.", DEVICE_NAME
+
+   IrrigationController.maxirrigationtime MAX_DURATION
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set long poll interval to 24 quarter seconds, and short poll interval to 2 quarter seconds
+	// Note: min Long Poll interval seems to be 24, device responds to 20 with 'Invalid Value'
+	pollCluster.setLongPollInterval((int)24)
+	pollCluster.setShortPollInterval((short)2)
+
+	pwrCluster.zclReadAttributes(
+		pwrCluster.ATTR_BATTERY_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_RATED_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD,
+		pwrCluster.ATTR_BATTERY_ALARM_MASK )
+
+	vars.CNFG_PWR_RPT = 0
+	vars.CNFG_POLL_CTRL = 0
+	Scheduler.scheduleIn GenericZigbeeOrbitIrrigationController.CNFG_PWR_RPT, GenericZigbeeOrbitIrrigationController.CNFG_RETRY_DELAY_MSEC
+	Scheduler.scheduleIn GenericZigbeeOrbitIrrigationController.CNFG_POLL_CTRL, GenericZigbeeOrbitIrrigationController.CNFG_RETRY_DELAY_MSEC
+}
+
+onDisconnected {
+   log.debug "{} disconnected.", DEVICE_NAME
+}
+
+
+onRemoved {
+   log.debug "{} removed.", DEVICE_NAME
+}
+
+onEvent(GenericZigbeeOrbitIrrigationController.DFR_ZONE_READS) {
+   def numZones = IrrigationController.numZones.get()
+	1.upto(numZones,{this[GenericZigbeeOrbitIrrigationController.ONOFF_CLUSTER+it].zclReadAttributes(OnOff.ATTR_ONOFF)})
+}
+
+onEvent(GenericZigbeeOrbitIrrigationController.CNFG_THERM_RPT) {
+	if (0 <= vars.CNFG_THERM_RPT) {
+		GenericZigbeeOrbitIrrigationController.doConfigureThermostatReporting(this,"orbit irrigation controller")
+	} else {
+		Scheduler.cancel GenericZigbeeOrbitIrrigationController.CNFG_THERM_RPT
+	}
+}
+
+onEvent(GenericZigbeeOrbitIrrigationController.CNFG_ON_OFF_RPT) {
+	if (0 <= vars.CNFG_ON_OFF_RPT) {
+		GenericZigbeeOrbitIrrigationController.doConfigureOnOffReporting(this,"orbit irrigation controller")		
+	} else {
+		Scheduler.cancel GenericZigbeeOrbitIrrigationController.CNFG_ON_OFF_RPT
+	}
+}
+
+onEvent(GenericZigbeeOrbitIrrigationController.CNFG_PWR_RPT) {
+	if (0 <= vars.CNFG_PWR_RPT) {
+		GenericZigbeeOrbitIrrigationController.doConfigurePowerReporting(this,"orbit irrigation controller",END_POINT)
+	} else {
+		Scheduler.cancel GenericZigbeeOrbitIrrigationController.CNFG_PWR_RPT
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Irrigation Schedulable
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('irrsched') {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleSetAttributes(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.EnableSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleEnableSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.DisableSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleDisableSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.ClearEvenOddSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleClearEvenOddSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.SetEvenOddSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleSetEvenOddSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.ClearIntervalSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleClearIntervalSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.SetIntervalSchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleSetIntervalSchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.SetIntervalStart {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleSetIntervalStart(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.ClearWeeklySchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleClearWeeklySchedule(this,DEVICE_NAME,message)
+}
+
+onIrrigationSchedulable.SetWeeklySchedule {
+   HT8ZigbeeOrbitIrrigationSchedulable.doHandleSetWeeklySchedule(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Irrigation Controller
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('irrcont') {
+   GenericZigbeeOrbitIrrigationController.doHandleSetAttributes(this,DEVICE_NAME,message)
+}
+
+onIrrigationController.WaterNowV2 {
+   GenericZigbeeOrbitIrrigationController.doHandleWaterNowV2(this,DEVICE_NAME,message)
+}
+
+onIrrigationController.CancelV2 {
+   GenericZigbeeOrbitIrrigationController.doHandleCancelV2(this,DEVICE_NAME,message)
+}
+
+onIrrigationController.WaterNow {
+   GenericZigbeeOrbitIrrigationController.doHandleWaterNow(this,DEVICE_NAME,message)
+}
+
+onIrrigationController.Cancel {
+   GenericZigbeeOrbitIrrigationController.doHandleCancel(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	GenericZigbeeOrbitIrrigationController.doHandleOnOffMsg(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	GenericZigbeeOrbitIrrigationController.doHandleOnOffMsg(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.thermostat.zclreportattributes() {
+	GenericZigbeeOrbitIrrigationController.doHandleThermostatMsg(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.thermostat.zclreadattributesresponse() {
+	GenericZigbeeOrbitIrrigationController.doHandleThermostatMsg(this,DEVICE_NAME,message)
+}
+
+onEvent('IrrigationControllerDeferredReadDuration') {
+   GenericZigbeeOrbitIrrigationController.doHandleIrrigationControllerDeferredReadDuration(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Irrigation Zone
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('irr') {
+   GenericZigbeeOrbitIrrigationZone.doHandleSetAttributes(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+   GenericZigbeeIdentify.doHandleIdentify(this,DEVICE_NAME,identifyCluster,IDENTIFY_PERIOD_SECS)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message,false)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message,false)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message,false)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DevicePower Capability
+////////////////////////////////////////////////////////////////////////////////
+ 
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	GenericZigbeeDevicePower.doHandleDevicePower(this,DEVICE_NAME,message,pwrCluster,2.4,3.0)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	vars.CNFG_PWR_RPT = -1
+	GenericZigbeeDevicePower.doHandleDevicePower(this,DEVICE_NAME,message,pwrCluster,2.4,3.0)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   if (GenericZigbeeOrbitIrrigationController.doHandleZigbeeResponse(this,DEVICE_NAME,message)) {
+      return
+   }
+
+   if (HT8ZigbeeOrbitIrrigationSchedulable.doHandleZigbeeResponse(this,DEVICE_NAME,message)) {
+      return
+   }
+
+	log.debug "{} received unknown zigbee message: {}", DEVICE_NAME, message
+}
+

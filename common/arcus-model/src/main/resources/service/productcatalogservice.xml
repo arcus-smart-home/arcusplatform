@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="ProductCatalogService"
+           namespace="prodcat"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Service methods for retrieving the product catalog.
+   </s:description>
+	
+   <s:methods>
+   
+	   <s:method 
+	         name="GetProductCatalog"
+	         description="Returns information about the product catalog for the context population."
+	         isRESTful="true">
+	      <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the product catalog"/>
+	      <s:return 
+	            name="catalog" 
+	            type="ProductCatalog" 
+	            description="The product catalog" 
+	            />
+	   </s:method>
+
+	   <s:method 
+	         name="GetCategories"
+			 description="Returns a list of all the categories as a structure (name, image) referenced in this catalog as well as counts by category.  Nested catagories will be returned as fully qualified forward-slash delimited paths"
+			 isRESTful="true">
+		  <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the categories"/>
+		  <s:return name="categories" type="List&lt;Object&gt;" description=""/>
+          <s:return name="counts" type="Map&lt;int&gt;" description="The counts of products by category name"/>
+	   </s:method>
+
+	   <s:method
+	         name="GetBrands"
+             description="Returns a list of all the brands referenced in this catalog where each is a structure containing (name, image, description).  In addition the counts of products by brand name are returned."
+             isRESTful="true">
+          <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the brands"/>
+          <s:return name="brands" type="List&lt;Object&gt;" description="" />
+          <s:return name="counts" type="Map&lt;int&gt;" description="The counts of products by brand name"/>
+       </s:method>
+
+       <s:method
+             name="GetProductsByBrand"
+             description=""
+             isRESTful="true">
+          <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the products"/>
+          <s:parameter name="brand" type="string" description=""/>
+          <s:parameter name="hubrequired" type="boolean" optional="true" description="True/False value of hubrequired to further filter list by, if client's do not provide a value this will default to NULL which will cause it to return products under specified brand name"/>
+          <s:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+       </s:method>
+
+       <s:method name="GetProductsByCategory"
+			description=""
+			isRESTful="true">
+		  <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the products"/>
+          <s:parameter name="category" type="string" description=""/>
+          <s:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+       </s:method>
+
+       <s:method
+             name="GetProducts"
+             description=""
+             isRESTful="true">
+          <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the products"/>
+	      <s:parameter 
+	            name="include"
+	            description="Type of product catalog entries to include, defaults to BROWSEABLE."
+	            optional="true"
+	            values="ALL,BROWSEABLE"
+	            type="enum"
+	      	    />
+    	  <s:parameter name="hubRequired" type="boolean" optional="true" description="True/False value of hubrequired to further filter list by, if client's do not provide a value this will default to NULL which will cause it to return either the default BROWSEABLE or ALL products"/>           
+          <s:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+       </s:method>
+
+       <s:method
+             name="FindProducts"
+             description=""
+             isRESTful="true">
+          <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for finding the products"/>
+          <s:parameter name="search" type="string" description=""/>
+          <s:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+       </s:method>
+
+       <s:method
+             name="GetProduct"
+             description=""
+             isRESTful="true">
+          <s:parameter name="place" type="string" optional="true" description="The place whose population should be used for getting the product"/>
+          <s:parameter name="id" type="string" description=""/>
+          <s:return name="product" type="ProductCatalogEntry" description="" />
+       </s:method>
+
+   </s:methods>
+
+</s:service>

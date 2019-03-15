@@ -1,0 +1,49 @@
+struct zwave.Protocol.Message {
+   u8 type;
+   u32 length;
+   u8[length] payload;
+}
+
+message zwave.Protocol.Command<id="0x01"> {
+   u8 nodeId;
+   u8 commandClassId;
+   u8 commandId;
+   u32 length;
+   u8[length] payload;
+}
+
+message zwave.Protocol.NodeInfo<id="0x02"> {
+   u8 nodeId;
+   u8 status;
+   u8 basic;
+   u8 generic;
+   u8 specific;
+}
+
+message zwave.Protocol.SetOfflineTimeout<id="0x03"> {
+   u8 nodeId;
+   u32 seconds;
+}
+
+struct zwave.Protocol.Schedule {
+   u32 length;
+   u8[length] payload;
+}
+
+message zwave.Protocol.SetSchedule<id="0x04"> {
+   u8 nodeId;
+   u32 seconds;
+   u32 numSchedules;
+   Schedule[numSchedules] schedule;
+}
+
+message zwave.Protocol.OrderedCommands<id="0x05"> {
+   u32 length;
+   Message[length] payload;
+}
+
+message zwave.Protocol.DelayedCommands<id="0x06"> {
+   u64 delay;
+   u32 length;
+   Message[length] payload;
+}

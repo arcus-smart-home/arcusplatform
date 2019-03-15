@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="IrrigationTransitionEvent"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Extension of IrrigationScheduleEvent for weekly schedules
+   </t:description>
+
+   <t:attributes>
+   
+      <t:attribute
+         name="controller"
+         type="string"
+         description="The address of the controller owning the zone"/>
+   
+      <t:attribute
+         name="startTime"
+         type="timestamp"
+         description="The actual start time of this event within the sequence"/>
+      
+      <t:attribute
+         name="timeOfDay"
+         type="string"
+         description="The time of day in HH:mm format that the transition fires"/>
+
+      <t:attribute
+         name="zone"
+         type="string"
+         description="The identifier for the zone to be watered"/>
+
+      <t:attribute
+         name="status"
+         type="enum"
+         values="APPLIED,PENDING,RETRYING,FAILED"
+         description="The state of the event with regards to whether or not its been applied:
+APPLIED:  The event has been applied
+PENDING:  The event is in the process of being applied the first time
+RETRYING: The event has failed at least once and the subsystem is retrying
+FAILED:   The event has failed to be applied even after retrying"
+      />
+
+      <t:attribute
+         name="retryCount"
+         type="int"
+         description="The number of time the subsytem has retried applying this specific event"/>
+
+      <t:attribute
+         name="duration"
+         type="int"
+         description="The duration in minutes that the zone will be watered."/>
+
+   </t:attributes>
+
+</t:type>

@@ -1,0 +1,258 @@
+<rule-catalog>
+
+	<metadata version="2015-04-23T18:23:09.123" hash="6a757c1cd50d9486df652ef579b4e954"
+		publisher="Human" />
+
+	<categories>
+		<category name="Buttons &amp; Fobs" />
+		<category name="Cameras &amp; Sensors" />
+		<category name="Care" />
+		<category name="Climate" />
+		<category name="Doors &amp; Locks" />
+		<category name="Energy" />
+		<category name="Home &amp; Family" />
+		<category name="Lawn &amp; Garden" />
+		<category name="Lights &amp; Switches" />
+		<category name="Notifications" />
+		<category name="Other" />
+		<category name="Scene" />
+		<category name="Security Alarm" />
+		<category name="Smoke &amp; CO" />
+		<category name="Water" />
+		<category name="Windows &amp; Blinds" />
+	</categories>
+
+	<templates>
+		<template id="bd1116" keywords="button" tags="note, but"
+			added="2015-08-05T00:00:00" modified="2015-08-05T00:00:00"
+			name="Who Pressed a Smart Button?"
+			description="Notify someone when a smart button has been pressed."
+			premium="false">
+			<populations>
+				<population name="general" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+				<category name="Notifications" />
+			</categories>
+			<description>When ${button} is pressed then send ${person} a message via ${method}.</description>
+			<conditions>
+				<attribute-value-change attribute="but:state" new="PRESSED" query="base:address == '${button}'"/>
+			</conditions>
+			<actions>
+				<notify to="${person}" priority="${method}" key="rule.bd1116.button.pressed">
+					<parameters>
+						<parameter name="button">
+							<attribute-value address="${button}" attribute="dev:name" />
+						</parameter>
+						<parameter name="time">
+							<datetime-value type="datetime" />
+						</parameter>
+						<parameter name="_ruleName">
+                            <constant-value value="${_ruleName}" />
+                        </parameter>
+					</parameters>
+				</notify>
+			</actions>
+			<selectors>
+				<selector type="device" name="button" query="but:state is supported" />
+				<selector type="person" name="person" />
+				<selector type="constant" name="method">
+					<options>
+						<option label="Push Notification" value="medium" />
+						<option label="Email" value="low" />
+					</options>
+				</selector>
+			</selectors>
+		</template>
+
+		<template id="16536e" keywords="button" tags="swit, but"
+			added="2015-08-05T00:00:00" modified="2015-08-05T00:00:00"
+			name="Control Devices with a Button"
+			description="Turn a device on or off by pressing a custom button."
+			premium="false">
+			<populations>
+				<population name="beta" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+			</categories>
+			<description>When ${button} is pressed then toggle state of ${switch}.</description>
+			<satisfiable-if>
+				<satisfiable query="base:caps contains 'swit'" />
+			</satisfiable-if>
+			<conditions>
+				<attribute-value-change attribute="but:state" query="base:address == '${button}'"  new="PRESSED" />
+			</conditions>
+			<actions>
+				<device-query var="address" query="base:address == '${switch}' and swit:state == 'ON'">
+					<set-attribute to="${address}" name="swit:state" value="OFF" />
+				</device-query>
+				<device-query var="address" query="base:address == '${switch}' and swit:state != 'ON'">
+					<set-attribute to="${address}" name="swit:state" value="ON" />
+				</device-query>
+			</actions>
+			<selectors>
+				<selector type="device" name="button" query="but:state is supported" />
+				<selector type="device" name="switch" query="base:caps contains 'swit'" />
+			</selectors>
+		</template>
+
+		<template id="80d915" keywords="button" tags="vent,but"
+         added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
+         name="Touch-Button Comfort"
+         description="Open or close a vent when a Smart Button is pressed."
+         premium="false">
+         <populations>
+            <population name="general" />
+         </populations>
+         <categories>
+            <category name="Buttons &amp; Fobs" />
+         </categories>
+         <description>When ${button} is pressed then open or close ${vent}.</description>
+         <conditions>
+            <attribute-value-change attribute="but:state" query="base:address == '${button}'"  new="PRESSED" />
+         </conditions>
+         <actions>
+            <device-query var="address" query="base:address == '${vent}' and (vent:level != 0)">
+               <set-attribute to="${address}" name="vent:level" value="0" />
+            </device-query>
+            <device-query var="address" query="base:address == '${vent}' and (vent:level &lt; 1)">
+               <set-attribute to="${address}" name="vent:level" value="100" />
+            </device-query>
+         </actions>
+         <selectors>
+            <selector type="device" name="button" query="but:state is supported" />
+            <selector type="device" name="vent" query="base:caps contains 'vent'" />
+         </selectors>
+      </template>
+
+      <template id="f37345" keywords="button" tags="scene, but"
+			added="2015-11-13T00:00:00"
+			modified="2015-11-13T00:00:00"
+			name="Push Button Scene"
+			description="Run a scene when a Smart Button is pressed."
+			premium="false">
+			<populations>
+				<population name="qa" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+				<category name="Scene" />
+			</categories>
+			<description>When ${button} is pressed then run ${scene}.</description>
+			<conditions>
+				<attribute-value-change attribute="but:state" new="PRESSED" query="base:address == '${button}'"/>
+			</conditions>
+			<actions>
+				<send to="${scene}" method="scene:Fire" />
+			</actions>
+			<selectors>
+				<selector type="device" name="button" query="but:state is supported" />
+				<selector type="scene" name="scene" />
+			</selectors>
+		</template>
+
+      <template id="3502e4" keywords="lock" tags="doorlock,pres"
+         added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
+         name="Lock Up When I Leave"
+         description="When I leave home, lock my doors."
+         extra="Keyfobs and Pendants are subject to delays in order to conserve battery life."
+         premium="false">
+         <populations>
+            <population name="beta" />
+            <population name="qa" />
+         </populations>
+         <categories>
+            <category name="Buttons &amp; Fobs" />
+            <category name="Home &amp; Family" />
+            <category name="Doors &amp; Locks" />
+         </categories>
+         <description>When ${a person or device} is absent then lock ${door}.</description>
+         <conditions>
+            <or>
+	            <received message="subspres:Departed" from="SERV:subspres:${_placeId}">
+	            	<attribute name="target" value="${a person or device}" />
+	            </received>
+	            <received message="subspres:Departed" from="SERV:subspres:${_placeId}">
+	            	<attribute name="device" value="${a person or device}" />
+	            </received>
+            </or>
+         </conditions>
+         <actions>
+            <set-attribute to="${door}" name="doorlock:lockstate" value="LOCKED" />
+         </actions>
+         <selectors>
+            <selector type="presence" name="a person or device" />
+            <selector type="device" name="door" query="base:caps contains 'doorlock'" multiple="true" />
+         </selectors>
+      </template>   
+   <template id="ed7648" keywords="button,shade" tags="but,shade"
+         added="2017-05-21T00:00:00" modified="2017-05-21T00:00:00"
+         name="Control Blinds with a V1 Key Fob"
+         description="Control blinds and shades using a 1st Gen Key Fob."
+         premium="false">
+         <populations>
+ 			<population name="general" />
+            <population name="qa" />
+         </populations>
+         <categories>
+            <category name="Windows &amp; Blinds" />
+            <category name="Buttons &amp; Fobs" />
+         </categories>
+         <description>When ${button} is pressed on ${1st gen key fob}, then ${open or close} ${blind or shade}.</description>
+         <conditions>
+            <attribute-value-change attribute="but:state:${button}" new="PRESSED" query="base:address == '${1st gen key fob}'" />
+         </conditions>
+         <actions>
+            <if var="${open or close}" equals="open">
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'shade'">
+                  <set-attribute to="${address}" name="shade:level" value="100" />
+               </device-query>
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'somfyv1'">
+                  <send to="${address}" method="somfyv1:GoToOpen" />
+               </device-query>
+            </if>
+            <if var="${open or close}" equals="close">
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'shade'">
+                  <set-attribute to="${address}" name="shade:level" value="0" />
+               </device-query>
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'somfyv1'">
+                  <send to="${address}" method="somfyv1:GoToClosed" />
+               </device-query>
+            </if>
+            <if var="${open or close}" equals="toggle">
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'shade' AND shade:level &lt; 50">
+                  <set-attribute to="${address}" name="shade:level" value="100" />
+               </device-query>
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'shade' AND shade:level &gt;= 50">
+                  <set-attribute to="${address}" name="shade:level" value="0" />
+               </device-query>
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'somfyv1' AND somfyv1:currentstate != 'OPEN'">
+                  <send to="${address}" method="somfyv1:GoToOpen" />
+               </device-query>
+               <device-query var="address" query="base:address == '${blind or shade}' AND base:caps contains 'somfyv1' AND somfyv1:currentstate == 'OPEN'">
+                  <send to="${address}" method="somfyv1:GoToClosed" />
+               </device-query>
+            </if>
+         </actions>
+         <selectors>
+            <selector name="button" type="constant">
+               <options>
+                  <option label="Home" value="home" />
+                  <option label="Away" value="away" />
+               </options>
+            </selector>
+            <selector name="1st gen key fob" type="device" query="dev:productId = '486390'" />
+            <selector name="blind or shade" type="device" query="base:caps contains 'shade' OR base:caps contains 'somfyv1'" />
+            <selector name="open or close" type="constant">
+               <options>
+                  <option label="open"   value="open" />
+                  <option label="close"  value="close" />
+                  <option label="toggle" value="toggle" />
+               </options>
+            </selector>
+         </selectors>
+      </template>
+   </templates>
+</rule-catalog>

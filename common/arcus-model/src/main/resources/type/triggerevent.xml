@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="TriggerEvent"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an trigger event for use within the alarming subsystems</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="device"
+         type="string"
+         description="The address of the device that triggered the event"/>
+
+      <t:attribute
+         name="time"
+         type="timestamp"
+         description="The time of the event"/>
+         
+      
+      <t:attribute
+         name="type"
+         type="string"
+         description="The type of event that was triggered"/>
+
+   </t:attributes>
+ </t:type>

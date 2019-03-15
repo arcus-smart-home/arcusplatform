@@ -1,0 +1,15 @@
+*** Your payment has been refunded ***
+
+We have processed a refund in the amount of {{{transaction_amount}}}.
+
+{{^transaction_ach?}}
+This refund will appear on your next credit card statement in
+approximately 3-5 business days.
+{{/transaction_ach?}}
+
+{{#company_hosted_account_management_enabled?}}
+View your invoice online: {{invoice_guest_view_url}}
+{{/company_hosted_account_management_enabled?}}
+
+If you have any questions, don't hesitate to contact us at
+{{company_email}} regarding this refund transaction.

@@ -1,0 +1,50 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Platform implementation of DeviceConnection.
+ */
+capability     DeviceConnection
+description    "Default implementation for Device Connection"
+version        "1.0"
+
+onConnected {
+   log.debug "PlatformDeviceConnection [onConnected] {}", now()
+   attributes.state = DeviceConnection.STATE_ONLINE
+   attributes.lastchange = now()
+}
+
+onDisconnected {   
+   def caps = attributes['base:caps']
+   def curStatus = attributes['devconn:status']
+   log.debug "PlatformDeviceConnection [onDisconnected] {}, {}", now(), curStatus
+   if(caps != null && caps.contains('pres') && DeviceConnection.STATUS_LOST != curStatus) {
+      log.debug "Presence device will not be marked offline"
+   } else {
+      attributes.state = DeviceConnection.STATE_OFFLINE
+      attributes.lastchange = now()
+   }
+}
+
+onControl('DeviceOfflineEvent') {
+   log.debug "Device marked offline [DeviceOfflineEvent] {}", now()
+   disconnected();
+}
+
+onControl('DeviceOnlineEvent') {
+   log.debug "Device marked online [DeviceOnlineEvent] {}", now()
+   connected();
+}
+

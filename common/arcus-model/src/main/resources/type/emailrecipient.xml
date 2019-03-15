@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="EmailRecipient"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an email recipient for a direct email notification</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="email"
+         type="string"
+         description="The email address"/>
+      <t:attribute
+         name="firstName"
+         type="string"
+         description="The first name"/>
+      <t:attribute
+         name="lastName"
+         type="string"
+         description="The last name"/>
+   </t:attributes> 
+</t:type>

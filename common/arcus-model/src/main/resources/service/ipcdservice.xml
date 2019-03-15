@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="IpcdService"
+           namespace="ipcd"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   IPCD Service
+   </s:description>
+   
+   <s:methods>
+      <s:method name="ListDeviceTypes" description="Lists the available vendor/model combinations for supported IPCD devices">
+         <s:return name="deviceTypes" type="list&lt;IpcdDeviceType&gt;" description="List of supported IPCD device types" optional="false"/>
+      </s:method>
+      
+      <s:method name="FindDevice" description="Finds the IPCD device for the given vendor/model/sn combination that uniquely identies an IPCD device">
+         <s:parameter name="deviceType" type="IpcdDeviceType" description="The type of device to search for" optional="false"/>
+         <s:parameter name="sn" type="string" description="The serial number of the device the user would register with" optional="false"/>
+         <s:return name="ipcdDevice" type="IpcdDevice" description="A structure containing the IPCD device information" optional="false"/>
+         <s:return name="device" type="object" description="The full device object if the IPCD device is registered" optional="true"/>
+      </s:method>
+      
+      <s:method name="ForceUnregister" description="Forces unregistration of an IPCD device">
+         <s:parameter name="protocolAddress" type="string" description="The protocol address of the device to forcibly remove"/>
+      </s:method>
+   </s:methods>
+   
+   <s:events>
+      <s:event name="DeviceClaimed" description="Issued from the IPCD Service to the IPCD Briges(s)/SAD Server when a device has been claimed">
+         <s:parameter name="protocolAddress" type="string" description="Protocol address of the device claimed" optional="false"/>
+         <s:parameter name="accountId" type="string" description="The account ID that claimed the device" optional="false"/>
+         <s:parameter name="placeId" type="string" description="The place ID that claimed the device" optional="false"/>
+      </s:event>
+      
+      <s:event name="DeviceRegistered" description="Issued from the IPCD Service to the IPCD Bridge(s)/SAD Server when a device has been fully registered (i.e. has a driver)">
+         <s:parameter name="protocolAddress" type="string" description="Protocol address of the device fully registered" optional="false"/>
+         <s:parameter name="accountId" type="string" description="The account ID that claimed the device" optional="false"/>
+         <s:parameter name="placeId" type="string" description="The place ID that claimed the device" optional="false"/>
+         <s:parameter name="driverAddress" type="string" description="The address of the driver created" optional="false"/>
+      </s:event>
+      
+      <s:event name="DeviceUnregistered" description="Issued from the IPCD Service to the IPCD Bridge(s)/SAD Server when a device has been unregistered">
+         <s:parameter name="protocolAddress" type="string" description="Protocol address of the device unregistered" optional="false"/>
+      </s:event>
+      
+      <s:event name="DeviceConnected" description="Issued from the IPCD Bridge(s)/SAD Server when a device comes online.  The source should be the specific IPCD bridge/SAD Server">
+         <s:parameter name="protocolAddress" type="string" description="Protocol address of the device that came online" optional="false"/>
+      </s:event>
+      
+      <s:event name="DeviceDisconnected" description="Issued from the IPCD Bridge(s)/SAD Server when a device goes offline.  The source should be the specific IPCD bridge/SAD Server">
+         <s:parameter name="protocolAddress" type="string" description="Protocol address of the device that went offline" optional="false"/>
+      </s:event>
+      
+      <s:event name="DeviceHeartBeat" description="Issued from the IPCD Bridge(s)/SAD Server with the protocol addresses of all online devices">
+         <s:parameter name="partitionId" type="int" description="The partition the devices are on" optional="false"/>
+         <s:parameter name="connectedDevices" type="set&lt;string&gt;" description="Protocol addresss of the devices connected" optional="false"/>
+      </s:event>
+      
+   </s:events>
+   
+</s:service>

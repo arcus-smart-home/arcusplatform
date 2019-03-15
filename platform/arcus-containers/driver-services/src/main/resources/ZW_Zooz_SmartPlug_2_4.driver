@@ -1,0 +1,321 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz Smart Plug
+ *
+ *
+ * ISSUES/NOTES:
+ *
+ * FACTORY RESET:  Press and hold the "Z-Wave" button for at least 20 seconds until LED lights Yellow for 2 seconds.
+ *
+ * PAIR/INCLUDE:   Press the "Z-Wave" button 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Press the "Z-Wave" button 3 times quickly while the hub is in exclusion mode.
+ *
+ * SECURE PAIR:    Press and hold the "Z-Wave" button for at least 3 seconds.  The LED will flash green
+ *                 and turn solid green when pairing is complete (up to 5 minutes).
+ *                 TODO: secure pairing does not seem to work with the hub
+ * 
+ * Command Classes:
+ *   0x25   (37) Switch_Binary
+ *   0x27   (39) Switch_All
+ *   0x2B   (43) Scene_Activation
+ *   0x2C   (44) Scene_Actuator_Conf
+ *   0x32   (50) Meter
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ */
+import groovy.transform.Field
+
+driver          "ZWZoozSmartPlugDriver"
+description     "Driver for a Zooz Smart Plug"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Switch"
+productId       "2a0a5e"
+vendor          "Zooz"
+model           "ZEN06"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0101, 'ZWAV:ProductId': 0x000A
+
+capabilities    DevicePower, Switch, PowerUse
+
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+PowerUse.instantaneous           0.0
+PowerUse.cumulative              0.0
+PowerUse.wholehome               false
+
+Switch.state                     Switch.STATE_OFF
+
+
+final int OFFLINE_TIMEOUT_SECS = 11400        // 190 minutes
+final int POLLING_INTERVAL_SEC = 3600         // Ask for current state every 60 minutes
+
+@Field final byte SWITCH_ON  = 0xff
+@Field final byte SWITCH_OFF = 0x00
+
+@Field final byte METER_SCALE_WATTS  = 0x10
+@Field final byte METER_SCALE_KW_HRS = 0x00
+
+
+// Config Parameters (http://products.z-wavealliance.org/products/1901/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_MODE_PARAM_NO             = 27         // parameter number to configure operation of LED Indicator
+final byte CNFG_LED_MODE_SIZE                        = 1          // size is 1 byte
+final byte CNFG_LED_MODE_VALUE                       = 1          // 0=Always ON (default), 1=5 seconds when state changed
+
+@Field final byte CNFG_OVERLOAD_PARAM_NO             = 20         // parameter number to set Current Overload Protection, Outlet will shut off if the Current overruns 16.5A for more than 5 seconds.
+final byte CNFG_OVERLOAD_SIZE                        = 1          // size is 1 byte
+final byte CNFG_OVERLOAD_VALUE                       = 1          // 0=Disabled, 1=Enabled (default)
+
+@Field final byte CNFG_REPOWER_PARAM_NO              = 21         // parameter number to set Switch status after re-power on
+final byte CNFG_REPOWER_SIZE                         = 1          // size is 1 byte
+final byte CNFG_REPOWER_VALUE                        = 0          // 0=last status (default), 1=always ON, 2=always OFF
+
+@Field final byte CNFG_NOTIFY_PARAM_NO               = 24         // parameter number to set status change notifications
+final byte CNFG_NOTIFY_SIZE                          = 1          // size is 1 byte
+final byte CNFG_NOTIFY_VALUE                         = 1          // 0=None, 1=manual(local) or remote, 2=only manual(local)
+
+@Field final byte CNFG_WATT_THRESH_PARAM_NO          = 151        // parameter number to set Change in Watts Threshold configuration
+final byte CNFG_WATT_THRESH_SIZE                     = 2          // size is 2 bytes
+final byte CNFG_WATT_THRESH_VALUE_1                  = 0          // high order byte for change threshold
+final byte CNFG_WATT_THRESH_VALUE_2                  = 5          // 0=Disable, 50=Default, 1-65535 range
+
+@Field final byte CNFG_WATT_PCT_THRESH_PARAM_NO      = 152        // parameter number to set Change in Watts Percent Threshold configuration
+final byte CNFG_WATT_PCT_THRESH_SIZE                 = 1          // size is 1 byte
+final byte CNFG_WATT_PCT_THRESH_VALUE                = 10         // 0=Disable, 10=Default, 1-255 range
+
+@Field final byte CNFG_PWR_RPT_FREQ_PARAM_NO         = 171        // parameter number to set how often to report power (Watts)
+final byte CNFG_PWR_RPT_FREQ_SIZE                    = 4          // size is 4 bytes (0=disabled, 30=default, 5-2678400 range)
+final byte CNFG_PWR_RPT_FREQ_VALUE_1                 = 0          // highest order byte for number of seconds
+final byte CNFG_PWR_RPT_FREQ_VALUE_2                 = 0
+final byte CNFG_PWR_RPT_FREQ_VALUE_3                 = 14         // highest order byte for number of seconds (3584)
+final byte CNFG_PWR_RPT_FREQ_VALUE_4                 = 16         // lowest order byte for number of seconds  (3584 + 16 = 3600)
+
+@Field final byte CNFG_ENG_RPT_FREQ_PARAM_NO         = 172        // parameter number to set how often to report energy (KWHrs)
+final byte CNFG_ENG_RPT_FREQ_SIZE                    = 4          // size is 4 bytes (0=disabled, 300=default, 5-2678400 range)
+final byte CNFG_ENG_RPT_FREQ_VALUE_1                 = 0          // highest order byte for number of seconds
+final byte CNFG_ENG_RPT_FREQ_VALUE_2                 = 0
+final byte CNFG_ENG_RPT_FREQ_VALUE_3                 = 14         // highest order byte for number of seconds (3584)
+final byte CNFG_ENG_RPT_FREQ_VALUE_4                 = 16         // lowest order byte for number of seconds  (3584 + 16 = 3600)
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+    
+    ZWave.switch_binary.get()
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+    // configure device
+    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+    ZWave.configuration.set( CNFG_OVERLOAD_PARAM_NO, CNFG_OVERLOAD_SIZE, CNFG_OVERLOAD_VALUE )
+    ZWave.configuration.set( CNFG_REPOWER_PARAM_NO, CNFG_REPOWER_SIZE, CNFG_REPOWER_VALUE )
+    ZWave.configuration.set( CNFG_NOTIFY_PARAM_NO, CNFG_NOTIFY_SIZE, CNFG_NOTIFY_VALUE )
+    ZWave.configuration.set( CNFG_WATT_THRESH_PARAM_NO, CNFG_WATT_THRESH_SIZE, CNFG_WATT_THRESH_VALUE_1, CNFG_WATT_THRESH_VALUE_2 )
+    ZWave.configuration.set( CNFG_WATT_PCT_THRESH_PARAM_NO, CNFG_WATT_PCT_THRESH_SIZE, CNFG_WATT_PCT_THRESH_VALUE )
+    ZWave.configuration.set( CNFG_PWR_RPT_FREQ_PARAM_NO, CNFG_PWR_RPT_FREQ_SIZE, CNFG_PWR_RPT_FREQ_VALUE_1, CNFG_PWR_RPT_FREQ_VALUE_2, CNFG_PWR_RPT_FREQ_VALUE_3, CNFG_PWR_RPT_FREQ_VALUE_4 )
+    ZWave.configuration.set( CNFG_ENG_RPT_FREQ_PARAM_NO, CNFG_ENG_RPT_FREQ_SIZE, CNFG_ENG_RPT_FREQ_VALUE_1, CNFG_ENG_RPT_FREQ_VALUE_2, CNFG_ENG_RPT_FREQ_VALUE_3, CNFG_ENG_RPT_FREQ_VALUE_4 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handle Switch Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+    def attributes = message.attributes
+    log.debug "setAttributes('swit'): {} ", attributes
+    for(attribute in attributes) {
+        switch(attribute.key) {
+            case Switch.state:
+                log.trace "Set State: {}", attribute.value
+                ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+                ZWave.switch_binary.get()    // read, in case device does not report
+                break
+
+            case Switch.inverted:
+                log.warn "Attempt to set unsupported attribute Switch.inverted"
+                break
+
+            default:
+                log.warn "Unrecognized attribute: {}", attribute
+                break
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+
+onZWaveMessage.meter.report {
+    log.trace "Meter Report: {}", message
+
+    byte meterType = message.command.get('MeterType') & 0x1F    // only lower 5 bits
+    byte scaleByte = message.command.get('Scale')
+
+    def prec = (scaleByte >> 5)                    // bits 5-7 are precision
+    def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
+    def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
+    log.trace "MeterType: {}, Precision: {}, Scale: {}, Size: {}", meterType, prec, scale, vSize
+
+    if ((1 == meterType) && (4 == vSize)) {        // if electrical meter, and 4 bytes long
+        // read int value
+        int val1 = message.command.get('Value1')
+        if (0 > val1) val1 = 256 + val1
+        val1 *= 256 * 256 * 256
+        int val2 = message.command.get('Value2')
+        if (0 > val2) val2 = 256 + val2
+        val2 *= 256 * 256
+        int val3 = message.command.get('Value3')
+        if (0 > val3) val3 = 256 + val3
+        val3 *= 256
+        int val4 = message.command.get('Value4')
+        if (0 > val4) val4 = 256 + val4
+        int val = val1 + val2 + val3 + val4
+        log.trace "Meter Val: {}", val
+
+        if (0 == scale) {            // kWh cumulative reading reported
+            double kwh = val / Math.pow( 10, prec )
+            log.trace "Cumulative kWh: {}", kwh
+            PowerUse.cumulative kwh * 1000            // capability units are Watt Hours, not kWh
+        } else if (2 == scale) {     // Watts instantanious power reading reported
+            double watts = val / Math.pow( 10, prec )
+            log.trace "Instantaneous Watts: {}", watts
+            PowerUse.instantaneous watts
+        }
+    }
+}
+
+onZWaveMessage.meter.supported_report {
+    log.trace "Meter Supported Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    log.trace "MsgBytes: {}", bytes
+
+    byte meterType = bytes[0]
+    byte scaleSupported = bytes[1]
+    log.debug "MeterType: {}, ScalesSupported: {}", meterType, scaleSupported
+
+    // this should be an Electrical Meter that supports Reset, and reports Watts and kWh
+    if (0x01 == (0x1F & meterType)) {
+        log.debug "Electrical Meter"
+    }
+
+    if (0 < (0x80 & meterType)) {
+        log.debug "Meter supports RESET"
+    }
+
+    if (0x01 & scaleSupported) {
+        log.debug "Meter reports kWatt hours cumulative power"
+    }
+
+    if (0x04 & scaleSupported) {
+        log.debug "Meter reports Watts"
+    }
+}
+
+
+void handleSwitchStateMsg(Object currentState) {
+    def prevState = Switch.state.get()
+    if (SWITCH_ON == currentState) {
+        Switch.state Switch.STATE_ON
+    } else if (SWITCH_OFF == currentState) {
+        Switch.state Switch.STATE_OFF
+    } else {
+        log.warn "Unexpected State value reported [expected 0(OFF) or -1(ON)]: {}", currentState
+    }
+    
+    if (Switch.state.get() != prevState) {
+        Switch.statechanged new Date()
+        log.debug "Switch State changed to {}", Switch.state.get()
+    }
+    
+    // if switch is OFF make sure instantaneous power is reset to 0.0 (device should report the change
+    // but we do it here just to make sure reading goes to zero right when state goes to OFF)
+    if (SWITCH_OFF == currentState) {
+        double watts = 0.0
+        PowerUse.instantaneous watts
+    }
+}
+
+
+onZWaveMessage.switch_binary.report {
+    log.trace "Binary Switch Report: {}", message
+    handleSwitchStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.report {
+    log.trace "Basic Report: {}", message
+    handleSwitchStateMsg message.command.get('value')
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+

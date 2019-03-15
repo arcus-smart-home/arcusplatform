@@ -1,0 +1,36 @@
+{{#section "subject"}}
+Alarm Permit Required
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Local emergency responders require you to have an alarm dispatch permit on file. 
+The authorities will ask for your permit code during the dispatch process. Failure 
+to obtain and enter permit information may result in fines, and emergency 
+responders may not respond. 
+
+Contact your local city office to request your dispatch permit. Add the permit 
+code to Settings>Place when you receive the information. 
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>Local emergency responders require you to have an alarm dispatch permit on file. 
+	The authorities will ask for your permit code during the dispatch process. Failure 
+	to obtain and enter permit information may result in fines, and emergency 
+	responders may not respond.</p>
+	<p>Contact your local city office to request your dispatch permit. Add the permit 
+	code to Settings>Place when you receive the information.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

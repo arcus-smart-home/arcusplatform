@@ -1,0 +1,29 @@
+{{#file . "com/iris/driver/groovy/ipcd/bindings/Data.java"}}
+package com.iris.driver.groovy.ipcd.bindings;
+
+import java.util.List;
+import java.util.Map;
+
+import groovy.lang.GroovyObjectSupport;
+
+import com.iris.driver.groovy.ipcd.IpcdMessageUtil;
+import com.iris.protocol.ipcd.message.model.*;
+
+public class Data extends GroovyObjectSupport {
+   {{#types}}
+   public {{capitalize name}} create{{capitalize name}}() {
+      return new {{capitalize name}}();
+   }
+   
+   {{#if hasProperties}}
+   public {{capitalize name}} create{{capitalize name}}({{#properties}}
+      {{{type}}} {{uncapitalize name}}{{#unless @last}}, {{/unless}}{{/properties}}) {
+      {{capitalize name}} {{uncapitalize name}} = new {{capitalize name}}();
+      {{#properties}}{{uncapitalize ../name}}.set{{capitalize name}}({{uncapitalize name}});
+      {{/properties}}
+      return {{uncapitalize name}};
+   }
+   {{/if}}
+   {{/types}}
+}
+{{/file}}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Zwave"
+   namespace="ZWAV"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   ZWave Protocol
+   </p:description>
+   
+   <p:attributes>
+      <p:attribute
+         name="Basic"
+         type="int"
+         description="The basic type" />
+      <p:attribute
+         name="Generic"
+         type="int"
+         description="The generic type" />
+      <p:attribute
+         name="Specific"
+         type="int"
+         description="The specific type" />
+      <p:attribute
+         name="Manufacturer"
+         type="int"
+         description="The manufacturer id" />
+      <p:attribute
+         name="ProductType"
+         type="int"
+         description="The product type id" />
+      <p:attribute
+         name="ProductId"
+         type="int"
+         description="The product id" />
+      <p:attribute
+         name="CommandClasses"
+         type="set&lt;byte&gt;"
+         description="The supported command classes." />
+   </p:attributes>
+   
+</p:protocol>

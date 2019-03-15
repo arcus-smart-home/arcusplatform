@@ -1,0 +1,93 @@
+Only valid if using ReCurly's Test Gateway...
+
+
+-------------------------------------------------------------------
+-  							SUCCESSFUL							  -
+-------------------------------------------------------------------
+
+Visa
+4111-1111-1111-1111
+Success.
+
+Visa
+4222-2222-2222-2220
+Success, but flagged for Fraud Review by the gateway. 
+Note: The fraud review is only relevant to PayPal gateways when in production mode. 
+	  This does not impact test transactions.
+
+AMEX
+378282246310005
+
+Diners Club
+30569309025904
+
+Discover
+6011111111111117
+
+JCB
+3530111333300000
+
+MasterCard
+5555555555554444
+
+
+-------------------------------------------------------------------
+-  							NOT SUCCESSFUL						  -
+-------------------------------------------------------------------
+
+4000-0000-0000-0002
+Declined by the gateway.
+
+4000-0000-0000-0010
+AVS failed on street address and postal code.
+
+4000-0000-0000-0028
+AVS failed on street address.
+
+4000-0000-0000-0036
+AVS failed on postal code.
+
+4000-0000-0000-0044
+Advanced Verification failed (Secure 3D, etc).
+
+4000-0000-0000-0051
+Card number declined.
+
+4000-0000-0000-0069
+Expired card or expiration date does not match.
+
+4000-0000-0000-0077
+Insufficient funds.
+
+4000-0000-0000-0085
+Did not pass your fraud filters.
+
+4000-0000-0000-0093
+Originating from fraudulent IP address.
+
+4000-0000-0000-0101
+CVV / Security code did not match.
+
+4000-0000-0000-0119
+Declined by issuing bank, customer needs to contact their bank.
+
+4000-0000-0000-0200
+Invalid data or parameter.
+
+4222-2222-2222-2222
+Invalid card number (Fails the Luhn algorithm check).
+
+4000-0000-0000-0226
+Invalid expiration date.
+
+4000-0000-0000-0309
+Gateway Timeout.
+
+4000-0000-0000-0317
+Duplicate transaction.
+
+4000-0000-0000-0325
+Card type not accepted.
+
+4000-0000-0000-0341
+'Declined by Gateway' error will be thrown, but Recurly will allow you to store card regardless.

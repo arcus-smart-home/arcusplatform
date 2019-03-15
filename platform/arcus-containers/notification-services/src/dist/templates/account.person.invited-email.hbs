@@ -1,0 +1,60 @@
+{{#section "subject"}}
+Accept Your Invitation To {{invitorFirstName}} {{invitorLastName}}'s Place
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{inviteeFirstName}}},
+
+{{{invitationText}}}
+
+{{{personalizedGreeting}}}
+
+
+Once you accept, you'll have access to the Iris-connected 
+products in {{{_owner.firstName}}}'s home.
+To Accept Your Invitation
+1. Download the Iris by Lowe's app from the App Store® or 
+the Google Play Store™. 
+2. Enter the following invitation code in the app 
+(Expires in 7 days): {{{code}}}
+3. Follow the on-screen instructions.
+
+If you already have an Iris account, log in and accept your 
+invitation on the banner at the top of the Dashboard. If you 
+don't see the invite banner, enter this invitation code under 
+Settings > Invitation Code. 
+
+By accepting this invitation, you will have access to view 
+and/or manage certain aspects of {{{_owner.firstName}}}'s smart 
+home system. If you do not wish to participate, please contact 
+{{{invitorFirstName}}} {{{invitorLastName}}}. 
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{inviteeFirstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{invitationText}}
+	<p/><i>{{personalizedGreeting}}</i></p>
+	<p>Once you accept, you'll have access to the Iris-connected products in {{_owner.firstName}}'s place.</p>
+	<p/>
+	To Accept Your Invitation<br/>
+	<ol>
+	<li>Download the Iris by Lowe's app from <b>the App Store&reg;</b> or the <b>Google Play Store&reg;</b>.</li>
+	<li>Enter the following invitation code in the app (Expires in 7 days): <b>{{code}}</b></li>
+	<li>Follow the on-screen instructions.</li>
+	</ol>
+	<br/>
+	If you already have an Iris account, log in and accept your invitation on the banner at the top of the Dashboard. If you don't see the invite banner, enter this invitation code under Settings > Invitation Code.<br/><br/>
+	By accepting this invitation, you will have access to view and/or manage certain aspects of {{_owner.firstName}}'s smart home system. If you do not wish to participate, please contact {{invitorFirstName}} {{invitorLastName}}.<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

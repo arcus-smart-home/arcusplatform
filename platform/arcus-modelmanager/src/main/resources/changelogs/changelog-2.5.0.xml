@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.5.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="addHubAndPlatformAlertState" author="tweidling">
+      <cl:description>Adds independent hub &amp; platform alert states to the incident</cl:description>
+      <cl:tracking>ITWO-13238</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE alarmincident ADD platformState varchar</cl:update>
+         <cl:rollback>ALTER TABLE alarmincident DROP platformState</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE alarmincident ADD hubState varchar</cl:update>
+         <cl:rollback>ALTER TABLE alarmincident DROP hubState</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

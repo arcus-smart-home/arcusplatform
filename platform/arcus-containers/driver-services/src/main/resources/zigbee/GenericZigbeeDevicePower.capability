@@ -1,0 +1,44 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+capability		DevicePower
+description		"Implementation of DevicePower for Zigbee devices"
+version			"1.0"
+ 
+static void doHandleDevicePower(ctx,name,msg,cluster,minVolts,nomVolts) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def battVoltTenths = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+
+	if ((null == battVoltTenths) || ('INVALID' == battVoltTenths.toString())) {
+	   return
+	}
+
+	if (nomVolts <= minVolts) {
+	   ctx.log.error "{} has a nominal voltage less than the minimum voltage, this is a driver error", name
+	   return
+	}
+
+	double volts = (battVoltTenths / 10.0)
+	double diffVolts = volts - minVolts
+	double cpctVolts = nomVolts - minVolts
+
+   double battPercent = 100.0 / cpctVolts * diffVolts
+   battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+   battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+
+   int bp = (int)battPercent
+   ctx.DevicePower.battery bp
+}
+

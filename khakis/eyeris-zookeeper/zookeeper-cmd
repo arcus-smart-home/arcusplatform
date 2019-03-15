@@ -1,0 +1,119 @@
+#!/bin/bash
+
+################################################################################
+# Apache Zookeeper startup script configuration.
+################################################################################
+
+ZOOKEEPER_DATA_DIR="/data/zk"
+
+################################################################################
+# Docker entry point.
+################################################################################
+
+zookeeper_docker_entry() {
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    local CMDNAME=$(basename $1)
+    if [ "${CMDNAME}" == "${SCRIPTNAME}" ]; then
+        zookeeper_init
+    fi
+
+    exec $@
+}
+
+
+################################################################################
+# Initializes the Apache Zookeeper server.
+################################################################################
+
+zookeeper_init() {
+    # If the configuration file exists then we are already setup
+    if [ -e "${ZOOKEEPER_HOME}/conf/zoo.cfg" ]; then
+        return
+    fi
+
+    echo "Initializing Apache Zookeeper Server..."
+
+    # Setup the data directory
+    mkdir -p "${ZOOKEEPER_DATA_DIR}"
+    chown -R "zookeeper:zookeeper" "${ZOOKEEPER_DATA_DIR}"
+    chmod "0700" "${ZOOKEEPER_DATA_DIR}"
+
+    # Generate a new id based on the host name
+    local ZID=$((16#$(echo $HOSTNAME |sha1sum |awk '{print substr($1,1,8)}') % (2**8)))
+    echo "${ZID}" >${ZOOKEEPER_DATA_DIR}/myid
+
+    # Create the config files
+    cat >"${ZOOKEEPER_HOME}/conf/zoo.cfg" <<EOF
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=${ZOOKEEPER_DATA_DIR}
+clientPort=2181
+maxClientCnxns=60
+autopurge.snapRetainCount=3
+autopurge.purgeInterval=1
+EOF
+
+    cat >"${ZOOKEEPER_HOME}/conf/java.env" <<EOF
+export JVMFLAGS="-Xmx64m -Xms64m"
+EOF
+}
+
+################################################################################
+# Starts the Apache Zookeeper server.
+################################################################################
+
+zookeeper_start() {
+    echo "Starting Apache Zookeeper Server..."
+    "/bin/su" -p -s /bin/bash -c "${ZOOKEEPER_HOME}/bin/zkServer.sh start-foreground" zookeeper
+}
+
+################################################################################
+# Script entry point.
+################################################################################
+
+SCRIPT="$0"
+SCRIPTNAME=$(basename "${SCRIPT}")
+
+# Perform some quick sanity checks
+if [ -z "${ZOOKEEPER_HOME}" ]; then
+    echo "ZOOKEEPER_HOME is not set" >&2
+    exit 1
+fi
+
+if [ ! -d "${ZOOKEEPER_HOME}" ]; then
+    echo "$ZOOKEEPER_HOME is not a directory" >&2
+    exit 1
+fi
+
+# Process the requested command
+case $1 in
+    start)
+        shift
+        zookeeper_start $@
+        ;;
+
+    init)
+        shift
+        zookeeper_init $@
+        ;;
+
+    entry)
+        shift
+        zookeeper_docker_entry $@
+        ;;
+
+    help)
+        echo "Usage: $0 <start|stop|init>"
+        exit 0
+        ;;
+
+    *)
+        echo "Unknown command: $1"
+        echo "Usage: $0 <start|stop|init>"
+        exit 1
+        ;;
+esac

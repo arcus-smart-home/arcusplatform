@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="ColorTemperature"
+   namespace="colortemp"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of the color temperature setting for a device.
+   </c:description>
+   
+   <c:attributes>
+     <c:attribute 
+         name="colortemp" 
+         readwrite="rw" 
+         type="int"
+         optional="false" 
+         description="Current color temperature in degrees Kelvin."/>
+     <c:attribute 
+         name="mincolortemp" 
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         description="Warmest color temperature supported."/>
+     <c:attribute 
+         name="maxcolortemp" 
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         description="Coolest color temperature supported."/>
+   </c:attributes>
+
+</c:capability>

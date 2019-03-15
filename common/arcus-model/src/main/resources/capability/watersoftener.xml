@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WaterSoftener"
+   namespace="watersoftener"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a water softener.
+   </c:description>
+   
+   <c:attributes>
+   <c:attribute
+      name="rechargeStatus" 
+      readwrite="r" 
+      type="enum"
+      values="READY,RECHARGING,RECHARGE_SCHEDULED"
+      optional="false" 
+      description="Recharge status of the water softener:  READY (providing soft water), RECHARGING (actively regenerating), RECHARGE_SCHEDULED (recharge required and will be done at rechargeStartTime)"/>
+
+    <c:attribute
+      name="currentSaltLevel" 
+      readwrite="r" 
+      type="int"
+      min="0"
+      optional="false" 
+      description="Current salt level from 0 (empty) to maxSaltLevel"/>
+
+    <c:attribute
+      name="maxSaltLevel" 
+      readwrite="r" 
+      type="int"
+      optional="false" 
+      description="Max salt level for this softener"/>
+
+    <c:attribute
+      name="saltLevelEnabled" 
+      readwrite="r" 
+      type="boolean"
+      optional="true" 
+      description="true indicates currentSaltLevel should be accurate - false indicates currentSaltLevel should be ignored"/>
+
+    <c:attribute
+      name="rechargeStartTime" 
+      readwrite="rw" 
+      type="int"
+      min="0"
+      max="23"
+      optional="true" 
+      description="When regeneration is needed, hour of the day when it should be scheduled (e.g. 14 = 2:00 PM). Does not guarantee that regeneration will occur daily."/>
+
+    <c:attribute
+      name="rechargeTimeRemaining" 
+      readwrite="r" 
+      type="int"
+      optional="true" 
+      description="The number of minutes left before the softener completes its recharge cycle."/>
+
+    <c:attribute
+      name="daysPoweredUp" 
+      readwrite="r" 
+      type="int"
+      optional="true" 
+      description="The number of consecutive days the softener has been powered on"/>
+
+    <c:attribute
+      name="totalRecharges" 
+      readwrite="r" 
+      type="int"
+      optional="true" 
+      description="The total number of recharge cycles the softener has performed since being added to the network"/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="rechargeNow"
+         description="Forces a recharge on the water softener.">
+      </c:method>
+   </c:methods>   
+</c:capability>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="DoorChimeConfig"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents whether or not chiming is configured for specific device</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="device"
+			type="string"
+			description="The address of the device."
+			/>
+		<t:attribute
+			name="enabled"
+			type="boolean"
+			description="Whether or not chiming is enabled when the door is opened"
+			/>
+	</t:attributes>
+ </t:type>

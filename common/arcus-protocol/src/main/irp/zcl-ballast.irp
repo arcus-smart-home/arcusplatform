@@ -1,0 +1,33 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 5.3 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Ballast {
+   const u16 CLUSTER_ID = 0x0301;
+
+   const u16 ATTR_PHYSICAL_MIN_LEVEL = 0x0000;
+   const u16 ATTR_PHYSICAL_MAX_LEVEL = 0x0001;
+   const u16 ATTR_BALLAST_STATUS = 0x0002;
+
+   const u16 ATTR_MIN_LEVEL = 0x0010;
+   const u16 ATTR_MAX_LEVEL = 0x0011;
+   const u16 ATTR_POWER_ON_LEVEL = 0x0012;
+   const u16 ATTR_POWER_ON_FADE_TIME = 0x0013;
+   const u16 ATTR_INTRINSIC_BALLAST_FACTOR = 0x0014;
+   const u16 ATTR_BALLAST_FACTOR_ADJUSTMENT = 0x0015;
+
+   const u16 ATTR_LAMP_QUANTITY = 0x0020;
+
+   const u16 ATTR_LAMP_TYPE = 0x0030;
+   const u16 ATTR_LAMP_MANUFACTURER = 0x0031;
+   const u16 ATTR_LAMP_RATED_HOURS = 0x0032;
+   const u16 ATTR_LAMP_BURN_HOURS = 0x0033;
+   const u16 ATTR_LAMP_ALARM_MODE = 0x0034;
+   const u16 ATTR_LAMP_BURN_HOURS_TRIP_POINT = 0x0035;
+
+   const u8 BALLAST_STATUS_NON_OPERATIONAL = 0x01;
+   const u8 BALLAST_STATUS_LAMP_NOT_IN_SOCKET = 0x02;
+
+   const u8 ALARM_MODE_LAMP_BURN_HOURS = 0x01;
+}

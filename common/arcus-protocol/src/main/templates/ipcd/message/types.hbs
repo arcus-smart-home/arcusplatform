@@ -1,0 +1,62 @@
+{{#file . "com/iris/protocol/ipcd/message/model/{{capitalize name}}.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.Mapifier;
+
+public class {{capitalize name}} implements Mapifier {
+	{{#properties}}
+	private {{{type}}} {{name}};
+	{{/properties}}
+	
+	@Override
+	public Map<String, Object> mapify() {
+	   Map<String, Object> map = new HashMap<>();
+	   {{#properties}}map.put("{{name}}", Mapifier.Mapper.map({{name}}));
+	   {{/properties}}
+	   return map;
+	}
+	
+	{{#properties}}{{#unless isDef}}
+	{{> ipcd/message/getset }}
+	{{/unless}}{{/properties}}
+	
+    @Override
+    public int hashCode() {
+       final int prime = 31;
+       int result = 1;
+       {{#properties}}result = prime * result + ((this.{{name}} == null) ? 0 : this.{{name}}.hashCode());
+       {{/properties}}
+       return result;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+       if (this == obj)
+          return true;
+       if (obj == null)
+          return false;
+       if (getClass() != obj.getClass())
+         return false;
+       {{capitalize name}} other = ({{capitalize name}}) obj;
+       {{#properties}}if ({{name}} == null) {
+          if (other.{{name}} != null)
+             return false;
+       } else if (!{{name}}.equals(other.{{name}}))
+          return false;
+       {{/properties}}
+       return true;
+    }
+    
+    @Override
+    public String toString() {
+       return "{{capitalize name}} [" +
+          {{#properties}}"{{name}}=" + {{name}} + {{#unless @last}}", " +{{/unless}}
+          {{/properties}}
+          "]";
+    }
+}
+{{/file}}

@@ -1,0 +1,138 @@
+   @Test
+   @org.junit.Ignore
+   public void testRandom() throws Exception {
+      for(int test = 0; test < 10000; ++test) {
+         {{classname}} a = {{classname}}.getRandomInstance();
+         {{classname}} b = {{classname}}.getRandomInstance();
+
+         assertEquals("value not identity equals: " + a, a, a);
+         assertEquals("value not identity equals: " + b, b, b);
+
+         // small structures have a higher probability of 
+         // random collision, so we don't test those.
+         if (a.getMinimumSize() > 2) {
+            assertNotEquals("random values are equal: " +a + " == " + b, a, b);
+         }
+      }
+   }
+
+   @Test
+   public void testLengthIsCompileTimeConstant() throws Exception {
+      // NOTE: This test case is a compile time test case not a runtime 
+      //       test case so this will never cause a JUnit failure. It
+      //       may cause a compilation failure, however, when the
+      //       test case "fails".
+      int value = getClass().hashCode();
+      switch (value) {
+      case {{classname}}.LENGTH_MIN:
+         // doesn't matter for the test 
+         break;
+      }
+
+      switch (value) {
+      case {{classname}}.LENGTH_MAX:
+         // doesn't matter for the test 
+         break;
+      }
+   }
+
+   @Test
+   public void testMinimumSize() throws Exception {
+      for(int test = 0; test < 10000; ++test) {
+         {{classname}} a = {{classname}}.getRandomInstance();
+         assertTrue(a.getByteSize() + " is less than the minimum size of " + a.getMinimumSize(), a.getByteSize() >= a.getMinimumSize());
+      }
+   }
+
+   @Test
+   public void testMaximumSize() throws Exception {
+      // Messages that don't have a maximum size are skipped
+      if ({{classname}}.LENGTH_MAX < 0) {
+         System.out.println("skipping " + getClass() + " because it has unbound maximum size");
+         return;
+      }
+
+      System.out.println(getClass() + " has maximum size: " + {{classname}}.LENGTH_MAX);
+      for(int test = 0; test < 10000; ++test) {
+         {{classname}} a = {{classname}}.getRandomInstance();
+         assertTrue(a.getByteSize() + " is greater than the maximum size of " + a.getMaximumSize(), a.getByteSize() <= a.getMaximumSize());
+      }
+   }
+
+   @Test
+   public void testSize() throws Exception {
+      ByteBuf buf = Unpooled.buffer();
+      for(int test = 0; test < 10000; ++test) {
+         buf.clear();
+         {{classname}} a = {{classname}}.getRandomInstance();
+
+         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+         DataOutputStream dos = new DataOutputStream(bos);
+         ByteBuffer buffer = ByteBuffer.allocate(a.getByteSize());
+
+         {{classname}}.serde().ioSerDe().encode(dos, a);
+         {{classname}}.serde().nioSerDe().encode(buffer, a);
+         {{classname}}.serde().nettySerDe().encode(buf, a);
+
+         buffer.flip();
+         assertEquals("value: " + a, bos.toByteArray().length, a.getByteSize());
+         assertEquals("value: " + a, buffer.limit(), a.getByteSize());
+         assertEquals("value: " + a, buf.readableBytes(), a.getByteSize());
+      }
+   }
+
+   @Test
+   public void testIoSerDe() throws Exception {
+      for(int test = 0; test < 10000; ++test) {
+         ByteArrayOutputStream bos = new ByteArrayOutputStream();
+         DataOutputStream dos = new DataOutputStream(bos);
+
+         {{classname}} testValue = {{classname}}.getRandomInstance();
+         {{classname}}.serde().ioSerDe().encode(dos, testValue);
+
+         ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+         DataInputStream dis = new DataInputStream(bis);
+
+         {{classname}} serdeValue = {{classname}}.serde().ioSerDe().decode(dis);
+
+         assertEquals(0, bis.available());
+         assertEquals(testValue, serdeValue);
+      }
+   }
+
+   @Test
+   public void testNioSerDe() throws Exception {
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      for(int test = 0; test < 10000; ++test) {
+         buffer.clear();
+         {{classname}} testValue = {{classname}}.getRandomInstance();
+
+         int length = testValue.getByteSize();
+         if (length >= buffer.capacity()) {
+            buffer = ByteBuffer.allocate(length);
+         }
+
+         {{classname}}.serde().nioSerDe().encode(buffer, testValue);
+
+         buffer.flip();
+         {{classname}} serdeValue = {{classname}}.serde().nioSerDe().decode(buffer);
+
+         assertFalse(buffer.hasRemaining());
+         assertEquals(testValue, serdeValue);
+      }
+   }
+
+   @Test
+   public void testNettySerDe() throws Exception {
+      ByteBuf buffer = Unpooled.buffer();
+      for(int test = 0; test < 10000; ++test) {
+         buffer.clear();
+         {{classname}} testValue = {{classname}}.getRandomInstance();
+
+         {{classname}}.serde().nettySerDe().encode(buffer, testValue);
+         {{classname}} serdeValue = {{classname}}.serde().nettySerDe().decode(buffer);
+
+         assertEquals(0, buffer.readableBytes());
+         assertEquals(testValue, serdeValue);
+      }
+   }

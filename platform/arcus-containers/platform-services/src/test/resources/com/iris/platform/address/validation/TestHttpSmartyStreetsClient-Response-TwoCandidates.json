@@ -1,0 +1,92 @@
+[
+	{
+		"input_index": 0,
+		"candidate_index": 0,
+		"delivery_line_1": "222 S Riverside Plz Ste 2800",
+		"last_line": "Chicago IL 60606-6201",
+		"delivery_point_barcode": "606066201003",
+		"components": {
+			"primary_number": "222",
+			"street_predirection": "S",
+			"street_name": "Riverside",
+			"street_suffix": "Plz",
+			"secondary_number": "2800",
+			"secondary_designator": "Ste",
+			"city_name": "Chicago",
+			"state_abbreviation": "IL",
+			"zipcode": "60606",
+			"plus4_code": "6201",
+			"delivery_point": "00",
+			"delivery_point_check_digit": "3"
+		},
+		"metadata": {
+			"record_type": "H",
+			"zip_type": "Standard",
+			"county_fips": "17031",
+			"county_name": "Cook",
+			"carrier_route": "C016",
+			"congressional_district": "07",
+			"rdi": "Commercial",
+			"elot_sequence": "0017",
+			"elot_sort": "A",
+			"latitude": 41.87901,
+			"longitude": -87.63863,
+			"precision": "Zip9",
+			"time_zone": "Central",
+			"utc_offset": -6,
+			"dst": true
+		},
+		"analysis": {
+			"dpv_match_code": "Y",
+			"dpv_footnotes": "AABB",
+			"dpv_cmra": "N",
+			"dpv_vacant": "N",
+			"active": "Y"
+		}
+	},
+   {
+      "input_index": 0,
+      "candidate_index": 1,
+      "delivery_line_1": "222 N Riverside Plz Ste 2900",
+      "last_line": "Chicago IL 60606-6202",
+      "delivery_point_barcode": "606066202004",
+      "components": {
+         "primary_number": "222",
+         "street_predirection": "N",
+         "street_name": "Riverside",
+         "street_suffix": "Plz",
+         "secondary_number": "2900",
+         "secondary_designator": "Ste",
+         "city_name": "Chicago",
+         "state_abbreviation": "IL",
+         "zipcode": "60606",
+         "plus4_code": "6202",
+         "delivery_point": "00",
+         "delivery_point_check_digit": "4"
+      },
+      "metadata": {
+         "record_type": "H",
+         "zip_type": "Standard",
+         "county_fips": "17031",
+         "county_name": "Cook",
+         "carrier_route": "C016",
+         "congressional_district": "07",
+         "rdi": "Commercial",
+         "elot_sequence": "0017",
+         "elot_sort": "A",
+         "latitude": 41.87901,
+         "longitude": -87.63863,
+         "precision": "Zip9",
+         "time_zone": "Central",
+         "utc_offset": -6,
+         "dst": true
+      },
+      "analysis": {
+         "dpv_match_code": "Y",
+         "dpv_footnotes": "AABB",
+         "dpv_cmra": "N",
+         "dpv_vacant": "N",
+         "active": "Y"
+      }
+   }
+]

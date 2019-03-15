@@ -1,0 +1,765 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+capability		Thermostat
+description		"Default implementation for the RTCoA CTx ZWave Thermostat capability"
+version			"1.0"
+
+@Field static final String DEFAULT_NAME					= 'Unknown Device'
+
+// 1.3 - Indicator
+@Field static final byte LED_RED_MASK						= 0x04
+@Field static final byte LED_YELLOW_MASK					= 0x02
+@Field static final byte LED_GREEN_MASK					= 0x01
+
+// 1.5 - Sensors
+@Field static final byte SENSOR_TEMP						= 0x01
+@Field static final byte SENSOR_HUMIDITY					= 0x02
+
+// 1.6 Thermostat Modes
+@Field static final byte MODE_OFF							= 0x00
+@Field static final byte MODE_HEAT							= 0x01
+@Field static final byte MODE_COOL							= 0x02
+@Field static final byte MODE_AUTO							= 0x03
+@Field static final byte MODE_AUX							= 0x04
+@Field static final byte MODE_SAVE_HEAT					= 0x0B
+@Field static final byte MODE_SAVE_COOL					= 0x0C
+
+// 1.7 Thermostat Operating State
+@Field static final byte STATE_OFF							= 0x00
+@Field static final byte STATE_HEATING						= 0x01
+@Field static final byte STATE_COOLING						= 0x02
+
+// 1.8 Thermostat Fan Mode
+@Field static final byte FAN_MODE_AUTO						= 0x00
+@Field static final byte FAN_MODE_ON						= 0x01
+
+// 1.9 Thermostat Fan State
+@Field static final byte FAN_OFF							= 0x00
+@Field static final byte FAN_ON							= 0x01
+
+// 1.10 Thermostat SetPoints
+@Field static final byte SETPOINT_HEAT						= 0x01
+@Field static final byte SETPOINT_COOL						= 0x02
+@Field static final byte SETPOINT_SAVE_HEAT				= 0x0B
+@Field static final byte SETPOINT_SAVE_COOL				= 0x0C
+
+@Field static final byte SETPOINT_SCALE_C					= 0x00
+@Field static final byte SETPOINT_SCALE_F					= 0x01
+@Field static final byte SETPOINT_PRECISION_0				= 0x00
+@Field static final byte SETPOINT_PRECISION_1				= 0x20
+@Field static final byte SETPOINT_PRECISION_2				= 0x40
+@Field static final byte SETPOINT_SIZE_1					= 0x01
+@Field static final byte SETPOINT_SIZE_2					= 0x02
+@Field static final byte SETPOINT_SIZE_4					= 0x04
+
+@Field static final byte RH_SCALE_PCNT						= 0x00
+@Field static final byte RH_SCALE_gPm3						= 0x01
+
+@Field static final int OFFLINE_TIMEOUT_SEC			   = 3600   // 60 min - if we don't hear from the device at least every hour consider the device offline
+@Field static final int LEVEL_POLLING_INTERVAL_SEC	   = 1200   // 20 min - ask for the temp ever 20m
+@Field static final int BATTERY_POLLING_INTERVAL_SEC	= 86000  // 24 hours - ask for the battery level once a day
+
+@Field static final int MILLIS_PER_HOUR					= 3600000
+@Field static final int MILLIS_PER_DAY						= 86400000
+
+@Field static final int SETUP_DELAY_MILLIS					= 15000					//15 seconds after connect ask for the device state again in case we missed something
+
+@Field static final double MIN_SET_POINT_SEPARATION		= 1.67					//minimum set point separation allowed is 1.67C or 3F
+
+// operational constants
+@Field static final int LOW_BATTERY_THRESHOLD				= 40					// less than 40% is threshold for low battery
+
+@Field static final int SHORT_WAIT_MSEC = 2000
+@Field static final int LONG_WAIT_MSEC = 4000
+@Field static final double DFLT_COOL_TEMP = 26.6667  // 80F
+@Field static final double DFLT_HEAT_TEMP = 22.2222  // 72F
+
+onAdded {
+	// set default attribute values
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	log.debug "{} generic connected...", name
+
+	DeviceConnection.lastchange		Calendar.getInstance().getTimeInMillis()
+	DeviceConnection.state			DeviceConnection.STATE_ONLINE
+}
+
+onDisconnected {	
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	log.debug "{} generic disconnected...", name
+
+	DeviceConnection.lastchange		Calendar.getInstance().getTimeInMillis()
+	DeviceConnection.state			DeviceConnection.STATE_OFFLINE
+}
+
+static void doSetThermAttributes(ctx, thermConstantMap, message) {
+
+	ctx.log.debug "{} received set therm attribute message...", thermConstantMap.'name'
+
+	def byte[] setPoint = new byte[8]
+
+	def attributes = message.attributes;
+
+	for(attribute in attributes) {
+		switch(attribute.key) {
+		case ctx.Thermostat.hvacmode:
+			updateHVACMode(ctx,attribute.value)
+			break;
+		case ctx.Thermostat.coolsetpoint:
+			updateCoolSetPoint(ctx,thermConstantMap,attribute.value)
+			break;
+		case ctx.Thermostat.heatsetpoint:
+			updateHeatSetPoint(ctx,thermConstantMap,attribute.value)
+			break;
+		case ctx.Thermostat.fanmode:
+			updateFanMode(ctx,attribute.value)
+			break;
+		case ctx.Thermostat.filtertype:
+			ctx.log.debug "{} setting filter type to: {}", thermConstantMap.'name', attribute.value
+			ctx.Thermostat.filtertype attribute.value
+			break;
+		case ctx.Thermostat.filterlifespanruntime:
+			ctx.log.debug "{} setting filter life span runtime to: {}", thermConstantMap.'name', attribute.value
+			ctx.Thermostat.filterlifespanruntime attribute.value
+			break;
+		case ctx.Thermostat.filterlifespandays:
+			ctx.log.debug "{} setting filter life span days to: {}", thermConstantMap.'name', attribute.value
+			ctx.Thermostat.filterlifespandays attribute.value
+			break;
+		default:
+			ctx.log.error "{} driver setAttributes Unrecognized attribute: {}", thermConstantMap.'name', attribute
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// ZWave Report Handlers
+////////////////////////////////////////////////////////////////////////////////
+static void handleConfigurationReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} - handle configuration report...", name
+	
+	def param = message.command.get( 'param' )
+	def value = message.command.get( 'val1' )
+	def pwrSrc
+
+	if( 0x04 == param ) {
+		ctx.log.debug "generic driver for {} -  received a line/battery configuration report...", name
+		 pwrSrc = ctx.DevicePower.source.get()
+		 if( null == pwrSrc ) pwrSrc = ctx.DevicePower.SOURCE_BATTERY
+		if( 0x01 == value ) { // line powered
+			ctx.DevicePower.source	ctx.DevicePower.SOURCE_LINE
+		} else {  // battery powered
+			ctx.DevicePower.source	ctx.DevicePower.SOURCE_BATTERY
+		}
+		
+		if (ctx.DevicePower.source.get() != pwrSrc) {
+			ctx.DevicePower.sourcechanged new Date()
+
+			// set the relative humidity reporting to trigger on a 3% change in RH
+			ctx.ZWave.configuration.set( 0x05, 0x01, 0x01 )
+		}
+		
+		//ctx.updateConfiguration(name, pwrSrc, pollInterval, timeoutVal)
+	} else {
+		ctx.log.debug "generic driver for {} -  received a configuration report for: {}", name, param
+	}
+}
+
+
+static void handleIndicatorReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} -  handle indicator report...", name
+
+	def value = message.command.get('value')
+
+	if( 0x00 == value ) ctx.Indicator.indicator ctx.Indicator.INDICATOR_OFF
+	else ctx.Indicator.indicator ctx.Indicator.INDICATOR_ON
+}
+
+static void handleMultiChannelInstanceCmdEncap(ctx,name,message) {
+	ctx.log.debug "generic driver for {} -  handle multi_channel instance_cmd_encap...", name
+
+	def cmdClass = message.command.get('command_class')
+	def cmd = message.command.get('command')
+
+	if(cmdClass == 0x31 && cmd == 0x05) {
+		// This is "Sensor Multilevel" report command, try to get the relative humidity value
+		// "type", "level", "val1"
+		def type = message.command.get('parameter1')
+		def level = message.command.get('parameter2')
+		def val1 = message.command.get('parameter3')
+		
+		val1 = Math.round( val1 * 10 ) / 10
+		
+		ctx.RelativeHumidity.humidity val1
+		ctx.log.debug "generic driver for {} -  multi_channel.instance_cmd_encap - command_class=${cmdClass}; command=${cmd}; type=${type}; level=${level}; relative humidity value=${val1}", name
+	} else {
+		ctx.log.debug "generic driver for {} -  multi_channel.instance_cmd_encap - command_class=${cmdClass}; command=${cmd}", name
+	}
+}
+
+static void handleMultiLevelSensorReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} -  handle sensor multilevel report...", name
+	
+	if( null == ctx.vars.'runtimeStart' ) ctx.vars.'runtimeStart' = 0
+	if( null == ctx.vars.'filterRuntimeTotal' ) ctx.vars.'filterRuntimeTotal' = 0
+	
+	// update the filter runtime values
+	if( ( 0 != ctx.vars.'runtimeStart' ) && ( null != ctx.vars.'filterChangeDate' ) ) {
+		def currTimeMillis = Calendar.getInstance().getTimeInMillis()
+		ctx.vars.'filterRuntimeTotal' = ( ctx.vars.'filterRuntimeTotal' + ( currTimeMillis - ctx.vars.'runtimeStart' ) )
+		ctx.vars.'runtimeStart' = currTimeMillis
+		ctx.log.debug "[{}] - generic driver for {} - Runtime since filter change: {}", ctx.vars.'filterRuntimeTotal', name, Math.floor( ctx.vars.'filterRuntimeTotal' / 3600000 )
+		ctx.Thermostat.runtimesincefilterchange Math.floor( ctx.vars.'filterRuntimeTotal' / 3600000 )
+		ctx.log.debug "generic driver for {} - Days since filter change: {}", name, Math.floor( ( Calendar.getInstance().getTimeInMillis() - ctx.vars.'filterChangeDate' ) / 86400000 )
+		ctx.Thermostat.dayssincefilterchange Math.floor( ( Calendar.getInstance().getTimeInMillis() - ctx.vars.'filterChangeDate' ) / 86400000 )
+	}
+	
+	def byte[] vals = new byte[4]
+	def sensorType = message.command.get('type')
+	ctx.log.debug "generic driver for {} - received sensor report for sensor type: {}", name, sensorType
+	
+	def level       = message.command.get('level')
+	
+	int precision = ((level & 0xE0) >> 5)
+	int scale = ((level & 0x18) >> 3)
+	int sz = (level & 0x07)
+	
+	double value = 0
+	
+	switch( sz ) {
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_1_BYTE:
+			value = message.command.get('val1')
+		break;
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_2_BYTE:
+			vals[0] = 0
+			vals[1] = 0
+			vals[2] = message.command.get('val1')
+			vals[3] = message.command.get('val2')
+	
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_4_BYTE:
+			vals[0] = message.command.get('val1')
+			vals[1] = message.command.get('val2')
+			vals[2] = message.command.get('val3')
+			vals[3] = message.command.get('val4')
+	
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		default:
+			ctx.log.warn "Invalid SetPoint size: {}", sz
+	}
+	
+	value = value / Math.pow(10,precision)
+	if (sensorType == 0x01) { // air temperature
+		if( 0x01 == scale )
+			value = ctx.GenericZWaveThermostat.convertFtoC(value)
+		else
+			value = ( Math.round(value*10) / 10 )
+	
+		ctx.Temperature.temperature value
+	}
+	
+	if(( 0x02 == sensorType ) || (0x05 == sensorType )) {  // relative humidity
+		def rh = scaleHumidity(value,scale,ctx.Temperature.temperature.get())
+		ctx.RelativeHumidity.humidity rh
+	}
+}
+
+static void handleModeReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} - handle thermostat mode report [{}]", name, message.command
+	
+	byte level = message.command.get('level')
+	def val1 = message.command.get('val1')
+	
+	int mode = ( level & 0x1F )
+	ctx.log.debug "${name} level = ${level}; val1=${val1}; mode = ${mode}"
+
+	if( 0x1F != mode ) {
+		if ( 0x00 == mode )	ctx.Thermostat.hvacmode ctx.Thermostat.HVACMODE_OFF
+		if ( 0x02 == mode )	ctx.Thermostat.hvacmode ctx.Thermostat.HVACMODE_COOL
+		if ( 0x01 == mode )	ctx.Thermostat.hvacmode ctx.Thermostat.HVACMODE_HEAT
+		if ( 0x03 == mode )	ctx.Thermostat.hvacmode ctx.Thermostat.HVACMODE_AUTO
+		
+		ctx.Thermostat.emergencyheat mode == 0x04 ? "ON" : "OFF"
+	}
+	else {
+		ctx.log.debug "generic driver for {} - handle manufacturer specific mode report...", name
+	}
+}
+
+static void handleOperatingStateReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} - handle thermostat operating state report...", name
+	def state = message.command.get('state')
+	
+	if( 0x00 == state ) {
+		ctx.Thermostat.active ctx.Thermostat.ACTIVE_NOTRUNNING
+	} else {   // HEAING, COOLING or FAN is on
+		ctx.Thermostat.active ctx.Thermostat.ACTIVE_RUNNING
+	}
+}
+
+static void handleFanModeReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} - handle thermostat fan mode report...", name
+
+	def fanMode = message.command.get('mode')
+
+	def onoff = ( fanMode & 0x80 ) >> 7
+	def mode = ( fanMode & 0x0F )
+
+	ctx.log.debug "generic driver for {} - Fan mode report - onoff bit: {} - mode: {}", name, onoff, mode
+
+	if( 0x00 == mode ) ctx.Thermostat.fanmode 0
+	if( 0x01 == mode ) ctx.Thermostat.fanmode 1
+}
+
+static void handleFanStateReport(ctx,name,message) {
+	ctx.log.debug "generic driver for {} - handle thermostat fan state report...", name
+	def fanState = message.command.get('state')
+
+	if( null == ctx.vars.'runtimeStart' ) ctx.vars.'runtimeStart' = 0
+	if( null == ctx.vars.'filterRuntimeTotal' ) ctx.vars.'filterRuntimeTotal' = 0
+
+	ctx.log.debug "generic driver for {} - Fan state report : {}", name, fanState
+
+	if( 0x00 == fanState ) {
+		ctx.Thermostat.active ctx.Thermostat.ACTIVE_NOTRUNNING
+		if( ( 0 != ctx.vars.'runtimeStart' ) && ( null != ctx.vars.'filterChangeDate' ) ) {
+			ctx.vars.'filterRuntimeTotal' = ( ctx.vars.'filterRuntimeTotal' + ( Calendar.getInstance().getTimeInMillis() - ctx.vars.'runtimeStart' ) )
+			ctx.vars.'runtimeStart' = 0
+			ctx.log.debug "generic driver for {} - Runtime since filter change: {}", name, Math.floor( ctx.vars.'filterRuntimeTotal' / 3600000 )
+			ctx.Thermostat.runtimesincefilterchange Math.floor( ctx.vars.'filterRuntimeTotal' / 3600000 )
+			ctx.log.debug "generic driver for {} - Days since filter change: {}", name, Math.floor( ( Calendar.getInstance().getTimeInMillis() - ctx.vars.'filterChangeDate' ) / 86400000 )
+			ctx.Thermostat.dayssincefilterchange Math.floor( ( Calendar.getInstance().getTimeInMillis() - ctx.vars.'filterChangeDate' ) / 86400000 )
+		}
+	} else {
+		ctx.Thermostat.active ctx.Thermostat.ACTIVE_RUNNING
+		if( 0 == ctx.vars.'runtimeStart' ) ctx.vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+	}
+}
+
+static void handleSetPointReport(ctx,thermConstantMap,message) {
+	ctx.log.debug "generic driver for {} - driver handle thermostat setpoint report...", thermConstantMap.'name'
+	def byte[] vals = new byte[4]
+	def type 	= message.command.get('type')
+	def format   = message.command.get('scale')
+	
+	double value = 0
+	
+	ctx.GenericZWaveThermostat.updateSetPointFmt(ctx, format)
+
+	switch( ctx.GenericZWaveThermostat.getSetPointSize(ctx)) {
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_1_BYTE:
+			value = message.command.get('value1')
+		break;
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_2_BYTE:
+			vals[0] = 0
+			vals[1] = 0
+			vals[2] = message.command.get('value1')
+			vals[3] = message.command.get('value2')
+
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		case ctx.GenericZWaveThermostat.SET_POINT_SIZE_4_BYTE:
+			vals[0] = message.command.get('value1')
+			vals[1] = message.command.get('value2')
+			vals[2] = message.command.get('value3')
+			vals[3] = message.command.get('value4')
+
+			value = java.nio.ByteBuffer.wrap(vals).getInt()
+		break;
+		default:
+			ctx.log.warn "Invalid SetPoint size: {}", ctx.GenericZWaveThermostat.getSetPointSize(ctx)
+	}
+
+	ctx.log.debug "SetPoint report value of: {}", value
+
+	// temps communicated between the platform and the device will alway be in C
+	// so if the device reports a temp in F convert to C
+	if ( 0x01 == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+		value = ctx.GenericZWaveThermostat.convertFtoC(value)
+		
+	ctx.log.debug "generic driver for {} - setpoint type is: {} - and C value is: {}", thermConstantMap.'name', type, value
+	if ( 0x02 == type ) {
+		ctx.log.debug "generic driver for {} - set the cool setpoint to: {}", thermConstantMap.'name', value
+		
+		double setPoint = value
+		double currHeatSetPoint = ctx.Thermostat.heatsetpoint.get() ?: 0
+		boolean updateCoolSetPoint = false
+
+		if ( ( thermConstantMap.'minSetPointSeparationC' * 2 ) > setPoint ) {
+			 setPoint = ( thermConstantMap.'minSetPointSeparationC' * 2 )
+			 updateCoolSetPoint = true
+		}
+
+		ctx.log.debug "generic driver for {} - driver setpoint = {} curr heat setpoint = {} curr + offset = {}", thermConstantMap.'name', setPoint, currHeatSetPoint, ( currHeatSetPoint + 1.67 )
+		
+		if( setPoint <= ( currHeatSetPoint + thermConstantMap.'minSetPointSeparationC' ) ) {
+			def newHeatSetPoint = setPoint - thermConstantMap.'minSetPointSeparationC'
+			if ( thermConstantMap.'maxHeatSetPoint' < newHeatSetPoint ) newHeatSetPoint = thermConstantMap.'maxHeatSetPoint'
+			if ( thermConstantMap.'minHeatSetPoint' > newHeatSetPoint ) newHeatSetPoint =  thermConstantMap.'minHeatSetPoint'
+			
+			def roundedHeatSetPoint = Math.round( newHeatSetPoint * 10 ) / 10
+			if ( ctx.Thermostat.heatsetpoint.get() != roundedHeatSetPoint ) {
+				ctx.Thermostat.heatsetpoint ( roundedHeatSetPoint )
+				ctx.log.debug "emit HEAT SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedHeatSetPoint ]
+			}
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( 0x01 == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				newHeatSetPoint = ctx.GenericZWaveThermostat.convertCtoF(newHeatSetPoint)
+
+			int newHeatSetPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,newHeatSetPoint)
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_HEAT, newHeatSetPointInt)
+		}
+		
+		if( updateCoolSetPoint ) {
+			def roundedCoolSetPoint = Math.round(setPoint * 10 ) / 10
+			if ( ctx.Thermostat.coolsetpoint.get() != roundedCoolSetPoint ) {
+				ctx.Thermostat.coolsetpoint ( roundedCoolSetPoint )
+				ctx.log.debug "emit COOL SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedCoolSetPoint ]
+			}
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( 0x01 == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				setPoint = ctx.GenericZWaveThermostat.convertCtoF(setPoint)
+	
+			int setPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,setPoint)
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_COOL, setPointInt)
+		} else {
+			def roundedCoolSetPoint = Math.round(value * 10 ) / 10
+			if ( ctx.Thermostat.coolsetpoint.get() != roundedCoolSetPoint ) {
+				ctx.Thermostat.coolsetpoint ( roundedCoolSetPoint )
+				ctx.log.debug "emit COOL SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedCoolSetPoint ]
+			}
+		}
+	}
+
+	if ( 0x01 == type ) {
+		ctx.log.debug "generic driver for {} - set the heat setpoint to: {}", thermConstantMap.'name', value
+
+		double setPoint = value
+		double currCoolSetPoint = ctx.Thermostat.coolsetpoint.get() ?: 0
+		boolean updateHeatSetPoint = false
+
+		if ( ( thermConstantMap.'maxCoolSetPoint' - thermConstantMap.'minSetPointSeparationC' ) < setPoint ) {
+			 setPoint = ( thermConstantMap.'maxCoolSetPoint' - thermConstantMap.'minSetPointSeparationC' )
+			 updateHeatSetPoint = true
+		}
+		
+		ctx.log.debug "generic driver for {} - driver setpoint = {} curr cool setpoint = {} curr + offset = {}", thermConstantMap.'name', setPoint, currCoolSetPoint, ( currCoolSetPoint - 1.67 )
+		
+		if( setPoint >= ( currCoolSetPoint - thermConstantMap.'minSetPointSeparationC' ) ) {
+			def newCoolSetPoint = setPoint + thermConstantMap.'minSetPointSeparationC'
+			if ( thermConstantMap.'maxCoolSetPoint' < newCoolSetPoint ) newCoolSetPoint = thermConstantMap.'maxCoolSetPoint'
+			if ( thermConstantMap.'minCoolSetPoint' > newCoolSetPoint ) newCoolSetPoint = thermConstantMap.'minCoolSetPoint'
+
+			def roundedCoolSetPoint =  Math.round( newCoolSetPoint * 10 ) / 10
+			if ( ctx.Thermostat.coolsetpoint.get() != roundedCoolSetPoint ) {
+				ctx.Thermostat.coolsetpoint ( roundedCoolSetPoint )
+				ctx.log.debug "emit COOL SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedCoolSetPoint ]
+			}
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( 0x01 == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				newCoolSetPoint = ctx.GenericZWaveThermostat.convertCtoF(newCoolSetPoint)
+	
+			int newCoolSetPointInt =  ctx.GenericZWaveThermostat.formatTemp(ctx,newCoolSetPoint)
+			
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_COOL, newCoolSetPointInt)
+		}
+		
+		if( updateHeatSetPoint ) {
+			def roundedHeatSetPoint = Math.round(setPoint * 10 ) / 10
+			if ( ctx.Thermostat.heatsetpoint.get() != roundedHeatSetPoint ) {
+				ctx.Thermostat.heatsetpoint ( roundedHeatSetPoint )
+				ctx.log.debug "emit HEAT SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedHeatSetPoint ]
+			}
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( 0x01 == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				setPoint = ctx.GenericZWaveThermostat.convertCtoF(setPoint)
+	
+			int setPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,setPoint)
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_HEAT, setPointInt)
+			
+		} else {
+			def roundedHeatSetPoint = Math.round(value * 10 ) / 10
+			if ( ctx.Thermostat.heatsetpoint.get() != roundedHeatSetPoint ) {
+				ctx.Thermostat.heatsetpoint ( roundedHeatSetPoint )
+				ctx.log.debug "emit HEAT SetPointChanged"
+				ctx.emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":ctx.Thermostat.hvacmode.get(), "setpoint":roundedHeatSetPoint ]
+			}
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onThermostat.changeFilter {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	
+	vars.'filterChangeDate' = Calendar.getInstance().getTimeInMillis()
+	vars.'filterRuntimeTotal' = 0
+	Thermostat.dayssincefilterchange 0
+	Thermostat.runtimesincefilterchange 0
+
+	// if we changed the filter while the system was running reset the runtime start
+	if( 0 != vars.'runtimeStart' ) {
+		vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+	}
+
+	sendResponse('therm:changeFilterResponse', [:])
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('GetHeatSetPoint') {
+	log.info "generic driver -  ask for the current heat setpoint..."
+	
+	ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+}
+
+onEvent('GetCoolSetPoint') {
+	log.info "generic driver  -  ask for the current cool setpoint..."
+	
+	ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+}
+
+onEvent('SetupDevice') {
+	log.debug "generic driver -  Setup Device..."
+	
+	def updated = false
+	if( null == Indicator.indicator.get() ) {
+	   updated = true
+	   ZWave.indicator.get()
+   }
+
+	if( null == Temperature.temperature.get() ) {
+	   updated = true
+	   ZWave.sensor_multilevel.get()		// Get the temperature and lux values
+	}
+
+	if( null == RelativeHumidity.humidity.get() ) {
+	   updated = true
+	   ZWave.multi_channel.encapsulate( 0x00, 0x02, 0x31, 0x04 )  // get the humidity reading
+   }
+
+	if( null == Thermostat.hvacmode.get() ) {
+	   updated = true
+	   ZWave.thermostat_mode.get()
+   }
+
+	if( null == Thermostat.active.get() ) {
+	   updated = true
+	   ZWave.thermostat_operating_state.get()
+	}
+
+	if( null == Thermostat.fanmode.get() ) {
+	   updated = true
+	   ZWave.thermostat_fan_mode.get()
+   }
+
+	if( null == Thermostat.heatsetpoint.get() ) {
+	   updated = true
+	   ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+   }
+
+	if( null == Thermostat.coolsetpoint.get() ) {
+	   updated = true
+	   ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+   }
+	
+   ZWave.configuration.get( 0x04 )
+	ZWave.battery.get()
+
+	if (updated) {
+	   Scheduler.scheduleIn 'SetupDevice', GenericZWaveCTxThermostat.SETUP_DELAY_MILLIS
+   } else {
+      log.debug "generic driver - Setup Device Finished"
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utilities
+////////////////////////////////////////////////////////////////////////////////
+
+static updateHVACMode(ctx,newMode) {
+	byte mode
+	
+	if (newMode == 'OFF') mode = MODE_OFF
+	if (newMode == 'HEAT') mode = MODE_HEAT
+	if (newMode == 'COOL') mode = MODE_COOL
+	if (newMode == 'AUTO') mode = MODE_AUTO
+	
+	ctx.log.debug "generic driver - set HVAC mode: {}", mode
+	ctx.ZWave.thermostat_mode.set( mode )
+	ctx.ZWave.thermostat_mode.get()
+}
+
+static updateCoolSetPoint(ctx,thermConstantMap,newSetPoint) {
+	if(!ctx.Thermostat.heatsetpoint.get()){
+		return;
+	}
+	ctx.log.debug "update cool setpoint to: {}C", newSetPoint
+	double setPoint = newSetPoint
+	double currHeatSetPoint = ctx.Thermostat.heatsetpoint.get() ?: DFLT_HEAT_TEMP	// default to 72F
+	
+	// make sure setpoint doesn't exceed the max allowed
+	if ( thermConstantMap.'maxCoolSetPoint' < setPoint ) setPoint = thermConstantMap.'maxCoolSetPoint'
+	
+	// make sure the setpoint isn't lower than the min allowed plus min setpoint separation
+	if ( ( thermConstantMap.'minCoolSetPoint' + thermConstantMap.'minSetPointSeparationC' ) > setPoint ) setPoint = ( thermConstantMap.'minCoolSetPoint' + thermConstantMap.'minSetPointSeparationC' )
+	
+	double setPointC = setPoint
+	
+	// the temp from the platform will be in C
+	// convert to F if the device is expecting F
+	if( SETPOINT_SCALE_F == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+		setPoint = ctx.GenericZWaveThermostat.convertCtoF(setPointC)
+	
+	// scale the setpoint for setting on the device
+	int setPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,setPoint)
+	byte format = ctx.GenericZWaveThermostat.getSetPointFmt(ctx)
+			
+	ctx.log.debug "generic driver for {} - cool setpoint = {} curr heat setpoint = {} curr + offset = {}", thermConstantMap.'name', setPointC, currHeatSetPoint, ( currHeatSetPoint + thermConstantMap.'minSetPointSeparationC' )
+	
+	// if the new cool setpoint doesn't maintain the minimum separation between heat and cool setpoints, adjust the heat setpoint accordingly
+	if (null != ctx.Thermostat.heatsetpoint.get()) {
+		if( setPointC <= ( currHeatSetPoint + thermConstantMap.'minSetPointSeparationC' ) ) {
+			// calculate the new heat setpoint
+			double newHeatSetPoint = setPointC - thermConstantMap.'minSetPointSeparationC'
+			
+			// if the calculated heat setpoint is greater than max allowed set it to max
+			if ( thermConstantMap.'maxHeatSetPoint' < newHeatSetPoint ) newHeatSetPoint = thermConstantMap.'maxHeatSetPoint'
+			// if the calculated heat setpoint is less than min allowed set it to min
+			if ( thermConstantMap.'minHeatSetPoint' > newHeatSetPoint ) newHeatSetPoint = thermConstantMap.'minHeatSetPoint'
+					
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( SETPOINT_SCALE_F == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				newHeatSetPoint = ctx.GenericZWaveThermostat.convertCtoF(newHeatSetPoint)
+			
+			int newHeatSetPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,newHeatSetPoint)
+					
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_HEAT, newHeatSetPointInt)
+			ctx.Scheduler.scheduleIn 'GetHeatSetPoint', LONG_WAIT_MSEC
+		}
+	} else {
+		ctx.log.info "Heat Setpoint not yet set"
+	}
+
+	ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_COOL, setPointInt)
+	ctx.Scheduler.scheduleIn 'GetCoolSetPoint', SHORT_WAIT_MSEC
+}
+
+static updateHeatSetPoint(ctx,thermConstantMap,newSetPoint) {
+	if(!ctx.Thermostat.coolsetpoint.get()){
+		return;
+	}
+	double setPoint = newSetPoint
+	double currCoolSetPoint = ctx.Thermostat.coolsetpoint.get() ?: DFLT_COOL_TEMP	// default to 80F
+
+	// make sure the setpoint doesn't exceed the max allowed minus the min setpoint separation
+	if ( ( thermConstantMap.'maxHeatSetPoint' - thermConstantMap.'minSetPointSeparationC' ) < setPoint ) setPoint = ( thermConstantMap.'maxHeatSetPoint' - thermConstantMap.'minSetPointSeparationC' )
+	// make sure the setpoint isn't lowet than the minimum allowed
+	if ( thermConstantMap.'minHeatSetPoint' > setPoint ) setPoint = thermConstantMap.'minHeatSetPoint'
+	
+	// keep the C value setpoint available
+	double setPointC = setPoint
+
+	// the temp from the platform will be in C
+	// convert to F if the device is expecting F
+	if( SETPOINT_SCALE_F == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+		setPoint = ctx.GenericZWaveThermostat.convertCtoF(setPointC)
+
+	int setPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,setPoint)
+	byte format = ctx.GenericZWaveThermostat.getSetPointFmt(ctx)
+			
+	ctx.log.debug "generic driver for {} -  heat setpoint = {} heat setpoint int = {} curr cool setpoint = {} curr - offset = {}", thermConstantMap.'name', setPointC, setPointInt, currCoolSetPoint, ( currCoolSetPoint - thermConstantMap.'minSetPointSeparationC' )
+			
+	if (null != ctx.Thermostat.coolsetpoint.get()) {
+		if( setPointC >= ( currCoolSetPoint - thermConstantMap.'minSetPointSeparationC' ) ) {
+			double newCoolSetPoint = setPointC + thermConstantMap.'minSetPointSeparationC'
+			if ( thermConstantMap.'maxCoolSetPoint' < newCoolSetPoint ) newCoolSetPoint = thermConstantMap.'maxCoolSetPoint'
+			if ( thermConstantMap.'minCoolSetPoint' > newCoolSetPoint ) newCoolSetPoint = thermConstantMap.'minCoolSetPoint'
+					
+			// the temp from the platform will be in C
+			// convert to F if the device is expecting F
+			if( SETPOINT_SCALE_F == ctx.GenericZWaveThermostat.getSetPointScale(ctx) )
+				newCoolSetPoint = ctx.GenericZWaveThermostat.convertCtoF(newCoolSetPoint)
+				
+			int newCoolSetPointInt = ctx.GenericZWaveThermostat.formatTemp(ctx,newCoolSetPoint)
+			ctx.log.debug "setting new cool setpoint - int value is: {}", newCoolSetPointInt
+					
+			ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_COOL, newCoolSetPointInt)
+			ctx.Scheduler.scheduleIn 'GetCoolSetPoint', LONG_WAIT_MSEC
+		}
+	} else {
+		ctx.log.info "Cool Setpoint not yet set"
+	}
+
+	ctx.GenericZWaveThermostat.updateSetPoint(ctx, SETPOINT_HEAT, setPointInt)
+	ctx.Scheduler.scheduleIn 'GetHeatSetPoint', SHORT_WAIT_MSEC
+}
+
+static updateFanMode(ctx,mode) {
+	
+	byte fanMode = mode
+	byte newFanMode
+	
+	if( 0 > fanMode ) fanMode = 0
+	if( ctx.Thermostat.maxfanspeed.get() < fanMode ) fanMode = ctx.Thermostat.maxfanspeed.get()
+	
+	if( 0 == fanMode ) newFanMode = FAN_MODE_AUTO
+	if( 1 == fanMode ) newFanMode = FAN_MODE_ON
+	
+	ctx.log.debug "generic driver - setting new fan mode to: [{}:{}]", fanMode, newFanMode
+	
+	ctx.ZWave.thermostat_fan_mode.set( newFanMode )
+	ctx.ZWave.thermostat_fan_mode.get()
+	ctx.ZWave.thermostat_fan_state.get()
+}
+
+static float scaleHumidity(ah,scale,T) {
+	def rh = ah
+	
+	if( 0x01 == scale ) {
+		//convert to percent
+		def e = 2.71828
+		rh = 1/(( 6.112 * Math.pow( e, ((17.67*T)/(T+243.5)) ) * 2.1674 ) / ( ( 273.15 + T ) * ah ))
+	}
+	// round to nearest 10th of a percent
+	rh = Math.round( rh * 10 ) / 10
+	
+	return rh
+}
+
+

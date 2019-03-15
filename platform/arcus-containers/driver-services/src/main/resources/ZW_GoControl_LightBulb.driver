@@ -1,0 +1,178 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-Wave GoControl Dimmable Light Bulb (A19 and BR30)
+ * 
+ * 
+ */
+ 
+driver			"ZWGoControlA19BulbDriver"
+description		"Driver for a Z-Wave GoControl Dimmable Light Bulb"
+version			"1.0"
+protocol        "ZWAV"
+deviceTypeHint	"Light"
+productId		"7aa004"
+vendor 			"Uncertified"		// "GoControl"
+model 			"LB60Z-1,LBR30Z-1"
+
+				// Note: both A19 and BR30 bulbs use the same matcher values
+matcher			'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x4754, 'ZWAV:ProductId': 0x3038
+
+capabilities	DevicePower, Dimmer, Switch, Light
+
+importCapability 'zwave/GenericZWaveDim'
+
+// Command Classes:
+//		0x26   (38) Switch_Multilevel
+//		0x27   (39) Switch_All
+//		0x59   (89) Association Group Info
+//      0x5A   (90) Device Reset Locally
+//		0x5E   (94) Z-Wave+ Info
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//      0x7A  (122) Firmware Update Meta Data
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+
+//DevicePower attributes are assumed
+DevicePower.battery 				   0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+def final String DEVICE_NAME          = "GoControl Light Bulb"
+def final int POLLING_INTERVAL_SEC    = 120         // every 120 seconds
+def final int OFFLINE_TIMEOUT_SECS    = 600         // 10 minutes
+def final int DFLT_BRIGHTNESS         = 100
+
+// config definitions/constants
+// ----------------------------
+def final byte CNFG_LVL_PARAM_NO      = 0x01		// parameter number for Dim Level Memory
+def final byte CNFG_LVL_SIZE          = 0x01		// size of 'LED' parameter field, in bytes
+def final byte CNFG_LVL_FULL          = 0x00		// Bulb returns to FULL brightness when turned ON at switch (default)
+def final byte CNFG_LVL_MEMORY        = 0x01		// Bulb returns to last brightness level when turned ON at switch
+
+// NOTE: this parameter is only supported by the BR30 bulb, not the A19
+def final byte CNFG_STEP_PARAM_NO     = 0x09		// parameter number for Dim/Bright Step Level
+def final byte CNFG_STEP_SIZE         = 0x01		// size of Dim/Bright Step Level parameter field, in bytes
+def final byte CNFG_STEP_VALUE        = 0x01		// 1-100, Smaller value is smaller steps (default=1)
+
+// NOTE: this parameter is only supported by the BR30 bulb, not the A19
+def final byte CNFG_SPEED_PARAM_NO    = 0x0A		// parameter number for Dim/Bright Speed
+def final byte CNFG_SPEED_SIZE        = 0x01		// size of Dim/Bright Speed parameter field, in bytes
+def final byte CNFG_SPEED_VALUE       = 0x01		// 1-10, Smaller value is faster (default=3)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes
+	
+	// set default attribute values
+	DevicePower.sourcechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	ZWave.association.set( 1, 1, 0, 0, 0);
+
+	// when device pairs, it should be ON and at level 100, so default to those
+	
+	Switch.state			Switch.STATE_ON
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Dimmer.brightness       DFLT_BRIGHTNESS
+
+	Light.colormode         Light.COLORMODE_NORMAL
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected"
+		
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+	
+	// get the current switch level
+	ZWave.switch_multilevel.get()
+
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	
+	// set configuration for Level on power up
+	ZWave.configuration.set(CNFG_LVL_PARAM_NO, CNFG_LVL_SIZE, CNFG_LVL_MEMORY)
+
+	// set configuration for Dim/Bright Speed
+	ZWave.configuration.set(CNFG_SPEED_PARAM_NO, CNFG_SPEED_SIZE, CNFG_SPEED_VALUE)
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected"
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed"
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support 
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+	GenericZWaveDim.handleSetAttributes(this, DEVICE_NAME, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZWaveDim.handleRampBrightness(this, DEVICE_NAME, message)	
+}
+
+onDimmer.IncrementBrightness {
+	GenericZWaveDim.handleIncrementBrightness(this, DEVICE_NAME, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZWaveDim.handleDecrementBrightness(this, DEVICE_NAME, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+ 	GenericZWaveDim.handleMultilevelReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.configuration.report {
+	log.debug "${DEVICE_NAME} reported configuration: {}", message
+	byte param = message.command.get('param')
+	byte level = message.command.get('level')
+	byte val1 = message.command.get('val1')
+	log.debug "param: {}, level: {}, val1: {}", param, level, val1
+}
+
+onZWaveNodeInfo {
+	log.debug "${DEVICE_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	ZWave.switch_multilevel.get()
+}
+
+onZWaveMessage {
+    log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
+    return false;
+}
+
+

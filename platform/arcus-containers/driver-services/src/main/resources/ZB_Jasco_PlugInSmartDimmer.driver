@@ -1,0 +1,704 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Jasco Plug-In Smart Dimmer
+ *
+ * FACTORY RESET:
+ *  - Hold in button while plugging in device and release button after device is plugged in.
+ * 
+ * IDENTIFY:
+ *  - Performing an Identify operation flashes the LED on the device On and Off for 3 minutes (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * CHECK-IN INTERVAL:		Poll Control not supported, but On/Off is set to report at least every 2 minutes.
+ * 
+ * ON/OFF REPORTING:
+ *  - At least every 2 minutes
+ *  - At most once a second, if state changes
+ *  - ON/OFF state read each time device connects
+ *  
+ * LEVEL REPORTING:
+ *  - At least every 2 minutes
+ *  - At most once every 2 seconds, if level changes
+ *  - Level read each time device connects
+ *  
+ * INSTANTANEOUS POWER USAGE REPORTING:
+ *  - At least every 5 minutes
+ *  - At most every 3 seconds, if power usage level changes by 0.5 Watts or more
+ * 
+ * CUMMULATIVE POWER USAGE REPORTING:
+ *  - At least every 15 minutes
+ *  - At most every 60 seconds, if power usage level changes by 0.5 Watts or more
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async, per wiki page specs; https://eyeris.atlassian.net/wiki/display/I2D/Device+Reporting+Settings
+ * 
+ * ISSUES:
+ *  - Device seems to think it is OFF after pairing, even if it is really ON. We always reset the
+ *    device to factory defaults on pairing to try and help with this (but it still sometimes
+ *    happens, so the best bet is to pair the device while the switch is off, or cycle the switch
+ *    through the ON and OFF states after pairing).
+ *    
+ *  - !!! NOTE !!!
+ *    Device resets the Cummulative Power Demand if it is unplugged and plugged back in.
+ *
+ *  - Driver will retry setting Reporting configurations upto 10 times, with progressive delay of 10 seconds times the attempt count,
+ *    until the configuration is successful (a Config Reporting Response with status of SUCCESS (0) is received).
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBJascoPlugInSmartDimmer"
+description		"Driver for the ZigBee Jasco Plug-In Smart Dimmer"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Dimmer"
+productId		"6ca1b1"
+vendor 			"GE"
+model 			"ZB3101"
+
+
+matcher			'ZIGB:manufacturer': 0x1124, 'ZIGB:vendor': 'Jasco Products', 'ZIGB:model': '45852'
+
+capabilities	DevicePower, Dimmer, Switch, PowerUse, Identify, DeviceOta
+
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+PowerUse.wholehome               false
+
+importCapability 'zigbee/GenericZigbeeDimmer'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+// Manufacturer ID:       0x1124
+// Manufacturer:          Jasco Products
+// Model:                 45852
+//
+// End Point 1
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x0702     (1794) Metering     
+//   0x0B05     (2821) Diagnostics
+// OUT Clusters
+//   0x0003     Identify
+//   0x000A     (10) Time
+//   0x0019     (25) OTA Upgrade
+
+// End Point 2
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0B05     (2821) Diagnostics
+// OUT Clusters
+//   0x0003     Identify
+//   0x0006     On/Off
+
+@Field def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+@Field def levelCluster = Zigbee.endpoint((byte)1).Level
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+def basicCluster = Zigbee.endpoint((byte)1).Basic
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+@Field static final String DEVICE_NAME = 'Jasco Plug In Dimmer'
+@Field def final short MSP_CODE                 = 0x104E        // Manufacturer Specific Code (ID)
+@Field def final short PROFILE_HA               = 0x0104
+
+@Field def final short CLUSTER_ON_OFF           = 0x0006
+@Field def final short CLUSTER_LEVEL_CTRL       = 0x0008
+@Field def final short CLUSTER_METERING         = 0x0702
+@Field def final short CLUSTER_DIAGNOSTICS      = 0x0B05        // (2821) Diagnostics
+
+@Field def final CMD_READ_ATTR                  = 0x00          // General Command Frame - Read Attributes
+@Field def final CMD_WRT_ATTR                   = 0x02          // General Command Frame - Write Attributes
+@Field def final CMD_WRT_ATTR_RSP               = 0x04          // General Command Frame - Write Attributes Response
+@Field def final CMD_CNFG_RPT                   = 0x06          // General Command Frame - Configure Reporting
+@Field def final CMD_CNFG_RPT_RSP               = 0x07          // General Command Frame - Configure Reporting Response
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS                  = 600           // 10 minutes
+def final short IDENT_PERIOD_SECS               = 180           // number of seconds (0-600) for device to Identify itself (by flashing LED on front of device)
+
+@Field def final long PWR_DELAY_READ_MSEC       = 2000
+@Field def final int DFLT_BRIGHTNESS			= 100
+@Field def final short DFLT_TRANS_SECS          = 0             // default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+@Field def final long DFLT_READBACK_DELAY       = 1000          // delay before reading back Level attribute
+
+@Field def final long CNFG_RETRY_DELAY_MSEC = 10000     // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field def final int MAX_CNFG_ATTEMPTS      = 10        // maximumn number of attempts to make trying to configure reporting
+@Field def final String CNFG_ONOFF_RPT      = 'CnfgOnOffRpt'
+@Field def final String CNFG_LEVEL_RPT      = 'CnfgLevelRpt'
+@Field def final String CNFG_METER_RPT      = 'CnfgMeterRpt'
+@Field def final String CNFG_DIAG_RPT       = 'CnfgDiagRpt'
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "${DEVICE_NAME} device started."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_LINE
+	DevicePower.linecapable          true
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	PowerUse.instantaneous           0.0
+	PowerUse.cumulative              0.0
+	PowerUse.wholehome               false
+
+	Switch.state                     Switch.STATE_OFF
+	Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Dimmer.brightness 				 DFLT_BRIGHTNESS
+
+	// reset the device to factory defaults
+	basicCluster.resetToFactoryDefaults()
+
+	// since device assumes it is off, try to make sure it is off
+	onOffCluster.off()
+
+	// Bind all of the command clusters on the enpoints we need
+	//	Zigbee.bindAll()
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		levelCluster.bindServerCluster(),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_METERING),
+		diagCluster.bindServerCluster() )
+	
+	vars.'pwrMult' = 1.0		// default power multiplier to 1.0
+	vars.'pwrDiv' = 10000.0		// default power divisor to 10000.0 (what device typically uses)
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} device connected."
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// read current OnOff attributes
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+
+	// read current Level attributes
+	levelCluster.zclReadAttributes(
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_ON_LEVEL )
+
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+		// configure reporting of OnOff cluster OnOff attribute
+	vars.CNFG_ONOFF_RPT = 0
+	Scheduler.defer CNFG_ONOFF_RPT
+
+	// configure reporting of Level cluster Current Level attribute
+	vars.CNFG_LEVEL_RPT = 0
+	Scheduler.defer CNFG_LEVEL_RPT
+	
+	// set reporting of Metering cluster CurrentSummationDelivered attribute
+	vars.CNFG_METER_RPT = 0
+	Scheduler.defer CNFG_METER_RPT
+
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+	// 10/16/15 - Removed Reporting of LQI per Wiki page updates
+//	vars.CNFG_DIAG_RPT = 0
+//	Scheduler.defer CNFG_DIAG_RPT
+
+	// read the current Power Multiplier value
+	byte[] attrMultBytes = [0x01, 0x03]		// Attr Id (0x0301) Multiplier
+	Zigbee.send("cluster" : CLUSTER_METERING, "command" : CMD_READ_ATTR, "profile" : PROFILE_HA, "endpoint" : 1,
+		"clusterspecific" : false, "defaultresponse" : false, "data" : attrMultBytes)
+
+	// read the current Power Divisor value
+	byte[] attrDivBytes = [0x02, 0x03]		// Attr Id (0x0302) Divisor
+	Zigbee.send("cluster" : CLUSTER_METERING, "command" : CMD_READ_ATTR, "profile" : PROFILE_HA, "endpoint" : 1,
+		"clusterspecific" : false, "defaultresponse" : false, "data" : attrDivBytes)
+}
+
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} device disconnected."
+}
+
+
+onRemoved {
+	log.debug "${DEVICE_NAME} device removed."
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(CNFG_ONOFF_RPT) {
+	if ((0 <= vars.CNFG_ONOFF_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_ONOFF_RPT)) {
+		log.debug "{}:{}", CNFG_ONOFF_RPT, vars.CNFG_ONOFF_RPT
+		// configure reporting of OnOff cluster OnOff attribute
+		byte[] rptOnOffCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0000) OnOff
+			0x00, 0x00,
+			// Attr Data Type (0x10) Boolean
+			0x10,
+			// Min Interval (0x0001) 1 secs (at most once a second)
+			0x01, 0x00,
+			// Max Interval (0x0078) 120 secs (at least once every 2 minutes)
+			0x78, 0x00 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_ON_OFF,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptOnOffCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_ONOFF_RPT++
+		Scheduler.scheduleIn CNFG_ONOFF_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_ONOFF_RPT)
+	}
+}
+
+onEvent(CNFG_LEVEL_RPT) {
+	if ((0 <= vars.CNFG_LEVEL_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_LEVEL_RPT)) {
+		log.debug "{}:{}", CNFG_LEVEL_RPT, vars.CNFG_LEVEL_RPT
+		// configure reporting of Level cluster Current Level attribute
+		byte[] rptLvlCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0000) Current Level
+			0x00, 0x00,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0002) 2 secs
+			0x02, 0x00,
+			// Max Interval (0x0078) 120 secs
+			0x78, 0x00,
+			// Reportable Change (0x01)
+			0x01 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_LEVEL_CTRL,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptLvlCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_LEVEL_RPT++
+		Scheduler.scheduleIn CNFG_LEVEL_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_LEVEL_RPT)
+	}
+}
+
+onEvent(CNFG_METER_RPT) {
+	if ((0 <= vars.CNFG_METER_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_METER_RPT)) {
+		log.debug "{}:{}", CNFG_METER_RPT, vars.CNFG_METER_RPT
+		// configure reporting of Metering cluster CurrentSummationDelivered and InstantaneousDemand attributes
+		byte[] rptMtrSumCnfgBytes = [
+			0x00,			// Dir (0x00)
+			0x00, 0x00,		// Attr Id (0x0000) CurrentSummationDelivered
+			0x25,			// Attr Data Type (0x25) Unsigned 48-bit Integer
+			0x0E, 0x00,		// Min Interval (0x000E) 60 secs (at most once every 60 seconds)
+			0x84, 0x03,		// Max Interval (0x0384) 900 secs (at least once every 15 minutes)
+			0x05, 0x00, 0x00, 0x00, 0x00, 0x00,		// Reportable Change (0x000000000005) 0.5 Watts
+			
+			0x00,			// Dir (0x00)
+			0x00, 0x04,		// Attr Id (0x0400) InstantaneousDemand
+			0x2A,			// Attr Data Type (0x2A) Signed 24-bit Integer
+			0x03, 0x00,		// Min Interval (0x0003) 3 secs (at most once every 3 seconds)
+			0x84, 0x03,		// Max Interval (0x0384) 900 secs (at least once every 15 minutes)
+			0x05, 0x00, 0x00	// Reportable Change (0x000005) 0.5 Watts
+			]
+		Zigbee.send(
+			"cluster" : CLUSTER_METERING,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptMtrSumCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_METER_RPT++
+		Scheduler.scheduleIn CNFG_METER_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_METER_RPT)
+	}
+}
+
+onEvent(CNFG_DIAG_RPT) {
+	if ((0 <= vars.CNFG_DIAG_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_DIAG_RPT)) {
+		log.debug "{}:{}", CNFG_DIAG_RPT, vars.CNFG_DIAG_RPT
+		// configure reporting of Diagnostics cluster Last Message LQI attribute
+		byte[] rptDiagCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x011C) Last Message LQI
+			0x1C, 0x01,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0E10) 3600 secs (at most once per hour)
+			0x10, 0x0E,
+			// Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+			0xC0, 0xA8,
+			// Reportable Change (0x0C) approximately 5% of 255
+			0x0C ]
+		Zigbee.send(
+			"cluster" : CLUSTER_DIAGNOSTICS,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptDiagCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_DIAG_RPT++
+		Scheduler.scheduleIn CNFG_DIAG_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_DIAG_RPT)
+	}
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.DEFERRED_ON_EVENT ) {
+	GenericZigbeeDimmer.doDeferredOnEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.READ_SWITCH_EVENT ) {
+	GenericZigbeeDimmer.doReadSwitchEvent(this, DEVICE_NAME, onOffCluster)
+}
+
+// called from GenericZigbeeDimmer.capability
+onEvent( GenericZigbeeDimmer.READ_LEVEL_EVENT ) {
+	GenericZigbeeDimmer.doReadLevelEvent(this, DEVICE_NAME, levelCluster)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes() {
+	GenericZigbeeDimmer.doSetAttributes(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZigbeeDimmer.doRampBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZigbeeDimmer.doIncrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZigbeeDimmer.doDecrementBrightness(this, DEVICE_NAME, levelCluster, onOffCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void processPowerUse() {
+	// if the switch is OFF, set the Instantaneous to 0
+	if (Switch.STATE_OFF == Switch.state.get()) {
+		PowerUse.instantaneous 0.0
+	} else {
+		// read the power usage, but delay a little bit to give readings time to adjust
+		Scheduler.scheduleIn 'DeferredPwrRead', PWR_DELAY_READ_MSEC
+	}
+}
+
+onEvent('DeferredPwrRead') {
+	log.trace 'Deferred Power read'
+	
+	// read the current Instantaneous Power Demand
+	byte[] attrInstBytes = [0x00, 0x04]		// Attr Id (0x0400) InstantaneousDemand
+	Zigbee.send("cluster" : CLUSTER_METERING, "command" : CMD_READ_ATTR, "profile" : PROFILE_HA, "endpoint" : 1,
+		"clusterspecific" : false, "defaultresponse" : false, "data" : attrInstBytes)
+
+	// read the current Cummulative Power Delivered so far
+	byte[] attrSumBytes = [0x00, 0x00]		// Attr Id (0x0000) CurrentSummationDelivered
+	Zigbee.send("cluster" : CLUSTER_METERING, "command" : CMD_READ_ATTR, "profile" : PROFILE_HA, "endpoint" : 1,
+		"clusterspecific" : false, "defaultresponse" : false, "data" : attrSumBytes)
+}
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.trace "Driver received OnOff Attributes Response:{}", message
+	GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+	processPowerUse()
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.trace "Driver received OnOff Attributes Report:{}", message
+	GenericZigbeeDimmer.handleOnOffMsg(this, DEVICE_NAME, onOffCluster, message)
+	processPowerUse()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.trace "Driver received Level Attributes Response: " + message
+	GenericZigbeeDimmer.handleLevelMsgNoRestore(this, DEVICE_NAME, levelCluster, onOffCluster, false, message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.trace "Driver received Level Attributes Report: {}", message
+	GenericZigbeeDimmer.handleLevelMsgNoRestore(this, DEVICE_NAME, levelCluster, onOffCluster, false, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.trace "RSSI:{}, LQI:{}", rssi, lqi
+
+	if (lqi != null) {
+		if ('INVALID' == lqi.toString()) lqi = 255	// helper parses 255 value as 'INVALID', but it just means 100%
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		int sigPct = Math.round( (lqi * 100.0) / 255.0)
+		log.trace "LQI:{}, (percent:{})", lqi, sigPct
+		DeviceConnection.signal sigPct
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "Driver received Diagnostics Attributes Response:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "Driver received Diagnostics Attributes Report:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify:{}", message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// if Config Reporting Response for On/Off cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "On/Off reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_ONOFF_RPT = -1
+		} else {
+			log.warn "On/Off reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+	// if Config Reporting Response for Level cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Level reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_LEVEL_RPT = -1
+		} else {
+			log.warn "Level reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+	// if Config Reporting Response for Metering cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_METERING == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Metering reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_METER_RPT = -1
+		} else {
+			log.warn "Metering reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+	// if Config Reporting Response for Diagnostics cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_DIAGNOSTICS == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Diagnostics reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_DIAG_RPT = -1
+		} else {
+			log.warn "Diagnostics reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Diagnostic cluster reported LQI and not previously handled (exception parsing attribute) manually parse the value here
+	if ((CLUSTER_DIAGNOSTICS == clusterId) && (3 < data.length)) {
+		if ((0x1C == data[0]) && (0x01 == data[1]) && (0x20 == data[2])) {		// LQI Attribute (0x011C) as unsigned 8-bit value (0x20)
+			int lqi = data[3]				// 0-255
+			if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+			double signal = (lqi * 100.0) / 255.0
+			int sigLvl = Math.round(signal)
+			log.trace "LQI:{}, (percent:{})", lqi, sigLvl
+			DeviceConnection.signal sigLvl
+		}
+		return
+	}
+
+	// if this is a Response or Report for the Metering Cluster, from endpoint 1
+	if ((CLUSTER_METERING == clusterId) && ((0x01 == msgId) || (0x0A == msgId)) && (1 == endpoint)) {
+		def int iVal = 0
+		def long lVal = 0
+		def double dVal = 0
+		
+		// if attribute ID is 0x0000 (CurrentSummationDelivered)
+		if ((0x00 == data[0]) && (0x00 == data[1])) {
+			// if Response message
+			if ((0x01 == msgId) && (10 <= data.length)) {
+				// Profile:260, ClusterId:1794, MsgId:1, EndPoint:1, Flags:2, Data:[0, 0, 0, 37, 124, 1, 0, 0, 0, 0]
+				lVal = (long)((data[9] & 0xff) << 40) | (long)((data[8] & 0xff) << 32) | (long)((data[7] & 0xff) << 24) | (long)((data[6] & 0xff) << 16) | (long)((data[5] & 0xff) << 8) | (long)(data[4] & 0xff)
+				dVal = new Double(lVal) * 1000 * vars.'pwrMult' / vars.'pwrDiv'		// convert kW to W, and apply multiplier and divisor
+				log.trace "Cummulative Power Demand Response:{}", dVal
+				PowerUse.cumulative dVal
+			} else if ((0x0A == msgId) && (9 <= data.length)) {
+				// Profile:260, ClusterId:1794, MsgId:10, EndPoint:1, Flags:2, Data:[0, 0, 37, 29, 0, 0, 0, 0, 0]
+				lVal = (long)((data[8] & 0xff) << 40) | (long)((data[7] & 0xff) << 32) | (long)((data[6] & 0xff) << 24) | (long)((data[5] & 0xff) << 16) | (long)((data[4] & 0xff) << 8) | (long)(data[3] & 0xff)
+				dVal = new Double(lVal) * 1000 * vars.'pwrMult' / vars.'pwrDiv'		// convert kW to W, and apply multiplier and divisor
+				log.trace "Cummulative Power Demand Report:{}", dVal
+				PowerUse.cumulative dVal
+			}
+		} else if ((0x00 == data[0]) && (0x04 == data[1])) {	// (Instantaneous Demand)
+			// if Response message
+			if ((0x01 == msgId) && (7 <= data.length)) {
+				// Profile:260, ClusterId:1794, MsgId:1, EndPoint:1, Flags:2, Data:[0, 4, 0, 42, 0, 0, 0]
+				iVal = ((data[6] & 0xff) << 16) | ((data[5] & 0xff) << 8) | (data[4] & 0xff)
+				dVal = new Double(iVal) * 1000 * vars.'pwrMult' / vars.'pwrDiv'		// convert kW to W, and apply multiplier and divisor
+				log.trace "Instantaneous Power Demand Response:{}", dVal
+				if (Switch.STATE_OFF == Switch.state.get()) {
+					PowerUse.instantaneous 0.0
+				} else {
+					PowerUse.instantaneous dVal
+				}
+			} else if ((0x0A == msgId) && (6 <= data.length)) {
+				// Profile:260, ClusterId:1794, MsgId:10, EndPoint:1, Flags:2, Data:[0, 4, 42, 106, 3, 0]
+				iVal = ((data[5] & 0xff) << 16) | ((data[4] & 0xff) << 8) | (data[3] & 0xff)
+				dVal = new Double(iVal) * 1000 * vars.'pwrMult' / vars.'pwrDiv'		// convert kW to W, and apply multiplier and divisor
+				log.trace "Instantaneous Power Demand Report:{}", dVal
+				if (Switch.STATE_OFF == Switch.state.get()) {
+					PowerUse.instantaneous 0.0
+				} else {
+					PowerUse.instantaneous (dVal)
+				}
+			}
+		} else if ((0x01 == data[0]) && (0x03 == data[1]) && (7 <= data.length)) {	// (Multiplier)
+			iVal = ((data[6] & 0xff) << 16) | ((data[5] & 0xff) << 8) | (data[4] & 0xff)
+			dVal = new Double(iVal)
+			log.trace "Power Multiplier Response:{}", dVal
+			vars.'pwrMult' = dVal
+		} else if ((0x02 == data[0]) && (0x03 == data[1]) && (7 <= data.length)) {	// (Divisor)
+			iVal = ((data[6] & 0xff) << 16) | ((data[5] & 0xff) << 8) | (data[4] & 0xff)
+			dVal = new Double(iVal)
+			log.trace "Power Divisor Response:{}", dVal
+			vars.'pwrDiv' = dVal
+		}
+		return
+	}
+	
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:{}", profile, clusterId, msgId, endpoint, flags, data
+}
+

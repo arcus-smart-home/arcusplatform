@@ -1,0 +1,174 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: file("${rootDir}/gradle/subproject.gradle")
+apply from: file("${rootDir}/gradle/container.gradle")
+apply plugin: 'maven-publish'
+
+configurations {
+   reflexGeneratorRuntime { transitive = false }
+}
+
+dependencies {
+    compile project (':platform:arcus-lib')
+    compile project (':platform:arcus-prodcat')
+    compile project (':common:arcus-common')
+    compile project (':common:arcus-drivers:drivers-common')
+    compile project (':common:arcus-drivers:groovy-bindings')
+    compile project(':common:arcus-model:platform-messages')
+    compile project(':common:arcus-protocol')
+
+    testCompile project (':platform:arcus-test')
+
+    reflexGeneratorRuntime project(':common:arcus-drivers:reflex-generator')
+    reflexGeneratorRuntime project(':common:arcus-drivers:groovy-bindings')
+    reflexGeneratorRuntime project(':common:arcus-common')
+    reflexGeneratorRuntime project(':common:arcus-model')
+    reflexGeneratorRuntime project(':common:arcus-model:platform-messages')
+    reflexGeneratorRuntime project(':common:arcus-client')
+    reflexGeneratorRuntime project(':common:arcus-drivers:drivers-common')
+    reflexGeneratorRuntime project(':common:arcus-protocol')
+    reflexGeneratorRuntime project(':common:arcus-protoc-runtime')
+    reflexGeneratorRuntime 'javax.inject:javax.inject:1'
+    reflexGeneratorRuntime 'org.apache.xbean:xbean-finder:3.11.1'
+    reflexGeneratorRuntime 'aopalliance:aopalliance:1.0'
+    reflexGeneratorRuntime 'javax.validation:validation-api:1.0.0.GA'
+    reflexGeneratorRuntime 'org.hibernate:hibernate-validator:4.1.0.Final'
+    reflexGeneratorRuntime 'commons-io:commons-io:2.4'
+    reflexGeneratorRuntime 'org.codehaus.jsr166-mirror:jsr166y:1.7.0'
+    reflexGeneratorRuntime 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+    reflexGeneratorRuntime "io.netty:netty-buffer:${netty_version}"
+    reflexGeneratorRuntime "io.netty:netty-common:${netty_version}"
+    reflexGeneratorRuntime libraries.jcommander
+    reflexGeneratorRuntime libraries.governator
+    reflexGeneratorRuntime libraries.jacksonCore
+    reflexGeneratorRuntime libraries.jacksonDatabind
+    reflexGeneratorRuntime libraries.jacksonCoreAsl
+    reflexGeneratorRuntime libraries.jacksonMapper
+    reflexGeneratorRuntime libraries.slf4jApi
+    reflexGeneratorRuntime libraries.guiceCore
+    reflexGeneratorRuntime libraries.guiceMultibindings
+    reflexGeneratorRuntime libraries.guava
+    reflexGeneratorRuntime libraries.groovy
+    reflexGeneratorRuntime libraries.gson
+    reflexGeneratorRuntime libraries.commons_lang
+    reflexGeneratorRuntime libraries.commonsCodec
+    reflexGeneratorRuntime libraries.javax_annotation_api
+    reflexGeneratorRuntime libraries.jaxb_api
+}
+
+def genResMain = new File(buildDir, 'generated-src/main/resources')
+def genResTest = new File(buildDir, 'generated-src/test/resources')
+
+sourceSets.main.resources.srcDirs += genResMain
+sourceSets.test.resources.srcDirs += genResTest
+
+import org.apache.tools.ant.filters.*
+
+// include in the normal distribution
+applicationDistribution.from("src/main/resources") {
+    include '**/*.driver'
+    into "drivers"
+}
+applicationDistribution.from("src/main/resources") {
+    include '**/*.capability'
+    into "drivers"
+}
+
+task cleanDriversReflexDB(type: Delete) {
+   delete "${buildDir}/driver-classes"
+   delete "${buildDir}/reflexdb"
+}
+
+task generateDriversReflexDB {
+    dependsOn cleanDriversReflexDB
+
+    description 'Generate the current reflexdb for hub local processing'
+   ant.lifecycleLogLevel = "INFO"
+
+   def ver = "${platformVersion}"
+
+   def src = fileTree('src/main/resources')
+       .include('**/*.driver')
+       .exclude("**/template.driver")
+
+   inputs.files src
+   outputs.dir "${buildDir}/driver-classes"
+
+   doLast {
+
+      ant.java (fork:true, failonerror: true, classname: "com.iris.driver.reflex.generator.ReflexGenerator") {
+         arg(value: '--output')
+         arg(value: 'none')
+         arg(value: '--version')
+         arg(value: ver)
+
+         sysproperty(key:'groovy.invoke.dynamic', value: 'false')
+         sysproperty(key:'groovy.dump.bytecode', value: 'true')
+         sysproperty(key:'groovy.dump.bytecode.path', value: "${buildDir}/driver-classes")
+
+         src.each { driver ->
+            arg(value: driver)
+         }
+
+         configurations.reflexGeneratorRuntime.each { art -> 
+            classpath {
+               pathelement(location: art)
+            }
+         }
+      }
+   }
+}
+
+task generateDriversJar(type: Jar) {
+   dependsOn generateDriversReflexDB
+
+   from files("${buildDir}/driver-classes")
+   baseName = 'arcus-drivers-compiled'
+   version = project.version
+}
+
+task compileDrivers() {
+   dependsOn generateDriversReflexDB
+   dependsOn generateDriversJar
+}
+
+processResources {
+   dependsOn compileDrivers
+}
+
+run {
+	systemProperty "driver.directory", "${projectDir}/src/main/resources"
+
+   classpath = classpath + files("${buildDir}/driver-classes")
+   classpath = classpath + files(genResMain)
+}
+
+distributions {
+    main {
+        contents {
+            from(generateDriversJar) {
+                into "lib"
+            }
+        }
+    }
+}
+   
+startScripts {
+   classpath += files("arcus-drivers-compiled-${version}.jar")
+}
+
+clean.dependsOn cleanDriversReflexDB
+

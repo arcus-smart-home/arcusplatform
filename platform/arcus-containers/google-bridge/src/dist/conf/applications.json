@@ -1,0 +1,25 @@
+[ {
+    "id": "tdb",
+    "name": "Google",
+    "secret": "tbd",
+    "redirect": "https://oauth-redirect.googleusercontent.com/r",
+    "scope": "Iris",
+    "permissions": [ {
+        "icon": "o/dtypes/thermostat/type_small-and-xxhdpi.png",
+        "name": "Thermostats",
+        "invertIcon": false
+    }, {
+        "icon": "o/categories/lightsswitches/icon_lightsswitches-and-xxhdpi.png",
+        "name": "Lights & Switches",
+        "invertIcon": false
+    }, {
+        "icon": "o/categories/scenes/icon_scenes_white-and-xxhdpi.png",
+        "name": "Scenes",
+        "invertIcon": true
+    } ],
+    "extraQueryParams": ["defaultplace"],
+    "sendsRedirectQueryParam": false,
+    "thirdParty": "Google",
+    "thirdPartyApp": "Assistant",
+    "thirdPartyDisplayName": "Google"   
+} ]

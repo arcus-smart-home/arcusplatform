@@ -1,0 +1,297 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Smart Plug
+ *
+ * To Reset Device:  Plug in and then press button on the device 5 times.
+ *
+ * Check-in/Offline: These devices send a heartbeat command approximately every 30 seconds.
+ * The offline timeout is set to 6.5 minutes, marking the device as offline if 12 consecutive checkins are missed.
+ *
+ * NOTES/ISSUES:
+ *  - This device needs the Power Control Operating Mode periodically set to 0x01 to make sure the Hub is allowed to
+ *    control the relay.  You cannot just set it once, when connected, because if the device is unplugged and then
+ *    plugged back in the setting will reset but the onConnected may not be called, so we make sure it is set each
+ *    time we set the relay state.
+ * 
+ */
+import groovy.transform.Field
+
+
+driver			"ZB_AlertMe_SmartPlug"
+description		"Driver for the AlertMe SmartPlug"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Switch"
+productId		"b48370"
+vendor 			"Iris"
+model 			"SmartPlug"
+
+matcher         'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'SmartPlug2.5'
+capabilities	DevicePower, Switch, PowerUse
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+// End Point:   0x02
+// Profile ID:  0xC216
+// IN Clusters
+//   0x00F0     General Cluster
+//   0x00EE     (238) Power Control Cluster
+//   0x00EF     (239) Power Monitor Cluster
+
+// End Point:   0xF0
+// Profile ID:  0xC216
+// IN Clusters
+//   0x0B7D     Upgrade Cluster
+
+
+def amPowerControl = Zigbee.alertme.PowerControl
+
+@Field def final short PROFILE_ALERTME         = 0xC216
+
+@Field def final short CLUSTER_JOIN            = 246
+@Field def final byte CMD_SET_MODE             = 0xFA
+@Field def final byte CMD_RANGE_TEST           = 0xFD
+
+@Field def final short CLUSTER_GENERAL         = 240
+@Field def final byte CMD_HELLO_RQST           = 0xFC
+@Field def final byte CMD_STOP_POLLING         = 0xFD
+
+@Field def final short CLUSTER_PWR_CTRL        = 238
+@Field def final byte CMD_SET_OPERATING_MODE   = 0x01
+@Field def final byte CMD_SET_RELAY_STATE      = 0x02
+@Field def final byte CMD_RELAY_STATUS_RQST    = 0x03
+@Field def final byte CMD_RELAY_STATUS_REPORT  = 0x80	// (128)
+
+@Field def final short CLUSTER_PWR_MON         = 239
+@Field def final byte CMD_RQST_PWR_REPORT      = 0x03
+@Field def final byte CMD_INST_PWR_REPORT      = 0x81	// (129)
+@Field def final byte CMD_TOTAL_ENERGY_REPORT  = 0x82	// (130)
+
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS = 600           // 10 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "AlertMe SmartPlug device added."
+//   amPowerControl.setOperatingMode((byte)1)
+
+   // set default attribute values
+   DevicePower.source               DevicePower.SOURCE_LINE
+   DevicePower.linecapable          true
+   DevicePower.backupbatterycapable false
+   DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   PowerUse.instantaneous           0.0
+   PowerUse.wholehome               false
+
+   Switch.state                     Switch.STATE_OFF
+   Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+    // send a Mode Change message to make sure device is in normal ops mode
+    byte[] modeBytes = [0x00, 0x01]		// normal mode, set Home Network Flag (HNF)
+    Zigbee.send("cluster" : CLUSTER_GENERAL, "command" : CMD_SET_MODE, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+	    "clusterspecific" : true, "defaultresponse" : false, "data" : modeBytes)
+}
+
+onConnected {
+   log.debug "AlertMe SmartPlug device connected."
+	
+   // set recommended offline timeout interval
+   Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+   // set Power Operating mode to 1 (remote, allow hub to control)
+   amPowerControl.setOperatingMode((byte)1)
+
+   // request relay status
+   byte[] bytes = []
+   Zigbee.send("cluster" : CLUSTER_PWR_CTRL, "command" : CMD_RELAY_STATUS_RQST, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+               "clusterspecific" : true, "defaultresponse" : false, "data" : bytes)
+
+    // request power report
+   Zigbee.send("cluster" : CLUSTER_PWR_MON, "command" : CMD_RQST_PWR_REPORT, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+               "clusterspecific" : true, "defaultresponse" : false, "data" : bytes)
+
+   // send a "Hello" message, if needed/wanted
+   byte[] helloBytes = []
+   Zigbee.send("cluster" : CLUSTER_JOIN, "command" : CMD_HELLO_RQST, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+               "clusterspecific" : true, "defaultresponse" : false, "data" : helloBytes)
+}
+
+onDisconnected {
+    log.debug "AlertMe SmartPlug device disconnected."
+}
+
+onRemoved {
+    log.debug "AlertMe SmartPlug device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Attribute Setters
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+   log.debug "setAttributes('swit'): {}", message
+   def attributes = message.attributes
+
+   for(attribute in attributes) {
+      switch(attribute.key) {
+         case Switch.state:
+			// make sure Power Operating mode is set to 1 (remote, allow hub to control)
+			amPowerControl.setOperatingMode((byte)1)
+            if (attribute.value == 'ON') {
+               log.debug "Setting switch relay to ON"
+               amPowerControl.setRelayState((byte)1,(byte)1)
+            } else {
+               log.debug "Setting switch relay to OFF"
+               amPowerControl.setRelayState((byte)0,(byte)0)
+            }
+			// request relay status
+		   	byte[] bytes = []
+			Zigbee.send("cluster" : CLUSTER_PWR_CTRL, "command" : CMD_RELAY_STATUS_RQST, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+		   		    	"clusterspecific" : true, "defaultresponse" : false, "data" : bytes)
+		
+		    // request power report
+			Zigbee.send("cluster" : CLUSTER_PWR_MON, "command" : CMD_RQST_PWR_REPORT, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+		   		    	"clusterspecific" : true, "defaultresponse" : false, "data" : bytes)
+            break;
+
+         case Switch.inverted:
+            log.warn "AlertMe SmartPlug does not support Switch.inverted attribute"
+            break;
+
+         default:
+            // TODO throw an exception?
+            log.error "unrecognized attribute:{}", attribute
+      }
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Alertme.powercontrol.relaystatusreport() {
+    def report = Zigbee.Message.decodeAlertme(message)
+    def prevState = Switch.state.get()
+
+    log.trace "received zigbee alertme relay status report {}", report
+    Switch.state ((report.relayBitfield != 0) ? Switch.STATE_ON : Switch.STATE_OFF)
+    // if state changed, capture timestamp
+    if (Switch.state.get() != prevState) {
+       Switch.statechanged new Date()
+       log.debug "Switch: new state: {} previous: {}", Switch.state.get(), prevState
+    }
+}
+
+onZigbeeMessage.Alertme.powermonitor.totalenergyreport() {
+    def report = Zigbee.Message.decodeAlertme(message)
+
+    log.trace "received zigbee alertme total energy report {}", report
+    log.trace "setting joule count to {}", report.jouleCount
+    PowerUse.cumulative (report.jouleCount * 0.000277777778)
+}
+
+onZigbeeMessage.Alertme.powermonitor.instantaneouspowerreport() {
+    def iUsage = Zigbee.Message.decodeAlertme(message)
+    log.trace "setting instantaneous usage to {}", iUsage
+    PowerUse.instantaneous iUsage.watts
+}
+
+onZigbeeMessage.Alertme.powermonitor.mergedbatchedpowerandtotalenergyreport() {
+    def report = Zigbee.Message.decodeAlertme(message)
+
+    log.trace "received zigbee alertme merged batched power and total energy report {}", report
+    log.trace "setting joule count to {}", report.jouleCount
+    PowerUse.cumulative (report.jouleCount * 0.000277777778)
+
+    log.trace "setting instantaneous usage to {}", report.instantaneousPower
+    PowerUse.instantaneous report.instantaneousPower
+}
+
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	def zclMsg = Zigbee.Message.toZcl(message)
+	def clusterId = zclMsg.getClusterId()
+	def messageId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def profile = zclMsg.getProfileId()
+	def flags = zclMsg.getFlags()
+	def payloadLen = zclMsg.getLength()
+	byte[] data = zclMsg.getPayload()
+
+	// Cluster 0xF0, CmdId 0xFB, Heartbeat
+	if ((CLUSTER_GENERAL == clusterId) && (251 == messageId)) {
+		log.trace "AlertMe Smart Plug received heartbeat"
+
+		if (0 != (0x08 & data[0])) {		// bit 3 set in first byte, so LQI reported
+			int lqi = data[10]
+			if (0 > lqi) {
+				lqi = 256 + lqi
+			}
+			double signal = (lqi * 100.0) / 255.0
+			log.trace "LQI: {}, (percent:{})" + lqi, (int)signal
+			DeviceConnection.signal ((int)signal)
+		}
+
+		// send Stop Polling (ID:0xFD) for General Cluster (ID:0x00F0) so device
+		// only sends a heartbeat message once every 2 minutes instead of 3 times a minute.
+		byte[] bytes = []
+		Zigbee.send("cluster" : CLUSTER_GENERAL, "command" : CMD_STOP_POLLING, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+			"clusterspecific" : true, "defaultresponse" : true, "data" : bytes)
+
+		return
+	}
+	
+	
+	if ((CLUSTER_JOIN == clusterId) && (253 == messageId)) {
+		// send a Mode Change message to make sure device is in normal ops mode
+		byte[] modeBytes = [0x00, 0x00]		// normal mode, reset Home Network Flag (HNF)
+		Zigbee.send("cluster" : CLUSTER_JOIN, "command" : CMD_SET_MODE, "profile" : PROFILE_ALERTME, "endpoint" : 2,
+			"clusterspecific" : true, "defaultresponse" : false, "data" : modeBytes)
+
+		// set Power Operating mode to 1 (remote, allow hub to control)
+		amPowerControl.setOperatingMode((byte)1)
+		return
+	}
+	
+	// Join Cluster 0xF6, Hello Response 0xFE
+	if ((CLUSTER_JOIN == clusterId) && (254 == messageId)) {
+		log.trace "AlertMe Smart Plug received Hello Response"
+		if (18 <= payloadLen) {		// should be 63 bytes, but we are only looking at first 18
+			int nodeId = ((data[1] * 256) + data[0]) & 0xFFFF
+			int mfgId = ((data[11] * 256) + data[10]) & 0xFFFF
+			int dvcType = (data[13] * 256) + data[12]
+			byte appRel = data[14]
+			double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+			double hwVer = new Double(data[17]) + (new Double(data[16]) / 10)
+			log.trace "NodeId:0x{}, MfgId:0x{}, DvcType:{}, App Release:{}, App Ver:{}, HW Ver:{}", 
+				Integer.toHexString(nodeId).toUpperCase(), Integer.toHexString(mfgId).toUpperCase(), dvcType, appRel, appVer, hwVer
+                        DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+		}
+		return
+	}
+	
+	log.debug "Unhandled ZCL message: Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+

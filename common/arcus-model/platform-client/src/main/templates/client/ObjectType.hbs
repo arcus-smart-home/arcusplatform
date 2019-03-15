@@ -1,0 +1,77 @@
+   public static final com.iris.capability.definition.AttributeType.ObjectType TYPE = new com.iris.capability.definition.AttributeType.ObjectType() {
+      private final java.util.Map<java.lang.String, com.iris.capability.definition.AttributeType> attributes =
+            com.google.common.collect.ImmutableMap
+               .<String, com.iris.capability.definition.AttributeType>builder()
+               {{#attributes}}.put(ATTR_{{toUpperCase name}}, TYPE_{{toUpperCase name}}){{/attributes}}
+               .build();
+      
+      @Override
+      public RawType getRawType() {
+         return RawType.OBJECT;
+      }
+
+      @Override
+      public java.lang.reflect.Type getJavaType() {
+         return {{name}}.class;
+      }
+
+      @Override
+      public String getRepresentation() {
+         return NAME;
+      }
+
+      @Override
+      public boolean isPrimitive() {
+         return false;
+      }
+
+      @Override
+      public boolean isEnum() {
+         return false;
+      }
+
+      @Override
+      public boolean isCollection() {
+         return false;
+      }
+
+      @Override
+      public boolean isObject() {
+         return true;
+      }
+
+      @Override
+      public EnumType asEnum() {
+         return null;
+      }
+
+      @Override
+      public CollectionType asCollection() {
+         return null;
+      }
+
+      @Override
+      public ObjectType asObject() {
+         return this;
+      }
+
+      @Override
+      public Object coerce(Object value) {
+         if(value == null) {
+            return null;
+         }
+         if(value instanceof {{name}}) {
+            return value;
+         }
+         if(value instanceof Map) {
+            return new {{name}}((Map<String, Object>) value);
+         }
+         throw new IllegalArgumentException("Can't coerce " + value + " to {{name}}");
+      }
+
+      @Override
+      public java.util.Map<java.lang.String, com.iris.capability.definition.AttributeType> getAttributes() {
+         return attributes;
+      }
+      
+   };

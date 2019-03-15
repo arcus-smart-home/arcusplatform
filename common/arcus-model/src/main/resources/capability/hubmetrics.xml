@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubMetrics"
+   namespace="hubmetric"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="metricsjobs"
+         readwrite="r"
+         type="list&lt;string&gt;"
+         optional="false" 
+         description="List of the active metrics reporting jobs."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="StartMetricsJob"
+         description="Start a job of the given name with the given parameters.">
+         <c:parameters>
+            <c:parameter 
+               name="jobname"
+               type="String"
+               description="Name of the job to run."
+               optional="false"/>
+            <c:parameter 
+               name="periodMs"
+               type="long"
+               description="How often to get metric updates."
+               optional="false"/>
+            <c:parameter 
+               name="durationMs"
+               type="long"
+               description="How long to run the metrics."
+               optional="false"/>
+            <c:parameter 
+               name="metrics"
+		       type="list&lt;string&gt;"
+               description="Name fo the metrics to run, can be a regex to match multiple metrics."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+      
+      <c:method
+         name="EndMetricsJobs"
+         description="Instructs the hub to cancel the name metrics reporting job.">
+         <c:parameters>
+            <c:parameter 
+               name="jobname"
+               type="string"
+               description="Name of the job to stop stopping."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="GetMetricsJobInfo"
+         description="Get information about a running job.">
+         <c:parameters>
+            <c:parameter 
+               name="jobname"
+               type="string"
+               description="Name of the job to fetch details about."
+               optional="false"/>
+            <c:return
+               name="periodMs"
+               type="long"
+               description="How often to get metrics get updates."
+               optional="false"/>
+            <c:return
+               name="remainingDurationMs"
+               type="long"
+               description="How much longer the job will run."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="ListMetrics"
+         description="List all of the current metrics..">
+         <c:parameters>
+            <c:parameter 
+               name="regex"
+               type="string"
+               description="Name of the metrics to view."
+               optional="false"/>
+            <c:return 
+               name="metrics"
+               type="list&lt;string&gt;"
+               description="The names of all metrics matching the regex."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="GetStoredMetrics"
+         description="Retrieves the metrics stored in the long term metrics store.">
+         <c:parameters>
+            <c:return
+               name="metrics"
+               type="string"
+               description="A gzip compressed and base64 encoded list&lt;HubMetric&gt;."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+</c:capability>

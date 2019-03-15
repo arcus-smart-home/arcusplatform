@@ -1,0 +1,47 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library basic command frames
+//    From Section 3.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Basic {
+   const u16 CLUSTER_ID = 0x0000;
+
+   const u16 ATTR_ZCL_VERSION = 0x0000;
+   const u16 ATTR_APPLICATION_VERSION = 0x0001;
+   const u16 ATTR_STACK_VERSION = 0x0002;
+   const u16 ATTR_HARDWARE_VERSION = 0x0003;
+   const u16 ATTR_MANUFACTURER_NAME = 0x0004;
+   const u16 ATTR_MODEL_IDENTIFIER = 0x0005;
+   const u16 ATTR_DATE_CODE = 0x0006;
+   const u16 ATTR_POWER_SOURCE = 0x0007;
+
+   const u16 ATTR_LOCATION_DESCRIPTION = 0x0010;
+   const u16 ATTR_PHYSICAL_ENVIRONMENT = 0x0011;
+   const u16 ATTR_DEVICE_ENABLED = 0x0012;
+   const u16 ATTR_ALARM_MASK = 0x0013;
+   const u16 ATTR_DISABLE_LOCAL_CONFIG = 0x0014;
+
+   const u8 POWER_SOURCE_UNKNOWN = 0x00;
+   const u8 POWER_SOURCE_MAINS_1PHASE = 0x01;
+   const u8 POWER_SOURCE_MAINS_3PHASE = 0x02;
+   const u8 POWER_SOURCE_BATTERY = 0x03;
+   const u8 POWER_SOURCE_DC_SOURCE = 0x04;
+   const u8 POWER_SOURCE_EMERGENCY_MAINS_CONSTANTLY_POWERED = 0x05;
+   const u8 POWER_SOURCE_EMERGENCY_MAINS_TRANSFER_SWITCH = 0x06;
+
+   const u8 PHYSICAL_ENVIRONMENT_UNSPECIFIED = 0x00;
+   const u8 PHYSICAL_ENVIRONMENT_PER_PROFILE = 0x01;
+   const u8 PHYSICAL_ENVIRONMENT_UNKNOWN = 0xFF;
+
+   const u8 DEVICE_DISABLE = 0x00;
+   const u8 DEVICE_ENABLED = 0x01;
+
+   const u8 ALARM_MASK_HARDWARE_FAULT = 0x01;
+   const u8 ALARM_MASK_SOFTWARE_FAULT = 0x02;
+
+   const u8 DISABLE_LOCAL_CONFIG_FACTORY_RESET = 0x01;
+   const u8 DISABLE_LOCAL_CONFIG_DEVICE_CONFIGURATION = 0x02;
+}
+
+message zcl.Basic.ResetToFactoryDefaults<id="0x00",group="client"> {
+}

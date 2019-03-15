@@ -1,0 +1,161 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import com.iris.messages.capability.DeviceOtaCapability;
+
+/**
+ * Mock driver for a OTA Enabled device
+ * 
+ * Notes: When button state is set to PRESSED, it will automatically be reset to RELEASED 1 second later.
+ * 
+ */
+driver         "MOCK_OTA_Device"
+description    "Driver for a OTA Enabled Device"
+version        "1.1"
+protocol       "MOCK"
+deviceTypeHint "OTA"
+productId      "bbf1c5"
+vendor         "Mockitron"
+model          "OTADevice"
+
+matcher        'MOCK:Capability' : 'OTADevice'
+matcher        'MOCK:ProductId'  : 'bbf1c5'
+
+capabilities   DeviceOta, DeviceMock
+
+
+def final long FIRMWARE_UPDATE_DELAY = 10000     
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock OTA capable device started."
+	Device.name 'OTA Capable Device'
+   Scheduler.scheduleIn 'initFirmware', 10000
+}
+
+onConnected {
+	log.debug "Mock OTA enabled device connected."
+}
+
+onDisconnected {
+	log.debug "Mock OTA enabled device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock OTA enabled device removed."
+}
+
+onEvent('OTAFinish') {
+   log.debug "OTA Firmware Update Finished"
+   DeviceOta.status "COMPLETED"
+   DeviceOta.currentVersion DeviceOta.targetVersion.get()
+   DeviceOta.targetVersion null
+   DeviceOta.retryCount null
+   DeviceOta.lastAttempt null
+   
+   emit "devota:FirmwareUpdateProgress", ["dlProgress":"100","otaProgress":"100","status":"COMPLETE","reason":null]
+   
+}
+
+onEvent('initFirmware') {
+   DeviceOta.currentVersion "1"
+}
+
+onEvent('OTAEmitProgress') {
+   int progressPercent = vars.progress * 10 
+   log.debug "Report Progress ${progressPercent}%"
+   DeviceOta.progressPercent progressPercent
+   
+   if(vars.progress<10){
+      emit "devota:FirmwareUpdateProgress", ["dlProgress":"100","otaProgress":progressPercent,"status":progressPercent==100?"COMPLETED":"INPROGRESS","reason":null]
+      Scheduler.scheduleIn 'OTAEmitProgress', (int)(vars.delay/10)
+      vars.progress++
+   }else{
+      Scheduler.scheduleIn 'OTAFinish', 1000
+   }
+   
+}
+
+
+onEvent('OTAInprogress') {
+   log.debug "OTA Firmware Update Inprogess"
+   log.debug "Begin Downloading ${vars.firmwareUrl}"
+   
+   Scheduler.scheduleIn 'OTAEmitProgress', (1000)
+   
+   DeviceOta.status "INPROGRESS"
+}
+
+onEvent('OTAFailed') {
+   log.debug "OTA Firmware Update Finished"
+   DeviceOta.status "FAILED"
+   DeviceOta.retryCount 0
+   DeviceOta.lastAttempt new Date();
+}
+
+// ########### capability support ##################
+
+setAttributes('devota') {
+	attributes << message.attributes.attrs;
+}
+
+
+onPlatform ("devota:FirmwareUpdate") {
+   log.debug "devota:FirmwareUpdate with args ${message.attributes}"
+   vars.firmwareUrl=message.attributes['url']?:""
+   vars.delay=vars.firmwareUrl.isNumber()?Integer.parseInt(vars.firmwareUrl)*1000:FIRMWARE_UPDATE_DELAY
+   vars.progress=0
+   
+   if(DeviceOta.status.get()=="FAILED"){
+      DeviceOta.retryCount ((DeviceOta.retryCount.get()?:0)+1)
+      DeviceOta.lastAttempt new Date();
+   }
+
+   DeviceOta.status "IDLE"
+   if(vars.firmwareUrl.contains("fail")){
+      Scheduler.scheduleIn 'OTAFailed', (1000)
+   }
+   else{
+      try{DeviceOta.targetVersion (Integer.parseInt(DeviceOta.currentVersion.get()) + 1)}catch(e){DeviceOta.targetVersion 1}
+      Scheduler.scheduleIn 'OTAInprogress', 5000
+   }
+   sendResponse "devota:FirmwareUpdateResponse", ["status":"OK","message":"Firmare Update Request Received"]
+ }
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['but:state']) {
+    Button.statechanged new Date()
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

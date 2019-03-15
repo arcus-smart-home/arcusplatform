@@ -1,0 +1,7 @@
+/build/
+/.eclipse-bin/
+/.gradle/
+/.project
+/.settings/
+./eyeris-spark/build.bash
+./eyeris-analytics/build.bash

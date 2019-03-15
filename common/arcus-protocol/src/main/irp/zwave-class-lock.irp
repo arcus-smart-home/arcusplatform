@@ -1,0 +1,15 @@
+
+message zwave.Lock.LockGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Lock.LockReportV1<id="0x03", group="V1"> {
+    const u8 LOCK_STATE_UNLOCKED = 0x00;
+    const u8 LOCK_STATE_LOCKED = 0x01;
+    u8 lockState;
+}
+
+message zwave.Lock.LockSetV1<id="0x01", group="V1"> {
+    const u8 LOCK_STATE_UNLOCKED = 0x00;
+    const u8 LOCK_STATE_LOCKED = 0x01;
+    u8 lockState;
+}

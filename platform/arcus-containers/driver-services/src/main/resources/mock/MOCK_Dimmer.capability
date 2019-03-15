@@ -1,0 +1,69 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * To Use this Mock Dimmer, set LEVEL_DELAY_MSEC (switch delay in msec) and 
+ * CURRENT_NAME (device name) during onConnect or onAdd in your driver logic if you don't want the default values.
+ */
+
+
+capability		Dimmer
+description		"Mock implementation for the dimmer capability"
+version			"1.0"
+
+Dimmer.brightness		33
+Dimmer.rampingtarget	66
+Dimmer.rampingtime		5
+
+def final long LEVEL_DELAY_MSEC = 2000		// simulate Level latency delay
+
+setAttributes('dim') {
+	long delay = vars.'LEVEL_DELAY_MSEC'?:LEVEL_DELAY_MSEC
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	
+	def attrs = message.attributes
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Dimmer.brightness:
+				int level = new Double(attribute.value).intValue()
+				log.debug "Request ${name} Level adjusted to ${level}"
+				// do a delayed setting of the Bulb to Level
+				Scheduler.scheduleIn 'MockDimmerLevelAdjust', level.toString(), delay
+				break
+			default:
+				log.error "Unrecognized Dimmer attribute: " + attribute
+				break
+		}
+	}
+}
+
+// expects integer level value from 0-100 as message.data
+onEvent('MockDimmerLevelAdjust') {
+	Integer level = Integer.parseInt(message.data)
+	log.debug "${vars.'CURRENT_NAME'?:DEFAULT_NAME} at Level:" + level
+	Dimmer.brightness level
+}
+
+
+// method defined in the Dimmer capability
+onDimmer.RampBrightness {
+	log.debug "${vars.'CURRENT_NAME'?:DEFAULT_NAME} driver received onDimmer.RampBrightness message: " + message
+	// read the brightness and seconds parameters for the method
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+	log.debug "Parameter Values (brightness,seconds): " + targetBrightness + ", " + targetSeconds
+	Scheduler.scheduleIn 'MockDimmerLevelAdjust', targetBrightness.toString(), (long)(targetSeconds * 1000)
+}
+

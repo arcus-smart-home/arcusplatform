@@ -1,0 +1,34 @@
+{{#file . "Generated/Services/{{name}}Legacy.swift"}}
+//
+// {{name}}Legacy.swift
+//
+// Generated on {{today}}
+
+import Foundation
+import PromiseKit
+import RxSwift
+
+// MARK: Legacy Support
+
+public class {{name}}Legacy: NSObject, Iris{{name}}, IrisPromiseConverter {
+  public var disposeBag: DisposeBag = DisposeBag()
+  private static let service: {{name}}Legacy = {{name}}Legacy()
+  {{#attributes}}{{#if type.values}}
+  {{#type.values}}static let {{swiftTypeOfParent ../this}}{{toUpperCase this}}: String = {{swiftTypeOfParent ../this}}.{{cleanse (toLowerCase this)}}.rawValue
+  {{/type.values}}{{/if}}{{/attributes}}
+  {{#methods}}
+  {{#if parameters}}public static func {{uncapitalize name}}({{#parameters}}{{#if @first}}_ {{/if}}{{cleanse name}}: {{swiftTypeOfParamLegacy type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}) -> PMKPromise {
+  {{else}}public static func {{uncapitalize name}}()  -> PMKPromise { {{/if}}
+    {{#if parameters}}{{#parameters}}{{#isTimestamp type}}let {{name}}: Date = Date(milliseconds: {{name}}){{/isTimestamp}}
+    {{/parameters~}}{{/if}}
+    do {
+      return try service.promiseForObservable(service{{#if parameters}}.request{{parent (capitalize name)}}({{#parameters}}{{#if @first}}{{else}}{{cleanse name}}: {{/if}}{{cleanse name}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}){{else}}.request{{parent (capitalize name)}}(){{/if}})
+    } catch {
+      return PMKPromise.new { (_: PMKFulfiller?, rejecter: PMKRejecter?) in
+        rejecter?(error)
+      }
+    }
+  }
+  {{/methods}}
+}
+{{/file}}

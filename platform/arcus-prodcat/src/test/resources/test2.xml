@@ -1,0 +1,2340 @@
+<prodcat>
+<metadata version="2015-06-29T22:56:59-0600" publisher="Human"/>
+<brands>
+    <brand name="Blink"/>
+    <brand name="EnergySmart"/>
+    <brand name="First Alert"/>
+    <brand name="GE"/>
+    <brand name="Genie"/>
+    <brand name="GoControl"/>
+    <brand name="Honeywell"/>
+    <brand name="Iris"/>
+    <brand name="Ivee"/>
+    <brand name="Keen Home"/>
+    <brand name="Kwikset"/>
+    <brand name="LeakSmart"/>
+    <brand name="MMB Networks"/>
+    <brand name="NuTone"/>
+    <brand name="Nyce"/>
+    <brand name="Orbit"/>
+    <brand name="Pella"/>
+    <brand name="PetSafe"/>
+    <brand name="Schlage"/>
+    <brand name="Somfy"/>
+    <brand name="Soneter"/>
+    <brand name="Sylvania"/>
+    <brand name="UNKNOWN"/>
+    <brand name="Utilitech"/>
+    <brand name="Verizon"/>
+    <brand name="Whirlpool"/>
+    <brand name="Yale"/>
+</brands>
+<categories>
+    <category name="Accessories"/>
+    <category name="Cameras &amp; Sensors"/>
+    <category name="Care"/>
+    <category name="Climate"/>
+    <category name="Doors &amp; Locks"/>
+    <category name="Energy"/>
+    <category name="Family &amp; Friends"/>
+    <category name="Garage Doors"/>
+    <category name="Lawn &amp; Garden"/>
+    <category name="Lights &amp; Switches"/>
+    <category name="Security"/>
+    <category name="Smoke &amp; CO"/>
+    <category name="Water"/>
+    <category name="Windows &amp; Blinds"/>
+</categories>
+<products>
+   <product id="0c9a66"
+            name="Plug-In Switch"
+            shortname="Plug-In Switch"
+            screen="Switch"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, module, control, outlet, plug, switch, energy, 120, volt, 15, amp, power, zwave, 12719"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug the indoor switch into the outlet where you intend to use it."/>
+          <step2 type="text" img="" text="To pair your indoor switch, press the button on the front of it. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="359d72"
+            name="Plug-In Outdoor Switch"
+            shortname="Plug-In Outdoor Switch"
+            screen="Switch"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, outdoor, module, control, outlet, plug, switch, energy, 120, volt, power, waterproof, zwave, 45635, 12720"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+          <category name="Lawn &amp; Garden"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug the outdoor switch into the outlet where you intend to use it."/>
+          <step2 type="text" img="" text="To pair your outdoor switch, press the button on the front of it. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="b73f9a"
+            name="Plug-In Dimmer"
+            shortname="Plug-In Dimmer"
+            screen="Dimmer"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, module, control, outlet, plug, switch, energy, 120, volt, 15, amp, power, zwave, 12718"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug the indoor dimmer into the outlet where you intend to use it."/>
+          <step2 type="text" img="" text="To pair your indoor dimmer, press the button on the front of it. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="671eee"
+            name="Light Switch"
+            shortname="Light Switch"
+            screen="Switch"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, control, in, wall, switch, energy, 120, volt, power, zwave, 45637, 45609, 45638, 12722"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the switch as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="To pair your light switch, press the top of the rocker switch once. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="700faf"
+            name="Electrical Outlet"
+            shortname="Electrical Outlet"
+            screen="Switch"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, control, in, wall, outlet, plug, switch, energy, duplex, receptacle, 120, volt, power, zwave, 45636, 12721"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the outlet as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="To pair your outlet, press the button on the front once. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="6c56c8"
+            name="Dimmer Switch"
+            shortname="Dimmer Switch"
+            screen="Dimmer"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, control, in, wall, switch, dimmer, energy, 120, volt, 15 amp, power, zwave, 45639, 45612, 12724"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the dimmer as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="To pair your dimmer switch, press the top of the rocker switch once. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="979695"
+            name="Fan Switch"
+            shortname="Fan Switch"
+            screen="Fan Control"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="GE, Jasco, indoor, control, in, wall, switch, fan, 120, volt, power, zwave, 12485, 12730"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+          <category name="Climate"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the fan switch as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="To pair your fan switch, press the top of the rocker switch once. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="f80f79"
+            name="Water Leak Detector"
+            shortname="Water Leak Detector"
+            screen="Water Leak"
+            description=""
+            manufacturer="Everspring"
+            vendor="Utilitech"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="3"
+            keywords="Utilitech, Everspring, indoor, water, leak, flood, sensor, safety, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Water"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Remove screw, slide and lift off face plate."/>
+          <step2 type="text" img="" text="Next remove screw and lift battery cover"/>
+          <step3 type="text" img="" text="Insert batteries then press the button. The Iris hub will beep when it has been paired successfully"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4403ac"
+            name="Smoke Detector"
+            shortname="Smoke Detector"
+            screen="Smoke/CO"
+            description=""
+            manufacturer="Jarden Safety"
+            vendor="First Alert"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="2"
+            keywords="First, Alert, smoke, fire, detector, sensor, safety, alarm, indoor, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Smoke &amp; CO"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Slide battery drawer open."/>
+          <step2 type="text" img="" text="Insert batteries checking the correct orientation."/>
+          <step3 type="text" img="" text="Press and hold the test button. Keep it held down as you slide the battery drawer closed, then release the button. The Iris hub will beep when the detector has paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="1d33c1"
+            name="Smoke &amp; CO Detector"
+            shortname="Smoke &amp; CO Detector"
+            screen="Smoke/CO"
+            description=""
+            manufacturer="Jarden Safety"
+            vendor="First Alert"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="2"
+            keywords="First, Alert, smoke, CO, carbon monoxide, fire, detector, sensor, safety, alarm, indoor, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Smoke &amp; CO"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Slide battery drawer open."/>
+          <step2 type="text" img="" text="Insert batteries checking the correct orientation."/>
+          <step3 type="text" img="" text="Press and hold the test button. Keep it held down as you slide the battery drawer closed, then release the button. The Iris hub will beep when detector has paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="840941"
+            name="Touch Screen Thermostat"
+            shortname="Thermostat"
+            screen="Thermostat"
+            description=""
+            manufacturer="Honeywell"
+            vendor="Honeywell"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="CR2032"
+            batterybacknum="1"
+            keywords="Honeywell, indoor, thermostat, programmable, 7, day, touchscreen, climate, hvac, heater, air, conditioner, zwave, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Climate"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the thermostat as instructed in the printed manual and set the correct time and date. Press the 'System' button. Press and hold both indicated keys until the thermostat screen changes to show up / down arrows."/>
+          <step2 type="text" img="" text="Press the leftmost down arrow until the screen shows 'rf10'. Use the rightmost arrows to select '1'. The thermostat is now in pairing mode. The hub will beep when the thermostat has been successfully paired."/>
+          <step3 type="text" img="" text="You now need to enable the 'Auto' thermostat setting. Use the leftmost arrows to select '0300'. Use the rightmost arrows to select '1'. Now press the 'DONE' button in the bottom left corner of the thermostat screen. You can now remotely control your thermostat through Iris!"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="a48ae6"
+            name="Programmable Thermostat"
+            shortname="Thermostat"
+            screen="Thermostat"
+            description=""
+            manufacturer="Linear"
+            vendor="GoControl"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Iris, GoControl, indoor, thermostat, programmable, 7, day, climate, hvac, heater, air, conditioner, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Climate"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the thermostat as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="Hold the FAN button until the screen changes to the SETUP screen. Press the UP button until the ZWAVE is shown on the status line, press Select. INSTALL should be shown on the status line, press SELECT."/>
+          <step3 type="text" img="" text="When SUCCESS is shown on the status line, press DONE to exit the ZWAVE screen and press DONE again to exit the SETUP screen. The Iris hub will beep when it has been paired successfully. Once pairing is complete, you can program your thermostat using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="8a6f19"
+            name="Lever Lock"
+            shortname="Door Lock"
+            screen="Lock"
+            description=""
+            manufacturer="Schlage"
+            vendor="Schlage"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            batterybacksize="9V"
+            batterybacknum="1"
+            keywords="Schlage, Camelot, Century, Plymouth, door, lever, lock, entry, keypad, zwave, FE599IR, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Make a note of the 6 digit program code from sticker on the inside of the lock or included in your lock installation instructions before you install it. Then follow the printed instructions to install your lock into your door."/>
+          <step2 type="text" img="" text="Ensure your lock has the batteries properly installed. Enter the six digit program code. Wait for the Schlage button to flash and beep three times."/>
+          <step3 type="text" img="" text="Press the Schlage button once. Then press the number 0. The Hub will beep when it has been paired successfully. Once pairing is complete you can control who has PIN access to your lock using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="43c79c"
+            name="Touchscreen Deadbolt"
+            shortname="Deadbolt"
+            screen="Lock"
+            description=""
+            manufacturer="Schlage"
+            vendor="Schlage"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Schlage, Camelot, Century, Plymouth, door, deadbolt, lock, touchscreen, BE469IR, BE469NX, entry, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Follow the printed instructions to install your Deadbolt into your door. Make note of the 6 digit program code from the sticker on the inside of the lock."/>
+          <step2 type="text" img="" text="Ensure your lock has the batteries properly installed. Press the Schlage button and then enter the 6 digit program code. The orange light will begin to flash slowly."/>
+          <step3 type="text" img="" text="Press the number 0 once. The hub will beep and the green check mark will illuminate when the lock has been paired successfully. Once pairing is complete you can control who has PIN access to your lock using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="8cf991"
+            name="Keypad Deadbolt"
+            shortname="Deadbolt"
+            screen="Lock"
+            description=""
+            manufacturer="Schlage"
+            vendor="Schlage"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Schlage, Camelot, Century, Plymouth, door, deadbolt, lock, BE369IR, entry, keypad, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Make a note of the 6 digit program code from sticker on the inside of the lock or included in your lock installation instructions before you install it. Then follow the printed instructions to install your lock into your door."/>
+          <step2 type="text" img="" text="Ensure your lock has the batteries properly installed. Enter the six digit program code. Wait for the Schlage button to flash and beep three times."/>
+          <step3 type="text" img="" text="Press the Schlage button once. Then press the number 0. The Hub will beep when it has been paired successfully. Once pairing is complete you can control who has PIN access to your lock using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="2745d2"
+            name="SmartCode Lever Lock"
+            shortname="Door Lock"
+            screen="Lock"
+            description=""
+            manufacturer="Kwikset"
+            vendor="Kwikset"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Kwikset, smartcode, smartkey, key, smart, code, door, lever, lock, keypad, entry, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual."/>
+          <step2 type="text" img="" text="Remove the cover from the lock on the inside of the door. Press the indicated button on the lock once. The Iris hub will beep when it has been paired successfully. Once pairing is complete you can control who has PIN access to your lock using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="d0f50f"
+            name="SmartCode Deadbolt"
+            shortname="Deadbolt"
+            screen="Lock"
+            description=""
+            manufacturer="Kwikset"
+            vendor="Kwikset"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Kwikset, smartcode, smartkey, key, smart, code, door, deadbolt, lock, keypad, entry, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600"
+            pairingTimeoutMs="1000">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual."/>
+          <step2 type="text" img="" text="Remove the cover from the lock on the inside of the door. Press the indicated button on the lock once. The Iris hub will beep when it has been paired successfully. Once pairing is complete you can control who has PIN access to your lock using the Iris app."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="9a73b2"
+            name="BR30 LED Flood Light"
+            shortname="Light Bulb"
+            screen="Light"
+            description=""
+            manufacturer="Sylvania"
+            vendor="Sylvania"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="Sylvania, LED, flood, light, bulb, BR30,  dimmable, 65, watt, zigbee, iQ"
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Turn off the power to the light first then screw the LED light bulb into the fitting."/>
+          <step2 type="text" img="" text="Turn on power to the light. When the LED bulb has paired successfully the Iris hub will beep and the LED bulb will flash 3 times. LED Light Bulbs can only be added to Iris 8, or fewer, at a time. To add more than 8, first finish this installation, then start the pairing processes again by clicking 'add devices'."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4dd18a"
+            name="Door and Window Sensor"
+            shortname="Door/Window Sensor"
+            screen="Contact"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="CentraLite, Iris, contact, temperature door, window, sensor, zigbee, security, alarm, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Windows &amp; Blinds"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="df44d5"
+            name="Motion Sensor"
+            shortname="Motion Sensor"
+            screen="Motion"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="CentraLite, Iris, motion, PIR, infrared, passive, sensor, zigbee, security, alarm, indoor, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="bbf1cf"
+            name="Smart Button"
+            shortname="Smart Button"
+            screen="Button"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2450"
+            batteryprimnum="1"
+            keywords="CentraLite, Iris, smart, panic, button, doorbell, zigbee, indoor, control, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="d9ac87"
+            name="Smart Plug"
+            shortname="Smart Plug"
+            screen="Switch"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="CentraLite, Iris, indoor, module, control, outlet, smart, plug, switch, energy, 120, volt, power, zigbee"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+          <category name="Energy"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="45b814"
+            name="Security Keypad"
+            shortname="Keypad"
+            screen="Keypad"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR123"
+            batteryprimnum="2"
+            keywords="CentraLite, Iris, smart, zigbee, security, safety, panic, alarm, keypad, indoor, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4fccbb"
+            name="Smart Fob"
+            shortname="Smart Fob"
+            screen="Keyfob"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2450"
+            batteryprimnum="1"
+            keywords="CentraLite, Iris, smart, key, fob, button, control, arm, disarm, zigbee, indoor, presence, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Care"/>
+          <category name="Security"/>
+          <category name="Family &amp; Friends"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="f93033"
+            name="Care Pendant"
+            shortname="Care Pendant"
+            screen="Pendant"
+            description=""
+            manufacturer="CentraLite Systems"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2450"
+            batteryprimnum="1"
+            keywords="CentraLite, Iris, senior, pendant, panic, indoor, zigbee, battery, care, safety, presence"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Care"/>
+          <category name="Security"/>
+          <category name="Family &amp; Friends"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="853022"
+            name="Touch Screen Thermostat"
+            shortname="Thermostat"
+            screen="Thermostat"
+            description=""
+            manufacturer="Radio Thermostat Corporation of America"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Iris, indoor, thermostat, humidity, fan, control, programmable, 7, day, climate, hvac, heater, air, conditioner, zwave, CT, 101, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Climate"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the thermostat as described in the printed instructions included with your device."/>
+          <step2 type="text" img="" text="Press the Menu button, then press 'Mate' on the screen. Next press 'Mate' again and the word 'Mate' will flash on the display. Once the thermostat is paired the LINK icon will flash and the Hub will beep."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="deda9d"
+            name="Hose Faucet Timer"
+            shortname="Hose Timer"
+            screen="Irrigation"
+            description=""
+            manufacturer="Orbit"
+            vendor="Orbit"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="2"
+            keywords="irrigation, hose, timer, zigbee, Orbit, faucet, water, sprinkler, lawn, grass, plants, outdoor, ht8, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lawn &amp; Garden"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Squeeze the tabs on the back of controller and slide out the battery drawer."/>
+          <step2 type="text" img="" text="Insert batteries into the drawer taking care to orient them properly. Slide the drawer back into the controller"/>
+          <step3 type="text" img="" text="Set the dial to 'Auto'. The antenna icon will flash while the controller is paring with Iris and then remain solid. The hub will beep once paring is complete."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="02a3f9"
+            name="12 Station Irrigation Timer"
+            shortname="Sprinkler Timer"
+            screen="Irrigation"
+            description=""
+            manufacturer="Orbit"
+            vendor="Orbit"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="CR2032"
+            batterybacknum="1"
+            keywords="Orbit, irrigation, timer, zigbee, yard, grass lawn, outdoor, sprkinler, water, wt15"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lawn &amp; Garden"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the controller as shown in the printed manual. Connect the power. Turn the dial to 'auto' and then swing the front panel open."/>
+          <step2 type="text" img="" text="Press the indicated button on the back of the panel and then close the panel."/>
+          <step3 type="text" img="" text="The antenna icon will flash while the controller is pairing. Once complete the controller will display 'SMART MODE' and your smart hub will beep."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="73add4"
+            name="Garage Door Controller"
+            shortname="Garage Door"
+            screen="Garage Door"
+            description=""
+            manufacturer="Linear"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="CR2032"
+            batterybacknum="1"
+            keywords="Linear, Iris, zwave, garage, door, takeover, controller, barrier, security, lock"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Garage Doors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug your Iris Garage Door Opener into an electrical outlet. Do not connect it to your garage door motor yet."/>
+          <step2 type="text" img="" text="Press the Link button on the side of the Iris Garage Door Opener once. The Iris hub will beep when it has been paired successfully."/>
+          <step3 type="text" img="" text="Mount your Iris Garage Door Opener and connect it to your Garage Door motor, as instructed in the user manual. You will also need to install the included Tilt Sensor onto your garage door. Once installed, sync the door status by opening or closing your garage door once using your existing remote."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="555fc4"
+            name="Garage Door Controller"
+            shortname="Garage Door"
+            screen="Garage Door"
+            description=""
+            manufacturer="Linear"
+            vendor="NuTone"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="CR2032"
+            batterybacknum="1"
+            keywords="NuTone, Iris, zwave, garage, door, takeover, controller, barrier, security, lock"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Garage Doors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug your garage door controller into an electrical outlet. Do not connect it to your garage door motor yet."/>
+          <step2 type="text" img="" text="Press the Link button on the side of the garage door opener once. The Iris hub will beep when it has been paired successfully."/>
+          <step3 type="text" img="" text="Mount your garage door opener and connect it to your garage door motor, as instructed in the user manual. You will also need to install the included tilt sensor onto your garage door. Once installed, sync the door status by opening or closing your garage door once using your existing remote."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="468d89"
+            name="Glass Break Sensor"
+            shortname="Glass Break Sensor"
+            screen="Glass Break"
+            description=""
+            manufacturer="Linear"
+            vendor="Utilitech"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR123"
+            batteryprimnum="2"
+            keywords="Utilitech, Linear, glassbreak, glass, break, alarm, security, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+          <category name="Cameras &amp; Sensors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the glass break sensor as described in the printed instructions.  Insert the included batteries."/>
+          <step2 type="text" img="" text="Press the button on the glass break sensor once. An LED on the glass break sensor will begin to flash."/>
+          <step3 type="text" img="" text="The LED will flash until it has been paired with Iris. The hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="832217"
+            name="Water Shut-Off Valve"
+            shortname="Water Valve"
+            screen="Water Valve"
+            description=""
+            manufacturer="Waxman"
+            vendor="LeakSmart"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="AA"
+            batterybacknum="4"
+            keywords="Waxman, Leak Smark, water, shut, off, insurance, zigbee, leak, flow, battery"
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Water"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Pull the enclosure off the valve. The enclosure can be powered using the adapter or batteries. If both are used the batteries provide back-up power."/>
+          <step2 type="text" img="" text="Use a screw driver to remove the battery cover. Lift out the battery drawer and insert 4 batteries, replace the battery drawer and cover.  To power the valve with AC power, connect the plug to the socket on the base of the device and plug into a power outlet."/>
+          <step3 type="text" img="" text="Push the enclosure back onto the valve. The blue LED will flash until it has been paired with Iris. The Iris hub will beep when it has paired successfully. Install the valve as instructed in the printed guide."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="fbf00f"
+            name="Tilt Sensor"
+            shortname="Garage Door Sensor"
+            screen="Tilt"
+            description=""
+            manufacturer="Nyce Control"
+            vendor="Nyce"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2032"
+            batteryprimnum="1"
+            keywords="Nyce, tilt, sensor, garage, alarm, security, zigbee, battery"
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+          <category name="Garage Doors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Slide open the tilt sensor's cover."/>
+          <step2 type="text" img="" text="Insert a battery and remove the plastic battery guard. An LED will flash until the tilt sensor has paired successfully, and then the Iris hub will beep."/>
+          <step3 type="text" img="" text="Once pairing is complete, replace the cover by sliding it onto the sensor. Install the tilt sensor with the groove vertical and on the right-hand side, as shown in the image above."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="76e484"
+            name="Door Hinge Sensor"
+            shortname="Door Sensor"
+            screen="Contact"
+            description=""
+            manufacturer="Nyce Control"
+            vendor="Nyce"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2032"
+            batteryprimnum="1"
+            keywords="Nyce, hinge, sensor, alarm, security, zigbee, battery, door, contact"
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Windows &amp; Blinds"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Position the Door Hinge Sensor near the final installation location. Pull the plastic battery tab located on the back-side slot of the Door Hinge Sensor."/>
+          <step2 type="text" img="" text="The LED on the front-side of the sensor will show a sequence of yellow – red – yellow. This indicates it is ready for pairing with Iris. During the pairing process, the LED on the front-side of the sensor will show a sequence of yellow – green – yellow."/>
+          <step3 type="text" img="" text="Once paired the LED on the sensor will flash green three times and the Iris Hub will beep. Please now mount the Door Hinge Sensor to the door according to the printed installation guide. If the Door Hinge Sensor does not update its status as &quot;Closed&quot; when you close your door, please consult your printed installation guide."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="45fe8f"
+            name="85-Decibels Indoor Siren"
+            shortname="Siren"
+            screen="Siren"
+            description=""
+            manufacturer="Everspring"
+            vendor="Utilitech"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="C"
+            batteryprimnum="4"
+            keywords="Utilitech, Everspring, siren, 85, decibel, alarm, security, zwave, sound, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Loosen screw then slide and lift the cover."/>
+          <step2 type="text" img="" text="Insert batteries checking the correct orientation."/>
+          <step3 type="text" img="" text="Press the button. The Iris hub will beep when it has been paired successfully."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4ff66a"
+            name="Contact Sensor"
+            shortname="Contact Sensor"
+            screen="Contact"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="AlertMe, Iris, contact, temperature, door, window, sensor, zigbee, security, alarm, battery, DWS901"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Windows &amp; Blinds"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Squeeze both sides together on the semi-circles and then pull off the back cover."/>
+          <step2 type="text" img="" text="Insert the battery on top of the battery tab, checking correct orientation. The black dots are to help you orient the sensor correctly when you install it."/>
+          <step3 type="text" img="" text="Replace cover ensuring that the tabs are aligned. The light on the sensor will flash until it has been paired to Iris (the hub will beep)."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="60e426"
+            name="Motion Sensor"
+            shortname="Motion Sensor"
+            screen="Motion"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="AlertMe, Iris, motion, PIR, infrared, passive, sensor, zigbee, security, alarm, indoor, battery, MOT501"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Security"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Squeeze both sides together on the raised edges and then pull off the back cover."/>
+          <step2 type="text" img="" text="Insert battery on top of the battery tab, checking correct orientation."/>
+          <step3 type="text" img="" text="Ensure the tabs are aligned as you replace the cover. The light will flash until it has been paired to Iris (the Hub will beep)."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="bca135"
+            name="Smart Button"
+            shortname="Button"
+            screen="Button"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="AlertMe, Iris, smart, panic, button, doorbell, zigbee, indoor, control, battery, BTN900"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Squeeze both sides together on the raised edges and then pull off the back cover"/>
+          <step2 type="text" img="" text="Insert battery on top of the battery tab, checking correct orientation."/>
+          <step3 type="text" img="" text="Ensure the tabs are aligned as you replace the cover. The light may flash until it has been paired to Iris (the Hub will beep)."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="486390"
+            name="Key Fob"
+            shortname="Key Fob"
+            screen="Keyfob"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="AlertMe, Iris, smart, keyfob, key, fob, button, control, arm, disarm, zigbee, indoor, presence, battery, KEY903"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Care"/>
+          <category name="Security"/>
+          <category name="Family &amp; Friends"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Insert the supplied access tool into the small opening at the top of the key fob. Use the tool as a lever to open the key fob."/>
+          <step2 type="text" img="" text="Insert battery checking correct orientation."/>
+          <step3 type="text" img="" text="Slide the thin end together, and then squeeze the key fob closed. The key fob will flash until it has been paired to Iris (the hub will beep)."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="b48370"
+            name="Plug-In Switch"
+            shortname="Plug-In Switch"
+            screen="Switch"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="AlertMe, Iris, indoor, module, control, outlet, smart, plug, switch, energy, 120, volt, power, zigbee, SPG902"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+          <category name="Energy"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug the Smart Plug into an outlet that is no more than 10 feet from your hub in order to pair it (you can move it after pairing)."/>
+          <step2 type="text" img="" text="The light on the front of the Smart Plug will flash until it has been paired to Iris. Once this occurs (the hub will beep), feel free to move the plug to your preferred outlet."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="c3c055"
+            name="Security Keypad"
+            shortname="Keypad"
+            screen="Keypad"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="6"
+            keywords="AlertMe, Iris, smart, zigbee, security, safety, panic, alarm, keypad, key, pad, battery, KDP901"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Remove the back of the keypad using a screwdriver."/>
+          <step2 type="text" img="" text="Insert the batteries checking correct orientation and then close the cover."/>
+          <step3 type="text" img="" text="The &quot;&quot;On&quot;&quot; light will flash until it has been paired to Iris. Once this occurs the hub will beep, feel free to install the keypad in its preferred location."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="2c982d"
+            name="Care Pendant"
+            shortname="Care Pendant"
+            screen="Pendant"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="CR2"
+            batteryprimnum="1"
+            keywords="AlertMe, Iris, senior, pendant, panic, indoor, zigbee, battery, care, safety, presence, PDT900"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Care"/>
+          <category name="Security"/>
+          <category name="Family &amp; Friends"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Insert the supplied access tool into the small opening at the top of the pendant. Use the tool as a lever to open the pendant."/>
+          <step2 type="text" img="" text="Insert battery on top of the battery tab, checking correct orientation."/>
+          <step3 type="text" img="" text="Slide the thin ends together, and then squeeze the pendant closed. The pendant will flash until it has been paired to Iris (the Smart Hub will beep)."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="dc328e"
+            name="Vent"
+            shortname="Vent"
+            screen="Vent"
+            description=""
+            manufacturer="Keen Home"
+            vendor="Keen Home"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Keen, vent, fan, control, climate, hvac, heater, air, conditioner, zigbee, battery"
+            ota="Yes"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Climate"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4fbf1b"
+            name="Touchscreen Lever Lock"
+            shortname="Door Lock"
+            screen="Lock"
+            description=""
+            manufacturer="Assa Abloy"
+            vendor="Yale"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Yale, real, living, door, lever, lock, touchscreen, YRL220, entry, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual and change the master PIN so that it is 5 or more numbers long. Do not use your Iris PIN as a master PIN."/>
+          <step2 type="text" img="" text="Touch the keypad with your palm to activate it. Next enter the master PIN then press #. The 'P key' will turn red. Next press '7 #'."/>
+          <step3 type="text" img="" text="Press '1 #' to add the lock to Iris. The lock and Smart hub will beep when it has been paired successfully. To more easily manage who has PIN access to your locks, create a new Iris contact (Premium service required)"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="7c22f1"
+            name="Touchscreen Deadbolt"
+            shortname="Deadbolt"
+            screen="Lock"
+            description=""
+            manufacturer="Assa Abloy"
+            vendor="Yale"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Yale, real, living, door, deadbolt, lock, touchscreen, YRD220, entry, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual and change the master PIN so that it is 5 or more numbers long. Do not use your Iris PIN as a master PIN."/>
+          <step2 type="text" img="" text="Touch the keypad with your palm to activate it. Next enter the master PIN then press #. The 'P key' will turn red. Next press '7 #'."/>
+          <step3 type="text" img="" text="Press '1 #' to add the lock to Iris. The lock will announce its success and the Smart hub will beep. To more easily manage who has PIN access to your locks, create a new Iris contact (Premium service required)"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="44a789"
+            name="Push Button Lever Lock"
+            shortname="Door Lock"
+            screen="Lock"
+            description=""
+            manufacturer="Assa Abloy"
+            vendor="Yale"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Yale, real, living, door, lever, lock, push, button, YRL210, entry, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual and change the master PIN so that it is 5 or more numbers long. Do not use your Iris PIN as a master PIN."/>
+          <step2 type="text" img="" text="Enter the master PIN then press #. The Yale logo will turn blue. Next press 7 and then press # again."/>
+          <step3 type="text" img="" text="Press '1 #' to add the lock to Iris. The lock will announce its success and the Smart hub will beep. To more easily manage who has PIN access to your locks, create a new Iris contact (Premium service required)"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="b40950"
+            name="Push Button Deadbolt"
+            shortname="Deadbolt"
+            screen="Lock"
+            description=""
+            manufacturer="Assa Abloy"
+            vendor="Yale"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="4"
+            keywords="Yale, real, living, door, deadbolt, lock, keypad, push, button, YRD220, entry, zwave, battery"
+            ota="No"
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the lock as instructed in the printed manual and change the master PIN so that it is 5 or more numbers long. Do not use your Iris PIN as a master PIN."/>
+          <step2 type="text" img="" text="Enter the master PIN then press #. The Yale logo will turn blue. Next press 7 and then press # again."/>
+          <step3 type="text" img="" text="Press '1 #' to add the lock to Iris. The lock will announce its success and the Smart hub will beep. To more easily manage who has PIN access to your locks, create a new Iris contact (Premium service required)"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="606501"
+            name="Security Camera"
+            shortname="Indoor Camera"
+            screen="Camera"
+            description=""
+            manufacturer="Sercomm"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="Sercom, Sercomm, Iris, camera, video, picture, stream, streaming, record, recording, wifi, wi-fi, ethernet, wireless, night, vision, HD, high, definition, 720p, motion, PIR, IR, indoor, 8221, RC8221"
+            ota="Yes"
+            protofamily="IP"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+          <category name="Cameras &amp; Sensors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Iris needs to first setup your camera before you can use it wirelessly. Connect the camera to a network port on your router using the supplied Ethernet cable, before you plug it into an outlet."/>
+          <step2 type="text" img="" text="Now plug the camera into a power outlet using the supplied power cord. The Hub will beep when the camera is found (this may take up to 5 minutes). Once Iris installation is complete click the devices menu and select the camera to make it wireless."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="242a43"
+            name="Outdoor Security Camera"
+            shortname="Outdoor Camera"
+            screen="Camera"
+            description=""
+            manufacturer="Sercomm"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="Sercom, Sercomm, Iris, camera, video, picture, stream, streaming, record, recording, wifi, wi-fi, ip, ethernet, wireless, night, vision, hd, high, definition, 720p, motion, PIR, IR, outdoor, 821, OC821"
+            ota="Yes"
+            protofamily="IP"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+          <category name="Cameras &amp; Sensors"/>
+          <category name="Lawn &amp; Garden"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Iris needs to first setup your camera before you can use it wirelessly. Connect the camera to a network port on your router using the supplied Ethernet cable, before you plug it into an outlet."/>
+          <step2 type="text" img="" text="Now plug the camera into a power outlet using the supplied power cord. The Hub will beep when the camera is found (this may take up to 5 minutes). Once Iris installation is complete click the devices menu and select the camera to make it wireless."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="cf441c"
+            name="Electric Water Heater Controller"
+            shortname="Water Heater"
+            screen="Water Heater"
+            description=""
+            manufacturer="AOSmith"
+            vendor="EnergySmart"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords="Energy, Smart, Water, Heater, Whirlpool, AO, Smith"
+            ota="Yes"
+            protofamily="IP"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Water"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the water heater as instructed in the printed guide. Wait until the connection LED shows solid green."/>
+          <step2 type="text" img="" text="Wait until the connection LED shows solid green. Make a note of the water heater ID that is shown on the control panel sticker. 12 character code printed on the wifi module and also in the user guide (sticker on the cover)."/>
+          <step3 type="text" img="" text="Enter the ID you noted above. Press 'Find'. Model and serial number are optional. You may record here to assist customer service later."/>
+          <step4 type="text" img="" text="INPUTS REQUIRED: ID Number. Model, Serial Number; BUTTON: Find"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="3981d9"
+            name="Water Softener"
+            shortname="Water Softener"
+            screen="Water Softener"
+            description=""
+            manufacturer="EcoWater"
+            vendor="Whirlpool"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota="Yes"
+            protofamily="IPCD"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Water"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="b0ceeb"
+            name="USB 3G Modem"
+            shortname="3G Modem"
+            screen="Accessory"
+            description=""
+            manufacturer="Verizon"
+            vendor="Verizon"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="Verizon, Notavel, USB, modem, 3G, GRPS, cellular, connect, internet, hub, backup, USB760"
+            ota="No"
+            protofamily="USB"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Accessories"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Turn the smart hub on its side. Push the rear cover backwards and lift it off. The hub must be connected to broadband for the installation to complete."/>
+          <step2 type="text" img="" text="Slide the cellular modem into the USB slot inside the hub. Next replace the hub cover. If you have a Smart Meter Link then you will need an USB splitter."/>
+          <step3 type="text" img="" text="Click the 'find modem' button above. You must not remove or reinsert the modem while the hub is searching for it."/>
+          <step4 type="text" img="" text="BUTTON: Find Modem"/>
+          <step5 type="text" img="" text="Click 'OK' below and then click 'continue', then click 'Home' to return to the dashboard. Wait for a popup message with more instructions to be displayed. It may take a couple of minutes."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="aeda43"
+            name="Garage Door Controller"
+            shortname="Garage Door"
+            screen="Garage Door"
+            description=""
+            manufacturer="Genie"
+            vendor="Genie"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            batterybacksize="CR2032"
+            batterybacknum="1"
+            keywords="Genie, Alladin, garage, door, opener, takeover, ip, wifi, wi-fi, ipcd, controller, barrier, security, lock"
+            ota=""
+            protofamily="IP"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Garage Doors"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Install the Genie Garage Door Opener as instructed in the printed device guide."/>
+          <step2 type="text" img="" text="Once you've completed these instructions, your Genie Garage Door Opener should be showing a green LED and is now ready to be paired to Iris. Make a note of the Genie Door Controller Module 12 Digit ID that is shown on the rear of the device."/>
+          <step3 type="text" img="" text="Enter the 12 Digit ID in the box above and select 'find'. If you require any assistance with this, please call 1-855-469-IRIS"/>
+          <step4 type="text" img="" text="INPUTS REQUIRED: ID Number; BUTTON: Find"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="3f6510"
+            name="Voice Assistant"
+            shortname="Voice Assistant"
+            screen="Accessory"
+            description=""
+            manufacturer="Ivee"
+            vendor="Ivee"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="ivee, voice , cloud, wi-fi, wifi, ip"
+            ota="Yes"
+            protofamily="Cloud"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Accessories"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="44a7ae"
+            name="Indoor Camera"
+            shortname="Indoor Camera"
+            screen="Camera"
+            description=""
+            manufacturer="Blink"
+            vendor="Blink"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="Blink, camera, video, picture, stream, streaming, record, recording, wifi, wi-fi, ip, ethernet, wireless, night, vision, hd, high, definition, 720p, motion, PIR, IR, battery, indoor"
+            ota=""
+            protofamily="IP"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Security"/>
+          <category name="Cameras &amp; Sensors"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4f0682"
+            name="Smart Meter USB"
+            shortname="Smart Meter USB"
+            screen="Accessory"
+            description=""
+            manufacturer="MMB Networks"
+            vendor="MMB Networks"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="MMB, zigbee, rapid, SE, smart, meter, electricity, monitoring, USB"
+            ota="No"
+            protofamily="USB"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Energy"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Turn the smart hub on its side. Push the rear cover backwards and lift it off."/>
+          <step2 type="text" img="" text="Slide the Smart Meter Link into the USB slot inside the hub then replace the rear cover. Make sure that the power and network cables are connected. If you have a cellular modem you may need a powered USB hub."/>
+          <step3 type="text" img="" text="Click the 'Find Smart Meter Link' button above. Once the Smart Meter Link has been installed note the MAC Address and installation Code. You'll need these to register the service with your power company. This information is also available on the manage device page for the Smart Meter Link."/>
+          <step4 type="text" img="" text="INPUTS REQUIRED: MAC Address, Installation Code; BUTTON: Find Smart Meter Link"/>
+          <step5 type="text" img="" text="Select your power company. Click 'Register' and follow the instructions in the window that opens. Once registered click 'OK' below. Iris will send you an email once your power company has enabled the connection. The amount of time this will take depends on your power company and could be a few days."/>
+          <step6 type="text" img="" text="INPUTS REQUIRED: Power Company (drop down that includes only SCE); BUTTON: Register"/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="1ed4e4"
+            name="Electricity Meter"
+            shortname="Electricity Meter"
+            screen="Electricity Meter"
+            description=""
+            manufacturer=""
+            vendor="UNKNOWN"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota="No"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Energy"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="To add a Smart Meter you must first install an Iris Smart Meter Link and then ask your Power Company to enable the connection to Iris. If you've not already done this then click 'OK' and follow the instructions on the Smart Meter Link page."/>
+          <step2 type="text" img="" text="Iris will send you an email once you have completed step 1. Once you have received that email return to this page. Your meter will then be added to Iris."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="ca9471"
+            name="Pet Door"
+            shortname="Pet Door"
+            screen="Pet Door"
+            description=""
+            manufacturer="PetSafe"
+            vendor="PetSafe"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="D"
+            batteryprimnum="4"
+            keywords="PetSafe, door, entry, lock, dog, cat, zigbee, battery"
+            ota="No"
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Accessories"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Remove 2 screws and lift off the battery cover."/>
+          <step2 type="text" img="" text="Insert batteries checking the correct orientation and replace the cover."/>
+          <step3 type="text" img="" text="The blue 'Link' light on the Pet Door will flash until it has paired successfully and then the hub will beep. Only one pet door may be added to your Iris system."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="b726df"
+            name="Blind Controller"
+            shortname="Blind Controller"
+            screen="Shade"
+            description=""
+            manufacturer="Somfy"
+            vendor="Somfy"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="blinds, shades, springs, bali, zwave, battery"
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Windows &amp; Blinds"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Connect and power the blinds controller as described in the printed instructions. Note only controller may be added to your Iris system, however, you can install multiple window blinds using a single blinds controller."/>
+          <step2 type="text" img="" text="Press the left arrow to display 'Z-Wave options' select it by pressing the center button. Use the arrows to find 'base node'. Press the center button to select it."/>
+          <step3 type="text" img="" text="Use the arrows to select 'base node include' and then press the center button. Upon pairing the controller will read &quot;base include success&quot; and the hub will beep."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="f05b37"
+            name="Blinds &amp; Shades"
+            shortname="Blinds"
+            screen=""
+            description=""
+            manufacturer=""
+            vendor="UNKNOWN"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            batteryprimsize="AA"
+            batteryprimnum="8"
+            keywords=""
+            ota=""
+            protofamily="Proprietary"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Windows &amp; Blinds"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Ensure that you have paired your window blind controller with Iris. If you have not done this click 'ok' below and select the blinds controller icon."/>
+          <step2 type="text" img="" text="Pair your window blinds with the controller according to the printed instructions included with the controller. Make a note of the channel numbers."/>
+          <step3 type="text" img="" text="Use the arrow buttons to find 'Z-Wave options' select it by pressing the center button. Next use the arrow buttons to find 'virtual node' and select it with the center button. Use the arrows to find 'virtual node include'. Select it by pressing the center button."/>
+          <step4 type="text" img="" text="Use the arrows to find the virtual node number that matches the channel number noted in step 2. Press the center button to select it. Upon pairing the hub will beep and the controller will read &quot;Include success&quot;.  Repeat this steps for each blind you wish to pair."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="ef9306"
+            name="Range Extender"
+            shortname="Range Extender"
+            screen="Accessory"
+            description=""
+            manufacturer="AlertMe"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords="AlertMe, Iris, indoor, range, signal, extender, zigbee, zwave, REP901"
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Accessories"/>
+      </categories>
+      <pair>
+          <step1 type="text" img="" text="Plug the Range Extender into an outlet that is no more than 10 feet from your hub in order to pair it (you can move it after pairing)."/>
+          <step2 type="text" img="" text="The light on the front of the Range Extender will flash until it has been paired to Iris. Once this occurs (the Hub will beep), feel free to move the Range Extender to your preferred outlet. Some devices may need to be removed and re-paired (using the Devices menu) to automatically connect to the range extender."/>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="46d83c"
+            name=""
+            shortname="Garage Door"
+            screen="Garage Door"
+            description=""
+            manufacturer="GTO"
+            vendor="UNKNOWN"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Doors &amp; Locks"/>
+          <category name="Care"/>
+          <category name="Garage Doors"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="4c47a4"
+            name="Dimmer Switch"
+            shortname="In-Wall Dimmer"
+            screen="Dimmer"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="f0ac19"
+            name="Light Switch"
+            shortname="In-Wall Switch"
+            screen="Switch"
+            description=""
+            manufacturer="Jasco"
+            vendor="GE"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="46dbbc"
+            name=""
+            shortname="Water Meter"
+            screen="Water Meater"
+            description=""
+            manufacturer="Soneter"
+            vendor="Soneter"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="ZigBee"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+          <category name="Water"/>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="edd5b8"
+            name=""
+            shortname="Bridge"
+            screen="Accessory"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="Z-Wave"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="8ab6ba"
+            name=""
+            shortname="Blinds"
+            screen="Shade"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="416490"
+            name=""
+            shortname="Shades"
+            screen="Shade"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="05bcce"
+            name=""
+            shortname="Shades"
+            screen="Shade"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="212b83"
+            name=""
+            shortname="Shades"
+            screen="Shade"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="5c835c"
+            name=""
+            shortname="Door/Window Sensor"
+            screen="Contact"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="0817fa"
+            name=""
+            shortname="Garage Door Sensor"
+            screen="Garage Door"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="438d8f"
+            name=""
+            shortname="Shades"
+            screen="Shade"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="2d0b21"
+            name=""
+            shortname="Door Sensor"
+            screen="Door Lock"
+            description=""
+            manufacturer="Pella"
+            vendor="Pella"
+            cert="workswith"
+            canbrowse="false"
+            cansearch="false"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily="N/A"
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+   <product id="dee000"
+            name="Iris Hub"
+            shortname="Hub"
+            screen="Hub"
+            description=""
+            manufacturer="CentraLite"
+            vendor="Iris"
+            cert="workswith"
+            canbrowse="true"
+            cansearch="true"
+            helpurl=""
+            pairvideourl=""
+            keywords=""
+            ota=""
+            protofamily=""
+            added="2015-06-29T22:56:59-0600"
+            lastchanged="2015-06-29T22:56:59-0600">
+      <categories>
+      </categories>
+      <pair>
+      </pair>
+      <populations>
+          <population name="general"/>
+      </populations>
+   </product>
+
+</products>
+</prodcat>

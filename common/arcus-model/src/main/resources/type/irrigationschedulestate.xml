@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="IrrigationScheduleState"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Maps an irrigation controller to it current schedule state
+   </t:description>
+
+   <t:attributes>
+
+      <t:attribute
+         name="controller"
+         type="string"
+         description="The address of the controller that has the state"/>
+
+      <t:attribute
+         name="currentState"
+         type="enum"
+         values="UPDATING, APPLIED, INITIAL, PAUSED"
+         description="The type of schedule.  When INTERVAL, the structure of the events will be IntervalIrrigationEvent, when ODD or EVEN they will be IrrigationEvent and when WEEKLY will be WeeklyIrrigationEvent."/>
+
+   </t:attributes>
+
+</t:type>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubVolume"
+   namespace="hubvol"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="volume"
+         readwrite="rw"
+         type="enum"
+         optional="false" 
+         values="OFF,LOW,MID,HIGH"
+         description="How loud is the speaker on the hub."/>
+   </c:attributes>
+   
+   <c:methods>   
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

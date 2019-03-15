@@ -1,0 +1,19 @@
+[ {
+    "id": "app1",
+    "name": "app1",
+    "secret": "app1",
+    "redirect": "http://localhost",
+    "scope": "app1",
+    "loginTmpl": "app1-login",
+    "extraQueryParams": [],
+    "sendsRedirectQueryParam": false
+}, {
+    "id": "app2",
+    "name": "app2",
+    "secret": "app2",
+    "redirect": "http://localhost",
+    "scope": "app2",
+    "loginTmpl": "app2-login",
+    "extraQueryParams": ["place"],
+    "sendsRedirectQueryParam": true
+} ]

@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CareSubsystem"
+   namespace="subcare"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Care subsystem.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="triggeredDevices"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the currently triggered care-capable devices in this place." />
+      <c:attribute
+         name="inactiveDevices"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the currently inactive care-capable devices in this place." />
+      <c:attribute
+         name="careDevices"
+         type="set&lt;string&gt;"
+         readwrite="rw"
+         optional="false"
+         description="This addresses of all the current care devices in this place." />
+      <c:attribute
+         name="careCapableDevices"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the current care-capable devices in this place." />
+      <c:attribute
+         name="presenceDevices"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the presence devices such as fobs in this place." />
+      <c:attribute
+         name="behaviors"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The list of ids of behaviors that are currently defined on the subsystem.  Use ListBehaviors to get details." />
+      <c:attribute
+         name="activeBehaviors"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="The list of ids of behaviors that are currently active" />
+      <c:attribute
+         name="alarmMode"
+         type="enum"
+         readwrite="rw"
+         optional="false"
+         values="ON,VISIT"
+         description="Whether the care alarm is currently turned on or in visit mode.  During visit mode behaviors will not trigger the care alarm, but the care pendant may still generate a panic." />
+      <c:attribute
+         name="alarmState"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="READY,ALERT"
+         description="Whether the alarm is currently going of or not." />
+      <c:attribute
+         name="lastAlertTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was fired." />
+      <c:attribute
+         name="lastAlertCause"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The reason the alarm was fired." />
+      <c:attribute
+         name="lastAlertTriggers"
+         type="map&lt;timestamp&gt;"
+         readwrite="r"
+         optional="false"
+         description="A map of behavior id to timestamp of when a behavior was triggered during an alert.  This map will not be populated until the alarm enters the alert state.
+Note this will only include the first time a behavior was triggered during an alert.  For more detailed information see the history log." />
+      <c:attribute
+         name="lastAcknowledgement"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="PENDING,ACKNOWLEDGED,FAILED"
+         description="The current state of acknowledgement:
+    PENDING - Iris is attempting to notify the user that an alarm has been triggered
+    ACKNOWLEDGED - One of the persons from the call tree has acknowledged the alarm
+    FAILED - No one acknowledged the alarm but no one was available to acknowledged it." />
+      <c:attribute
+         name="lastAcknowledgementTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time at which acknowledgement changed to ACKNOWLEDGED or FAILED.  This will be empty when lastAcknowledgement is PENDING." />
+      <c:attribute
+         name="lastAcknowledgedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that acknowledge the alarm when lastAcknowledgement is ACKNOWLEDGED.  Otherwise this field will be empty." />
+      <c:attribute
+         name="lastClearTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was disarmed.  This is the time that Disarm was requested, not the time at which CLEARING completed." />
+      <c:attribute
+         name="lastClearedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that disarmed the alarm, if available.  If it can't be determined this will be empty." />
+      <c:attribute
+         name="callTreeEnabled"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Whether the call tree should be used or just the account owner should be notified in an alarm scenario.  This will currently be false when the place is on BASIC and true when the place is on PREMIUM." />
+      <c:attribute
+         name="callTree"
+         type="list&lt;CallTreeEntry&gt;"
+         readwrite="rw"
+         optional="false"
+         description="	The call tree of users to notify when an alarm is triggered.  This list includes all the persons associated with the current place, whether or not they are alerted is determined by the boolean flag.  Order is determined by the order of the list." />
+      <c:attribute
+         name="silent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices will not be triggered." />
+      <c:attribute
+         name="careDevicesPopulated"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Flag indicating that careDevices has been initialized from careCapableDevices.  This is to initialize the field a single time. Data FIX" />
+
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="Panic"
+         desciption="Triggers a Panic alarm" />
+      <c:method
+         name="Acknowledge"
+         desciption="This call acknowledges the alarm and indicates the given user is taking responsibility for dealing with it.  This will stop call tree processing but not stop the alerts." />
+      <c:method
+         name="Clear"
+         desciption="Requests that the alarm be returned to the READY state.  If the alarm is currently in Alert then this will acknowledge the alarm (if it was not previously acknowledged)." />
+      <c:method
+         name="ListActivity"
+         description="Creates a list of time buckets and indicates which care devices, optionally filtered, are triggered during that bucket.">
+         <c:parameters>
+            <c:parameter
+               name="start"
+               type="timestamp"
+               description="The start time of the interval"
+               optional="false" />
+            <c:parameter
+               name="end"
+               type="timestamp"
+               description="The end time of the interval"
+               optional="false" />
+            <c:parameter
+               name="bucket"
+               type="int"
+               description="The number of seconds in each bucket"
+               optional="false" />
+            <c:parameter
+               name="devices"
+               type="set&lt;string&gt;"
+               description="The devices to show activity for"
+               optional="true" />
+         </c:parameters>
+         <c:return
+            name="intervals"
+            type="list&lt;ActivityInterval&gt;" />
+      </c:method>
+
+      <c:method
+         name="ListDetailedActivity"
+         description="Returns a list of all the history log entries associated with this subsystem.">
+         <c:parameters>
+            <c:parameter
+               name="limit"
+               type="int"
+               description="The maximum number of events to return (defaults to 10)"
+               optional="true" />
+            <c:parameter
+               name="token"
+               type="string"
+               description="The token from a previous query to use for retrieving the next set of results. Note an exact time may be jumped to by specifying token as a timestamp in epoch milliseconds."
+               optional="true" />
+            <c:parameter
+               name="devices"
+               type="set&lt;string&gt;"
+               description="The devices to show activity for. If none are specified the value of careDevices will be used."
+               optional="true" />
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this subsystem" />
+      </c:method>
+
+      <c:method
+         name="ListBehaviors"
+         desciption="Retrieves a list of the behaviors currently defined in the system.  Note that the different behaviors vary by type.">
+         <c:return
+            name="behaviors"
+            type="list&lt;CareBehavior&gt;" />
+      </c:method>
+
+      <c:method
+         name="ListBehaviorTemplates"
+         desciption="Retrieves a list of the behavior templates currently defined in the system.  Note that the different behaviors vary by type.">
+         <c:return
+            name="behaviorTemplates"
+            type="list&lt;CareBehaviorTemplate&gt;" />
+      </c:method>
+
+      <c:method
+         name="AddBehavior"
+         desciption="Adds the given behavior to the system.  Enabled / scheduling / etc will match the attributes on the behavior.">
+         <c:parameters>
+            <c:parameter
+               name="behavior"
+               type="CareBehavior"
+               description="Behavior to add."
+               optional="false" />
+         </c:parameters>
+         <c:return
+            name="id"
+            type="string" />
+      </c:method>
+
+      <c:method
+         name="UpdateBehavior"
+         description="Updates the requested attributes on the specified behavior.">
+         <c:parameters>
+            <c:parameter
+               name="behavior"
+               type="CareBehavior"
+               description="Behavior to add."
+               optional="false" />
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="RemoveBehavior"
+         description="Updates the requested attributes on the specified behavior.">
+         <c:parameters>
+            <c:parameter
+               name="id"
+               type="String"
+               description="Id of the behavior to remove."
+               optional="false" />
+         </c:parameters>
+         <c:return
+            name="removed"
+            type="boolean" />
+      </c:method>
+   </c:methods>
+   <c:events>
+      <c:event
+         name="BehaviorAlert"
+         description="Alerts the system that a behaviors has triggered an alert.">
+         <c:parameters>
+            <c:parameter
+               name="behaviorId"
+               type="String"
+               description="Behavior that triggered the alert."
+               optional="false" />
+            <c:parameter
+               name="behaviorName"
+               type="String"
+               description="Behavior Name that triggered the alert."
+               optional="false" />
+            <c:parameter
+               name="triggeredDevices"
+               type="set&lt;string&gt;"
+               description="List of device addresses that triggered the Care Alert"
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="BehaviorAlertCleared"
+         description="The care alert has been cleared.">
+      </c:event>
+      <c:event
+         name="BehaviorAlertAcknowledged"
+         description="The care alert has been ackknowledged.">
+      </c:event>
+      <c:event
+         name="BehaviorAction"
+         description="Alerts the system that a behaviors has triggered an alert.">
+         <c:parameters>
+            <c:parameter
+               name="behaviorId"
+               type="String"
+               description="The behavior id of the modified behavior."
+               optional="false" />
+            <c:parameter
+               name="behaviorName"
+               type="String"
+               description="The behavior name of the modified behavior"
+               optional="false" />
+            <c:parameter 
+               name="behaviorAction"
+               type="enum"
+               values="ADDED,MODIFIED,DELETED"
+               description="The action taken on a care behavior."
+               optional="false"/>            
+         </c:parameters>
+      </c:event>
+
+   </c:events>
+
+</c:capability>

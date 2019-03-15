@@ -1,0 +1,36 @@
+   /////////////////////////////////////////////////////////////////////////////
+   // Serde Groups
+   /////////////////////////////////////////////////////////////////////////////
+
+   public static ProtocMessageSerDe {{serde}}() {
+      return {{serdeclass}}.INSTANCE;
+   }
+
+   public static ProtocSerDe.Io<? extends ProtocMessage> {{ioSerDe}}(int id) {
+      ProtocSerDe<? extends ProtocMessage> serde = {{serde}}().serde(id);
+      return (serde != null) ? serde.ioSerDe() : null;
+   }
+
+   public static ProtocSerDe.Nio<? extends ProtocMessage> {{nioSerDe}}(int id) {
+      ProtocSerDe<? extends ProtocMessage> serde = {{serde}}().serde(id);
+      return (serde != null) ? serde.nioSerDe() : null;
+   }
+
+   public static ProtocSerDe.Netty<? extends ProtocMessage> {{nettySerDe}}(int id) {
+      ProtocSerDe<? extends ProtocMessage> serde = {{serde}}().serde(id);
+      return (serde != null) ? serde.nettySerDe() : null;
+   }
+
+   private static enum {{serdeclass}} implements ProtocMessageSerDe {
+      INSTANCE;
+
+      @Override
+      public ProtocSerDe<? extends ProtocMessage> serde(int id) {
+         switch (id) {
+   {{#messages}}
+         case {{id}}: return {{classname}}.serde();
+   {{/messages}}
+         default: return null;
+         }
+      }
+   }

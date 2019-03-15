@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adjustment>
+  <description>Refund for being a great customer</description>
+  <unit_amount_in_cents>-2000</unit_amount_in_cents>
+  <currency>USD</currency>
+  <quantity>1</quantity>
+</adjustment>

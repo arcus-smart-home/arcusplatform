@@ -1,0 +1,4 @@
+
+message zwave.RemoteAssociationActivate.RemoteAssociationActivateV1<id="0x01", group="V1"> {
+    u8 groupingIdentifier;
+}

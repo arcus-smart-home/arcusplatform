@@ -1,0 +1,99 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Light Bulb
+ * 
+ * Notes: When Light Bulb is turned On or Off a slight delay will be incorporated.
+ * 
+ */
+driver			"MOCK_LightBulb"
+description		"Driver for a Light Bulb"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Light"
+productId		"7aa004"
+vendor 			"Mockitron"
+model 			"Mock Light Bulb"
+
+matcher        'MOCK:Capability' : 'LightBulb'
+matcher        'MOCK:ProductId'  : '7aa004'
+
+capabilities	DevicePower, Switch, Light, DeviceMock
+
+importCapability 'mock/MOCK_Switch'
+
+def final long ON_OFF_DELAY_MSEC = 500		// simulate On/Off latency delay
+def final String CURRENT_NAME = 'Mock Light Bulb' 
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "${CURRENT_NAME} started."
+	Device.name CURRENT_NAME
+	
+	// set inital attribute values
+	DeviceConnection.signal	83
+
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Light.colormode                     Light.COLORMODE_NORMAL
+	Switch.state                        Switch.STATE_OFF
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "${CURRENT_NAME} connected."
+	vars.'ON_OFF_DELAY_MSEC' = ON_OFF_DELAY_MSEC
+	vars.'CURRENT_NAME' = CURRENT_NAME
+}
+
+onDisconnected {
+	log.debug "${CURRENT_NAME} disconnected."
+}
+
+onRemoved {
+	log.debug "${CURRENT_NAME} removed."
+}
+
+
+// ########### capability support ##################
+
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

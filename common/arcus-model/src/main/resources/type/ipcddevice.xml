@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="IpcdDevice"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an IPCD device that is currently in the database</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="protocolAddress"
+         type="string"
+         description="The protocol address of the IPCD device"/>
+      <t:attribute
+         name="driverAddress"
+         type="string"
+         description="The driver address of the IPCD device if it has been paired"/>
+      <t:attribute
+         name="accountId"
+         type="string"
+         description="The ID of the account that currently has the IPCD device paired"/>
+      <t:attribute
+         name="placeId"
+         type="string"
+         description="The ID of the place where the IPCD device is paired"/>
+      <t:attribute
+         name="created"
+         type="timestamp"
+         description="The timestamp the IPCD record was created"/>
+      <t:attribute
+         name="modified"
+         type="timestamp"
+         description="The timestamp the IPCD record was last modified"/>
+      <t:attribute
+         name="lastConnected"
+         type="timestamp"
+         description="The timestamp the device last established a new session with the platform"/>
+      <t:attribute
+         name="vendor"
+         type="string"
+         description="The vendor reported by the device"/>
+      <t:attribute
+         name="model"
+         type="string"
+         description="The model reported by the device"/>
+      <t:attribute
+         name="sn"
+         type="string"
+         description="The serial number reported by the device"/>
+      <t:attribute
+         name="ipcdver"
+         type="string"
+         description="The version of IPCD the device reports it supports"/>
+      <t:attribute
+         name="firmware"
+         type="string"
+         description="The firmware running on the IPCD device if reported"/>
+      <t:attribute
+         name="connState"
+         type="enum"
+         values="ONLINE,OFFLINE"
+         description="The current connection state of the IPCD device"/>
+      <t:attribute
+         name="registrationState"
+         type="enum"
+         values="UNREGISTERED,PENDING_DRIVER,REGISTERED"
+         description="The current registration state of the device"/>
+   </t:attributes> 
+</t:type>

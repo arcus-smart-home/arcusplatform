@@ -1,0 +1,19 @@
+{{#partial "greeting" }}
+	 Hello {{_person.firstName}}, This is Arcus.
+{{/partial}}
+
+{{block "notification" }}
+
+{{#partial "prompt" }}
+	 Please press the pound key to confirm receipt of this message.
+{{/partial}}
+
+{{#partial "error" }}
+	 I am sorry, I am having difficulty understanding your answer.
+{{/partial}}
+
+{{#partial "exit" }}
+	Thank You. Goodbye.
+{{/partial}}
+
+{{> twilio-announcement-with-ack}}

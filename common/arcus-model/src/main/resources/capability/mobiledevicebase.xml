@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="MobileDevice"
+   namespace="mobiledevice"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a mobile device
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute name="personId" readwrite="r" type="string" optional="false" description="Platform-owned identifier of the person that owns this device."/>
+      <c:attribute name="deviceIndex" readwrite="r" type="int" optional="false" description="Platform-owned index for the device that uniquely identifies it within the context of the person"/>
+      <c:attribute name="associated" readwrite="r" type="timestamp" optional="false" description="Platform-owned timestamp of when it associated this mobile device with the person."/>
+      <c:attribute name="osType" readwrite="r" type="string" optional="false" description="The type of operating system the mobile device is running (iOS, Android for example)."/>
+      <c:attribute name="osVersion" readwrite="rw" type="string" optional="true" description="The version of the operating system running on the mobile device."/>
+      <c:attribute name="formFactor" readwrite="rw" type="string" optional="true" description="The form factor of the device (phone, tablet for example)."/>
+      <c:attribute name="phoneNumber" readwrite="rw" type="string" optional="true" description="The phone number of the device if present."/>
+      <c:attribute name="deviceIdentifier" readwrite="rw" type="string" optional="true" description="The mobile device provided unique identifier"/>
+      <c:attribute name="deviceModel" readwrite="rw" type="string" optional="true" description="The model of the device if known."/>
+      <c:attribute name="deviceVendor" readwrite="rw" type="string" optional="true" description="The vendor of the device if known."/>
+      <c:attribute name="resolution" readwrite="rw" type="string" optional="true" description="The screen resolution of the device (ex. xhdpi)"/>
+      <c:attribute name="notificationToken" readwrite="rw" type="string" optional="true" description="The token for sending push notifications to this device if it is registered to do so."/>
+      <c:attribute name="lastLatitude" readwrite="rw" type="double" optional="true" description="The last measured latitude if collected."/>
+      <c:attribute name="lastLongitude" readwrite="rw" type="double" optional="true" description="The last measured longitude if collected."/>
+      <c:attribute name="lastLocationTime" readwrite="r" type="timestamp" optional="true" description="The timestamp that the latitude and longitude were last collected."/>
+      <c:attribute name="name" readwrite="rw" type="string" optional="true" description="A friendly name for the device."/>
+      <c:attribute name="appVersion" readwrite="rw" type="string" optional="true" description="The version of the Iris app installed on this device."/>     
+       
+   </c:attributes>
+
+</c:capability>

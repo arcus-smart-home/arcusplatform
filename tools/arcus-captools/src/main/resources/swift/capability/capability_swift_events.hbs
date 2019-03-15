@@ -1,0 +1,134 @@
+{{#file . "Generated/Capabilities/{{name}}CapabilityEvents.swift"}}
+//
+// {{name}}CapEvents.swift
+//
+// Generated on {{today}}
+
+import Foundation
+
+{{#if methods}}// MARK: Commands
+fileprivate struct Commands {
+  {{#methods}}/** {{description}} */
+  static let {{commandKey name}}: String = "{{namespace}}:{{name}}"
+  {{/methods}}
+}
+{{/if}}{{~#if events~}}
+// MARK: Events
+public struct {{capitalize name}}Events {
+  {{#events}}/** {{description}} */
+  public static let {{eventKey name}}: String = "{{namespace}}:{{name}}"
+  {{/events}}{{closeCurly}}
+{{/if}}
+{{#methods}}{{~#if errorCodes~}}// MARK: Errors
+public struct {{parent (capitalize name)}}Error: IrisError {
+  public var errorType: ErrorType!
+  public var code: String {
+    return errorType.rawValue
+  }
+  public var message: String!
+
+  public init() {}
+
+  public init(errorType: ErrorType, message: String = "") {
+    self.errorType = errorType
+    self.message = message
+  }
+
+  public init?(code: String, message: String) {
+    guard let errorType = ErrorType(rawValue: code) else { return nil }
+
+    self.init(errorType: errorType, message: message)
+  }
+
+  public var localizedDescription: String {
+    return message
+  }
+
+  public enum ErrorType: String {
+    {{#errorCodes}}/** {{description}} */
+    case {{uncapitalize name}} = "{{code}}"
+    {{/errorCodes}}
+  }
+{{closeCurly}}
+{{/if}}{{/methods}}{{#if attributes}}// MARK: Enumerations
+{{#attributes}}{{#if type.values}}
+/** {{description}} */
+public enum {{swiftTypeOf type}}: String {
+{{#type.values}}  case {{cleanse (toLowerCase this)}} = "{{this}}"
+{{/type.values}}{{closeCurly}}
+{{/if}}{{/attributes}}{{/if}}
+// MARK: Requests
+{{#methods}}
+/** {{description}} */
+public class {{parent (capitalize name)}}Request: ClientMessage, IrisClientRequest {
+  {{#if parameters}}
+  // MARK: {{parent (capitalize name)}}Request Enumerations
+  {{#parameters}}{{#if type.values}}/** {{description}} */
+  public enum {{swiftTypeOf type}}: String {
+   {{#type.values}}case {{cleanse (toLowerCase this)}} = "{{this}}"
+   {{/type.values}}
+  }{{/if}}{{/parameters}}{{/if}}
+  override init() {
+    super.init()
+    self.command = Commands.{{commandKey name}}
+  }
+
+  public func responseEventForMessage(_ message: IrisClientMessage) -> IrisEvent {
+    guard message.type != "Error" else {
+      var errorCode: String = ClientError.ErrorType.unknown.rawValue
+      var errorMessage: String = ""
+
+      if let code = message.attributes["code"] as? String {
+        errorCode = code
+      }
+
+      if let message = message.attributes["message"] as? String {
+        errorMessage = message
+      }
+
+      {{#if errorCodes~}}let error = {{parent (capitalize name)}}Error(code: errorCode, message: errorMessage)
+      {{else}}let error = ClientError(code: errorCode, message: errorMessage){{/if}}
+      return SessionErrorEvent(message, error: error)
+    }
+    return {{parent (capitalize name)}}Response(message)
+  }
+
+  {{#if parameters}}// MARK: {{name}}Request Attributes
+  struct Attributes {
+    {{#parameters~}}/** {{description}} */
+    static let {{cleanse name}}: String = "{{name}}"
+{{/parameters}} }
+  {{#parameters}}
+  /** {{description}} */
+  {{#isEnum type}}public func set{{responseProperty name}}(_ {{cleanse name}}: String) {
+    if let value: {{swiftTypeOf type}} = {{swiftTypeOf type}}(rawValue: {{cleanse name}}) {
+      attributes[Attributes.{{cleanse name}}] = value.rawValue as AnyObject
+    }
+  }
+  {{else}}public func set{{responseProperty name}}(_ {{cleanse name}}: {{swiftTypeOfParam type}}) {
+    {{#isTimestamp type}}let {{cleanse name}}: Double = {{cleanse name}}.millisecondsSince1970
+    attributes[Attributes.{{cleanse name}}] = {{cleanse name}} as AnyObject{{else}}{{#isModelObject type}}guard let model = {{cleanse name}} as? IrisModel else { return }
+    attributes[Attributes.{{cleanse name}}] = model.get() as AnyObject
+    {{else}}attributes[Attributes.{{cleanse name}}] = {{cleanse name}} as AnyObject{{/isModelObject}}{{/isTimestamp}}
+  }
+
+  {{/isEnum}}{{/parameters}}{{/if}}
+}
+
+public class {{parent (capitalize name)}}Response: SessionEvent {
+  {{#if returnValues}}
+  {{#returnValues}}{{#if type.values}}
+  /** {{description}} */
+  public enum {{swiftTypeOf type}}: String {
+    {{#type.values}}case {{cleanse (toLowerCase this)}} = "{{this}}"
+    {{/type.values}}
+  }{{/if}}{{/returnValues}}{{/if}}{{#returnValues}}
+  /** {{description}} */
+  public func get{{capitalize name}}() -> {{swiftTypeOfParam type}}? {
+    {{#isEnum type}}guard let attribute = self.attributes["{{uncapitalize name}}"] as? String,
+      let enumAttr: {{swiftTypeOfParam type}} = {{swiftTypeOfParam type}}(rawValue: attribute) else { return nil }
+    return enumAttr{{else}}return self.attributes["{{uncapitalize name}}"]{{#ifNotAny type}} as? {{swiftTypeOfParam type}}{{/ifNotAny}}{{/isEnum}}
+  }{{/returnValues}}
+}
+{{/methods}}
+{{/file}}

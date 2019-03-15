@@ -1,0 +1,96 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+/**
+ * Driver for a Leviton VRS15-1LZ In-Wall Switch
+ *
+ *
+ */
+driver			"ZWLevitonVRS15Driver"
+description		"Driver for a Leviton VRS15-1LZ In-Wall Switch"
+version			"2.9"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+productId		"71e027"
+vendor 			"Leviton"
+model 			"VRS15-1LZ"
+
+matcher			'ZWAV:Manufacturer': 0x001D, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0334
+
+
+capabilities Switch, DevicePower
+
+importCapability 'zwave/GenericZWaveVersion'
+importCapability 'zwave/GenericZWaveSwitch'
+
+DevicePower.battery					0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+@Field final int POLLING_INTERVAL_SEC    = 3600        // every hour
+@Field final int OFFLINE_TIMEOUT_SECS    = 12000       // 3 hrs 20 minutes
+
+onAdded {
+	Switch.statechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+	Switch.state 					 Switch.STATE_OFF
+}
+
+onConnected {
+	log.debug "Connected"
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+}
+
+setAttributes('swit') {
+	log.debug "Device received Set Switch Attributes {}", message
+	GenericZWaveSwitch.handleSwitchState this, message
+}
+
+onZWaveMessage.switch_binary.report {
+	log.debug 'Switch_binary.report event'
+
+	GenericZWaveSwitch.handleBinarySwitchReport this, message
+}
+
+onZWaveNodeInfo {
+	log.debug "Device reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+
+	// devices report a Node Info every time their state is changed locally,
+	// so do a Binary Switch Get to get the current state (delay this so device does not report back "busy")
+	GenericZWaveSwitch.readSwitchState this
+
+}
+
+onZWaveMessage.application_status.busy {
+	log.debug "Device reported Busy"
+	// when device reports that it is busy, do another Binary Switch Get, if we haven't done too many already
+	GenericZWaveSwitch.readSwitchStateAgain this
+}
+
+onZWaveMessage.hail.hail {
+	log.debug "Device sent a Hail"
+	GenericZWaveSwitch.readSwitchState this
+}
+
+
+onZWaveMessage {
+	log.debug "Device received unhandled ZWave message {}", message
+	return false
+}
+

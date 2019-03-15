@@ -1,0 +1,120 @@
+{{#file . "com/iris/client/Types.java" }}
+package com.iris.client;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import com.iris.client.capability.*;
+import com.iris.client.model.*;
+
+public class Types {
+
+  public static Class<? extends Capability> getCapability(String namespace) {
+     return CapabilityRegistry.INSTANCE.get(namespace);
+  }
+  
+  public static Collection<Class<? extends Capability>> getCapabilities() {
+     return CapabilityRegistry.INSTANCE.getCapabilities();
+  }
+
+  public static Class<? extends Model> getModel(String type) {
+     return ModelRegistry.INSTANCE.get(type);
+  }
+  
+  public static Collection<Class<? extends Model>> getModels() {
+     return ModelRegistry.INSTANCE.getModels();
+  }
+
+  public static Class<? extends com.iris.client.service.Service> getService(String type) {
+     return ServiceRegistry.INSTANCE.get(type);
+  }
+  
+  public static Collection<Class<? extends com.iris.client.service.Service>> getServices() {
+     return ServiceRegistry.INSTANCE.getModels();
+  }
+
+  private static class CapabilityRegistry {
+     private static final CapabilityRegistry INSTANCE = new CapabilityRegistry();
+     
+     private final Map<String, Class<? extends Capability>> capabilities;
+     
+     private CapabilityRegistry() {
+        Map<String, Class<? extends Capability>> capabilities = new LinkedHashMap<String, Class<? extends Capability>>();
+        {{#capabilities}}
+        capabilities.put("{{namespace}}", {{capitalize name}}.class);
+        {{/capabilities}}
+        this.capabilities = Collections.unmodifiableMap(capabilities);
+     }
+     
+     public Collection<Class<? extends Capability>> getCapabilities() {
+        return this.capabilities.values();
+     }
+     
+     public Class<? extends Capability> get(String namespace) {
+        Class<? extends Capability> capabilityType = this.capabilities.get(namespace);
+        if(capabilityType == null) {
+           return Capability.class;
+        }
+        return capabilityType;
+     }
+     
+  }
+
+  private static class ModelRegistry {
+     private static final ModelRegistry INSTANCE = new ModelRegistry();
+     
+     private final Map<String, Class<? extends Model>> models;
+     
+     private ModelRegistry() {
+        Map<String, Class<? extends Model>> models = new LinkedHashMap<String, Class<? extends Model>>();
+        {{#capabilities}}{{#unless enhances}}
+        models.put("{{namespace}}", {{capitalize name}}Model.class);
+        {{/unless}}{{/capabilities}}
+        this.models = Collections.unmodifiableMap(models);
+     }
+     
+     public Collection<Class<? extends Model>> getModels() {
+        return this.models.values();
+     }
+     
+     public Class<? extends Model> get(String type) {
+        Class<? extends Model> modelType = this.models.get(type);
+        if(modelType == null) {
+           return Model.class;
+        }
+        return modelType;
+     }
+     
+  }
+
+  private static class ServiceRegistry {
+     private static final ServiceRegistry INSTANCE = new ServiceRegistry();
+     
+     private final Map<String, Class<? extends com.iris.client.service.Service>> services;
+     
+     private ServiceRegistry() {
+        Map<String, Class<? extends com.iris.client.service.Service>> services = new LinkedHashMap<String, Class<? extends com.iris.client.service.Service>>();
+        {{#services}}
+        services.put("{{namespace}}", com.iris.client.service.{{capitalize name}}.class);
+        {{/services}}
+        this.services = Collections.unmodifiableMap(services);
+     }
+     
+     public Collection<Class<? extends com.iris.client.service.Service>> getModels() {
+        return this.services.values();
+     }
+     
+     public Class<? extends com.iris.client.service.Service> get(String type) {
+        Class<? extends com.iris.client.service.Service> serviceType = this.services.get(type);
+        if(serviceType == null) {
+           return com.iris.client.service.Service.class;
+        }
+        return serviceType;
+     }
+     
+  }
+
+}
+{{/file}}

@@ -1,0 +1,21 @@
+
+message zwave.TimeParameters.TimeParametersGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.TimeParameters.TimeParametersReportV1<id="0x03", group="V1"> {
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourUtc;
+    u8 minuteUtc;
+    u8 secondUtc;
+}
+
+message zwave.TimeParameters.TimeParametersSetV1<id="0x01", group="V1"> {
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourUtc;
+    u8 minuteUtc;
+    u8 secondUtc;
+}

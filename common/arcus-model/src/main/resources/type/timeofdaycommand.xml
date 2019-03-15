@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="TimeOfDayCommand"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a command scheduled to run at a given time of day.</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="id"
+			type="string"
+			description="The id for this command."
+			/>
+		<t:attribute
+			name="scheduleId"
+			type="string"
+			description="The id of the schedule this command is associated with."
+			/>
+		<t:attribute
+			name="mode"
+			type="enum"
+			values="ABSOLUTE,SUNRISE,SUNSET"
+			description="What mode this command is scheduled in:
+    ABSOLUTE - The time reported in time will be used.
+    SUNRISE - The command will execute at local sunrise + offsetMin.  The time reported in the time field will be the calculated run time for today.
+    SUNSET - The command will execute at local sunset + offsetMin. The time reported in the time field will be the calculated run time for today."
+    		/>
+		<t:attribute
+			name="time"
+			type="string"
+			description="
+The time of day in the place's timezone that this command should run at.  This should be a time of day formatted in HH:MM such as: 01:15 or 23:00.
+Note that:
+  00:00 will run one minute before 00:01 on the requested day, so technically 'at midnight today'.
+  24:00 will run one minute after 23:59 on the requested day, so technically 'at midnight tomorrow'.
+  			"
+			/>
+		<t:attribute
+			name="offsetMinutes"
+			type="int"
+			description="This will always be 0 if the mode is set to ABSOLUTE.  If mode is set to SUNRISE or SUNSET this will be the offset / delta from sunrise or sunset that the event should run at.  A negative number means the event should happen before sunrise/sunset, a postive means after."
+    		/>
+		<t:attribute
+			name="days"
+			type="set&lt;string&gt;"
+			values="MON,TUE,WED,THU,FRI,SAT,SUN"
+			description="The days that this command will run on."
+			/>
+		<t:attribute
+			name="messageType"
+			type="string"
+			description="The type of message to be sent."
+			/>
+		<t:attribute
+			name="attributes"
+			type="map&lt;any&gt;"
+			description="The attributes to be included with the message."
+			/>
+	</t:attributes>
+ </t:type>

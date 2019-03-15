@@ -1,0 +1,275 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for the Twinstar Duraflame Space Heater
+ * 
+ * The mock driver updates the Temperature attributes once every 15 seconds 
+ * as opposed to every 120 seconds like the real driver, to allow for easier testing.  
+ * Temperature drifts up while heating "coil" is ON, and down while OFF. Heating "coil" is 
+ * an internal var that is only "ON" when device is ON and temperature is 1.5C below setpoint, 
+ * and turns off whenever temperature gets 1.5C above setpoint.
+ * 
+ */
+
+import groovy.transform.Field
+ 
+driver          "MOCK_TwinstarSpaceHeater"
+description     "Driver for the Mockitron Twinstar Duraflame Space Heater"
+version         "1.0"
+protocol        "MOCK"
+deviceTypeHint  "SpaceHeater"
+productId       "bf5579"
+vendor          "Mockitron"
+model           "20HM6007"
+
+matcher         'MOCK:Capability' : 'TwinstarSpaceHeater'
+matcher         'MOCK:ProductId'  : 'bf5579'
+
+capabilities    DevicePower, Identify, Temperature, SpaceHeater, TwinStar, DeviceMock
+
+
+@Field final String DEVICE_NAME = 'Mock Twinstar Space Heater'
+
+// constants used to simulate internal heating coil(s) of device
+final String KEY_COIL_HEATING             = 'CoilHeating'                  // used to maintain state of heating coil (it may be off while device is ON)
+final double COIL_HYSTERESIS              = 1.5                            // hysteresis (in C) above and below setpoint, for coil to turn ON/OFF
+
+// constants used to simulate temp changes
+final String EVENT_TMP_UPDT               = 'UpdateTemperature'            // event name
+final long TMP_UPDT_INTERVAL              = 15000                          // update once every 15 seconds (device does it every 120, but we want faster for testing)
+
+// Errors Testing
+@Field final String ALERT_NAME_SENSOR     = "Safer Sensor Shutdown"
+@Field final String ALERT_MESSAGE_SENSOR  = "The Safer Sensor advanced safety feature has detected the heater outlet may be blocked.  Check the heater to ensure that no objects are in front of the heater outlet."
+final String KEY_GEN_ERROR                = 'GenError'                     // used to maintain state of error msg generation
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    log.debug "{} added.", DEVICE_NAME
+
+	Device.name                         DEVICE_NAME
+	
+	DeviceConnection.signal             34
+
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Temperature.temperature             23.72        // 74.696 F
+
+	SpaceHeater.setpoint                22.22       // 72 F
+	SpaceHeater.minsetpoint             10.0
+	SpaceHeater.maxsetpoint             36.0
+	SpaceHeater.heatstate               SpaceHeater.HEATSTATE_OFF
+
+	TwinStar.ecomode                    TwinStar.ECOMODE_DISABLED
+}
+
+onConnected {
+    log.debug "{} connected.", DEVICE_NAME
+
+	// schedule periodic temperature updates
+	Scheduler.scheduleIn EVENT_TMP_UPDT, TMP_UPDT_INTERVAL
+}
+
+
+onDisconnected {
+	log.debug "{} disconnected.", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed.", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// event to simulate Temperature changes reported by the device
+//
+onEvent(EVENT_TMP_UPDT){
+	Scheduler.scheduleIn EVENT_TMP_UPDT, TMP_UPDT_INTERVAL
+	double tmp = Temperature.temperature.get() as Double
+	java.util.Random rnd = new Random()
+	if (vars.KEY_COIL_HEATING) {
+		tmp += (rnd.nextDouble()/2.0)		// increase random amount 0.0 to 0.5 C
+		// if temp is higher than setpoint by hysteresis amount, turn off heating coil
+		if (tmp > (SpaceHeater.setpoint.get() + COIL_HYSTERESIS)) {
+			vars.KEY_COIL_HEATING = false
+		}
+	} else {
+		tmp -= (rnd.nextDouble()/2.0)		// decrease random amount 0.0 to 0.5 C
+		// if temp is less than setpoint by hysteresis amount, turn on heating coil
+		if (tmp < (SpaceHeater.setpoint.get() - COIL_HYSTERESIS)) {
+			vars.KEY_COIL_HEATING = true
+		}
+	}
+	log.debug "{} reported temperature: {} C", DEVICE_NAME, tmp
+	Temperature.temperature tmp
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('temp') {
+	log.info "{} Temperature attributes are read-only", DEVICE_NAME
+}
+
+setAttributes('spaceheater') {
+	log.debug "{} set spaceheater attributes", DEVICE_NAME
+	def attribs = message.attributes
+	for(attribute in attribs) {
+		switch(attribute.key) {
+			case SpaceHeater.setpoint:
+				proc_setpoint(attribute.value)
+				break
+
+			case SpaceHeater.heatstate:
+				proc_heatstate(attribute.value)
+				break
+
+			default:
+				log.warn "{} SpaceHeater.{} attribute is read-only", DEVICE_NAME, attribute.key
+				break
+		}
+	}
+}
+
+// NOTE: original discussions were that setting the Temperature would disable Ecomode if enabled, but was later decided
+// that driver will allow temperature to be set regardless of Ecomode, and Ecomode to be used regardless of temperature setting.
+void proc_setpoint(val) {
+	double temp = val
+	double min = SpaceHeater.minsetpoint.get() as Double
+	double max = SpaceHeater.maxsetpoint.get() as Double
+	if (min > temp) {
+		log.warn "{} cannot set temperature to {}, minimum is {}", DEVICE_NAME, temp, min
+		temp = min
+	}
+	if (max < temp) {
+		log.warn "{} cannot set temperature to {}, maximum is {}", DEVICE_NAME, temp, max
+		temp = max
+	}
+	log.debug "{} setpoint set to: {} C", DEVICE_NAME, temp
+	SpaceHeater.setpoint temp
+}
+
+void proc_heatstate(state) {
+	SpaceHeater.heatstate state
+	log.debug "{} heater state set to: {}", DEVICE_NAME, state
+	
+	// if heater state is set OFF, heating coil must also be OFF
+	if (SpaceHeater.HEATSTATE_OFF == state) {
+		vars.KEY_COIL_HEATING = false
+	} // otherwise, wait until temperature is reported to determine if coil is ON
+}
+
+
+setAttributes('twinstar') {
+	log.debug "{} set twinstar attributes", DEVICE_NAME
+	def attribs = message.attributes
+	for(attribute in attribs) {
+		log.debug "key:{}, value:{}", attribute.key, attribute.value
+		
+		switch(attribute.key) {
+			case TwinStar.ecomode:
+				proc_ecomode(attribute.value)
+				break
+			default:
+				log.warn "{} received unexpected attribute TwinStar.{}", DEVICE_NAME, attribute.key
+				break
+		}
+	}
+}
+
+void proc_ecomode(mode) {
+	TwinStar.ecomode mode
+	log.debug "{} Ecomode set to: {}", DEVICE_NAME, mode
+}
+
+
+onIdentify.Identify {
+	log.debug "{} received onIdentify.Identify", DEVICE_NAME
+	
+	if (vars.KEY_GEN_ERROR) {
+		DeviceAdvanced.errors.put( ALERT_NAME_SENSOR, ALERT_MESSAGE_SENSOR )
+		vars.KEY_GEN_ERROR = false
+	} else {
+		DeviceAdvanced.errors.remove( ALERT_NAME_SENSOR )
+		vars.KEY_GEN_ERROR = true
+	}
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Mock stuff
+////////////////////////////////////////////////////////////////////////////////
+
+onPlatform ("devmock:Connect") {
+	log.debug "devmock:Connect"
+	connected()
+	sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+	log.debug "devmock:Disconnect"
+	disconnected()
+	sendResponse "devmock:DisconnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+	def handledAttrs = []
+	for(attribute in message.attributes.attrs) {
+		log.debug "key:{}, value:{}", attribute.key, attribute.value
+		switch(attribute.key) {
+			case TwinStar.ecomode:
+				proc_ecomode(attribute.value)
+				handledAttrs.add( attribute.key )
+				break
+				
+			case SpaceHeater.setpoint:
+				proc_setpoint(attribute.value)
+				handledAttrs.add( attribute.key )
+				break
+
+			case SpaceHeater.heatstate:
+				proc_heatstate(attribute.value)
+				handledAttrs.add( attribute.key )
+				break
+
+			default:
+				break
+		}
+	}
+	
+	for( attr in handledAttrs ) message.attributes.attrs.remove( attr )
+	attributes << message.attributes.attrs
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+
+
+
+

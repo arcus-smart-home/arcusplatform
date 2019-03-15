@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2018.9.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+ 
+   <cl:changeset identifier="deleteRecordingV1Table" author="dpatrow">
+      <cl:description>Drop recording table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS recording;
+         </cl:update>
+         <cl:rollback>
+	         CREATE TABLE IF NOT EXISTS recording (
+	            id timeuuid,
+	            ts double,
+	            bo bigint,
+	            bl blob,
+	            PRIMARY KEY (id,ts,bo) 
+	         ) WITH COMPACT STORAGE
+	           AND CLUSTERING ORDER BY (ts ASC, bo ASC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+  <cl:changeset identifier="deleteRecordingMetadataV1Table" author="dpatrow">
+      <cl:description>Drop recording_metadata table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS recording_metadata;
+         </cl:update>
+         <cl:rollback>
+	         CREATE TABLE recording_metadata (
+            recordingid timeuuid,
+            field text,
+            value text,
+            PRIMARY KEY ((recordingid), field) 
+         )
+         WITH COMPACT STORAGE
+         AND CLUSTERING ORDER BY (field ASC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deletePlaceRecordingIndexV1Table" author="dpatrow">
+      <cl:description>Drop place_recording_index table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS place_recording_index;
+         </cl:update>
+         <cl:rollback>
+	         CREATE TABLE place_recording_index (
+            placeid uuid,
+            field text,
+            value text,
+            recordingid timeuuid,
+            size bigint,
+            PRIMARY KEY ((placeid, field), value, recordingid) 
+         )
+         WITH CLUSTERING ORDER BY (value DESC, recordingid DESC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deletePlaceQuotaV1Table" author="dpatrow">
+      <cl:description>Drop place_quota table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS place_quota;
+         </cl:update>
+         <cl:rollback>
+	        CREATE TABLE place_quota (
+            placeid uuid,
+            bytesused bigint,
+            PRIMARY KEY (placeid) );
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deletePurgeRecordingV1Table" author="dpatrow">
+      <cl:description>Drop purge_recordings table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS purge_recordings;
+         </cl:update>
+         <cl:rollback>
+	        CREATE TABLE purge_recordings (
+            deletetime timestamp,
+            partitionid int,
+            recordingid timeuuid,
+            placeid uuid,
+            PRIMARY KEY ((deletetime,partitionid),recordingid)
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (recordingid ASC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deleteRecordingMigration1Table" author="dpatrow">
+      <cl:description>Drop recording_migration_1 table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS recording_migration_1;
+         </cl:update>
+         <cl:rollback>
+	        CREATE TABLE recording_migration_1 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deleteRecordingMigration2Table" author="dpatrow">
+      <cl:description>Drop recording_migration_2 table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS recording_migration_2;
+         </cl:update>
+         <cl:rollback>
+	        CREATE TABLE recording_migration_2 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="deleteRecordingMigration3Table" author="dpatrow">
+      <cl:description>Drop recording_migration_3 table</cl:description>
+      <cl:tracking>I2-4924</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS recording_migration_3;
+         </cl:update>
+         <cl:rollback>
+	        CREATE TABLE recording_migration_3 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="createPlacePurgeRecording" author="dpatrow">
+      <cl:description>Create place_purge_recording table</cl:description>
+      <cl:tracking>I2-4944</cl:tracking>
+      <cl:cql>
+         <cl:update>     
+         ///////////////////////////////////////////////////////////////////////
+         // deletetime represents the earliest time (accurate to the day) the purge should occur.
+         //
+         ///////////////////////////////////////////////////////////////////////    
+         CREATE TABLE place_purge_recording (
+            deletetime timestamp,
+            placeid uuid,
+            mode text,
+            PRIMARY KEY ((deletetime),placeid)
+         ) WITH COMPACT STORAGE
+           AND CLUSTERING ORDER BY (placeid ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE place_purge_recording;</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>

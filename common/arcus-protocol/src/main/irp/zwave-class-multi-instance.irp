@@ -1,0 +1,16 @@
+
+message zwave.MultiInstance.MultiInstanceCmdEncapV1<id="0x06", group="V1"> {
+    u8 instance;
+    u8 commandClass;
+    u8 command;
+    u8[] parameter;
+}
+
+message zwave.MultiInstance.MultiInstanceGetV1<id="0x04", group="V1"> {
+    u8 commandClass;
+}
+
+message zwave.MultiInstance.MultiInstanceReportV1<id="0x05", group="V1"> {
+    u8 commandClass;
+    u8 instances;
+}

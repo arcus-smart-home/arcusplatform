@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Alarm"
+   namespace="alarm"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      An alarm.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="alertState"
+         type="enum"
+         values="INACTIVE,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="devices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the devices that are able to participate in this alarm." />
+      <c:attribute
+         name="excludedDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are excluded from participating in this alarm." />
+      <c:attribute
+         name="activeDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="offlineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="triggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="triggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="monitored"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="True if this alarm is professionally monitored."/>
+      <c:attribute
+         name="silent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+   </c:attributes>
+   
+</c:capability>

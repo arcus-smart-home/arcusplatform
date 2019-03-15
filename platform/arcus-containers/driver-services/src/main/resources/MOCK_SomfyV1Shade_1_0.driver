@@ -1,0 +1,176 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+/**
+ * Mock driver for a Somfy V1 Shade/Blind device
+ * 
+ * Notes: 
+ * - Somfy devices pair via a bridge (the Somfy ZRTSI) and look the same to the system whether they are
+ *   a Shade or a Blind.
+ *   
+ * - Somfy shades can only be Opened or Closed, to some specific level between 0 and 100%, and if the motor
+ *   connections are reversed the driver may have to flip the values (thus support for the Somfy1.reversed attribute).
+ *   
+ * - Somfy blinds cannot be Opened(Raised) or Closed(Lowered), but can have their tilt adjusted to either fully Open(50%) or
+ *   fully Closed(0%).  Blinds ignore the Somfy1.reversed attribute.
+ * 
+ */
+driver			"MOCK_SomfyV1Shade"
+description		"Mock driver for a Somfy V1 Shade/Blind device"
+version			"1.0"
+protocol		"MOCK"
+deviceTypeHint	"SomfyV1Blind"
+productId		"f05b37"
+vendor 			"Mockitron"
+model 			"Somfy"
+
+matcher        'MOCK:Capability' : 'SomfyV1Shade'
+matcher        'MOCK:ProductId'  : 'f05b37'
+
+capabilities	DevicePower, Somfyv1, DeviceMock
+
+
+
+def final long DFLT_READBACK_DELAY_MSEC = 1000  // delay before reading back current setting
+@Field def final String DEVICE_NAME			= 'Mock Somfy V1 Shade/Blind'
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "${DEVICE_NAME} started."
+	Device.name DEVICE_NAME
+
+	// DeviceConnection.signal          94		Somfy Devices do not report a Signal Strength
+	
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.battery              90
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Somfyv1.type                      Somfyv1.TYPE_BLIND
+	Somfyv1.reversed                  Somfyv1.REVERSED_NORMAL
+	Somfyv1.currentstate			  Somfyv1.CURRENTSTATE_CLOSED	
+
+	vars.'targetTilt' = 0
+	vars.'targetOpen' = 0
+}
+
+
+onConnected {
+	log.debug "${DEVICE_NAME} device connected."
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} device disconnected."
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} device removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('somfyv1') {
+	log.debug "${DEVICE_NAME} received setAttributes(somfyv1) message: " + message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Somfyv1.type:
+				log.debug "Set Smofyv1.type to: " + attribute.value
+				Somfyv1.type attribute.value
+				break
+
+			case Somfyv1.reversed:
+				log.debug "Set Smofyv1.reversed to: " + attribute.value
+				Somfyv1.reversed attribute.value
+				break
+	
+			default:
+				log.error "Unrecognized attribute: " + attribute
+				break
+		}
+	}
+	
+}
+
+onSomfyv1.GoToOpen {
+	log.debug "${DEVICE_NAME} - Go To Open"
+	
+	vars.'CURRENT_STATE' = Somfyv1.CURRENTSTATE_OPEN
+	// delayed set state
+	Scheduler.scheduleIn 'DeferredRead', DFLT_READBACK_DELAY_MSEC
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'somfyv1:GoToOpenResponse', [:]
+}
+
+
+onSomfyv1.GoToClosed {
+	log.debug "${DEVICE_NAME} - Go To Closed"
+	
+	vars.'CURRENT_STATE' = Somfyv1.CURRENTSTATE_CLOSED
+	
+	// delayed set state
+	Scheduler.scheduleIn 'DeferredRead', DFLT_READBACK_DELAY_MSEC
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'somfyv1:GoToClosedResponse', [:]
+}
+
+
+onSomfyv1.GoToFavorite {
+	log.debug "${DEVICE_NAME} - Go To Favorite"
+	
+	// read back the state (delay this so device has time to reposition)
+	Scheduler.scheduleIn 'DeferredRead', DFLT_READBACK_DELAY_MSEC
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'somfyv1:GoToFavoriteResponse', [:]
+}
+
+onEvent("DeferredRead") {
+	def newState = vars.'CURRENT_STATE'
+	if(newState != null) {
+		Somfyv1.currentstate  newState
+		vars.'CURRENT_STATE' = null
+	}
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

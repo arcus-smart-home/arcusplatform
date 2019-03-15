@@ -1,0 +1,19 @@
+   public {{classname}} create{{classname}}(
+      {{~#fields~}}{{~#stored~}}
+         {{storedComma}}{{#if @last}}{{vartype}}{{else}}{{type}}{{/if}} {{name}}
+      {{~/stored~}}{{~/fields~}}
+      ) {
+      return {{../../classname}}.{{classname}}.builder()
+         {{#fields}}{{#stored}}
+         .set{{methodName}}({{name}})
+         {{/stored}}{{/fields}}
+         .create();
+   }
+
+   public void {{uncapitalize classname}}(
+      {{~#fields~}}{{~#stored~}}
+         {{storedComma}}{{#if @last}}{{vartype}}{{else}}{{type}}{{/if}} {{name}}
+      {{~/stored~}}{{~/fields~}}
+      ) {
+      send{{capitalize ../../subpackage}}Message({{../../classname}}.{{classname}}.ID, {{#if ../../hasClusterId}}true{{else}}false{{/if}}, {{isServer}}, create{{classname}}({{~#fields~}}{{~#stored~}}{{storedComma}} {{name}}{{~/stored~}}{{~/fields~}}));
+   }

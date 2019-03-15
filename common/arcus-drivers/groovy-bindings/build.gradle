@@ -1,0 +1,190 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+// project specific build settings, dependencies, etc.
+def genSrcMain = new File(buildDir, 'generated-src/main/java')
+
+sourceSets.main.java.srcDirs += genSrcMain
+
+genSrcMain.mkdirs()
+
+// Support for ipcd binding generation
+ext.generatedSrcDir = genSrcMain
+ext.templateDir     = 'src/main/templates'
+ext.ipcdDefinitionFile = '../../arcus-protocol/src/main/resources/definition/ipcd/ipcd-definition.xml'
+ext.templateName    = 'ipcd/binding/bindings'
+
+configurations {
+    generator {
+        description "Classpath for source generators"
+        transitive true
+    }
+}
+
+dependencies {
+    generator project(':common:protocol-generator')
+    generator files(templateDir)
+   
+    compile project(':common:arcus-drivers:drivers-common')
+    compile project(':common:arcus-protoc-runtime')
+    compile project(':common:arcus-protoc').sourceSets.main.output
+
+    compile libraries.groovy
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedSrcDir
+        }
+    }
+    
+    // load it up as a source folder in eclipse,
+    // but don't include in the jar
+    generator {
+       resources {
+          srcDir templateDir
+       }
+    }
+}
+
+task generateZigbeeZclBindings(type:JavaExec) {
+   description 'Compile the Iris Zigbee Cluster Library IRP files into groovy bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/zcl-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
+}
+
+task generateZigbeeZdpBindings(type:JavaExec) {
+   description 'Compile the Iris Zigbee Cluster Library IRP files into groovy bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/zdp-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
+}
+
+task generateZigbeeAmeBindings(type:JavaExec) {
+   description 'Compile the Iris AlertMe IRP files into groovy bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/ame-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
+}
+
+task generateZigbeeZclNaming(type:JavaExec) {
+   description 'Compile the Iris Zigbee Cluster Library IRP files into groovy name bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/zcl-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
+}
+
+task generateZigbeeZdpNaming(type:JavaExec) {
+   description 'Compile the Iris Zigbee Cluster Library IRP files into groovy name bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/zdp-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
+}
+
+task generateZigbeeAmeNaming(type:JavaExec) {
+   description 'Compile the Iris AlertMe IRP files into groovy name bindings.'
+
+   def source = ["../../arcus-protocol/src/main/irp/ame-messages.irp"]
+   def packageName = 'com.iris.driver.groovy.zigbee.cluster'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
+}
+
+task cleanGeneratedSource(type: Delete) {
+    delete genSrcMain
+}
+clean {
+    dependsOn cleanGeneratedSource
+    delete "target"
+}
+
+task generateZigbeeBindings(type: GradleBuild) {
+
+    tasks = ['generateZigbeeZclBindings', 'generateZigbeeZdpBindings', 'generateZigbeeAmeBindings', 'generateZigbeeZclNaming', 'generateZigbeeZdpNaming','generateZigbeeAmeNaming']
+   description 'Compile Iris IRP files into groovy bindings.'
+    generateZigbeeZclBindings.mustRunAfter cleanGeneratedSource
+    generateZigbeeZdpBindings.mustRunAfter generateZigbeeZclBindings
+    generateZigbeeAmeBindings.mustRunAfter generateZigbeeZdpBindings
+    generateZigbeeZclNaming.mustRunAfter generateZigbeeAmeBindings
+    generateZigbeeZdpNaming.mustRunAfter generateZigbeeZclNaming
+    generateZigbeeAmeNaming.mustRunAfter generateZigbeeZdpNaming
+
+
+    inputs.files fileTree('../../arcus-protocol/src/main/irp').include('**/*.irp')
+   outputs.dir genSrcMain
+}
+
+
+
+
+task generateIpcdSource(type: JavaExec) {
+    dependsOn ':common:protocol-generator:jar', cleanGeneratedSource
+    inputs.dir templateDir
+    
+    def outputDir = file(generatedSrcDir)
+    outputs.dir outputDir
+    
+    doFirst {
+        outputDir.mkdirs()
+        println "Generating templates from $templateName..."
+        classpath configurations.generator.asPath.split(':')
+        args '-t', templateName, '-i', ipcdDefinitionFile, '-o', genSrcMain
+        main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    }
+}
+
+task generateSource() {
+    dependsOn generateIpcdSource
+    dependsOn generateZigbeeBindings
+}
+
+evaluationDependsOn(':common:arcus-protoc')
+compileJava.dependsOn tasks.getByPath(':common:arcus-protoc:classes')
+
+compileJava.dependsOn generateSource
+compileTestJava.dependsOn generateSource
+eclipseClasspath.dependsOn generateSource
+
+

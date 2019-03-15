@@ -1,0 +1,15 @@
+[
+   {
+      "certSn" : "testcertSn1",
+      "blacklistedDate" : 1419012584398,
+      "hubid" : "c24b0e18-3394-4f81-b762-274ba3605ccc",
+      "reason" : "testReason1"
+   },
+
+  {
+      "certSn" : "testcertSn2",
+      "blacklistedDate" : 1419012584698,
+      "hubid" : "d24b0e18-3394-4f81-b762-274ba3605ccc",
+      "reason" : "testReason2"
+   }
+]

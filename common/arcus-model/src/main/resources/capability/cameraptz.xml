@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CameraPTZ"
+   namespace="cameraptz"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of Camera Pan/Tilt/Zoom functionality on a device.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="currentPan"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="359"
+         optional="false"
+         description="Curent camera pan position, in degrees"/>
+
+      <c:attribute
+         name="currentTilt"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="180"
+         optional="false"
+         description="Curent camera tilt position, in degrees"/>
+
+      <c:attribute
+         name="currentZoom"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="100"
+         optional="true"
+         description="Curent camera zoom value"/>
+
+      <c:attribute
+         name="maximumPan"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="359"
+         optional="false"
+         description="Maximum camera pan position, in degrees"/>
+
+      <c:attribute
+         name="minimumPan"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="359"
+         optional="false"
+         description="Minimum camera pan position, in degrees"/>
+
+      <c:attribute
+         name="maximumTilt"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="180"
+         optional="false"
+         description="Maximum camera tilt position, in degrees"/>
+
+      <c:attribute
+         name="minimumTilt"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="180"
+         optional="false"
+         description="Minimum camera tilt position, in degrees"/>
+
+      <c:attribute
+         name="maximumZoom"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="100"
+         optional="true"
+         description="Maximum camera zoom value"/>
+
+      <c:attribute
+         name="minimumZoom"
+         readwrite="r"
+         type="int"
+	 min="0"
+	 max="100"
+         optional="true"
+         description="Minimum camera zoom value"/>
+
+   </c:attributes>
+
+   <c:methods>
+
+      <c:method
+         name="GotoHome"
+         description="Moves the camera to its home position">
+      </c:method>
+
+      <c:method
+         name="GotoAbsolute"
+         description="Moves the camera to an absolute position">
+
+         <c:parameter name="pan" type="int" description="Absolute pan position" optional="false"/>
+         <c:parameter name="tilt" type="int" description="Absolute tilt position" optional="false"/>
+         <c:parameter name="zoom" type="int" description="Absolute zoom value" optional="true"/>
+      </c:method>
+
+      <c:method
+         name="GotoRelative"
+         description="Moves the camera to a relative position">
+
+         <c:parameter name="deltaPan" type="int" description="Relative pan position" optional="false"/>
+         <c:parameter name="deltaTilt" type="int" description="Relative tilt position" optional="false"/>
+         <c:parameter name="deltaZoom" type="int" description="Relative zoom value" optional="true"/>
+      </c:method>
+
+   </c:methods>
+</c:capability>

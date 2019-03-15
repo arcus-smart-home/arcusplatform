@@ -1,0 +1,62 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Protocol Message Definitions
+////////////////////////////////////////////////////////////////////////////////
+
+struct msg.ZigbeeMessage.Protocol {
+   u8 type;
+   u32 length;
+   u8[length] payload;
+}
+
+message msg.ZigbeeMessage.Zcl<id="0x02"> {
+   const u8 CLUSTER_SPECIFIC = 0x01;
+   const u8 FROM_SERVER = 0x02;
+   const u8 DISABLE_DEFAULT_RESPONSE = 0x04;
+   const u8 MANUFACTURER_SPECIFIC = 0x08;
+
+   u8 zclMessageId;
+   u8 flags;
+   u16 profileId;
+   u16 clusterId;
+   u16 manufacturerCode when ((flags & MANUFACTURER_SPECIFIC) != 0);
+   u8 endpoint;
+   u32 length;
+   u8[length] payload;
+}
+
+message msg.ZigbeeMessage.Zdp<id="0x01"> {
+   u16 zdpMessageId;
+   u32 length;
+   u8[length] payload;
+}
+
+// Set the offline timeout
+message msg.ZigbeeMessage.SetOfflineTimeout<id="0x03"> {
+   u32 seconds;
+}
+
+// Control message from driver to hub controller
+message msg.ZigbeeMessage.Control<id="0x04"> {
+   u32 length;
+   u8[length] payload;
+}
+
+// Send protocol messages sequentially, waiting for acks in-between
+message msg.ZigbeeMessage.Ordered<id="0x05"> {
+   u32 length;
+   Protocol[length] payload;
+}
+
+// Perform an IAS Zone Enrollment
+message msg.ZigbeeMessage.IasZoneEnroll<id="0x06"> {
+   u16 profile;
+   u16 endpoint;
+   u16 cluster;
+}
+
+// Delay another command
+message msg.ZigbeeMessage.Delay<id="0x07"> {
+   u64 delay;
+   u32 length;
+   Protocol[length] payload;
+}

@@ -1,0 +1,30 @@
+{{#section "subject"}}
+{{{ _ruleName }}} Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+Hi {{{_person.firstName}}},
+
+{{{ leakh2o }}} has detected a water leak at {{{_place.name}}} and is attempting to turn off {{{ valve }}}.
+Please check the Iris app to ensure the {{{ valve }}} successfully turned it off.
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{ leakh2o }} has detected a water leak at {{_place.name}} and is attempting to turn off {{ valve }}.
+Please check the Iris app to ensure the {{ valve }} successfully turned off.
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

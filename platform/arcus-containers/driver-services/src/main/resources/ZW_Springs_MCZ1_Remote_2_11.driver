@@ -1,0 +1,131 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Springs MultiChannel Cord Remote
+ * 
+ * PAIRING
+ * - Place hub in 'pairing' mode and insert battery.
+ * - Press and hold 'Menu >' button until remote enters menu mode.
+ * - Navigate to ‘ZWAVE’ Menu (using Up/Down arrow buttons and then right arrow '>' button to select).
+ * - Select LEARN option (using Up/Down arrow buttons and then right arrow '>' button to select)
+ * 
+ * UNPAIRING
+ * - Place hub in 'unpairing' mode ( select "Remove Device").
+ * - Press and hold 'Menu >' button until remote enters menu mode.
+ * - Navigate to ‘ZWAVE’ Menu (using Up/Down arrow buttons and then right arrow '>' button to select).
+ * - Select LEARN option (using Up/Down arrow buttons and then right arrow '>' button to select)
+ * 
+ * FACTORY RESET
+ * - Press and hold 'Menu >' button until remote enters menu mode.
+ * - Navigate to ‘ZWAVE’ Menu (using Up/Down arrow buttons and then right arrow '>' button to select).
+ * - Select RESET option (using Up/Down arrow buttons and then right arrow '>' button to select).
+ * - Follow confirmation instructions.
+ * 
+ * Command Classes
+ *   0x20   (32) Basic
+ *   0x26   (38) Switch_Multilevel
+ *   0x59   (89) Association Group Information
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) ZWavePlusInfo
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0xEF  (-17) Central Scene
+ */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveBattery'
+uses 'zwave.GenericZWaveVersion'
+
+
+driver          "ZWSpringsMCZ1RemoteDriver"
+description     "Driver for a Springs MultiChannel Cord Remote"
+version         "2.11"
+protocol        "ZWAV"
+deviceTypeHint  "Accessory"
+productId       "aa159b"
+vendor          "Springs Window Fashions"
+model           "MCZ1"
+
+matcher         'ZWAV:Manufacturer': 0x026E, 'ZWAV:ProductType': 0x4D43, 'ZWAV:ProductId': 0x5A31
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Operational Constants
+////////////////////////////////////////////////////////////////////////////////
+
+final int OFFLINE_TIMEOUT_SECS = 133200     // 37 hours
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onConnected {
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	ZWave.battery.get()
+
+	// set the wakeup interval to 12 hours (0x00A8C0 = 43200 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0xA8, (byte)0xC0, (byte)0x01)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+	log.trace "Wakeup Notification"
+}
+
+onZWaveMessage.zwaveplus_info.report {
+	def zwVer = message.command.get('zwaveversion')
+	def roleType = message.command.get('roletype')
+	def nodeType = message.command.get('nodetype')
+	log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "Device Reset Locally Notification"
+}
+
+onZWaveMessage.central_scene.notification {
+	log.debug "Received central scene notification {}", message
+}
+
+
+

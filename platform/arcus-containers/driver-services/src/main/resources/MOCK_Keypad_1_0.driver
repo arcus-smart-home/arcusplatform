@@ -1,0 +1,225 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Keypad device
+ * 
+ * 
+ */
+importCapability 'zigbee/GenericZigbeeKeyPad'
+
+driver			"MOCK_Keypad"
+description		"Driver for a Mock Keypad device"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Keypad"
+productId		"45b814"
+vendor 			"Mockitron"
+model 			"Keypad"
+
+matcher         'MOCK:Capability' : 'KeyPad'
+matcher         'MOCK:ProductId'  : '45b814'
+
+capabilities	DevicePower, Identify, KeyPad, Alert, DeviceMock
+
+
+
+def final long RELEASE_DELAY_MSEC = 1000		// simulate button RELEASED 1 second after PRESSED
+
+def final String CURRENT_NAME = 'Mock Keypad'
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "$CURRENT_NAME device started."
+	Device.name  CURRENT_NAME
+	
+	// set inital attribute values
+	DeviceConnection.signal	94
+
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable	            false
+	DevicePower.battery                 15
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Alert.state                      Alert.STATE_QUIET
+
+	GenericZigbeeKeyPad.initializeAttributes this
+}
+
+onConnected {
+	log.debug "$CURRENT_NAME device connected."
+}
+
+onDisconnected {
+	log.debug "$CURRENT_NAME device disconnected."
+}
+
+onRemoved {
+	log.debug "$CURRENT_NAME device removed."
+}
+
+
+// ########### capability support ##################
+
+////////////////////////////////////////////////////////////////////////////////
+// Alert Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(Alert) {
+	log.debug "${CURRENT_NAME} - setAttributes:alert - message: {}", message
+	GenericZigbeeKeyPad.processAlertAttributes( this, message.attributes )   
+}
+	
+////////////////////////////////////////////////////////////////////////////////
+// KeyPad/Pin Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(KeyPad) {
+	log.debug "${CURRENT_NAME} - setAttributes:KeyPad - message {}", message
+	GenericZigbeeKeyPad.processKeyPadAttributes( this, message.attributes ) 
+}
+
+void doArm(mode) {	
+	log.debug "Emit ArmPressed - Mode:" + mode + ", Bypass:" + false
+	emit KeyPad.ArmPressed, ["mode": mode, "bypass": false]
+ }
+ 
+ void doDisarm(pin) {
+	 def valid = checkPinAndSetActor(pin);
+	 if(valid) {
+		 log.debug "Emit DisarmPressed"
+		 emit KeyPad.DisarmPressed
+	 }else {
+	 	log.debug "Invalid pin for Disarm"
+		emit KeyPad.InvalidPinEntered
+	 }
+ 
+	
+ }
+ 
+ boolean checkPinAndSetActor(pin) {
+	 try {
+		 def person = PinManagement.validatePin(pin)
+		 if (person != null) {
+			 log.debug "Set Actor:" + person
+			 PinManagement.setActor(person)
+		 }
+ 
+		 return person != null;
+	 } catch (ErrorEventException) {
+		 return false;
+	 }
+ }
+
+
+// Tell the Keypad that the arming process has started (exit delay), if sounds are enabled this should beep for the specified period.
+// The delay should be used to allow the beep to speed up as the end of the time window is reached.
+// The driver should update alarmState to ARMING and alarmMode to match the requested alarmMode.
+onKeyPad.BeginArming {
+	int delaySecs = message.attributes['delayInS'] ?: 0
+	def alarmMode = message.attributes['alarmMode']
+	log.debug "onKeyPad.BeginArming( delayInS:{}, alarmMode:{} )", delaySecs, alarmMode
+	KeyPad.alarmState KeyPad.ALARMSTATE_ARMING
+	KeyPad.alarmMode  alarmMode
+	sendResponse 'keypad:BeginArmingResponse', [:]
+}
+
+// Tell the Keypad that it has been armed, if sounds are enabled it should beep the tone matching the given mode.
+// This should update alarmState to ARMED and alarmMode to match the requested alarmMode.
+onKeyPad.Armed {
+	def alarmMode = message.attributes['alarmMode']
+	log.debug "onKeyPad.Armed( alarmMode:{} )", alarmMode
+	KeyPad.alarmState KeyPad.ALARMSTATE_ARMED
+	KeyPad.alarmMode  alarmMode
+	sendResponse 'keypad:ArmedResponse', [:]
+}
+
+// Tell the Keypad that it has been disarmed.
+onKeyPad.Disarmed {
+	log.debug "onKeyPad.Disarmed()"
+	KeyPad.alarmState KeyPad.ALARMSTATE_DISARMED
+	KeyPad.alarmMode KeyPad.ALARMMODE_OFF
+	sendResponse 'keypad:DisarmedResponse', [:]
+}
+
+// Tell the Keypad that the alarm is preparing to go off (entrance delay), if sounds are enabled it should beep the tone matching the given mode.
+// The duration should be used to allow the beep to speed up as the end of the time window is reached.
+// This should update alarmState to SOAKING and alarmMode to match the requested alarmMode.
+onKeyPad.Soaking {
+	int durationSecs = message.attributes['durationInS'] ?: 0
+	def alarmMode = message.attributes['alarmMode']
+	log.debug "onKeyPad.Soaking( durationInS:{}, alarmMode:{} )", durationSecs, alarmMode
+	KeyPad.alarmState KeyPad.ALARMSTATE_SOAKING
+	KeyPad.alarmMode  alarmMode
+	sendResponse 'keypad:SoakingResponse', [:]
+}
+
+// Tell the Keypad that the alarm is currently alerting.
+// This should update alarmState to ALERTING and alarmMode to match the requested alarmMode.
+onKeyPad.Alerting {
+	def alarmMode = message.attributes['alarmMode']
+	log.debug "onKeyPad.Alerting( alarmMode:{} )", alarmMode
+	KeyPad.alarmState KeyPad.ALARMSTATE_ALERTING
+	// Alerting / Off means panic, kind of weird, but it works
+	KeyPad.alarmMode alarmMode == "PANIC" ? KeyPad.ALARMMODE_OFF : alarmMode
+	sendResponse 'keypad:AlertingResponse', [:]
+}
+
+// Tell the Keypad to make a chime noise
+onKeyPad.Chime {
+	log.debug "onKeyPad.Chime()"
+	sendResponse 'keypad:ChimeResponse', [:]
+}
+
+// Tell the Keypad that the arming process cannot be started due to triggered devices
+onKeyPad.ArmingUnavailable {
+	log.debug "onKeyPad.ArmingUnavailable()"
+	sendResponse 'keypad:ArmingUnavailableResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Alert Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(Alert) {
+	GenericZigbeeKeyPad.processAlertAttributes( this, message.attributes )
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes: {}", message.attributes.attrs
+  
+  attributes << message.attributes.attrs;
+  GenericZigbeeKeyPad.processKeyPadAttributes( this, message.attributes.attrs )
+  GenericZigbeeKeyPad.processAlertAttributes( this, message.attributes.attrs )
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

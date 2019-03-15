@@ -1,0 +1,16 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "events" : ["onValueChange"],
+  "valueChanges" : [
+    { "parameter" : "ms2.temperature",
+      "value" : 22.0,
+      "thresholdRule" : "onGreaterThan",
+      "thresholdValue" : 20
+    } 
+  ]
+}

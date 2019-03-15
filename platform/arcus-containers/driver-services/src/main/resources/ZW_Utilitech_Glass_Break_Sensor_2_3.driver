@@ -1,0 +1,164 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Utilitech Glass Break Detector
+ * 
+ * These devices autonomously report their current state every 20 minutes, and any time it changes.
+ * 
+ * To address issue ITWO-4070 where a customers device was erroneously randomly reporting a state of 0x04,
+ * as opposed to the state of 0x00 for CLEAR and 0xFF for break detected, the driver was modified to not
+ * treat any non-zero value as a detection and instead require the device to report a value of either 0x00
+ * or 0xFF, otherwise the message is logged and ignored.
+ * 
+ * Pressing the button on the front of the three times triggers a wake_up, a battery level report, and a hail which was
+ * used by V1 for an end-to-end test.
+ * 
+ * OFFLINE TIMEOUT
+ *  - 2 hours 15 minutes
+ *  
+ * CHECK-IN INTERVAL
+ *  - Device reports state approximately every 20 minutes.
+ *  
+ * FACTORY RESET
+ *  - Pressing the button on the front of the device 5 times approximately 1 second apart should reset the device back to factory settings.
+ * 
+ * PAIRING
+ *  - Pressing the button on the front of the device one time while the hub is in "pairing" mode.
+ *  
+ * UNPAIRING
+ *  - Pressing the button on the front of the device one time while the hub is in "unpairing" mode.
+ * 
+ */
+import static com.iris.protocol.zwave.Alarm.AlarmReportV2.*;
+import static com.iris.protocol.zwave.SensorAlarm.SensorAlarmReportV1.*;
+import static java.util.concurrent.TimeUnit.*;  //temporary to support test harness
+
+driver          "ZWaveUtilitechGlassBreakSensorDriver"
+description     "Driver for a Z-wave Utilitech Glass Break Detector"
+version         "2.3"
+protocol        "ZWAV"
+deviceTypeHint  "Glass Break"
+productId       "468d89"
+vendor          "Utilitech"
+model           "GB-00Z-1"
+
+matcher			'ZWAV:Manufacturer': 0x014F, 'ZWAV:ProductType': 0x4742, 'ZWAV:ProductId': 0x3030
+
+uses 'zwave.GenericZWaveBattery'        // use generic ZWave Battery handling
+uses 'zwave.GenericZWaveVersion'        // use generic ZWave version
+
+// Basic Device Class:      (0xA1) GENERIC_TYPE_SENSOR_ALARM
+// Specific Device Class:   (0x01) SPECIFIC_TYPE_BASIC_ROUTING_ALARM_SENSOR
+//
+// Command Classes: (version reported by device)
+//      0x20 (32)   Basic (v0)
+// *    0x5A (90)   Device Reset Locally
+//      0x70 (112)  Configuration (v0)
+//      0x72 (114)  Manufacturer_Specific (v1)
+//      0x80 (-128) Battery (v0)
+// *    0x82 (-126) Hail
+//      0x84 (-124) Wake_Up (v0)
+//      0x85 (-123) Association (v1)
+//      0x86 (-122) Version (v1)
+// *    0x87 (-121) Indicator
+//      0x9C (-100) Sensor_Alarm (v0)
+
+// * Additional command classes.  Observed on Version 1.2, 1.4
+
+//Note from version 1.0
+// device sometimes reports type as 0x00 (general) and sometimes 0x07 (Burgler)
+// Version 1.2 & 1.4 Use Type General.
+
+/////////////////////////////////////////////////////////////
+//Reflex Capability Initialization
+/////////////////////////////////////////////////////////////
+DevicePower {
+   source                    DevicePower.SOURCE_BATTERY
+   linecapable               false
+   backupbatterycapable      false
+   bind sourcechanged to source
+}
+
+Glass {
+	Glass.break              Glass.BREAK_SAFE
+	bind breakchanged to Glass.break
+}
+
+//////////////////////////////////////////////////////////////
+//  ZWave Reflex
+/////////////////////////////////////////////////////////////
+
+ZWave {
+
+	 offlineTimeout 135, MINUTES
+
+	poll reflex {
+		on connected 
+		send sensor_alarm.get, sensortype:ZWAVE_ALARM_TYPE_BURGLAR
+	}
+	
+	match reflex {
+    	on sensor_alarm.report, sensortype:ZWAVE_ALARM_TYPE_BURGLAR, sensorstate:SENSOR_STATE_NO_ALARM
+    	on sensor_alarm.report, sensortype:SENSOR_TYPE_GENERAL_PURPOSE_ALARM, sensorstate:SENSOR_STATE_NO_ALARM
+    	set Glass.break, Glass.BREAK_SAFE
+    }
+ 
+	match reflex {
+    	on sensor_alarm.report, sensortype:ZWAVE_ALARM_TYPE_BURGLAR, sensorstate:SENSOR_STATE_ALARM
+    	on sensor_alarm.report, sensortype:SENSOR_TYPE_GENERAL_PURPOSE_ALARM, sensorstate:SENSOR_STATE_ALARM
+    	set Glass.break, Glass.BREAK_DETECTED
+    }
+   	
+	match reflex {
+    set Glass.break, Glass.BREAK_SAFE
+	}
+ 
+	match reflex {
+    	set Glass.break, Glass.BREAK_DETECTED
+    }
+   	
+}	
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.sensor_alarm.report {
+	log.info "Reported Unknown Sensor Alarm, sensortype: {}, sensorstate: {}", message.command.get('sensortype'), message.command.get('sensorstate')	
+}
+
+onZWaveMessage.battery.report {
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+// Avoid unhandled log message
+}
+
+onZWaveMessage.hail.hail {
+// Avoid unhandled log message
+// This was used as a test message on V1, sent when button pushed 3 times
+}
+
+onZWaveNodeInfo {
+// Avoid unhandled log message
+}
+
+onZWaveMessage {
+	log.debug "Device reported unhandled message:{}", message
+}
+
+

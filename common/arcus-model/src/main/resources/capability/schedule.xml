@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Schedule"
+   namespace="sched"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   A schedule is a set of commands and when they are run. In general these
+   appear as multi-instance capabilities on a Scheduler.
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute
+         name="group"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The scheduling group.  Only one Schedule in a scheduling group may be enabled at a time."/>
+
+      <c:attribute
+         name="enabled"
+         readwrite="rw"
+         type="boolean"
+         optional="false"
+         description="Whether or not this scheduled is currently enabled to run.  When disabled no scheduled commands will be sent."/>
+      
+      <!-- not adding native yet since it is not supported -->
+      <c:attribute
+         name="nextFireTime"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="The next time the schedule will fire, this may be null if the schedule is disabled or there are no scheduled times."/>
+
+      <c:attribute
+         name="nextFireCommand"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The command that will be sent when it fires next.  This is a key into the commands attribute."/>
+      
+      <c:attribute
+         name="lastFireTime"
+         readwrite="r"
+         type="timestamp"
+         optional="true"
+         description="The last time the schedule executed a command."/>
+      
+      <c:attribute
+         name="lastFireCommand"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="The id of the last command that was executed.  This may not exist in the commands attribute if the schedule has been modified since it last fired."/>
+         
+      <c:attribute
+         name="lastFireMessageType"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="The type of message that was sent on last execution."/>
+         
+      <c:attribute
+         name="lastFireAttributes"
+         readwrite="r"
+         type="map&lt;any&gt;"
+         optional="true"
+         description="The attributes that were sent on last execution."/>
+         
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+         name="Delete"
+         description="Deletes this Schedule and removes any scheduled commands.">
+      </c:method>
+   
+      <c:method
+         name="DeleteCommand"
+         description="Deletes any occurrences of the scheduled command from this Schedule.">
+         <c:parameters>
+            <c:parameter 
+               name="commandId"
+               type="string"
+               description="The id of the command to delete."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+      <c:return 
+         name="applied"
+         type="boolean"
+         description="Whether or not the command was deleted, if this is false it already did not exist."/>
+     
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

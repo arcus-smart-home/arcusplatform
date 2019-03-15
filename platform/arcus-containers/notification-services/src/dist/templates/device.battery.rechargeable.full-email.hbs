@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Battery is Fully Charged
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}}'s battery at {{{_place.name}}} is now fully charged.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}}'s battery at {{_place.name}} is now fully charged.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

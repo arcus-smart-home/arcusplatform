@@ -1,0 +1,54 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Presence Device implementation of DeviceConnection.
+ */
+
+capability     Presence
+capability     DeviceConnection
+description    "Implementation for Presence to keep devices from being marked OFFLINE"
+version        "1.0"
+
+onConnected {
+   log.debug "Generic PresenceDeviceConnection [onConnected] {}", now()
+   
+   if (Presence.PRESENCE_PRESENT != Presence.presence.get()) {
+      Presence.presencechanged new Date()
+   }
+   Presence.presence Presence.PRESENCE_PRESENT
+}
+
+onDisconnected {
+   log.debug "Generic PresenceDeviceConnection [onDisconnected] {}", now()
+   if (DeviceConnection.STATUS_LOST == DeviceConnection.status.get() ) {
+   		log.debug "Generic PresenceDeviceConnection mark Device offline because device LOST"   		
+   }else {
+   		log.debug "Generic PresenceDeviceConnection mark Presence ABSENT"
+	   	if (Presence.PRESENCE_ABSENT != Presence.presence.get()) {
+			Presence.presencechanged new Date()
+	   	}
+	   	Presence.presence Presence.PRESENCE_ABSENT
+   }
+}
+
+onControl('DeviceOfflineEvent') {
+   log.debug "Generic PresenceDeviceConnection [DeviceOfflineEvent] {}", now()
+}
+
+onControl('DeviceOnlineEvent') {
+   log.debug "Generic PresenceDeviceConnection [DeviceOnlineEvent] {}", now()
+}
+

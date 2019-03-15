@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Motion"
+   namespace="mot"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="motion" 
+         readwrite="r" 
+         type="enum" 
+         values="NONE,DETECTED"
+         optional="false" 
+         description="Reflects the state of the motion sensor. When detected the motion sensor has detected motion, when none no motion has been detected."/>
+      <c:attribute
+         name="motionchanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last motion change"/>
+      <c:attribute
+         name="sensitivitiesSupported"
+         type="set&lt;string&gt;"
+         description="A set of sensitivities that are supported by this motion sensor.  If the set is null or empty modification of the sensitivity is not supported."
+         optional="true"
+         readwrite="r"
+      />
+      <c:attribute
+         name="sensitivity"
+         type="enum"
+         values="OFF, LOW, MED, HIGH, MAX"
+         description="The sensitivity of the motion sensor where:
+
+OFF:   Implies that the motion sensor is disabled and will not detect motion
+LOW:   Lowest possible detection sensitivity
+MED:   Moderate detection sensitivity
+HIGH:  High detection sensitivity
+MAX:   Maximum sensitivity the device can be set to.
+
+This will be null for motion sensors that do not support modification of sensitivity.
+"
+         optional="true"
+         readwrite="rw"
+      />
+
+   </c:attributes>
+   
+</c:capability>

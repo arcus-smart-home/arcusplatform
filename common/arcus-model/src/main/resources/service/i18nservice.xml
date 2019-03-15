@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="I18NService"
+           namespace="i18n"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for the i18n service, which is used to fetch localized keys.
+   </s:description>
+
+   <s:methods>
+      <s:method description="Loads localized keys from the server"
+                internal="false"
+                isRESTful="true"
+                name="LoadLocalizedStrings">
+   
+         <s:parameter name="bundleNames"
+            type="set&lt;string&gt;"
+            description="The set of bundles to load, if null or empty all bundles will be loaded"
+            optional="true"/>
+            
+         <s:parameter name="locale"
+            type="string"
+            description="The locale to load the localized strings, if not provided or is empty en-US will be used"
+            optional="true"/>
+            
+         <s:return name="localizedStrings"
+            type="map&lt;string&gt;"
+            description="A map of all the localized strings in the given locale where they key is prefixed with the 'bundleName:'"
+            optional="false"/>
+
+      </s:method>
+
+   </s:methods>
+
+   <!-- TODO events --> 
+
+</s:service>

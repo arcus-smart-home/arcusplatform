@@ -1,0 +1,30 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Join Cluster
+//    From "Implementing the AlertMe Join & General Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.Join {
+   const u16 CLUSTER_ID = 0x00F6;
+}
+
+message alertme.Join.HelloRequest<id="0xFC"> {
+}
+
+message alertme.Join.HelloResponse<id="0xFE"> {
+   u16 nodeId;
+   u64 eui64;
+   u16 mfgId;
+   u16 deviceType;
+   u8 appRelease;
+   u8 appVersion;
+   u8 hwMinorVersion;
+   u8 hwMajorVersion;
+   AmeString mfg;
+   AmeString model;
+   AmeString dateCode;
+}
+
+message alertme.Join.RangeTest<id="0xFD"> {
+   i8 rssi;
+   u8 lqi;
+}

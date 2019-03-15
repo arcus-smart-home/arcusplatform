@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+   xmlns="http://www.w3.org/2001/XMLSchema"
+   xmlns:tns="http://www.iris.com/schema/changelog/1.0.0"
+   targetNamespace="http://www.iris.com/schema/changelog/1.0.0"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified">
+   
+   <element name="changelog" type="tns:changelogType"/>
+   
+   <complexType name="changelogType">
+      <choice minOccurs="1" maxOccurs="1">
+         <element name="import" type="tns:importType" minOccurs="0" maxOccurs="unbounded"/>
+         <element name="changeset" type="tns:changesetType" minOccurs="0" maxOccurs="unbounded"/>
+      </choice>
+      <attributeGroup ref="tns:changelogAttrs"/>
+   </complexType>
+   
+   <attributeGroup name="changelogAttrs">
+      <attribute name="version" type="string" use="required"/>
+   </attributeGroup>
+   
+   <complexType name="importType">
+      <attributeGroup ref="tns:importAttrs"/>
+   </complexType>
+   
+   <attributeGroup name="importAttrs">
+      <attribute name="file" type="string" use="required"/>
+   </attributeGroup>
+   
+   <complexType name="changesetType">
+      <sequence>
+         <element name="description" type="string" minOccurs="0" maxOccurs="1"/>
+         <element name="tracking" type="string" minOccurs="0" maxOccurs="1"/>
+         <element name="cql" type="tns:cqlContainerType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+      <attributeGroup ref="tns:changesetAttrs"/>
+   </complexType>
+   
+   <attributeGroup name="changesetAttrs">
+      <attribute name="author" type="string" use="required"/>
+      <attribute name="identifier" type="string" use="required"/>
+   </attributeGroup>
+   
+   <complexType name="cqlContainerType">
+      <sequence>
+         <element name="update" type="string" minOccurs="1" maxOccurs="1"/>
+         <element name="rollback" type="string" minOccurs="1" maxOccurs="1"/>
+      </sequence>
+   </complexType>
+</schema>

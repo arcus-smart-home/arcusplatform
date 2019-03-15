@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Vent"
+   namespace="vent"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a louvered air vent device.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="ventstate" 
+         readwrite="r" 
+         type="enum"
+         values="OK,OBSTRUCTION"
+         optional="false"
+         description="Reflects the current state of the vent.  Obstruction implying that something is preventing the opening or closing of the vent."/>
+      <c:attribute 
+         name="level" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="false" 
+         description="Reflects the current level of openness, as a percentage."/>
+      <c:attribute 
+         name="airpressure" 
+         readwrite="r" 
+         type="double" 
+         unit="kPa"
+         optional="true" 
+         description="Air pressure in duct."/>
+   </c:attributes>
+   
+</c:capability>

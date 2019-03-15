@@ -1,0 +1,128 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability		Dimmer
+description		"Default implementation for the ZWave Dimmer capability"
+version			"1.0"
+
+@Field def final String DEFAULT_NAME = 'Unkown Device'
+def final byte RAMP_INSTANTLY	= 0x00
+def final long DFLT_READBACK_DELAY = 5000		// 5 second delay before reading
+def final int MAX_RAMP_SECS     = 7620			// maximum ramp is 127 minutes (7620 seconds)
+
+setAttributes('dim') {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	log.debug "${name} received setAttributes(dim) message: {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+		case Dimmer.brightness:
+			int targetBrightness = attribute.value
+			targetBrightness = normalizeBrightness(targetBrightness)
+			
+			// Set brightness immediately, no ramping
+			ZWave.switch_multilevel.set((byte)targetBrightness, RAMP_INSTANTLY)
+			
+			// read back the level (delay this by a few seconds so default ramping is completed first)
+			Scheduler.scheduleIn 'DeferredSwitchReadLevel', DFLT_READBACK_DELAY
+			break
+			
+		default:
+			log.error "Unrecognized attribute: {}", attribute
+			break
+		}
+	}
+	sendResponse 'dim:SetAttributesResponse', [:]
+}
+
+
+
+int normalizeBrightness (int targetBrightness) {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	// limit brightness from 1 to 99
+	if (100 < targetBrightness) {
+		log.warn "${name} limitting requested Brightness of {} to max allowed of 100", targetBrightness
+		targetBrightness = 100
+	}
+	if (0 > targetBrightness) {
+		log.warn "${name} limitting requested Brightness of {} to min allowed of 0", targetBrightness
+		targetBrightness = 0
+	}
+	
+	vars.'targetlevel' = targetBrightness
+	if (100 == targetBrightness) targetBrightness = 99	// ZWave only supports levels 1-99, so map 100% to level 99
+	if (0 == targetBrightness) targetBrightness = 1	// ZWave only supports levels 1-99, so map 0% to level 1
+	return targetBrightness
+}
+
+
+
+onDimmer.RampBrightness {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	log.debug "${name} received onDimmer.RampBrightness message: {}", message
+
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+
+	log.debug "${name} - Dimmer Brightness: {},{}", targetBrightness, targetSeconds
+	
+	targetBrightness = normalizeBrightness(targetBrightness)
+	
+
+	// ZWave doesn't support ramp duration greater than 7620 seconds (127 minutes).
+	if (MAX_RAMP_SECS < targetSeconds) {
+		log.warn "${name} - Limitting requested Ramp Time of ${targetSeconds} to max allowed of ${MAX_RAMP_SECS} seconds"
+		targetSeconds = MAX_RAMP_SECS
+	}
+	if (0 > targetSeconds) {
+		log.warn "${name} - Limitting requested Ramp Time of ${targetSeconds} to min allowed of 0 seconds"
+		targetSeconds = 0
+	}
+	
+	byte duration = (byte)targetSeconds
+	long readbackDelay = (targetSeconds + 1) * 1000		// scheduler works in mSec
+	if (127 >= targetSeconds) {
+		// if seocnds is 127 or less, send that value
+		log.debug "${name} - duration in seconds: ${duration}"
+	} else {
+		// over 127 seconds, we can only use minute resolution so send a number of minutes, and set high order bit
+		int targetMinutes = (targetSeconds + 30) / 60
+		duration = (byte)targetMinutes
+		readbackDelay = ((duration * 60) + 1) * 1000 	// scheduler works in mSec
+		log.debug "${name} - duration in minutes: ${duration}"
+		duration = duration | 0x80
+		log.debug "${name} - duration param: ${duration}"
+	}
+	
+			
+	// Send message to device to ramp brightness
+	ZWave.switch_multilevel.set( (byte)targetBrightness, duration )
+	
+	// do a delayed read back of the level
+	Scheduler.scheduleIn 'DeferredSwitchReadLevel', readbackDelay
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+onEvent('DeferredSwitchReadLevel') {
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	log.debug "${name} - Perform Deferred switch_multilevel.get"
+	ZWave.switch_multilevel.get()
+}
+

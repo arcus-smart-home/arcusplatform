@@ -1,0 +1,18 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.8 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.OnOff {
+   const u16 CLUSTER_ID = 0x0006;
+   const u16 ATTR_ONOFF = 0x0000;
+}
+
+message zcl.OnOff.Off<id="0x00",group="client"> {
+}
+
+message zcl.OnOff.On<id="0x01",group="client"> {
+}
+
+message zcl.OnOff.Toggle<id="0x02",group="client"> {
+}

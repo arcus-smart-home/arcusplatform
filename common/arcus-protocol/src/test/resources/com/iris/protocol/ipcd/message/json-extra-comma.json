@@ -1,0 +1,33 @@
+{
+  "device": {
+    "vendor": "Genie",
+    "model": "Aladdin",
+    "ipcdver": "0.2",
+    "sn": "20C38FF59F40"
+  },
+  "request": {
+    "command": "GetParameterValues",
+    "parameters": [
+      "dps1.link_status",
+      "dps2.link_status",
+      "dps3.link_status",
+      "dcm.wifi_ssid",
+      "dcm.wifi_rssi",
+      "dcm.fw_version",
+      "dcm.error_code"
+    ]
+  },
+  "response": {
+    "dps1.link_status": "Connected",
+    "dps3.link_status": "Connected",
+    "dcm.wifi_ssid": "IPCD Madness",
+    "dcm.wifi_rssi": -32,
+    "dcm.fw_version": "00047",
+  },
+  "status": {
+    "result": "warn",
+    "messages": [
+      "Unit 1 is not paired"
+    ]
+  }
+}

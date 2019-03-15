@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="IpInfo"
+   namespace="ipinfo"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of current IP information.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="ip" 
+         readwrite="r" 
+         type="string"
+         optional="false"
+         description="Current local IP address"/>
+      <c:attribute 
+         name="mac" 
+         readwrite="r" 
+         type="string"
+         optional="true" 
+         description="MAC Address"/>
+      <c:attribute 
+         name="netmask" 
+         readwrite="r" 
+         type="string"
+         optional="true" 
+         description="Current network mask"/>
+      <c:attribute 
+         name="gateway" 
+         readwrite="r" 
+         type="string"
+         optional="true" 
+         description="Current gateway IP address"/>
+   </c:attributes>
+   
+</c:capability>

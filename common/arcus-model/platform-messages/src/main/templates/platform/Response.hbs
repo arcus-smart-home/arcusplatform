@@ -1,0 +1,16 @@
+public static class {{name}}Response {
+   public static final String NAME = "{{namespace}}:{{name}}Response";
+
+   
+{{> platform/attributes returnValues}}
+{{#if errorCodes}} 
+{{> platform/errors errorCodes}}
+{{/if}}
+{{#if returnValues}}  
+{{> platform/Builder returnValues}}
+{{else}}
+   public static com.iris.messages.MessageBody instance() {
+      return com.iris.messages.MessageBody.emptyMessage();
+   }
+{{/if}}
+}

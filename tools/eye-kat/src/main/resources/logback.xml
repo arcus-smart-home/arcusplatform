@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false">
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+     <resetJUL>true</resetJUL>
+  </contextListener>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder>
+      <pattern>%highlight(%.-1level%d{MMdd}) %gray(%d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}]) %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="com.iris" level="DEBUG" />
+
+  <root level="WARN">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

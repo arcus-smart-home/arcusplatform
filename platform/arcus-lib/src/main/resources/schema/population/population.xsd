@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   targetNamespace="http://arcus.com/population_1.0.0"
+   xmlns:tns="http://arcus.com/population_1.0.0"
+   elementFormDefault="qualified">
+
+   <xs:annotation>
+      <xs:documentation xml:lang="en">
+         Iris Population schema
+         Copyright 2016 Lowe's Companies, Inc. All rights reserved.
+      </xs:documentation>
+   </xs:annotation>
+   
+
+	<xs:element name="populations">
+	  <xs:complexType>
+	   <xs:sequence>
+         <xs:element name="metadata" type="tns:metadataType" />
+		 <xs:element name="population" type="tns:population"
+		     minOccurs="0" maxOccurs="unbounded" /> 
+	   </xs:sequence>
+	  </xs:complexType>
+	</xs:element>
+
+   <xs:complexType name="metadataType">
+      <xs:attribute name="version" type="xs:dateTime" />
+      <xs:attribute name="publisher" type="xs:string" />
+   </xs:complexType>
+	
+	<xs:complexType name="population">
+		<xs:attribute name="name" type="xs:string"/>
+		<xs:attribute name="description" type="xs:string"/>
+		<xs:attribute name="minhubv2version" type="xs:string"/>
+		<xs:attribute name="minhubv3version" type="xs:string"/>
+	</xs:complexType>
+</xs:schema>

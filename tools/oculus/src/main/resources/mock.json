@@ -1,0 +1,1885 @@
+{
+  "actionMap": {
+    "alert": [
+      {
+        "name": "Alerting",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "alert:state",
+            "value": "ALERTING"
+          }
+        ]
+      },
+      {
+        "name": "Quiet",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "alert:state",
+            "value": "QUIET"
+          }
+        ]
+      }
+    ],
+    
+    "devadv" : [
+    	{
+    		"name": "Jammed Lock Error",
+    		"steps" : [
+    			{
+	    			"type": "attr",
+	    			"form": "map",
+	    			"attr": "devadv:errors",
+	    			"value": { "WARN_JAM" : "Door lock is jammed" }
+    			}
+    		]
+    	},
+    	{
+    		"name": "Clear Errors",
+    		"steps": [
+    			{
+    				"type": "attr",
+    				"form": "map",
+    				"attr": "devadv:errors",
+    				"value": {}
+    			}
+    		]
+    	}
+    ],
+
+ "devconn": [
+      {
+        "name": "ONLINE",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devconn:state",
+            "value": "ONLINE"
+          }
+        ]
+      },
+      {
+        "name": "OFFLINE",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devconn:state",
+            "value": "OFFLINE"
+          }
+        ]
+      }
+      
+    ],   
+
+    "but": [
+      {
+        "name": "Press Button",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "but:state",
+            "value": "PRESSED"
+          }
+        ]
+      },
+      {
+        "name": "Release Button",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "but:state",
+            "value": "RELEASED"
+          }
+        ]
+      },
+      {
+        "name": "Press Then Release Button",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "but:state",
+            "value": "PRESSED"
+          },
+          {
+            "type": "attr",
+            "attr": "but:state",
+            "value": "RELEASED"
+          }
+        ]
+      }
+    ],
+    "co": [
+      {
+        "name": "CO Detected",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:co",
+            "value": "DETECTED"
+          }
+        ]
+      },
+      {
+        "name": "CO Safe",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:co",
+            "value": "SAFE"
+          }
+        ]
+      },
+      {
+        "name": "CO Detected then Safe",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:co",
+            "value": "DETECTED"
+          },
+          {
+            "type": "attr",
+            "attr": "co:co",
+            "value": "SAFE"
+          }
+        ]
+      },
+      {
+        "name": "Detector OK",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:eol",
+            "value": "OK"
+          }
+        ]
+      },
+      {
+        "name": "Detector EOL",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:eol",
+            "value": "EOL"
+          }
+        ]
+      },
+      {
+        "name": "0 PPM CO",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:coppm",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "5 PPM CO",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:coppm",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "200 PPM CO",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "co:coppm",
+            "value": "200"
+          }
+        ]
+      }        
+    ],
+    "color": [
+      {
+        "name": "Hue 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:hue",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Hue 90",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:hue",
+            "value": "90"
+          }
+        ]
+      },
+      {
+        "name": "Hue 180",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:hue",
+            "value": "180"
+          }
+        ]
+      },
+      {
+        "name": "Hue 270",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:hue",
+            "value": "270"
+          }
+        ]
+      },
+      {
+        "name": "Hue 360",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:hue",
+            "value": "360"
+          }
+        ]
+      },
+      {
+        "name": "Saturation 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:saturation",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Saturation 25",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:saturation",
+            "value": "25"
+          }
+        ]
+      },
+      {
+        "name": "Saturation 50",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:saturation",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "Saturation 75",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:saturation",
+            "value": "75"
+          }
+        ]
+      },
+      {
+        "name": "Saturation 100",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "color:saturation",
+            "value": "100"
+          }
+        ]
+      }
+    ],
+    "cont": [
+      {
+        "name": "Opened",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "OPENED"
+          }
+        ]
+      },
+      {
+        "name": "Closed",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "CLOSED"
+          }
+        ]
+      },
+      {
+        "name": "Opened then Closed",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "OPENED"
+          },
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "CLOSED"
+          }
+        ]
+      },
+      {
+        "name": "Closed then Opened",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "CLOSED"
+          },
+          {
+            "type": "attr",
+            "attr": "cont:contact",
+            "value": "OPENED"
+          }
+        ]
+      }
+    ],
+    "daynight": [
+      {
+        "name": "Day Mode",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "daynight:mode",
+            "value": "day"
+          }
+        ]
+      },
+      {
+        "name": "Night Mode",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "daynight:mode",
+            "value": "night"
+          }
+        ]
+      }
+    ],
+    "devpow": [
+      {
+        "name": "Line Source",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:source",
+            "value": "LINE"
+          }
+        ]
+      },
+      {
+        "name": "Battery Source",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:source",
+            "value": "BATTERY"
+          }
+        ]
+      },
+      {
+        "name": "Backup Battery Source",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:source",
+            "value": "BACKUPBATTERY"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 5",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 15",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "15"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 25",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "25"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 40",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "40"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 50",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 75",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "75"
+          }
+        ]
+      },
+      {
+        "name": "Battery Level 100",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:battery",
+            "value": "100"
+          }
+        ]
+      },
+      {
+        "name": "Backup Battery Level 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:backupbattery",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Backup Battery Level 5",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:backupbattery",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "Backup Battery Level 50",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:backupbattery",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "Backup Battery Level 100",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "devpow:backupbattery",
+            "value": "100"
+          }
+        ]
+      }
+    ],
+    "dim": [
+      {
+        "name": "0 Brightness",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "dim:brightness",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "50 Brightness",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "dim:brightness",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "100 Brightness",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "dim:brightness",
+            "value": "100"
+          }
+        ]
+      }
+    ],
+    "doorlock": [
+      {
+        "name": "Locked",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "doorlock:lockstate",
+            "value": "LOCKED"
+          }
+        ]
+      },
+      {
+        "name": "Unlocked",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "doorlock:lockstate",
+            "value": "UNLOCKED"
+          }
+        ]
+      },
+      {
+        "name": "Locking",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "doorlock:lockstate",
+            "value": "LOCKING"
+          }
+        ]
+      },
+      {
+        "name": "Unlocking",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "doorlock:lockstate",
+            "value": "UNLOCKING"
+          }
+        ]
+      }
+    ],
+    "fan": [
+      {
+        "name": "Speed 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "fan:speed",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Speed 5",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "fan:speed",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "Speed 10",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "fan:speed",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "name": "Flow Up",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "fan:direction",
+            "value": "UP"
+          }
+        ]
+      },
+      {
+        "name": "Flow Down",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "fan:direction",
+            "value": "DOWN"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      {
+        "name": "WaterFlow 1.4",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "flow:flow",
+            "value": "1.4"
+          }
+        ]
+      },
+      {
+        "name": "WaterFlow 3.6",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "flow:flow",
+            "value": "3.6"
+          }
+        ]
+      },
+      {
+        "name": "WaterFlow 5.0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "flow:flow",
+            "value": "5.0"
+          }
+        ]
+      },
+      {
+        "name": "WaterFlow 8.0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "flow:flow",
+            "value": "8.0"
+          }
+        ]
+      }
+    ],
+    "glass": [
+      {
+        "name": "Glassbreak Detected",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "glass:break",
+            "value": "DETECTED"
+          }
+        ]
+      },
+      {
+        "name": "Glassbreak Safe",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "glass:break",
+            "value": "SAFE"
+          }
+        ]
+      }
+    ],
+    "halo": [
+      {
+        "name": "State Safe",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "SAFE"
+          }
+        ]
+      },
+      {
+        "name": "State Weather",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "WEATHER"
+          }
+        ]
+      },
+      {
+        "name": "State Smoke",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "SMOKE"
+          }
+        ]
+      },
+      {
+        "name": "State CO",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "CO"
+          }
+        ]
+      },
+      {
+        "name": "State Pre-Smoke",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "PRE_SMOKE"
+          }
+        ]
+      },
+      {
+        "name": "State EOL",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "EOL"
+          }
+        ]
+      },
+      {
+        "name": "State Low Battery",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "LOW_BATTERY"
+          }
+        ]
+      },
+      {
+        "name": "State Very Low Battery",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "VERY_LOW_BATTERY"
+          }
+        ]
+      },
+      {
+        "name": "State Failed Battery",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:devicestate",
+            "value": "FAILED_BATTERY"
+          }
+        ]
+      },
+      {
+        "name": "Hush Success",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:hushstatus",
+            "value": "SUCCESS"
+          }
+        ]
+      },
+      {
+        "name": "Hush Timeout",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:hushstatus",
+            "value": "TIMEOUT"
+          }
+        ]
+      },
+      {
+        "name": "Hush Ready",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:hushstatus",
+            "value": "READY"
+          }
+        ]
+      },
+      {
+        "name": "Hush Disabled",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "halo:hushstatus",
+            "value": "DISABLED"
+          }
+        ]
+      }
+    ],
+    "leakh2o": [
+      {
+        "name": "Leak Detected",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "leakh2o:state",
+            "value": "LEAK"
+          }
+        ]
+      },
+      {
+        "name": "No Leak",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "leakh2o:state",
+            "value": "SAFE"
+          }
+        ]
+      }
+    ],
+    "mot": [
+      {
+        "name": "Motion Detected",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "mot:motion",
+            "value": "DETECTED"
+          }
+        ]
+      },
+      {
+        "name": "No Motion",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "mot:motion",
+            "value": "NONE"
+          }
+        ]
+      }
+    ],
+    "petdoor": [
+      {
+        "name": "Locked",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "petdoor:lockstate",
+            "value": "LOCKED"
+          }
+        ]
+      },
+      {
+        "name": "Unlocked",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "petdoor:lockstate",
+            "value": "UNLOCKED"
+          }
+        ]
+      },
+      {
+        "name": "Auto",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "petdoor:lockstate",
+            "value": "AUTO"
+          }
+        ]
+      },
+      {
+        "name": "Last Direction In",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "petdoor:direction",
+            "value": "IN"
+          }
+        ]
+      },
+      {
+        "name": "Last Direction Out",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "petdoor:direction",
+            "value": "OUT"
+          }
+        ]
+      }
+    ],
+    "pow": [
+      {
+        "name": "Using 0 Watts",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pow:instantaneous",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Using 10 Watts",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pow:instantaneous",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "name": "Using 100 Watts",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pow:instantaneous",
+            "value": "100"
+          }
+        ]
+      },
+      {
+        "name": "Using 2,000 Watts",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pow:instantaneous",
+            "value": "2000"
+          }
+        ]
+      }
+    ],
+    "pres": [
+      {
+        "name": "PRESENT",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pres:presence",
+            "value": "PRESENT"
+          }
+        ]
+      },
+      {
+        "name": "AWAY",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "pres:presence",
+            "value": "ABSENT"
+          }
+        ]
+      }
+    ],
+    "shade": [
+      {
+        "name": "0% Raised",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:open",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "50% Raised",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:open",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "100% Raised",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:open",
+            "value": "100"
+          }
+        ]
+      },
+      {
+        "name": "0% Tilted",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:tilt",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "50% Tilted",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:tilt",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "100% Tilted",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "shade:tilt",
+            "value": "100"
+          }
+        ]
+      }
+    ],
+    "smoke": [
+      {
+        "name": "Smoke Detected",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "smoke:smoke",
+            "value": "DETECTED"
+          }
+        ]
+      },
+      {
+        "name": "Smoke Safe",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "smoke:smoke",
+            "value": "SAFE"
+          }
+        ]
+      }
+    ],
+    "swit": [
+      {
+        "name": "Switch On",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "swit:state",
+            "value": "ON"
+          }
+        ]
+      },
+      {
+        "name": "Switch Off",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "swit:state",
+            "value": "OFF"
+          }
+        ]
+      }
+    ],
+    "temp": [
+    {
+        "name": "-14 Degrees (9F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "-14",
+            "form": "double"
+          }
+        ]
+      },
+      {
+        "name": "0 Degrees (32F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "0",
+            "form": "double"
+          }
+        ]
+      },
+      {
+        "name": "16 Degrees (61F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "16",
+            "form": "double"
+          }
+        ]
+      },
+      {
+        "name": "22 Degrees (72F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "22",
+            "form": "double"
+          }
+        ]
+      },
+      {
+        "name": "28 Degrees (82F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "28",
+            "form": "double"
+          }
+        ]
+      },
+      {
+        "name": "39 Degrees (102F)",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "temp:temperature",
+            "value": "39",
+            "form": "double"
+          }
+        ]
+      }
+    ],
+    "humid": [
+      {
+        "name": "5%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "10%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "name": "15%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "15"
+          }
+        ]
+      },
+      {
+        "name": "20%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "20"
+          }
+        ]
+      },
+      {
+        "name": "30%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "30"
+          }
+        ]
+      },
+      {
+        "name": "50%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "70%",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "humid:humidity",
+            "value": "70"
+          }
+        ]
+      }
+    ],
+    "therm": [
+      {
+        "name": "Hvac Running",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "therm:active",
+            "value": "RUNNING"
+          }
+        ]
+      },
+      {
+        "name": "Hvac Not Running",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "therm:active",
+            "value": "NOTRUNNING"
+          }
+        ]
+      }
+    ],
+    "tilt": [
+      {
+        "name": "Tilt Flat",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "tilt:tiltstate",
+            "value": "FLAT"
+          }
+        ]
+      },
+      {
+        "name": "Title Upright",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "tilt:tiltstate",
+            "value": "UPRIGHT"
+          }
+        ]
+      }
+    ],
+    "valv": [
+      {
+        "name": "Valve Closed",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "valv:valvestate",
+            "value": "CLOSED"
+          }
+        ]
+      },
+      {
+        "name": "Valve Open",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "valv:valvestate",
+            "value": "OPEN"
+          }
+        ]
+      },
+      {
+        "name": "Valve Opening",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "valv:valvestate",
+            "value": "OPENING"
+          }
+        ]
+      },
+      {
+        "name": "Valve Closing",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "valv:valvestate",
+            "value": "CLOSING"
+          }
+        ]
+      },
+      {
+        "name": "Valve Obstruction",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "valv:valvestate",
+            "value": "OBSTRUCTION"
+          }
+        ]
+      }
+    ],
+    "vent": [
+      {
+        "name": "Vent Ok",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "vent:ventstate",
+            "value": "OK"
+          }
+        ]
+      },
+      {
+        "name": "Vent Obstructed",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "vent:ventstate",
+            "value": "OBSTRUCTION"
+          }
+        ]
+      },
+      {
+        "name": "Level 0",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "vent:level",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "name": "Level 50",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "vent:level",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "Level 100",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "vent:level",
+            "value": "100"
+          }
+        ]
+      }
+    ],
+    "waterheater": [
+      {
+        "name": "Heating",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "waterheater:heatingstate",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "name": "Not Heating",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "waterheater:heatingstate",
+            "value": "false"
+          }
+        ]
+      },
+      {
+        "name": "Hot Water Level Low",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "waterheater:hotwaterlevel",
+            "value": "LOW"
+          }
+        ]
+      },
+      {
+        "name": "Hot Water Level Med",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "waterheater:hotwaterlevel",
+            "value": "MEDIUM"
+          }
+        ]
+      },
+      {
+        "name": "Hot Water Level High",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "waterheater:hotwaterlevel",
+            "value": "HIGH"
+          }
+        ]
+      }
+    ],
+    "watersoftener": [
+      {
+        "name": "Salt Level 10",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "watersoftener:currentSaltLevel",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "name": "Salt Level 50",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "watersoftener:currentSaltLevel",
+            "value": "50"
+          }
+        ]
+      },
+      {
+        "name": "Ready",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "watersoftener:rechargeStatus",
+            "value": "READY"
+          }
+        ]
+      },
+      {
+        "name": "Recharging",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "watersoftener:rechargeStatus",
+            "value": "RECHARGING"
+          }
+        ]
+      },
+      {
+        "name": "Recharge Scheduled",
+        "steps": [
+          {
+            "type": "attr",
+            "attr": "watersoftener:rechargeStatus",
+            "value": "RECHARGE_SCHEDULED"
+          }
+        ]
+      }
+    ],
+      "noaa": [
+          {
+              "name": "Weather Alert: SAFE",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "SAFE"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "NONE"
+                  }
+              ]
+          },          
+          {
+              "name": "Weather Alert: Avalanche Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "AVA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Coastal Flood Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "CFW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Earthquake Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "EQW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Flood Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "FLA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Hurricane Local Statement",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "HLS"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Special Weather Statement",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "SPS"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Severe Thunderstorm Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "SVR"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Tornado Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "TOA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Tsunami Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "TSA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Volcano Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "VOW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Winter Storm Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "WSA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Child Abduction Emergency",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "CAE"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: 911 Telephone Outage Emergency",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "TOE"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Required Weekly Test",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "RWT"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Evacuation Immediate",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "EVI"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Radiological Hazard Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "RHW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Shelter In-place Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "SPW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Unrecognized Emergency",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "??E"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Biological Hazard Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "BHW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Chemical Hazard Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "CHW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Dam Break Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "DBW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Contagious Disease Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "DEW"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Evacuation Watch",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "EVA"
+                  }
+              ]
+          },
+          {
+              "name": "Weather Alert: Storm Surge Warning",
+              "steps": [
+                  {
+                      "type": "attr",
+                      "attr": "halo:devicestate",
+                      "value": "WEATHER"
+                  },
+                  {
+                      "type": "attr",
+                      "attr": "noaa:currentalert",
+                      "value": "SSW"
+                  }
+              ]
+          }
+      ]
+  }
+}

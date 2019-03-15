@@ -1,0 +1,35 @@
+
+message zwave.SensorAlarm.SensorAlarmGetV1<id="0x01", group="V1"> {
+    const u8 SENSOR_TYPE_GENERAL_PURPOSE_ALARM = 0x00;
+    const u8 SENSOR_TYPE_SMOKE_ALARM = 0x01;
+    const u8 SENSOR_TYPE_CO_ALARM = 0x02;
+    const u8 SENSOR_TYPE_CO2_ALARM = 0x03;
+    const u8 SENSOR_TYPE_HEAT_ALARM = 0x04;
+    const u8 SENSOR_TYPE_WATER_LEAK_ALARM = 0x05;
+    const u8 SENSOR_TYPE_RETURN_FIRST_ALARM_ON_SUPPORTED_LIST = 0xFF;
+    u8 sensorType;
+}
+
+message zwave.SensorAlarm.SensorAlarmReportV1<id="0x02", group="V1"> {
+    const u8 SENSOR_TYPE_GENERAL_PURPOSE_ALARM = 0x00;
+    const u8 SENSOR_TYPE_SMOKE_ALARM = 0x01;
+    const u8 SENSOR_TYPE_CO_ALARM = 0x02;
+    const u8 SENSOR_TYPE_CO2_ALARM = 0x03;
+    const u8 SENSOR_TYPE_HEAT_ALARM = 0x04;
+    const u8 SENSOR_TYPE_WATER_LEAK_ALARM = 0x05;
+    const u8 SENSOR_TYPE_RETURN_FIRST_ALARM_ON_SUPPORTED_LIST = 0xFF;
+    const u8 SENSOR_STATE_NO_ALARM = 0x00;
+    const u8 SENSOR_STATE_ALARM = 0xFF;
+    u8 sourceNodeId;
+    u8 sensorType;
+    u8 sensorState;
+    u16 seconds;
+}
+
+message zwave.SensorAlarm.SensorAlarmSupportedGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.SensorAlarm.SensorAlarmSupportedReportV1<id="0x04", group="V1"> {
+    u8 numberOfBitMasks;
+    u8[] bitMask;
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="EasCode"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+    Represents a mapping between a stateCode and its full name as defined by the NWS.
+    </t:description>
+
+    <t:attributes>
+ 		<t:attribute
+			name="eas"
+			type="string"
+			description="The 3 character event code for NWR-SAME-CODE mappings"
+			/>   
+		<t:attribute
+			name="name"
+			type="string"
+			description="The full name represented by the EAS event code"
+			/>
+		<t:attribute
+			name="group"
+			type="string"
+			description="The EAS event code grouping"
+			/>			
+	</t:attributes>
+ </t:type>

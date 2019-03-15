@@ -1,0 +1,69 @@
+
+message zwave.SensorBinary.SensorBinaryGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SensorBinary.SensorBinaryReportV1<id="0x03", group="V1"> {
+    const u8 SENSOR_VALUE_IDLE = 0x00;
+    const u8 SENSOR_VALUE_DETECTED_AN_EVENT = 0xFF;
+    u8 sensorValue;
+}
+
+message zwave.SensorBinary.SensorBinaryGetV2<id="0x02", group="V2"> {
+    const u8 SENSOR_TYPE_GENERAL = 0x01;
+    const u8 SENSOR_TYPE_SMOKE = 0x02;
+    const u8 SENSOR_TYPE_CO = 0x03;
+    const u8 SENSOR_TYPE_CO2 = 0x04;
+    const u8 SENSOR_TYPE_HEAT = 0x05;
+    const u8 SENSOR_TYPE_WATER = 0x06;
+    const u8 SENSOR_TYPE_FREEZE = 0x07;
+    const u8 SENSOR_TYPE_TAMPER = 0x08;
+    const u8 SENSOR_TYPE_AUX = 0x09;
+    const u8 SENSOR_TYPE_DOOR_WINDOW = 0x0A;
+    const u8 SENSOR_TYPE_TILT = 0x0B;
+    const u8 SENSOR_TYPE_MOTION = 0x0C;
+    const u8 SENSOR_TYPE_GLASS_BREAK = 0x0D;
+    const u8 SENSOR_TYPE_FIRST = 0xFF;
+    u8 sensorType;
+}
+
+message zwave.SensorBinary.SensorBinaryReportV2<id="0x03", group="V2"> {
+    const u8 SENSOR_VALUE_IDLE = 0x00;
+    const u8 SENSOR_VALUE_DETECTED_AN_EVENT = 0xFF;
+    const u8 SENSOR_TYPE_GENERAL = 0x01;
+    const u8 SENSOR_TYPE_SMOKE = 0x02;
+    const u8 SENSOR_TYPE_CO = 0x03;
+    const u8 SENSOR_TYPE_CO2 = 0x04;
+    const u8 SENSOR_TYPE_HEAT = 0x05;
+    const u8 SENSOR_TYPE_WATER = 0x06;
+    const u8 SENSOR_TYPE_FREEZE = 0x07;
+    const u8 SENSOR_TYPE_TAMPER = 0x08;
+    const u8 SENSOR_TYPE_AUX = 0x09;
+    const u8 SENSOR_TYPE_DOOR_WINDOW = 0x0A;
+    const u8 SENSOR_TYPE_TILT = 0x0B;
+    const u8 SENSOR_TYPE_MOTION = 0x0C;
+    const u8 SENSOR_TYPE_GLASS_BREAK = 0x0D;
+    const u8 SENSOR_TYPE_FIRST = 0xFF;
+    u8 sensorValue;
+    u8 sensorType;
+}
+
+message zwave.SensorBinary.SensorBinarySupportedGetSensorV2<id="0x01", group="V2"> {
+}
+
+message zwave.SensorBinary.SensorBinarySupportedSensorReportV2<id="0x04", group="V2"> {
+    const u8 BIT_MASK_GENERAL = 0x01;
+    const u8 BIT_MASK_SMOKE = 0x02;
+    const u8 BIT_MASK_CO = 0x03;
+    const u8 BIT_MASK_CO2 = 0x04;
+    const u8 BIT_MASK_HEAT = 0x05;
+    const u8 BIT_MASK_WATER = 0x06;
+    const u8 BIT_MASK_FREEZE = 0x07;
+    const u8 BIT_MASK_TAMPER = 0x08;
+    const u8 BIT_MASK_AUX = 0x09;
+    const u8 BIT_MASK_DOOR_WINDOW = 0x0A;
+    const u8 BIT_MASK_TILT = 0x0B;
+    const u8 BIT_MASK_MOTION = 0x0C;
+    const u8 BIT_MASK_GLASS_BREAK = 0x0D;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 bitMask;
+}

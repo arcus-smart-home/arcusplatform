@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Capability {{name}}</title>
+      <link href="stylesheet/capability.css" type="text/css" rel="stylesheet" />
+   </head>
+   <body>
+      <p class="capability-title">{{name}}</p>
+      <p class="capability-description">{{description}}</p>
+      <table class="capability-table">
+         <tbody>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Namespace</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">{{namespace}}</td>
+            </tr>
+            {{#if enhances}}
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Enhances</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">{{enhances}}</td>
+            </tr>
+            {{/if}}
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Attributes</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">
+                  <div class="attributes">
+                     <table class="attribute-table">
+                        <tbody>
+                           <tr>
+                              <th class="attribute-table-cell attribute-blue-shade">name</th>
+                              <th class="attribute-table-cell attribute-blue-shade">type</th>
+                              <th class="attribute-table-cell attribute-blue-shade">r/w</th>
+                              <th class="attribute-table-cell attribute-blue-shade">optional</th>
+                              <th class="attribute-table-cell attribute-blue-shade">range</th>
+                              <th class="attribute-table-cell attribute-blue-shade">unit</th>
+                              <th class="attribute-table-cell attribute-blue-shade">description</th>
+                           </tr>
+                           {{#attributes}}
+                           <tr>
+                              <td class="attribute-table-cell">{{name}}</td>
+                              <td class="attribute-table-cell">{{type.representation}}</td>
+                              <td class="attribute-table-cell">{{readwrite}}</td>
+                              <td class="attribute-table-cell">{{optional}}</td>
+                              <td class="attribute-table-cell">{{range}}</td>
+                              <td class="attribute-table-cell">{{unit}}</td>
+                              <td class="attribute-table-cell">{{description}}</td>
+                           </tr>
+                           {{/attributes}}
+                        </tbody>
+                     </table>
+                  </div>
+               </td>
+            </tr>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Methods</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">
+                  {{#methods}}
+                     <div>
+                        <p class="method-title">
+                           {{name}}(
+                           {{#parameters}}
+                              {{type.representation}} {{name}}{{#unless @last}}, {{/unless}}
+                           {{/parameters}}
+                           ) :
+                        {{#if returnValues}}AttributeMap{{else}}void{{/if}}
+                        </p>
+                        {{#returnList returnValues}}{{/returnList}}
+                        <p class="method-body">
+                           {{description}}
+                        </p>
+                     </div>
+                  {{/methods}}
+               </td>
+            </tr>
+            <tr>
+               <th class="capability-table-cell capability-grey-shade">Events</th>
+            </tr>
+            <tr>
+               <td class="capability-table-cell">
+                  {{#events}}
+                     <div>
+                        <p class="method-title">
+                           {{name}}(
+                           {{#parameters}}
+                              {{type.representation}} {{name}}{{#unless @last}}, {{/unless}}
+                           {{/parameters}}
+                           )
+                        </p>
+                        <p class="method-body">
+                           {{description}}
+                        </p>
+                     </div>
+                  {{/events}}
+               </td>
+            </tr>
+         </tbody>
+      </table>
+   </body>
+</html>

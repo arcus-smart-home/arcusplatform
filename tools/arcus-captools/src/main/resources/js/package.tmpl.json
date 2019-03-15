@@ -1,0 +1,5 @@
+{ "name" : "arcus-capabilities"
+, "version" : "${version}"
+, "description" : "Generated JavaScript code for FLST using tools/arcus-captools"
+, "main" : "index.js"
+}

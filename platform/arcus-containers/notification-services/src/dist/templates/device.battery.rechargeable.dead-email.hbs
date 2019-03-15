@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Battery is Dead
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}}'s battery at {{{_place.name}}} has died. Please recharge the device as soon as possible.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}}'s battery at {{_place.name}} has died. Please recharge the device as soon as possible.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

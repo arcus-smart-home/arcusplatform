@@ -1,0 +1,238 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+/**
+ * Mock driver for a Pet Door
+ *
+ */
+driver			"MOCK_PetDoor"
+description		"Driver for the Mock Pet Door"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Pet Door"
+productId		"ca9471"
+vendor 			"Mockitron"
+model 			"Mock PetDoor"
+
+matcher        'MOCK:Capability' : 'PetDoor'
+matcher        'MOCK:ProductId'  : 'ca9471'
+
+capabilities	DevicePower, PetDoor, DeviceMock
+
+@Field def final String DEVICE_NAME = 'Mock Pet Door'
+@Field def final String	TOKEN_PREFIX			= 'pt'
+@Field def final int 		TOKENS_SUPPORTED		= 5
+@Field def final int		TOKEN_INST_NOT_USED		= -1
+
+
+PetDoor.numPetTokensSupported				TOKENS_SUPPORTED
+
+// declare named instances of IrrigationZone capability
+1.upto(TOKENS_SUPPORTED,{
+	// declare named instances of the Pet Token (pettoken) capability
+	def tokenInst = TOKEN_PREFIX+it
+	
+	instance tokenInst, PetToken
+	PetToken.tokenNum."$tokenInst" it
+	PetToken.tokenId."$tokenInst" TOKEN_INST_NOT_USED
+	PetToken.paired."$tokenInst" false
+})
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "${DEVICE_NAME} started."
+	Device.name 'Mock Pet Door'
+	
+	// set inital attribute values
+	DeviceConnection.signal		91
+	
+	DevicePower.source          DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable     false
+	DevicePower.battery         82
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	PetDoor.direction				PetDoor.DIRECTION_IN
+	PetDoor.lockstate				PetDoor.LOCKSTATE_AUTO
+	PetDoor.numPetTokensSupported    5
+	
+	1.upto(TOKENS_SUPPORTED,{
+		def tokenInst = TOKEN_PREFIX+it
+		
+		PetToken.tokenNum."$tokenInst"				it
+		PetToken.tokenId."$tokenInst"				TOKEN_INST_NOT_USED
+		PetToken.lastAccessDirection."$tokenInst"	PetToken.LASTACCESSDIRECTION_IN
+		PetToken.paired."$tokenInst"				false
+	})
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected."
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected."
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('petdoor') {
+	log.debug "${DEVICE_NAME} petdoor:SetAttributes:" + message
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case PetDoor.lockstate:
+				switch(attribute.value) {
+					case PetDoor.LOCKSTATE_LOCKED:
+						log.debug "${DEVICE_NAME} - Manually Locking Door"
+						PetDoor.lockstate PetDoor.LOCKSTATE_LOCKED
+						break
+					case PetDoor.LOCKSTATE_UNLOCKED:
+						log.debug "${DEVICE_NAME} - Manually Unlocking Door"
+						PetDoor.lockstate PetDoor.LOCKSTATE_UNLOCKED
+						break
+					case PetDoor.LOCKSTATE_AUTO:
+						log.debug "${DEVICE_NAME} - Setting Door to Auto"
+						PetDoor.lockstate PetDoor.LOCKSTATE_AUTO
+						break
+					default:
+						log.error "${DEVICE_NAME} - Unrecognized PetDoor lock state: " + attribute.value
+						break
+				}
+				break
+			default:
+				log.error "${DEVICE_NAME} - petdoor:SetAttributes unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+
+setAttributes('pettoken') {
+	def attrs = message.attributes;
+	log.debug "${DEVICE_NAME} - setAttributes for 'pet token' (pettoken):" + attrs
+	
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case PetToken.petName :
+				def instance = attribute.key.split(':')[2]				// assumes attributes are namespace:attributeName:instanceName
+				PetToken.petName."$instance"  attribute.value
+				break;
+			default:
+				log.error "${DEVICE_NAME} - Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+
+onPetDoor.RemoveToken {
+	int tokID = message.attributes['tokenId']
+	log.debug "${DEVICE_NAME} - remove the pet from the pet door ${tokID}" 
+	boolean removed = false
+	def byte[] tokenIdBytes = new byte[2]
+	
+	1.upto( TOKENS_SUPPORTED, {
+		def removeInst = TOKEN_PREFIX+it
+		if( tokID == PetToken.tokenId."$removeInst".get() ) {
+			PetToken.tokenId."$removeInst" TOKEN_INST_NOT_USED
+			PetToken.petName."$removeInst" ''
+			PetToken.lastAccessDirection."$removeInst" null
+			PetToken.lastAccessTime."$removeInst" null
+			PetToken.paired."$removeInst" false
+			java.nio.ByteBuffer.wrap(tokenIdBytes)
+			.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+			.putShort((short)tokID)
+			log.debug("tokenIdBytes : ${tokenIdBytes}")
+			
+			
+			removed = true
+			emit 'PetDoor:TokenRemoved', ['tokenId':tokID]
+			return false
+		}
+	})
+	
+	sendResponse( 'petdoor:RemoveKeyResponse', ['removed':removed] )
+}
+
+
+/**
+ * 
+ * @param tokenId
+ * @return
+ */
+def addToken(int tokenId) { 
+	log.debug "${DEVICE_NAME} - token id added: ${tokenId}" 
+	boolean found = false;
+	for (def i=1; i<=TOKENS_SUPPORTED; i++) {
+		def tokenInst = TOKEN_PREFIX+i
+		if( -1 == PetToken.tokenId."$tokenInst".get() ) {
+			 
+			PetToken.tokenId."$tokenInst" tokenId
+			PetToken.petName."$tokenInst" ''
+			PetToken.lastAccessDirection."$tokenInst" PetToken.LASTACCESSDIRECTION_IN
+			PetToken.lastAccessTime."$tokenInst" now()
+			PetToken.paired."$tokenInst" true
+			emit 'PetDoor:TokenAdded', ['tokenId':tokenId]
+			log.debug "${DEVICE_NAME} - adding token: ${tokenId} at instance: ${tokenInst} - "+PetToken.lastAccessTime."$tokenInst".get()
+			break;
+		}
+	}
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+	def attrs = message.attributes.attrs
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+    
+  boolean isHandled = false
+  for(attribute in attrs) {
+	  switch(attribute.key) {
+		  case PetToken.tokenId :	
+		  	  if(attribute.value != null) {
+					addToken(Double.valueOf(attribute.value).intValue())		
+					isHandled = true
+		  	  }	  
+			  break;
+		  default:
+			  break;
+	  }
+  }
+  
+  if(!isHandled) {
+	  attributes << message.attributes.attrs;
+  }
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

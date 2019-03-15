@@ -1,0 +1,29 @@
+{{#section "subject"}}
+{{{ _ruleName }}} Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+Hi {{{_person.firstName}}},
+
+A door is unlocked and the security alarm is armed at {{{place_name}}}.  Iris is attempting to automatically lock this door. Please check the Iris app to ensure all doors have successfully locked.
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	A door is unlocked and the security alarm is armed at {{_place_name}}.  Iris is attempting to automatically lock this door. Please check the Iris app to ensure all doors have successfully locked.
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

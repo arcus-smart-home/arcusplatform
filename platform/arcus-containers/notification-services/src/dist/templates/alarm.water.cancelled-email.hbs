@@ -1,0 +1,32 @@
+{{#section "subject"}}
+Water Leak Alarm Cancelled
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+Hi {{{_person.firstName}}},
+
+The Water Leak Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  
+
+If you experienced water related damage to your property and need assistance go to {{{_redirectBaseUrl}}}/e_wateralert.
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The Water Leak Alarm at {{_place.name}} was cancelled by {{cancelByFirstName}} {{cancelByLastName}}.  </p>
+	<p/>
+	<p>If you experienced water related damage to your property and need assistance, <a href="{{_redirectBaseUrl}}/e_wateralert">click here</a>.</p>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

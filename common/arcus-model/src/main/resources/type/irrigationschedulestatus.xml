@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="IrrigationScheduleStatus"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Represents the current scheduling status of an irrigation controller.
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="mode"
+         type="enum"
+         values="INTERVAL,ODD,EVEN,WEEKLY"
+         description="The current mode configured on the irrigation controller"/>
+
+      <t:attribute
+         name="controller"
+         type="string"
+         description="The address of the controller"/>
+
+      <t:attribute
+         name="enabled"
+         type="boolean"
+         description="Whether or not the schedule is enabled"/>
+
+      <t:attribute
+         name="nextEvent"
+         type="IrrigationTransitionEvent"
+         description="The next transition that will occur within this schedule"/>
+      
+      <t:attribute
+         name="skippedUntil"
+         type="timestamp"
+         description="If the schedule has been skipped (or stopped) for an event, this will be populated and indicate the time the skip will expire."/>
+
+   </t:attributes>
+
+</t:type>

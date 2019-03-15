@@ -1,0 +1,88 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Somfy Window Blinds ZRTSI Bridge
+ *
+ */
+driver			"ZWSomfyBridgeDriver"
+description		"Driver for a Z-Wave Somfy Window Blinds ZRTSI Bridge"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"SomfyV1Bridge"
+productId		"b726df"
+vendor 			"Somfy"
+model 			"1811265"
+
+matcher			'ZWAV:Manufacturer': 0x0047, 'ZWAV:ProductType': 0x5A52, 'ZWAV:ProductId': 0x5400
+
+
+capabilities	DevicePower
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+
+// Command Classes:
+//		0x72 (114)  Manufacturer_Specific
+//		0x86 (-122) Version
+
+
+def final int POLLING_INTERVAL_SEC = 60
+def final int OFFLINE_TIMEOUT_SECS = 600        // Offline if no communications for 10 minutes
+
+def final String CURRENT_NAME = 'Somfy ZRTSI Bridge'
+
+
+onAdded {
+	vars.'CURRENT_NAME' = CURRENT_NAME
+	log.debug "${CURRENT_NAME} added"
+
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+	log.debug "${CURRENT_NAME} connected"
+
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.version.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+onDisconnected {
+	log.debug "${CURRENT_NAME} disconnected"
+}
+
+
+onRemoved {
+	log.debug "${CURRENT_NAME} removed"
+}
+
+
+
+
+onZWaveNodeInfo {
+	log.debug "${CURRENT_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Presence"
+   namespace="pres"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Presence sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="presence" 
+         readwrite="r" 
+         type="enum"
+         values="PRESENT,ABSENT"
+         optional="false"
+         description="Reflects the state of a presence device."/>
+		<c:attribute 
+         name="presencechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last presence change"/>
+      <c:attribute
+         name="person"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="The address of the person currently associated with this presence detector"/>
+      <c:attribute
+         name="usehint"
+         readwrite="rw"
+         type="enum"
+         values="UNKNOWN, PERSON, OTHER"
+         optional="false"
+         description="What this presence detector is used for.  PERSON detects presence/absence of a person, OTHER something else (pet for example), UNKNOWN is unassigned."/>
+   </c:attributes>
+
+</c:capability>

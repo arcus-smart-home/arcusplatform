@@ -1,0 +1,34 @@
+
+message zwave.RateTblConfig.RateTblRemoveV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_RATE_PARAMETER_SET_IDS_MASK = 0x3F;
+    const u8 PROPERTIES1_RATE_PARAMETER_SET_IDS_SHIFT = 0;
+    u8 properties1;
+    u8[] rateParameterSetId;
+}
+
+message zwave.RateTblConfig.RateTblSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_RATE_CHAR_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_RATE_CHAR_SHIFT = 0;
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x60;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 5;
+    const u8 PROPERTIES2_CONSUMPTION_SCALE_MASK = 0x1F;
+    const u8 PROPERTIES2_CONSUMPTION_SCALE_SHIFT = 0;
+    const u8 PROPERTIES2_CONSUMPTION_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_CONSUMPTION_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES3_MAX_DEMAND_SCALE_MASK = 0x1F;
+    const u8 PROPERTIES3_MAX_DEMAND_SCALE_SHIFT = 0;
+    const u8 PROPERTIES3_MAX_DEMAND_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES3_MAX_DEMAND_PRECISION_SHIFT = 5;
+    u8 rateParameterSetId;
+    u8 properties1;
+    u8[] rateCharacter;
+    // startHourLocalTime contained in previous field
+    // startMinuteLocalTime contained in previous field
+    // durationMinute contained in previous field
+    // properties2 contained in previous field
+    // minConsumptionValue contained in previous field
+    // maxConsumptionValue contained in previous field
+    // properties3 contained in previous field
+    // maxDemandValue contained in previous field
+    // dcpRateId contained in previous field
+}

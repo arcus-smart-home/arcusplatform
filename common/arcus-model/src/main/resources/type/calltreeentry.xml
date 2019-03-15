@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="CallTreeEntry"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a single entry in the call tree</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="person"
+			type="string"
+			description="The address of the person to contact"
+			/>
+		<t:attribute
+			name="enabled"
+			type="boolean"
+			description="Whether or not the person should be called."
+			/>
+	</t:attributes>
+ </t:type>

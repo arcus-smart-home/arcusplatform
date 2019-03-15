@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="SafetySubsystem"
+   namespace="subsafety"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Safety alarm subsystem.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="totalDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the safety devices in this place." />
+      <c:attribute
+         name="activeDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="the addresses of all the currently active (online) safety devices in this place."/>
+      <c:attribute
+         name="ignoredDevices"
+         type="set&lt;String&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The addresses of the devices which should not be used to trigger safety alarms."/>
+      <c:attribute
+         name="waterShutoffValves"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are water shutoff valves."/>
+      <c:attribute
+         name="alarm"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="READY,WARN,SOAKING,ALERT,CLEARING"
+         description="Indicates the current state of the alarm:
+				    - READY - The alarm is active and watching for safety alerts
+				    - WARN - The alarm is active, but one or more of the safety sensors has low battery or connectivity issues that could potentially cause an alarm to be missed
+				    - SOAKING - One or more safety devices have triggered, but not a sufficient amount of time or devices to set off the whole system.
+				    - ALERT - A safety device has triggered an alarm
+				    - CLEARING - A request has been made to CLEAR the alarm, but there are still devices triggering an alarm."/>
+      <c:attribute
+         name="triggers"
+         type="list&lt;TriggerEvent&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all devices which currently have their alarm triggered.  If this is non-empty the alarm will be either ALERT, SOAKING or CLEARING"/>
+      <c:attribute
+         name="pendingClear"
+         type="list&lt;TriggerEvent&gt;"
+         readwrite="r"
+         optional="false"
+         description="The list of events that were outstanding at the time the user canceled the alarm still waiting for an all clear from the device."/>
+      <c:attribute
+         name="warnings"
+         type="map&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="A set of warnings about devices which have potential issues that could cause an alarm to be missed.  The key is the address of the device with a warning and the value is an I18N code with the description of the problem."/>
+      <c:attribute
+         name="callTreeEnabled"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Set to true if the account is PREMIUM, indicating the callTree will be used for alerts.
+Set to false if the account is BASIC, indicating that only the account owner will be notified."/>
+      <c:attribute
+         name="callTree"
+         type="list&lt;CallTreeEntry&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The list of people who should be notified when the alarm goes into alert mode.  This is marked as a list to maintain ordering, but each entry may only appear once.
+Note that all addresses must be persons associated with this place."/>
+      <c:attribute
+         name="sensorState"
+         type="map&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="A map of types of safety sensors to the current status.
+Each value means:
+    NONE - There are no devices of the given type
+    SAFE - All devices of that type are on and haven't detected a safety alarm
+    OFFLINE - At least one device of the given type is offline, but none have detected a safety alarm
+    DETECTED - At least one device of the given type has detected a safety alarm"/>
+      <c:attribute
+         name="lastAlertTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was fired."/>
+      <c:attribute
+         name="lastAlertCause"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The reason the alarm was fired."/>
+      <c:attribute
+         name="lastClearTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was cleared."/>
+      <c:attribute
+         name="lastClearedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that cleared the alarm."/>
+      <c:attribute
+         name="alarmSensitivitySec"
+         type="int"
+         readwrite="r"
+         optional="false"
+         description="The amount of time an alarm device must be triggering for before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 0&lt;/b&gt;"/>
+      <c:attribute
+         name="alarmSensitivityDeviceCount"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The number of alarm devices which must trigger before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 1&lt;/b&gt;"/>
+      <c:attribute
+         name="quietPeriodSec"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The number of seconds after an alarm has been cleared before it can be fired again.&lt;br/&gt;&lt;b&gt;Default: 0&lt;/b&gt;"/>
+      <c:attribute
+         name="silentAlarm"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When set to true 'alert' devices will not be triggered when the alarm is raised."/>
+      <c:attribute
+         name="waterShutOff"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When set to true 'valve' devices will be turned off when a water leak is detected."/>
+      <c:attribute
+         name="smokePreAlertDevices"
+         type="list&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the devices in this place that are in smoke pre-alert state." />
+      <c:attribute
+         name="smokePreAlert"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="READY,ALERT"
+         description="Indicates the whether any devices that can provide a smoke pre-alert are alerting
+				    - READY - The alarm is active and watching for safety alerts
+				    - ALERT - A safety device has triggered a prealarm"/>
+      <c:attribute
+         name="lastSmokePreAlertTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was fired."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="Trigger" 
+         description="Immediately puts the alarm into ALERT mode IF it is in READY.  The cause will be recorded as the lastAlertCause.">
+         <c:parameter 
+            name="cause" 
+            type="string"
+            optional="false" 
+            />
+      </c:method>
+      <c:method 
+         name="Clear" 
+         description="Immediately clear and cancel the active alarm.">
+      </c:method>
+   </c:methods>
+
+</c:capability>

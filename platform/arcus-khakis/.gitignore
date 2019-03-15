@@ -1,0 +1,7 @@
+/build/
+/.classpath
+/.project
+/.settings
+/.DS_Store
+/eclipse-bin/
+/tmp/

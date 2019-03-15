@@ -1,0 +1,734 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability		IrrigationController
+description		"Implementation of IrrigationController for Orbit devices"
+version			"1.0"
+
+@Field static final String ONOFF_CLUSTER = 'OnOff'
+@Field static final String ZONE_PREFIX = 'z'
+
+@Field static final short DIAL_OFF = 0x00
+@Field static final short DIAL_HOLD = 0x01
+@Field static final short DIAL_AUTO = 0x02
+@Field static final short DIAL_FAULT = 0x03
+
+@Field static final long DFLT_READBACK_DELAY   = 60000 // 1 minute
+
+@Field static final short PROFILE_HA = 0x0104   // HA profile id
+@Field static final short ORBIT_MSP	 = 0x1039   // MSP cluster id for Orbit devices
+
+@Field static final short CLUSTER_ON_OFF = 0x0006
+@Field static final short CLUSTER_THERMOSTAT = 0x0201
+@Field static final short CLUSTER_POWER = 0x0001
+@Field static final short CLUSTER_POLL_CONTROL = 0x0020
+
+@Field static final byte CMD_ON_WITH_DURATION = 0x03
+@Field static final byte CMD_CNFG_RPT = 0x06
+@Field static final byte CMD_CNFG_RPT_RSP = 0x07
+@Field static final byte CMD_READ_ATTR = 0x00
+@Field static final byte CMD_WRITE_ATTR = 0x02
+@Field static final byte CMD_WRITE_ATTR_RSP = 0x04
+
+@Field static final short ATTR_MAX_ON_DURATION = 0x0001
+@Field static final short ATTR_CURRENT_ON = 0x0002
+@Field static final short ATTR_DEFAULT_ON_DURATION = 0x0003
+
+@Field static final short ATTR_NUMBER_OF_WEEKLY_TRANSITIONS = 0x0021
+@Field static final short ATTR_NUMBER_OF_DAILY_TRANSITIONS = 0x0022
+@Field static final short ATTR_ONOFF = 0x0000
+@Field static final short ATTR_CURDUR = 0x0002
+
+@Field static final long ZONE_READ_DELAY = 15000
+@Field static final long MAX_CNFG_ATTEMPTS = 30
+@Field static final long CNFG_RETRY_DELAY_MSEC = 30000
+@Field static final String DFR_ZONE_READS = 'DeferredZoneReads'
+@Field static final String CNFG_THERM_RPT = 'CnfgThermRpt'
+@Field static final String CNFG_THERM_RPT_EP = 'CnfgThermRptEp'
+@Field static final String CNFG_ON_OFF_RPT = 'CnfgOnOffRpt'
+@Field static final String CNFG_ON_OFF_RPT_EP = 'CnfgOnOffRptEp'
+@Field static final String CNFG_PWR_RPT = 'CnfgPwrRpt'
+@Field static final String CNFG_PWR_RPT_EP = 'CnfgPwrRptEp'
+@Field static final String CNFG_POLL_CTRL = 'CnfgPollCtrl'
+
+// This attribute doesn't actually exist on the device. It is used to figure out
+// if a write attribute response is for the budget.
+//
+// The Zigbee standard says that the write attribute response doesn't include the
+// attribute identifier for write attributes that are successful, but we really need
+// the attribute identifier.
+//
+// What we do instead is to pack in this fake attribute when the set interval date
+// attribute is written. Because this fake attribute doesn't actually exist on the 
+// device, we will get a write attributes response back with an error code and this
+// fake attribute.
+//
+// To check if configuring the write attributes was successful we examine the write
+// attributes response looking for this fake attribute. If this attribute is present
+// then we check to see if a status code is present for the real attribute as well. If
+// it is present then the write attribute failed, otherwise it was successful.
+@Field static final short ATTR_SET_BUDGET_RESPONSE = 0xDEAD
+
+// This attribute doesn't actually exist on the device. It is used to figure out
+// if a write attribute response is for the hold duration.
+//
+// NOTE: Currently these are duplicated from the schedulable capability to support
+//       the deprecated set rain delay.
+@Field static final short ATTR_ENABLE_SCHEDULE_RESPONSE = 0xCEEF
+@Field static final short ATTR_DISABLE_SCHEDULE_RESPONSE = 0xDEEF
+
+onAdded {
+   IrrigationController.budget 100
+   IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_NOT_WATERING
+}
+
+onConnected {
+	log.debug "generic orbit irrigation controller connected."
+
+	vars.CNFG_THERM_RPT = 0
+	vars.CNFG_ON_OFF_RPT = 0
+
+	vars.CNFG_THERM_RPT_EP = 1
+	vars.CNFG_ON_OFF_RPT_EP = 1
+
+	Scheduler.scheduleIn CNFG_THERM_RPT, CNFG_RETRY_DELAY_MSEC
+	Scheduler.scheduleIn CNFG_ON_OFF_RPT, CNFG_RETRY_DELAY_MSEC
+	Scheduler.scheduleIn DFR_ZONE_READS, ZONE_READ_DELAY
+}
+
+static void doHandleSetAttributes(ctx,name,message) {
+	def attrs = message.attributes;
+	ctx.log.debug "{} received irrigation controller set attributes: {}", name, attrs
+
+	for(attribute in attrs) {
+		switch(attribute.key) {
+		case ctx.IrrigationController.budget :
+		   doHandleSetBudget(ctx,name,attribute.value)
+			break;
+
+		case ctx.IrrigationController.rainDelay :
+		   doHandleSetRainDelay(ctx,name,attribute.value)
+			break;
+
+		default:
+			ctx.log.error "{} received set attributes for unrecognized attribute: {}", name, attribute
+			break;
+		}
+	}
+}
+
+static void doHandleSetBudget(ctx,name,budget) {
+   if (10 > budget) budget = 10
+   else if (200 < budget)	budget = 200
+
+   ctx.log.debug "{} setting budget: budget={}", name, budget
+
+   // See documentation for ATTR_SET_BUDGET_RESPONSE to see why we are packing two attributes into this write attributes request.
+   byte[] payload = [0x01, 0x01, 0x20, (byte)budget, ATTR_SET_BUDGET_RESPONSE & 0xFF, ATTR_SET_BUDGET_RESPONSE >> 8, 0x30, 0x00]
+   sendThermostatWriteCommand(ctx,payload)
+}
+
+static void doHandleSetRainDelay(ctx,name,delay) {
+   ctx.log.debug "{} setting rain delay: delay={}", name, delay
+
+   if (delay == 0) {
+      byte[] payload = [0x24, 0x00, 0x21, 0xFF, 0xFF, 0x23, 0x00, 0x30, 0x00, 
+                        ATTR_ENABLE_SCHEDULE_RESPONSE & 0xFF, ATTR_ENABLE_SCHEDULE_RESPONSE >> 8, 0x30, 0x00]
+	   sendThermostatWriteCommand(ctx,payload)
+	} else {
+      if (delay <= 0) {
+         delay = 0xFFFF
+      }
+      byte[] payload = [0x24, 0x00, 0x21, delay & 0xFF, (delay >> 8) & 0xFF, 0x23, 0x00, 0x30, 0x01,
+                        ATTR_DISABLE_SCHEDULE_RESPONSE & 0xFF, ATTR_DISABLE_SCHEDULE_RESPONSE >> 8, 0x30, 0x00]
+	   sendThermostatWriteCommand(ctx,payload)
+   }
+}
+
+static void doHandleWaterNowV2(ctx,name,message) {
+	ctx.log.debug "{} received irrigation controller water now v2: {}", name, message
+
+	int zonenum = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	int duration = message.attributes['duration']
+	doWaterNow(ctx,name,"WaterNowV2",zonenum,duration)
+}
+
+static void doHandleWaterNow(ctx,name,message) {
+	ctx.log.debug "{} received irrigation controller water now: {}", name, message
+
+	int zonenum = message.attributes['zonenum'] as int
+	int duration = message.attributes['duration']
+	doWaterNow(ctx,name,"WaterNow",zonenum,duration)
+}
+
+static void doWaterNow(ctx,name,rsp,zonenum,duration) {
+   def numZones = ctx.IrrigationController.numZones.get()
+
+   def maxDuration = ctx.IrrigationController.maxirrigationtime.get()
+	if (maxDuration != null && duration > maxDuration) {
+	   ctx.sendResponse ('Error', [ code: 'request.unsatisfiable', message: "duration cannot be greater than ${maxDuration} minutes" ])
+	   return
+	}
+
+	if (0 >= zonenum || zonenum > numZones) {
+	   ctx.sendResponse ('Error', [ code: 'request.unsatisfiable', message: "unknown zone ${zonenum}" ])
+		return
+   }
+	
+   def zoneInstance = ZONE_PREFIX + zonenum
+	ctx.IrrigationZone.wateringDuration."${zoneInstance}" duration
+
+	sendThermostatWriteCommand(ctx,[0x24, 0x00, 0x21, 0xFF, 0xFF, 0x23, 0x00, 0x30, 0x00]) // cancel any hold in progress
+	sendClusterSpecificCommand(ctx, zonenum, CLUSTER_ON_OFF, 0x03, toBytes(duration)) // start watering in the zone
+	ctx.sendResponse "irrigationcontroller.${rsp}Response", ['result':true]
+}
+
+static void doHandleCancelV2(ctx,name,message) {
+   def numZones = ctx.IrrigationController.numZones.get()
+	ctx.log.debug "{} received irrigation controller cancel v2: {}", name, message
+
+	int zonenum = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	doCancel(ctx,name,"CancelV2",zonenum)
+}
+
+static void doHandleCancel(ctx,name,message) {
+	ctx.log.debug "{} received irrigation controller cancel: {}", name, message
+
+	int zonenum = message.attributes['zonenum'] as int
+	doCancel(ctx,name,"Cancel",zonenum)
+}
+
+static void doCancel(ctx,name,rsp,zonenum) {
+   def numZones = ctx.IrrigationController.numZones.get()
+
+	if (0 >= zonenum || zonenum > numZones) {
+	   ctx.sendResponse ('Error', [ code: 'request.unsatisfiable', message: "unknown zone ${zonenum}" ])
+	   return
+	}
+
+	ctx[ONOFF_CLUSTER+zonenum].off()
+	ctx.sendResponse "irrigationcontroller:${rsp}Response", ['result':true]
+}
+
+static void doHandleOnOffMsg(ctx,name,message) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(message)
+	def currOn = attributes[ATTR_ONOFF]
+	def currDur = attributes[ATTR_CURDUR]
+
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	def endpoint = zclMsg.getEndpoint()
+   def zoneInstance = ZONE_PREFIX + endpoint	
+	def prevOn = ctx.IrrigationZone.zoneState."${zoneInstance}".get() == ctx.IrrigationZone.ZONESTATE_WATERING
+	def prevDur = ctx.IrrigationZone.wateringDuration."${zoneInstance}".get()
+
+   if (currOn == null) {
+      return
+   }
+
+	ctx.log.debug "{} received on/off message: zone={}, prevOn={}, currOn={}, prevDur={}, currDur={}", name, endpoint, prevOn, currOn, prevDur, currDur
+   ctx.IrrigationZone.zoneState."${zoneInstance}" (currOn ? ctx.IrrigationZone.ZONESTATE_WATERING : ctx.IrrigationZone.ZONESTATE_NOT_WATERING)
+
+   if (!prevOn && currOn) {
+      ctx.IrrigationZone.wateringStart."${zoneInstance}" new Date()
+   } else if (prevOn && !currOn) {
+      ctx.IrrigationZone.wateringDuration."${zoneInstance}" 0
+   }
+	
+	updateControllerState(ctx,name,null)
+}
+
+static void doHandleThermostatMsg(ctx,name,message) {
+   def numZones = ctx.IrrigationController.numZones.get()
+	def endpoint = ctx.Zigbee.Message.toZcl(message).getEndpoint()
+
+	// presently all of the thermostat attributes we're interested in are cloned across all the endpoints
+	// so consume the message for the first endpoint and ignore the others
+	if (1 != endpoint) {
+	   return;
+	}
+
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(message)
+	def budget = attributes[(short)0x0101]
+	def maxDailyTransitions = attributes[ATTR_NUMBER_OF_DAILY_TRANSITIONS]
+	def maxWeeklyTransitions = attributes[ATTR_NUMBER_OF_WEEKLY_TRANSITIONS]
+	def rainDelay = attributes[(short)0x0024]
+	def holdMode = attributes[(short)0x0023]
+	def zonesInFault = attributes[(short)0x0112]
+	def mode = attributes[(short)0x0100]
+	def remainingHoldTime = attributes[(short)0x0102]
+	
+	ctx.log.debug "{} received thermostat attributes: daily transitions={}, weekly transitions={}, budget={}, rain delay={}, mode={}, hold mode={}, hold time={}", name, maxDailyTransitions, maxWeeklyTransitions, budget, rainDelay, mode, holdMode, remainingHoldTime
+
+	if (isValid(maxDailyTransitions)) {
+		ctx.IrrigationController.maxdailytransitions maxDailyTransitions
+	}
+
+	if (isValid(maxWeeklyTransitions)) {
+		ctx.IrrigationController.maxtransitions maxWeeklyTransitions
+	} 
+
+	if (isValid(zonesInFault)) {
+		def faults = []
+		0.upto(numZones-1,{
+		   if ((zonesInFault & (1 << it)) != 0) {
+		      faults << (it+1)
+		   }
+		})
+
+		ctx.log.debug "fault in zones: " + !faults?.empty
+		ctx.IrrigationController.zonesinfault faults
+	}
+
+	if (isValid(budget)) {
+		ctx.IrrigationController.budget budget
+	}
+
+	if (null != rainDelay) {
+		def curDur = ctx.IrrigationController.rainDelayDuration.get()
+	   if (isValid(rainDelay) && rainDelay != 0 && rainDelay != curDur) {
+		   ctx.IrrigationController.rainDelayStart new Date()
+      }
+
+		ctx.IrrigationController.rainDelayDuration (isValid(rainDelay) ? rainDelay : -1)
+	}
+
+   if (isValid(holdMode)) {
+      ctx.vars."HOLD_MODE" = holdMode
+   }
+
+   def currMode = null;
+   def currHold = holdMode
+   if (isValid(mode) && mode == DIAL_OFF) {
+	   currMode = "OFF"
+   } else if (isValid(mode) && mode == DIAL_AUTO) {
+      currMode = "AUTO"
+	} else if ((isValid(currHold) && currHold != 0) || (isValid(mode) && DIAL_HOLD)) {
+      currMode = "HOLD"
+   }
+
+	updateControllerState(ctx,name,currMode)
+}
+
+static void doHandleIrrigationControllerDeferredReadDuration(ctx,name,message) {
+	ctx.log.debug "{} performing read duration: zone={}", name, message.data.zone
+   sendGenericCommand(ctx, message.data.zone, CLUSTER_ON_OFF, 0x00, [0x02,0x00])
+}
+
+static void doConfigureThermostatReporting(ctx,name) {
+	if (ctx.vars.CNFG_THERM_RPT < 0 || ctx.vars.CNFG_THERM_RPT >= MAX_CNFG_ATTEMPTS) {
+	   return
+	}
+
+   byte endpoint = (byte)ctx.vars.CNFG_THERM_RPT_EP
+	ctx.log.debug "{} configuring reporting for thermostat cluster: zone={}", name, endpoint
+
+   // Short reporting interval: 2 minutes for endpoint 1, disabled for all the rest
+	byte smx1 = (endpoint == 1) ? 0x00 : 0xFF;
+	byte smx2 = (endpoint == 1) ? 0x78 : 0xFF;
+
+   // Long reporting interval: 15 minutes for endpoint 1, disabled for all the rest
+	byte lmx1 = (endpoint == 1) ? 0x03 : 0xFF;
+	byte lmx2 = (endpoint == 1) ? 0x84 : 0xFF;
+
+	byte[] payload = [
+		0x00,		   // Dir (0x00)
+		0x23, 0x00,	// Attr Id (0x0023) Hold Enable
+		0x30,		   // Attr Data Type (0x30) 8 bit enumeration
+		0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		smx2, smx1, // Max Interval (0x0078) 120 secs
+		
+		0x00,		   // Dir (0x00)
+		0x24, 0x00,	// Attr Id (0x0024) Hold Duration
+		0x21,		   // Attr Data Type (0x21) unsigned 16 bit integer
+		0x00, 0x00,	// Min Interval (0x0000)
+		smx2, smx1, // Max Interval (0x0078) 120 secs
+		0x01, 0x00,	// Reportable Change (0x0001)
+	
+		0x00,		   // Dir (0x00)
+		0x00, 0x01,	// Attr Id (0x0100) Device Running Mode
+		0x30,		   // Attr Data Type (0x30) 8 bit enumeration
+		0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		lmx2, lmx1, // Max Interval (0x0078) 120 secs
+	
+		0x00,		   // Dir (0x00)
+		0x01, 0x01,	// Attr Id (0x0101) Budget
+		0x08,		   // Attr Data Type (0x08) 8 bit value
+		0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		smx2, smx1, // Max Interval (0x0078) 120 secs
+
+		0x00,		   // Dir (0x00)
+		0x02, 0x01,	// Attr Id (0x0102) Remaining Hold Time
+		0x21,		   // Attr Data Type (0x21) unsigned 16 bit integer
+		0x00, 0x00,	// Min Interval (0x0009) 0 secs
+		smx2, smx1, // Max Interval (0x0078) 120 secs
+		0x01, 0x00,	// Reportable Change (0x0001)
+
+		//0x00,		   // Dir (0x00)
+		//0x03, 0x01,	// Attr Id (0x0103) Schedule Type
+		//0x30,		   // Attr Data Type (0x21) 8 bit enumeration
+		//0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		//smx2, smx1, // Max Interval (0x0078) 120 secs
+
+		//0x00,		   // Dir (0x00)
+		//0x04, 0x01,	// Attr Id (0x0104) Interval Start Date
+		//0xE2,		   // Attr Data Type (0xE2) UTC Time
+		//0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		//smx2, smx1, // Max Interval (0x0078) 120 secs
+		//0x01, 0x00,	// Reportable Change (0x0001)
+		//0x00, 0x00,
+
+		//0x00,		   // Dir (0x00)
+		//0x11, 0x01,	// Attr Id (0x0111) Activity in Zones
+		//0x1B,		   // Attr Data Type (0x1B) 32 bit bitmap
+		//0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		//smx2, smx1, // Max Interval (0x0078) 120 secs
+
+		0x00,		   // Dir (0x00)
+		0x12, 0x01,	// Attr Id (0x0112) Zones in Fault
+		0x1B,		   // Attr Data Type (0x1B) 32 bit bitmap
+		0x00, 0x00,	// Min Interval (0x0000) 0 secs
+		smx2, smx1, // Max Interval (0x0078) 120 secs
+   ]
+
+	ctx.vars.CNFG_THERM_RPT++
+   sendGenericCommand(ctx,endpoint,CLUSTER_THERMOSTAT,CMD_CNFG_RPT,payload)
+	ctx.Scheduler.scheduleIn CNFG_THERM_RPT, CNFG_RETRY_DELAY_MSEC
+}
+
+static void doConfigureThermostatReportingResponse(ctx,name,endpoint,data) {
+	ctx.log.debug "{} successfully configured thermostat reporting", name
+	ctx.vars.CNFG_THERM_RPT = -1
+
+	sendThermostatReadCommand(ctx, [
+		0x21,0x00, // max weekly transitions
+		0x22,0x00, // max daily transitions
+		0x12,0x01, // zones in fault 
+		0x24,0x00, // rain delay 
+		0x01,0x01, // budget
+		0x00,0x01  // mode
+	])
+   
+   doHandleSetRainDelay(ctx, name, -1)
+
+   //def numZones = ctx.IrrigationController.numZones.get()
+   //ctx.vars.CNFG_THERM_RPT_EP = ctx.vars.CNFG_THERM_RPT_EP + 1
+   //if (ctx.vars.CNFG_THERM_RPT_EP > numZones) {
+	//	ctx.vars.CNFG_THERM_RPT = -1
+   //} else {
+	//	ctx.vars.CNFG_THERM_RPT = 0
+	//   ctx.Scheduler.scheduleIn CNFG_THERM_RPT, 1000
+   //}
+}
+
+static void doConfigureOnOffReporting(ctx,name) {
+	if (ctx.vars.CNFG_ON_OFF_RPT < 0 || ctx.vars.CNFG_ON_OFF_RPT >= MAX_CNFG_ATTEMPTS) {
+	   return
+	}
+
+   byte endpoint = (byte)ctx.vars.CNFG_ON_OFF_RPT_EP
+	ctx.log.debug "{} configuring reporting for on/off cluster: zone={}", name, endpoint
+
+	byte[] payload = [
+		0x00,       // Dir (0x00)
+		0x00, 0x00, // Attr Id (0x0000) OnOff
+		0x10,       // Attr Data Type (0x10) Boolean
+		0x00, 0x00, // Min Interval (0x0000) 0 secs
+		0x2C, 0x01, // Max Interval (0x012C) 300 secs
+   ]
+
+	ctx.vars.CNFG_ON_OFF_RPT++
+   sendConfigureCommand(ctx,endpoint,CLUSTER_ON_OFF,payload)
+	ctx.Scheduler.scheduleIn CNFG_ON_OFF_RPT, CNFG_RETRY_DELAY_MSEC
+}
+
+static void doConfigureOnOffReportingResponse(ctx,name,endpoint,data) {
+	ctx.log.debug "{} successfully configured on/off reporting", name
+
+   def numZones = ctx.IrrigationController.numZones.get()
+   ctx.vars.CNFG_ON_OFF_RPT_EP = ctx.vars.CNFG_ON_OFF_RPT_EP + 1
+   if (ctx.vars.CNFG_ON_OFF_RPT_EP > numZones) {
+		ctx.vars.CNFG_ON_OFF_RPT = -1
+   } else {
+		ctx.vars.CNFG_ON_OFF_RPT = 0
+	   ctx.Scheduler.scheduleIn CNFG_ON_OFF_RPT, 1000
+   }
+}
+
+static void doConfigurePollControl(ctx,name,endpoint) {
+	if (ctx.vars.CNFG_POLL_CTRL < 0 ||  ctx.vars.CNFG_POLL_CTRL >= MAX_CNFG_ATTEMPTS) {
+	   return
+	}
+
+	ctx.log.debug "${CNFG_POLL_CTRL}:${ctx.vars.CNFG_POLL_CTRL}"
+
+	// write Poll Control cluster Checkin Interval
+	byte[] wrtChkIntvlBytes = [
+		0x00, 0x00,             // Attr Id (0x0000) Checkin Interval
+		0x23,                   // Attr Data Type (0x23) Unsigned 32- bit integer
+		0xE0, 0x01, 0x00, 0x00  // Attr Data (0x000001E0) 480 quarter-seconds
+		]
+
+	ctx.Zigbee.send(
+		"cluster" : CLUSTER_POLL_CONTROL,
+		"command" : CMD_WRITE_ATTR,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,		// using general Write Attribute command
+		"defaultresponse" : true,
+		"data" : wrtChkIntvlBytes)
+
+	ctx.vars.CNFG_POLL_CTRL++
+	ctx.Scheduler.scheduleIn CNFG_POLL_CTRL, (CNFG_RETRY_DELAY_MSEC * ctx.vars.CNFG_POLL_CTRL)
+}
+
+static void doConfigurePollControlResponse(ctx,name,endpoint,data) {
+	if ((0 < data.length) && (0 == data[0])) {
+		ctx.log.debug "{} successfully configured poll control", name
+		ctx.vars.CNFG_POLL_CTRL = -1
+	} else {
+		ctx.log.warn "{} failed to configure poll control: {}", name, data
+	}
+}
+
+static void doConfigurePowerReporting(ctx,name,endpoint) {
+	if (ctx.vars.CNFG_PWR_RPT < 0 || ctx.vars.CNFG_PWR_RPT >= MAX_CNFG_ATTEMPTS) {
+	   return
+	}
+
+	ctx.log.debug "${CNFG_PWR_RPT}:${ctx.vars.CNFG_PWR_RPT}"
+	byte[] rptPwrCnfgBytes = [
+		0x00,          // Dir (0x00)
+		0x20, 0x00,    // Attr Id (0x0020) Battery Voltage
+		0x20,          // Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x10, 0x0E,    // Min Interval (0x0E10) 3600 secs (at most once per hour)
+		0xC0, 0xA8,    // Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+		0x02           // Reportable Change (0x02) 0.2 volts (ignore jitter of +/- 0.1 volt)
+		]
+
+	ctx.Zigbee.send(
+		"cluster" : CLUSTER_POWER,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptPwrCnfgBytes )
+
+	// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+	ctx.vars.CNFG_PWR_RPT++
+	ctx.Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * ctx.vars.CNFG_PWR_RPT)
+}
+
+static void doConfigurePowerReportingResponse(ctx,name,endpoint,data) {
+	if ((0 < data.length) && (0 == data[0])) {
+		ctx.log.debug "{} successfully configured power reporting", name
+		ctx.vars.CNFG_PWR_RPT = -1
+	} else {
+		ctx.log.warn "{} failed to configure power reporting: {}", name, data
+	}
+}
+
+static boolean doHandleZigbeeWriteAttributesResponse(ctx,name,endpoint,data) {
+	def zone = ZONE_PREFIX + endpoint
+
+   byte setBudgetStatus = getWriteAttributeStatus(data, (short)0x0101)
+   byte fakeBudgetStatus = getWriteAttributeStatus(data, ATTR_SET_BUDGET_RESPONSE)
+
+   if (fakeBudgetStatus != 0) {
+      sendThermostatReadCommand(ctx,[0x01,0x01]) // read budget
+      return true
+   }
+
+   return false
+}
+
+static boolean doHandleZigbeeResponse(ctx,name,message) {
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	byte[] data = zclMsg.getPayload()
+
+	// if Config Reporting Response for Thermostat cluster,
+	ctx.log.debug "{} received zigbee message: endpoint={}, profile={}, cluster={}, msgid={}, data={}, msg={}", name, endpoint, profile, clusterId, msgId, data, message
+	if ((PROFILE_HA == profile) && (CLUSTER_THERMOSTAT == clusterId) && (CMD_CNFG_RPT_RSP == msgId)) {
+      doConfigureThermostatReportingResponse(ctx,name,endpoint,data)
+		return true
+	} else if((PROFILE_HA == profile) && (CLUSTER_ON_OFF == clusterId) && (CMD_CNFG_RPT_RSP == msgId)) {
+      doConfigureOnOffReportingResponse(ctx,name,endpoint,data)
+      return true
+	} else if((PROFILE_HA == profile) && (CLUSTER_POWER == clusterId) && (CMD_CNFG_RPT_RSP == msgId)) {
+      doConfigurePowerReportingResponse(ctx,name,endpoint,data)
+      return true
+	} else if((PROFILE_HA == profile) && (CLUSTER_POLL_CONTROL == clusterId) && (CMD_CNFG_RPT_RSP == msgId)) {
+      doConfigurePollControlResponse(ctx,name,endpoint,data)
+      return true
+	} else if ((PROFILE_HA == profile) && (CLUSTER_THERMOSTAT == clusterId) && (CMD_WRITE_ATTR_RSP == msgId) && (0x0E == flags)) {
+      return doHandleZigbeeWriteAttributesResponse(ctx,name,endpoint,data)
+	}
+
+   return false
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility methods
+////////////////////////////////////////////////////////////////////////////////
+
+static void updateControllerState(ctx,name,dialMode) {
+   def prevMode = ctx.vars."DIAL_STATE"
+   def currMode = dialMode ?: prevMode
+   def numZones = ctx.IrrigationController.numZones.get()
+   def rainDelay = ctx.IrrigationController.rainDelayDuration.get()
+
+   if (currMode != null) {
+      ctx.vars."DIAL_STATE" = currMode
+   }
+   
+   // if WT15, and currMode=HOLD prevMode=OFF and rainDelay is null or -1, change mode to AUTO (WT15 does not report AUTO on its own)
+   if ((ctx.vars."DVC_TYPE" == "WT15") && (currMode == "HOLD") && (prevMode == "OFF") && ((rainDelay == null) || (rainDelay == -1))) {
+      ctx.log.debug "Set OFF WT15 to AUTO"
+      currMode = "AUTO"
+   }
+
+   boolean isWatering = false
+   1.upto(numZones, {
+      def zi = ZONE_PREFIX + it
+      isWatering |= (ctx.IrrigationZone.zoneState."${zi}".get() == ctx.IrrigationZone.ZONESTATE_WATERING)
+   })
+
+   ctx.log.debug "{} updating controller state: new mode={}, prev mode={}, curr mode={}, watering={}, rainDelay={}", name, dialMode, prevMode, currMode, isWatering, rainDelay
+   if (isWatering) {
+      if (ctx.IrrigationController.controllerState.get() != ctx.IrrigationController.CONTROLLERSTATE_WATERING) {
+           ctx.log.debug "set Rain Delay to 0"
+		   ctx.IrrigationController.rainDelayDuration 0
+      }
+
+      ctx.log.debug "Set Controller to WATERING"
+      ctx.IrrigationController.controllerState ctx.IrrigationController.CONTROLLERSTATE_WATERING
+   } else if (currMode == "HOLD") {	
+      // don't report Rain Delay or Not Watering while OFF, or we get "flapping" and excesive rule triggers
+      if (prevMode == "OFF") {
+         ctx.vars."DIAL_STATE" = prevMode // reset Dial State back to OFF 
+         if (rainDelay != null && rainDelay != -1 && rainDelay != 0) {
+		    ctx.log.debug "OFF Device reported RAIN DELAY with delay $rainDelay"
+         } else {
+		    ctx.log.debug "OFF Device reported NOT WATERING"
+         }
+	  } else {
+         // The HT-8 will sometimes report its dial state as HOLD even after the hold time has been
+         // cancelled, even when it sends an update that the hold duration is 0.
+         // if (rainDelay != null && (rainDelay == "INVALID" || rainDelay != 0)) {
+         if (rainDelay != null && rainDelay != -1 && rainDelay != 0) {
+            ctx.log.debug "Set Controller to RAIN DELAY"
+            ctx.IrrigationController.controllerState ctx.IrrigationController.CONTROLLERSTATE_RAIN_DELAY
+         } else {
+            ctx.log.debug "Set Controller to NOT WATERING"
+            ctx.IrrigationController.controllerState ctx.IrrigationController.CONTROLLERSTATE_NOT_WATERING
+         }
+      }
+	} else if (currMode == "OFF") {
+      ctx.log.debug "Set Controller to OFF"
+      ctx.IrrigationController.controllerState ctx.IrrigationController.CONTROLLERSTATE_OFF
+
+      // When the dial turns off all of the zones stop watering until the next scheduled water event. The
+      // device should send us a notification about each zone, but we turn them all off hear just in case
+      // we miss one of the update messages.
+      1.upto(numZones,{def zi = ZONE_PREFIX + it; ctx.IrrigationZone.zoneState."${zi}" ctx.IrrigationZone.ZONESTATE_NOT_WATERING})
+	} else if (currMode == "AUTO") {
+      if (ctx.IrrigationController.controllerState.get() != ctx.IrrigationController.CONTROLLERSTATE_NOT_WATERING) {
+           ctx.log.debug "set Rain Delay to 0"
+		   ctx.IrrigationController.rainDelayDuration 0
+      }
+
+      ctx.log.debug "Set Controller to NOT WATERING"
+      ctx.IrrigationController.controllerState ctx.IrrigationController.CONTROLLERSTATE_NOT_WATERING
+	}
+}
+
+static byte getWriteAttributeStatus(data,attr) {
+   byte a1 = attr & 0xFF
+   byte a2 = (attr >> 8) & 0xFF
+
+   if (data.length < 3) {
+      return data[0]
+   }
+
+   for (int i = 0; i < data.length - 2; i += 3) {
+      if (data[i+1] == a1 && data[i+2] == a2) {
+         return data[i]
+      }
+   }
+
+   return 0
+}
+
+static boolean isValid(value) {
+  return null != value && 'INVALID' != value.toString()
+}
+
+static void sendThermostatReadCommand(ctx,payload) {
+	sendGenericCommand(ctx,1,CLUSTER_THERMOSTAT, CMD_READ_ATTR, payload)
+}
+
+static void sendThermostatWriteCommand(ctx,payload) {
+   sendGenericCommand(ctx,1,CLUSTER_THERMOSTAT, CMD_WRITE_ATTR, payload)
+}
+
+static void sendConfigureCommand(ctx,endpoint,cluster,payload) {
+	ctx.Zigbee.send(
+      "cluster" : cluster,
+      "command" : CMD_CNFG_RPT,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : false,
+		"defaultresponse" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static void sendGenericCommand(ctx,endpoint,cluster,command,payload) {
+	ctx.Zigbee.send(
+      "msp": ORBIT_MSP,
+      "cluster" : cluster,
+      "command" : command,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : false,
+		"defaultresponse" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static void sendClusterSpecificCommand(ctx,endpoint,cluster,command,payload) {
+	ctx.Zigbee.send(
+      "msp": ORBIT_MSP,
+      "cluster" : cluster,
+      "command" : command,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : true,
+		"defaultresponse" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static byte[] toBytes(value) {
+   return [value & 0xFF,value >> 8]
+}
+

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="GoogleCommandResult"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a result of command execution to return to Google.</t:description>
+
+   <t:attributes>
+      <t:attribute name="ids" type="set&lt;string&gt;" description="The device identifiers that the result is pertinent to"/>
+
+      <t:attribute
+            name="status"
+            type="enum"
+            values="SUCCESS,PENDING,OFFLINE,ERROR"
+            description="The Google command to execute"
+      />
+
+      <t:attribute name="errorCode" type="string" description="Error code is status is error"/>
+      <t:attribute name="states" type="map&lt;any&gt;" description="State attributes after the command was executed successfully"/>
+
+   </t:attributes>
+
+ </t:type>

@@ -1,0 +1,25 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 6.6 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.ThermostatUi {
+   const u16 CLUSTER_ID = 0x0204;
+
+   const u16 ATTR_TEMPERATURE_DISPLAY_MODE = 0x0000;
+   const u16 ATTR_KEYPAD_LOCKOUT = 0x0001;
+   const u16 ATTR_SCHEDULE_PROGRAMMING_VISIBILITY = 0x0002;
+
+   const u8 TEMPERATURE_DISPLAY_MODE_CELSIUS = 0x00;
+   const u8 TEMPERATURE_DISPLAY_MODE_FAHRENHEIT = 0x01;
+
+   const u16 KEYPAD_LOCKOUT_NONE = 0x00;
+   const u16 KEYPAD_LOCKOUT_LEVEL1 = 0x01;
+   const u16 KEYPAD_LOCKOUT_LEVEL2 = 0x02;
+   const u16 KEYPAD_LOCKOUT_LEVEL3 = 0x03;
+   const u16 KEYPAD_LOCKOUT_LEVEL4 = 0x04;
+   const u16 KEYPAD_LOCKOUT_LEVEL5 = 0x05;
+
+   const u8 SCHEDULE_PROGRAMMING_VISIBILITY_ENABLED = 0x00;
+   const u8 SCHEDULE_PROGRAMMING_VISIBILITY_DISABLED = 0x01;
+}

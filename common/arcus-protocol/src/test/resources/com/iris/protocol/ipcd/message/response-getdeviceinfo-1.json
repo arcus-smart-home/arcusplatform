@@ -1,0 +1,25 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+    "command" : "GetDeviceInfo"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "fwver" : "1.19-b118",
+    "connection" : "on_demand",
+    "connectUrl" : "https://ipthings.inetothings.net/ipcd",
+    "uptime" : 981452,
+    "actions" : ["Report","Event"],
+    "commands" : ["GetDeviceInfo", "GetParameterValues", "SetParameterValues",
+                  "GetParameterInfo", "GetReportConfiguration",
+                  "SetReportConfiguration", "GetEventConfiguration",
+                  "SetEventConfiguration"]
+  }
+}

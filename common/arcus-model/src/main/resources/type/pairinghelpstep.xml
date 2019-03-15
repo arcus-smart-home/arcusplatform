@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="PairingHelpStep"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>A step a user can take if they're having issues getting a device to pair.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="id"
+         type="string"
+         description="The ID of the step, used for looking up images, eg 'remediation/name'."/>
+      <t:attribute
+         name="order"
+         type="int"
+         description="The order this step occurs in."/>
+      <t:attribute
+         name="action"
+         type="enum"
+         values="INFO, PAIRING_STEPS, LINK, FORM, FACTORY_RESET"
+         description=""/>
+      <t:attribute
+         name="message"
+         type="string"
+         description="The description of the action."/>
+      <t:attribute
+         name="linkText"
+         type="string"
+         description="If a link is included (such as for manufacturer instructions) this is the text to display for that link."/>
+      <t:attribute
+         name="linkUrl"
+         type="string"
+         description="If a link is included (such as for manufacturer instructions) this is the destination for that link."/>
+   </t:attributes>
+</t:type>

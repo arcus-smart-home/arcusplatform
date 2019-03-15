@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="VideoService"
+           namespace="video"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Internal methods for the VideoService.
+   </s:description>
+   
+   <s:methods>
+  
+	   <s:method name="RefreshQuota" description="Refresh the in-memory cache for a place's video quota.">
+	      <s:parameter name="placeId" type="string" description="UUID of the place." optional="false"/>
+	   </s:method>  
+   </s:methods>
+
+</s:service>

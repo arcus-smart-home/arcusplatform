@@ -1,0 +1,52 @@
+{{#file . "com/iris/client/service/{{name}}Impl.java"}}
+package com.iris.client.service;
+
+import com.google.common.base.Function;
+import com.iris.capability.util.Addresses;
+import com.iris.client.ClientEvent;
+import com.iris.client.IrisClient;
+import com.iris.client.event.ClientFuture;
+import com.iris.client.event.Futures;
+import com.iris.client.model.*;
+
+public class {{name}}Impl implements {{name}} {
+   private IrisClient client;
+
+   public {{name}}Impl(IrisClient client) {
+      this.client = client;
+   }
+
+   @Override
+   public String getName() {
+      return NAME;
+   }
+
+   @Override
+   public String getAddress() {
+      return Addresses.toServiceAddress(NAMESPACE);
+   }
+   
+   {{#methods}}
+   @Override
+   public ClientFuture<{{name}}Response> {{uncapitalize name}}(
+         {{#parameters}}{{{javaTypeOf type}}} {{name}}{{#unless @last}}, {{/unless}}
+         {{/parameters}}
+   ) {
+      {{name}}Request request = new {{name}}Request();
+      request.setAddress(getAddress());
+      {{#if restful}}request.setRestfulRequest(true);{{/if}}
+      {{#parameters}}request.set{{capitalize name}}({{name}});{{/parameters}}
+
+      ClientFuture<ClientEvent> result = client.request(request);
+      return Futures.transform(result, new Function<ClientEvent, {{name}}Response>() {
+         @Override
+         public {{name}}Response apply(ClientEvent response) {
+            return new {{name}}Response(response);
+         }
+      });
+   }
+   {{/methods}}
+
+
+}
+{{/file}}

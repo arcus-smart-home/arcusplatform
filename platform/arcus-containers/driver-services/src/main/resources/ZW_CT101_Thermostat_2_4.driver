@@ -1,0 +1,1230 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for Radio Thermostat CT-101 Thermostat
+ *
+ * Date:   7/10/2016
+ */
+import groovy.transform.Field
+import java.util.concurrent.TimeUnit
+
+driver         "ZWRadioThermostat"
+description    "Driver for a CT101 Radio Thermostat thermostat"
+version        "2.4"
+protocol       "ZWAV"
+deviceTypeHint "Thermostat"
+productId      "853022"
+vendor         "Radio Thermostat"
+model          "CT101"
+
+matcher        'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25857, 'ZWAV:ProductId': 11 //0x98, 0x6501, 0x0B
+matcher        'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25857, 'ZWAV:ProductId': 12 //0x98, 0x6501, 0x0C
+matcher        'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25857, 'ZWAV:ProductId': 11 //0x98, 0x6501, 0x0B
+matcher        'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25857, 'ZWAV:ProductId': 12 //0x98, 0x6501, 0x0C
+matcher        'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25857 //0x98, 0x6501
+matcher        'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25857 //0x98, 0x6501
+matcher        'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25856 //0x98, 0x6500
+matcher        'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25856 //0x98, 0x6500
+
+capabilities   DevicePower, Temperature, RelativeHumidity, Thermostat, Clock, Indicator
+
+importCapability 'zwave/GenericZWaveBattery'
+
+// Generic Device Class:    GENERIC_TYPE_THERMOSTAT
+// Specific Device Class:   SPECIFIC_TYPE_THERMOSTAT_GENERAL_V2
+// Command Classes:
+//    0x20  (32)     COMMAND_CLASS_BASIC
+//    0x81  (129)    COMMAND_CLASS_CLOCK
+//    0x87  (135)    COMMAND_CLASS_INDICATOR
+//    0x72  (114)    COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//    0x31  (49)     COMMAND_CLASS_SENSOR_MULTILEVEL
+//    0x40  (64)     COMMAND_CLASS_THERMOSTAT_MODE
+//    0x42  (66)     COMMAND_CLASS_THERMOSTAT_OPERATING_STATE
+//    0x44  (68)     COMMAND_CLASS_THERMOSTAT_FAN_MODE
+//    0x45  (69)     COMMAND_CLASS_THERMOSTAT_FAN_STATE
+//    0x43  (67)     COMMAND_CLASS_THERMOSTAT_SETPOINT
+//    0x86  (134)    COMMAND_CLASS_VERSION
+//    0x70  (112)    COMMAND_CLASS_CONFIGURATION
+//    0x80  (-128)      COMMAND_CLASS_BATTERY
+//    0x85  (-123)      COMMAND_CLASS_ASSOCIATION
+//    0x60  (96)     COMMAND_CLASS_MULTI_CHANNEL
+
+@Field static final String DEVICE_NAME = "CT101 Thermostat"
+
+// Definitions for some command classes and command for use
+// when demultiplexing the Z-Wave multi-channel command class.
+@Field static final int COMMAND_CLASS_SENSOR_MULTILEVEL  = 0x31
+@Field static final int COMMAND_SENSOR_MULTILEVEL_REPORT = 0x05
+
+@Field static final int COMMAND_CLASS_THERM_OPER_STATE   = 0x42
+@Field static final int COMMAND_THERM_OPER_STATE_REPORT  = 0x03
+
+// 1.5 - Sensors
+@Field static final int SENSOR_TEMP       = 0x01
+@Field static final int SENSOR_HUMIDITY   = 0x05
+
+// 1.6 Thermostat Modes
+@Field static final int MODE_OFF       = 0x00
+@Field static final int MODE_HEAT      = 0x01
+@Field static final int MODE_COOL      = 0x02
+@Field static final int MODE_AUTO      = 0x03
+@Field static final int MODE_AUX       = 0x04
+@Field static final int MODE_SAVE_HEAT = 0x0B
+@Field static final int MODE_SAVE_COOL = 0x0C
+@Field static final int MODE_MFG       = 0x1F
+
+// 1.7 Thermostat Operating State
+@Field static final int STATE_OFF      = 0x00
+@Field static final int STATE_HEATING  = 0x01
+@Field static final int STATE_COOLING  = 0x02
+@Field static final int STATE_FANONLY  = 0x03
+@Field static final int STATE_PENDHEAT = 0x04
+@Field static final int STATE_PENDCOOL = 0x05
+@Field static final int STATE_VENT     = 0x06
+
+// 1.8 Thermostat Fan Mode
+@Field static final int FAN_MODE_AUTO  = 0x00
+@Field static final int FAN_MODE_ON    = 0x01
+
+// 1.9 Thermostat Fan State
+@Field static final int FAN_STATE_OFF  = 0x00
+@Field static final int FAN_STATE_ON   = 0x01
+
+// 1.10 Thermostat SetPoints
+@Field static final int SETPOINT_HEAT        = 0x01
+@Field static final int SETPOINT_COOL        = 0x02
+@Field static final byte SETPOINT_SAVE_HEAT  = 0x0B
+@Field static final byte SETPOINT_SAVE_COOL  = 0x0C
+
+// 1.13 Configuration
+@Field static final int CONFIGURATION_BATTERY_STATUS        = 0x04
+@Field static final int CONFIGURATION_BATTERY_STATUS_LINE   = 0x01
+@Field static final int CONFIGURATION_BATTERY_STATUS_BATT   = 0x02
+
+@Field static final int CONFIGURATION_TEMP_REPORTING  = 0x01
+@Field static final int CONFIGURATION_TEMP_REPORT_1F  = 0x02
+
+@Field static final int CONFIGURATION_HUMIDITY_REPORTING    = 0x05
+@Field static final int CONFIGURATION_HUMIDITY_REPORT_3PER  = 0x01
+
+// Setup timeouts, offline timeouts, polling intervals, etc.
+@Field static final int OFFLINE_TIMEOUT_SEC           = 3600   // 60m
+@Field static final int LEVEL_POLLING_INTERVAL_SEC    = 1200   // 20m
+@Field static final int BATTERY_POLLING_INTERVAL_SEC  = 86000  // 24h
+
+// The device setup code needs to make sure many different values
+// are fetched from the device. The process works by inspecting the
+// internal state of the driver to determine which pieces of state
+// are missing. It will then attempt to fetch these pieces of state
+// in priority order.
+//
+// To make sure that this process does not overwhelm the network or
+// the device itself the process is started after onConnected after
+// a small delay. The process itself will repeat indefinitely, but
+// the retry rate is backed off linearly until the maximum backoff
+// is reached.
+//
+// There is also a maximum number of sends that can happen during
+// any setup retry to prevent messages from being blasted out faster
+// than the device can handle.
+@Field static final int INITIAL_SETUP_DELAY_MILLIS = 500
+@Field static final int SETUP_DELAY_MILLIS         = 1000
+@Field static final int SETUP_MAX_BACKOFF          = 300
+@Field static final int SETUP_MAX_SENDS            = 1
+
+// The state synchronization code will write and read each
+// piece of state needing sync on odd attempts and will
+// only read the state on even attempts. The maximum attempts
+// should be even to make sure we attempt to read each write
+// twice before trying again.
+@Field static final int SYNC_DELAY_MILLIS         = 1000
+@Field static final int SYNC_MAX_ATTEMPTS         = 10
+
+// Operational constants
+@Field static final double MAX_SETPOINT_C       = fToC(95.0)
+@Field static final double MIN_SETPOINT_C       = fToC(35.0)
+@Field static final double MIN_SETPOINT_SEP     = 3.0*(5.0/9.0)
+@Field static final int LOW_BATTERY_THRESHOLD   = 40
+
+// Epsilon value for comparing temperature floating point values.
+// Since the device only displays and reports 0.5F temperature
+// increments we use that for our epsilon value.
+@Field static final double TEMP_EPSILON         = 0.5*(5.0/9.0)
+
+////////////////////////////////////////////////////////////////////////////////
+// Reported value conversions. The Z-Wave command class supports reporting
+// values in many different units, but the Iris Capabilities all use SI units
+// for values so we must perform a conversion if the value is reported in a
+// different unit.
+//
+// These constants are a map from (type,unit) -> closure where type is the
+// type of value reported and unit is the unit that it was reported in. The
+// closure performs the conversion. If a particular (type,unit) can't be
+// found in the map then no conversion will be done.
+////////////////////////////////////////////////////////////////////////////////
+
+@Field static final SETPOINT_REPORT_CONVERSIONS = [
+   (0x01): [ // heat setpoint
+      (0x01): { ctx, val ->  fToC(val) }
+   ],
+
+   (0x02): [ // cool setpoint
+      (0x01): { ctx, val -> fToC(val) }
+   ]
+]
+
+@Field static final MULTILEVEL_SENSOR_REPORT_CONVERSIONS = [
+   (0x01): [ // air temperature
+      (0x01): { ctx, val -> fToC(val) }
+   ],
+
+   (0x02): [ // relative humidity
+      (0x01): { ctx, val -> // gpm3
+         def T = ctx.Temperature.temperature.get()
+         return 1.0/((6.112*Math.pow(2.71828, ((17.67*T)/(T+243.5)))*2.1674)/((273.15+T)*val))
+      }
+   ]
+]
+
+////////////////////////////////////////////////////////////////////////////////
+// Default Attribute Values
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower.linecapable true
+DevicePower.backupbatterycapable true
+DevicePower.battery 0
+
+Indicator.enabled true
+Indicator.enableSupported false
+
+def final thermModes = ["OFF", "AUTO", "COOL", "HEAT"]
+
+Thermostat.maxfanspeed 1
+Thermostat.autofanspeed 1
+Thermostat.minsetpoint MIN_SETPOINT_C
+Thermostat.maxsetpoint MAX_SETPOINT_C
+Thermostat.setpointseparation MIN_SETPOINT_SEP
+Thermostat.supportedmodes thermModes
+Thermostat.supportsAuto true
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Lifecycle
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "{} added", DEVICE_NAME
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "{} connected", DEVICE_NAME
+
+   ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+   ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.clock.get)
+   ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.sensor_multilevel.get)
+   ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_mode.get)
+   ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_fan_mode.get)
+   ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': SETPOINT_COOL])
+   ZWave.poll(LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': SETPOINT_HEAT])
+   ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SEC)
+
+   Scheduler.scheduleIn 'SetupDevice', ['attempt': 1, 'force': true], INITIAL_SETUP_DELAY_MILLIS
+}
+
+onDisconnected {
+   log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+   log.debug "{} removed", DEVICE_NAME
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Device Setup
+//
+// The CT-101 has many attributes that need to be known for this driver to
+// be fully operational. This code makes sure that we fetch those values 
+// quickly when the device comes online, but takes steps to ensure that we
+// aren't completely flooding the network and overwhelming the device.
+//
+// This code is kicked off in the onConnected closure and will continue to
+// reschedule itself to run until all required state has been fetched from
+// the device (using a linear backoff to prevent message floods).
+//
+// The code itself determines whether or not to fetch a particular piece of
+// state using three pieces of logic:
+//    1. We check if we currently have the particular piece of state and
+//       only fetch if it is not currently available.
+//    2. We check if we have already sent too many messages this round and
+//       only fetch if we are below the configured threshold.
+//    3. For some pieces of state, if the force flag is set then we will
+//       fetch that state regardless of the previous two checks. This
+//       basically forces a refresh of that piece of state even if it is
+//       already known.
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('SetupDevice') {
+   def attempt = message.data.attempt
+   def force = message.data.force
+   int sent = 0
+
+   log.info "Setting up {}: attempt={}, force={}", DEVICE_NAME, attempt, force
+   if (force || (sent < SETUP_MAX_SENDS && null == Thermostat.heatsetpoint.get())) {
+      sent++
+      ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+   }
+
+   if (force || (sent < SETUP_MAX_SENDS && null == Thermostat.coolsetpoint.get())) {
+      sent++
+      ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+   }
+
+   if (force || (sent < SETUP_MAX_SENDS && null == Temperature.temperature.get())) {
+      sent++
+      ZWave.sensor_multilevel.get()
+   }
+
+   if (force || (sent < SETUP_MAX_SENDS && null == Thermostat.hvacmode.get())) {
+      sent++
+      ZWave.thermostat_mode.get()
+   }
+
+   if (sent < SETUP_MAX_SENDS && null == RelativeHumidity.humidity.get()) {
+      sent++
+      ZWave.multi_channel.encapsulate( 0x00, 0x02, 0x31, 0x04 )
+   }
+
+   if (sent < SETUP_MAX_SENDS && null == Thermostat.active.get()) {
+      sent++
+      ZWave.thermostat_operating_state.get()
+      ZWave.thermostat_fan_state.get()
+   }
+
+   if (sent < SETUP_MAX_SENDS && null == Thermostat.fanmode.get()) {
+      sent++
+      ZWave.thermostat_fan_mode.get()
+   }
+
+   if (sent < SETUP_MAX_SENDS && !vars.CONFIGURATION_TEMP_REPORTING) {
+      sent++
+      ZWave.configuration.set(CONFIGURATION_TEMP_REPORTING, 0x01, CONFIGURATION_TEMP_REPORT_1F)
+      ZWave.configuration.get(CONFIGURATION_TEMP_REPORTING)
+   }
+
+   if (sent < SETUP_MAX_SENDS && !vars.CONFIGURATION_HUMIDITY_REPORTING) {
+      sent++
+      ZWave.multi_channel.encapsulate( 0x00, 0x02, 0x85, 0x01, 0x01 , 0x01)
+      ZWave.configuration.set(CONFIGURATION_HUMIDITY_REPORTING, 0x01, CONFIGURATION_HUMIDITY_REPORT_3PER)
+      ZWave.configuration.get(CONFIGURATION_HUMIDITY_REPORTING)
+   }
+
+   if (sent < SETUP_MAX_SENDS && null == Indicator.indicator.get()) {
+      sent++
+      ZWave.indicator.get()
+   }
+
+   if (sent < SETUP_MAX_SENDS && null == Clock.hour.get()) {
+      sent++
+      ZWave.clock.get()
+   }
+
+   if (sent < SETUP_MAX_SENDS && !vars.CONFIGURATION_BATTERY_STATUS) {
+      sent++
+      ZWave.configuration.get(CONFIGURATION_BATTERY_STATUS)
+      ZWave.battery.get()
+   }
+
+   if (sent > 0) {
+      def delay = (attempt > SETUP_MAX_BACKOFF) ? SETUP_MAX_BACKOFF*SETUP_DELAY_MILLIS : attempt * SETUP_DELAY_MILLIS
+      Scheduler.scheduleIn 'SetupDevice', ['attempt': (attempt+1), 'force': false], delay
+   } else {
+      log.info "Finished Setting up {}", DEVICE_NAME
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Attributes Support
+//
+// The Thermostat attributes fall into one of two categories in this driver:
+//    1. Attributes that aren't synchronized with the device itself. These
+//       attributes are simply copied from the set attributes request into
+//       the current thermostat attribute.
+//    2. Attributes that need to be synchronized with the device itself. The
+//       cool setpoint, heat setpoint, hvac mode, and fan mode fall into this
+//       category.
+//
+// Attributes in class #2 are aggregated up by the set attribute handler so
+// they can be synchronized to the device with uniform handling and using
+// uniform retry logic.
+//
+// The logic in the driver examines the current thermostat state and the
+// requested state changes (from the set attributes) and determines the
+// expected state of the thermostat once state synchronization is complete.
+//
+// This expected state is synchronized to the actual device by the SyncState
+// event handler. This handler examines the current state of the device and
+// the expected state of the device and determines which attributes need to
+// be changed on the device itself.
+//
+// The SyncState handler is also responsible for the retry logic that attempts
+// to ensure that the state is synchronized properly. The SyncState handler
+// will continue to run until the expected state has been reached or until
+// the maximum number of retries has been reached.
+//
+// On each retry, the SyncState handler will attempt to read the current
+// state of the device and on every other retry the SyncState handler will
+// attempt to change any state that needs to be changed. This means that
+// a single retry read will be done for each state change attempted.
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('SyncState') {
+   boolean coolMatches = (vars.'expectedCoolSetpoint' != null) && compareTemperatures(Thermostat.coolsetpoint.get(), vars.'expectedCoolSetpoint')
+   boolean heatMatches = (vars.'expectedHeatSetpoint' != null) && compareTemperatures(Thermostat.heatsetpoint.get(), vars.'expectedHeatSetpoint')
+   boolean hvacMatches = (vars.'expectedHvacMode' != null) && (Thermostat.hvacmode.get() == vars.'expectedHvacMode')
+   boolean fanMatches  = (vars.'expectedFanMode' != null) && (Thermostat.fanmode.get() == vars.'expectedFanMode')
+   Integer hvacst = convertHvacMode(this,vars.'expectedHvacMode')
+   Integer fanst = convertFanMode(this,vars.'expectedFanMode')
+
+   def attempt = message.data.attempt
+   def needsRetry = (!coolMatches && (vars.'expectedCoolSetpoint' != null)) || 
+                    (!heatMatches && (vars.'expectedHeatSetpoint' != null)) || 
+                    (!hvacMatches && hvacst != null && (vars.'expectedHvacMode' != null)) || 
+                    (!fanMatches && fanst != null && (vars.'expectedFanMode' != null))
+
+   boolean dowrite = (attempt % 2) == 1
+   log.trace "{} refreshing state: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, Thermostat.coolsetpoint.get(), Thermostat.heatsetpoint.get(), Thermostat.hvacmode.get(), hvacst, Thermostat.fanmode.get(), fanst
+   log.trace "{} refreshing state: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, vars.'expectedCoolSetpoint', vars.'expectedHeatSetpoint', vars.'expectedHvacMode', hvacst, vars.'expectedFanMode', fanst
+
+   if (!coolMatches && vars.'expectedCoolSetpoint' != null) {
+      if (dowrite) {
+         log.debug "{} updating cool: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, vars.'expectedCoolSetpoint', vars.'expectedHeatSetpoint', vars.'expectedHvacMode', hvacst, vars.'expectedFanMode', fanst
+         int icool = 100 * cToF(vars.'expectedCoolSetpoint')
+         ZWave.thermostat_setpoint.set(SETPOINT_COOL, 0x4A, (icool>>8)&0xFF, icool&0xFF, 0x00, 0x00)
+      }
+
+      ZWave.thermostat_setpoint.get(SETPOINT_COOL)
+   }
+
+   if (!heatMatches && vars.'expectedHeatSetpoint' != null) {
+      if (dowrite) {
+         log.debug "{} updating heat: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, vars.'expectedCoolSetpoint', vars.'expectedHeatSetpoint', vars.'expectedHvacMode', hvacst, vars.'expectedFanMode', fanst
+         int iheat = 100 * cToF(vars.'expectedHeatSetpoint')
+         ZWave.thermostat_setpoint.set(SETPOINT_HEAT, 0x4A, (iheat>>8)&0xFF, iheat & 0xFF, 0x00, 0x00)
+      }
+
+      ZWave.thermostat_setpoint.get(SETPOINT_HEAT)
+   }
+
+   if (!hvacMatches && hvacst != null) {
+      if (dowrite) {
+         log.debug "{} updating hvac mode: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, vars.'expectedCoolSetpoint', vars.'expectedHeatSetpoint', vars.'expectedHvacMode', hvacst, vars.'expectedFanMode', fanst
+         ZWave.thermostat_mode.set(hvacst)
+      }
+
+      ZWave.thermostat_mode.get()
+   }
+
+   if (!fanMatches && fanst != null) {
+      if (dowrite) {
+         log.debug "{} updating fan mode: cool={}C, heat={}C, hvac={} ({}), fan={} ({})", DEVICE_NAME, vars.'expectedCoolSetpoint', vars.'expectedHeatSetpoint', vars.'expectedHvacMode', hvacst, vars.'expectedFanMode', fanst
+         ZWave.thermostat_fan_mode.set(fanst)
+      }
+
+      ZWave.thermostat_fan_mode.get()
+      ZWave.thermostat_fan_state.get()
+   }
+
+   if (attempt < SYNC_MAX_ATTEMPTS && needsRetry) {
+      Scheduler.scheduleIn 'SyncState', ['attempt': (attempt+1)], (attempt * SYNC_DELAY_MILLIS)
+   } else if (attempt >= SYNC_MAX_ATTEMPTS && needsRetry) {
+      log.info "{} failed to sync state", DEVICE_NAME
+   } else {
+      log.info "{} finished syncing state", DEVICE_NAME
+   }
+}
+
+static Double enforceSetpointBounds(val) {
+   if (val == null)
+      return null
+   if (val > MAX_SETPOINT_C)
+      return MAX_SETPOINT_C
+   if (val < MIN_SETPOINT_C)
+      return MIN_SETPOINT_C
+   return val
+}
+
+static boolean checkSetpointBounds(val) {
+   if (val == null)
+      return false
+   if (val > MAX_SETPOINT_C)
+      return false
+   if (val < MIN_SETPOINT_C)
+      return false
+   return true
+}
+
+static void updateThermostatState(ctx,coolsp,heatsp,hvacmd,fanmd) {
+   boolean coolch = (ctx.Thermostat.coolsetpoint.get() != coolsp)
+   boolean heatch = (ctx.Thermostat.heatsetpoint.get() != heatsp)
+   boolean hvacch = (ctx.Thermostat.hvacmode.get() != hvacmd)
+   boolean fanch  = (ctx.Thermostat.fanmode.get() != fanmd)
+
+   Double cool = enforceSetpointBounds(coolsp)
+   Double heat = enforceSetpointBounds(heatsp)
+   ctx.log.trace "{} update thermostat state: cool={}C, heat={}C, mode={}, fan={}, coolChng={}, heatChng={}, modeChng={}, fanChng={}", DEVICE_NAME, cool, heat, hvacmd, fanmd, coolch, heatch, hvacch, fanch
+
+   ctx.log.debug "{} requesting thermostat state: cool={}C, heat={}C, mode={}, fan={}, coolChng={}, heatChng={}, modeChng={}, fanChng={}", DEVICE_NAME, cool, heat, hvacmd, fanmd, coolch, heatch, hvacch, fanch
+   if (cool != null && heat != null) {
+      double sep = cool - heat
+      if (sep < MIN_SETPOINT_SEP) {
+         if (coolch && (hvacmd != ctx.Thermostat.HVACMODE_HEAT)) {
+            // User wants cool at the specified temperature (or they adjusted
+            // both at the same time in an incompatible way) so try to adjust
+            // the heat setpoint to maintain separation. 
+            heat = enforceSetpointBounds(cool - MIN_SETPOINT_SEP)
+            cool = heat + MIN_SETPOINT_SEP
+         } else {
+            // User wants heat at the specified temperature so try to adjust
+            // the cool setpoint to maintain separation. 
+            cool = enforceSetpointBounds(heat + MIN_SETPOINT_SEP)
+            heat = cool - MIN_SETPOINT_SEP
+         }
+         ctx.log.debug "{} adjusting thermostat state request to: cool={}C, heat={}C, mode={}, fan={}, to enforce minimum set point spearation", DEVICE_NAME, cool, heat, hvacmd, fanmd
+      }
+   }
+
+   // We round the requested values to the nearest 0.5F because the device itself only supports
+   // displaying degrees in 0.5F increments. This rounding ensure that the Iris cool setpoint and
+   // heat setpoint attributes are reflecting what the device itself is saying.
+   if (cool != null) {
+      ctx.vars.'expectedCoolSetpoint' = fToC(Math.round(2.0*cToF(cool))/2.0)
+   }
+
+   if (heat != null) {
+      ctx.vars.'expectedHeatSetpoint' = fToC(Math.round(2.0*cToF(heat))/2.0)
+   }
+
+   ctx.vars.'expectedHvacMode' = hvacmd
+   ctx.vars.'expectedFanMode' = fanmd
+
+   ctx.log.debug "{} expected thermostat state: cool={}C, heat={}C, mode={}, fan={}", DEVICE_NAME, ctx.vars.'expectedCoolSetpoint', ctx.vars.'expectedHeatSetpoint', ctx.vars.'expectedHvacMode', ctx.vars.'expectedFanMode'
+   
+   // We need to recalculate these in case they were changed by the bounds enforcement or
+   // set point separation logic.
+   coolch = (ctx.Thermostat.coolsetpoint.get() != cool)
+   heatch = (ctx.Thermostat.heatsetpoint.get() != heat)
+
+   if (coolch || heatch || hvacch || fanch) {
+      ctx.Scheduler.scheduleIn 'SyncState', ['attempt': 1], 0
+   }
+}
+
+setAttributes('therm') {
+   log.trace "{} received set thermostat attributes: {}", DEVICE_NAME, message
+
+   Double coolsp  = Thermostat.coolsetpoint.get()
+   Double heatsp  = Thermostat.heatsetpoint.get()
+   String hvacmd  = Thermostat.hvacmode.get()
+   Integer fanmd  = Thermostat.fanmode.get()
+   log.trace "{} set attributes: cool={}, heat={}, hvac={}, fan={}", DEVICE_NAME, coolsp, heatsp, hvacmd, fanmd
+
+   for (attribute in message.attributes) {
+      if (attribute.value == null) {
+         log.warn "{} ignoring null attribute: {}={}", DEVICE_NAME, attribute.key, attribute.value
+         continue
+      }
+
+      switch (attribute.key) {
+      case Thermostat.coolsetpoint:
+         coolsp = attribute.value
+         break
+      case Thermostat.heatsetpoint:
+         heatsp = attribute.value
+         break
+      case Thermostat.hvacmode:
+         hvacmd = attribute.value
+         break
+      case Thermostat.fanmode:
+         fanmd = attribute.value
+         break
+      case Thermostat.controlmode:
+         Thermostat.controlmode attribute.value
+         break
+      case Thermostat.filtertype:
+         Thermostat.filtertype attribute.value
+         break
+      case Thermostat.filterlifespanruntime:
+         Thermostat.filterlifespanruntime attribute.value
+         break
+      case Thermostat.filterlifespandays:
+         Thermostat.filterlifespandays attribute.value
+         break
+      case Thermostat.emergencyheat:
+         log.info "{} ignoring unsupported attribute: {}={}", DEVICE_NAME, attribute.key, attribute.value
+         break
+      default:
+         log.warn "{} ignoring unrecognized attribute: {}={}", DEVICE_NAME, attribute.key, attribute.value
+         break
+      }
+   }
+
+   // if HVAC mode is HEAT, ignore Cool set point changes
+   if (hvacmd == Thermostat.HVACMODE_HEAT)
+      coolsp  = Thermostat.coolsetpoint.get()
+
+   // if HVAC mode is COOL, ignore any Heat set point changes
+   if (hvacmd == Thermostat.HVACMODE_COOL)
+      heatsp  = Thermostat.heatsetpoint.get()
+
+   if (coolsp != Thermostat.coolsetpoint.get() ||
+       heatsp != Thermostat.heatsetpoint.get() || 
+       hvacmd != Thermostat.hvacmode.get() ||
+       fanmd  != Thermostat.fanmode.get()) {
+      log.trace "{} set attributes: cool={}, heat={}, hvac={}, fan={}", DEVICE_NAME, coolsp, heatsp, hvacmd, fanmd
+      updateThermostatState(this,coolsp,heatsp,hvacmd,fanmd)
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Configuration Support
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.configuration.report {
+   log.trace "{} received configuration report: {}", DEVICE_NAME, message
+
+   int type = message.command.get('param') & 0xFF
+   Integer value = getThermostatValue(this, type, message.command.get('level'),
+      message.command.get('val1'), message.command.get('val2'),
+      message.command.get('val3'), message.command.get('val4'))
+
+   if (value == null) {
+      log.info "{} received configuration report with unknown value", DEVICE_NAME
+      return
+   }
+
+   switch (type) {
+   case CONFIGURATION_BATTERY_STATUS:
+      vars.CONFIGURATION_BATTERY_STATUS = true
+      def prevPowerSource = DevicePower.source.get()
+      switch (value) {
+      case CONFIGURATION_BATTERY_STATUS_LINE: DevicePower.source DevicePower.SOURCE_LINE; break;
+      case CONFIGURATION_BATTERY_STATUS_BATT: DevicePower.source DevicePower.SOURCE_BATTERY; break;
+      default: return;
+      }
+
+      if (DevicePower.source.get() != prevPowerSource) {
+         DevicePower.sourcechanged new Date()
+      }
+      break
+
+   case CONFIGURATION_HUMIDITY_REPORTING:
+      vars.CONFIGURATION_HUMIDITY_REPORTING = (value == CONFIGURATION_HUMIDITY_REPORT_3PER)
+      break
+
+   case CONFIGURATION_TEMP_REPORTING:
+      vars.CONFIGURATION_TEMP_REPORTING = (value == CONFIGURATION_TEMP_REPORT_1F)
+      break
+
+   default:
+      log.info "{} ignoring configuration report for unknown value", DEVICE_NAME, type
+      return
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat HVAC Mode Support
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.thermostat_mode.report {
+   log.trace "{} received thermostat mode: {}", DEVICE_NAME, message
+
+   def prevmode = Thermostat.hvacmode.get()
+   int mode = message.command.get('level') & 0x1F
+   switch (mode) {
+   case MODE_OFF:
+      Thermostat.hvacmode Thermostat.HVACMODE_OFF
+      Thermostat.emergencyheat "OFF"
+      break
+
+   case MODE_COOL:
+      Thermostat.hvacmode Thermostat.HVACMODE_COOL
+      Thermostat.emergencyheat "OFF"
+      break
+
+   case MODE_HEAT:
+      Thermostat.hvacmode Thermostat.HVACMODE_HEAT
+      Thermostat.emergencyheat "OFF"
+      break
+
+   case MODE_AUTO:
+      Thermostat.hvacmode Thermostat.HVACMODE_AUTO 
+      Thermostat.emergencyheat "OFF"
+      break
+
+   case MODE_AUX:
+      Thermostat.emergencyheat "ON"
+      break
+
+   case MODE_MFG:
+      log.warn "{} ignoring manufacturer specific thermostat mode: {}", DEVICE_NAME, message
+      return
+
+   default:
+      log.warn "{} ignoring unknown thermostat mode: {}", DEVICE_NAME, message
+      return
+   }
+
+   if (Thermostat.hvacmode.get() != prevmode) {
+      ZWave.thermostat_operating_state.get()
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Fan and Filter Suppprt:
+//
+// The code below here handles Z-Wave protocol messages and Iris platform
+// messages related to fan states and filter support. This code keeps track
+// of how long the thermostat fan has been running since the last filter
+// change and reflects that in the appropriate Iris attributes.
+////////////////////////////////////////////////////////////////////////////////
+
+static void doHandleThermostatOperatingStateReport(ctx,state) {
+   switch (state) {
+   case STATE_OFF:
+      setThermostatNotRunning(ctx)
+      break
+
+   case STATE_HEATING:
+   case STATE_COOLING:
+   case STATE_FANONLY:
+   case STATE_VENT:
+      setThermostatRunning(ctx)
+      break
+
+   case STATE_PENDHEAT:
+   case STATE_PENDCOOL:
+      // ignore
+      break
+
+   default:
+      ctx.log.warn "{} ignoring unknown thermostat operating state: {}", DEVICE_NAME, state
+      return
+   }
+}
+
+static void setThermostatRunning(ctx) {
+   if (ctx.Thermostat.ACTIVE_RUNNING == ctx.Thermostat.active.get()) {
+      return
+   }
+
+   ctx.Thermostat.active ctx.Thermostat.ACTIVE_RUNNING
+   ctx.vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+}
+
+static void setThermostatNotRunning(ctx) {
+   if (ctx.Thermostat.ACTIVE_NOTRUNNING == ctx.Thermostat.active.get()) {
+      return
+   }
+
+   ctx.Thermostat.active ctx.Thermostat.ACTIVE_NOTRUNNING
+   updateThermostatRunningTime(ctx)
+}
+
+static void updateThermostatRunningTime(ctx) {
+   long currTimeMillis = Calendar.getInstance().getTimeInMillis()
+   def runtime = ctx.vars.'filterRuntimeTotal' ?: 0L
+
+   if (null != ctx.vars.'runtimeStart' && 
+       0 != ctx.vars.'runtimeStart') {
+      ctx.vars.'filterRuntimeTotal' = runtime + (currTimeMillis - ctx.vars.'runtimeStart')
+      ctx.vars.'runtimeStart' = (ctx.Thermostat.ACTIVE_RUNNING == ctx.Thermostat.active.get()) ? currTimeMillis : 0L
+
+      ctx.Thermostat.runtimesincefilterchange ((int)(TimeUnit.MILLISECONDS.toHours(ctx.vars.'filterRuntimeTotal')))
+      ctx.log.trace "{} runtime since filter change: ms={}, hrs={}", DEVICE_NAME, ctx.vars.'filterRuntimeTotal', ctx.Thermostat.runtimesincefilterchange.get()
+   }
+
+   if (null != ctx.vars.'filterChangeDate') {
+      ctx.Thermostat.dayssincefilterchange ((int)(TimeUnit.MILLISECONDS.toDays(currTimeMillis - ctx.vars.'filterChangeDate')))
+      ctx.log.trace "{} time since filter change: ms={}, days={}", DEVICE_NAME, (currTimeMillis - ctx.vars.'filterChangeDate'), ctx.Thermostat.dayssincefilterchange.get()
+   }
+}
+
+static void resetThermostatRunningStart(ctx) {
+   // if we changed the filter while the system was running reset the runtime start
+   if (0 != ctx.vars.'runtimeStart') {
+      ctx.vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+   }
+}
+
+onThermostat.changeFilter {
+   log.trace "{} received change filter: {}", DEVICE_NAME, message
+
+   vars.'filterChangeDate' = Calendar.getInstance().getTimeInMillis()
+   vars.'filterRuntimeTotal' = 0
+   Thermostat.dayssincefilterchange 0
+   Thermostat.runtimesincefilterchange 0
+
+   resetThermostatRunningStart(this)
+   sendResponse('therm:changeFilterResponse', [:])
+}
+
+onZWaveMessage.thermostat_operating_state.report {
+   log.trace "{} received thermostat operating state: {}", DEVICE_NAME, message
+
+   int state = message.command.get('state') & 0xFF
+   doHandleThermostatOperatingStateReport(this,state)
+}
+
+onZWaveMessage.thermostat_fan_mode.report {
+   log.trace "{} received thermostat fan mode: {}", DEVICE_NAME, message
+
+   int mode = message.command.get('mode') & 0xFF
+   int off = (mode >> 7) & 0x01
+   if (off != 0) {
+      log.warn "{} ignoring fan mode with off bit set: {}", DEVICE_NAME, message
+      return
+   }
+
+   int fanmode = mode & 0x0F
+   switch (fanmode) {
+   case FAN_MODE_AUTO: 
+      Thermostat.fanmode 0
+      break
+
+   case FAN_MODE_ON:
+      Thermostat.fanmode 1
+      break
+
+   default:
+      log.warn "{} ignoring unknown fan mode: {}", DEVICE_NAME, message
+      return
+   }
+}
+
+onZWaveMessage.thermostat_fan_state.report {
+   log.trace "{} received thermostat fan state: {}", DEVICE_NAME, message
+
+   int state = message.command.get('state') & 0xFF
+   switch (state) {
+   case FAN_STATE_OFF:
+      setThermostatNotRunning(this)
+      break
+
+   case FAN_STATE_ON:
+      setThermostatRunning(this)
+      break
+
+   default:
+      log.warn "{} ignoring unknown fan state: {}", DEVICE_NAME, message
+      return
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Misc utilities
+////////////////////////////////////////////////////////////////////////////////
+
+static boolean compareTemperatures(val1,val2) {
+   if (val1 == null || val2 == null) return val1 == val2
+   return Math.abs(val1-val2) < TEMP_EPSILON
+}
+
+static double fToC(val) {
+   return (val-32.0) * (5.0/9.0) 
+}
+
+static double cToF(val) {
+   return (val*(9.0/5.0)) + 32.0
+}
+
+static Integer convertHvacMode(ctx,val) {
+   switch (val) {
+   case ctx.Thermostat.HVACMODE_OFF:  return MODE_OFF
+   case ctx.Thermostat.HVACMODE_HEAT: return MODE_HEAT
+   case ctx.Thermostat.HVACMODE_COOL: return MODE_COOL
+   case ctx.Thermostat.HVACMODE_AUTO: return MODE_AUTO
+   default: return null
+   }
+}
+
+static Integer convertFanMode(ctx,val) {
+   switch (val) {
+   case 0: return FAN_MODE_AUTO
+   case 1: return FAN_MODE_ON
+   default: return null
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utilities for extracting precision and scale values
+////////////////////////////////////////////////////////////////////////////////
+
+static Integer getThermostatValue(ctx,type,format,v1,v2,v3,v4) {
+   def size = format & 0x07
+
+   byte[] values = new byte[4]
+   switch (size) {
+   case 1:
+      values[3] = v1
+      break
+
+   case 2:
+      values[2] = v1
+      values[3] = v2
+      break
+
+   case 4:
+      values[0] = v1
+      values[1] = v2
+      values[2] = v3
+      values[3] = v4
+      break
+
+   default:
+      return null
+   }
+
+   return java.nio.ByteBuffer.wrap(values).getInt()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Temperature, Humidity, and Setpoint Support
+////////////////////////////////////////////////////////////////////////////////
+
+static Double getThermostatReportedValue(ctx,type,format,v1,v2,v3,v4,conversions) {
+   def precision = (format >> 5) & 0x07
+   def scale = (format >> 3) & 0x03
+
+   Integer ivalue = getThermostatValue(ctx,type,format,v1,v2,v3,v4)
+   if (ivalue == null) {
+      return null
+   }
+
+   double value = (double)ivalue
+   value /= Math.pow(10, precision)
+
+   def convs = conversions[type & 0xFF]
+   def conv = (convs != null) ? convs[scale & 0xFF] : null
+   if (conv != null) {
+      value = conv ctx, value
+   }
+
+   return value
+}
+
+static void doHandleSensorMultilevelReport(ctx,rawtype,format,v1,v2,v3,v4) {
+   int type = rawtype & 0xFF
+   Double value = getThermostatReportedValue(ctx, type, format, v1, v2, v3, v4, MULTILEVEL_SENSOR_REPORT_CONVERSIONS)
+   if (value == null) {
+      ctx.log.info "{} received thermostat multi-level sensor report with unknown value", DEVICE_NAME
+      return
+   }
+
+   switch (type) {
+   case SENSOR_TEMP:
+      ctx.Temperature.temperature value
+      updateThermostatRunningTime(ctx)
+      break
+   case SENSOR_HUMIDITY:
+      ctx.RelativeHumidity.humidity value
+      updateThermostatRunningTime(ctx)
+      break
+   default:
+      ctx.log.warn "{} received multi-level sensor report of unknown type: {}", DEVICE_NAME, type
+      return
+   }
+}
+
+onZWaveMessage.thermostat_setpoint.report {
+   log.trace "{} received thermostat setpoint report: {}", DEVICE_NAME, message
+
+   int type = message.command.get('type') & 0xFF
+   Double value = getThermostatReportedValue(this, type, message.command.get('scale'),
+      message.command.get('value1'), message.command.get('value2'),
+      message.command.get('value3'), message.command.get('value4'), 
+      SETPOINT_REPORT_CONVERSIONS)
+
+   if (value == null) {
+      log.info "{} received thermostat setpoint report with unknown value: {}", DEVICE_NAME, message
+      return
+   }
+
+   switch (type) {
+   case SETPOINT_COOL:
+      if (Thermostat.coolsetpoint.get() != value) {
+         Thermostat.coolsetpoint value
+         emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":Thermostat.hvacmode.get(), "setpoint":value ]
+      }
+      break
+
+   case SETPOINT_HEAT:
+      if (Thermostat.heatsetpoint.get() != value) {
+         Thermostat.heatsetpoint value
+         emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":Thermostat.hvacmode.get(), "setpoint":value ]
+      }
+      break
+
+   default:
+      log.warn "{} received thermostat setpoint report of unknown type: {}", DEVICE_NAME, type
+      return
+   }
+}
+
+onZWaveMessage.sensor_multilevel.report {
+   log.trace "{} received multi-level sensor report: {}", DEVICE_NAME, message
+   doHandleSensorMultilevelReport(
+      this, 
+      message.command.get('type'), message.command.get('level'),
+      message.command.get('val1'), message.command.get('val2'), 
+      message.command.get('val3'), message.command.get('val4')
+   )
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Multi-channel Support
+//
+// The CT-101 reports some of its state using the Z-Wave multi-channel command
+// class. The code below here demultiplexes these values and dispatches them
+// to to correct handlers for those messages.
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.multi_channel.instance_cmd_encap {
+   log.trace "{} received multi-channel instance cmd encap: {}", DEVICE_NAME, message
+
+   int cmdcls = message.command.get('command_class') & 0xFF
+   int cmd = message.command.get('command') & 0xFF
+   if (cmdcls == COMMAND_CLASS_SENSOR_MULTILEVEL && cmd == COMMAND_SENSOR_MULTILEVEL_REPORT) {
+      doHandleSensorMultilevelReport(
+         this, 
+         message.command.get('parameter1'), message.command.get('parameter2'),
+         message.command.get('parameter3'), message.command.get('parameter4'), 
+         message.command.get('parameter5'), message.command.get('parameter6')
+      )
+   } else if (cmdcls == COMMAND_CLASS_THERM_OPER_STATE && cmd == COMMAND_THERM_OPER_STATE_REPORT) {
+      doHandleThermostatOperatingStateReport(this, message.command.get('parameter1') & 0xFF)
+   } else {
+      log.info "{} ignoring unknown multi-channel instance cmd encap: {}", DEVICE_NAME, message
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Clock Support
+//
+// The code below here handles translating the Z-wave clock report protocol
+// message into the correct format for the Iris Clock capability. The Z-Wave
+// protocol message only exposes the weekday, hour, and minute so some of
+// the attributes in the Clock capability are filled out using the current
+// system time of the platform server running this driver.
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.clock.report {
+   log.trace "{} received clock report: {}", DEVICE_NAME, message
+   int day_hour = message.command.get( 'weekday_hour' ) & 0xFF
+   int minute = message.command.get( 'minute' ) & 0xFF
+   int hour = day_hour & 0x1F
+   int day = (day_hour >> 5) & 0x7
+
+   Calendar today = Calendar.getInstance();
+   Clock.year today.get(Calendar.YEAR)
+   Clock.month (today.get(Calendar.MONTH)+1)
+   Clock.day today.get(Calendar.DAY_OF_MONTH)
+   Clock.day_of_week day
+   Clock.hour hour
+   Clock.minute minute
+   Clock.second 0
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat Indicator Support
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.indicator.report {
+   log.trace "{} received indicator: {}", DEVICE_NAME, message
+
+   int value = message.command.get('value') & 0xFF
+   Indicator.indicator ((value == 0) ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Battery Support
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+   log.trace "{} received battery report: {}", DEVICE_NAME, message
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Alexa Support
+//
+// The code below here handles the Iris Thermostat capabilities that are
+// concerned with Alexa support.
+////////////////////////////////////////////////////////////////////////////////
+
+static void syncIdealState(ctx,coolsp,heatsp,hvacmd) {
+   // We round the requested values to the nearest 0.5F because the device itself only supports
+   // displaying degrees in 0.5F increments. This rounding ensure that the Iris cool setpoint and
+   // heat setpoint attributes are reflecting what the device itself is saying.
+   ctx.vars.'expectedCoolSetpoint' = fToC(Math.round(2.0*cToF(coolsp))/2.0)
+   ctx.vars.'expectedHeatSetpoint' = fToC(Math.round(2.0*cToF(heatsp))/2.0)
+   ctx.vars.'expectedHvacMode' = hvacmd
+   ctx.vars.'expectedFanMode' = ctx.Thermostat.fanmode.get()
+   ctx.Scheduler.scheduleIn 'SyncState', ['attempt': 1], 0
+}
+
+static boolean setIdealCoolTemp(ctx, tempC) {
+   if (!checkSetpointBounds(tempC)) {
+      return false
+   }
+
+   Double heatsp = ctx.Thermostat.heatsetpoint.get()
+   syncIdealState(ctx, tempC, heatsp, ctx.Thermostat.HVACMODE_COOL)
+   return true
+}
+
+static boolean setIdealHeatTemp(ctx, tempC) {
+   if (!checkSetpointBounds(tempC)) {
+      return false
+   }
+
+   Double coolsp = ctx.Thermostat.coolsetpoint.get()
+   syncIdealState(ctx, coolsp, tempC, ctx.Thermostat.HVACMODE_HEAT)
+   return true
+}
+
+static boolean setIdealAutoTemp(ctx, tempC) {
+   Double cool = ctx.Thermostat.coolsetpoint.get()
+   Double heat = ctx.Thermostat.heatsetpoint.get()
+   double sep = MIN_SETPOINT_SEP
+   if (cool != null && heat != null && (cool-heat) > sep) {
+      sep = cool - heat
+   }
+
+   double coolsp = tempC + (sep/2)
+   double heatsp = tempC - (sep/2)
+   if (!checkSetpointBounds(coolsp) || !checkSetpointBounds(heatsp)) {
+      return false
+   }
+   
+   syncIdealState(ctx, coolsp, heatsp, ctx.Thermostat.HVACMODE_AUTO)
+   return true
+}
+
+onThermostat.SetIdealTemperature {
+   Double newIdeal = message.attributes['temperature']
+   def curMode = Thermostat.hvacmode.get()
+   Double coolsp = Thermostat.coolsetpoint.get()
+   Double heatsp = Thermostat.heatsetpoint.get()
+   
+   boolean result = false
+   Double prevIdeal = newIdeal
+   if (curMode == Thermostat.HVACMODE_COOL && newIdeal != null) {
+      prevIdeal = coolsp ?: newIdeal
+      result = setIdealCoolTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_HEAT && newIdeal != null) {
+      prevIdeal = heatsp ?: newIdeal
+      result = setIdealHeatTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_AUTO && newIdeal != null) {
+      prevIdeal = (coolsp != null && heatsp != null) ? ((coolsp+heatsp)/2) : newIdeal
+      result = setIdealAutoTemp(this, newIdeal)
+   }
+   
+   sendResponse 'therm:SetIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': result ? newIdeal : prevIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': prevIdeal,
+      'maxSetPoint': MAX_SETPOINT_C,
+      'minSetPoint': MIN_SETPOINT_C
+   ]
+}
+ 
+onThermostat.IncrementIdealTemperature {
+   Double temp = message.attributes['amount']
+   def curMode = Thermostat.hvacmode.get()
+   Double coolsp = Thermostat.coolsetpoint.get()
+   Double heatsp = Thermostat.heatsetpoint.get()
+
+   boolean result = false
+   Double newIdeal = null
+   Double prevIdeal = null
+   if (curMode == Thermostat.HVACMODE_COOL && coolsp != null && temp != null) {
+      prevIdeal = coolsp
+      newIdeal = prevIdeal + temp
+      result = setIdealCoolTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_HEAT && heatsp != null && temp != null) {
+      prevIdeal = heatsp
+      newIdeal = prevIdeal + temp
+      result = setIdealHeatTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_AUTO && coolsp != null && heatsp != null && temp != null) {
+      prevIdeal = (coolsp + heatsp) / 2
+      newIdeal = prevIdeal + temp
+      result = setIdealAutoTemp(this, newIdeal)
+   }
+
+   sendResponse 'therm:IncrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': result ? newIdeal : prevIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': prevIdeal,
+      'maxSetPoint': MAX_SETPOINT_C,
+      'minSetPoint': MIN_SETPOINT_C
+   ]
+}
+ 
+onThermostat.DecrementIdealTemperature {
+   Double temp = message.attributes['amount']
+   def curMode = Thermostat.hvacmode.get()
+   Double coolsp = Thermostat.coolsetpoint.get()
+   Double heatsp = Thermostat.heatsetpoint.get()
+
+   boolean result = false
+   Double newIdeal = null
+   Double prevIdeal = null
+   if (curMode == Thermostat.HVACMODE_COOL && coolsp != null && temp != null) {
+      prevIdeal = coolsp
+      newIdeal = prevIdeal - temp
+      result = setIdealCoolTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_HEAT && heatsp != null && temp != null) {
+      prevIdeal = heatsp
+      newIdeal = prevIdeal - temp
+      result = setIdealHeatTemp(this, newIdeal)
+   } else if (curMode == Thermostat.HVACMODE_AUTO && coolsp != null && heatsp != null && temp != null) {
+      prevIdeal = (coolsp + heatsp) / 2
+      newIdeal = prevIdeal - temp
+      result = setIdealAutoTemp(this, newIdeal)
+   }
+
+   sendResponse 'therm:DecrementIdealTemperatureResponse', [
+      'result': result,
+      'idealTempSet': result ? newIdeal : prevIdeal,
+      'hvacmode': curMode,
+      'prevIdealTemp': prevIdeal,
+      'maxSetPoint': MAX_SETPOINT_C,
+      'minSetPoint': MIN_SETPOINT_C
+   ]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Debugging Support: Uncomment to view messages not being handled
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+onZWaveMessage {
+   log.warn "{} received unknown message: {}", DEVICE_NAME, message
+}
+*/
+

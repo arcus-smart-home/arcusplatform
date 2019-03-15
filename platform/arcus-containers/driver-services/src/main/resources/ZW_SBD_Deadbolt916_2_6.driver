@@ -1,0 +1,159 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-wave Stanley Black & Decker Deadbolt (Kwikset Smartcode)
+ *   by Mike Kleszynski 04-27-2015
+ */
+driver			'ZWSBDDeadbolt916'
+description		'Driver for a ZWave Stanley Black & Decker 916 Deadbolt Touchscreen (Kwikset Smartcode)'
+version			'2.6'
+protocol		   'ZWAV'
+deviceTypeHint	'Lock'
+productId		'ad3cc5'
+vendor 			'Kwikset'
+model 			'916'
+
+matcher			'ZWAV:Manufacturer': 0x90, 'ZWAV:ProductType': 1, 'ZWAV:ProductId': 0x0642  //Type 916 10 Key Touchscreen Deadbolt
+matcher			'ZWAV:Manufacturer': -112, 'ZWAV:ProductType': 1, 'ZWAV:ProductId': 0x0642  //Type 916 10 Key Touchscreen Deadbolt
+
+capabilities	DevicePower, DoorLock
+importCapability 'zwave/GenericZWaveDoorLock_2_6'
+
+/////////////////////////////////////////////////////////////
+// Command Classes:
+//		0x20 (32)   Basic
+//      0x22 (34)   APPLICATION_STATUS
+//      0x4C (76)   DOOR_LOCK_LOGGING
+//      0x4E (78)   SCHEDULE_ENTRY_LOCK
+//      0x62 (98)   DOOR_LOCK
+//      0x63 (99)   USER_CODE
+//		0x70 (112)  Configuration
+//		0x71 (113)  Alarm
+//		0x72 (114)  Manufacturer Specific
+//      0x75 (117)  PROTECTION
+//		0x80 (-128) Battery
+//		0x85 (-123) Association
+//		0x8B (-117) TIME_PARAMETERS
+//      0x98 (-104) Security
+/////////////////////////////////////////////////////////////
+DevicePower.battery 				   0
+DevicePower.source					DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+DoorLock.type					 	   DoorLock.TYPE_DEADBOLT
+DeviceAdvanced.errors               [:]
+
+def final String DEVICE_NAME	=	"SBD 916 Deadbolt"
+def final int MAX_SUPPORTED_PINS			= 30
+def final int BATTERY_POLLING_INTERVAL_SEC	= 86400	// Ask for battery level every 24 hours
+def final int SETUP_DELAY_MILLIS		         = 30000	// 30 seconds after connect ask for the lock state again in case we don't get a response from our original request
+def final int OFFLINE_TIMEOUT_SECS           =  44100 // 12h 15m
+def final int DOOR_STATE_POLL_SECS	         =	14400	// 4h
+  
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug '${DEVICE_NAME} added.....'
+	
+	// set default attribute values
+	DevicePower.battery 				   0
+	DevicePower.source 					DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable				false
+	DevicePower.backupbatterycapable	false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	DoorLock.type                    DoorLock.TYPE_DEADBOLT
+	DoorLock.supportsBuzzIn		      true
+	DoorLock.supportsInvalidPin	   true
+	DoorLock.numPinsSupported        MAX_SUPPORTED_PINS
+	DoorLock.lockstate               DoorLock.LOCKSTATE_UNLOCKED
+	DoorLock.lockstatechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	DoorLock.slots				         [:]
+
+   log.debug "${DEVICE_NAME} clear out all existing pins....."
+   ZWave.user_code.set( 0, 0x00, 0x00, 0x00, 0x00, 0x00 )  //Clear out all existing pins
+   vars.'CLEAR_PINS_ON_ADD' = 0x01
+}
+
+onRemoved {
+	log.debug '${DEVICE_NAME} removed......'
+}
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+
+	log.debug '${DEVICE_NAME} connected.....'
+	DeviceConnection.lastchange Calendar.getInstance().getTimeInMillis()
+	DeviceConnection.state DeviceConnection.STATE_ONLINE
+	// get the battery level
+	ZWave.battery.get()
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+	
+	// get the initial state of the lock attributes
+	ZWave.door_lock.operation_get()
+	ZWave.poll(DOOR_STATE_POLL_SECS, ZWave.door_lock.operation_get)
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	
+	// schedule an event to get the lock state since these seem to get
+	// missed a lot when done here in onConnected
+	Scheduler.scheduleIn 'SetupLock', SETUP_DELAY_MILLIS
+}
+
+onDisconnected {
+	log.debug '${DEVICE_NAME} disconnected......'
+	DeviceConnection.lastchange Calendar.getInstance().getTimeInMillis()
+	DeviceConnection.state DeviceConnection.STATE_OFFLINE
+}
+     
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+	GenericZWaveDoorLock_2_6.handleBatteryLevelReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.door_lock.operation_report {
+	GenericZWaveDoorLock_2_6.handleLockOperationReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.user_code.report {
+	GenericZWaveDoorLock_2_6.handleUserCodeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.alarm.report {
+	GenericZWaveDoorLock_2_6.handleSbdAlarmReport(this,DEVICE_NAME,message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled event handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('SetupLock') {
+	// if we don't have it yet, ask for the lock state again
+	if( null == DoorLock.lockstate.get() ) ZWave.door_lock.operation_get()
+
+	// if we don't have it yet or it's the default, ask for battery level
+	def currLevel = DevicePower.battery.get()
+	log.debug "current battery level [${currLevel}]"
+	if (null == currLevel || 0 == currLevel) ZWave.battery.get()
+
+	sendResponse('SetupLockResponse', [:])
+}
+

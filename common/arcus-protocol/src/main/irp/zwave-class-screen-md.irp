@@ -1,0 +1,30 @@
+
+message zwave.ScreenMd.ScreenMdGetV1<id="0x01", group="V1"> {
+    u8 numberOfReports;
+    u8 nodeId;
+}
+
+message zwave.ScreenMd.ScreenMdReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 PROPERTIES1_CHAR_PRESENTATION_SHIFT = 0;
+    const u8 PROPERTIES1_SCREEN_SETTINGS_MASK = 0x38;
+    const u8 PROPERTIES1_SCREEN_SETTINGS_SHIFT = 3;
+    const u8 PROPERTIES1_MORE_DATA = 0x80;
+    u8 properties1;
+}
+
+message zwave.ScreenMd.ScreenMdGetV2<id="0x01", group="V2"> {
+    u8 numberOfReports;
+    u8 nodeId;
+}
+
+message zwave.ScreenMd.ScreenMdReportV2<id="0x03", group="V2"> {
+    const u8 PROPERTIES1_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 PROPERTIES1_CHAR_PRESENTATION_SHIFT = 0;
+    const u8 PROPERTIES1_SCREEN_SETTINGS_MASK = 0x38;
+    const u8 PROPERTIES1_SCREEN_SETTINGS_SHIFT = 3;
+    const u8 PROPERTIES1_MORE_DATA = 0x80;
+    const u8 PROPERTIES2_SCREEN_TIMEOUT = 0x01;
+    u8 properties1;
+    u8 properties2;
+}

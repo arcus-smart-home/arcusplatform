@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="PairingCompletionStep"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Steps for a user to follow after they have quit pairing.  Clients should ignore actions they don't recognize.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="id"
+         type="string"
+         description="The ID of the step, used for looking up images, eg 'customization/name'."/>
+      <t:attribute
+         name="order"
+         type="int"
+         description="The order this step occurs in."/>
+      <t:attribute
+         name="action"
+         type="enum"
+         values="ZWAVE_REBUILD"
+         description="An action describing the layout of the screen to show"/>
+      <t:attribute
+         name="title"
+         type="string"
+         description="
+An optional title.
+Generally displayed in bold between the image and the contents.
+         "/>
+      <t:attribute
+         name="info"
+         type="string"
+         description="
+An optional info message.
+Generally displayed in bold between the image and the contents.
+         "/>
+      <t:attribute
+         name="description"
+         type="list&lt;string&gt;"
+         description="
+A list of instructions to display describing the step.
+There will always be at least one entry.
+Generally each entry is displayed as a paragraph.
+         "/>
+   </t:attributes>
+</t:type>

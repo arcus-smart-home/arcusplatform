@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="1.16.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="addResourceBundleTable" author="tweidling">
+      <cl:description>Add table for storing localization resource bundles</cl:description>
+      <cl:tracking>ITWO-7400</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE resource_bundle (
+            bundle varchar,
+            locale varchar,
+            key varchar,
+            value varchar,
+            PRIMARY KEY((bundle, locale), key)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE resource_bundle</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="historyAppenderTables" author="tweidling">
+      <cl:description>Creates the tables for history events to be appended</cl:description>
+      <cl:tracking>ITWO-7400</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_place_detailed (
+			placeId uuid,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         ) 
+         WITH CLUSTERING ORDER BY (time DESC) 
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_place_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_place_critical (
+			placeId uuid,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         )
+         WITH CLUSTERING ORDER BY (time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_place_critical</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_person_detailed (
+			personId uuid,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (personId, time)
+         )
+         WITH CLUSTERING ORDER BY (time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_person_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_rule_detailed (
+			placeId uuid,
+			ruleId int,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, ruleId, time)
+         )
+         WITH CLUSTERING ORDER BY (ruleId DESC, time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_rule_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_device_detailed (
+			deviceId uuid,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (deviceId, time)
+         )
+         WITH CLUSTERING ORDER BY (time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_device_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_subsys_detailed (
+			placeId uuid,
+			subsystem varchar,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, subsystem, time)
+         )
+         WITH CLUSTERING ORDER BY (subsystem DESC, time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_subsys_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_hub_detailed (
+			hubId varchar,
+			time timeuuid,
+			subjectAddress varchar,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (hubId, time)
+         )
+         WITH CLUSTERING ORDER BY (time DESC)
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+         </cl:update>
+         <cl:rollback>DROP TABLE histlog_hub_detailed</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="historyCareActivityTable" author="tweidling">
+      <cl:description>Creates the tables for history events to be appended</cl:description>
+      <cl:tracking>ITWO</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE histlog_care_activity (
+			placeId uuid,
+			time timestamp,
+			activeDevices set&lt;varchar&gt;,
+			deactivatedDevices set&lt;varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         ) 
+         WITH CLUSTERING ORDER BY (time DESC) 
+         AND  compaction = { 
+            'class': 'DateTieredCompactionStrategy',
+            'base_time_seconds': 86400,
+            'tombstone_compaction_interval': 86400,
+            'max_window_size_seconds': 86400,
+            'max_sstable_age_days': 60
+         }
+         AND dclocal_read_repair_chance = 0.0
+         AND read_repair_chance = 0.0
+         AND gc_grace_seconds = 86400
+        </cl:update>
+         <cl:rollback>DROP TABLE histlog_care_activity</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>

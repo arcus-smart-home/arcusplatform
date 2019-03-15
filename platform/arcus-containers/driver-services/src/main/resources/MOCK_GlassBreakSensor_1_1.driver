@@ -1,0 +1,128 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Glass Break Sensor
+ * 
+ * In Oculus, to set the state enter the following for the devMock:SetAttributes function:
+ *   {'glass:break':'DETECTED'}
+ *   {'glass:break':'SAFE'}
+ * 
+ */
+driver			"MOCK_GlassBreakSensor"
+description		"Driver for the Mock Glass Break Sensor"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Glass Break"
+productId		"468d89"
+vendor 			"Mockitron"
+model 			"GlassBreakSensor"
+
+matcher        'MOCK:Capability' : 'GlassBreakSensor'
+matcher        'MOCK:ProductId'  : '468d89'
+
+capabilities	DevicePower, Glass, DeviceMock
+
+
+
+def final long GLASS_BREAK_DELAY_MSEC = 2000		// 2 seconds after glass:break set to DETECTED, reset to SAFE to simulate how device behaves
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Glass Break Sensor started."
+	Device.name 'Mock Glass Break Sensor'
+	//defaults
+	DeviceConnection.signal	34
+	
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.battery		            93
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Glass.break				Glass.BREAK_SAFE
+	Glass.breakchanged		((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+ 
+onConnected {
+	log.debug "Mock Glass Break Sensor connected."
+	// set inital attribute values
+}
+
+onDisconnected {
+	log.debug "Mock Glass Break Sensor disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Glass Break Sensor removed."
+}
+
+
+// ########### capability support ##################
+
+// all capability attributes are read-only, set with devmock:SetAttributes
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+	log.debug "devmock:SetAttributes: " + message.attributes.attrs
+	attributes << message.attributes.attrs
+  
+	// if the glass:break attribute is set to DETECTED, shedule a delays setting back to SAFE, to simulate how device behaves
+	def attrs = message.attributes.attrs;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Glass.break:
+				Glass.break attribute.value
+				switch (attribute.value) {
+					case Glass.BREAK_DETECTED:
+						log.debug "Glass Break DETECTED"
+						Glass.breakchanged new Date()
+						Scheduler.scheduleIn 'ClearGlassBreak', GLASS_BREAK_DELAY_MSEC
+						break
+					default:
+						break
+				}
+				break
+			default:
+				break	
+		}
+	}
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onEvent('ClearGlassBreak') {
+	Glass.break Glass.BREAK_SAFE
+	Glass.breakchanged new Date()
+	log.debug "Glass Break SAFE"
+}
+
+
+

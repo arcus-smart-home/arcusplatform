@@ -1,0 +1,25 @@
+{{{header}}}
+
+        <tr>
+          <td style="padding: 0 30px 15px;">
+            <h1 style="font-size:20px;">Your upcoming subscription renewal</h1>
+
+            <!-- message-body -->
+            <p style="font-size:14px">
+            This is just a friendly reminder that your {{plan_name}}
+            subscription will renew automatically on
+            {{subscription_current_period_ends_at}}.
+            </p>
+
+            <p style="font-size:14px">
+            {{#company_hosted_account_management_full_access?}}
+            You may manage your subscription via
+            <a href="{{account_hosted_maintenance_url}}">your account</a>.
+            {{/company_hosted_account_management_full_access?}}
+            If you have any questions, please contact
+            <a href="mailto:{{company_email}}">{{company_email}}</a>.
+            </p>
+            <!-- /message-body -->
+          </td>
+        </tr>
+{{{footer}}}

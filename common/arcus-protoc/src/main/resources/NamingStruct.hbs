@@ -1,0 +1,91 @@
+   public static enum {{classname}}Naming implements ProtocNamingFields {
+      INSTANCE;
+
+      private final Map<String,Class<?>> FIELDS;
+      
+      private {{classname}}Naming() {
+         Map<String,Class<?>> fields = new HashMap<>();
+         {{#fields}}{{#stored}}
+         fields.put("{{name}}", {{type}}.class);
+         {{/stored}}{{/fields}}
+
+         FIELDS = Collections.unmodifiableMap(fields);
+      };
+
+      @Override
+      public Map<String,Class<?>> getFields() {
+         return FIELDS;
+      }
+
+      @Override
+      public boolean isFromServer() {
+         return {{#if isServer}}true{{else}}false{{/if}};
+      }
+
+      @Override
+      public boolean isClusterSpecific() {
+         return {{#if hasClusterId}}true{{else}}false{{/if}};
+      }
+
+      @Override
+      public int getMessageId() {
+         return {{#if hasMessageId}}com.iris.protocol.zigbee.{{../subpackage}}.{{../../classname}}.{{../classname}}.ID{{else}}0{{/if}};
+      }
+
+      @Override
+      public ProtocStruct create(Map<String,Object> context) {
+         return com.iris.protocol.zigbee.{{subpackage}}.{{../../classname}}.{{classname}}.builder()
+          {{#fields}}{{#stored}}
+            .set{{methodName}}(({{type}})context.get("{{name}}"))
+          {{/stored}}{{/fields}}
+            .create();
+      }
+
+      public int getSize(Map<String,Object> context) {
+      {{#if lastfield}}
+         return {{lastfield}}Offset(context) + {{lastfield}}Size(context);
+      {{else}}
+         return 0;
+      {{/if}}
+      }
+
+      @Override
+      public int getSize(String name, Map<String,Object> context) {
+         switch (name) {
+         {{#fields}}
+         case "{{name}}": return {{name}}Size(context);
+         {{/fields}}
+         default: throw new IllegalArgumentException("unknown field " + name);
+         }
+      }
+
+      @Override
+      public int getOffset(String name, Map<String,Object> context) {
+         switch (name) {
+         {{#fields}}
+         case "{{name}}": return {{name}}Offset(context);
+         {{/fields}}
+         default: throw new IllegalArgumentException("unknown field " + name);
+         }
+      }
+
+      {{#fields}}
+      public int {{name}}Offset(Map<String,Object> context) {
+         return {{byteOffset}};
+      }
+
+      public int {{name}}Size(Map<String,Object> context) {
+      {{#if byteSizeContext}}
+         {{#when}}
+         throw new IllegalStateException("cannot determine byte size of optional field: {{name}}");
+         {{/when}}
+         {{^when}}
+         return {{byteSizeContext}};
+         {{/when}}
+      {{else}}
+         throw new IllegalStateException("cannot determine byte size of: {{name}}");
+      {{/if}}
+      }
+
+      {{/fields}}
+   } 

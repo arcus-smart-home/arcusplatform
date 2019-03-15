@@ -1,0 +1,29 @@
+{{#section "subject"}}
+Professional Monitoring Signup Complete
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Thank you for signing up for Professional Monitoring. With Iris Professional Monitoring, you can expect all the benefits of Basic and Premium membership, plus full-service professional monitoring for security, smoke, carbon monoxide, as well as panic alarm, all for a for a fraction of the cost of what traditional companies charge.
+
+As a Professional Monitoring customer, Backup Cellular service ($7.99/month value) is provided at no additional cost. Purchase a 4G modem at {{{_redirectBaseUrl}}}/e_proupgrade to stay connected when the internet goes down.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>Thank you for signing up for Professional Monitoring. With Iris Professional Monitoring, you can expect all the benefits of Basic and Premium membership, plus full-service professional monitoring for security, smoke, carbon monoxide, as well as panic alarm, all for a for a fraction of the cost of what traditional companies charge.</p>
+
+	<p>As a Professional Monitoring customer, Backup Cellular service ($7.99/month value) is provided at no additional cost. <a href="{{_redirectBaseUrl}}/e_proupgrade">Purchase</a> a 4G modem to stay connected when the internet goes down.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

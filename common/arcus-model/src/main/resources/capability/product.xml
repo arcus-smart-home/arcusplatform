@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:capability name="Product" namespace="product"
+   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a product
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute name="id" readwrite="r" type="string"
+         optional="false" description="Product Id" />
+      <c:attribute name="name" readwrite="r" type="string"
+         optional="false" description="Product Name" />
+      <c:attribute name="shortName" readwrite="r" type="string"
+         optional="true" description="Product short name"/>
+      <c:attribute name="description" readwrite="r" type="string"
+         optional="false" description="Product Description" />
+      <c:attribute name="manufacturer" readwrite="r" type="string"
+         optional="false" description="Product Manufacturer" />
+      <c:attribute name="vendor" readwrite="r" type="string"
+         optional="false" description="Product Vendor" />
+      <c:attribute name="addDevImg" readwrite="r" type="string"
+         optional="false" description="Product Device Image" />
+      <c:attribute name="cert" readwrite="r" type="enum" values="COMPATIBLE,NONE,WORKS"
+         optional="false" description="Product Iris Certification" />
+      <c:attribute name="canBrowse" readwrite="r" type="boolean"
+         optional="false" description="Product appears in browse" />
+      <c:attribute name="canSearch" readwrite="r" type="boolean"
+         optional="false" description="Product appears in search" />
+      <c:attribute name="helpUrl" readwrite="r" type="string"
+         optional="false" description="Help url" />
+      <c:attribute name="pairVideoUrl" readwrite="r" type="string"
+         optional="false" description="Video url" />
+      <c:attribute name="batteryPrimSize" readwrite="r" type="enum" values="_9V,AAAA,AAA,AA,C,D,CR123,CR2,CR2032, CR2430, CR2450, CR14250"
+         optional="true" description="Primary battery size" />
+      <c:attribute name="batteryPrimNum" readwrite="r" type="int"
+         optional="true" description="Primary battery number" />
+      <c:attribute name="batteryBackSize" readwrite="r" type="enum" values="_9V,AAAA,AAA,AA,C,D,CR123,CR2,CR2032, CR2430, CR2450, CR14250"
+         optional="true" description="Backup battery size" />
+      <c:attribute name="batteryBackNum" readwrite="r" type="int"
+         optional="true" description="Backup battery number" />
+      <c:attribute name="keywords" readwrite="r" type="string"
+         optional="false" description="Product Keywords" />
+      <c:attribute name="OTA" readwrite="r" type="boolean"
+         optional="false" description="" />
+      <c:attribute name="protoFamily" readwrite="r" type="string"
+         optional="false" description="Protocol Family" />
+      <c:attribute name="protoSpec" readwrite="r" type="string"
+         optional="false" description="Protocol Specification" />
+      <c:attribute name="driver" readwrite="r" type="string"
+         optional="false" description="Driver Name" />
+      <c:attribute name="added" readwrite="r" type="timestamp"
+         optional="false" description="Product added timestamp" />
+      <c:attribute name="lastChanged" readwrite="r" type="timestamp"
+         optional="false" description="Product last changed timestamp" />
+      <c:attribute name="categories" readwrite="r" type="list&lt;string&gt;"
+         optional="false" description="Product categories" />
+      <c:attribute name="pair" readwrite="r" type="list&lt;Step&gt;"
+         optional="true" description="Pairing Steps" />
+      <c:attribute name="removal" readwrite="r" type="list&lt;Step&gt;"
+         optional="true" description="Remove Steps" />
+      <c:attribute name="reset" readwrite="r" type="list&lt;Step&gt;"
+         optional="true" description="Reset Steps" />
+      <c:attribute name="reconnect" readwrite="r" type="list&lt;Step&gt;"
+         optional="true" description="Reconnect Steps" />
+      <c:attribute name="populations" readwrite="r" type="list&lt;string&gt;"
+         optional="false" description="Populations specified for this product" />
+      <c:attribute name="screen" readwrite="r" type="string"
+         optional="false" description="Detailed screen name for this product"/>
+      <c:attribute name="blacklisted" readwrite="r" type="boolean"
+         optional="false" description="Product is blacklisted" />
+      <c:attribute name="hubRequired" readwrite="r" type="boolean"
+         optional="true" description="Product requires a hub.  If not specified, defaults to true" />    
+      <c:attribute name="minAppVersion" readwrite="r" type="string"
+         optional="true" description="Tag to indicate minimum app version supported by a given product" />
+      <c:attribute name="minHubFirmware" readwrite="r" type="string"
+         optional="true" description="The minimum hub firmware version required to use this product" />
+      <c:attribute name="devRequired" readwrite="r" type="string"
+         optional="true" description="Product catalog id of a parent device that must be paired before this can be paired" />
+      <c:attribute name="canDiscover" readwrite="r" type="boolean"
+         optional="true" description="If product can be discovered in non-Iris user experiences that are fed by the Iris API, such as Alexa or Google Home.  Default is true." /> 
+      <c:attribute name="appRequired" readwrite="r" type="boolean"
+         optional="true" description="If product can only be pairable via the mobile application.  Default is false." />  
+   	  <c:attribute name="installManualUrl" readwrite="r" type="string"
+         optional="true" description="URL to manufacturer installation instructions." />   	
+      <c:attribute name="pairingMode" readwrite="r" type="enum"
+         values="EXTERNAL_APP,WIFI,HUB,IPCD,OAUTH,BRIDGED_DEVICE" optional="true" description="The pairing mode for the device.  If not specified it will be defaulted to HUB.
+EXTERNAL_APP:  Requires a different mobile application, for example for voice assistants.
+WIFI:  Requires the mobile app and typically custom soft AP pairing logic.
+HUB:  Requires the hub to be present for pairing.
+IPCD:  Requires manual entry of information to align an IP connected device with a place, typically the serial number.
+OAUTH:  Requires interaction with a third-party for cloud to cloud integration.
+BRIDGED_DEVICE:  Requires some bridge device to be paired first where the bridge device is specified in the devRequired attribute.
+"/>
+	  <c:attribute name="pairingIdleTimeoutMs" readwrite="r" type="int"
+         optional="true" description="The custom value of pairing idle timeout in milliseconds." />
+      <c:attribute name="pairingTimeoutMs" readwrite="r" type="int"
+         optional="true" description="The custom value of pairing timeout in milliseconds." />
+   </c:attributes>
+   
+</c:capability>

@@ -1,0 +1,42 @@
+# OS and editor files
+RemoteSystemsTempFiles
+*.swp
+*.tmp
+*~
+.lvimrc
+
+#Visual Studio Code Settings
+.vscode
+
+# Local Scripts
+run-local.sh
+
+# Build dirs
+build
+**/build
+
+# Gradle files
+.gradle
+
+# Eclipse files
+.metadata
+.classpath
+.project
+.settings
+.recommenders
+.metadata
+*/bin/
+arcus-hal/*/bin
+
+#generated files
+*.class
+arcus-serial/TestZWaveCommonClasses.json
+
+#test files
+arcus-serial/src/main/java/ignore
+arcus-serial/TestZWaveCommand.json
+arcus-serial/TestZWaveCommandClass.json
+
+#log files
+*.log
+/bin/

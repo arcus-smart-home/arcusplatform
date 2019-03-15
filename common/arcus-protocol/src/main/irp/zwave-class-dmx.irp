@@ -1,0 +1,38 @@
+
+message zwave.Dmx.DmxAddressSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_PAGE_ID_MASK = 0x0F;
+    const u8 PROPERTIES1_PAGE_ID_SHIFT = 0;
+    u8 properties1;
+    u8 channelId;
+}
+
+message zwave.Dmx.DmxAddressGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Dmx.DmxAddressReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_PAGE_ID_MASK = 0x0F;
+    const u8 PROPERTIES1_PAGE_ID_SHIFT = 0;
+    u8 properties1;
+    u8 channelId;
+}
+
+message zwave.Dmx.DmxCapabilityGetV1<id="0x04", group="V1"> {
+    u8 channelId;
+}
+
+message zwave.Dmx.DmxCapabilityReportV1<id="0x05", group="V1"> {
+    u8 channelId;
+    u16 propertyId;
+    u8 deviceChannels;
+    u8 maxChannels;
+}
+
+message zwave.Dmx.DmxData40V1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_PAGE_MASK = 0x0F;
+    const u8 PROPERTIES1_PAGE_SHIFT = 0;
+    const u8 PROPERTIES1_SEQUENCE_NO_MASK = 0x30;
+    const u8 PROPERTIES1_SEQUENCE_NO_SHIFT = 4;
+    u8 source;
+    u8 properties1;
+    u8[40] dmxChannel;
+}

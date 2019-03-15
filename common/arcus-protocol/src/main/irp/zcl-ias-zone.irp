@@ -1,0 +1,79 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library IAS zone command frames
+//    From Section 8.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.IasZone {
+   const u16 CLUSTER_ID = 0x0500;
+
+   const u16 ATTR_ZONE_STATE = 0x0000;
+   const u16 ATTR_ZONE_TYPE = 0x0001;
+   const u16 ATTR_ZONE_STATUS = 0x0002;
+   const u16 ATTR_IAS_CIE_ADDRESS = 0x0010;
+   const u16 ATTR_ZONE_ID = 0x0011;
+   const u16 ATTR_NUMBER_OF_ZONE_SENSITIVITY_LEVELS_SUPPORTED = 0x0012;
+   const u16 ATTR_CURRENT_ZONE_SENSITIVITY_LEVEL = 0x0013;
+
+   const u8 ZONE_STATE_NOT_ENROLLED = 0x00;
+   const u8 ZONE_STATE_ENROLLED = 0x01;
+
+   const u16 ZONE_TYPE_STANDARD_CIE = 0x0000;
+   const u16 ZONE_TYPE_MOTION_SENSOR = 0x000D;
+   const u16 ZONE_TYPE_CONTACT_SWITCH = 0x0015;
+   const u16 ZONE_TYPE_FIRE_SENSOR = 0x0028;
+   const u16 ZONE_TYPE_WATER_SENSOR = 0x002A;
+   const u16 ZONE_TYPE_GAS_SENSOR = 0x002B;
+   const u16 ZONE_TYPE_PERSONAL_EMERGENCY_DEVICE = 0x002C;
+   const u16 ZONE_TYPE_VIBRATION_SENSOR = 0x002D;
+   const u16 ZONE_TYPE_REMOTE_CONTROL = 0x010F;
+   const u16 ZONE_TYPE_KEY_FOB = 0x0115;
+   const u16 ZONE_TYPE_KEYPAD = 0x021D;
+   const u16 ZONE_TYPE_STANDARD_WARNING_DEVICE = 0x0225;
+
+   const u16 ZONE_STATUS_ALARM1 = 0x0001;
+   const u16 ZONE_STATUS_ALARM2 = 0x0002;
+   const u16 ZONE_STATUS_TAMPER = 0x0004;
+   const u16 ZONE_STATUS_BATTERY = 0x0008;
+   const u16 ZONE_STATUS_SUPERVISION_REPORTS = 0x0010;
+   const u16 ZONE_STATUS_RESTORE_REPORTS = 0x0020;
+   const u16 ZONE_STATUS_TROUBLE = 0x0030;
+   const u16 ZONE_STATUS_AC = 0x0040;
+   const u16 ZONE_STATUS_TEST = 0x0100;
+   const u16 ZONE_STATUS_BATTERY_DEFECT = 0x0200;
+}
+
+message zcl.IasZone.ZoneEnrollResponse<id="0x00",group="client"> {
+   const u8 REPONSE_CODE_SUCCESS = 0x00;
+   const u8 REPONSE_CODE_NOT_SUPPORTED = 0x01;
+   const u8 REPONSE_CODE_NO_ENROLL_PERMIT = 0x02;
+   const u8 REPONSE_CODE_TOO_MANY_ZONES = 0x03;
+
+   u8 enrollResponseCode;
+   u8 zoneId;
+}
+
+message zcl.IasZone.InitiateNormalOperationMode<id="0x01",group="client"> {
+}
+
+message zcl.IasZone.InitiateTestOperationMode<id="0x02",group="client"> {
+   u8 testModeDuration;
+   u8 currentZoneSensitivityLevel;
+}
+
+message zcl.IasZone.ZoneStatusChangeNotification<id="0x00",group="server"> {
+   u16 zoneStatus;
+   u8 extendedStatus;
+   u8 zoneId;
+   u16 delay;
+}
+
+message zcl.IasZone.ZoneEnrollRequest<id="0x01",group="server"> {
+   u16 zoneType;
+   u16 manufacturerCode;
+}
+
+message zcl.IasZone.InitiateNormalOperationModeResponse<id="0x02",group="server"> {
+}
+
+message zcl.IasZone.InitiateTestOperationModeResponse<id="0x03",group="server"> {
+}

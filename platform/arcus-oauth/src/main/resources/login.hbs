@@ -1,0 +1,210 @@
+<!doctype html>
+<html ng-app="IRISOAuth">
+   <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.0.9/angular-material.min.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-animate.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-aria.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-messages.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.0.9/angular-material.min.js"></script>
+      <script type="text/javascript">
+      var module = angular.module('IRISOAuth', ['ngMaterial']);
+
+      module.config(function($mdGestureProvider) {
+        $mdGestureProvider.skipClickHijack();
+      });
+
+      module.config(['$httpProvider', '$interpolateProvider', function($httpProvider, $interpolateProvider) {
+         $httpProvider.defaults.withCredentials = true;
+         $interpolateProvider.startSymbol('{[{');
+         $interpolateProvider.endSymbol('}]}');
+      }]);
+      
+      module.controller('OAuthController', ['$log', '$scope', '$http', '$mdBottomSheet', function($log, $scope, $http, $mdBottomSheet) {
+     
+         $scope.state = 'LOGIN';
+         $scope.user = {};
+      
+         function login() {
+            return $http({
+               method: 'POST',
+               url: '{{oauthBaseUrl}}/login',
+               data: $scope.user
+            });
+         }
+         
+         function getPlaces() {
+            return $http.get('{{oauthBaseUrl}}/oauth/places');
+         }
+         
+         $scope.login = function() {
+            if($scope.user.username === undefined) {
+               $mdBottomSheet.show({
+                  template: '<md-bottom-sheet class="err"><h1>Invalid Email</h1><h2 class="err">Please enter a valid email address.</h2></md-bottom-sheet>'
+               });
+               return;
+            }
+            if($scope.user.password === undefined || $scope.user.password === "") {
+               $mdBottomSheet.show({
+                  template: '<md-bottom-sheet class="err"><h1>Invalid Password</h1><h2 class="err">Please enter your password.</h2></md-bottom-sheet>'
+               });
+               return;
+            }
+            login()
+            .then(function(result) {
+               getPlaces().then(function(result) {
+                  if(result.data.length === 1) {
+                     $scope.defaultPlace = result.data[0].placeId;
+                     $scope.state = 'PERMISSIONS';
+                  } else {
+                     $scope.places = result.data;
+                     $scope.state = 'PICKPLACE';
+                  }
+                  
+                  // Debugging : Is there a better way to get information out of this page?
+                  //$mdBottomSheet.show({
+                  //   template: '<md-bottom-sheet class="err"><h1>Place Data</h1><h2 class="err">Data ID:' + JSON.stringify(result.data[0]) + '</h2></md-bottom-sheet>'
+                  //});
+               });
+            }, function(err) {
+               console.log(err);
+               $mdBottomSheet.show({
+                  template: '<md-bottom-sheet class="err"><h1>Invalid Email or Password</h1><h2 class="err">The email or password you entered do not match.  Please try again.</h2></md-bottom-sheet>'
+               });
+            });
+         };
+
+         $scope.selectPlace = function(placeId) {
+            $scope.defaultPlace = placeId;
+            var newEl = angular.element(document.querySelector('md-list-item[uuid="' + $scope.defaultPlace + '"]'));
+            newEl.addClass('selected');
+            $scope.state = 'PERMISSIONS';
+         };
+
+         $scope.authorizationUrl = function() {
+            return '/oauth/authorize' + window.location.search + '&defaultPlace=' + $scope.defaultPlace
+         };
+      }]);
+      </script>
+      <style type="text/css">
+      @font-face {font-family: AvenirNextUltraLight;  src: local("AvenirNext-UltraLight"),  url({{staticResourceBaseUrl}}/o/res_templates/AvenirNext-UltraLight.woff) format('woff'),  url({{_ssr}}/o/res_templates/AvenirNext-UltraLight.ttf) format('truetype'); }
+      @font-face { font-family: AvenirNextRegular; src: local("AvenirNext-Regular"),url({{staticResourceBaseUrl}}/o/res_templates/AvenirNext-Regular.woff) format('woff'), url({{_ssr}}/o/res_templates/AvenirNext-Regular.ttf) format('truetype'); }
+      @font-face { font-family: AvenirNextMedium; src: local("AvenirNext-Medium"), url({{staticResourceBaseUrl}}/o/res_templates/AvenirNext-Medium.woff) format('woff'), url({{_ssr}}/o/res_templates/AvenirNext-Medium.ttf) format('truetype'); }
+      body { background-color: white; font-family: 'AvenirNextMedium', sans-serif; height: auto; }
+      p, h1, h2, h4 { text-align: center; }
+      p { font-size: 10px; color: #989898; }
+      h1 { font-size: 16px; font-weight: normal; }
+      h2 { font-size: 12px; color: #989898; font-weight: normal; }
+      a { font-size: 10px; color: #3CC3B5; text-align: center; text-decoration: none; }
+      p, h1, h2 { margin-right: 24px; margin-left: 24px; }
+      md-list-item .md-avatar { margin-right: 0px; }
+
+      .md-button[disabled], .md-button.md-raised[disabled] {
+         background-color: #27B9AA;
+         color: white !important;
+      }
+
+      .md-button.md-raised:not([disabled]).md-focused,
+      .md-button.md-raised:not([disabled]):hover {
+         background-color: #27B9AA;
+      }
+
+      .md-button.md-raised { background-color: #27B9AA; color: white; margin-left: 14px; margin-right: 14px; }
+
+      md-input-container { margin-left: 12px; margin-right: 12px; }
+      md-input-container label { text-transform: uppercase; color: black; font-size: 12px; }
+      md-input-container .md-errors-spacer { min-height: 0px; }
+      md-input-container.md-input-invalid .md-input { border-color: #DE1652; }
+
+      md-input-container.md-input-invalid.md-input-focused label,
+      .md-input-invalid > label,
+      md-input-container:not(.md-input-invalid).md-input-has-value label,
+      md-input-container:not(.md-input-invalid).md-input-focused label {
+         color: #3E235C;
+      }
+
+      .invert { -webkit-filter: invert(100%); filter: invert(100%); }
+      .logo {
+         transform: scale(0.5, 0.5); -ms-transform: scale(0.5, 0.5); -webkit-transform: scale(0.5, 0.5);
+         margin-top: 12px;
+      }
+
+      .place {
+         border: 1px solid;
+         border-radius: 3px;
+         border-color: rgba(255,255,255,.33);
+         margin-left: 24px;
+         margin-right: 24px;
+         margin-top: 16px;
+         background-color: #27B9AA;
+      }
+
+      md-list-item .md-avatar { border-radius: 0%; }
+      .placeName { font-size: 16px; font-weight: bold; color: white; text-transform: uppercase; line-height: 20px; }
+      .placeAddress { font-size: 14px; font-weight: normal; color: rgba(255,255,255,.75); font-style: italic; line-height: 16px; }
+      .err { background-color: #DE1652; border-top-width: 0px; color: white; }
+      .header { background-color: #3E235C; }
+      .permissionLabel { color: black; }
+      </style>
+   </head>
+   <body ng-cloak>
+      <div layout="column" layout-align="center center" class="header">
+         <img src="{{staticResourceBaseUrl}}/o/res_oauth/iris_white.png" class="logo"/>
+      </div>
+      <div layout="column" ng-switch="state" ng-controller='OAuthController'>
+         <div ng-switch-when='LOGIN' layout="column">
+            <h1>Log in to your Iris account.</h1>
+            <h2>Linking your account to Iris allows device and usage information sharing between {{thirdParty}} & Iris.</h2>
+            <md-divider></md-divider>
+            <md-input-container>
+               <label>Email</label>
+               <input ng-model="user.username" type="email">
+            </md-input-container>
+            <md-input-container>
+               <label>Password</label>
+               <input ng-model="user.password" type="password">
+            </md-input-container>
+            <md-button class="md-raised" ng-click='login()' style="margin-top: 8px;">Log in</md-button>
+            <a href="{{forgotPasswordUrl}}" target="_blank" style="font-size: 12px;">Forgot Password?</a>
+         </div>
+         <div ng-switch-when="PICKPLACE">
+            <h1>Which Place do you want {{thirdPartyDisplayName}} to have access to?</h1>
+            <md-list>
+               <md-list-item ng-attr-uuid="{[{place.placeId}]}" class="md-3-line place" ng-click="selectPlace(place.placeId, $event)" ng-repeat="place in places">
+                  <div class="md-list-item-text" layout="column" layout-align="center center">
+                     <div class="placeName">{[{place.name}]}</div>
+                     <div class="placeAddress">{[{place.streetAddress1}]}</div>
+                     <div class="placeAddress">{[{place.city}]}, {[{place.state}]} {[{place.zipCode}]}</div>
+                  </div>
+               </md-list-item>
+            </md-list>
+         </div>
+         <div ng-switch-when="PERMISSIONS">
+            <h1>{{thirdPartyDisplayName}} is requesting permission to access device information and control the following:</h1>
+            <div layout="column" layout-align="center center">
+               <md-list>
+                  {{#each permissions}}
+                  <md-list-item class="md-1-line">
+                     <img ng-src="{{staticResourceBaseUrl}}/{{this.icon}}" class="{{#if this.invertIcon}}invert{{/if}} md-avatar"/>
+                     <div class="md-list-item-text" layout="column">
+                        <h2 class="permissionLabel">{{this.name}}</h2>
+                     </div>
+                  </md-list-item>
+                  {{/each}}
+               </md-list>
+            </div>
+            <h2>
+            Anyone speaking to {{thirdPartyDisplayName}} can modify your Iris system.  Take steps to ensure the security
+            of your {{thirdPartyDisplayName}}-supported device and safe operations of your connected products (e.g.
+            mute microphones to disable voice commands when leaving your home).
+            </h2>
+            <form action="{[{authorizationUrl()}]}" method="POST" layout="column">
+               <input type="hidden" value="{[{user.username}]}" name="user"/>
+               <input type="hidden" value="{[{user.password}]}" name="password"/>
+               <md-button class="md-raised" type="submit">Authorize</md-button>
+            </form>
+         </div>
+      </div>
+   </body>
+</html>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<s:service
+   name="AlarmService"
+   namespace="alarmservice"
+   version="1.0"
+   xmlns:s="http://www.iris.com/schema/service/1.0.0">
+
+   <s:description>
+      Alarm Service
+   </s:description>
+
+   <s:methods>
+
+      <s:method
+         name="AddAlarm"
+         description="Issued by the alarm subsystem when a new alert is added to an incident.">
+
+         <s:parameter
+            name="alarm"
+            type="string"
+            description="The newly added alarm"/>
+         <s:parameter
+            name="alarms"
+            type="list&lt;string&gt;"
+            description="The list of alarms in the current state"/>
+         <s:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with the newly added alarm."/>
+            
+      </s:method>
+
+      <s:method
+         name="CancelAlert"
+         description="Issued by the alarm subsystem when the alarm has been cleared">
+
+         <s:parameter
+            name="method"
+            type="enum"
+            values="KEYPAD,APP"
+            description="How the user (actor header) cancelled the alarm(s)"/>
+         <s:parameter
+            name="alarms"
+            type="List&lt;string&gt;"
+            description="The list of alarms that have been cancelled"/>
+
+      </s:method>
+
+   </s:methods>
+
+</s:service>
+

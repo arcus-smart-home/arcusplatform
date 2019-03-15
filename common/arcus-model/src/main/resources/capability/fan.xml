@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Fan"
+   namespace="fan"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a fan control.
+   </c:description>
+   
+	<c:attributes>
+		<c:attribute 
+			name="speed" 
+			readwrite="rw" 
+			type="int"
+			min="0"
+			max="10"
+			optional="false"
+			description="Reflects the speed of the device. Also used to set the speed of the device."/>
+        	
+        <c:attribute
+        	name="maxSpeed"
+        	readwrite="r"
+        	type="int"
+        	min="1"
+        	max="10"
+        	optional="false"
+        	description="Determine the max speed as reported by the fan." />
+        
+        <c:attribute
+        	name="direction"
+        	readwrite="rw"
+        	type="enum"
+        	values="UP,DOWN"
+        	optional="true"
+        	description="Reflects the direction of air flow through the fan." />
+   </c:attributes>
+
+</c:capability>

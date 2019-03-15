@@ -1,0 +1,833 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ *	Driver for an RTCoA CT30 Thermostat
+ *
+ *	Date:   3/23/2016
+ *	Author: Jack Tang
+ *
+ *
+ *	OFFLINE TIMEOUT:			60 minutes TODO TBD
+ *	CHECK-IN INTERVAL:			Not Applicable
+ *	BATTERY LEVEL REPORTING:	Poll for battery every 12 hour	
+ *
+ *	ISSUES/NOTES:
+ *	1 -	This device does not accurately report the power source. When it is LINE powered, it will report as BATTERY powered.
+ *
+ *	2 -	This device does not support system mode AUTO. It is neither mentioned in the manual or available as an form of option on the device.
+ *
+ *	3 - This device does not support Zigbee poll control and diagnostics cluster.
+ *
+ *	4 -	The power cluster Battery Voltage is unreportable 
+ *	
+ *	5 - When send ZCL:WriteAttributes to set Thermostat.cluster System Mode attribute to 0x05 (SYSTEM_MODE_EMERGENCY_HEAT), it will switch the thermostat to OFF.
+ *	
+ *	 
+ *
+ *	IN Clusters
+ *	0000	Basic
+ *	0001	Power Configuration
+ *	0003	Identify
+ *	0009	Alarms
+ *	0201	Thermostat
+ *	0202	Fan Control
+ *	0402	Temperature Measurement
+ *	0800	Smart Energy
+ *	
+ *	OUT Clusters
+ *	0800	???
+ *	000A	Time
+ *
+ */
+
+import groovy.transform.Field
+import com.iris.protocol.zigbee.ZclData;
+import com.iris.protocol.zigbee.zcl.General.ZclWriteAttributeRecord;
+ 
+driver				"ZWRTCoACT30Thermostat"
+description			"Driver for a CT30 Radio Thermostat thermostat"
+version				"2.4"
+protocol			"ZIGB"
+deviceTypeHint		"Thermostat"
+productId			"5ed63e"
+vendor 				"Uncertified"
+model 				"CT30"
+
+// The device does not support cluster 0x0000 attribute manufacturer name (0x0004), model identifier (0x0005)
+matcher				'ZIGB:manufacturer': 0x10BE
+capabilities		DevicePower, Temperature, Thermostat, Identify
+
+
+// ===========================================================
+final byte END_POINT = 10
+def basicCluster = Zigbee.endpoint(END_POINT).Basic
+def pwrCluster   = Zigbee.endpoint(END_POINT).Power
+def identCluster = Zigbee.endpoint(END_POINT).Identify
+def thermCluster = Zigbee.endpoint(END_POINT).Thermostat
+def fanCluster   = Zigbee.endpoint(END_POINT).Fan 
+
+final short PROFILE_HA              = 0x0104
+final short CLUSTER_PWR_CNFG        = 0x0001
+final short CLUSTER_POLL_CONTROL    = 0x0020
+final short CLUSTER_THERMOSTAT      = 0x0201
+final short CLUSTER_FAN_CONTROL     = 0x0202
+
+final byte ZCL_16_BIT_SIGNED_INT 	= 0x29
+final byte ZCL_8_BIT_ENUM 			= 0x30
+
+final def CMD_WRT_ATTR 				= 0x02				// General Command Frame - Write Attributes
+final def CMD_CNFG_RPT 				= 0x06				// General Command Frame - Configure Reporting
+final def OFFLINE_TIMEOUT_SECS      = 3600      // 60 minutes
+final short IDENT_PERIOD_SECS       = 180       // number of seconds (0-600) for device to Identify itself when Identify method is called
+
+final def DEVICE_NAME				= "RTCoA CT30"
+final def FAN_ON   					= 1
+final def FAN_AUTO 					= 0
+final int MILLIS_PER_HOUR			= 3600000
+final int MILLIS_PER_DAY			= 86400000
+final int MILLIS_PER_12HOUR			= 43200000
+
+// this value are from the ZCL power read attributes.
+final double MAIN_VOLTAGE 			= 4.8 // ATTR_MAINS_VOLTAGE	TODO : Validate
+final double MIN_THRESHOLD_VOLTAGE 	= 3.8 // ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD TODO : Validate
+final def MAX_SETPOINT_C 			= 35.0
+final def MIN_SETPOINT_C 			= 1.67
+final def MIN_SET_POINT_SEPARATION 	= 1.67
+
+
+importCapability 'zigbee/GenericZigbeeIdentify'
+importCapability 'zigbee/GenericZigbeeDevicePower'
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+final thermModes = ["OFF", "COOL", "HEAT"]
+
+Thermostat.supportedmodes           thermModes
+Thermostat.minsetpoint              MIN_SETPOINT_C
+Thermostat.maxsetpoint              MAX_SETPOINT_C
+Thermostat.setpointseparation       MIN_SET_POINT_SEPARATION
+
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added."
+	vars.'runtimeStart' = 0
+	vars.'filterRuntimeTotal' = 0
+//	// set default attribute values
+	DevicePower.source               	DevicePower.SOURCE_LINE
+	DevicePower.linecapable          	true
+	DevicePower.backupbatterycapable 	false
+	DevicePower.sourcechanged        	((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Thermostat.supportsAuto				false 
+	
+	basicCluster.resetToFactoryDefaults()
+	
+	Zigbee.bindEndpoints(
+		pwrCluster.bindServerCluster(),
+		thermCluster.bindServerCluster(),
+		fanCluster.bindServerCluster())
+}
+
+onConnected {
+	log.debug DEVICE_NAME + ' connected...'
+
+	// read Basic attributes
+	basicCluster.zclReadAttributes(
+		basicCluster.ATTR_POWER_SOURCE,
+		basicCluster.ATTR_DEVICE_ENABLED
+		)
+	
+	// Read Current State for Battery Values
+	//pwrCluster.zclReadAttributes(pwrCluster.ATTR_BATTERY_VOLTAGE)
+
+	// Read Current State for Thermostat
+	thermCluster.zclReadAttributes(
+		thermCluster.ATTR_LOCAL_TEMPERATURE,
+		thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT,
+		thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT,
+		thermCluster.ATTR_SYSTEM_MODE
+		)
+	
+	// - Fan
+	fanCluster.zclReadAttributes(fanCluster.ATTR_FAN_MODE)
+	
+	// configure report
+	Scheduler.scheduleIn 'DeferredThermostatReportConfiguration', 4000
+	Scheduler.scheduleIn 'DeferredFanReportConfiguration', 6000
+	Scheduler.scheduleIn 'PollBatteryVoltage', 500
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )	
+}
+
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected."
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Utility : This closure will limit the temperature to fall within the min and max
+ */
+def validTemperature = {temperature ->
+	if ( MAX_SETPOINT_C < temperature ) {
+		return MAX_SETPOINT_C
+	} else
+	if ( MIN_SETPOINT_C > temperature ) {
+		return MIN_SETPOINT_C
+	}
+	return temperature;
+}
+
+/**
+ * Utility : Send a Zcl Write Attribute
+ */
+def writeAttribute = { short attributeId, byte dataType, def data, cluster = thermCluster ->
+	ZclData zclData = ZclData.builder()
+		.set(dataType, data)
+		.create()
+	
+	ZclWriteAttributeRecord record = ZclWriteAttributeRecord.builder()
+		.setAttributeIdentifier(attributeId)
+		.setAttributeData(zclData)
+		.create()
+	
+	cluster.zclWriteAttributes(record);
+}
+
+/**
+ * This closure will send a Zigbee report configuration command.
+ */
+def configReport = {short cluster, byte[] payload ->
+	Zigbee.send(
+		"cluster" : cluster,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : END_POINT,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : payload )
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+onEvent("PollBatteryVoltage") {
+	// Read Current State for Battery Values
+	pwrCluster.zclReadAttributes(pwrCluster.ATTR_BATTERY_VOLTAGE)	
+	Scheduler.scheduleIn 'PollBatteryVoltage', MILLIS_PER_12HOUR
+}
+
+onEvent("DeferredFanReportConfiguration") {
+	configReport(CLUSTER_FAN_CONTROL,
+		[
+		0x00, 0x00, 0x00, 0x30, // Fan Mode (0x0000), 8 bit enum (0x30)
+		0x14, 0x00, 0xB0, 0x04  // Min : 5 sec (0x0014), Max : 1 hour (0x3840)
+		] as byte[])
+
+}
+
+onEvent("DeferredThermostatReportConfiguration") {
+	configReport(CLUSTER_THERMOSTAT,
+		[
+		0x00, 0x1C, 0x00, 0x30, // System Mode (0x001C), 8 bit enum (0x30)
+		0x14, 0x00, 0xB0, 0x04  // Min : 5 sec (0x0014), Max : 1 hour (0x3840)
+		,
+		0x00, 0x00, 0x00, 0x29, // Local Temperature (0x0000), Signed 16 bit int (0x29)
+		0x14, 0x00, 0xB0, 0x04, // Min : 5 sec (0x0014), Max : 1 hour (0x3840)
+		0x02, 0x00
+		,
+		0x00, 0x11, 0x00, 0x29, // Occupied Cooling SetPoint (0x0011)
+		0x14, 0x00, 0xB0, 0x04, // Min : 5 sec (0x0014), Max : 1 hour (0x3840)
+		0x01, 0x00
+		,
+		0x00, 0x12, 0x00, 0x29, // Occupied Heating SetPoint (0x0012)
+		0x14, 0x00, 0xB0, 0x04, // Min : 5 sec (0x0014), Max : 1 hour (0x3840)
+		0x01, 0x00
+		] as byte[])
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - Driver received power Read Attributes Response : {}", message
+	GenericZigbeeDevicePower.doHandleDevicePower(this, DEVICE_NAME, message, pwrCluster, MIN_THRESHOLD_VOLTAGE, MAIN_VOLTAGE)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.debug "${DEVICE_NAME} - Driver received power Report Attributes : {}", message
+	GenericZigbeeDevicePower.doHandleDevicePower(this, DEVICE_NAME, message, pwrCluster, MIN_THRESHOLD_VOLTAGE, MAIN_VOLTAGE)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Thermostat.active capability
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This closure refresh filter related capability attribute and vars values 
+ */
+def refreshFilter = { boolean resetRuntimeStart=false ->
+	if( ( 0 != vars.'runtimeStart' ) && ( null != vars.'filterChangeDate' ) ) {
+		def currTimeMillis = Calendar.getInstance().getTimeInMillis()
+		vars.'filterRuntimeTotal' = ( vars.'filterRuntimeTotal' + ( currTimeMillis - vars.'runtimeStart' ) )
+		vars.'runtimeStart' = resetRuntimeStart ? 0 : currTimeMillis
+		
+		log.debug "[{}] - ${DEVICE_NAME} driver Runtime since filter change: {}", vars.'filterRuntimeTotal', Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+		Thermostat.runtimesincefilterchange Math.floor( vars.'filterRuntimeTotal' / MILLIS_PER_HOUR )
+		
+		def dayssincefilterchange = Math.floor( ( currTimeMillis- vars.'filterChangeDate' ) / MILLIS_PER_DAY)
+		log.debug "${DEVICE_NAME} driver Days since filter change: {}", dayssincefilterchange
+		
+		Thermostat.dayssincefilterchange dayssincefilterchange
+	}
+}
+
+/**
+ * 
+ */
+def setActive = {boolean running ->
+	if(running) {
+		Thermostat.active Thermostat.ACTIVE_RUNNING
+		if( 0 == vars.'runtimeStart' ) 
+			vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+	} else {
+		Thermostat.active Thermostat.ACTIVE_NOTRUNNING
+		refreshFilter(true)
+	}
+}
+
+/**
+ * This closure derive the running status base on the system mode, heat setpoint, cool setpoint and the temperarture.
+ * This is a workaround. This device does not support certain thermostat cluster attributes, which state HVAC running status.
+ */
+def refreshActive = {
+	def fanMode = Thermostat.fanmode ? Thermostat.fanmode.get() : null
+	if(null != fanMode && fanMode == FAN_ON) {
+		setActive(true)	
+	} else {
+		def systemMode = Thermostat.hvacmode ? Thermostat.hvacmode.get() : null
+		def heatSetPoint = Thermostat.heatsetpoint ? Thermostat.heatsetpoint.get() : null
+		def coolSetPoint = Thermostat.coolsetpoint ? Thermostat.coolsetpoint.get() : null
+		def measuredTemp = Temperature.temperature ? Temperature.temperature.get() : null
+		switch (systemMode) {
+			case "HEAT":
+				if(null != heatSetPoint) {
+					setActive(measuredTemp < heatSetPoint)
+				}
+				break
+			case "COOL":
+				if(null != coolSetPoint) {
+					setActive(measuredTemp > coolSetPoint)
+				}
+				break
+			case "OFF":
+				setActive(false)
+				break
+			default:
+				break
+		}
+	}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Fan Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ *
+ */
+def decodeFanAttribute = {
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	log.debug "${DEVICE_NAME} - fan cluster attributes : {}", attributes
+	
+	// Device response temperatures in celsius
+	def fanMode = attributes[fanCluster.ATTR_FAN_MODE]
+	def active = Thermostat.active && Thermostat.active;
+	if(null != fanMode) {
+		switch(fanMode) {
+			case fanCluster.FAN_MODE_ON:
+				setActive(true)
+				Thermostat.fanmode FAN_ON
+				break;
+			case fanCluster.FAN_MODE_AUTO :
+				Thermostat.fanmode FAN_AUTO
+				refreshActive()
+				break;
+			default: break
+		}
+	}
+
+}
+
+onZigbeeMessage.Zcl.fan.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - Driver received fan Read Attributes Response : {}", message
+	decodeFanAttribute()
+}
+
+onZigbeeMessage.Zcl.fan.zclreportattributes() {
+	log.debug "${DEVICE_NAME} - Driver received fan Report Attributes : {}", message
+	decodeFanAttribute()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Thermostat Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This method will decode the Zigbee Protocol Message for Thermostat cluster
+ */
+def decodeThermostatAttributes = { ->
+	def attributes = Zigbee.Message.decodeZclAttributes(message)
+	log.debug "${DEVICE_NAME} - attributes : {}", attributes
+	
+	// Device response temperatures in celsius
+	def temperature = attributes[thermCluster.ATTR_LOCAL_TEMPERATURE]
+	def coolSetPoint = attributes[thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT]
+	def heatSetPoint = attributes[thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT]
+	def hvacMode = attributes[thermCluster.ATTR_SYSTEM_MODE]
+
+	log.debug "hvacMode : ${hvacMode}, heatSetPoint : ${heatSetPoint}, coolSetPoint : ${coolSetPoint}, temperature : ${temperature}"
+
+	def processActive =  {
+		//log.debug "No action"
+	}
+	// ===========================================
+	// Temperature report process
+	// ===========================================
+	if(temperature != null && temperature != "INVALID") {
+		refreshFilter() // update the filter runtime values
+		Temperature.temperature	temperature / 100
+		processActive = refreshActive
+	}
+
+	// ===========================================
+	// Cool setpoint report process
+	// ===========================================
+	if(null != coolSetPoint && "INVALID" != coolSetPoint.toString()) {
+		coolSetPoint = ((double)coolSetPoint / 100).round(1);
+		log.debug "${DEVICE_NAME} set the cool setpoint to: {}", coolSetPoint
+		double set_point = coolSetPoint
+		double curr_heat_set_point = Thermostat.heatsetpoint.get() ?: 0
+		boolean updateCoolSetPoint = false
+
+		if ( ( MIN_SETPOINT_C + MIN_SET_POINT_SEPARATION ) > set_point ) {
+			 set_point = ( MIN_SETPOINT_C + MIN_SET_POINT_SEPARATION )
+			 updateCoolSetPoint = true
+		}
+
+		log.debug "${DEVICE_NAME} driver setpoint = {} curr heat setpoint = {} curr + offset = {}", set_point, curr_heat_set_point, ( curr_heat_set_point + MIN_SET_POINT_SEPARATION ).round(1)
+		
+		if( set_point <= ( curr_heat_set_point + MIN_SET_POINT_SEPARATION ) ) {
+			new_heat_set_point = validTemperature(set_point - MIN_SET_POINT_SEPARATION)
+			if ( Thermostat.heatsetpoint.get() != new_heat_set_point ) {
+				processActive = refreshActive
+				Thermostat.heatsetpoint ( new_heat_set_point.round(1) )
+				log.debug "emit HEAT SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":Thermostat.hvacmode.get(), "setpoint":new_heat_set_point ]
+			}
+			writeAttribute(
+				thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT,
+				ZCL_16_BIT_SIGNED_INT,
+				(short)(new_heat_set_point * 100)
+				);
+		}
+		
+		if( updateCoolSetPoint ) {
+			if ( Thermostat.coolsetpoint.get() != set_point ) {
+				processActive = refreshActive
+				Thermostat.coolsetpoint set_point
+				log.debug "emit COOL SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":Thermostat.hvacmode.get(), "setpoint":set_point ]
+			}
+			writeAttribute(
+				thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT,
+				ZCL_16_BIT_SIGNED_INT,
+				(short)( set_point * 100)
+				);
+		} else {
+			if ( Thermostat.coolsetpoint.get() != coolSetPoint) {
+				processActive = refreshActive
+				Thermostat.coolsetpoint coolSetPoint
+				log.debug "emit COOL SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":Thermostat.hvacmode.get(), "setpoint":coolSetPoint ]
+			}
+		}		
+	}
+
+	// ===========================================
+	// Heat setpoint report process
+	// ===========================================
+	if(null != heatSetPoint && "INVALID" != heatSetPoint.toString()) {
+		heatSetPoint = ((double)heatSetPoint / 100).round(1);
+		log.debug "${DEVICE_NAME} set the heat setpoint to: {}", heatSetPoint
+		double set_point = heatSetPoint
+		double curr_cool_set_point = Thermostat.coolsetpoint.get() ?: 0
+		boolean updateHeatSetPoint = false
+
+		if ( ( MAX_SETPOINT_C - MIN_SET_POINT_SEPARATION ) < set_point ) {
+			 set_point = ( MAX_SETPOINT_C - MIN_SET_POINT_SEPARATION )
+			 updateHeatSetPoint = true
+		}
+		
+		log.debug "${DEVICE_NAME} driver setpoint = {} curr cool setpoint = {} curr + offset = {}", set_point, curr_cool_set_point, ( curr_cool_set_point - MIN_SET_POINT_SEPARATION ).round(1)
+		
+		if( set_point >= ( curr_cool_set_point - MIN_SET_POINT_SEPARATION ) ) {
+			new_cool_set_point = validTemperature(set_point + MIN_SET_POINT_SEPARATION)
+			if ( Thermostat.coolsetpoint.get() != new_cool_set_point ) {
+				processActive = refreshActive
+				Thermostat.coolsetpoint ( new_cool_set_point.round(1) )
+				log.debug "emit COOL SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"COOL", "hvacmode":Thermostat.hvacmode.get(), "setpoint":new_cool_set_point ]
+			}
+			writeAttribute(
+				thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT,
+				ZCL_16_BIT_SIGNED_INT,
+				(short)( new_cool_set_point * 100)
+				);
+		}
+		
+		if( updateHeatSetPoint ) {
+			set_point = set_point
+			if ( Thermostat.heatsetpoint.get() != set_point ) {
+				processActive = refreshActive
+				Thermostat.heatsetpoint set_point
+				log.debug "emit HEAT SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":Thermostat.hvacmode.get(), "setpoint":set_point ]
+			}
+			writeAttribute(
+				thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT,
+				ZCL_16_BIT_SIGNED_INT,
+				(short)(set_point * 100)
+				);
+		} else {
+			if ( Thermostat.heatsetpoint.get() != heatSetPoint ) {
+				processActive = refreshActive
+				Thermostat.heatsetpoint heatSetPoint
+				log.debug "emit HEAT SetPointChanged"
+				emit "Thermostat:SetPointChanged", [ "type":"HEAT", "hvacmode":Thermostat.hvacmode.get(), "setpoint":heatSetPoint ]
+			}
+		}
+	}
+
+
+	// ===========================================
+	// HVAC mode report process
+	// ===========================================
+	// valid hvac mode values are 0 or more
+	if(hvacMode != null && hvacMode >= 0) {
+		Thermostat.emergencyheat "OFF"
+		switch (hvacMode) {
+			case thermCluster.SYSTEM_MODE_OFF:
+				processActive = refreshActive
+				Thermostat.hvacmode "OFF"
+				break
+			case thermCluster.SYSTEM_MODE_AUTO:
+				processActive = refreshActive
+				Thermostat.hvacmode "AUTO"
+				break
+			case thermCluster.SYSTEM_MODE_COOL:
+				processActive = refreshActive
+				Thermostat.hvacmode "COOL"
+				break
+			case thermCluster.SYSTEM_MODE_HEAT:
+				processActive = refreshActive
+				Thermostat.hvacmode "HEAT"
+				break
+			case thermCluster.SYSTEM_MODE_EMERGENCY_HEAT:
+				processActive = { setActive(true) }
+				Thermostat.emergencyheat "ON"
+				Thermostat.hvacmode "HEAT"
+				break
+			default: break;
+		}
+	}
+	
+	processActive()
+}
+
+onZigbeeMessage.Zcl.thermostat.zclreportattributes() {
+	log.debug "${DEVICE_NAME} - Driver received thermostat Report Attributes : " + message
+	decodeThermostatAttributes()
+}
+
+onZigbeeMessage.Zcl.thermostat.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - Driver received thermostat Read Attributes Response : " + message
+	decodeThermostatAttributes()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Thermostat capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('therm') {
+	log.debug "${DEVICE_NAME} Received setAttributes message {}", message	
+	/**
+	 * Action : Setting Cool Setpoint
+	 */
+	def setCoolSetpoint = {set_point->
+		// see above ISSUE/NOTES
+		// Minimum setpoint separation.
+		double curr_heat_set_point = Thermostat.heatsetpoint.get() ?: 22.2222	// default to 72F
+	
+		if ( MAX_SETPOINT_C < set_point )
+			set_point = MAX_SETPOINT_C
+		if ( ( MIN_SETPOINT_C + MIN_SET_POINT_SEPARATION ) > set_point )
+			set_point = ( MIN_SETPOINT_C + MIN_SET_POINT_SEPARATION )
+		
+		// boolean defer = false;
+		double set_point_c = set_point
+		def writeAttributeStrategy = {->
+			log.debug "Update -> COOL Only"
+			// update the cool setpoint
+			writeAttribute( thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+		}
+
+		if (null != Thermostat.heatsetpoint) {
+			// When a cool setpoint less than heat setpoint is write, the device will response with status INVALID_VALUE
+			if ( set_point_c <= ( curr_heat_set_point + MIN_SET_POINT_SEPARATION ) ) {
+				new_heat_set_point = validTemperature( set_point_c - MIN_SET_POINT_SEPARATION )
+				log.debug "Enforce MIN_SET_POINT_SEPARATION and adjust Heat Setpoint to ${new_heat_set_point}"
+				
+				if(Thermostat.coolsetpoint && new_heat_set_point > Thermostat.coolsetpoint.get()){
+					// the new adjust heat setpoint is > the current cool setpoint, the device will reject the adjusted value.
+					writeAttributeStrategy = {->
+						log.debug "Update -> COOL Then HEAT"
+						// update cool
+						writeAttribute( thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+						// apply adjust
+						writeAttribute( thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(new_heat_set_point * 100))
+					}
+				} else {
+					writeAttributeStrategy = {->
+						log.debug "Update -> HEAT then COOL"
+						// apply adjust
+						writeAttribute( thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(new_heat_set_point * 100))
+						// update cool
+						writeAttribute( thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+					}
+				}
+			}
+		} else {
+			log.info "Heat Setpoint not yet set"
+		}
+		
+		writeAttributeStrategy()
+	}
+	/**
+	 * Action : Setting Heat Setpoint
+	 */
+	def setHeatSetpoint = {set_point->
+		// Minimum setpoint separation
+		double curr_cool_set_point = Thermostat.coolsetpoint.get() ?: 26.6667	// default to 80F
+		
+		if ( ( MAX_SETPOINT_C - MIN_SET_POINT_SEPARATION ) < set_point )
+			set_point = ( MAX_SETPOINT_C - MIN_SET_POINT_SEPARATION )
+		if ( MIN_SETPOINT_C > set_point )
+			set_point = MIN_SETPOINT_C
+		
+		def writeAttributeStrategy = {->
+			log.debug "Update -> HEAT Only"
+			// update the cool setpoint
+			writeAttribute( thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+		}
+	
+		double set_point_c = set_point
+		if (null != Thermostat.coolsetpoint) {
+			if ( set_point_c >= ( curr_cool_set_point - MIN_SET_POINT_SEPARATION ) ) {
+				new_cool_set_point = validTemperature(set_point_c + MIN_SET_POINT_SEPARATION)
+				log.debug "Enforce MIN_SET_POINT_SEPARATION and adjust Cool Setpoint to ${new_cool_set_point}"
+				if(Thermostat.heatsetpoint && new_cool_set_point < Thermostat.heatsetpoint.get()){
+					// the new adjust cool setpoint is < the current heat setpoint, the device will reject the adjusted value.
+					writeAttributeStrategy = {->
+						log.debug "Update -> HEAT then COOL"
+						// apply adjust
+						writeAttribute( thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+						// update cool
+						writeAttribute( thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(new_cool_set_point * 100))
+					}
+				} else {
+					writeAttributeStrategy = {->
+						log.debug "Update -> COOL Then HEAT"
+						// update cool
+						writeAttribute( thermCluster.ATTR_OCCUPIED_COOLING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(new_cool_set_point * 100))
+						// apply adjust
+						writeAttribute( thermCluster.ATTR_OCCUPIED_HEATING_SETPOINT, ZCL_16_BIT_SIGNED_INT, (short)(set_point * 100))
+					}
+				}
+			}
+		} else {
+			log.info "Cool Setpoint not yet set"
+		}
+		writeAttributeStrategy()
+	}
+	/**
+	 * Action : Setting HVAC Mode
+	 */
+	def setHvacMode = {value->
+		switch(value){
+			case "OFF" :
+				writeAttribute( thermCluster.ATTR_SYSTEM_MODE, ZCL_8_BIT_ENUM, thermCluster.SYSTEM_MODE_OFF )
+				break
+			case "AUTO" :
+				writeAttribute( thermCluster.ATTR_SYSTEM_MODE, ZCL_8_BIT_ENUM, thermCluster.SYSTEM_MODE_AUTO )
+				break
+			case "COOL" :
+				writeAttribute( thermCluster.ATTR_SYSTEM_MODE, ZCL_8_BIT_ENUM, thermCluster.SYSTEM_MODE_COOL )
+				break
+			case "HEAT" :
+				writeAttribute( thermCluster.ATTR_SYSTEM_MODE, ZCL_8_BIT_ENUM, thermCluster.SYSTEM_MODE_HEAT )
+				break
+			default:
+				break;
+		}
+	}
+	/**
+	 * Action : Setting Emergency Heat
+	 */
+	def setEmergencyHeat = {value ->
+		switch(value){
+			case "ON":
+				writeAttribute( thermCluster.ATTR_SYSTEM_MODE, ZCL_8_BIT_ENUM, thermCluster.SYSTEM_MODE_EMERGENCY_HEAT )
+				break
+			case "OFF":
+				def previousHvac = Thermostat.hvacmode ? "OFF" : Thermostat.hvacmode.get()
+				setHvacMode(previousHvac)
+				break
+			default:
+				break
+		}
+	}
+	/**
+	 * Action : Setting Fan Mode
+	 */
+	def setFanMode = {value ->
+		switch(value){
+			case 0:
+				writeAttribute( fanCluster.ATTR_FAN_MODE, ZCL_8_BIT_ENUM, fanCluster.FAN_MODE_AUTO, fanCluster )
+				break
+			case 1:
+				writeAttribute( fanCluster.ATTR_FAN_MODE, ZCL_8_BIT_ENUM, fanCluster.FAN_MODE_ON, fanCluster )
+				break
+			default:
+				break
+		}
+	}
+
+	
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Thermostat.coolsetpoint:
+				setCoolSetpoint(attribute.value)
+				break
+			case Thermostat.heatsetpoint:
+				setHeatSetpoint(attribute.value)
+				break
+			case Thermostat.hvacmode:
+				setHvacMode(attribute.value)
+			case Thermostat.emergencyheat:
+				setEmergencyHeat(attribute.value)
+				break
+			case Thermostat.fanmode:
+				setFanMode(attribute.value)
+				break
+			case Thermostat.filtertype:
+				log.debug 'setting filter type to: ' + attribute.value
+				Thermostat.filtertype attribute.value
+				break;
+			case Thermostat.filterlifespanruntime:
+				log.debug 'setting filter life span runtime to: ' + attribute.value
+				Thermostat.filterlifespanruntime attribute.value
+				break;
+			case Thermostat.filterlifespandays:
+				log.debug 'setting filter life span days to: ' + attribute.value
+				Thermostat.filterlifespandays attribute.value
+				break;
+			case Thermostat.controlmode:
+				Thermostat.controlmode attribute.value
+			default: break;
+		}
+	}
+}
+
+onThermostat.changeFilter {
+	log.debug "${DEVICE_NAME} - change filter : " + message
+	vars.'filterChangeDate' = Calendar.getInstance().getTimeInMillis()
+	vars.'filterRuntimeTotal' = 0
+	Thermostat.dayssincefilterchange 0
+	Thermostat.runtimesincefilterchange 0
+
+	// if we changed the filter while the system was running reset the runtime start
+	if( 0 != vars.'runtimeStart' ) {
+		vars.'runtimeStart' = Calendar.getInstance().getTimeInMillis()
+	}
+
+	sendResponse('therm:changeFilterResponse', [:])
+}
+
+// ====================================================
+// CLUSTER
+// ====================================================
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+onIdentify.Identify {
+	log.debug "${DEVICE_NAME} - Driver received onIdentify.Identify: " + message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+	log.debug "${DEVICE_NAME} - Driver received basic Read Attributes Response : " + message
+		def attributes = Zigbee.Message.decodeZclAttributes(message)
+	log.debug "${DEVICE_NAME} - attributes : {}", attributes
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	//log.debug "${CURRENT_NAME} - Driver received zigbee ZCL message: " + message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	log.debug "${DEVICE_NAME} - onZigbeeMessage(Zigbee.TYPE_ZCL) - Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+
+
+
+}
+
+

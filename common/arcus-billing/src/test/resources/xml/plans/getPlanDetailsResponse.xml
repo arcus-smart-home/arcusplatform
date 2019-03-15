@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GET https://:subdomain.recurly.com/v2/plans/:plan_code -->
+<plan href="https://your-subdomain.recurly.com/v2/plans/gold">
+  <add_ons href="https://your-subdomain.recurly.com/v2/plans/gold/add_ons"/>
+  <plan_code>gold</plan_code>
+  <name>Gold plan</name>
+  <description nil="nil"></description>
+  <success_url nil="nil"></success_url>
+  <cancel_url nil="nil"></cancel_url>
+  <display_donation_amounts type="boolean">false</display_donation_amounts>
+  <display_quantity type="boolean">false</display_quantity>
+  <display_phone_number type="boolean">false</display_phone_number>
+  <bypass_hosted_confirmation type="boolean">false</bypass_hosted_confirmation>
+  <unit_name>unit</unit_name>
+  <payment_page_tos_link nil="nil"></payment_page_tos_link>
+  <plan_interval_length type="integer">1</plan_interval_length>
+  <plan_interval_unit>months</plan_interval_unit>
+  <trial_interval_length type="integer">0</trial_interval_length>
+  <trial_interval_unit>days</trial_interval_unit>
+  <accounting_code nil="nil"></accounting_code>
+  <created_at type="datetime">2011-04-19T07:00:00Z</created_at>
+  <tax_exempt type="boolean">false</tax_exempt>
+  <unit_amount_in_cents>
+    <USD type="integer">1000</USD>
+    <EUR type="integer">800</EUR>
+  </unit_amount_in_cents>
+  <setup_fee_in_cents>
+    <USD type="integer">6000</USD>
+    <EUR type="integer">4500</EUR>
+  </setup_fee_in_cents>
+</plan>

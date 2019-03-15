@@ -1,0 +1,7 @@
+def testConnect() {
+   connected();
+}
+
+def testDisconnect() {
+   disconnected();
+}

@@ -1,0 +1,185 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+/**
+ * Mock driver for the Fan capability
+ */
+driver			"MOCK_FanControl"
+description		"Driver for the Mockitron 3 speed, reversible, Fan Controller"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Fan Control"
+productId		"979695"
+vendor 			"Mockitron"
+model 			"FanControl"
+
+matcher        'MOCK:Capability' : 'FanControl'
+matcher        'MOCK:ProductId'  : '979695'
+
+capabilities	DevicePower, Switch, Fan, Indicator, DeviceMock
+
+
+@Field def final byte SWITCH_ON        = 0xff
+@Field def final byte SWITCH_OFF       = 0x00
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mockitron Fan device started."
+	Device.name 'Mock 3 Speed Reversible Fan Control'
+	
+	//remove once oculus fixed
+	DeviceConnection.signal	56
+	
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Fan.speed				2
+	Fan.maxSpeed			3
+	Fan.direction			Fan.DIRECTION_DOWN
+	
+	Switch.state			Switch.STATE_OFF
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Indicator.enabled			true
+	Indicator.enableSupported	false
+	Indicator.indicator         Indicator.INDICATOR_ON
+	Indicator.inverted          false
+}
+ 
+onConnected {
+	log.debug "Mockitron Fan device connected."
+}
+
+onDisconnected {
+	log.debug "Mockitron Fan device disconnected."
+}
+
+onRemoved {
+	log.debug "Mockitron Fan device removed."
+}
+
+// ########### capability support ##################
+
+void updateIndicator() {
+	boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
+	if (Switch.STATE_OFF == Switch.state.get()) {
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+	} else {
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+	}
+}
+
+setAttributes('fan') {
+	log.debug "Mockitron Fan Controller received setAttributes(fan) message: " + message
+   setAttrs(message.attributes)
+}
+
+setAttributes('swit') {
+	log.debug "Mockitron Fan Controller received setAttributes(swit) message: " + message
+	def prevSwitch = Switch.state.get()
+	attributes << message.attributes
+    if ((message.attributes['swit:state']) && (Switch.state.get() != prevSwitch)) { 
+        Switch.statechanged new Date()
+    }
+	updateIndicator()
+}
+
+setAttributes('indicator') {
+	log.debug "Mockitron Fan Controller received setAttributes(indicator) message " + message
+	attributes << message.attributes
+	updateIndicator()
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+   setAttrs(message.attributes.attrs);
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+void setAttrs(attrs) {
+   def unhandledAttrs = [:]
+   for(attribute in attrs) {
+      log.debug 'key: ' + attribute.key + ' - value: ' + attribute.value
+      switch (attribute.key) {
+         case Fan.speed:
+            def prevSwitch = Switch.state.get()
+            int speedInt = attribute.value
+            if(speedInt > Fan.maxSpeed.get()) {
+               speedInt = Fan.maxSpeed.get();
+            }
+            if(speedInt < 0) {
+               speedInt = 0;
+            }
+            boolean indicatorMatchesSwitch = Indicator.inverted.get()   // LED Indicator matches switch power if inverted
+
+            // set the state attribute of the Switch capability to OFF if value is 0x00, or ON if not
+            if( speedInt == SWITCH_OFF ) {
+               Switch.state Switch.STATE_OFF
+               Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+            }
+            else {
+               Switch.state Switch.STATE_ON
+               Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+               Fan.speed speedInt
+            }
+
+            if (Switch.state.get() != prevSwitch) {
+               Switch.statechanged new Date()
+            }
+            break
+         case Fan.direction:
+            currState = Switch.state.get()
+            log.debug 'Current switch state of fan is: ' + currState
+
+            if( Switch.STATE_OFF == currState ) {
+               Fan.direction attribute.value
+            } else {
+               log.warn 'Fan must be off to change direction to ' + attribute.value
+            }
+            break
+         case Switch.state:
+            def prevSwitch = Switch.state.get()
+            Switch.state attribute.value
+            if (Switch.state.get() != prevSwitch) {
+               Switch.statechanged new Date()
+            }
+            updateIndicator()
+            break
+         default:
+            unhandledAttrs << attribute
+            break
+      }
+   }
+   attributes << unhandledAttrs
+}
+

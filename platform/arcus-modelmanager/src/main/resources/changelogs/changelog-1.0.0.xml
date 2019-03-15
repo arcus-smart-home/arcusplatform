@@ -1,0 +1,2357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="1.0.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="accountTable" author="rob">
+      <cl:description>Creates the tables/indexes for the Account Entity</cl:description>
+      <cl:tracking>ITWO-90</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS account (
+            id uuid PRIMARY KEY,
+            created timestamp,
+            modified timestamp,
+            tags set&lt;varchar&gt;,
+            state varchar,
+            servicebase varchar,
+   
+            // TODO: not sure about the type here, this is a placeholder for prototyping
+            serviceaddons set&lt;varchar&gt;,
+            billable boolean
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS account</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="personTable" author="rob">
+      <cl:description>Creates the tables/indexes for the Person Entity</cl:description>
+      <cl:tracking>ITWO-90</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS person (
+            id uuid PRIMARY KEY,
+   
+            // reference to the account table, may be nullable if the person is not an account owner
+            accountId uuid,
+            name varchar,
+   
+            // assuming that the resources referenced here will be stored in a different table
+            images list&lt;uuid&gt;,
+            created timestamp,
+            modified timestamp,
+            tags set&lt;varchar&gt;,
+            state varchar,
+            email varchar,
+            emailVerified timestamp,
+            mobileNumber varchar,
+            mobileVerified timestamp,
+   
+            // TODO:  not sure about the type here, this is a placeholder for prototyping 
+            mobileNotificationEndpoints list&lt;varchar&gt;,
+   
+            // reference to the current place, would be null if the physical location of the person is not
+            // a place known to the iris.
+            currPlace uuid,
+            currPlaceMethod varchar,
+   
+            // TODO:  geograpical coordinates, varchar is being used as a placeholder for prototyping
+            currLocation varchar,
+            currLocationTime timestamp,
+            currLocationMethod varchar,
+            pin int
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS person</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="loginIndexTable" author="rob">
+      <cl:description>Creates the index table for the login</cl:description>
+      <cl:tracking>ITWO-90</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS login (
+            // combination of these define the partition key, the first being the email address after the
+            // '@' sign and the second being the first three characters of the user name.  we should explore
+            // this further, but the idea is we want to have a fairly good distribution across the cluster
+            // and use wide rows to fetch specific data.
+            domain varchar,
+            user_0_3 varchar,
+   
+            // the actual user name, will be used for defining the wide row
+            user varchar,
+   
+            // TODO:  this should be encrypted
+            password varchar,
+            personId uuid,
+            PRIMARY KEY((domain, user_0_3), user)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS login</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="placeTable" author="rob">
+      <cl:description>Creates the tables/indexes for the Place Entity</cl:description>
+      <cl:tracking>ITWO-90</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS place (
+            id uuid PRIMARY KEY,
+   
+            // reference to the account that owns this place
+            accountId uuid,
+            name varchar,
+   
+            // assuming that the resources referenced here will be stored in a different table
+            images list&lt;uuid&gt;,
+            created timestamp,
+            modified timestamp,
+            tags set&lt;varchar&gt;,
+            state varchar,
+   
+            // TODO:  geographcial coordinates and a polygon, varchar is being used as a placeholder for prototyping
+            centerpoint varchar,
+            boundary varchar
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS place</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="deviceTable" author="jboardman">
+      <cl:description>Creates the tables/indexes for the Device Entity</cl:description>
+      <cl:tracking>ITWO-211</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS device (
+            id              uuid PRIMARY KEY,
+            created         timestamp,
+            modified        timestamp,
+            tags            set&lt;varchar&gt;,
+            state           varchar,
+            accountId       uuid,
+            protocolName    varchar,
+            protocolId      varchar,
+            driverName      varchar,
+            driverVersion   int,
+            driverAddress   varchar,
+            protocolAddress varchar,
+            hubId           uuid
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS device</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="deviceTableAccountIndex" author="elarson">
+      <cl:description>Creates the secondary index for AcountId on the Devices table.</cl:description>
+      <cl:tracking>ITWO-231</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE INDEX device_accountid 
+            ON device (accountId)
+         </cl:update>
+         <cl:rollback>DROP INDEX IF EXISTS device_accountid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="deviceTableProtocolIdIndex" author="elarson">
+      <cl:description>Creates an index table for protocol name and id</cl:description>
+      <cl:tracking>ITWO-211</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE device_protocolid (
+            id           uuid,
+            protocolName varchar,
+            protocolId   varchar,
+            PRIMARY KEY(protocolId, protocolName)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS device_protocolid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="notificationAuditTable" author="mdefano">
+      <cl:description>Creates the tables/indexes for the Notification Audit Entity, Version 2</cl:description>
+      <cl:tracking>ITWO-1029</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS notification_audit (
+			placeId uuid,
+			time timestamp,
+			eventLog map&lt;timestamp, varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS notification_audit</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="historyEntryTable" author="jboardman">
+      <cl:description>Creates the tables/indexes for the HistoryEntry Entity</cl:description>
+      <cl:tracking>ITWO-282</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS history_entry (
+            id uuid,
+            created timestamp,
+            accountId uuid,
+            placeId uuid,
+            messageKey varchar,
+            messageText varchar,
+            messageValues list&lt;varchar&gt;,
+            eventTimestamp timestamp,
+            agentId uuid,
+            agentType varchar,
+            agentMethod varchar,
+            PRIMARY KEY (placeId, created)
+         ) WITH CLUSTERING ORDER BY (created DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS history_entry</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="UserRoleTable" author="jboardman">
+      <cl:description>Creates the tables/indexes for the UserRole Entity</cl:description>
+      <cl:tracking>ITWO-328</cl:tracking>
+      <cl:cql>
+         <cl:update>
+            CREATE TABLE IF NOT EXISTS user_roles (
+            user      varchar,
+            created   timestamp,
+            modified  timestamp,
+            role_names set&lt;varchar&gt;,
+            PRIMARY KEY (user)
+            )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS user_roles</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="RolePermissionsTable" author="jboardman">
+      <cl:description>Creates the tables/indexes for the RolePermissions Entity</cl:description>
+      <cl:tracking>ITWO-328</cl:tracking>
+      <cl:cql>
+         <cl:update>
+            CREATE TABLE IF NOT EXISTS role_permissions (
+            role_name varchar,
+            created   timestamp,
+            modified  timestamp,
+            permission_names set&lt;varchar&gt;,
+            PRIMARY KEY (role_name)
+            )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS role_permissions</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <!--
+   NOTE:  data loss would normally exist in the following update, but given that nothing has been
+   deployed yet we have no data loss otherwise this would not be an acceptable strategy. 
+    -->
+   <cl:changeset identifier="personRegistrationColumns" author="rob">
+      <cl:description>Update the columns on the person table for the registration flow</cl:description>
+      <cl:tracking>ITWO-300</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON DROP name</cl:update>
+         <cl:rollback>ALTER TABLE PERSON ADD name varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON ADD firstName varchar</cl:update>
+         <cl:rollback>ALTER TABLE PERSON DROP firstName</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON ADD lastName varchar</cl:update>
+         <cl:rollback>ALTER TABLE PERSON DROP lastName</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON ADD termsAgreed timestamp</cl:update>
+         <cl:rollback>ALTER TABLE PERSON DROP termsAgreed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON ADD privacyPolicyAgreed timestamp</cl:update>
+         <cl:rollback>ALTER TABLE PERSON DROP privacyPolicyAgreed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON ADD optInNewsTime timestamp</cl:update>
+         <cl:rollback>ALTER TABLE PERSON DROP optInNewsTime</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addBaseAndAdvancedDevCols" author="rob">
+      <cl:description>Adds columns to the device table to include the attributes from the device base and device advanced models</cl:description>
+      <cl:tracking>ITWO-310</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD placeId uuid</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP placeId</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD caps set&lt;varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP caps</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD devTypeHint varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP devTypeHint</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD name varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP name</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD image varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP image</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD vendor varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP vendor</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD model varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP model</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE DEVICE ADD subprotocol varchar</cl:update>
+         <cl:rollback>ALTER TABLE DEVICE DROP subprotocol</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSaltColToLogin" author="jboardman">
+      <cl:description>Adds column to the login table to store the unique salt for each login</cl:description>
+      <cl:tracking>ITWO-328</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE LOGIN ADD password_salt varchar</cl:update>
+         <cl:rollback>ALTER TABLE LOGIN DROP password_salt</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <!--
+   TODO:  drop the by protocolid index table or just remove it from the changelog definition since
+   we haven't gone into production yet?
+    -->
+   <cl:changeset identifier="addDeviceByProtocolAddressIndex" author="rob">
+      <cl:description>Added index table to look up the device by its protocol address</cl:description>
+      <cl:tracking>ITWO-321</cl:tracking>
+      <cl:cql>
+      <cl:update>
+         CREATE TABLE device_protocoladdress (
+            id           uuid,
+            protocolAddress varchar PRIMARY KEY
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS device_protocoladdress</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addDeviceAttributesColumn" author="rob">
+      <cl:description>Added attributes to the device table</cl:description>
+      <cl:tracking>ITWO-413</cl:tracking>
+      <cl:cql>
+      <cl:update>ALTER TABLE device ADD attributes map&lt;varchar,varchar&gt;</cl:update>
+      <cl:rollback>ALTER TABLE device DROP attributes</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="changeDriverVersionToVarchar" author="rob">
+      <cl:description>Updated the driver version from int to varchar</cl:description>
+      <cl:tracking>ITWO-416</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE device DROP driverversion</cl:update>
+         <cl:rollback>ALTER TABLE device ADD driverversion int</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD driverversion varchar</cl:update>
+         <cl:rollback>ALTER TABLE device DROP driverversion</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addDeviceDriverTable" author="rob">
+      <cl:description>Added a table to persist scripted device drivers</cl:description>
+      <cl:tracking>ITWO-418</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS device_driver (
+            name varchar,
+            version varchar,
+            description varchar,
+            implementation blob,
+            PRIMARY KEY (name, version)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS device_driver</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addHubBlacklist" author="elarson">
+      <cl:description>Added a table to persist blacklisted hub certs.</cl:description>
+      <cl:tracking>ITWO-552</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS hub_blacklist (
+            certsn varchar PRIMARY KEY,
+            blacklistdate timestamp,
+            hubid varchar,
+            reason varchar           
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS hub_blacklist</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addGrantsTable" author="rob">
+      <cl:description>Added a table to store grants given to people for specific locations</cl:description>
+      <cl:tracking>ITWO-513</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS authorization_grant (
+            entityId uuid,
+            placeId uuid,
+            placeName varchar,
+            accountId uuid,
+            accountOwner boolean,
+            permissions set&lt;varchar&gt;,
+            primary key(entityId, placeId)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS authorization_grant
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="removeStateFromBaseEntity" author="sperry">
+      <cl:description>Remove the state column from Person and Place tables</cl:description>
+      <cl:tracking>ITWO-494</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person DROP state</cl:update>
+         <cl:rollback>ALTER TABLE person ADD state varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP state</cl:update>
+         <cl:rollback>ALTER TABLE place ADD state varchar</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="hubTable" author="sperry">
+      <cl:description>Creates the tables/indexes for the Hub entity
+      </cl:description>
+      <cl:tracking>ITWO-493</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS hub (
+            id varchar PRIMARY KEY,
+            created timestamp,
+            modified timestamp,
+            tags set&lt;varchar&gt;,
+            state varchar,
+            accountId uuid,
+            placeId uuid,
+            caps set&lt;varchar&gt;,
+            name varchar,
+            image uuid,
+            vendor varchar,
+            model varchar,
+            serialNum varchar,
+            hardwareVer varchar,
+            macAddress varchar,
+            mfgInfo varchar,
+            firmwareGroup varchar,
+            osVer varchar,
+            agentVer varchar,
+            bootloaderVer varchar
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS hub</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="hubMacAddrIndexTable" author="sperry">
+      <cl:description>Creates the index table to find hub id by mac address</cl:description>
+      <cl:tracking>ITWO-493</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS hub_macaddr (
+         	// partition key is the four octets of the mac address but we're storing as colon delim string so take 8 chars
+            macaddr_0_7 varchar,
+            macaddr varchar,
+            hubId varchar,
+            PRIMARY KEY(macaddr_0_7, macaddr)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS hub_macaddr</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="changeDeviceHubIdToVarchar" author="rob">
+      <cl:description>Change the hub id reference from uuid to string for the hub id</cl:description>
+      <cl:tracking>ITWO-493</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE device DROP hubid</cl:update>
+         <cl:rollback>ALTER TABLE device ADD hubid uuid</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD hubid varchar</cl:update>
+         <cl:rollback>ALTER TABLE device DROP hubid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="sessions" author="rob">
+      <cl:description>Add the shiro session table that was embedded in CassandraSessionDAO</cl:description>
+      <cl:tracking>ITWO-620</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS sessions (
+            id timeuuid PRIMARY KEY,
+            start_ts timestamp,
+            stop_ts timestamp,
+            last_access_ts timestamp,
+            timeout bigint,
+            expired boolean,
+            host varchar,
+            serialized_value blob
+         ) WITH gc_grace_seconds = 86400 AND compaction = {'class':'LeveledCompactionStrategy'}
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS sessions</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addProtocolAttributesColumnToDeviceTable" author="elarson">
+      <cl:description>Creates column for protocol attributes.</cl:description>
+      <cl:tracking>ITWO-575</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD protocolattrs blob</cl:update>
+         <cl:rollback>ALTER TABLE device DROP protocolattrs</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="hubAccountIdIndexTable" author="elarson">
+      <cl:description>Creates the index table to find hub ids by account id</cl:description>
+      <cl:tracking>ITWO-631</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS hub_accountid (
+            accountId uuid,
+            hubId varchar,
+            PRIMARY KEY (accountId, hubId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS hub_accountid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addStateToPlaceTable" author="rob">
+      <cl:description>Adds the state column to the place table</cl:description>
+      <cl:tracking>ITWO-582</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD state varchar</cl:update>
+         <cl:rollback>ATLER TABLE place DROP state</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="hubByPlaceIndex" author="rob">
+      <cl:description>Index table to lookup hub's by the place at which they are registered</cl:description>
+      <cl:tracking>ITWO-582</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS hub_placeid (
+            placeId uuid,
+            hubId varchar,
+            PRIMARY KEY(placeId, hubId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS hub_placeid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="devicesByPlaceIndex" author="rob">
+      <cl:description>Index table to lookup device's by the place at which they are registered</cl:description>
+      <cl:tracking>ITWO-582</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS device_placeid(
+            placeId uuid,
+            devId uuid,
+            PRIMARY KEY(placeId, devId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXITS device_placeid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updateBaseEntityImages" author="rob">
+      <cl:description>Make sure that base entity has a map for images</cl:description>
+      <cl:tracking>ITWO-580</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE account DROP imageMap</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP images</cl:update>
+         <cl:rollback>ALTER TABLE place ADD images list&lt;uuid&gt;</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TALBE place DROP imageMap</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE person DROP images</cl:update>
+         <cl:rollback>ALTER TABLE person ADD images list&lt;uuid&gt;</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE person DROP imageMap</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE device DROP image</cl:update>
+         <cl:rollback>ALTER TABLE device ADD image varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE device DROP imageMap</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub DROP image</cl:update>
+         <cl:rollback>ALTER TALBE hub ADD image uuid</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE hub DROP imageMap</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addAddressToPlace" author="rob">
+      <cl:description>Add columns for storing the address of a place</cl:description>
+      <cl:tracking>ITWO-746</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD streetAddress1 varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP streetAddress1</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD streetAddress2 varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP streetAddress2</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD city varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP city</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD stateProv varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP statProv</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD zipCode varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP zipCode</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addResourceBundleTable" author="rob">
+      <cl:description>Add table for storing localization resource bundles</cl:description>
+      <cl:tracking>ITWO-746</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS resource_bundle (
+            bundle varchar,
+            locale varchar,
+            key varchar,
+            value varchar,
+            PRIMARY KEY((bundle, locale), key)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS resource_bundle
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addSecurityAnswers" author="rob">
+      <cl:description>Add map of the security answers for a person</cl:description>
+      <cl:tracking>ITWO-746</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD securityAnswers map&lt;varchar,varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE person DROP securityAnswers</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="moveServiceLevelAndAddonsToPlace" author="rob">
+      <cl:description>Move the service level and service addons to the place</cl:description>
+      <cl:tracking>ITWO-837</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account DROP servicebase</cl:update>
+         <cl:rollback>ALTER TABLE account ADD servicebase varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account DROP serviceaddons</cl:update>
+         <cl:rollback>ALTER TABLE account ADD serviceaddons set&lt;varchar&gt;</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD servicelevel varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP servicelevel</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD serviceaddons set&lt;varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE place DROP serviceaddons</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addBillingColumnsToAccount" author="rob">
+      <cl:description>Add additional billing information columns to the account table</cl:description>
+      <cl:tracking>ITWO-837</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD taxExempt boolean</cl:update>
+         <cl:rollback>ALTER TABLE account DROP taxExempt</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingFirstName varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingFirstName</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingLastName varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingLastName</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingCCType varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingCCType</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingCCLast4 varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingCCLast4</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingStreet1 varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingStreet1</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingStreet2 varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingStreet2</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingCity varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingCity</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingState varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingState</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingZip varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingZip</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD billingZipPlusFour varchar</cl:update>
+         <cl:rollback>ALTER TABLE account DROP billingZipPlusFour</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addPlacesToAccount" author="eanderson">
+      <cl:description>Adds a Set of place ID's to the account table</cl:description>
+      <cl:tracking>ITWO-1020</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD placeIDs set&lt;uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE account DROP placeIDs</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSubscriptionIDs" author="eanderson">
+      <cl:description>Adds a Map of service level ID's to the account table for mapping ReCurly subscription IDs</cl:description>
+      <cl:tracking>ITWO-1020</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD subscriptionIDs map&lt;varchar, varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE account DROP subscriptionIDs</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addMobileDeviceTable" author="rob">
+      <cl:description>Adds the table for tracking mobile devices for people</cl:description>
+      <cl:tracking>ITWO-1096</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person add mobileDeviceSequence int</cl:update>
+         <cl:rollback>ALTER TABLE person drop mobileDeviceSequence</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS mobiledevices (
+            personId uuid,
+            deviceIndex int,
+            associated timestamp,
+            osType varchar,
+            osVersion varchar,
+            formFactor varchar,
+            phoneNumber varchar,
+            deviceIdentifier varchar,
+            deviceModel varchar,
+            deviceVendor varchar,
+            resolution varchar,
+            notificationToken varchar,
+            lastLatitude double,
+            lastLongitude double,
+            lastLocationTime timestamp,
+            PRIMARY KEY(personId, deviceIndex)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS mobiledevices</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS notificationtoken_mobiledevice (
+            notificationToken varchar PRIMARY KEY,
+            personId uuid,
+            deviceIndex int
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS notificationtoken_mobiledevice
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="ruleEnvironmentTable" author="tweidling">
+      <cl:description>Adds the table for objects related to rule execution</cl:description>
+      <cl:tracking>ITWO-755</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place add ruleSequence int</cl:update>
+         <cl:rollback>ALTER TABLE place drop ruleSequence</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place add actionSequence int</cl:update>
+         <cl:rollback>ALTER TABLE place drop actionSequence</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS RuleEnvironment (
+			placeId             UUID,
+			type                varchar,
+			id                  int,
+			created             timestamp,
+			modified            timestamp,
+			name                varchar,
+			description         varchar,
+			
+			/* rule-only fields */
+			ruleExpressions     varchar,
+			ruleDisabled        boolean,
+			ruleSuspended       boolean,
+			ruleTemplate        UUID,
+			ruleVariables       varchar,
+			
+			/* action-only fields */
+			action              blob,
+			actionLastExecuted  timestamp,
+			
+            PRIMARY KEY(placeId, type, id)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS RuleEnvironment</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addPopulationTable" author="elarson">
+      <cl:description>Adds the table for tracking population.</cl:description>
+      <cl:tracking>ITWO-1098</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD populationId uuid</cl:update>
+         <cl:rollback>ALTER TABLE place DROP populationId</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS population (
+            populationId uuid PRIMARY KEY,
+            name varchar,
+            description varchar
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS population
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS default_population (
+            defaultId uuid PRIMARY KEY
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS default_population
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="makePopulationTableBaseEntity" author="elarson">
+      <cl:description>Adds base entity fields to population table.</cl:description>
+      <cl:tracking>ITWO-1098</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE population RENAME populationId TO id</cl:update>
+         <cl:rollback>ALTER TABLE population RENAME id TO populationId</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD created timestamp</cl:update>
+         <cl:rollback>ALTER TABLE population DROP created</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD modified timestamp</cl:update>
+         <cl:rollback>ALTER TABLE population DROP modified</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD tags set&lt;varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE population DROP tags</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD imageMap map&lt;varchar,uuid&gt;</cl:update>
+         <cl:rollback>ALTER TABLE population DROP imageMap</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD isdefault boolean</cl:update>
+         <cl:rollback>ALTER TABLE population DROP isdefault</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="deviceTableHubIdIndex" author="hharmon">
+      <cl:description>Creates an index table for protocol name and id and hub id</cl:description>
+      <cl:tracking>ITWO-1128</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE device_hubid (
+            id           uuid,
+            protocolName varchar,
+            protocolId   varchar,
+            hubId   	 varchar,
+            PRIMARY KEY(protocolId, protocolName, hubId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS device_hubid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updatePopulationTable" author="tweidling">
+      <cl:description>Removes default tracking from the database.</cl:description>
+      <cl:tracking>ITWO-1098</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE population DROP isdefault</cl:update>
+         <cl:rollback>ALTER TABLE population ADD isdefault boolean</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS default_population
+         </cl:update>
+         <cl:rollback>
+         CREATE TABLE IF NOT EXISTS default_population (
+            defaultId uuid PRIMARY KEY
+         )
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addPopulationMinHubVersion" author="rob">
+      <cl:description>Adds the minimum hub version column to the database</cl:description>
+      <cl:tracking>ITWO-1249</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE population ADD minHubVersion varchar </cl:update>
+         <cl:rollback>ALTER TABLE population DROP minHubVersion</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="insertGeneralPopulation" author="rob">
+      <cl:description>Inserts the general population</cl:description>
+      <cl:tracking>ITWO-1249</cl:tracking>
+      <cl:cql>
+         <cl:update>INSERT INTO population (id,created,modified,description,name,minHubVersion) VALUES (00000000-0000-0000-0000-000000000000, dateof(now()), dateof(now()), 'Default population', 'general', '2.0.0.017')</cl:update>
+         <cl:rollback>DELETE FROM population WHERE id=00000000-0000-0000-0000-000000000000</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addVariablesColumnToDevice" author="rob">
+      <cl:description>Adds a column to hold the driver variables to the device table</cl:description>
+      <cl:tracking>ITWO-1304</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD variables blob</cl:update>
+         <cl:rollback>ALTER TABLE device DROP variables</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSmartyStreetColumnsToPlace" author="mdefano">
+      <cl:description>Adds SmartyStreet-provided data columns to Place</cl:description>
+      <cl:tracking>ITWO-1334</cl:tracking>
+            <cl:cql>
+         <cl:update>ALTER TABLE place ADD zipPlus4 varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP zipPlus4</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD timezone varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP timezone</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD utcOffset int</cl:update>
+         <cl:rollback>ALTER TABLE place DROP utcOffset</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD practicesDst boolean</cl:update>
+         <cl:rollback>ALTER TABLE place DROP practicesDst</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressType varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressType</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressZipType varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressZipType</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressCentroid varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressCentroid</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressCentroidPrecision varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressCentroidPrecision</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressRdi varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressRdi</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressCounty varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressCounty</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addressCountyFips varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addressCountyFips</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="updateRuleEnvTemplateToCorrectType" author="rob">
+      <!-- should really be a data migration, but because we aren't live just go drop and replace-->
+      <cl:description>Replace the template id in rule environment with a string id</cl:description>
+      <cl:tracking>ITWO-756</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment DROP ruletemplate</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment ADD ruletemplate uuid</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD ruletemplate varchar</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP ruletemplate</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="updateSmartyStreetColumnsOnPlace" author="sperry">
+      <cl:description>Updates SmartyStreet-provided data columns to Place</cl:description>
+      <cl:tracking>ITWO-1334</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP centerpoint</cl:update>
+         <cl:rollback>ALTER TABLE place ADD centerpoint varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP boundary</cl:update>
+         <cl:rollback>ALTER TABLE place ADD boundary varchar</cl:rollback>
+      </cl:cql>
+      
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP timezone</cl:update>
+         <cl:rollback>ALTER TABLE place ADD timezone varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD tzName varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP tzName</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP utcOffset</cl:update>
+         <cl:rollback>ALTER TABLE place ADD utcOffset int</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD tzOffset double</cl:update>
+         <cl:rollback>ALTER TABLE place DROP tzOffset</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP practicesDst</cl:update>
+         <cl:rollback>ALTER TABLE place ADD practicesDst boolean</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD tzUsesDST boolean</cl:update>
+         <cl:rollback>ALTER TABLE place DROP tzUsesDST</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD country varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP country</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrValidated boolean</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrValidated</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressType</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressType varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrType varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrType</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressZipType</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressZipType varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrZipType varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrZipType</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressCentroid</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressCentroid varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrLatitude double</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrLatitude</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrLongitude double</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrLongitude</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressCentroidPrecision</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressCentroidPrecision varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrGeoPrecision varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrGeoPrecision</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressRdi</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressRdi varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrRDI varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrRDI</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressCounty</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressCounty varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrCounty varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrCounty</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place DROP addressCountyFips</cl:update>
+         <cl:rollback>ALTER TABLE place ADD addressCountyFips varchar</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD addrCountyFIPS varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP addrCountyFIPS</cl:rollback>
+      </cl:cql>
+   </cl:changeset> 
+
+   <cl:changeset identifier="addProductIdToDevice" author="sperry">
+      <cl:description>Adds an identifier to Device that will link it to the Product Catalog entry that describes it</cl:description>
+      <cl:tracking>ITWO-1555</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE device ADD productid varchar</cl:update>
+         <cl:rollback>ALTER TABLE device DROP productid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updateMinHubVersionTo2.0.1.002" author="rob">
+      <cl:description>Update the minimum hub version for the general population</cl:description>
+      <cl:tracking>ITWO-0</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         UPDATE population set minHubVersion='2.0.1.002' where id=00000000-0000-0000-0000-000000000000
+         </cl:update>
+         <cl:rollback>
+         UPDATE population set minHubVersion='2.0.0.017' where id=00000000-0000-0000-0000-000000000000
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="personPlaceIdIndex" author="elarson">
+      <cl:description>Creates the index table to find person ids via place id</cl:description>
+      <cl:tracking>ITWO-1474</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS person_placeid (
+            placeId uuid,
+            personId uuid,
+            PRIMARY KEY (placeId, personId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS person_placeid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addChallengeQuestionData" author="sperry">
+      <cl:description>Add default security questions to resource bundle</cl:description>
+      <cl:tracking>ITWO-1577</cl:tracking>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question1', 'Who was your childhood hero?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question1'</cl:rollback>
+      </cl:cql>
+      <cl:cql><cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question2', 'What is your grandmother''s maiden name?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question2'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question3', 'Model of your first car?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question3'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question4', 'What was your childhood nickname?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question4'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question5', 'What is your favorite sport?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question5';</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question6', 'What was the name of your first pet?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question6';</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question7', 'In what city did you meet your spouse/significant other?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question7';</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question8', 'What is the street name of the house you grew up in?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question8'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question9', 'What school did you attend in sixth grade?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question9'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question10', 'What is the name of a college you applied to but didn''t attend?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question10'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question11', 'In what city does your nearest sibling live?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question11'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question12', 'When you were young, what did you want to be when you grew up?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question12'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question13', 'In what city or town was your first job?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question13'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question14', 'What is the country of your ultimate dream vacation?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question14'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question15', 'What is the name of the place your wedding reception was held?')</cl:update>
+              <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='question15'</cl:rollback>
+      </cl:cql>                                                                
+   </cl:changeset>
+
+   <cl:changeset identifier="updateMinHubVersionTo2.0.1.004" author="tweidling">
+      <cl:description>Update the minimum hub version for the general population</cl:description>
+      <cl:tracking>ITWO-0</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         UPDATE population set minHubVersion='2.0.1.004' where id=00000000-0000-0000-0000-000000000000
+         </cl:update>
+         <cl:rollback>
+         UPDATE population set minHubVersion='2.0.0.017' where id=00000000-0000-0000-0000-000000000000
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="replaceDeviceHubIdIndex" author="rob">
+      <cl:description>Replace device_hubid with index that does not require protocol information</cl:description>
+      <cl:tracking>ITWO-1694</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         DROP TABLE IF EXISTS device_hubid
+         </cl:update>
+         <cl:rollback>
+         CREATE TABLE IF NOT EXISTS device_hubid (
+            id           uuid,
+            protocolName varchar,
+            protocolId   varchar,
+            hubId     varchar,
+            PRIMARY KEY(protocolId, protocolName, hubId)
+         )
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS device_hubid (
+            hubId varchar,
+            devId uuid,
+            PRIMARY KEY(hubId, devId)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS device_hubid
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+         
+   <cl:changeset identifier="addUpdateMarkerToPlace" author="elarson">
+      <cl:description>Adds the update flag to place table</cl:description>
+      <cl:tracking>ITWO-1682</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD updateflag boolean </cl:update>
+         <cl:rollback>ALTER TABLE place DROP updateflag</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addResetPasswordTokenToLogin" author="rob">
+      <cl:description>Adds a column to the login table to hold the password reset token</cl:description>
+      <cl:tracking>ITWO-1699</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE login ADD reset_token varchar</cl:update>
+         <cl:rollback>ALTER TABLE login DROP reset_token</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updateNotificationAuditTableKey" author="rob">
+      <cl:description>Replaces the Notification Audit Entity v2 with one that has a varchar for part of the composite key.</cl:description>
+      <cl:tracking>ITWO-2163</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE IF EXISTS notification_audit</cl:update>
+         <cl:rollback>
+         CREATE TABLE IF NOT EXISTS notification_audit (
+         placeId uuid,
+         time timestamp,
+         eventLog map&lt;timestamp, varchar&gt;,
+         PRIMARY KEY (placeId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS notification_audit (
+         id varchar,
+         time timestamp,
+         eventLog map&lt;timestamp, varchar&gt;,
+         PRIMARY KEY (id, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS notification_audit</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addGrantsByPlace" author="rob">
+      <cl:description>Adds a lookup table for grants by place</cl:description>
+      <cl:tracking>ITWO-1674</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS authorization_grant_by_place (
+            placeId uuid,
+            entityId uuid,
+            placeName varchar,
+            accountId uuid,
+            accountOwner boolean,
+            permissions set&lt;varchar&gt;,
+            primary key(placeId, entityId)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE IF EXISTS authorization_grant_by_place
+         </cl:rollback>
+      </cl:cql>
+      
+   </cl:changeset>
+   
+   <cl:changeset identifier="dropPersonPlaceIndex" author="rob">
+      <cl:description>Drops the person_placeid index, which is handled by authorization grants</cl:description>
+      <cl:tracking>ITWO-1674</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE IF EXISTS person_placeid</cl:update>
+         <cl:rollback>
+        CREATE TABLE IF NOT EXISTS person_placeid (
+            placeId uuid,
+            personId uuid,
+            PRIMARY KEY (placeId, personId)
+         ) 
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addConsentFieldsToPerson" author="sperry">
+      <cl:description>Add consent fields to Person </cl:description>
+      <cl:tracking>ITWO-2170</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE PERSON DROP optInNewsTime</cl:update>
+         <cl:rollback>ALTER TABLE PERSON ADD optInNewsTime timestamp</cl:rollback>
+      </cl:cql>
+      
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD consentOffersPromotions timestamp</cl:update>
+         <cl:rollback>ALTER TABLE person DROP consentOffersPromotions</cl:rollback>
+      </cl:cql>
+      
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD consentStatement timestamp</cl:update>
+         <cl:rollback>ALTER TABLE person DROP consentStatement</cl:rollback>
+      </cl:cql>
+      
+   </cl:changeset>
+   
+   <cl:changeset identifier="addAccountOwnerToAccount" author="rob">
+      <cl:description>Add a column to store the account owner ID</cl:description>
+      <cl:tracking>ITWO-2198</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD owner uuid</cl:update>
+         <cl:rollback>ALTER TABLE account DROP owner</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="historyAppenderTables" author="tweidling">
+      <cl:description>Creates the tables for history events to be appended</cl:description>
+      <cl:tracking>ITWO-2191</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_place_detailed (
+			placeId uuid,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_place_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_place_critical (
+			placeId uuid,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_place_critical</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_person_detailed (
+			personId uuid,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (personId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_person_detailed</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_rule_detailed (
+			placeId uuid,
+			ruleId int,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (placeId, ruleId, time)
+         ) WITH CLUSTERING ORDER BY (ruleId DESC, time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_rule_detailed</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addDeviceHistoryTable" author="tweidling">
+      <cl:description>Creates the tables for the device history events to be appended</cl:description>
+      <cl:tracking>ITWO-2191</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_device_detailed (
+			deviceId uuid,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			PRIMARY KEY (deviceId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_device_detailed</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addUpdateMarkerToPerson" author="elarson">
+      <cl:description>Adds the update flag to person table</cl:description>
+      <cl:tracking>ITWO-2193</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD updateflag boolean </cl:update>
+         <cl:rollback>ALTER TABLE person DROP updateflag</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addPrimaryFlagToPlace" author="rob">
+      <cl:description>Adds a primary flag to the place table to prevent removing an account's primary place</cl:description>
+      <cl:tracking>ITWO-2158</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE place ADD is_primary boolean
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE place DROP is_primary
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updateAccountOwnerAndPrimaryPlace" author="rob">
+      <cl:description>Updates the account owner and place is_primary columns</cl:description>
+      <cl:tracking>ITWO-2158</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.SetAccountOwner"/>
+      <cl:java class="com.iris.modelmanager.commands.SetPrimaryPlace"/>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addHistoryEntries" author="tweidling">
+      <cl:description>Add default history log entries to resource bundle</cl:description>
+      <cl:tracking>ITWO-2190</cl:tracking>
+      <cl:cql>
+         <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('history', 'en', 'device.added', '{0} was added to {1} by {2}')</cl:update>
+         <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='device.added'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('history', 'en', 'device.removed', '{0} was removed from {1} by {2}')</cl:update>
+         <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='device.removed'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('history', 'en', 'device.reconnected', '{0} reconnected to Iris')</cl:update>
+         <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='device.reconnected'</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('history', 'en', 'device.disconnected', '{0} disconnected from Iris')</cl:update>
+         <cl:rollback>DELETE FROM resource_bundle WHERE bundle='security_question' AND locale='en' AND key='device.disconnected'</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="dropHistoryEntryTable" author="tweidling">
+      <cl:description>Drops the HistoryEntry table</cl:description>
+      <cl:tracking>ITWO-2190</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE IF EXISTS history_entry</cl:update>
+         <cl:rollback>
+         CREATE TABLE IF NOT EXISTS history_entry (
+            id uuid,
+            created timestamp,
+            accountId uuid,
+            placeId uuid,
+            messageKey varchar,
+            messageText varchar,
+            messageValues list&lt;varchar&gt;,
+            eventTimestamp timestamp,
+            agentId uuid,
+            agentType varchar,
+            agentMethod varchar,
+            PRIMARY KEY (placeId, created)
+         ) WITH CLUSTERING ORDER BY (created DESC)
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="changePinFromIntToString" author="rob">
+      <cl:description>Changes the pin from an int column to a varchar column</cl:description>
+      <cl:tracking>ITWO-2197</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person DROP pin</cl:update>
+         <cl:rollback>ALTER TABLE person ADD pin int</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD pin varchar</cl:update>
+         <cl:rollback>ALTER TABLE person DROP pin</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSubsystemTable" author="tweidling">
+      <cl:description>Adds the Subsystem table</cl:description>
+      <cl:tracking>ITWO-1352</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS subsystem (
+            placeId uuid,
+            namespace varchar,
+            created timestamp,
+            modified timestamp,
+            attributes map&lt;varchar,varchar&gt;,
+            PRIMARY KEY (placeId, namespace)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS subsystem</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addSubjectAddressToHistoryTables" author="sperry">
+   	<cl:description>Adds subjectAddress to history entry tables</cl:description>
+   	<cl:tracking>ITWO-2465</cl:tracking>
+   	<cl:cql>
+   		<cl:update>ALTER TABLE histlog_place_critical ADD subjectAddress varchar</cl:update>
+         <cl:rollback>ALTER TABLE histlog_place_critical DROP subjectAddress</cl:rollback>
+   	</cl:cql>
+   	<cl:cql>
+   		<cl:update>ALTER TABLE histlog_place_detailed ADD subjectAddress varchar</cl:update>
+         <cl:rollback>ALTER TABLE histlog_place_detailed DROP subjectAddress</cl:rollback>
+   	</cl:cql>
+   	<cl:cql>
+   		<cl:update>ALTER TABLE histlog_person_detailed ADD subjectAddress varchar</cl:update>
+         <cl:rollback>ALTER TABLE histlog_person_detailed DROP subjectAddress</cl:rollback>
+   	</cl:cql>
+   	<cl:cql>
+   		<cl:update>ALTER TABLE histlog_rule_detailed ADD subjectAddress varchar</cl:update>
+         <cl:rollback>ALTER TABLE histlog_rule_detailed DROP subjectAddress</cl:rollback>
+   	</cl:cql>
+   	<cl:cql>
+   		<cl:update>ALTER TABLE histlog_device_detailed ADD subjectAddress varchar</cl:update>
+         <cl:rollback>ALTER TABLE histlog_device_detailed DROP subjectAddress</cl:rollback>
+   	</cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addHasLoginFlag" author="rob">
+      <cl:description>Adds the has login flag to the person table</cl:description>
+      <cl:tracking>TODO</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD hasLogin boolean</cl:update>
+         <cl:rollback>ATLER TABLE person DROP hasLogin</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.SetPersonHasLoginFlag"/>
+   </cl:changeset>
+   
+   <cl:changeset identifier="updateSafetyCallTree" author="rob">
+      <cl:description>Updates the call tree structure for the safety subsystem to match security</cl:description>
+      <cl:tracking>ITWOK-429</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.UpdateSafetyCallTreeStructure"/>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addHubRegistrationState" author="rob">
+      <cl:description>Adds the hub registration state column and updates existing rows</cl:description>
+      <cl:tracking>ITWOK-512</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub ADD registrationState varchar</cl:update>
+         <cl:rollback>ALTER TABLE hub DROP registrationState</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.SetHubRegistrationState"/>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addIpcdTable" author="elarson">
+      <cl:description>Adds the Ipcd tracking table</cl:description>
+      <cl:tracking>ITWOK-463</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS ipcd_device (
+            protocolAddress varchar,
+            accountId uuid,
+            placeId uuid,
+            driverAddress varchar,
+            created timestamp,
+            modified timestamp,
+            lastConnected timestamp,
+            vendor varchar,
+            model varchar,
+            sn varchar,
+            ipcdver varchar,
+            firmware varchar,
+            connection varchar,
+            actions set&lt;varchar&gt;,
+            commands set&lt;varchar&gt;,          
+            PRIMARY KEY (protocolAddress)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS ipcd_device</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSchedulerTable" author="tweidling">
+      <cl:description>Adds the Scheduler Table and Index</cl:description>
+      <cl:tracking>ITWOK-611</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS scheduler (
+            id uuid,
+            placeId uuid,
+            target varchar,
+            created timestamp,
+            modified timestamp,          
+            attributes map&lt;varchar,varchar&gt;,
+            PRIMARY KEY (id)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS scheduler</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS scheduler_address_index (
+            address varchar,
+            schedulerIds set&lt;uuid&gt;,
+            relationship varchar,
+            PRIMARY KEY (address)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS scheduler_address_index</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addv1deviceid" author="elarson">
+	   <cl:description>Adds the v1 device id to the ipcd device table</cl:description>
+	   <cl:tracking>ITWOK-463</cl:tracking>
+	   <cl:cql>
+	      <cl:update>ALTER TABLE ipcd_device ADD v1deviceid varchar</cl:update>
+	      <cl:rollback>ALTER TABLE ipcd_device DROP v1deviceid</cl:rollback>
+	   </cl:cql>
+	</cl:changeset>
+   
+   <cl:changeset identifier="addLegacyIpDevice" author="elarson">
+	   <cl:description>Adds the Legacy Ip Device table</cl:description>
+	   <cl:tracking>ITWOK-463</cl:tracking>
+	   <cl:cql>
+	      <cl:update>
+	      CREATE TABLE IF NOT EXISTS legacy_ip_device (
+	         devicetext varchar,
+	         devicetype varchar,
+	         accountId uuid,
+	         placeId uuid,
+	         v1deviceid varchar,
+	         created timestamp,         
+	         PRIMARY KEY (devicetext)
+	      )
+	      </cl:update>
+	      <cl:rollback>DROP TABLE IF EXISTS legacy_ip_device</cl:rollback>
+	   </cl:cql>
+	</cl:changeset>
+	
+   <cl:changeset identifier="addScheduledEventTable" author="tweidling">
+      <cl:description>Adds the Scheduled Event and Offsets Table</cl:description>
+      <cl:tracking>ITWOK-683</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS scheduled_event (
+            partitionId int,
+            timeBucket timestamp,
+            scheduledTime timestamp,
+            placeId uuid,
+            scheduler varchar,
+            expiresAt timestamp,
+            PRIMARY KEY ((partitionId, timeBucket), scheduledTime, scheduler)
+         ) WITH CLUSTERING ORDER BY (scheduledTime ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS scheduled_event</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS scheduler_offset (
+            partitionId int,
+            serverId varchar,
+            lastExecutedBucket timestamp,
+            PRIMARY KEY (partitionId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS scheduler_offset</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   
+   <cl:changeset identifier="addSubsystemHistoryTables" author="tweidling">
+      <cl:description>Adds a subsystem history log table</cl:description>
+      <cl:tracking>ITWOK-8</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_subsys_detailed (
+				placeId uuid,
+				subsystem varchar,
+				time timestamp,
+				messageKey varchar,
+				params list&lt;varchar&gt;,
+				subjectAddress varchar,
+				PRIMARY KEY (placeId, subsystem, time)
+         ) WITH CLUSTERING ORDER BY (subsystem DESC, time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_subsys_detailed</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="lowercaseLoginIndex" author="tweidling">
+      <cl:description>Sets the login index entries to lower case to make logins case insensitive</cl:description>
+      <cl:tracking>ITWOK-959</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.LowercaseLoginIndex"/>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addTzIdToPlace" author="tweidling">
+      <cl:description>Add columns for the Java Timezone ID to place</cl:description>
+      <cl:tracking>ITWO-1317</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD tzId varchar</cl:update>
+         <cl:rollback>ALTER TABLE place DROP tzId</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.GenerateTimeZoneId"/>
+   </cl:changeset>
+
+   <cl:changeset identifier="updateChallangeQuestionData" author="tweidling">
+      <cl:description>Removes the old default security questions, they are now in security-questions.properties</cl:description>
+      <cl:tracking>ITWOK-1214</cl:tracking>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question1', 'What was the model of your first car?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question1', 'Who was your childhood hero?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question2', 'What was the name of your first pet?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question2', 'What is your grandmother''s maiden name?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question3', 'What is the street name of the house you grew up in?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question3', 'Model of your first car?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question4', 'Who was your childhood hero?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question4', 'What was your childhood nickname?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question5', 'What was your childhood nickname?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question5', 'What is your favorite sport?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question6', 'What is your father''s middle name?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question6', 'What was the name of your first pet?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question7', 'What is your Grandmother''s maiden name?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question7', 'In what city did you meet your spouse/significant other?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question8', 'In what city does your nearest sibling live?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question8', 'What is the street name of the house you grew up in?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question9', 'In what city did you meet your spouse/significant other?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question9', 'What school did you attend in sixth grade?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question10', 'What is the name of your favorite sports team?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question10', 'What is the name of a college you applied to but didn''t attend?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question11', 'What school did you attend in 6th grade?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question11', 'In what city does your nearest sibling live?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question12', 'When you were young, what did you want to be when you grew up?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question12', 'When you were young, what did you want to be when you grew up?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question13', 'In what city or town was your first job?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question13', 'In what city or town was your first job?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question14', 'What is the city of your ultimate dream vacation?')</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question14', 'What is the country of your ultimate dream vacation?')</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+              <cl:update>DELETE FROM resource_bundle WHERE bundle = 'security_question' AND locale = 'en' AND key = 'question15'</cl:update>
+              <cl:rollback>INSERT INTO resource_bundle (bundle, locale, key, value) VALUES ('security_question', 'en', 'question15', 'What is the name of the place your wedding reception was held?')</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.UpdateSecurityQuestions" />
+   </cl:changeset>
+
+   <cl:changeset identifier="addSceneRowsToRuleEnvironment" author="tweidling">
+      <cl:description>Replace the template id in rule environment with a string id</cl:description>
+      <cl:tracking>ITWO-1454</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place add sceneSequence int</cl:update>
+         <cl:rollback>ALTER TABLE place drop sceneSequence</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD satisfiable boolean</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP satisfiable</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD sceneTemplate varchar</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP sceneTemplate</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD sceneLastFireTime timestamp</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP sceneLastFireTime</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD sceneLastFireState varchar</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP sceneLastFireState</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addTagsToRuleEnvironment" author="tweidling">
+      <cl:description>Add tags and notification flag to the rule environment table</cl:description>
+      <cl:tracking>ITWO-1455</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD tags set&lt;varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP tags</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD notification boolean</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP notification</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addTrialEndToAccount" author="rob">
+      <cl:description>Adds trial end date to the account table</cl:description>
+      <cl:tracking>TODO</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE account ADD trialEnd timestamp</cl:update>
+         <cl:rollback>ALTER TABLE account DROP trialEnd</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.UpdateAccountTrialEnd"/>
+   </cl:changeset>
+
+   <cl:changeset identifier="addAttributesToLegacyIpDeviceTable" author="elarson">
+      <cl:description>Add registration attributes to legacy ip device table</cl:description>
+      <cl:tracking>ITWOK-1595</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE legacy_ip_device ADD attributes map&lt;varchar,varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE legacy_ip_device DROP attributes</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addActionConfigToRuleEnvironment" author="lparks">
+      <cl:description>Add action config data to the rule environment table</cl:description>
+      <cl:tracking>ITWO-3229</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD actionconfig varchar</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP actionconfig</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addConditionConfigToRuleEnvironment" author="lparks">
+      <cl:description>Add conditionconfig data to the rule environment table</cl:description>
+      <cl:tracking>ITWO-3229</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD conditionconfig varchar</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP conditionconfig</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addSceneEnabledToRuleEnvironment" author="lparks">
+      <cl:description>Add sceneenabled to the rule environment table</cl:description>
+      <cl:tracking>ITWO-3837</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD sceneenabled boolean</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP sceneenabled</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+      <cl:changeset identifier="populuateSceneEnabled" author="lparks">
+      <cl:description>Add sceneenabled to the rule environment table</cl:description>
+      <cl:tracking>ITWO-3837</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.SetSceneEnabled" />
+   </cl:changeset>
+   
+   <cl:changeset identifier="addSubsystemActivityLogTable" author="elarson">
+      <cl:description>Creates the table for activity logging.</cl:description>
+      <cl:tracking>ITWO-3749</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS subsystem_activity_log (
+         placeId uuid,
+         time timestamp,
+         subsystem varchar,
+         devices map&lt;varchar, varchar&gt;,
+         PRIMARY KEY (placeId, subsystem, time)
+         ) WITH CLUSTERING ORDER BY (subsystem DESC, time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS subsystem_activity_log</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addAttributesToSessionDAO" author="elarson">
+      <cl:description>Adds an attributes column to the Sessions table which is the only field not already in a column. This eliminates the need to store the serialized session which may not always serialize correctly.</cl:description>
+      <cl:tracking>ITWO-3816</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE sessions ADD attributes map&lt;varchar,varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE sessions DROP attributes</cl:rollback>
+      </cl:cql>
+   </cl:changeset>   
+
+   <cl:changeset identifier="addPlacePartition" author="tweidling">
+      <cl:description>Adds a partition id for places</cl:description>
+      <cl:tracking>ITWO-2997</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD partitionId int</cl:update>
+         <cl:rollback>ALTER TABLE place DROP partitionId</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="populatePlacePartition" author="tweidling">
+      <cl:description>Populates the partition id for places</cl:description>
+      <cl:tracking>ITWO-2997</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.GeneratePlacePartitionId"/>
+   </cl:changeset>
+   
+   
+   <cl:changeset identifier="indexPlacePartition" author="tweidling">
+      <cl:description>Indexes the partition id for places</cl:description>
+      <cl:tracking>ITWO-2997</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE INDEX place_partitionid ON place (partitionId)
+         </cl:update>
+         <cl:rollback>DROP INDEX IF EXISTS place_partitionid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="retypedColumnRepair" author="rob">
+      <cl:description>Create new columns for the four columns requiring change in type</cl:description>
+      <cl:tracking>ITWO-4780</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE person ADD pin2 varchar
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE person DROP pin2
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE ruleenvironment ADD ruletemplate2 varchar
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE ruleenvironment DROP ruletemplate2
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE device ADD driverversion2 varchar
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE device DROP driverversion2
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE device ADD hubid2 varchar
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE device DROP hubid2
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+
+   <cl:changeset identifier="addClusterServiceTable" author="tweidling">
+      <cl:description>Indexes the partition id for places</cl:description>
+      <cl:tracking>ITWO-3003</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS service (
+      		service varchar,
+      		clusterId int,
+      		host varchar,
+      		registered timestamp,
+      		heartbeat timestamp,
+      		PRIMARY KEY(service, clusterId)
+         ) WITH CLUSTERING ORDER BY (clusterId ASC)
+         </cl:update>
+         <cl:rollback>DROP TABLE service</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+
+   <cl:changeset identifier="addHubPartition" author="tweidling">
+      <cl:description>Adds a partition index for hub</cl:description>
+      <cl:tracking>ITWO-3002</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub ADD partitionId int</cl:update>
+         <cl:rollback>ALTER TABLE hub DROP partitionId</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="populateHubPartition" author="tweidling">
+      <cl:description>Adds a partition index for hub</cl:description>
+      <cl:tracking>ITWO-3002</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.GenerateHubPartitionId"/>
+   </cl:changeset>
+   
+   
+   <cl:changeset identifier="indexHubPartition" author="tweidling">
+      <cl:description>Adds a partition index for hub</cl:description>
+      <cl:tracking>ITWO-3002</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE INDEX hub_partitionid ON hub (partitionId)
+         </cl:update>
+         <cl:rollback>DROP INDEX IF EXISTS hub_partitionid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="analyticsTagSummaryTable" author="mdefano">
+      <cl:description>Adds an analytics tag summary table</cl:description>
+      <cl:tracking>ITWO-4527</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS analytics_tag_summary (
+            date timeuuid, 
+            personId uuid, 
+            activity map&lt;varchar,int&gt;, 
+            PRIMARY KEY (personId, date))
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS analytics_tag_summary</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="deleteAnalyticsTagSummaryTable" author="mdefano">
+      <cl:description>Removes analytics tag summary table</cl:description>
+      <cl:tracking>ITWO-5139</cl:tracking>
+      <cl:cql>
+         <cl:update>
+            DROP TABLE IF EXISTS analytics_tag_summary         
+         </cl:update>
+         <cl:rollback>         
+         CREATE TABLE IF NOT EXISTS analytics_tag_summary (
+            date timeuuid, 
+            personId uuid, 
+            activity map&lt;varchar,int&gt;, 
+            PRIMARY KEY (personId, date))
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+	<cl:changeset identifier="addLastDeviceAddRemoveColumn"
+		author="lparks">
+		<cl:description>Add lastDeviceAddRemove to the hub table
+		</cl:description>
+		<cl:tracking>ITWO-4901</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE hub ADD lastDeviceAddRemove uuid</cl:update>
+			<cl:rollback>ALTER TABLE hub DROP lastDeviceAddRemove</cl:rollback>
+		</cl:cql>
+		<cl:cql>
+			<cl:update>ALTER TABLE hub ADD lastReset uuid</cl:update>
+			<cl:rollback>ALTER TABLE hub DROP lastReset</cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+
+	<cl:changeset identifier="addNameAndAppVersionToMD"
+		author="trip">
+		<cl:description>Update MobileDevice to add the new 1.10 fields
+		</cl:description>
+		<cl:tracking>ITWO-5622</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE mobiledevices ADD name varchar</cl:update>
+			<cl:rollback>ALTER TABLE mobiledevices DROP name</cl:rollback>
+		</cl:cql>
+		<cl:cql>
+			<cl:update>ALTER TABLE mobiledevices ADD appVersion varchar
+			</cl:update>
+			<cl:rollback>ALTER TABLE mobiledevices DROP appVersion</cl:rollback>
+		</cl:cql>
+	</cl:changeset>	
+
+<cl:changeset identifier="pinPerPlaceMap" author="rob">
+      <cl:description>Adds a pin per place map to the person entity</cl:description>
+      <cl:tracking>TBD</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ALTER TABLE person ADD pinPerPlace map&lt;varchar,varchar&gt;
+         </cl:update>
+         <cl:rollback>
+         ALTER TABLE person DROP pinPerPlace
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="invitationTables" author="rob">
+      <cl:description>Adds a table(s) for invitations</cl:description>
+      <cl:tracking>TBD</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE invitation (
+            code varchar primary key,
+            placeId uuid,
+            placeName varchar,
+            streetAddress1 varchar,
+            streetAddress2 varchar,
+            city varchar,
+            stateProv varchar,
+            zipCode varchar,
+            inviteeId uuid,
+            inviteeEmail varchar,
+            inviteeFirstName varchar,
+            inviteeLastName varchar,
+            invitorId uuid,
+            invitorFirstName varchar,
+            invitorLastName varchar,
+            placeOwnerId uuid,
+            placeOwnerFirstName varchar,
+            placeOwnerLastName varchar,
+            created timestamp,
+            accepted timestamp,
+            rejected timestamp,
+            rejectReason varchar,
+            relationship varchar,
+            invitationText varchar,
+            personalizedGreeting varchar
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE invitation
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE invitation_place_idx(
+            placeId uuid,
+            code varchar,
+            primary key(placeId, code)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE invitation_place_idx
+         </cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE invitation_person_idx(
+            inviteeId uuid,
+            code varchar,
+            primary key(inviteeId, code)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE invitation_person_idx
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addLastServiceLevelChangeDateToPlaceTable" author="elarson">
+      <cl:description>Adds the last service level change date column to the place table</cl:description>
+      <cl:tracking>ITWO-5894</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD lastservicelevelchange timestamp</cl:update>
+         <cl:rollback>ALTER TABLE place DROP lastservicelevelchange</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset author="rob" identifier="oauthTable">
+      <cl:description>Adds the table for maintaining tokens and their relationship to people for the oauth server</cl:description>
+      <cl:tracking>ITWO-5754</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE oauth (
+            appid varchar,
+            tok_0_2 varchar,
+            tok varchar,
+            type varchar,
+            person uuid,
+            primary key((appid, tok_0_2), tok, type)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE oauth
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset author="rob" identifier="oauthPersonAppAttrs">
+      <cl:description>Adds a table for maintaining specific application configurations a person has granted access to</cl:description>
+      <cl:tracking>ITWO-6335</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE person_oauth (
+            person uuid,
+            appid varchar,
+            access varchar,
+            refresh varchar,
+            attrs map&lt;varchar,varchar&gt;,
+            primary key(person, appid)
+         )
+         </cl:update>
+         <cl:rollback>
+         DROP TABLE person_oauth
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset author="rob" identifier="cellBackupTimeTracking">
+      <cl:description>Adds a table for tracking the time a hub/sim are actively using cell backup</cl:description>
+      <cl:tracking>ITWO-6984</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE cellbackup_time (
+            dayhour timestamp,
+            minute int,
+            hubid varchar,
+            simid varchar,
+            primary key(dayhour, minute, hubid)
+         )
+         with clustering order by(minute desc)
+         </cl:update>
+         <cl:rollback>
+         DROP table cellbackup_time
+         </cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset author="rob" identifier="addDisallowCellHubColumns">
+      <cl:description>Adds two columns for tracking whether or not the hub can currently use cellular backup</cl:description>
+      <cl:tracking>ITWO-7087</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub add disallowcell boolean</cl:update>
+         <cl:rollback>ALTER TABLE hub drop disallowcell</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub add disallowcellreason varchar</cl:update>
+         <cl:rollback>ALTER TABLE hub drop disallowcellreason</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset author="rob" identifier="addHubAttributes">
+      <cl:description>Adds a map column for persisting hub attributes</cl:description>
+      <cl:tracking>ITWO-7164</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE hub ADD attributes map&lt;varchar,varchar&gt;</cl:update>
+         <cl:rollback>ALTER TABLE hub DROP attributes</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+	
+<cl:changeset identifier="addHubHistoryTable" author="sperry">
+      <cl:description>Creates the tables in which hub history events will be appended</cl:description>
+      <cl:tracking>ITWO-0000</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS histlog_hub_detailed (
+			hubId varchar,
+			time timestamp,
+			messageKey varchar,
+			params list&lt;varchar&gt;,
+			subjectAddress varchar,
+			PRIMARY KEY (hubId, time)
+         ) WITH CLUSTERING ORDER BY (time DESC)
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS histlog_hub_detailed</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addIpcdPartition" author="rob">
+      <cl:description>Adds a partition index for ipcd</cl:description>
+      <cl:tracking>ITWO-7816</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ipcd_device ADD partitionId int</cl:update>
+         <cl:rollback>ALTER TABLE ipcd_device DROP partitionId</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="populateIpcdPartition" author="rob">
+      <cl:description>Adds a partition index for ipcd</cl:description>
+      <cl:tracking>ITWO-7816</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.GenerateIpcdPartitionId"/>
+   </cl:changeset>
+   
+   
+   <cl:changeset identifier="indexIpcdPartition" author="rob">
+      <cl:description>Adds a partition index for ipcd</cl:description>
+      <cl:tracking>ITWO-7816</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE INDEX ipcd_partitionid ON ipcd_device(partitionId)
+         </cl:update>
+         <cl:rollback>DROP INDEX IF EXISTS ipcd_partitionid</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   
+   <cl:changeset identifier="addIpcdStates" author="rob">
+      <cl:description>Adds state columns for ipcd</cl:description>
+      <cl:tracking>ITWO-7816</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ipcd_device ADD connState varchar</cl:update>
+         <cl:rollback>ALTER TABLE ipcd_device DROP connState</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE ipcd_device ADD registrationState varchar</cl:update>
+         <cl:rollback>ALTER TABLE ipcd_device DROP registrationState</cl:rollback>
+      </cl:cql>
+      <cl:java class="com.iris.modelmanager.commands.UpdateIpcdStateColumns"/>
+   </cl:changeset>
+
+</cl:changelog>

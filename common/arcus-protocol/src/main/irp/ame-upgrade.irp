@@ -1,0 +1,23 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Upgrade Cluster
+//    From "Implementing the AlertMe Upgrade Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.Upgrade {
+   const u16 CLUSTER_ID = 0x0B7D;
+}
+
+message alertme.Upgrade.BootloadRequest<id="0x00"> {
+   u64 eui64;
+}
+
+message alertme.Upgrade.BootloadResponse<id="0x01"> {
+   const u8 STATUS_FAILED = 0x00;
+   u8 status;
+}
+
+message alertme.Upgrade.Bootloaded<id="0x04"> {
+   u64 eui64;
+   u8 appRelease;
+   u8 appVersion;
+}

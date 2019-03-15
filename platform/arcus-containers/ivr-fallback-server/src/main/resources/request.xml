@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+   <Say voice="alice" language="en-US">
+   Thank you for calling Arcus.  Please check your Arcus mobile app for the latest
+   information about your home's alarm state.
+   </Say>
+   <Pause/>
+   <Say voice="alice" language="en-US">
+   If you are looking for customer support, place hang up and dial 1 8 5 5 4 6 9 4 7 4 7.
+   </Say>
+   <Pause/>
+   <Say voice="alice" language="en-US">Thank You.  Goodbye.</Say>
+   <Hangup/>
+</Response>

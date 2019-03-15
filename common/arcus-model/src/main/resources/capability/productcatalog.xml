@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability name="ProductCatalog" namespace="prodcat"
+	version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+	<c:description>
+   Model of a product catalog
+   </c:description>
+
+	<c:attributes>
+      <c:attribute name="filenameVersion" readwrite="r" type="int"
+         optional="false" description="Product catalog filename version"/>
+      <c:attribute name="brandCount" readwrite="r" type="int"
+         optional="false" description="Number of brand names in catalog"/>
+      <c:attribute name="categoryCount" readwrite="r" type="int"
+         optional="false" description="Number of categories in catalog"/>
+      <c:attribute name="productCount" readwrite="r" type="int"
+         optional="false" description="Number of products in this catalog"/>
+         
+      <!-- Deprecated Attributes -->
+      <c:attribute name="publisher" readwrite="r" type="string"
+         optional="false" description="Deprecated - publisher is used or updated"/>
+      <c:attribute name="version" readwrite="r" type="timestamp"
+         optional="false" description="Deprecated - Version is now pulled from the filename"/>
+	</c:attributes>
+	
+	
+
+	<c:methods>
+	
+	   <c:method name="GetProductCatalog"
+	      description="Returns information about the product catalog for the context population.">
+	      <c:return name="catalog" type="ProductCatalog" description="" />
+	   </c:method>
+
+		<c:method name="GetCategories"
+			description="Returns a list of all the categories as a structure (name, image) referenced in this catalog as well as counts by category.  Nested catagories will be returned as fully qualified forward-slash delimited paths">
+			<c:return name="categories" type="List&lt;Object&gt;" description=""/>
+         <c:return name="counts" type="Map&lt;int&gt;" description="The counts of products by category name"/>
+		</c:method>
+
+		<c:method name="GetBrands"
+			description="Returns a list of all the brands referenced in this catalog where each is a structure containing (name, image, description).  In addition the counts of products by brand name are returned.">
+			<c:return name="brands" type="List&lt;Object&gt;" description="" />
+         <c:return name="counts" type="Map&lt;int&gt;" description="The counts of products by brand name"/>
+		</c:method>
+
+		<c:method name="GetProductsByBrand"
+			description="">
+			<c:parameter name="brand" type="string" description=""/>
+			<c:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+		</c:method>
+
+		<c:method name="GetProductsByCategory"
+			description="">
+			<c:parameter name="category" type="string" description=""/>
+			<c:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+		</c:method>
+
+		<c:method name="GetProducts"
+			description="">
+			<c:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+		</c:method>
+
+		<c:method name="GetAllProducts" description="Gets all products including those that are not browseable.">
+			<c:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="All products in the catalog."/>
+		</c:method>
+
+		<c:method name="FindProducts"
+			description="">
+			<c:parameter name="search" type="string" description=""/>
+			<c:return name="products" type="List&lt;ProductCatalogEntry&gt;" description="" />
+		</c:method>
+
+		<c:method name="GetProduct"
+			description="">
+			<c:parameter name="id" type="string" description=""/>
+			<c:return name="product" type="ProductCatalogEntry" description="" />
+		</c:method>
+
+	</c:methods>
+   
+</c:capability>

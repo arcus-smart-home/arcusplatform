@@ -1,0 +1,24 @@
+
+message zwave.EnergyProduction.EnergyProductionGetV1<id="0x02", group="V1"> {
+    const u8 PARAMETER_NUMBER_INSTANT_ENERGY_PRODUCTION = 0x00;
+    const u8 PARAMETER_NUMBER_TOTAL_ENERGY_PRODUCTION = 0x01;
+    const u8 PARAMETER_NUMBER_ENERGY_PRODUCTION_TODAY = 0x02;
+    const u8 PARAMETER_NUMBER_TOTAL_PRODUCTION_TIME = 0x03;
+    u8 parameterNumber;
+}
+
+message zwave.EnergyProduction.EnergyProductionReportV1<id="0x03", group="V1"> {
+    const u8 PARAMETER_NUMBER_INSTANT_ENERGY_PRODUCTION = 0x00;
+    const u8 PARAMETER_NUMBER_TOTAL_ENERGY_PRODUCTION = 0x01;
+    const u8 PARAMETER_NUMBER_ENERGY_PRODUCTION_TODAY = 0x02;
+    const u8 PARAMETER_NUMBER_TOTAL_PRODUCTION_TIME = 0x03;
+    const u8 LEVEL_SIZE_MASK = 0x07;
+    const u8 LEVEL_SIZE_SHIFT = 0;
+    const u8 LEVEL_SCALE_MASK = 0x18;
+    const u8 LEVEL_SCALE_SHIFT = 3;
+    const u8 LEVEL_PRECISION_MASK = 0xE0;
+    const u8 LEVEL_PRECISION_SHIFT = 5;
+    u8 parameterNumber;
+    u8 level;
+    u8[] val;
+}

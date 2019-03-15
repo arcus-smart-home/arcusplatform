@@ -1,0 +1,286 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco ZWave Plus 14291 In-Wall Switch
+ * 
+ * 
+ */
+driver			"ZWJasco14291InWallSwitchDriver"
+description		"Driver for a Jasco 14291 In-Wall Switch"
+version			"2.7"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+productId		"671eee" 
+vendor 			"GE"
+model 			"14291"
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4952, 'ZWAV:ProductId': 0x3036	//GE
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4952, 'ZWAV:ProductId': 0x3130	//Jasco
+
+capabilities	DevicePower, Switch, Indicator
+
+importCapability 'zwave/GenericZWaveVersion'
+
+// Device Type:
+//		Binary Power Switch
+//
+// Command Classes:
+//		0x25   (37) Switch_Binary
+//		0x27   (39) Switch_All
+//      0x56   (86) CRC16 Encap
+//      0x59   (89) Association Group Info
+//      0x5A   (90) Device Reset Locally
+//		0x5E   (94) Z-Wave+ Info
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//      0x7A  (122) Firmware Update Meta Data
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+//Default attributes attributes are assumed
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Switch.state                        Switch.STATE_OFF
+Switch.inverted                     false
+
+Indicator.enabled                   true
+Indicator.enableSupported           true		
+Indicator.inverted                  false		// factory default  false == LED ON when Switch OFF
+Indicator.indicator					Indicator.INDICATOR_ON
+
+final String DEVICE_NAME        = "Jasco 14291 Switch"
+final int POLLING_INTERVAL_SEC  = 3600		// every hour
+final int OFFLINE_TIMEOUT_SECS  = 10800       // 3 hrs
+
+final byte SWITCH_ON		    = 0xff
+final byte SWITCH_OFF		    = 0x00
+
+// config definitions/constants
+// ----------------------------
+final byte CNFG_LED_PARAM_NO      = 0x03        // LED Indicator
+final byte CNFG_LED_SIZE          = 0x01
+final byte CNFG_LED_NORMAL        = 0x00		// LED 'ON' when outlet is 'OFF' (default)
+final byte CNFG_LED_INVERSE       = 0x01		// LED 'ON' when outlet is 'ON'
+final byte CNFG_LED_OFF           = 0x02		// LED always OFF
+
+final byte CNFG_TOGGLE_PARAM_NO   = 0x04		// parameter number for 'Toggle' setting, used to invert operation if installed upside down
+final byte CNFG_TOGGLE_SIZE       = 0x01		// size of 'Toggle' parameter field, in bytes
+final byte CNFG_TOGGLE_NORMAL     = 0x00		// Top/Up is 'ON' (default)
+final byte CNFG_TOGGLE_INVERT     = 0x01		// Top/Up is 'OFF'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "${} added with Attributes {}",DEVICE_NAME, message.attributes
+	
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+        // reset the configurations to default
+	ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_NORMAL)
+	ZWave.configuration.set(CNFG_TOGGLE_PARAM_NO, CNFG_TOGGLE_SIZE, CNFG_TOGGLE_NORMAL)
+}
+
+onConnected {
+	log.debug "${} connected",DEVICE_NAME
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+	
+	ZWave.switch_binary.get()
+
+	ZWave.configuration.get(CNFG_LED_PARAM_NO)
+	ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
+}
+
+onDisconnected {
+	log.debug "${} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "${} removed", DEVICE_NAME
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Indicator Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('indicator') {
+	log.debug "${} received SetAttributes(indicator') {}", DEVICE_NAME, message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Indicator.inverted:
+				// set the LED configuration
+				ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+				break
+			case Indicator.enabled:
+				if (true == attribute.value){
+				log.debug("Deciding what to set LED at based on inverted setting of [{}]",Indicator.inverted.get()) 
+				// Set either inverted or normal
+					ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, Indicator.inverted.get() ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+				} else {
+					ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_OFF)
+				}
+				break
+			default:
+				break
+		}
+	}
+	// get the current LED configuration from the device (to verify the config was set)
+	ZWave.configuration.get(CNFG_LED_PARAM_NO)
+	sendResponse 'indicator:SetAttributesResponse', [:]		
+}
+
+setAttributes('swit') {
+	log.debug "${} received Set Switch Attributes {}", DEVICE_NAME, message
+		
+	def attributes = message.attributes;
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				// set the device to the desired state
+				ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+				// get the current switch state from the device (to verify the setting was made)
+				//Still required, even with reporting
+				ZWave.switch_binary.get()
+				break
+			case Switch.inverted:
+				// set the Switch Orientation configuration
+				ZWave.configuration.set(CNFG_TOGGLE_PARAM_NO, CNFG_TOGGLE_SIZE, attribute.value ? CNFG_TOGGLE_INVERT : CNFG_TOGGLE_NORMAL)
+				// get the current Switch Orientation configuration from the device (to verify the config was set)
+				ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
+				break	
+			default:
+				break
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	log.debug "{}reported switch binary value: {}", DEVICE_NAME, message.command.get('value')
+	def prevState = Switch.state.get()
+	byte newState = message.command.get('value')
+	boolean indicatorMatchesPower = Indicator.inverted.get()	// LED Indicator matches receptacle power if inverted
+	if (SWITCH_ON == newState) {
+		// set/save the state attribute of the receptacle
+		Switch.state Switch.STATE_ON
+	} else  if (SWITCH_OFF == newState){
+		// set/save the state attribute of the receptacle
+		Switch.state Switch.STATE_OFF
+	} else {
+	 log.info "{} received unknown state of {}", DEVICE_NAME, newState
+	 } 
+	// update the indicator attribute to match (or inverse of) the state attribute
+	updateIndicator()	
+
+	// if state changed, capture timestamp
+	if (Switch.state.get() != prevState) {
+		Switch.statechanged new Date()
+	}
+		
+}
+
+void updateIndicator(){
+	boolean switchOn = (Switch.STATE_ON==Switch.state.get() ? true: false)
+	log.debug "In 'updateIndicator' with switch on = [{}], indicator enabled = [{}]", switchOn, Indicator.enabled.get()
+	if (Indicator.enabled.get()){ 
+		boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
+		if (Switch.STATE_OFF == Switch.state.get()) {
+			//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+			Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+		} else {
+			//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+			Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+		}
+	} else {
+		Indicator.indicator Indicator.INDICATOR_DISABLED
+	}
+}
+
+onZWaveMessage.configuration.report {
+	log.debug "${} sent configuration report: {}",DEVICE_NAME, message
+	byte param = message.command.get('param')
+	byte level = message.command.get('level')
+	byte val1 = message.command.get('val1')
+	log.debug "param: {}, level: {}, val1: {}", param, level, val1
+
+	if (CNFG_LED_PARAM_NO == param) {
+		log.debug "LED Parameter: {}", val1
+		switch (val1){
+			case CNFG_LED_NORMAL:
+				// set/save the inverted attribute of the LED indicator
+				Indicator.inverted false
+				Indicator.enabled  true
+				break;
+			case CNFG_LED_INVERSE:
+				// set/save the inverted attribute of the LED indicator
+				Indicator.inverted true
+				Indicator.enabled  true
+				break;
+			case CNFG_LED_OFF:
+				Indicator.enabled false
+				break
+			default:
+				log.info "{} received unknown value for LED Parameter {}", DEVICE_NAME, val1
+				break
+		}
+		updateIndicator()
+	}
+
+	if (CNFG_TOGGLE_PARAM_NO == param) {
+		log.debug "Toggle Switch Inverted: {}", val1
+		// set/save the inverted attribute of the switch
+		Switch.inverted ((0 == val1) ? false : true)
+	}
+}
+
+onZWaveNodeInfo {
+	log.debug "{} reported Node Info: {}, {}, {}, {}, {}",DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()	
+}
+
+onZWaveMessage.application_status.busy {
+	log.debug "{} reported Busy", DEVICE_NAME
+}
+
+onZWaveMessage.zwaveplus_info.report {
+	log.trace "{} sent ZWave Plus Info Report:{}", DEVICE_NAME, message
+	def zwVer = message.command.get('zwaveversion')
+	def roleType = message.command.get('roletype')
+	def nodeType = message.command.get('nodetype')
+	log.info "{} sent ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", DEVICE_NAME, zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "{} sent Device Reset Locally Notification", DEVICE_NAME
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {} with data {}", DEVICE_NAME, message, message.command.recvBytes
+    return false;
+}
+
+

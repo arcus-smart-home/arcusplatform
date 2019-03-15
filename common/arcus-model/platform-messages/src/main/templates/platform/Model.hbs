@@ -1,0 +1,86 @@
+{{#file . "com/iris/messages/model/{{packageOf .}}/{{name}}Model.java"}}
+package com.iris.messages.model.{{packageOf .}};
+
+import com.iris.messages.model.DelegateModel;
+import com.iris.messages.model.Model;
+
+import static com.iris.messages.capability.{{name}}Capability.*;
+
+public class {{name}}Model extends {{#if enhances}}{{enhances}}Model{{else}}DelegateModel{{/if}} {
+   public static final String NAME = "{{name}}";
+   public static final String NAMESPACE = "{{namespace}}";
+   
+   /** static helpers for working with untyped models */
+   {{#attributes}}
+   /** {{description}} */
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(Model model) {
+      return ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(model.getAttribute(ATTR_{{toUpperCase name}}));
+   }
+   {{#enumValues}}
+   public static boolean is{{capitalize name}}{{capitalize .}}(Model model) {
+      return {{toUpperCase name}}_{{toUpperCase .}}.equals(model.getAttribute(ATTR_{{toUpperCase name}}));
+   }{{/enumValues}}
+
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(Model model, {{{javaTypeOf type}}} dflt) {
+      Object v = TYPE_{{toUpperCase name}}.coerce(model.getAttribute(ATTR_{{toUpperCase name}}));
+      if(v == null) {
+         return dflt;
+      }
+      return ({{{javaTypeOf type}}}) v;
+   }
+      
+   public static void set{{capitalize name}}(Model model, {{{javaTypeOf type}}} value) {
+      model.setAttribute(ATTR_{{toUpperCase name}}, value);
+   }
+
+   /** Multi-instance */
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(String instanceId, Model model) {
+      return ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(model.getAttribute(ATTR_{{toUpperCase name}} + ":" + instanceId));
+   }
+   {{#enumValues}}
+   public static boolean is{{capitalize name}}{{capitalize .}}(String instanceId, Model model) {
+      return {{toUpperCase name}}_{{toUpperCase .}}.equals(model.getAttribute(ATTR_{{toUpperCase name}} + ":" + instanceId));
+   }{{/enumValues}}
+
+   public static {{{javaTypeOf type}}} get{{capitalize name}}(String instanceId, Model model, {{{javaTypeOf type}}} dflt) {
+      Object v = TYPE_{{toUpperCase name}}.coerce(model.getAttribute(ATTR_{{toUpperCase name}} + ":" + instanceId));
+      if(v == null) {
+         return dflt;
+      }
+      return ({{{javaTypeOf type}}}) v;
+   }
+   
+   public static void set{{capitalize name}}(String instanceId, Model model, {{{javaTypeOf type}}} value) {
+      model.setAttribute(ATTR_{{toUpperCase name}} + ":" + instanceId, value);
+   }
+   {{/attributes}}
+   
+   public {{name}}Model(Model delegate) {
+      super(delegate);
+   }
+
+   {{#attributes}}
+   /** {{description}} */
+   public {{{javaTypeOf type}}} get{{capitalize name}}() {
+      return ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(delegate().getAttribute(ATTR_{{toUpperCase name}}));
+   }
+   {{#enumValues}}
+   public boolean is{{capitalize name}}{{capitalize .}}() {
+      return {{toUpperCase name}}_{{toUpperCase .}}.equals(delegate().getAttribute(ATTR_{{toUpperCase name}}));
+   }{{/enumValues}}
+   {{#if type.primitive}}
+   public {{{javaTypeOf type}}} get{{capitalize name}}({{{javaTypeOf type}}} dflt) {
+      Object v = TYPE_{{toUpperCase name}}.coerce(delegate().getAttribute(ATTR_{{toUpperCase name}}));
+      if(v == null) {
+         return dflt;
+      }
+      return ({{{javaTypeOf type}}}) v;
+   }{{/if}}
+   
+   public {{../name}}Model set{{capitalize name}}({{{javaTypeOf type}}} value) {
+      delegate().setAttribute(ATTR_{{toUpperCase name}}, value);
+      return this;
+   }
+   {{/attributes}}
+} 
+{{/file}}

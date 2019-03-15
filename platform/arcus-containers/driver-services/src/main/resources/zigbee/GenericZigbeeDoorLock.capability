@@ -1,0 +1,657 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+import com.iris.protocol.zigbee.zcl.DoorLock.OperationEventNotification
+import com.iris.protocol.zigbee.zcl.DoorLock.ProgrammingEventNotification
+
+capability		DoorLock
+description		"Default implementation for the Zigbee DoorLock capability"
+version			"1.0"
+
+@Field def final String DEFAULT_NAME = 'Unknown Device'
+@Field def final String RESERVED = "RESERVED"
+
+static void doSetDoorLockAttributes(ctx,name,cluster,message) {
+	def attributes = message.attributes
+	ctx.log.trace "Set Door Lock Attributes: {}", attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.DoorLock.lockstate:
+				if (ctx.DoorLock.LOCKSTATE_LOCKED == attribute.value ) {
+					cluster.lockDoor()
+					updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKING)
+				} else if (ctx.DoorLock.LOCKSTATE_UNLOCKED == attribute.value ) {
+					cluster.unlockDoor()
+					updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKING)
+				} else {
+					ctx.log.warn "Ignoring attempt to set lock to unexpected Lock State:" + attribute.value
+				}
+				break
+				
+			default:
+				ctx.log.error "Unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+	
+static void doAuthorizePerson(ctx,name,cluster,message) {
+	def personId = message.attributes['personId']
+	ctx.log.trace "Authorize Person: {}", personId
+	def slots = getDoorLockSlots(ctx)
+
+    // Check to see if the user has already been assigned a slot on the
+    // lock. If they haven't look for a new slot to assign the user into.
+	int slot = findSlotForUser(slots,personId)
+	slot = (slot != 0) ? slot : findAndAssignNewSlotToUser(slots,personId,ctx.DoorLock.numPinsSupported.get())
+   
+    // If we couldn't assign the slot to the user then return an error
+    // to the source of the original request.
+    if (slot == 0) {
+	    ctx.emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':slot, 'message': 'No slot available']
+	    ctx.sendResponse ('Error', [ code: 'request.unsatisfiable', message: 'No slot available' ])
+        return
+    }
+
+
+    // Update the slot mappings and attempt to provision the PIN into
+    // the doorlock in the given slot.
+    ctx.log.info "Attempting to provision user ${personId} into slot ${slot}"
+    ctx.DoorLock.slots slots
+
+    byte[] pinData = ctx.PinManagement.getPin( personId )
+
+	// Set the pin slot here to check for devices that do not send a pin added event.
+    ctx.vars.'CUR_PENDING_SLOT_TO_ADD' = slot
+    cluster.setPinCode((short)slot, (byte) 1, (byte) 0, pinData)
+    ctx.sendResponse( 'doorlock:AuthorizePersonResponse', ['slotId':slot] )
+}
+
+static void doDeauthorizePerson(ctx,name,cluster,message) {
+	def personId = message.attributes['personId']
+	ctx.log.trace "Deauthorize Person: {}", personId
+	def slots = getDoorLockSlots(ctx)
+
+	int slot = findSlotForUser(slots,personId)
+	if (slot == 0) {
+	    ctx.emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':slot, 'message': 'No slot assigned to ${personId}']
+	    ctx.sendResponse ('Error', [ code: 'request.unsatisfiable', message: 'No slot assigned to person ${personId}' ])
+	    return;
+	}
+
+	// Attempt to deprovision the PIN from the given slot on the door lock.
+    ctx.log.info "Attempting to deprovision user {} from slot {}", personId, slot
+
+	// Set the pin slot here to check for devices that do not send a pin added event.
+    ctx.vars.'CUR_PENDING_SLOT_TO_REMOVE' = slot
+
+    cluster.clearPinCode((short)slot)
+	ctx.sendResponse('doorlock:DeauthorizePersonResponse', [:])
+}
+
+static void doClearAllPins(ctx,name,cluster) {
+    ctx.log.warn "Attempting to clear all PINs"
+	ctx.DoorLock.slots [:]
+
+	cluster.clearAllPinCodes()
+	ctx.sendResponse('doorlock:ClearAllPinsResponse', ['unlocked':true])
+}
+
+static void doBuzzIn(ctx,name,cluster) {
+	ctx.log.trace "Do Buzz In"
+    def state = ctx.DoorLock.lockstate.get()
+	boolean isLocked = (ctx.DoorLock.LOCKSTATE_LOCKED == state) ||
+	                   (ctx.DoorLock.LOCKSTATE_LOCKING == state) 
+
+	if(isLocked) {
+	    ctx.log.info "Buzzing user in"
+
+		updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKING)
+		cluster.unlockDoor()
+
+		ctx.Scheduler.scheduleIn 'LockAfterBuzzIn', 35000 // 30 seconds + time to deliver message
+	}
+
+	ctx.sendResponse('doorlock:BuzzInResponse', ['unlocked':isLocked])
+}
+
+static void doLockAfterBuzzIn(ctx,name,cluster) {
+    ctx.log.info "Locking door after buzz in"
+
+    updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKING)
+	cluster.lockDoor()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utilities
+////////////////////////////////////////////////////////////////////////////////
+
+static def getDoorLockSlots(ctx) {
+    def slots = ctx.DoorLock.slots.get()
+    if (slots == null) {
+        return [:]
+    }
+
+    return [:] << slots
+}
+
+static def getUserInSlot(ctx,slot) {
+    return ctx.DoorLock.slots.get()[slot.toString()]
+}
+
+static void updateLockState(ctx,newState) {
+	def prevState = ctx.DoorLock.lockstate.get()
+    ctx.log.trace "Setting lockstate: {}", newState
+	ctx.DoorLock.lockstate newState
+
+	if (newState != prevState) {
+		ctx.DoorLock.lockstatechanged new Date()
+	}
+}
+
+static def setLockState(ctx,name,cluster,state) {
+	switch(state) {
+	case cluster.LOCK_STATE_LOCKED:
+		updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+		return 'Locked';
+	case cluster.LOCK_STATE_UNLOCKED:
+		updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+		return 'Unlocked'
+    default:
+		return 'Unknown'
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// ZigBee Door Lock Operation Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleLockDoorResponse(ctx,name,cluster,message) {
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def int status = msg.getStatus()
+	ctx.log.trace "Received Lock Door response: {}", status
+	
+	if (ctx.DoorLock.LOCKSTATE_LOCKING == ctx.DoorLock.lockstate.get()) {
+		if (0 == status) {
+			// TODO: probably should not be doing this here, but instead waiting for an 
+			// Operations Event Notification to tell us the device is actually LOCKED
+			// (in case it jams while trying to engage the deadbolt)
+			updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+		} else {
+			// do not leave in transient LOCKING state if device already told us command failed
+			updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+		}
+	}
+}
+
+static void handleUnlockDoorResponse(ctx,name,cluster,message) {
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def int status = msg.getStatus()
+	ctx.log.trace "Received Unlock Door response: {}", status
+	
+	if (ctx.DoorLock.LOCKSTATE_UNLOCKING == ctx.DoorLock.lockstate.get()) {
+		if (0 == status) {
+			updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+		} else {
+			// do not leave in transient UNLOCKING state if device already told us command failed
+			updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Door Lock Pin Code Responses
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleSetPinCodeResponse(ctx,name,cluster,message) {
+    handleSetPinCodeResponse(ctx,name,cluster,message,false)
+}
+
+static void handleSetPinCodeResponse(ctx,name,cluster,message,usePendingSlot) {
+	ctx.log.debug "Received doorlock set pin code response: {}", message
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def status = msg.getStatus()
+
+	def slot = ctx.vars.'CUR_PENDING_SLOT_TO_ADD'
+	ctx.vars.'CUR_PENDING_SLOT_TO_ADD' = null
+
+	if (0 != status) {
+		ctx.log.warn "Received doorlock set pin code response: failed to set pin code for slot {} ", slot
+		doSlotProvisioningFailed(ctx,name,getDoorLockSlots(ctx),slot,"received failure code ${status}")
+	// Check for lock that do not send back a pin added event.
+	} else if (null != slot && usePendingSlot) {		
+		ctx.log.trace "Received doorlock set pin code response: status={}", status
+		doSlotAuthorized(ctx,name,cluster,getDoorLockSlots(ctx),slot)
+	}
+}
+
+static void handleGetPinCodeResponse(ctx,name,cluser,message) {
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def userId = msg.getUserId()
+	def curPin = msg.getPin()
+	def userType = msg.getUserType()
+	def userStatus = msg.getUserStatus()
+	ctx.log.debug "Received doorlock get pin code response: msg={},user={},status={}", message, userId, userStatus
+}
+
+static void handleClearPinCodeResponse(ctx,name,cluster,message) {
+	handleClearPinCodeResponse(ctx,name,cluster,message,false)
+}
+
+static void handleClearPinCodeResponse(ctx,name,cluster,message,usePendingSlot) {
+	ctx.log.trace "Received Doorlock clearpincoderesponse: {}", message
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	int status = msg.getStatus()
+
+	def slot = ctx.vars.'CUR_PENDING_SLOT_TO_REMOVE'
+	ctx.vars.'CUR_PENDING_SLOT_TO_REMOVE' = null
+
+	if (0 != status) {
+		ctx.log.warn "Received doorlock clear pin code response: failed status=${status} for slot ${slot}"
+		doSlotProvisioningFailed(ctx,name,getDoorLockSlots(ctx),slot,"received failure code ${status}")
+	} else if (null != slot && usePendingSlot) {		
+		ctx.log.trace "Received doorlock clear pin code response: status=${status} for slot ${slot}"
+		doSlotDeauthorized(ctx,name,getDoorLockSlots(ctx),slot)
+	}
+}
+
+static void handleClearAllPinCodesResponse(ctx,name,cluster,message) {
+	ctx.log.trace "Received doorlock clear all pin codes response: {}", message
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def status = msg.getStatus()
+
+	if (0 != status) {
+		ctx.log.warn "Received doorlock clear all pin codes response: failure status={}", status
+	}else {
+		ctx.log.trace "Received doorlock clear all pin codes response: status={}", status
+
+		ctx.DoorLock.slots [:]
+		doPinsCleared(ctx,name)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Door Lock Attribute Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleDoorlockAttributes(ctx,name,cluster,message) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(message)
+	def lockState = attributes[cluster.ATTR_LOCK_STATE]
+    ctx.log.trace "Reported Lock State(0=NotFullyLocked,1=Locked,2=Unlocked):{}", lockState
+	setLockState(ctx,name,cluster,lockState)
+}
+
+static void handleReportingConfigResponse(ctx,message) {
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+	if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+		ctx.log.trace "Doorlock Config Reporting response was SUCCESSFUL: {}", data
+	} else {
+		ctx.log.warn "Doorlock Config Reporting response FAILED: {}", data
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Alarms
+////////////////////////////////////////////////////////////////////////////////
+
+// Handler for alarm codes reported by Yale locks
+static void handleYaleAlarms(ctx,message) {
+    def zclMsg = ctx.Zigbee.Message.toZcl(message)
+    byte[] data = zclMsg.getPayload()
+    if (2 < data.length) {
+        byte alarmCode = data[0]
+        short clusterId = (data[2]*256) + data[1]
+        if (0x0101 == clusterId) {    // DoorLock Cluster
+            switch (alarmCode) {
+                case 0:    // deadbolt jammed (verified)
+                    ctx.log.warn "Reported Alarm: Deadbolt Jammed"
+					// cannot change Lock State back to UNLOCKED because it may trigger a scene
+                    //updateLockState(ctx, ctx.DoorLock.LOCKSTATE_UNLOCKED)
+                    break
+                case 1:    // factory reset
+                    ctx.log.warn "Reported Alarm: Device was Factory Reset"
+                    break
+                case 4:    // wrong PIN limit (verified, after 5 invalid entries)
+                    ctx.log.warn "Reported Alarm: Too many wrong PIN codes entered"
+                    break
+                case 5:    // Front Panel Removed
+                    ctx.log.warn "Reported Alarm: Front Panel Removed"
+                    break
+                case 6:    // Forced Open
+                    ctx.log.warn "Reported Alarm: Forced Open"
+					// cannot set Lock State to UNLOCKED because it may trigger a scene
+                    //updateLockState(ctx, ctx.DoorLock.LOCKSTATE_UNLOCKED)
+                    break
+                default:
+                    break
+                    ctx.log.warn "Reported alarm code: {} for cluster ID: {}", alarmCode, clusterId
+            }
+        } else {
+            ctx.log.warn "Reported alarm code: {} for cluster ID: {}", alarmCode, clusterId
+        }
+    } else {
+        ctx.log.warn "Reported alarm code message: {} with data: {}", zclMsg, data
+    }
+}
+
+// Handler for alarm codes reported by Kwikset locks
+static void handleKwiksetAlarms(ctx,message) {
+    def zclMsg = ctx.Zigbee.Message.toZcl(message)
+    byte[] data = zclMsg.getPayload()
+    if (2 < data.length) {
+        byte alarmCode = data[0]
+        short clusterId = (data[2]*256) + data[1]
+        if (0x0101 == clusterId) {    // DoorLock Cluster
+            switch (alarmCode) {
+                case 0:    // deadbolt jammed (verified)
+                    ctx.log.warn "Reported Alarm: Deadbolt Jammed"
+					// cannot change Lock State back to UNLOCKED because it may trigger a scene
+                    //updateLockState(ctx, ctx.DoorLock.LOCKSTATE_UNLOCKED)
+                    break
+                case 1:    // factory reset
+                    ctx.log.warn "Reported Alarm: Device was Factory Reset"
+                    break
+                case 4:    // wrong PIN limit
+                    ctx.log.warn "Reported Alarm: Too many wrong PIN codes entered"
+                    break
+                case 5:    // Front Panel Removed
+                    ctx.log.warn "Reported Alarm: Front Panel Removed"
+                    break
+                case 6:    // Forced Open
+                    ctx.log.warn "Reported Alarm: Forced Open"
+					// cannot set Lock State to UNLOCKED because it may trigger a scene
+                    //updateLockState(ctx, ctx.DoorLock.LOCKSTATE_UNLOCKED)
+                    break
+                default:
+                    break
+                    ctx.log.warn "Reported alarm code: {} for cluster ID: {}", alarmCode, clusterId
+            }
+        } else {
+            ctx.log.warn "Reported alarm code: {} for cluster ID: {}", alarmCode, clusterId
+        }
+    } else {
+        ctx.log.warn "Reported alarm code message: {} with data: {}", zclMsg, data
+    }
+}
+
+static void handleAlarmReportingConfigResponse(ctx,message) {
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+	if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+		ctx.log.trace "Alarms Cnfg Reporting response was SUCCESSFUL: {}", data
+	} else {
+		ctx.log.warn "Alarms Cnfg Reporting response FAILED: {}", data
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Operation Event Notification
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleOperationEventNotification(ctx,name,cluster,message) {
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def source = msg.getSource()
+	def code = msg.getCode()
+	def userId = msg.getUserId()
+	def pin = msg.getPin()
+	def localTime = msg.getLocalTime()
+
+	def isFromRf = source == 0x01
+
+	ctx.log.trace "Received operation event notification: src={}, code={}, user={}", source, code, userId
+	switch (code) {
+	case OperationEventNotification.CODE_LOCK:
+	case OperationEventNotification.CODE_KEYLOCK:
+	case OperationEventNotification.CODE_SCHEDULELOCK:
+	case OperationEventNotification.CODE_MANUALLOCK:
+	case OperationEventNotification.CODE_ONETOUCHLOCK:
+		updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+	    if (!isFromRf) {
+		    doPinUsed(ctx, name, userId, 'locked')
+        }
+		break
+		
+	case OperationEventNotification.CODE_UNLOCK:
+	case OperationEventNotification.CODE_KEYUNLOCK:
+	case OperationEventNotification.CODE_SCHEDULEUNLOCK:
+	case OperationEventNotification.CODE_MANUALUNLOCK:
+		updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+	    if (!isFromRf) {
+		    doPinUsed(ctx, name, userId, 'unlocked')
+        }
+		break
+		
+	default:
+		ctx.log.warn "Received unknown operation event notification code:{}", code
+		break;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Door Programming Event Notification
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleProgrammingEventNotification(ctx,name,cluster,message) {
+	def msg = ctx.Zigbee.Message.decodeZcl(message)
+	def source = msg.getSource()
+	def code = msg.getCode()
+	def userId = msg.getUserId()
+	def pin = msg.getPin()
+	def localTime = msg.getLocalTime()
+
+	def isFromRf = source == 0x01
+
+	ctx.log.trace "Received programming event notification: src={}, code={}, user={}, message={}", source, code, userId, message
+	switch (code) {
+	case ProgrammingEventNotification.CODE_MASTERCODECHANGE:
+		ctx.log.info "Received programming event notification - master code changed"
+		break
+	case ProgrammingEventNotification.CODE_PINCODEADDED:
+	    if (!isFromRf) {
+		   doPinAddedAtLock(ctx,name,cluster,userId)
+		} else {
+		   doSlotAuthorized(ctx,name,cluster,getDoorLockSlots(ctx),userId)
+		}
+		break
+	case ProgrammingEventNotification.CODE_PINCODEDELETED:
+	    if (!isFromRf) {
+		   doPinRemovedAtLock(ctx,name,userId)
+		} else {
+		   doSlotDeauthorized(ctx,name,getDoorLockSlots(ctx),userId)
+		}
+		break
+	case ProgrammingEventNotification.CODE_PINCODECHANGED:
+		doPinChangedAtLock(ctx,name,userId)
+		break
+	case ProgrammingEventNotification.CODE_RFIDCODEADDED:
+		ctx.log.debug "Received programming event notification - RF ID code added at slot {}", userId
+		break
+	case ProgrammingEventNotification.CODE_RFIDCODEDELETED:
+		ctx.log.debug "Received programming event notification - RF ID code deleted at slot {}", userId
+		break
+	default:
+		ctx.log.warn "Received unknown programming event notification code: {}", code
+		break;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee PIN Code Utilities
+////////////////////////////////////////////////////////////////////////////////
+   
+static int findSlotForUser(slots,personId) {
+	for (def s : slots.keySet()) {
+		if (personId == slots[s]) {
+			return s.toInteger()
+		}
+	}
+
+	return 0
+}
+
+static int findAndAssignNewSlotToUser(slots,personId,maxPinSupported) {
+	for (def pc in 1..maxPinSupported) {
+	    def key = pc.toString()
+		if (!slots.containsKey(key)) {
+		    slots.put(key,personId)
+		    return pc
+        }
+	}
+
+	return 0
+}
+
+static void doSlotDeauthorized(ctx,name,slots,userId) {
+	if (userId == 0) {
+		//The reason we need to do this is not to clear slots when the device is first added as the slots should be empty.  
+		//This is to avoid the issue report for clearing all the pins came in after the first automatic AuthorizePerson request's report.
+		if (ctx.vars.'CLEAR_PINS_ON_ADD' == null) {
+			ctx.log.warn "Deprovisioned all user PINS"
+	        ctx.DoorLock.slots [:]
+		}else {
+			ctx.vars.'CLEAR_PINS_ON_ADD' = null
+		}
+
+      doPinsCleared(ctx,name)
+		return
+	}
+
+   def personId = slots.remove(userId.toString())
+   if (personId != null) {
+	   ctx.log.warn "Received report that {} was deprovisioned from slot {}", personId, userId
+
+	   ctx.DoorLock.slots slots
+       ctx.emit 'doorlock:PersonDeauthorized', ['personId':personId, 'slot':userId]
+	}
+}
+
+static void doSlotAuthorized(ctx,name,cluster,slots,userId) {
+    if (userId == 0) {
+        return
+    }
+
+	def personId = slots.get(userId.toString())
+	if(personId == null) {
+	    doPinAddedAtLock(ctx,name,cluster,userId)
+		return
+	}
+
+    ctx.log.info "Received report that {} was provisioned into slot {}", personId, userId
+    ctx.emit 'doorlock:PersonAuthorized', ['personId':personId, 'slot':userId]
+}
+
+static void doSlotProvisioningFailed(ctx,name,slots,userId,msg) {
+    if (userId == 0) {
+        return
+    }
+
+	def personId = slots.remove(userId.toString())
+	if (personId != null) {
+	    ctx.log.warn "Received report that {} failed in slot {}: {}", personId, userId, msg
+
+	    ctx.DoorLock.slots slots
+	    ctx.emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':userId, 'message': "${msg}"]
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Event Utilities
+////////////////////////////////////////////////////////////////////////////////
+ 
+static void doPinUsed(ctx,name,slot,action) {
+    if (slot < 0) {
+        return
+    }
+
+    def personId = getUserInSlot(ctx,slot)
+	ctx.log.debug "{} by {}", action, personId?:'Unknown Person'
+	
+	if( (null != personId) && ('RESERVED' != personId) ) {
+		ctx.PinManagement.setActor(personId)
+	}
+
+	ctx.emit 'doorlock:PinUsed', [:]
+}
+
+static void doPinInvalid(ctx,name,slot,msg) {
+    if (slot < 0) {
+        return
+    }
+
+    def personId = getUserInSlot(ctx,slot)
+	ctx.log.debug "Reported invalid pin used by {}: {}", personId?:'Unknown Person', msg
+	
+	if( (null != personId) && ('RESERVED' != personId) ) {
+		ctx.PinManagement.setActor(personId)
+	}
+
+	ctx.emit 'doorlock:InvalidPin', [:]
+}
+
+static void doPinAddedAtLock(ctx,name,cluster,slot) {
+    if (slot <= 0) {
+        return
+    }
+
+    ctx.log.warn "Attempting to remove PIN from slot {} because PIN was added manually at door", slot
+    cluster.clearPinCode((short)slot)
+
+    def personId = getUserInSlot(ctx,slot)
+	if( (null != personId) && ('RESERVED' != personId) ) {
+		ctx.PinManagement.setActor(personId)
+	}
+
+    ctx.emit 'doorlock:PinAddedAtLock', [:]
+}
+
+static void doPinRemovedAtLock(ctx,name,slot) {
+    if (slot <= 0) {
+        return
+    }
+
+    def slots = getDoorLockSlots(ctx)
+	def personId = slots.remove(slot.toString())
+	if( (null != personId) && ('RESERVED' != personId) ) {
+        ctx.log.warn "Removed user {} from slot {} because PIN was removed manually at door", personId, slot
+        ctx.DoorLock.slots slots
+      
+        ctx.PinManagement.setActor(personId)
+        ctx.emit 'doorlock:PersonDeauthorized', ['personId':personId, 'slot':slot]
+    }
+
+    ctx.emit 'doorlock:PinRemovedAtLock', [:]
+}
+
+static void doPinChangedAtLock(ctx,name,slot) {
+    if (slot <= 0) {
+        return
+    }
+
+    def personId = getUserInSlot(ctx,slot)
+	if( (null != personId) && ('RESERVED' != personId) ) {
+        ctx.log.warn "Received notification that PIN for {} was manually changed at door", personId
+		
+		ctx.PinManagement.setActor(personId)
+        ctx.emit 'doorlock:PinChangedAtLock', [:]
+    }
+}
+
+static void doPinsCleared(ctx,name) {
+    ctx.log.warn "Cleared all pins"
+    ctx.emit 'doorlock:AllPinsCleared', [:]
+}
+

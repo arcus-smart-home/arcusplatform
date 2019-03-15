@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+   <Say voice="alice" language="en-US">
+   An important event has occurred with your Arcus system.  Unfortunately, due to technical difficulties,
+   we're unable to give you more information at this time.  Please check your Arcus mobile app
+   for the latest information about your home.
+   </Say>
+   <Pause/>
+   <Say voice="alice" language="en-US">Thank You.  Goodbye.</Say>
+   <Hangup/>
+</Response>

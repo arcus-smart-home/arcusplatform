@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaThermostatMode"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the thermostat mode object used by Alexa V3</t:description>
+
+   <t:attributes>
+      <t:attribute name="value" type="enum" values="AUTO,COOL,ECO,HEAT,OFF" description="The thermostat mode" optional="false"/>
+      <t:attribute name="customName" type="string" description="A custom name registered with Alexa Smart Home Skill V3" optional="true"/>
+   </t:attributes>
+
+</t:type>

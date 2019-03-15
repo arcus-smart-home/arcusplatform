@@ -1,0 +1,20 @@
+
+message zwave.RemoteAssociation.RemoteAssociationConfigurationGetV1<id="0x02", group="V1"> {
+    u8 localGroupingIdentifier;
+}
+
+message zwave.RemoteAssociation.RemoteAssociationConfigurationReportV1<id="0x03", group="V1"> {
+    const u8 LOCAL_GROUPING_IDENTIFIER_ERASE_ALL_LIN = 0x00;
+    const u8 REMOTE_NODEID_REMOVE_A_LINK = 0x00;
+    u8 localGroupingIdentifier;
+    u8 remoteNodeid;
+    u8 remoteGroupingIdentifier;
+}
+
+message zwave.RemoteAssociation.RemoteAssociationConfigurationSetV1<id="0x01", group="V1"> {
+    const u8 LOCAL_GROUPING_IDENTIFIER_ERASE_ALL_LIN = 0x00;
+    const u8 REMOTE_NODEID_REMOVE_A_LINK = 0x00;
+    u8 localGroupingIdentifier;
+    u8 remoteNodeid;
+    u8 remoteGroupingIdentifier;
+}

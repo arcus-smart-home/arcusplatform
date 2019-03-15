@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Valve"
+   namespace="valv"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a valve.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="valvestate" 
+         readwrite="rw" 
+         type="enum"
+         values="CLOSED,OPEN,OPENING,CLOSING,OBSTRUCTION"
+         optional="false"
+         description="Reflects the current state of the valve. Obstruction implying that something is preventing the opening or closing of the valve. May also be used to set the state of the valve."/>
+      <c:attribute 
+         name="valvestatechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last valve state change"/>
+   </c:attributes>
+
+</c:capability>

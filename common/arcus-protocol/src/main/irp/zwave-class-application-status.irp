@@ -1,0 +1,12 @@
+
+message zwave.ApplicationStatus.ApplicationBusyV1<id="0x01", group="V1"> {
+    const u8 STATUS_TRY_AGAIN_LATER = 0x00;
+    const u8 STATUS_TRY_AGAIN_IN_WAIT_TIME_SECONDS = 0x01;
+    const u8 STATUS_REQUEST_QUEUED_EXECUTED_LATER = 0x02;
+    u8 status;
+    u8 waitTime;
+}
+
+message zwave.ApplicationStatus.ApplicationRejectedRequestV1<id="0x02", group="V1"> {
+    u8 status;
+}

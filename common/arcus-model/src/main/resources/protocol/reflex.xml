@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Reflex"
+   namespace="RFLX"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   Reflex protocol
+   </p:description>
+</p:protocol>

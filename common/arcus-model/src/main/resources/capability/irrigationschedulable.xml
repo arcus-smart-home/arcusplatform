@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="IrrigationSchedulable"
+   namespace="irrsched"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Methods for pushing irrigation schedules to the device.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="refreshSchedule" 
+         readwrite="rw" 
+         type="boolean"
+         optional="false"
+         description="If true then the device needs to schedule synchronized with the platform."/>
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+         name="EnableSchedule"
+         description="Enables scheduling on the device"/>
+      
+      <c:method
+         name="DisableSchedule"
+         description="Disables schedulig on the device for an optional amount of time">
+         
+         <c:parameter
+            name="duration"
+            type="int"
+            description="The duration in minutes to disable the schedule.  -1 implies indefinitely"/>
+      </c:method>
+   
+      <c:method
+         name="ClearEvenOddSchedule"
+         description="Clears the even/odd day schedule for the given zone">
+      
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to clear"/>
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+      
+      </c:method>
+      
+      <c:method
+         name="SetEvenOddSchedule"
+         description="Sets an even/odd day schedule for the given zone">
+         
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to set the schedule on"/>
+         
+         <c:parameter
+            name="even"
+            type="boolean"
+            description="true for an even day schedule, false for an odd day"/>
+         
+         <c:parameter
+            name="transitions"
+            type="list&lt;Object&gt;"
+            description="Each transition to set containing startTime and duration"/>
+            
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+         
+      </c:method>
+      
+      <c:method
+         name="ClearIntervalSchedule"
+         description="Clears the interval schedule for the given zone">
+      
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to clear"/>
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+      
+      </c:method>
+      
+      <c:method
+         name="SetIntervalSchedule"
+         description="Sets an interval schedule for the given zone">
+         
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to set the schedule on"/>
+         
+         <c:parameter
+            name="days"
+            type="int"
+            description="The number of days in the interval"/>
+            
+         <c:parameter
+            name="transitions"
+            type="list&lt;Object&gt;"
+            description="Each transition to set containing startTime and duration"/>
+            
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+         
+      </c:method>
+      
+      <c:method
+         name="SetIntervalStart"
+         description="Sets the interval start date">
+         
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to set the interval start on"/>
+         
+         <c:parameter
+            name="startDate"
+            type="timestamp"
+            description="The timestamp of the day on which the interval schedule should start"/>
+            
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+     
+     </c:method>
+      
+      <c:method
+         name="ClearWeeklySchedule"
+         description="Clears the weekly schedule for the given zone">
+      
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to clear"/>
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+      
+      </c:method>
+      
+      <c:method
+         name="SetWeeklySchedule"
+         description="Sets a weekly schedule for the given zone">
+         
+         <c:parameter
+            name="zone"
+            type="string"
+            description="The zone to set the schedule on"/>
+         
+         <c:parameter
+            name="days"
+            type="set&lt;string&gt;"
+            description="The days to set, each entry will be one of MON,TUE,WED,THU,FRI,SAT or SUN"/>
+            
+         <c:parameter
+            name="transitions"
+            type="list&lt;Object&gt;"
+            description="Each transition to set containing startTime and duration"/>
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID, this should be returned in success or failure events for alignment"/>
+         
+      </c:method>
+   
+   </c:methods>
+   
+   <c:events>
+   
+   <c:event
+         name="ScheduleEnabled"
+         description="Emitted as a result of EnableSchedule"/>
+   
+      <c:event
+         name="ScheduleApplied"
+         description="Emitted when a schedule is successfully written to the device">
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to one of the set schedule methods"/>
+      
+      </c:event>
+      
+      <c:event
+         name="ScheduleCleared"
+         description="Emitted when a schedule is successfully cleared from the device">
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to one of the clear schedule methods"/>
+      
+      </c:event>
+      
+      <c:event
+         name="ScheduleFailed"
+         description="Emitted when a schedule could not be applied on the device">
+      
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to one of the set schedule methods"/>
+
+      </c:event>
+      
+      <c:event
+         name="ScheduleClearFailed"
+         description="Emitted when a schedule failed to be cleared from the device">
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to one of the clear schedule methods"/>
+         
+      </c:event>
+      
+      <c:event
+         name="SetIntervalStartSucceeded"
+         description="Emitted when setting the interval start date succeeds">
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to the set interval start method"/>
+            
+      </c:event>
+      
+      <c:event
+         name="SetIntervalStartFailed"
+         description="Emitted when there is a failure to set the interval start date">
+         
+         <c:parameter
+            name="opId"
+            type="string"
+            description="The operation ID that was issued to the set interval start method"/>
+            
+      </c:event>
+   
+   </c:events>
+   
+</c:capability>

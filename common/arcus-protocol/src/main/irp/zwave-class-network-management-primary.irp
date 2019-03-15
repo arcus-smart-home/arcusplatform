@@ -1,0 +1,39 @@
+
+message zwave.NetworkManagementPrimary.ControllerChangeV1<id="0x01", group="V1"> {
+    const u8 MODE_CONTROLLER_CHANGE_START = 0x02;
+    const u8 MODE_CONTROLLER_CHANGE_STOP = 0x05;
+    const u8 TX_OPTIONS_ACK = 0x01;
+    const u8 TX_OPTIONS_LOW_POWER = 0x02;
+    const u8 TX_OPTIONS_AUTO_ROUTE = 0x04;
+    const u8 TX_OPTIONS_NO_ROUTE = 0x10;
+    const u8 TX_OPTIONS_EXPLORE = 0x20;
+    const u8 TX_OPTIONS_NO_RETRANSMISSION = 0x40;
+    const u8 TX_OPTIONS_HIGH_POWER = 0x80;
+    u8 seqNo;
+    u8 reserved;
+    u8 mode;
+    u8 txOptions;
+}
+
+message zwave.NetworkManagementPrimary.ControllerChangeStatusV1<id="0x02", group="V1"> {
+    const u8 STATUS_NODE_ADD_STATUS_DONE = 0x06;
+    const u8 STATUS_NODE_ADD_STATUS_FAILED = 0x07;
+    const u8 STATUS_NODE_ADD_STATUS_SECURITY_FAILED = 0x09;
+    const u8 PROPERTIES1_CAPABILITY_MASK = 0x7F;
+    const u8 PROPERTIES1_CAPABILITY_SHIFT = 0;
+    const u8 PROPERTIES1_LISTENING = 0x80;
+    const u8 PROPERTIES2_SECURITY_MASK = 0x7F;
+    const u8 PROPERTIES2_SECURITY_SHIFT = 0;
+    const u8 PROPERTIES2_OPT = 0x80;
+    u8 seqNo;
+    u8 status;
+    u8 reserved;
+    u8 newNodeId;
+    u8 nodeInfoLength;
+    u8 properties1;
+    u8 properties2;
+    u8 basicDeviceClass;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+    u8[] commandClass;
+}

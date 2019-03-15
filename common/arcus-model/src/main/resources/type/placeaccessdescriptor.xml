@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="PlaceAccessDescriptor"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a user's access to a place</t:description>
+
+      <t:attributes>
+         <t:attribute name="placeId" type="string" description="The place id"/>
+         <t:attribute name="name" type="string" description="The place's name"/>
+         <t:attribute name="streetAddress1" type="string" description="First part of the street address"/>
+         <t:attribute name="streetAddress2" type="string" description="Second part of the street address"/>
+         <t:attribute name="city" type="string" description="The city"/>
+         <t:attribute name="state" type="string" description="The state or province"/>
+         <t:attribute name="zipCode" type="string" description="The zip code"/>
+         <t:attribute
+            name="role"
+            type="enum"
+            values="OWNER,FULL_ACCESS,HOBBIT,OTHER"
+            description="The user's role within the home"/>
+         <t:attribute
+            name="primary"
+            type="boolean"
+            description="true if the logged in user is an account owner and this is their primary place"/>
+         <t:attribute
+            name="promonAd"
+            type="boolean"
+            description="true if a promon Ad should be shown"/>
+   </t:attributes>
+</t:type>

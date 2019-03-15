@@ -1,0 +1,264 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the GreatStar Smart Plug
+ *
+ */
+ 
+import groovy.transform.Field
+import com.iris.protocol.zigbee.msg.ZigbeeMessage;
+import static com.iris.protocol.zigbee.zcl.General.*;
+import static com.iris.protocol.zigbee.zcl.Constants.*;
+
+driver		"ZBGreatStarSmartPlug"
+description	"Driver for the GreatStar SmartPlug"
+version		"2.10"
+protocol	"ZIGB"
+deviceTypeHint	"Switch"
+productId	"432041"
+vendor 		"Iris"
+model 		"SmartPlug"
+
+matcher         'ZIGB:vendor': 'iMagic by GreatStar', 'ZIGB:model': '1113-S'
+
+capabilities	DevicePower, Switch, PowerUse, Identify, DeviceOta
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+PowerUse.wholehome               false
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+@Field final byte ENDPOINT    = 1
+@Field def dvcEndPoint = Zigbee.endpoint((byte)ENDPOINT)
+
+def identCluster = dvcEndPoint.Identify
+def otaCluster   = dvcEndPoint.Ota
+def onOffCluster = dvcEndPoint.OnOff
+def elecCluster  = dvcEndPoint.ElectricalMeasurement
+
+@Field static final short GS_MSP            = 0x123B
+@Field static final short PROFILE_HA        = 0x0104
+
+def final short IDENT_PERIOD_SECS           = 180       // number of seconds (0-600) for device to Identify itself (Flash LED) when Identify method is called
+def final OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver capability support - DevicePower, Motion, Temperature, DeviceOta, Identify
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   DevicePower.source DevicePower.SOURCE_LINE
+   DevicePower.linecapable true
+   DevicePower.backupbatterycapable false
+   bind DevicePower.sourcechanged to DevicePower.source
+}
+
+Identify {
+}
+
+Switch {
+    state Switch.STATE_ON
+    bind statechanged to state
+}
+
+Zigbee {
+
+    configure {
+        bind name: "bind-onoff",
+            endpoint: 1,
+            cluster: Zcl.OnOff.CLUSTER_ID,
+            server: true
+
+        bind name: "bind-ota",
+            endpoint: 1,
+            cluster: Zcl.Ota.CLUSTER_ID,
+            server: true
+
+        report name: "conf-onoff",
+            endpoint: 1,
+            cluster: Zcl.OnOff.CLUSTER_ID,
+            attr: Zcl.OnOff.ATTR_ONOFF,
+            type: Data.TYPE_BOOLEAN,
+            min: 1,
+            max: 120
+   }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "GreatStar SmartPlug added."
+   log.debug "AttributesOnAddedGS: {}", message.attributes
+
+
+}
+
+onConnected {
+   log.debug "GreatStar SmartPlug connected."
+   onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+   
+   // set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+
+onDisconnected {
+   log.debug "GreatStar SmartPlug disconnected."
+}
+
+
+onRemoved {
+   log.debug "GreatStar SmartPlug removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Switch capability attrbutes (only 'state' attribute can be written/set)
+setAttributes('swit') {
+   log.debug "Driver received 'swit' setAttribute message {}", message
+   def attributes = message.attributes
+   for(attribute in attributes) {
+      switch(attribute.key) {
+         case Switch.state:
+ 	    if (attribute.value == 'ON') {
+      	       onOffCluster.on()
+            } else {
+               onOffCluster.off()
+            }
+            break;
+         default:
+            log.error "unrecognized attribute:{}", attribute
+      }
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOnOffMsg(Object cluster, Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def onoff = attributes[cluster.ATTR_ONOFF]
+   log.trace "switch state (true=on): {}", onoff
+
+   if (onoff != null) {
+      def prevState = Switch.state.get()
+      Switch.state onoff ? Switch.STATE_ON : Switch.STATE_OFF
+      if (Switch.state.get() != prevState) {
+         Switch.statechanged new Date()
+         log.debug "OnOff state changed, current (true=on): {}", onoff
+      }
+   }
+}
+
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+   log.trace "Driver received OnOff Attributes Response:{}", message
+   handleOnOffMsg(onOffCluster, message)
+}
+
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+   log.trace "Driver received OnOff Attributes Report:{}", message
+   handleOnOffMsg(onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,"",dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,"")
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,"",otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,"",message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,"",message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,"",message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,"",message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+   log.debug "Driver received onIdentify.Identify:{}", message
+   identCluster.identifyCmd( IDENT_PERIOD_SECS )
+   sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+@Field final byte CMD_CNF_RPT_RSP      = 0x07      // General Command Frame - Configure Reporting Response
+@Field final byte CMD_READ_CNF_RPT_RSP = 0x09      // General Command Frame - Read Configure Reporting Response
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   // get Information about the message
+   def profile = zclMsg.getProfileId()
+   def clusterId = zclMsg.getClusterId()
+   def msgId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def flags = zclMsg.getFlags()
+   // get the message data
+   byte[] data = zclMsg.getPayload()
+
+   if ((PROFILE_HA == profile) && ((flags & ZigbeeMessage.Zcl.CLUSTER_SPECIFIC) == 0)) {
+      if ((CMD_CNF_RPT_RSP == msgId) || (CMD_READ_CNF_RPT_RSP == msgId)) {
+         log.debug "Reporting configuration global command received bug I2-916: {}", msgId
+         return
+      }
+   }
+
+   if (0x0b05 == clusterId) { // Zcl.Diagnostics.CLUSTER_ID should work but doesn't
+      log.debug "Read responses from diagnostics cluster (agent reading) bug I2-2950"
+      return
+   }
+
+   log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DevicePower"
+   namespace="devpow"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a device's power.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="source" 
+         readwrite="r" 
+         type="enum" 
+         values="LINE,BATTERY,BACKUPBATTERY"
+         optional="false" 
+         description="Indicates that this device is currently line-powered"/>
+      <c:attribute 
+         name="linecapable"
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="When true, indicates that it is possible to line-power this device from the mains."/>
+      <c:attribute 
+         name="backupbatterycapable" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="When true, indicates the device can support a back-up battery."/>
+      <c:attribute 
+         name="battery" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="true" 
+         description="Level of primary battery. 0 = battery not present."/>
+      <c:attribute 
+         name="backupbattery" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="true" 
+         description="Level of primary battery. 0 = battery not present."/>
+      <c:attribute 
+         name="sourcechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last source change"/>
+      <c:attribute 
+         name="rechargeable" 
+         readwrite="r" 
+         type="boolean" 
+         optional="true" 
+         description="When true, indicates that the battery will recharge while the device is on LINE power.  Unset or null indicated that this is NOT rechargable"/>
+         
+   </c:attributes>
+   
+   <c:events>
+     <c:event
+         name="BackupBattery"
+         description="Fired when a line powered device loses power and is on backup battery." >
+     </c:event>
+     <c:event
+         name="LinePowerRestored"
+         description="Fired when a device currently on backup battery has line power restored.">         
+     </c:event>
+     <c:event
+         name="BatteryLow"
+         description="Fired when a battery (backup or otherwise) is under 40%.">         
+     </c:event>
+   </c:events>
+</c:capability>

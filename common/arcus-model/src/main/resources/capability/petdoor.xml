@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="PetDoor"
+   namespace="petdoor"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a pet door.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="lockstate" 
+         readwrite="rw" 
+         type="enum"
+         values="LOCKED,UNLOCKED,AUTO"
+         optional="false"
+         description="Lock state of the door, to override the doorlock lockstate."/>
+      <c:attribute 
+         name="lastlockstatechangedtime" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last lockstate change"/>
+      <c:attribute 
+         name="lastaccesstime" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="Holds the timestamp of the last time access through the smart pet door."/>
+      <c:attribute 
+         name="direction" 
+         readwrite="r" 
+         type="enum"
+         values="IN,OUT"
+         optional="false"
+         description="Direction a pet last passed through the smart pet door."/>
+      <c:attribute 
+         name="numPetTokensSupported" 
+         readwrite="r" 
+         type="int" 
+         optional="false" 
+         description="The number (5) of RFID tags this device supports."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method 
+         name="RemoveToken"
+         description="Remove a pet token from the pet door to prevent further access.">
+         
+         <c:parameter
+            name="tokenId"
+            type="int"
+            description="The ID of the token to remove from the pet door"
+            optional="false"/>
+   
+         <c:return
+            description="True or false, the key was removed."
+            type="boolean"
+            name="removed"
+            optional="false"/>
+      </c:method>
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="TokenAdded" 
+         description="Fired when a pet token is added to the pet door.">
+         
+         <c:parameters>
+            <c:parameter 
+               name="tokenId"
+               type="int"
+               description="The ID of the token added to the pet door."
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+      
+      <c:event 
+         name="TokenRemoved" 
+         description="Fired when a pet token is removed from the pet door.">
+         
+         <c:parameters>
+            <c:parameter 
+               name="tokenId"
+               type="int"
+               description="The ID of the token removed from the pet door."
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+      
+      <c:event 
+         name="TokenUsed" 
+         description="Fired when a token is used to unlock the pet door.">
+         
+         <c:parameters>
+            <c:parameter 
+               name="tokenId"
+               type="int"
+               description="The ID of the token used to open the pet door."
+               optional="false"/>
+               
+            <c:parameter 
+               name="petName"
+               type="string"
+               description="The name of the pet whose token was used to open the pet door."
+               optional="false"/>
+               
+            <c:parameter 
+               name="direction"
+               type="enum"
+               values="IN,OUT"
+               description="The direction in/out the pet used the door."
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+   </c:events>
+   
+</c:capability>

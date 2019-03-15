@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<scene-catalog xmlns="http://arcus.com/scene-catalog_1.0.0">
+    <metadata version="1.0.1" publisher="louis parks"/>
+    <scenes>
+        <scene id="home" name="I'm Home" description="Wherever you go, receive a warm welcome when you return." populations="qa"/>
+        <scene id="away" name="Away" description="Leave a safer, more efficient home every time you walk out the door." populations="general,beta"/>
+        <scene id="night" name="Good Night" description="Turn in for the night by automating your nightly tasks." populations="general"/>
+        <scene id="vacation" name="Vacation" description= "More fun. Less worry. Monitor an energy efficient home when you're on vacation." populations="beta"/>
+        <scene id="morning" name="Wake Up" description= "Good morning. Automate your morning routine with ease." populations="beta"/>
+        <scene id="custom" name="Custom" description= "Create a custom scene." populations="general,qa"/>
+    </scenes>
+    
+    <action-templates>
+        <actionTemplate id="switches" type-hint="light" name="Turn Lights On or Off" satifisable-if="dev:devtypehint == 'Switch' or dev:devtypehint == 'Dimmer' or dev:devtypehint == 'Light'" default-scenes="home"  premium="false">
+         <selector type="group" query="dev:devtypehint == 'Switch' or dev:devtypehint == 'Dimmer' or  dev:devtypehint == 'Light'" name="switch">
+             <groups>
+                 <group label="On" value="ON">
+                     <set-attributes name="swit:state" value="ON" />
+                     <selector name="dim" type="percent" query="base:caps contains 'dim'" var="brightness">
+                         <set-attributes name="dim:brightness" value="${brightness}" />
+                     </selector>
+                 </group>
+                 <group label="Off" value="OFF">
+                     <set-attributes name="swit:state" value="OFF"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+        
+        <actionTemplate id="doorlocks" type-hint="lock" name="Lock or Unlock Doors" satifisable-if="base:caps contains 'doorlock'" default-scenes="home" premium="false">
+         <selector name="lockstate" type="group" query="base:caps contains 'doorlock'" >
+             <groups>
+                 <group label="Lock" value="LOCKED">
+                     <set-attributes name="doorlock:lockstate" value="LOCKED" />
+                 </group>
+                 <group label="Unlock" value="UNLOCKED">
+                     <set-attributes name="doorlock:lockstate" value="UNLOCKED"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+ 
+        <actionTemplate id="vents" type-hint="vent" name="Open or Close Vents" satifisable-if="base:caps contains 'vent'" default-scenes="home"  premium="false">
+         <selector type="group" query="base:caps contains 'vent'" name="vent">
+             <groups>
+                 <group label="Open" value="OPEN">
+                     <set-attributes name="swit:state" value="ON" />
+                     <selector name="ventlevel" type="percent" var="ventlevel">
+                         <set-attributes name="vent:level" value="${ventlevel}" />
+                     </selector>
+                 </group>
+                 <group label="Close" value="CLOSE">
+                     <set-attributes name="swit:state" value="OFF"/>
+                     <set-attributes name="vent:level" value="0" />
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+
+        <actionTemplate id="fans" type-hint="fan" name="Turn Fans On or Off" satifisable-if="base:caps contains 'fan'" default-scenes="home"  premium="false">
+         <selector type="group" query="base:caps contains 'fan'" name="fan">
+             <groups>
+                 <group label="On" value="ON">
+                     <selector name="fanspeed" type="fan" var="fanspeed" />
+                     <set-attributes name="swit:state" value="ON"/>
+                     <set-attributes name="fan:speed" value="${fanspeed}" valueType="int"/>
+                 </group>
+                 <group label="Off" value="OFF">
+                     <set-attributes name="swit:state" value="OFF"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+        
+        <actionTemplate id="garagedoors" type-hint="garage" name="Open or Close Garage Doors" satifisable-if="base:caps contains 'motdoor'" default-scenes="home"  premium="false">
+         <selector name="doorState" type="group" query="base:caps contains 'motdoor'" >
+             <groups> 
+                 <group label="Open" value="OPEN">
+                     <set-attributes name="motdoor:doorstate" value="OPEN" />
+                 </group>
+                 <group label="Close" value="CLOSE">
+                     <set-attributes name="motdoor:doorstate" value="CLOSED"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate> 
+        
+        <actionTemplate id="watervalves" type-hint="valve" name="Open or Close Water Valves" satifisable-if="base:caps contains 'valv'" default-scenes="home"  premium="false">
+         <selector name="valvestate" type="group" query="base:caps contains 'valv'" >
+             <groups>
+                 <group label="Open" value="OPEN">
+                     <set-attributes name="valv:valvestate" value="OPEN" />
+                 </group>
+                 <group label="Close" value="CLOSE">
+                     <set-attributes name="valv:valvestate" value="CLOSED"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate> 
+
+        <actionTemplate id="blinds" type-hint="blind" name="Open or Close Blinds" satifisable-if="base:caps contains 'somfyv1' or base:caps contains 'shade'" default-scenes="home"  premium="false">
+         <selector name="shadeopen" type="group" query="base:caps contains 'shade'" >
+             <groups>
+                 <group label="Open" value="OPEN"/>
+                 <group label="Close" value="CLOSED"/>
+             </groups>
+         </selector>          
+         <selector name="somfyshadeopen" type="group" query="base:caps contains 'somfyv1'" >
+             <groups>
+                 <group label="Open" value="OPEN"/>
+                 <group label="Close" value="CLOSED"/>
+             </groups>
+         </selector>         
+        </actionTemplate>
+
+        <actionTemplate id="security" type-hint="security" name="Set the Security Alarm" satifisable-if="base:caps contains 'subsecurity'" default-scenes="home"  premium="false">
+            <selector name="alarm-state" type="list" query="base:caps contains 'subsecurity'" >
+                <options>
+                    <option value="ON" label="Arm On"/>
+                    <option value="PARTIAL" label="Arm Partial" />
+                    <option value="OFF" label="Disarm"/>
+                </options>
+            </selector>
+        </actionTemplate>
+        
+        <actionTemplate id="cameras" type-hint="camera" name="Record Video From Cameras" satifisable-if="base:caps contains 'camera'" default-scenes="home" premium="true">
+            <selector name="duration" type="duration" query="base:caps contains 'camera'" min="30" max="600" step="30" unit="SEC"/>
+        </actionTemplate>
+
+       <actionTemplate id="thermostats" type-hint="thermostat" name="Set Thermostats" satifisable-if="base:caps contains 'therm'" default-scenes="home"  premium="false" >
+            <selector name="thermostat" type="thermostat" query="base:caps contains 'therm'"/>
+        </actionTemplate>        
+
+	   <actionTemplate id="spaceheaters" type-hint="spaceheater" name="Set the Temperature on Space Heaters" satifisable-if="base:caps contains 'spaceheater'" default-scenes="home"  premium="false">
+	      <selector name="heatstate" type="group" query="base:caps contains 'spaceheater'" >
+	          <groups>
+	              <group label="On" value="ON">
+	                  <set-attributes name="spaceheater:heatstate" value="ON" />
+	                  <selector name="setpoint" type="temperature" query="base:caps contains 'spaceheater'" step="1" unit="C" var="setpoint">
+                         <set-attributes name="spaceheater:setpoint" value="${setpoint}" valueType="double"/>
+                      </selector>               
+	              </group>
+	              <group label="Off" value="OFF">
+	                  <set-attributes name="spaceheater:heatstate" value="OFF"/>
+	              </group>
+	          </groups>
+	      </selector>	   
+	   </actionTemplate>
+    </action-templates>
+</scene-catalog>

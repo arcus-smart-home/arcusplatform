@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="IrrigationZone"
+   namespace="irr"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of an Irrigation Zone.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="zoneState" 
+         readwrite="r" 
+         type="enum"
+         values="WATERING, NOT_WATERING"
+         optional="false" 
+         description="Indicates whether the zone is currently watering or not"/>
+      <c:attribute
+         name="wateringStart"
+         readwrite="r"
+         type="timestamp"
+         optional="true"
+         description="If watering, the time at which the watering started. Together with wateringDuration this defines a time range during which watering will be acive."/>
+      <c:attribute 
+         name="wateringDuration" 
+         readwrite="r" 
+         type="int"
+         min="0"
+         unit="minutes"
+         optional="false"
+         description="If not watering, set to 0. If non-zero, can be used with wateringStart to define a time range during which watering will be active."/>
+      <c:attribute
+         name="wateringTrigger"
+         readwrite="r"
+         type="enum"
+         values="MANUAL,SCHEDULED"
+         optional="true"
+         description="If watering, what triggered the watering event"/>
+      <c:attribute
+         name="defaultDuration"
+         readwrite="rw"
+         type="int"
+         unit="minutes"
+         optional="true"
+         description="The default duration in minutes for scheduling this zone"/>
+      <c:attribute 
+         name="zonenum" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         optional="false" 
+         description="Index of this zone on the system. Should start at 1 so 0 can represent pump or full system."/>
+      <c:attribute 
+         name="zonename" 
+         readwrite="rw" 
+         type="string"
+         optional="false" 
+         description="Name of the zone on the platform. ('front yard', 'roses', etc.)"/>
+      <c:attribute 
+         name="zonecolor" 
+         readwrite="rw" 
+         type="enum"
+         values="LIGHTRED,DARKRED,ORANGE,YELLOW,LIGHTGREEN,DARKGREEN,LIGHTBLUE,DARKBLUE,VIOLET,WHITE,GREY,BLACK"
+         optional="false" 
+         description="Color used to represent the zone on the UI."/>
+
+      <!-- Deprecated Atrributes -->
+      <c:attribute
+         name="wateringRemainingTime"
+         readwrite="r"
+         type="int"
+         unit="minutes"
+         optional="false"
+         description="This attribute was deprecated in the 1.8 release."/>
+   </c:attributes>
+   
+</c:capability>

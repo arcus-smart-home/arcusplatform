@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<errors>
+    <transaction_error>
+        <error_code>fraud_gateway</error_code>
+        <error_category>fraud</error_category>
+        <merchant_message>The payment gateway declined the transaction due to fraud filters enabled in your gateway.</merchant_message>
+        <customer_message>The transaction was declined. Please use a different card, contact your bank, or contact support.</customer_message>
+    </transaction_error>
+    <error field="billing_info.base" symbol="fraud_gateway">The transaction was declined. Please use a different card, contact your bank, or contact support.</error>
+    <transaction href="https://fakesubdomain.recurly.com/v2/transactions/2e48cf3e028493e183c633430595ec12" type="credit_card">
+        <account href="https://fakesubdomain.recurly.com/v2/accounts/4aa63ac6-df4f-48d6-9e04-a4c6aa98a276"/>
+        <uuid>2e48cf3e028493e183c633430595ec12</uuid>
+        <action>verify</action>
+        <amount_in_cents type="integer">0</amount_in_cents>
+        <tax_in_cents type="integer">0</tax_in_cents>
+        <currency>USD</currency>
+        <status>declined</status>
+        <payment_method>credit_card</payment_method>
+        <reference>8734156</reference>
+        <source>billing_info</source>
+        <recurring type="boolean">false</recurring>
+        <test type="boolean">true</test>
+        <voidable type="boolean">false</voidable>
+        <refundable type="boolean">false</refundable>
+        <transaction_error>
+            <error_code>fraud_gateway</error_code>
+            <error_category>fraud</error_category>
+            <merchant_message>The payment gateway declined the transaction due to fraud filters enabled in your gateway.</merchant_message>
+            <customer_message>The transaction was declined. Please use a different card, contact your bank, or contact support.</customer_message>
+        </transaction_error>
+        <cvv_result code="C" nil="nil">C_CODE</cvv_result>
+        <avs_result code="A" nil="nil">A_CODE</avs_result>
+        <avs_result_street nil="nil"></avs_result_street>
+        <avs_result_postal nil="nil"></avs_result_postal>
+        <created_at type="datetime">2015-04-21T03:27:17Z</created_at>
+        <details>
+            <account>
+                <account_code>4aa63ac6-df4f-48d6-9e04-a4c6aa98a276</account_code>
+                <first_name>Example</first_name>
+                <last_name>Account</last_name>
+                <company>Not required</company>
+                <email>null@cybersource.com</email>
+                <billing_info type="credit_card">
+                    <first_name>Name on</first_name>
+                    <last_name>Credit Card</last_name>
+                    <address1>123 Address Drive</address1>
+                    <address2 nil="nil"></address2>
+                    <city>City Name</city>
+                    <state nil="nil"></state>
+                    <zip>12345</zip>
+                    <country>UsA</country>
+                    <phone nil="nil"></phone>
+                    <vat_number nil="nil"></vat_number>
+                    <card_type>Visa</card_type>
+                    <year type="integer">2015</year>
+                    <month type="integer">11</month>
+                    <first_six>400000</first_six>
+                    <last_four>0085</last_four>
+                </billing_info>
+            </account>
+        </details>
+    </transaction>
+</errors>

@@ -1,0 +1,13 @@
+This directory contains properties files that will automatically be upsert into the cassandra table
+every time the model manager is run.
+
+The file naming convention is as follows.
+
+<bundle_name>_<locale_name>.properties
+
+Where
+   <bundle_name> is the name of the bundle (ex. history)
+   <locale_name> is the name of the locale (ex. en or en_US)
+
+If only <bundle_name> is provided the default locale of en will be used.  For example history.properties
+will result in all keys within the history.properties file having a locale of en.

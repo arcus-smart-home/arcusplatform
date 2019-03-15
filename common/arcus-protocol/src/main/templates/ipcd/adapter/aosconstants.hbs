@@ -1,0 +1,43 @@
+{{#file . "com/iris/protocol/ipcd/adapter/aosmith/AosConstants.java"}}
+package com.iris.protocol.ipcd.adapter.aosmith;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.model.ParameterInfo;
+
+public class AosConstants {
+   {{#parameterDefs}}public final static String AOS_PARAM_{{toConstantName aosName}} = "{{aosName}}";
+   {{/parameterDefs}}
+   {{#parameterDefs}}public final static String IPCD_PARAM_{{toConstantName aosName}} = "{{name}}";
+   {{/parameterDefs}}
+
+   public final static String UNITS_C = "C";
+   public final static String UNITS_F = "F";
+
+   public final static Map<String, String> aosToIpcd;
+   public final static Map<String, String> ipcdToAos;
+   public final static Map<String, ParameterInfo> parameterInfoMap;
+   protected final static List<String> supportedEvents;
+   
+   static {
+      Map<String, String> aosToIpcdMap = new HashMap<>();
+      Map<String, String> ipcdToAosMap = new HashMap<>();
+      Map<String, ParameterInfo> parametersMap = new HashMap<>();
+      List<String> eventsList = new ArrayList<>();
+      {{#supportedEvents}}eventsList.add("{{this}}");
+      {{/supportedEvents}}
+      {{#parameterDefs}}aosToIpcdMap.put("{{aosName}}","{{name}}");
+      ipcdToAosMap.put("{{name}}","{{aosName}}");
+      parametersMap.put("{{name}}", new {{capitalize aosName}}ParamInfo());
+      {{/parameterDefs}}
+      aosToIpcd = Collections.unmodifiableMap(aosToIpcdMap);
+      ipcdToAos = Collections.unmodifiableMap(ipcdToAosMap);
+      parameterInfoMap = Collections.unmodifiableMap(parametersMap);
+      supportedEvents = Collections.unmodifiableList(eventsList);
+   }
+}
+{{/file}}

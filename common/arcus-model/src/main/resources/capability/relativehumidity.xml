@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="RelativeHumidity"
+   namespace="humid"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>Model of a humidity sensor.</c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="humidity" 
+         readwrite="r" 
+         type="double" 
+         unit="%"
+         min="0"
+         max="100"
+         optional="false" 
+         description="Reflects the relative humidity"/>
+   </c:attributes>
+   
+</c:capability>

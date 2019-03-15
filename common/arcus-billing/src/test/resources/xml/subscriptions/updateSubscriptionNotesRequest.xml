@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PUT https://:subdomain.recurly.com/v2/subscriptions/:uuid/notes -->
+<subscription>
+ <terms_and_conditions>Payment can be sent to Acme Cloud, Inc.</terms_and_conditions>
+ <customer_notes>Thanks for your business!</customer_notes>
+ <vat_reverse_charge_notes>No VAT was applied on this invoice. Please reference this legislation.</vat_reverse_charge_notes>
+</subscription>

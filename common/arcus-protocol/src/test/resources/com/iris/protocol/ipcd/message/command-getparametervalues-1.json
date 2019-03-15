@@ -1,0 +1,4 @@
+{
+  "command" : "GetParameterValues",
+  "parameters" : ["ms2.temperature","ms2.humidity","ms2.luminosity"]
+}

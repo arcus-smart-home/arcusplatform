@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Recording"
+   namespace="video"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Base attributes and methods for recordings
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="name"
+         readwrite="rw"
+         type="string"
+         optional="false" 
+         description="Human readable name for the device"/>
+
+      <c:attribute
+         name="accountid"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="The place that the recording is associated with."/>
+
+      <c:attribute
+         name="placeid"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="The place that the recording is associated with."/>
+
+      <c:attribute
+         name="cameraid"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="The camera that the recording is associated with."/>
+
+      <c:attribute
+         name="personid"
+         readwrite="r"
+         type="uuid"
+         optional="true"
+         description="The person that the recording is associated with."/>
+
+      <c:attribute
+         name="timestamp"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="A timestamp identifying when the recording was made."/>
+
+      <c:attribute
+         name="width"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="The width of the recording in pixels."/>
+
+      <c:attribute
+         name="height"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="The height of the recording in pixels."/>
+
+      <c:attribute
+         name="bandwidth"
+         readwrite="r"
+         type="int"
+         optional="false"
+         description="The target bandwidth of the video in bps."/>
+
+      <c:attribute
+         name="framerate"
+         readwrite="r"
+         type="double"
+         optional="false"
+         description="The frame rate of the video in fps."/>
+
+      <c:attribute
+         name="precapture"
+         readwrite="r"
+         type="double"
+         optional="false"
+         description="The precapture time in seconds, or 0 if no precaptured video is present."/>
+
+      <c:attribute
+         name="type"
+         readwrite="r"
+         type="enum"
+         values="STREAM,RECORDING"
+         optional="false"
+         description="The recording type. STREAM indicates a live streaming session."/>
+
+      <c:attribute
+         name="duration"
+         readwrite="r"
+         type="double"
+         optional="false"
+         description="The duration of the recording in seconds"/>
+
+      <c:attribute
+         name="size"
+         readwrite="r"
+         type="long"
+         optional="false"
+         description="The side of the recording in bytes."/>
+
+      <c:attribute
+         name="deleted"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="If true then the recording has been scheduled for deletion."/>
+
+      <c:attribute
+         name="deleteTime"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="If the recording has been scheduled for deletion then this represents the time at which the recording will be permanently removed."/>
+	  <c:attribute
+         name="completed"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="If the recording has been completed."/>
+      <c:attribute
+         name="videoCodec"
+         type="string"
+         description="The recordings video codec"
+         optional="true"
+         readwrite="r"
+      />
+      <c:attribute
+         name="audioCodec"
+         type="string"
+         description="The recordings audio codec"
+         optional="true"
+         readwrite="r"
+      />
+   </c:attributes>
+   <c:methods>
+      <c:method
+         name="View"
+         description="Used to retrieve URLs that can be used for viewing this recording."
+         >
+         <c:parameters>
+            <c:return
+               name="hls"
+               type="string"
+               description="A URL that can be used to stream video using the HLS protocol."
+               optional="true"/>
+            <c:return
+               name="dash"
+               type="string"
+               description="This parameter was deprecated in 2018.07.  A URL that can be used to stream video using the MPEG-DASH protocol."
+               optional="true"/>
+            <c:return
+               name="preview"
+               type="string"
+               description="A URL that can be used to retrieve a preview image for the recording."
+               optional="true"/>
+            <c:return
+               name="expiration"
+               type="timestamp"
+               description="A UTC timestamp indicating when the URLs returned are no longer valid."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="Download"
+         description="Used to retrieve URLs that can be used for viewing this recording."
+         >
+         <c:parameters>
+            <c:return
+               name="mp4"
+               type="string"
+               description="A URL that can be used to download an MP4 formatted version of the recording.."
+               optional="true"/>
+            <c:return
+               name="preview"
+               type="string"
+               description="A URL that can be used to download a JPG preview image of the recording."
+               optional="true"/>
+            <c:return
+               name="expiration"
+               type="timestamp"
+               description="A UTC timestamp indicating when the URLs returned are no longer valid."
+               optional="false"/>
+            <c:return
+               name="mp4SizeEstimate"
+               type="long"
+               description="An estimate of the size of the mp4 file."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+   
+      <c:method
+         name="Delete"
+         description="Marks this recording for deletion."
+         />
+   
+      <c:method
+         name="Resurrect"
+         description="Deprecated since 2018.07: Resurrects this recording if possible."
+         />
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

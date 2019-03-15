@@ -1,0 +1,18 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 4.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.IlluminanceMeasurement {
+   const u16 CLUSTER_ID = 0x0400;
+
+   const u16 ATTR_MEASURED_VALUE = 0x0000;
+   const u16 ATTR_MIN_MEASURED_VALUE = 0x0001;
+   const u16 ATTR_MAX_MEASURED_VALUE = 0x0002;
+   const u16 ATTR_TOLERANCE = 0x0003;
+   const u16 ATTR_LIGHT_SENSOR_TYPE = 0x0004;
+
+   const u8 LIGHT_SENSOR_TYPE_PHOTODIODE = 0x00;
+   const u8 LIGHT_SENSOR_TYPE_CMOS = 0x01;
+   const u8 LIGHT_SENSOR_TYPE_UNKNOWN = 0xFF;
+}

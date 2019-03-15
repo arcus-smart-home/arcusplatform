@@ -1,0 +1,21 @@
+{{#file . "generated/{{name}}.m"}}
+
+#import <Foundation/Foundation.h>
+#import <PromiseKit/PromiseKit.h>
+#import "{{name}}.h"
+#import <i2app-Swift.h>
+
+@implementation {{name}}
++ (NSString *)name { return @"{{name}}"; }
++ (NSString *)address { return @"SERV:{{namespace}}:"; }
+{{#methods}}
+{{#if parameters}}
++ (PMKPromise *) {{uncapitalize name}}{{#parameters}}{{#if @first}}W{{else}} w{{/if}}ith{{capitalize name}}:({{objCTypeOfParam type}}){{name}}{{/parameters}} {
+  return [{{capitalize ../name}}Legacy {{uncapitalize name}}:{{#parameters}}{{#if @first}}{{else}}{{cleanseForSwift name}}:{{/if}}{{cleanseForSwiftParam name}}{{#if @last}}{{else}} {{/if}}{{/parameters}}];
+{{else}}
++ (PMKPromise *) {{uncapitalize name}} {
+  return [{{capitalize ../name}}Legacy {{uncapitalize name}}];{{/if}}
+}
+{{/methods}}
+@end
+{{/file}}

@@ -1,0 +1,204 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+/**
+ * Generic Mock doorlock capabilities. 
+ * DoorLock.numPinsSupported to indicate the maximum number of pins supported.
+ *
+ * To set obstruction state, use devmock:setAttributes with the string:
+ * { 'devadv:errors' : { 'WARN_JAM': 'Door lock may be jammed' } }
+ *
+ * @author daniellep
+ *
+ */
+
+capability		DoorLock
+description		"Default implementation for the Mock DoorLock capability"
+version			"1.0"
+
+@Field final byte DOOR_LOCKED			= 0xFF
+@Field final byte DOOR_UNLOCKED		= 0x00
+@Field final long LOCK_UNLOCK_DELAY_MSEC = 3000		// delay 3 seconds for Lock/Unlock operation
+@Field final String WARN_JAM_KEY = 'WARN_JAM'
+
+DoorLock.lockstate          DoorLock.LOCKSTATE_UNLOCKED
+DoorLock.slots              [:]
+DeviceAdvanced.errors       [:]
+
+onAdded {
+	log.debug "DoorLock added"
+	DoorLock.lockstatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+setAttributes('doorlock') {
+	log.debug "doorlock:SetAttributes: ${message}"
+	def attrs = message.attributes;
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case DoorLock.lockstate:
+				switch(attribute.value) {
+					case DoorLock.LOCKSTATE_LOCKED:
+						log.debug "Locking Door"
+						// set current state to Locking
+						DoorLock.lockstate DoorLock.LOCKSTATE_LOCKING
+						DoorLock.lockstatechanged new Date()
+						// do a delayed setting of the value to Locked
+						Scheduler.scheduleIn 'LockDoor', LOCK_UNLOCK_DELAY_MSEC
+						break
+					case DoorLock.LOCKSTATE_UNLOCKED:
+						log.debug "Unlocking Door"
+						// set the current state to Unlocking
+						DoorLock.lockstate DoorLock.LOCKSTATE_UNLOCKING
+						DoorLock.lockstatechanged new Date()
+						// do a delayed setting of the state to Unlocked
+						Scheduler.scheduleIn 'UnlockDoor', LOCK_UNLOCK_DELAY_MSEC
+						break
+					case DoorLock.LOCKSTATE_UNLOCKING:
+					case DoorLock.LOCKSTATE_LOCKING:
+						DoorLock.lockstate attribute.value
+						DoorLock.lockstatechanged new Date()
+						break
+					default:
+						log.error "Unrecognized DoorLock state: " + attribute.value
+						break
+				}
+				break
+			default:
+				log.error "doorlock:SetAttributes unrecognized attribute: " + attribute
+				break
+		}
+	}
+}
+
+onEvent('LockDoor') {
+	DoorLock.lockstate DoorLock.LOCKSTATE_LOCKED
+	DoorLock.lockstatechanged new Date()
+	DeviceAdvanced.errors.remove WARN_JAM_KEY
+	log.debug "Door Locked"
+}
+
+onEvent('UnlockDoor') {
+	DoorLock.lockstate DoorLock.LOCKSTATE_UNLOCKED
+	DoorLock.lockstatechanged new Date()
+	DeviceAdvanced.errors.remove WARN_JAM_KEY
+	log.debug "Door Unlocked"
+}
+
+
+/**
+ * Authorize the person with the given person Id to unlock the door with his/her pin.
+ *
+ * Returns the slot number the person has been assigned or 0 if there a no available slots.
+ */
+onDoorLock.AuthorizePerson {
+	int maxPinSupported = DoorLock.numPinsSupported.get()
+	def personId = message.attributes['personId']
+	def currentSlots = DoorLock.slots.get()
+	
+	int slot = 0
+	
+	log.debug "try to authorize user with id: ${personId}"
+	
+	// is this user already authorized?  if yes get the slot they were
+	// assigned and just update the pin in that slot on the lock
+	for( def s : currentSlots.keySet() ) {
+		if( personId == currentSlots[ s ] ) {
+			slot = Integer.parseInt( s )
+			break;
+		}
+	}
+
+	// if the slot is still 0 the user hasn't been authorized before so find
+	// the first available slot ( maybe one that was freed up via deathorization)
+	// and assign it to this user
+	if( 0 == slot ) {
+		for( def pc in 1..maxPinSupported ) {
+			if( currentSlots.containsKey( pc.toString() ) ) continue
+			
+			slot = pc
+			DoorLock.slots.put( slot.toString(), personId )
+			break
+		}
+	}
+
+	// if slot is still 0 at this point we don't have any available slots to use
+	// for this user so return 0 to the caller.  Otherwise we have assigned this
+	// user a slot so set the users pin in that slot on the lock
+	if( 0 != slot ) {
+		byte[] pinData = PinManagement.getPin( personId )
+		log.debug 'adding pin for user: ' + personId + ' in slot: ' + slot												
+	}
+
+	log.debug "waiting for response from device on the status of adding the pin for ${personId} at slot ${slot} for 1000 msec"
+	def data = ['slotId':slot, 'personId':personId]
+	Scheduler.scheduleIn 'SendAuthorizePersonEvent' + personId, data, 1000
+	sendResponse( 'doorlock:AuthorizePersonResponse', ['slotId':slot] )
+}
+
+/**
+ * Remove the person with the given person Id ability to unlock the door with thier pin.
+ */
+onDoorLock.DeauthorizePerson {
+	def personId = message.attributes['personId']
+	log.debug "try to deauthorize user with id: ${personId}"
+
+	def oldSlots = DoorLock.slots.get()   
+	int slot = 0
+	
+	// is this user authorized?  if yes get the slot they were
+	// assigned
+	for( def s : oldSlots.keySet() ) {
+		if( personId == oldSlots[ s ] ) {
+			slot = Integer.parseInt( s )
+			break;
+		}
+	}
+
+	// we found the slot for this user so remove the users pin from the lock
+	// and slots map so that the slot can be reused
+	if( 0 != slot ) {
+		DoorLock.slots.remove( slot.toString() )		
+	}
+   
+   def delayInMsec = vars.'delayAuthorizePerson'?:1000
+   log.debug "waiting for response from device on the status of adding the pin for ${personId} at slot ${slot} for ${delayInMsec} msec"
+   def data = ['slotId':slot, 'personId':personId]
+   Scheduler.scheduleIn 'SendPersonDeauthorizedEvent' + personId, data, delayInMsec
+	sendResponse( 'doorlock:DeauthorizePersonResponse', [:] )
+}
+
+onDoorLock.ClearAllPins {
+   DoorLock.slots [:]
+   sendResponse( 'doorlock:ClearAllPinsResponse', ['unlocked':true] )
+   Scheduler.scheduleIn 'SendPinsCleared', 2000 
+}
+
+onEvent('SendPinsCleared') {
+   emit("doorlock:AllPinsCleared", [:])
+}
+
+onEvent {
+   def personId = message.data.personId
+   def slotId = message.data.slotId
+   
+   if(message.name.startsWith('SendPersonDeauthorizedEvent')) {
+      emit("doorlock:PersonDeauthorized", ['personId':personId, 'slot':slotId])
+   } else {
+      emit("doorlock:PersonAuthorized", ['personId':personId, 'slot':slotId])
+   }
+}
+

@@ -1,0 +1,93 @@
+
+message zwave.Alarm.AlarmGetV1<id="0x04", group="V1"> {
+    u8 alarmType;
+}
+
+message zwave.Alarm.AlarmReportV1<id="0x05", group="V1"> {
+    u8 alarmType;
+    u8 alarmLevel;
+}
+
+message zwave.Alarm.AlarmGetV2<id="0x04", group="V2"> {
+    const u8 ZWAVE_ALARM_TYPE_SMOKE = 0x01;
+    const u8 ZWAVE_ALARM_TYPE_CO = 0x02;
+    const u8 ZWAVE_ALARM_TYPE_CO2 = 0x03;
+    const u8 ZWAVE_ALARM_TYPE_HEAT = 0x04;
+    const u8 ZWAVE_ALARM_TYPE_WATER = 0x05;
+    const u8 ZWAVE_ALARM_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 ZWAVE_ALARM_TYPE_BURGLAR = 0x07;
+    const u8 ZWAVE_ALARM_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 ZWAVE_ALARM_TYPE_SYSTEM = 0x09;
+    const u8 ZWAVE_ALARM_TYPE_EMERGENCY = 0x0A;
+    const u8 ZWAVE_ALARM_TYPE_CLOCK = 0x0B;
+    const u8 ZWAVE_ALARM_TYPE_FIRST = 0xFF;
+    u8 alarmType;
+    u8 zwaveAlarmType;
+}
+
+message zwave.Alarm.AlarmReportV2<id="0x05", group="V2"> {
+    const u8 ZWAVE_ALARM_STATUS_OFF = 0x00;
+    const u8 ZWAVE_ALARM_STATUS_ON = 0xFF;
+    const u8 ZWAVE_ALARM_TYPE_SMOKE = 0x01;
+    const u8 ZWAVE_ALARM_TYPE_CO = 0x02;
+    const u8 ZWAVE_ALARM_TYPE_CO2 = 0x03;
+    const u8 ZWAVE_ALARM_TYPE_HEAT = 0x04;
+    const u8 ZWAVE_ALARM_TYPE_WATER = 0x05;
+    const u8 ZWAVE_ALARM_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 ZWAVE_ALARM_TYPE_BURGLAR = 0x07;
+    const u8 ZWAVE_ALARM_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 ZWAVE_ALARM_TYPE_SYSTEM = 0x09;
+    const u8 ZWAVE_ALARM_TYPE_EMERGENCY = 0x0A;
+    const u8 ZWAVE_ALARM_TYPE_CLOCK = 0x0B;
+    const u8 ZWAVE_ALARM_TYPE_FIRST = 0xFF;
+    u8 alarmType;
+    u8 alarmLevel;
+    u8 zensorNetSourceNodeId;
+    u8 zwaveAlarmStatus;
+    u8 zwaveAlarmType;
+    u8 zwaveAlarmEvent;
+    u8 numberOfEventParameters;
+    u8[] eventParameter;
+}
+
+message zwave.Alarm.AlarmSetV2<id="0x06", group="V2"> {
+    const u8 ZWAVE_ALARM_TYPE_SMOKE = 0x01;
+    const u8 ZWAVE_ALARM_TYPE_CO = 0x02;
+    const u8 ZWAVE_ALARM_TYPE_CO2 = 0x03;
+    const u8 ZWAVE_ALARM_TYPE_HEAT = 0x04;
+    const u8 ZWAVE_ALARM_TYPE_WATER = 0x05;
+    const u8 ZWAVE_ALARM_TYPE_ACCESS_CONTROL = 0x06;
+    const u8 ZWAVE_ALARM_TYPE_BURGLAR = 0x07;
+    const u8 ZWAVE_ALARM_TYPE_POWER_MANAGEMENT = 0x08;
+    const u8 ZWAVE_ALARM_TYPE_SYSTEM = 0x09;
+    const u8 ZWAVE_ALARM_TYPE_EMERGENCY = 0x0A;
+    const u8 ZWAVE_ALARM_TYPE_CLOCK = 0x0B;
+    const u8 ZWAVE_ALARM_TYPE_FIRST = 0xFF;
+    const u8 ZWAVE_ALARM_STATUS_OFF = 0x00;
+    const u8 ZWAVE_ALARM_STATUS_ON = 0xFF;
+    u8 zwaveAlarmType;
+    u8 zwaveAlarmStatus;
+}
+
+message zwave.Alarm.AlarmTypeSupportedGetV2<id="0x07", group="V2"> {
+}
+
+message zwave.Alarm.AlarmTypeSupportedReportV2<id="0x08", group="V2"> {
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_BIT_MASKS_SHIFT = 0;
+    const u8 PROPERTIES1_V1_ALARM = 0x80;
+    const u8 BIT_MASK_SMOKE = 0x01;
+    const u8 BIT_MASK_CO = 0x02;
+    const u8 BIT_MASK_CO2 = 0x03;
+    const u8 BIT_MASK_HEAT = 0x04;
+    const u8 BIT_MASK_WATER = 0x05;
+    const u8 BIT_MASK_ACCESS_CONTROL = 0x06;
+    const u8 BIT_MASK_BURGLAR = 0x07;
+    const u8 BIT_MASK_POWER_MANAGEMENT = 0x08;
+    const u8 BIT_MASK_SYSTEM = 0x09;
+    const u8 BIT_MASK_EMERGENCY = 0x0A;
+    const u8 BIT_MASK_CLOCK = 0x0B;
+    const u8 BIT_MASK_FIRST = 0xFF;
+    u8 properties1;
+    u8 bitMask;
+}

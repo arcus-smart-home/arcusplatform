@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.1.xsd">
+   <!--
+     Suppress invalid netty matches (owasp thinks these are netty libraries when they are in fact netty integrations)
+    -->
+   <suppress>
+      <notes><![CDATA[
+      Async HTTP client is not netty, don't warn because _it_ is below 4.0
+      file name: async-http-client-netty-utils-2.0.37.jar
+      ]]></notes>
+      <gav regex="true">^org\.asynchttpclient:.*:.*$</gav>
+      <cve>CVE-2014-3488</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      Netty reactive streams is not netty, don't warn because _it_ is below 4.0
+      file name: netty-reactive-streams-1.0.8.jar
+      ]]></notes>
+      <gav regex="true">^com\.typesafe\.netty:netty-reactive-streams:.*$</gav>
+      <cpe>cpe:/a:netty_project:netty</cpe>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      Netty tcnative is not netty
+      file name: netty-tcnative-boringssl-static-1.1.33.Fork18-osx-x86_64.jar
+      ]]></notes>
+      <gav regex="true">^io\.netty:netty-tcnative.*:.*$</gav>
+      <cpe>cpe:/a:netty_project:netty</cpe>
+   </suppress>
+   <!--
+       Suppress CVEs about Git. These are used by the build scripts but don't make it into
+       the final product.
+    -->
+   <suppress>
+        <cve>CVE-2015-7545</cve>
+        <cve>CVE-2015-7082</cve>
+        <cve>CVE-2010-2542</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      Since we have a git hash as part of our version, the analyzer thinks we are
+      a git library
+      file name: arcus-client-2.0.0-b90cb84.jar
+      ]]></notes>
+      <gav regex="true">^com\.iris:.*:.*$</gav>
+      <cpe>cpe:/a:git_project:git</cpe>
+      <cpe>cpe:/a:git:git:2.0.0.b90</cpe>
+      <cpe>cpe:/a:git:git</cpe>
+   </suppress>
+   
+   <!--
+      Suppress other framework bugs 
+    -->
+   <suppress>
+      <notes><![CDATA[
+      We are not using Drupal
+      ]]></notes>
+      <cpe>cpe:/a:bean_project:bean</cpe>
+      <cpe>cpe:/a:video_project:video</cpe>
+      <cve>CVE-2015-4363</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      OWasp is confusing JMH for OpenJDK
+      file name: jmh-core-1.13.jar
+       ]]></notes>
+      <gav regex="true">^org\.openjdk\.jmh:jmh-core:.*$</gav>
+      <cpe>cpe:/a:sun:openjdk</cpe>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      We aren't using Glassfish
+      file name: javax.servlet-api-3.1.0.jar
+      ]]></notes>
+      <gav regex="true">^javax\.servlet:javax\.servlet-api:.*$</gav>
+      <cpe>cpe:/a:oracle:glassfish</cpe>
+   </suppress>
+   <!--
+       Suppress CVEs about Apple's Java extensions because they are not used on the hub.
+    -->
+   <suppress>
+      <cve>CVE-2010-0538</cve>
+      <cve>CVE-2009-2205</cve>
+   </suppress>
+
+   <suppress>
+      <notes><![CDATA[
+      We don't use LDAP
+      file name: groovy-all-2.4.10-indy.jar
+      ]]></notes>
+      <gav regex="true">^org\.codehaus\.groovy:groovy-all:.*$</gav>
+      <cve>CVE-2016-6497</cve>
+   </suppress>
+</suppressions>

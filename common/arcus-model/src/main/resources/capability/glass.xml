@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Glass"
+   namespace="glass"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a glass break sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="break" 
+         readwrite="r" 
+         type="enum"
+         values="SAFE,DETECTED"
+         optional="false"
+         description="Reflects the current state of the glass break sensor."/>
+		<c:attribute 
+         name="breakchanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last break change"/>         
+   </c:attributes>
+
+</c:capability>

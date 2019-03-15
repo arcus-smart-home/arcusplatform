@@ -1,0 +1,40 @@
+{{{header}}}
+
+<tr>
+	<td style="padding: 0 30px 5px">
+		<p style="float: right; font-size: 12px;">
+			<strong>{{invoice_date}}</strong>
+		</p>
+
+		<h2 style="font-size: 16px;">Invoice {{invoice_number}}</h2>
+
+	</td>
+</tr>
+
+<tr>
+	<td style="padding: 0 30px 15px">
+		<h1 style="font-size: 20px;">Your payment has been refunded</h1>
+
+		<table width="100%" cellpadding="0" cellspacing="0"
+			style="margin-bottom: 10px">
+			<tr>
+				<td width="320" id="message-body" align="left" valign="top"
+					style="font-size: 12px;">
+					<p>We have processed a refund in the amount of
+						{{{transaction_amount}}}</p> {{^transaction_ach?}}
+					<p>This refund will appear on your next credit card statement
+						in approximately 3-5 business days.</p> {{/transaction_ach?}}
+					<p>
+						If you have any questions, don't hesitate to contact us at <a
+							href="mailto:{{company_email}}">{{company_email}}</a> regarding
+						this refund transaction.
+					</p> {{#company_hosted_account_management_enabled?}}
+					<p>
+						<a href="{{invoice_guest_view_url}}">View your invoice online.</a>
+					</p> {{/company_hosted_account_management_enabled?}}
+				</td>
+			</tr>
+		</table>
+	</td>
+</tr>
+{{{footer}}}

@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubAdvanced"
+   namespace="hubadv"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="mac"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Primary MAC address of the hub (corresponds to ethernet MAC)"/>
+      <c:attribute 
+         name="hardwarever"
+         readwrite="r"
+         type="string" 
+         optional="true" 
+         description="Version of the hardware"/>
+      <c:attribute 
+         name="osver" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="Version of the base hub OS software"/>
+      <c:attribute 
+         name="agentver" 
+         readwrite="r" 
+         type="string"
+         optional="false" 
+         description="Version of the agent code running on the hub"/>
+      <c:attribute
+         name="serialNum"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="Serial number of the hub"/>
+      <c:attribute 
+         name="mfgInfo"
+         readwrite="r"
+         type="string"
+         optional="true" 
+         description="Manufacturing information"/>
+      <c:attribute
+         name="bootloaderVer"
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Version of the bootloader running on the hub"/>
+      <c:attribute 
+         name="firmwareGroup" 
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Firmware group the hub belongs to"/>
+      <c:attribute 
+         name="lastReset" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="A time UUID indicating the last time the hub was started in a factory fresh state."/>
+      <c:attribute 
+         name="lastDeviceAddRemove" 
+         readwrite="r" 
+         type="string" 
+         optional="false" 
+         description="A time UUID indicating the last time a device was either added or removed from the hub."/>
+      <c:attribute 
+         name="lastRestartReason" 
+         readwrite="r" 
+         type="enum"
+         values="UNKNOWN,FIRMWARE_UPDATE,REQUESTED,SOFT_RESET,FACTORY_RESET,GATEWAY_FAILURE,MIGRATION,BACKUP_RESTORE,WATCHDOG"
+         optional="false" 
+         description="The reason for the last hub restart."/>
+      <c:attribute 
+         name="lastRestartTime" 
+         readwrite="r" 
+         type="timestamp"
+         optional="false" 
+         description="The time of the last hub restart."/>
+      <c:attribute 
+         name="lastFailedWatchdogChecksTime" 
+         readwrite="r" 
+         type="timestamp"
+         optional="false" 
+         description="The last time some watchdog checks failed"/>
+      <c:attribute 
+         name="lastFailedWatchdogChecks" 
+         readwrite="r" 
+         type="set&lt;string&gt;"
+         optional="false" 
+         description="The set of failed watchdog checks, this is provided on a best effort basis and may not accurately reflect what actually caused a watchdog reset (we might fail to persist this information if an I/O failure caused the watchdog reset)."/>
+      <c:attribute 
+         name="lastDbCheck" 
+         readwrite="r" 
+         type="timestamp"
+         optional="false" 
+         description="The last time an integrity check was run on the hub db."/>
+      <c:attribute 
+         name="lastDbCheckResults" 
+         readwrite="r" 
+         type="string"
+         optional="false" 
+         description="A string describing the results of the last db check."/>
+      <c:attribute 
+         name="migrationDualEui64" 
+         readwrite="r" 
+         type="boolean"
+         optional="false" 
+         description="True if the hub has ever had the dual EUI-64 problem after migration."/>
+      <c:attribute 
+         name="migrationDualEui64Fixed" 
+         readwrite="r" 
+         type="boolean"
+         optional="false" 
+         description="True if the hub has had the fix for the dual EUI-64 issue applied."/>
+      <c:attribute
+         name="mfgBatchNumber"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Manufacturing raw batch number"/>
+      <c:attribute
+         name="mfgDate"
+         readwrite="r"
+         type="timestamp"
+         optional="true"
+         description="Date of manufacture"/>
+      <c:attribute
+         name="mfgFactoryID"
+         readwrite="r"
+         type="int"
+         optional="true"
+         description="Manufacturing factory ID"/>
+      <c:attribute
+         name="hwFlashSize"
+         readwrite="r"
+         type="long"
+         optional="true"
+         description="Size of flash, in bytes"/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="Restart"
+         description="Restarts the Iris Agent">
+      </c:method> 
+      <c:method
+         name="Reboot"
+         description="Reboots the hub">
+      </c:method> 
+      <c:method
+         name="FirmwareUpdate"
+         description="Requests that the hub update its firmware">
+         <c:parameters>
+            <c:parameter 
+               name="url"
+               type="string"
+               description="The URL of the firmware"
+               optional="false"/>
+            <c:parameter 
+               name="priority"
+               type="enum"
+               values="NORMAL,URGENT,BELOW_MINIMUM"
+               description="The urgency of the upgrade.  NORMAL is whenever next cycles permit.  URGENT means now.  BELOW_MINIMUM is indicates that the current firmware is below platform min and to upgrade immediately."
+               optional="true"/>
+            <c:parameter 
+               name="type"
+               type="enum"
+               values="FIRMWARE,AGENT"
+               description="The type of firmware being updated."
+               optional="false"/>
+            <c:parameter 
+               name="showLed"
+               type="boolean"
+               description="Whether to show the LED for firmware update or not."
+               optional="true"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED"
+               description="A status indicating status of the firmware update"
+               optional="false"/>
+            <c:return
+               name="message"
+               type="string"
+               description="An informative message about the status"
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+      <c:method
+         name="FactoryReset"
+         description="Request to tell the hub to factory reset.  This should remove all personal data from the hub"/>
+
+   	<c:method
+         name="GetKnownDevices"
+         description="Get a list of known device protocol addresses.">
+         <c:parameters>
+            <c:parameter 
+               name="protocols"
+               type="set&lt;string&gt;"
+               description="The set of protocols that should be returned"
+               optional="false"/>
+            <c:return 
+               name="devices" 
+               type="list&lt;string&gt;" 
+               description="The list of protocol addresses known to the hub." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <!-- NOTE: This contains all of the same attributes as an add device request would -->
+   	<c:method
+         name="GetDeviceInfo"
+         description="Get a list of known device protocol addresses.">
+         <c:parameters>
+            <c:parameter 
+               name="protocolAddress"
+               type="string"
+               description="The protocol address of the device to get the device information from."
+               optional="false"/>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="Alway true." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   </c:methods>
+
+   <c:events>
+      <c:event 
+         name="FirmwareUpgradeProcess" 
+         description="Sent when a hub comes online.  This may be very specific to the given protocol and require client interpretation.">
+         <c:parameters>
+            <c:parameter 
+               name="percentDone"
+               type="double"
+               description="The percentage of the firmware that has been downloaded"
+               optional="false"/>
+            <c:parameter 
+               name="status"
+               type="string"
+               description="An informative message about the status of the download"
+               optional="true"/>
+         </c:parameters>
+      </c:event>
+      
+      <c:event
+         name="Deregister"
+         description="Event sent from the platform to the hub informing it that it needs to deregister (boot all devices and factory reset)"/>
+       
+      <c:event
+         name="StartUploadingCameraPreviews"
+         description="Event sent from the platform to the hub informing it that it should start uploading camera preview snapshots up to the server.
+If the hub is already publishing snapshots, it should increment some counter for the number of requests it has received but not start new uploads so
+when StopCameraPreviews is issued it will know when it is safe to stop uploading.">
+
+         <c:parameters>
+            <c:parameter name="uploadUrl" type="string" description="The URL at which the hub should upload multi-part batches of camera preview images."/>
+         </c:parameters>
+
+      </c:event>
+      
+      <c:event
+         name="StopUploadingCameraPreviews"
+         description="Event sent from the platform to the hub informing it to stop uploading camera previews.  This should decrement the counter of the
+PublishCameraPreviews (to account for multiple user sessions) and when it is zero should stop uploading."/>
+
+
+      <c:event 
+         name="UnpairedDeviceRemoved" 
+         description="Event sent when an unpaired or unvetted device is removed from the hub.">
+         <c:parameters>
+            <c:parameter 
+               name="devTypeGuess"
+               type="string"
+               description="Best guess at the device"
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+
+      <c:event 
+         name="Attention" 
+         description="An event indicating that a hub needs attention">
+         <c:parameters>
+            <c:parameter 
+               name="code"
+               type="string"
+               description="An attention code."
+               optional="false"/>
+            <c:parameter 
+               name="msg"
+               type="string"
+               description="A message associated with the attention alert"
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+         
+   </c:events>
+   
+</c:capability>

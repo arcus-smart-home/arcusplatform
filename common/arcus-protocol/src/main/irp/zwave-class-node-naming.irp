@@ -1,0 +1,34 @@
+
+message zwave.NodeNaming.NodeNamingNodeLocationReportV1<id="0x06", group="V1"> {
+    const u8 LEVEL_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 LEVEL_CHAR_PRESENTATION_SHIFT = 0;
+    u8 level;
+    u8[16] nodeLocationChar;
+}
+
+message zwave.NodeNaming.NodeNamingNodeLocationSetV1<id="0x04", group="V1"> {
+    const u8 LEVEL_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 LEVEL_CHAR_PRESENTATION_SHIFT = 0;
+    u8 level;
+    u8[16] nodeLocationChar;
+}
+
+message zwave.NodeNaming.NodeNamingNodeLocationGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.NodeNaming.NodeNamingNodeNameGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.NodeNaming.NodeNamingNodeNameReportV1<id="0x03", group="V1"> {
+    const u8 LEVEL_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 LEVEL_CHAR_PRESENTATION_SHIFT = 0;
+    u8 level;
+    u8[16] nodeNameChar;
+}
+
+message zwave.NodeNaming.NodeNamingNodeNameSetV1<id="0x01", group="V1"> {
+    const u8 LEVEL_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 LEVEL_CHAR_PRESENTATION_SHIFT = 0;
+    u8 level;
+    u8[16] nodeNameChar;
+}

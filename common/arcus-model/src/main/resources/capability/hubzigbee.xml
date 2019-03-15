@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubZigbee"
+   namespace="hubzigbee"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="panid"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The PANID in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="extid"
+         readwrite="r"
+         type="long"
+         optional="false" 
+         description="The extended PANID in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="channel"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The channel in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="power"
+         readwrite="r"
+         type="int"
+         unit="dBm" 
+         optional="false" 
+         description="The transmit power in use by the Zigbee chip"/>
+
+      <c:attribute 
+         name="powermode"
+         readwrite="r"
+         type="enum"
+         values="DEFAULT,BOOST,ALTERNATE,BOOST_AND_ALTERNATE"
+         optional="false" 
+         description="The power mode used by the Zigbee chip"/>
+
+      <c:attribute 
+         name="profile"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The stack profile in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="security"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The security level in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="supportednwks"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The number of supported Zigbee networks"/>
+
+      <c:attribute 
+         name="joining"
+         readwrite="r"
+         type="boolean"
+         optional="false" 
+         description="True if the Zigbee network is allowing joins, false otherwise"/>
+
+      <c:attribute 
+         name="updateid"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The NWK update id in use by the Zigbee network"/>
+
+      <c:attribute 
+         name="eui64"
+         readwrite="r"
+         type="long"
+         optional="false" 
+         description="The EUI64 of the Zigbee chip"/>
+
+      <c:attribute 
+         name="tceui64"
+         readwrite="r"
+         type="long"
+         optional="false" 
+         description="The EUI64 of the Zigbee network's trust center"/>
+
+      <c:attribute 
+         name="uptime"
+         readwrite="r"
+         type="long"
+         unit="milliseconds" 
+         optional="false" 
+         description="The amount of time since the last Zigbee chip reset"/>
+
+      <c:attribute 
+         name="version"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="The EZSP version number"/>
+
+      <c:attribute 
+         name="manufacturer"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The Zigbee manufacturer code of the Zigbee chip"/>
+
+      <c:attribute 
+         name="state"
+         readwrite="r"
+         type="enum"
+         values="UP,DOWN,JOIN_FAILED,MOVE_FAILED"
+         optional="false" 
+         description="The Zigbee network state"/>
+         
+      <c:attribute
+         name="pendingPairing"
+         type="list&lt;ZigbeeLinkKeyedDevice&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices that use link-keys/install codes that have NOT joined the network.  This is a super-set of the hubkit:pendingPairing." />
+   </c:attributes>
+   
+   <c:methods>
+   	<c:method
+         name="Reset"
+         description="Perform a reset of the Zigbee chip">
+         <c:parameters>
+            <c:parameter 
+               name="type"
+               type="enum"
+               values="SOFT,HARD"
+               description="The type of reset to be performed"
+               optional="true"/>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="True if the reset was initiated, false otherwise." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="Scan"
+         description="Perform an environment scan using the Zigbee chip">
+         <c:parameters>
+            <c:return 
+               name="scans" 
+               type="list&lt;map&lt;string&gt;&gt;" 
+               description="The configuration values in use by the Zigbee chip." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetConfig"
+         description="Get the Zigbee chip configuration information">
+         <c:parameters>
+            <c:return 
+               name="config" 
+               type="map&lt;string&gt;" 
+               description="The configuration values in use by the Zigbee chip." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetStats"
+         description="Get the current low-level statistics tracked by the Zigbee chip">
+         <c:parameters>
+            <c:return 
+               name="stats" 
+               type="map&lt;int&gt;" 
+               description="The current statistics as maintained by the Zigbee bridge." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetNodeDesc"
+         description="Get the node descriptor of a node in the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="nwk"
+               type="int"
+               description="The network address of the node."
+               optional="false"/>
+            <c:return 
+               name="desc" 
+               type="map&lt;string&gt;" 
+               description="The node descriptor of the node." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetActiveEp"
+         description="Get the active endpoints of a node in the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="nwk"
+               type="int"
+               description="The network address of the node."
+               optional="false"/>
+            <c:return 
+               name="endpoints" 
+               type="set&lt;int&gt;" 
+               description="The set of active endpoints on the node." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetSimpleDesc"
+         description="Get the simple descriptor of a node in the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="nwk"
+               type="int"
+               description="The network address of the node."
+               optional="false"/>
+            <c:parameter 
+               name="ep"
+               type="int"
+               description="The endpoint identifier on the node."
+               optional="false"/>
+            <c:return 
+               name="desc" 
+               type="map&lt;string&gt;" 
+               description="The simple descriptor of the node's endpoint." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   	
+   	<c:method
+         name="GetPowerDesc"
+         description="Get the power descriptor of a node in the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="nwk"
+               type="int"
+               description="The network address of the node."
+               optional="false"/>
+            <c:return 
+               name="desc" 
+               type="map&lt;string&gt;" 
+               description="The power description of the node." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="Identify"
+         description="Identify a node in the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="eui64"
+               type="long"
+               description="The network address of the node to be identified."
+               optional="false"/>
+            <c:parameter 
+               name="duration"
+               type="int"
+               unit="seconds" 
+               description="The network address of the node to be identified."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="Remove"
+         description="Remove a node from the Zigbee network">
+         <c:parameters>
+            <c:parameter 
+               name="eui64"
+               type="long"
+               description="The EUI64 of the node to be removed."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="FactoryReset"
+         description="Factory reset the Zigbee stack, removing all paired devices in the process.">
+         <c:parameters>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="True if the reset was initiated, false otherwise." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="FormNetwork"
+         description="Restore the Zigbee network to an exact state.">
+         <c:parameters>
+            <c:parameter 
+               name="eui64"
+               type="long"
+               description="The eui64 to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="panId"
+               type="int"
+               description="The panid to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="extPanId"
+               type="long"
+               description="The extended panid to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="channel"
+               type="int"
+               description="The channel to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="nwkkey"
+               type="string"
+               description="The base64 encoded network key to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="nwkfc"
+               type="long"
+               description="The network frame counter to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="apsfc"
+               type="long"
+               description="The aps frame counter to use for the restored hub"
+               optional="false"/>
+            <c:parameter 
+               name="updateid"
+               type="int"
+               description="The updateid to use for the restored hub"
+               optional="false"/>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="True if the reset was initiated, false otherwise." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="FixMigration"
+         description="Run the migration fix proceedure">
+         <c:parameters>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="True if the restore was initiated, false otherwise." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+   	<c:method
+         name="NetworkInformation"
+         description="Get information about the current state of the network.">
+         <c:parameters>
+            <c:return 
+               name="metrics" 
+               type="object" 
+               description="The current metrics per node." 
+               optional="false"/>
+            <c:return 
+               name="neighbors" 
+               type="object" 
+               description="The current neighbors per node." 
+               optional="false"/>
+            <c:return 
+               name="routing" 
+               type="object" 
+               description="The current routing table per node." 
+               optional="false"/>
+            <c:return 
+               name="route" 
+               type="object" 
+               description="The current route used by the controller per node." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   
+   <c:method
+         name="PairingLinkKey"
+         description="Pairs a device using a pre-shared link key.">
+         <c:parameters>
+            <c:parameter 
+               name="euid"
+               type="string"
+               description="ASCII Hex encoded EUID of the device to pair."
+               optional="false"/>
+            <c:parameter 
+               name="linkkey"
+               type="string"
+               description="ASCII Hex encodeed preshared link key of the device to pair."
+               optional="false"/>
+            <c:parameter 
+               name="timeout"
+               type="long"
+               description="The amount of time in milliseconds for which the place will be able to add devices"
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   
+     <c:method
+         name="PairingInstallCode"
+         description="Pairs a device using a pre-shared install code.">
+         <c:parameters>
+            <c:parameter 
+               name="euid"
+               type="string"
+               description="ASCII Hex encoded EUID of the device to pair."
+               optional="false"/>
+            <c:parameter 
+               name="installcode"
+               type="string"
+               description="ASCII Hex encodeed install code of the device to pair."
+               optional="false"/>
+            <c:parameter 
+               name="timeout"
+               type="long"
+               description="The amount of time in milliseconds for which the place will be able to add devices"
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+     <c:method
+         name="ClearPendingPairing"
+         description="Clears out pending pairing devices.  Ineffects stops the background pairing for linked key devices.">
+      </c:method> 
+
+    </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

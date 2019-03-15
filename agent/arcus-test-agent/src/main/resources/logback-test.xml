@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true">
+  <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+     <resetJUL>true</resetJUL>
+  </contextListener>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+       <pattern>%.-1level%d{MMdd} %d{HH:mm:ss.SSS} %6.6thread %32.32logger{32}] %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="io.netty" level="WARN" />
+  <logger name="org.eclipse.jetty" level="WARN" />
+  <logger name="org.asynchttpclient" level="WARN" />
+  <logger name="javax.activation" level="WARN" />
+  <logger name="net.wimpi" level="WARN" />
+  <logger name="org.crsh" level="WARN" />
+  <logger name="org.hibernate" level="WARN" />
+  <logger name="org.apache" level="WARN" />
+  <logger name="com.netflix" level="WARN" />
+  <logger name="com.almworks" level="WARN" />
+  <logger name="com.almworks.sqlite4java" level="OFF" />
+  <logger name="org.fourthline" level="WARN" />
+  <logger name="sun.net.www" level="WARN" />
+  <logger name="org.fourthline.cling.transport.spi.DatagramIO" level="OFF" />
+
+  <root level="DEBUG">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

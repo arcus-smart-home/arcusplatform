@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.12.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="removePopulation" author="dpatrow">
+      <cl:description>Drop population table</cl:description>
+      <cl:tracking>I2-3308</cl:tracking>
+      <cl:cql>
+         <cl:update>DROP TABLE IF EXISTS population </cl:update>
+         <cl:rollback>
+         	CREATE TABLE IF NOT EXISTS population (
+	            id uuid PRIMARY KEY,
+	            name varchar,
+	            description varchar,
+	            minhubversion varchar,
+	            created timestamp,
+	            modified timestamp,
+	            imageMap map&lt;varchar,uuid&gt;,
+	            tags	set&lt;varchar&gt;
+         	)
+		</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="addPopulationToPlace" author="dpatrow">
+      <cl:description>Add population field to place table</cl:description>
+      <cl:tracking>I2-3308</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE place ADD population varchar </cl:update>
+         <cl:rollback>ALTER TABLE place DROP population</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>

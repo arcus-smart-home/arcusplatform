@@ -1,0 +1,247 @@
+#alert
+:Alerting
+::state,ALERTING
+:Quiet
+::state,QUIET
+#but
+:Press Button
+::state,PRESSED
+:Release Button
+::state,RELEASED
+:Press Then Release Button
+::state,PRESSED
+::state,RELEASED
+#co
+:CO Detected
+::co,DETECTED
+:CO Safe
+::co,SAFE
+:CO Detected then Safe
+::co,DETECTED
+::co,SAFE
+:Detector OK
+::eol,OK
+:Detector EOL
+::eol,EOL
+:0 PPM CO
+::coppm,0
+:5 PPM CO
+::coppm,5
+#color
+:Hue 0
+::hue,0
+:Hue 90
+::hue,90
+:Hue 180
+::hue,180
+:Hue 270
+::hue,270
+:Hue 360
+::hue,360
+:Saturation 0
+::saturation,0
+:Saturation 25
+::saturation,25
+:Saturation 50
+::saturation,50
+:Saturation 75
+::saturation,75
+:Saturation 100
+::saturation,100
+#cont
+:Opened
+::contact,OPENED
+:Closed
+::contact,CLOSED
+:Opened then Closed
+::contact,OPENED
+::contact,CLOSED
+:Closed then Opened
+::contact,CLOSED
+::contact,OPENED
+#daynight
+:Day Mode
+::mode,day
+:Night Mode
+::mode,night
+#devpow
+:Line Source
+::source,LINE
+:Battery Source
+::source,BATTERY
+:Backup Battery Source
+::source,BACKUPBATTERY
+:Battery Level 0
+::battery,0
+:Battery Level 5
+::battery,5
+:Battery Level 50
+::battery,50
+:Battery Level 100
+::battery,100
+:Backup Battery Level 0
+::backupbattery,0
+:Backup Battery Level 5
+::backupbattery,5
+:Backup Battery Level 50
+::backupbattery,50
+:Backup Battery Level 100
+::backupbattery,100
+#dim
+:0 Brightness
+::brightness,0
+:50 Brightness
+::brightness,50
+:100 Brightness
+::brightness,100
+#doorlock
+:Locked
+::lockstate,LOCKED
+:Unlocked
+::lockstate,UNLOCKED
+:Locking
+::lockstate,LOCKING
+:Unlocking
+::lockstate,UNLOCKING
+#fan
+:Speed 0
+::speed,0
+:Speed 5
+::speed,5
+:Speed 10
+::speed,10
+:Flow Up
+::direction,UP
+:Flow Down
+::direction,DOWN
+#glass
+:Glassbreak Detected
+::break,DETECTED
+:Glassbreak Safe
+::break,SAFE
+#halo
+:State Safe
+::state,SAFE
+:State Weather
+::state,WEATHER
+:State Smoke
+::state,SMOKE
+:State CO
+::state,CO
+:State Pre-Smoke
+::state,PRE_SMOKE
+:State EOL
+::state,EOL
+:State Low Battery
+::state,LOW_BATTERY
+:State Very Low Battery
+::state,VERY_LOW_BATTERY
+:State Failed Battery
+::state,FAILED_BATTERY
+:Hush Success
+::hushstatus,SUCCESS
+:Hush Timeout
+::hushstatus,TIMEOUT
+:Hush Ready
+::hushstatus,READY
+:Hush Disabled
+::hushstatus,DISABLED
+#leakh2o
+:Leak Detected
+::state,LEAK
+:No Leak
+::state,SAFE
+#motion
+:Motion Detected
+::motion,DETECTED
+:No Motion
+::motion,NONE
+#petdoor
+:Locked
+::lockstate,LOCKED
+:Unlocked
+::lockstate,UNLOCKED
+:Auto
+::lockstate,AUTO
+:Last Direction In
+::direction,IN
+:Last Direction Out
+::direction,OUT
+#pow
+:Using 0 Watts
+::pow,0
+:Using 10 Watts
+::pow,10
+:Using 100 Watts
+::pow,100
+:Using 2,000 Watts
+::pow,2000
+#pres
+:PRESENT
+::pres,PRESENT
+:AWAY
+::pres,ABSENT
+#shade
+:0% Raised
+::open,0
+:50% Raised
+::open,50
+:100% Raised
+::open,100
+:0% Tilted
+::tilt,0
+:50% Tilted
+::tilt,50
+:100% Tilted
+::tilt,100
+#smoke
+:Smoke Detected
+::smoke,DETECTED
+:Smoke Safe
+::smoke,SAFE
+#swit
+:Switch On
+::state,ON
+:Switch Off
+::state,OFF
+#temp
+:0 Degrees (32F)
+::temperature,0
+:16 Degrees (61F)
+::temperature,16
+:22 Degrees (72F)
+::temperature,22
+:28 Degrees (82F)
+::temperature,28
+#therm
+:Hvac Running
+::therm,RUNNING
+:Hvac Not Running
+::therm,NOTRUNNING
+#tilt
+:Tilt Flag
+::tiltstate,FLAT
+:Title Upright
+::tiltstate,UPRIGHT
+#valv
+:Valve Closed
+::valvestate,CLOSED
+:Valve Open
+::valvestate,OPEN
+:Valve Opening
+::valvestate,OPENING
+:Valve Closing
+::valvestate,CLOSING
+:Valve Obstruction
+::valvestate,OBSTRUCTION
+#vent
+:Vent Ok
+::ventstate,OK
+:Vent Obstructed
+::ventstate,OBSTRUCTION
+:Level 0
+::level,0
+:Level 50
+::level,50
+:Level 100
+::level,100

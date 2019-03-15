@@ -1,0 +1,22 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "SetParameterValues",
+      "values" : {
+        "ms2.lightsensorenabled" : true,
+        "ms2.temperaturescale" : "celcius"
+      }
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "ms2.lightsensorenabled" : true,
+    "ms2.temperaturescale" : "celcius"
+  }
+}

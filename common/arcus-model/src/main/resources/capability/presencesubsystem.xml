@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="PresenceSubsystem"
+   namespace="subspres"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Presence detection subsystem.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="occupied"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Estimate as to whether the home is occupied" />
+      <c:attribute
+         name="occupiedConf"
+         type="integer"
+         readwrite="r"
+         optional="false"
+         range="0..100"
+         unit="%"
+         description="Confidence in occupied estimate"/>
+      <c:attribute
+         name="peopleAtHome"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="Set of the addresses of people who are in this place" />
+      <c:attribute
+         name="peopleAway"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="Set of address of people that are away from this place"/>
+      <c:attribute
+         name="devicesAtHome"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="Set of addresses of presence capable devices not associated with people in this place"/>
+      <c:attribute
+         name="devicesAway"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="Set of addresses of presence capable devices not associated with people that are away from this place"/>
+      <c:attribute
+         name="allDevices"
+         type="set&lt;string&gt;"
+         readwrite="r"
+         optional="false"
+         description="Set of addresses of all presence capable devices"/>
+
+   </c:attributes>
+   
+   <c:methods>
+      <c:method name="GetPresenceAnalysis" description="Presence analysis describes, for each person, whether the subsystem thinks the person is at home or not and how it came to that conclusion.">
+         <c:return 
+            name="analysis" 
+            type="map&lt;PresenceAnalysis&gt;" 
+            />
+      </c:method>
+   </c:methods>
+   <c:events>
+      <c:event
+         name="Arrived"
+         description="Sent when a person or device becomes present.">
+         <c:parameters>
+            <c:parameter
+               name="type"
+               type="enum"
+               values="dev,person"
+               description="The target type of this presence event. Namespace of addressable entity."
+               optional="false" />
+            <c:parameter
+               name="target"
+               type="string"
+               description="The address of the person or device presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="Departed"
+         description="Sent when a person or device devices.">
+         <c:parameters>
+            <c:parameter
+               name="type"
+               type="enum"
+               values="dev,person"
+               description="The target type of this presence event. Namespace of addressable entity."
+               optional="false" />
+            <c:parameter
+               name="target"
+               type="string"
+               description="The address of the person or device presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="PersonArrived"
+         description="Sent when a presence device associated with a person becomes present.">
+         <c:parameters>
+            <c:parameter
+               name="person"
+               type="string"
+               description="The address of the person currently associated with this presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="PersonDeparted"
+         description="Sent when a presence device associated with a person becomes absent">
+         <c:parameters>
+            <c:parameter
+               name="person"
+               type="string"
+               description="The address of the person currently associated with this presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="DeviceArrived"
+         description="Sent when a presence device associated with a place becomes present.">
+         <c:parameters>
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="DeviceDeparted"
+         description="Sent when a presence device associated with a place becomes absent">
+         <c:parameters>
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="DeviceAssignedToPerson"
+         description="Sent when a presence device is associated with a person">
+         <c:parameters>
+            <c:parameter
+               name="person"
+               type="string"
+               description="The address of the person currently associated with this presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="DeviceUnassignedFromPerson"
+         description="Sent when a presence device is unassociated with a person">
+         <c:parameters>
+            <c:parameter
+               name="person"
+               type="string"
+               description="The address of the person currently associated with this presence event."
+               optional="false" />
+            <c:parameter
+               name="device"
+               type="string"
+               description="The address of the device currently associated with this presence event."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="PlaceOccupied"
+         description="Sent when at least one presence device assigned to people is present">
+      </c:event>
+      <c:event
+         name="PlaceUnoccupied"
+         description="Sent when all presence device assigned to people are absent">
+      </c:event>
+   </c:events>
+   
+
+</c:capability>

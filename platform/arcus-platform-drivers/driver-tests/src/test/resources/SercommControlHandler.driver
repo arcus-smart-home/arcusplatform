@@ -1,0 +1,307 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Lowe's Confidential ---------------------------------------
+ * Copyright 2014-2015 Lowe's Companies, Inc. All rights reserved.
+ *
+ * NOTICE: All information contained herein is and remains the property of
+ * Lowe's Companies Inc. The technical concepts contained herein are proprietary
+ * to Lowe's Companies Inc. and may be covered by U.S. and foreign patents, or
+ * patents in process, and are protected by trade secret or copyright law.
+ * Dissemination or reproduction of this material is strictly forbidden unless
+ * prior written permission is obtained from Lowe's Companies, Inc.
+ **/
+
+/**
+ * @author paul@couto-software.com
+ *
+ */
+
+/**
+ * Driver for testing Sercomm ControlProtocol messages
+ */
+
+driver         "SercommControlHandler"
+description    "Driver for Sercomm testing"
+version        "1.0"
+protocol       "SCOM"
+vendor         "TBD"
+model          "TBD"
+deviceTypeHint "Test"
+
+matcher vendor: ~/.*/
+
+onSercomm("SercommGetCameraAttrsResponse") {
+   vars.match = "getCameraAttrsResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.privacy = message.attributes.privacy
+   vars.resolutionsSupported = message.attributes.resolutionsSupported
+   vars.resolution = message.attributes.resolution
+   vars.bitrateType = message.attributes.bitrateType
+   vars.bitratesSupported = message.attributes.bitratesSupported
+   vars.bitrate = message.attributes.bitrate
+   vars.qualitiesSupported = message.attributes.qualitiesSupported
+   vars.quality = message.attributes.quality
+   vars.minFramerate = message.attributes.minFramerate
+   vars.maxFramerate = message.attributes.maxFramerate
+   vars.framerate = message.attributes.framerate
+   vars.flip = message.attributes.flip
+   vars.mirror = message.attributes.mirror
+}
+
+onSercomm("SercommGetControllerAttrsResponse") {
+   vars.match = "getControllerAttrsResponse"
+   vars.numAvailable = message.attributes.numAvailable
+   vars.numPaired = message.attributes.numPaired
+   vars.numNotOwned = message.attributes.numNotOwned
+   vars.numDisconnected = message.attributes.numDisconnected
+   vars.cameras = message.attributes.cameras
+   vars.username = message.attributes.username
+}
+
+onSercomm("SercommGetDayNightResponse") {
+   vars.match = "getDayNightResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.dayNight = message.attributes.dayNight
+}
+
+onSercomm("SercommGetIPAddrResponse") {
+   vars.match = "getIPAddrResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.ipAddress = message.attributes.ipAddress
+}
+
+onSercomm("SercommGetIPInfoResponse") {
+   vars.match = "getIPInfoResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.ipAddress = message.attributes.ipAddress
+   vars.netmask = message.attributes.netmask
+   vars.gateway = message.attributes.gateway
+}
+
+onSercomm("SercommGetModelResponse") {
+   vars.match = "getModelResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.model = message.attributes.model
+}
+
+onSercomm("SercommGetStateResponse") {
+   vars.match = "getStateResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.state = message.attributes.state
+}
+
+onSercomm("SercommGetVersionResponse") {
+   vars.match = "getVersionResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.version = message.attributes.version
+}
+
+onSercomm("SercommPairStatusEvent") {
+   vars.match = "pairStatus"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommPairResponse") {
+   vars.match = "pairResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommRebootResponse") {
+   vars.match = "rebootResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+}
+
+onSercomm("SercommResetResponse") {
+   vars.match = "resetResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+}
+
+onSercomm("SercommSetCameraAttrsResponse") {
+   vars.match = "setCameraAttrsResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommStatusChangedEvent") {
+   vars.match = "statusChangedEvent"
+   vars.macAddress = message.attributes.macAddress
+   vars.ssid = message.attributes.ssid
+   vars.channel = message.attributes.channel
+}
+
+onSercomm("SercommUpgradeResponse") {
+   vars.match = "upgradeResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommUpgradeStatusEvent") {
+   vars.match = "upgradeStatusEvent"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommWifiConnectResponse") {
+   vars.match = "wifiConnectResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommWifiDisconnectResponse") {
+   vars.match = "wifiDisconnectResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommWifiGetAttrsResponse") {
+   vars.match = "wifiGetAttrsResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.enable = message.attributes.enable
+   vars.state = message.attributes.state
+   vars.ssid = message.attributes.ssid
+   vars.bssid = message.attributes.bssid
+   vars.security = message.attributes.security
+   vars.channel = message.attributes.channel
+   vars.noise = message.attributes.noise
+   vars.rssi = message.attributes.rssi
+}
+
+onSercomm("SercommWifiScanResultsEvent") {
+   vars.match = "wifiScanResultsEvent"
+   vars.macAddress = message.attributes.macAddress
+   vars.scanResults = message.attributes.scanResults
+}
+
+onSercomm("SercommWifiSetAttrsResponse") {
+   vars.match = "wifiSetAttrsResponse"
+   vars.macAddress = message.attributes.macAddress
+   vars.status = message.attributes.status
+   vars.message = message.attributes.message
+}
+
+onSercomm("SercommMotionDetectedEvent") {
+   vars.match = "motionDetectedEvent"
+   vars.macAddress = message.attributes.macAddress
+}
+
+onSercomm {
+   vars.match = "protocol"
+}
+
+def mac = "00:11:22:33:44:55"
+def resolution = "640x480"
+def bitrateType = "cbr"
+def bitrate = "128K"
+def quality = "Normal"
+def framerate = 5
+def url = "http://test.test.com/testMe"
+def ssid = "testSSID"
+def security = "WPA2_PSK"
+def key = "testtesttest"
+def enabled = true
+def timeout = 100
+def flip = true
+def mirror = true
+def priority = "NORMAL"
+
+onEvent("testGetCameraAttrsRequest") {
+   Sercomm.sendGetCameraAttrsRequest mac
+}
+
+onEvent("testGetControllerAttrsRequest") {
+   Sercomm.sendGetControllerAttrsRequest()
+}
+
+onEvent("testSetCameraAttrsRequest") {
+   Sercomm.sendSetCameraAttrsRequest mac, resolution, bitrateType, bitrate, quality, framerate, flip, mirror
+}
+
+onEvent("testGetIPAddrRequest") {
+   Sercomm.sendGetIPAddrRequest mac
+}
+
+onEvent("testGetIPInfoRequest") {
+   Sercomm.sendGetIPInfoRequest mac
+}
+
+onEvent("testGetModelRequest") {
+   Sercomm.sendGetModelRequest mac
+}
+
+onEvent("testGetStateRequest") {
+   Sercomm.sendGetStateRequest mac
+}
+
+onEvent("testGetVersionRequest") {
+   Sercomm.sendGetVersionRequest mac
+}
+
+onEvent("testGetDayNightRequest") {
+   Sercomm.sendGetDayNightRequest mac
+}
+
+onEvent("testPairRequest") {
+   Sercomm.sendPairRequest mac
+}
+
+onEvent("testRebootRequest") {
+   Sercomm.sendRebootRequest mac
+}
+
+onEvent("testResetRequest") {
+   Sercomm.sendResetRequest mac
+}
+
+onEvent("testUpgradeRequest") {
+   Sercomm.sendUpgradeRequest mac, url, priority
+}
+
+onEvent("testWifiConnectRequest") {
+   Sercomm.sendWifiConnectRequest mac, ssid, security, key
+}
+
+onEvent("testWifiDisconnectRequest") {
+   Sercomm.sendWifiDisconnectRequest mac
+}
+
+onEvent("testWifiGetAttrsRequest") {
+   Sercomm.sendWifiGetAttrsRequest mac
+}
+
+onEvent("testWifiSetAttrsRequest") {
+   Sercomm.sendWifiSetAttrsRequest mac, enabled
+}
+
+onEvent("testWifiScanStartRequest") {
+   Sercomm.sendWifiScanStartRequest mac, timeout
+}
+
+onEvent("testWifiScanEndRequest") {
+   Sercomm.sendWifiScanEndRequest mac
+}
+

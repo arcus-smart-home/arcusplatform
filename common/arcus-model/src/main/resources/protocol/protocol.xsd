@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+   xmlns="http://www.w3.org/2001/XMLSchema"
+   xmlns:tns="http://www.iris.com/schema/protocol/1.0.0"
+   targetNamespace="http://www.iris.com/schema/protocol/1.0.0"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified">
+   
+   <element name="protocol" type="tns:protocolType" />
+   
+   <complexType name="protocolType">
+      <sequence>
+         <element name="description" type="string" minOccurs="1" maxOccurs="1"/>
+         <element name="attributes" type="tns:attributesType" minOccurs="0" maxOccurs="1"/>
+      </sequence>
+      <attribute name="name" type="string" use="required" />
+      <attribute name="namespace" type="string" use="required" />
+      <attribute name="version" type="string" use="required" />
+   </complexType>
+   
+   <complexType name="attributesType">
+      <sequence>
+         <element name="attribute" type="tns:attributeType" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+   
+   <complexType name="attributeType">
+      <attribute name="name" type="string" use="required" />
+      <attribute name="type" type="string" use="required" />
+      <attribute name="description" type="string" use="required" />
+      <attribute name="min" type="string" />
+      <attribute name="max" type="string" />
+      <attribute name="values" type="string" />
+      <attribute name="unit" type="string" />
+   </complexType>
+   
+</schema>

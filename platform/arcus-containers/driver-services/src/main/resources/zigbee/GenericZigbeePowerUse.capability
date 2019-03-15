@@ -1,0 +1,114 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+capability		PowerUse
+description		"Implementation of PowerUse for Zigbee devices"
+version			"1.0"
+
+static void doInitPowerUse(ctx,name,cluster) {
+
+    ctx.log.debug "{} initialize...", name
+
+    ctx.PowerUse.instantaneous           0.0
+    ctx.PowerUse.wholehome               false
+    ctx.vars.'MULTIPLER_READ' = -1
+    ctx.vars.'MULTIPLER' = 1
+    ctx.vars.'DIVISOR_READ' = -1
+    ctx.vars.'DIVISOR' = 1
+    ctx.vars.'UNITS' = 0
+    ctx.vars.'UNITS_READ' = -1
+
+    ctx.log.debug "done"
+}
+
+static void doConfigPowerUse(ctx,name,cluster) {
+    // Read attributes for the power use configuration
+    //
+    // UNIT OF MEASURE: 0 (EMBER_ZCL_AMI_UNIT_OF_MEASURE_KILO_WATT_HOURS)
+    // MULTIPLIER: 1
+    // DIVISOR: 1000
+    // SUMMATION FORMAT: 0xAB --> 5 digits <decimal> 3 digits (suppress leading zeros)
+    //  DEMAND FORMAT: 0xAB --> 5 digits <decimal> 3 digits (suppress leading zeros)
+    // METERING DEVICE TYPE: 0 (EMBER_ZCL_METER_DEVICE_TYPE_ELECTRIC_METER)
+    ctx.log.debug "Reading attributes from metering cluster"
+    cluster.zclReadAttributes(cluster.ATTR_SUMMATION_FORMATTING,
+                              cluster.ATTR_UNIT_OF_MEASURE,
+                              cluster.ATTR_MULTIPLIER,
+                              cluster.ATTR_DIVISOR,
+                              cluster.ATTR_INSTANTANEOUS_DEMAND,
+                              cluster.ATTR_CURRENT_SUMMATION_DELIVERED)
+}
+
+static void doHandlePowerUse(ctx,name,cluster, msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def cumEnergy = attributes[cluster.ATTR_CURRENT_SUMMATION_DELIVERED]
+        //def maxpower = attributes[cluster.ATTR_CURRENT_MAX_DEMAND_DELIVERED]
+        def units = attributes[cluster.ATTR_UNIT_OF_MEASURE]
+        def multiplier = attributes[cluster.ATTR_MULTIPLIER]
+        def divisor = attributes[cluster.ATTR_DIVISOR]
+        def power = attributes[cluster.ATTR_INSTANTANEOUS_DEMAND]
+        int mult = 1
+        int div = 1
+        int uni = 1
+        double cum = 1
+        double pow = 1
+        
+        // handle scaling and units processing - set vars
+        if ( (null != multiplier) && ('INVALID' != multiplier.toString()) ) {
+      	   ctx.log.debug "{} set multiplier to {}", name, multiplier
+           ctx.vars.'MULTIPLIER' = multiplier
+           ctx.vars.'MULTIPLIER_READ' = 1
+        }       
+        if ( (null != divisor) && ('INVALID' != divisor.toString()) ) {
+      	   ctx.log.debug "{} set divisor to {}", name, divisor
+           ctx.vars.'DIVISOR' = divisor
+           ctx.vars.'DIVISOR_READ' = 1
+        }       
+        if ( (null != units) && ('INVALID' != units.toString()) ) {
+      	   ctx.log.debug "{} set units to {}", name, units
+           ctx.vars.'UNITS' = units
+           ctx.vars.'UNITS_READ' = 1
+        }       
+
+        // get scalign and unit info from vars
+        if (ctx.vars.'MULTIPLIER_READ' > 0) {
+           mult = ctx.vars.'MULTIPLIER'
+        }
+        if (ctx.vars.'DIVISOR_READ' > 0) {
+           div = ctx.vars.'DIVISOR'
+        }
+        if (ctx.vars.'UNITS_READ' > 0) {
+           uni = ctx.vars.'UNITS'
+        }
+	if ((null != cumEnergy) && ('INVALID' != cumEnergy.toString())) {
+            cum = cumEnergy * mult / div
+            if (0==uni) { // 
+              cum = 1000 * cum
+              }// TODO Handle other units
+	   ctx.log.debug "{} cumulative power read {} set to {} watt-hours", name, cumEnergy, cum
+           ctx.PowerUse.cumulative  cum
+	}
+
+	if ((null != power) && ('INVALID' != power.toString())) {
+           pow = power * mult / div
+           if (0==uni) {
+              pow = 1000 * pow
+              }// TODO Handle other units
+	   ctx.log.debug "{} instantaneous power read {} set to {} watts", name, power, pow
+	   ctx.PowerUse.instantaneous  pow
+	}
+
+}
+

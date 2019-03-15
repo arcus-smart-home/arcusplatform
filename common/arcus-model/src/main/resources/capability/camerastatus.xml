@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CameraStatus"
+   namespace="camerastatus"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Status of a camera
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="camera"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The address of the associated camera."/>
+      <c:attribute
+         name="state"
+         type="enum"
+         values="OFFLINE,IDLE,RECORDING,STREAMING"
+         readwrite="r"
+         optional="false"
+         description="An *estimate* of the current state of the camera.  This should be used for displaying metadata not as a guarantee that prevents new recordings / streams from being attempted."/>
+      <c:attribute
+         name="lastRecording"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="
+Address of the last recording completed by the camera.
+This will be the empty string in the following cases:
+ - Camera has never completed a recording
+ - The most recent recording has been deleted by the user
+          "/>
+      <c:attribute
+         name="lastRecordingTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="
+Start time of the last recording that has completed for this camera.
+Note it will not be updated until the current recording completes.  Also it may contain a time for a non-existent recording if the user has deleted the most recent recording.
+         "/>
+      <c:attribute
+         name="activeRecording"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the video that the camera is currently streaming / recording."/>
+   </c:attributes>
+   
+   <c:methods>
+   </c:methods>
+
+</c:capability>

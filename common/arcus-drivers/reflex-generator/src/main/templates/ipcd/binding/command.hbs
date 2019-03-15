@@ -1,0 +1,10 @@
+{{#signatures}}
+/** {{name}} - {{description}} */
+public void {{uncapitalize name}}({{#args}}{{{type}}} {{uncapitalize name}}{{#unless @last}}, {{/unless}}{{/args}}) 
+{
+   {{capitalize name}}Command {{uncapitalize name}} = new {{capitalize name}}Command();
+   {{#args}}{{uncapitalize ../name}}.set{{capitalize name}}({{uncapitalize name}});
+   {{/args}}
+   IpcdMessageUtil.send({{uncapitalize name}});
+}
+{{/signatures}}

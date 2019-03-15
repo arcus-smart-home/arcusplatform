@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="IncidentTrigger"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a trigger within the context of a single incident</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="source"
+         type="string"
+         description="The address of the source of the event"/>
+
+      <t:attribute
+         name="time"
+         type="timestamp"
+         description="The time of the event"/>
+      
+      <t:attribute
+         name="alarm"
+         type="enum"
+         values="CO,SMOKE,SECURITY,PANIC,WATER,CARE,WEATHER"
+         description="The type of alarm the trigger is pertinent to"/>
+
+       <t:attribute
+          name="event"
+          type="enum"
+          values="MOTION,CONTACT,GLASS,KEYPAD,SMOKE,CO,RULE,LEAK,BEHAVIOR,VERIFIED_ALARM"
+          description="The type of thing that triggered the event"/>
+
+   </t:attributes>
+ </t:type>

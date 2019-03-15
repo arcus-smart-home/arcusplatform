@@ -1,0 +1,193 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability		Color
+description		"Implementation for ZigBee Color capability with no Color Temp support"
+version			"1.0"
+
+@Field static final short DFLT_CLR_TRANS_SECS         = 2         // default transition seconds to use when color attributes are set, since there is no transition time attribute
+@Field static final long DFLT_READBACK_DELAY          = 3000
+
+@Field static final byte DFLT_COLOR_HUE               = 0         // 0-360 scaled to 0-254
+@Field static final byte DFLT_COLOR_SATURATION        = 100
+@Field static final byte HUE_MOVE_DIR                 = 0         //
+
+@Field static final short PROFILE_HA		      = 0x0104
+@Field static final short CLUSTER_COLOR_CTRL          = 0x0300
+@Field static final byte CMD_CNFG_RPT                 = 0x06
+
+//Constants to preserve color on power cycle
+@Field static final long UNKNOWN_VALUE          = -1
+@Field static final String KEY_LAST_HUE         = "lastHue"
+@Field static final String KEY_LAST_SAT         = "lastSat"
+
+onAdded {
+	vars.'wait4deferred' = false
+	if (vars.'alwaysSendBothColorAttr' == null) {
+           log.debug "will NOT always send saturation values to Halo"
+           vars.'alwaysSendBothColorAttr' = false
+        }
+	vars.KEY_LAST_HUE  = UNKNOWN_VALUE
+	vars.KEY_LAST_SAT  = UNKNOWN_VALUE
+	
+	Color.hue               		DFLT_COLOR_HUE
+	Color.saturation        		DFLT_COLOR_SATURATION
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////  
+
+static void doSetColorAttributes(ctx, name, colorCluster, message ) {
+	ctx.log.trace "{} handle setAttributes color...", name
+	def int doColor = 0
+
+	// process set attribute for Color capability
+	def targetAttributes = message.attributes.findAll {
+		it.key == ctx.Color.hue.name ||
+		it.key == ctx.Color.saturation.name
+		}
+	if(targetAttributes) {
+		doColor = doGetColorHueSaturationAttributes(ctx, targetAttributes)
+	}
+        // TODO: BUG in PETER'S code. Only works with both hue and sat
+        if (true == ctx.vars.'alwaysSendBothColorAttr') {
+           doColor = 3
+        }           
+        ctx.log.debug "{} SENDING BOTH HUE AND SAT: {}", name, doColor
+	if ( 0 < doColor ) {
+		doSetColorHueSaturationAttributes(ctx, colorCluster, doColor)
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Helper Methods
+//////////////////////////////////////////////////////////////////////////
+
+static def int doGetColorHueSaturationAttributes(ctx, attributes) {
+	ctx.log.trace "doGetColorHueSaturationAttributes"
+	// default vars to current Color levels
+	int hue = 0
+	int sat = 0
+	int hueSet = 0
+	int satSet = 0
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Color.hue:
+				// convert 0-360 Hue range to 0-254 ZigBee Hue range (255 is reserved)
+				hue = Math.round( ((new Double(attribute.value)) / 360.0) * 254.0 )
+				hueSet = 1
+				ctx.vars.KEY_LAST_HUE = hue
+				break
+			case ctx.Color.saturation:
+				// convert 0-100 Saturation range to 0-254 ZigBee Saturation range (255 is reserved)
+				sat = Math.round( ((new Double(attribute.value)) / 100.0) * 254.0 )
+				satSet = 1
+				ctx.vars.KEY_LAST_SAT = sat
+				break
+			default:
+				break
+		}
+	}
+        ctx.log.trace "doGetColor: hue: {} sat: {}", hueSet, satSet
+	return (hueSet * 1) + (satSet * 2)
+}
+
+static def void doSetColorHueSaturationAttributes(ctx, colorCluster, valsSet) {
+	ctx.log.trace "doSetColorHueSaturationAttributes"
+	// default vars to current Color levels
+	def byte hue = ctx.vars.KEY_LAST_HUE ?: DFLT_COLOR_HUE
+	def byte sat = ctx.vars.KEY_LAST_SAT ?: DFLT_COLOR_SATURATION
+	
+	if (3 == valsSet) {
+		colorCluster.moveToHueAndSaturation(hue, sat, DFLT_CLR_TRANS_SECS)
+		ctx.log.trace "moveToHueAndSaturation [Hue:{}, Saturation:{}, Seconds:{}]", hue, sat, DFLT_CLR_TRANS_SECS
+	} else if (1 == valsSet) {
+		colorCluster.moveToHue(hue, HUE_MOVE_DIR, DFLT_CLR_TRANS_SECS)
+		ctx.log.trace "moveToHue [Hue:{}, Direction:{}, Seconds:{}]", hue, HUE_MOVE_DIR, DFLT_CLR_TRANS_SECS
+	} else if (2 == valsSet) {
+		colorCluster.moveToSaturation(sat, DFLT_CLR_TRANS_SECS)
+		ctx.log.trace "moveToSaturation [Saturation:{}, Seconds:{}]", sat, DFLT_CLR_TRANS_SECS
+	}
+	if (0 < valsSet) {
+		// read back the level (delay this by a bit so default ramping is completed first)
+		ctx.Scheduler.scheduleIn 'DeferredReadColor', DFLT_READBACK_DELAY
+		ctx.vars.'wait4deferred' = true
+	}
+}
+
+static def void handleColorMsg(ctx, name, cluster, msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def currHue = attributes[cluster.ATTR_CURRENT_HUE]
+	def currSat = attributes[cluster.ATTR_CURRENT_SATURATION]
+	def timeRemaining = attributes[cluster.ATTR_REMAINING_TIME]
+	def currX = attributes[cluster.ATTR_CURRENT_X]
+	def currY = attributes[cluster.ATTR_CURRENT_Y]
+	def driftComp = attributes[cluster.ATTR_DRIFT_COMPENSATION]
+	def driftCompText = attributes[cluster.ATTR_COMPENSATION_TEXT]
+	def mode = attributes[cluster.ATTR_COLOR_MODE]
+	ctx.log.trace "Current Hue:${currHue}, Saturation:${currSat}, Time Remaining:${timeRemaining}, X:${currX}, Y:${currY}, Drift Comp:${driftComp},${driftCompText}, Mode:${mode}"
+	
+	if( !(ctx.vars.'wait4deferred' ?: false) ) {
+		ctx.log.trace "NOT waiting on a deferred read so process this color message..."
+		// set Color attributes to current levels
+		if ((null != currHue) && ('INVALID' != currHue.toString())) {
+			if (0 > currHue) currHue = 256 + currHue	// convert signed value to positive
+			// convert Zigbee 0-254 Hue value to Color Capability 0-360 value
+			def newHue = Math.round( currHue / 254.0 * 360.0 )
+			ctx.log.trace "Set Color.hue to:{}" , newHue
+			ctx.Color.hue newHue
+		}
+		if ((null != currSat) && ('INVALID' != currSat.toString())) {
+			if (0 > currSat) currSat = 256 + currSat	// convert signed value to positive
+			// convert Zigbee 0-254 Saturation value to Color Capability 0-100 value
+			def newSat = Math.round( currSat / 254.0 * 100.0 )
+			ctx.log.trace "Set Color.saturation to:{}" , newSat
+			ctx.Color.saturation newSat
+		}
+		
+	} else {
+		ctx.log.info "Waiting on a deferred read so skip this message..."
+	}
+}
+
+static def void handleDeferredReadColorEvent(ctx, colorCluster) {
+	ctx.log.info 'Perform deferred ReadAttributes for colorCluster'
+	// read current Color attributes
+	colorCluster.zclReadAttributes(
+		colorCluster.ATTR_CURRENT_HUE,
+		colorCluster.ATTR_CURRENT_SATURATION,
+		colorCluster.ATTR_REMAINING_TIME,
+		colorCluster.ATTR_CURRENT_X,
+		colorCluster.ATTR_CURRENT_Y,
+		colorCluster.ATTR_DRIFT_COMPENSATION,
+		colorCluster.ATTR_COMPENSATION_TEXT,
+		colorCluster.ATTR_COLOR_TEMPERATURE,
+		colorCluster.ATTR_COLOR_MODE )
+	
+	ctx.vars.'wait4deferred' = false
+}
+
+static def void restoreLastColor(ctx, name, colorCluster) {
+   ctx.log.trace "{} restoring last color", name
+   def byte hue = ctx.vars.KEY_LAST_HUE ?: DFLT_COLOR_HUE
+   def byte sat = ctx.vars.KEY_LAST_SAT ?: DFLT_COLOR_SATURATION
+   ctx.log.trace "moveToHueAndSaturation [Hue:{}, Saturation:{}, Seconds:{}]", hue, sat, DFLT_CLR_TRANS_SECS
+   colorCluster.moveToHueAndSaturation(hue, sat, DFLT_CLR_TRANS_SECS)
+}
+

@@ -1,0 +1,281 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Key Fob
+ *
+ * To Reset Device:
+ *    Insert battery and then press button inside device 5 times within the first 10 seconds.
+ *
+ * Check-in/Offline:
+ *    These devices send a heartbeat command approximately every 120 seconds (two minutes).
+ *    The offline timeout is set to 6.5 minutes, marking the device as offline if three consecutive checkins are missed.
+ *
+ */
+
+driver			"ZB_AlertMe_KeyFob"
+description		"Driver for the AlertMe Key Fob"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Keyfob"
+productId		"486390"
+vendor 			"Iris"
+model 			"KeyFob"
+
+matcher         'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'Keyfob Device'
+capabilities	DevicePower, Presence
+
+importCapability 'generic/PresenceDeviceConnection'
+
+instance	'home', Button
+instance	'away', Button
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS = 600           // 10 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// User defined methods
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "AlertMe KeyFob device added."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Button.state.home                Button.STATE_RELEASED
+	Button.statechanged.home         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Button.state.away                Button.STATE_RELEASED
+	Button.statechanged.away         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Presence.presence                Presence.PRESENCE_PRESENT
+	Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+        Presence.usehint                 Presence.USEHINT_UNKNOWN
+        Presence.person                  'UNSET'
+
+	// send a Mode Change message to make sure device is in normal ops mode
+	byte[] modeBytes = [0x00, 0x01]		// normal mode, set Home Network Flag (HNF)
+	Zigbee.send("cluster" : 0x00F0, "command" : 0xFA, "profile" : 0xC216, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : modeBytes)
+}
+
+onConnected {
+	log.debug "AlertMe KeyFob device connected."
+
+	// send a "Hello" message
+	byte[] helloBytes = []
+	Zigbee.send("cluster" : 0x00F6, "command" : 0xFC, "profile" : 0xC216, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : helloBytes)
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "AlertMe KeyFob device disconnected."
+}
+
+onRemoved {
+	log.debug "AlertMe KeyFob device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Attribute Setters
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('but') {
+   log.debug "Received message {}", message
+   def attributes = message.attributes
+
+   for(attribute in attributes) {
+      switch(attribute.key) {
+         case Button.state.home:
+			def prevHomeState = Button.state.home.get()
+            log.debug "Setting button state to " + attribute.value
+            if (attribute.value == 'PRESSED') {
+               log.debug "Setting home button state to pressed"
+	           Button.state.home Button.STATE_PRESSED
+            }
+            else if (attribute.value == 'RELEASED'){
+                log.debug "Setting home button state to released"
+	            Button.state.home Button.STATE_RELEASED
+            }
+			// if button state changed, capture timestamp
+			if (Button.state.home.get() != prevHomeState) {
+				Button.statechanged.home new Date()
+			}
+            break;
+
+         case Button.state.away:
+			def prevAwayState = Button.state.away.get()
+            log.debug "Setting button state to {}", attribute.value
+            if (attribute.value == 'PRESSED') {
+               log.debug "Setting home button state to pressed"
+	           Button.state.away Button.STATE_PRESSED
+            }
+            else if (attribute.value == 'RELEASED'){
+                log.debug "Setting home button state to released"
+	            Button.state.away Button.STATE_RELEASED
+            }
+			// if button state changed, capture timestamp
+			if (Button.state.away.get() != prevAwayState) {
+				Button.statechanged.away new Date()
+			}
+            break;
+
+         default:
+			log.warn "Unexpected Attribute Key:{}", attribute.key
+			break
+      }
+   }
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute: {}", attribute
+      }
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+	def clusterId = zclMsg.getClusterId()
+	def messageId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def profile = zclMsg.getProfileId()
+	def flags = zclMsg.getFlags()
+	def payloadLen = zclMsg.getLength()
+	byte[] data = zclMsg.getPayload()
+
+	// Cluster 0xF0, CmdId 0xFB, Heartbeat
+	if((240 == clusterId) && (251 == messageId)) {
+		log.trace "AlertMe KeyFob received heartbeat"
+
+		if (0 != (0x01 & data[0])) {		// bit 0 set in first byte, so Voltage reported
+			int mVolts = ((data[6] & 0xFF) * 256) + (data[5] & 0xFF)
+			double volts = mVolts / 1000.0
+			log.trace "Battery Volts:{}", volts
+			double minVolts = 2.1
+			double nomVolts = 3.0
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = Math.round(battPercent)
+			log.debug "Battery Percent:{}", intBattPercent
+			DevicePower.battery intBattPercent
+		}
+
+		if (0 != (0x08 & data[0])) {		// bit 3 set in first byte, so LQI reported
+			int lqi = data[10]
+			if (0 > lqi) {
+				lqi = 256 + lqi
+			}
+			double signal = (lqi * 100.0) / 255.0
+			log.trace "LQI:{}, (percent:{})", lqi, (int)signal
+			DeviceConnection.signal ((int)signal)
+		}
+
+		// send Stop Polling (ID:0xFD) for General Cluster (ID:0x00F0) so device
+		// only sends a heartbeat message once every 2 minutes instead of 3 times a minute.
+		byte[] bytes = []
+		Zigbee.send("cluster" : 240, "command" : 0xFD, "profile" : 0xC216, "endpoint" : 2,
+			"clusterspecific" : true, "defaultresponse" : true, "data" : bytes)
+
+		return
+	}
+
+	// Button Cluster 0xF3
+	if (243 == clusterId) {
+	    def buttonType = (int)data[0]
+	    if(buttonType == 0){
+			def prevHomeState = Button.state.home.get()
+	 	    if(messageId == 1){
+	 	       log.trace "Setting home button state to pressed"
+	 	       Button.state.home Button.STATE_PRESSED
+	 	    }
+	 	    else if(messageId == 0){
+	 	       log.trace "Setting home button state to released"
+	 	       Button.state.home Button.STATE_RELEASED
+	 	    }
+			// if button state changed, capture timestamp
+			if (Button.state.home.get() != prevHomeState) {
+				Button.statechanged.home new Date()
+			}
+	    }
+	    else if(buttonType == 1){
+			def prevAwayState = Button.state.away.get()
+	 	    if(messageId == 1){
+	 	       log.trace "Setting away button state to pressed"
+	 	       Button.state.away Button.STATE_PRESSED
+	 	    }
+	 	    else if(messageId == 0){
+	 	       log.trace "Setting away button state to released"
+	 	       Button.state.away Button.STATE_RELEASED
+	 	    }
+			// if button state changed, capture timestamp
+			if (Button.state.away.get() != prevAwayState) {
+				Button.statechanged.away new Date()
+			}
+	    }
+		return
+	}
+
+	// Join Cluster 0xF6, Hello Response 0xFE
+	if ((246 == clusterId) && (254 == messageId)) {
+		log.trace "Key Fob received Hello Response"
+		if (18 <= payloadLen) {		// should be 63 bytes, but we are only looking at first 18
+			int nodeId = ((data[1] * 256) + data[0]) & 0xFFFF
+			int mfgId = ((data[11] * 256) + data[10]) & 0xFFFF
+			int dvcType = (data[13] * 256) + data[12]
+			byte appRel = data[14]
+			double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+			double hwVer = new Double(data[17]) + (new Double(data[16]) / 10)
+			log.trace "NodeId:0x{}, MfgId:0x{}, DvcType:{}, App Release:{}, App Ver:{}, HW Ver:{}", 
+				Integer.toHexString(nodeId).toUpperCase(), Integer.toHexString(mfgId).toUpperCase(), dvcType, appRel, appVer, hwVer
+                        DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+		}
+	}
+
+	log.debug "Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:" + data, profile, clusterId, messageId, endpoint, flags, payloadLen
+}
+

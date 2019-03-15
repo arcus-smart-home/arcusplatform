@@ -1,0 +1,12 @@
+[
+{"id":"US/Eastern",    "usesDST":true,  "offset":-5.0,  "name":"Eastern"},
+{"id":"US/Central",    "usesDST":true,  "offset":-6.0,  "name":"Central"},
+{"id":"US/Mountain",   "usesDST":true,  "offset":-7.0,  "name":"Mountain"},
+{"id":"US/Arizona",    "usesDST":false, "offset":-7.0,  "name":"Arizona"},
+{"id":"US/Pacific",    "usesDST":true,  "offset":-8.0,  "name":"Pacific"},
+{"id":"US/Alaska",     "usesDST":true,  "offset":-9.0,  "name":"Alaska"},
+{"id":"US/Aleutian",   "usesDST":true,  "offset":-10.0, "name":"Aleutian"},
+{"id":"US/Hawaii",     "usesDST":false, "offset":-10.0, "name":"Hawaii"},
+{"id":"US/Samoa",      "usesDST":false, "offset":-11.0, "name":"Samoa"},
+{"id":"Pacific/Palau", "usesDST":false, "offset":9.0,   "name":"Palau"}
+]

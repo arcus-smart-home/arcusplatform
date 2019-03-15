@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Temperature"
+   namespace="temp"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a temperature sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="temperature" 
+         readwrite="r" 
+         type="double" 
+         unit="C"
+         optional="false" 
+         description="Reflects a temperature measurement taken from a thermistor."/>
+   </c:attributes>
+   
+</c:capability>

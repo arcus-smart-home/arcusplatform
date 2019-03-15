@@ -1,0 +1,156 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Generic Z-Wave In-Wall Fan Controller
+ *
+ *
+ */
+import groovy.transform.Field
+import com.iris.protocol.zwave.ZWaveGenericDevices
+import com.iris.protocol.zwave.ZWaveSwitchMultilevelSpecificDevices
+
+uses 'zwave.GenericZWaveFan'
+uses 'zwave.GenericZWaveVersion'
+
+ 
+driver           "ZZWaveGenericFanController"
+description      "Driver for a Generic Z-Wave In-Wall Fan Controller"
+version          "2.12"
+protocol         "ZWAV"
+deviceTypeHint   "Fan Control"
+productId        "ca8b7a"
+vendor           "Z-Wave"
+model            "Fan"
+
+
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_MULTILEVEL, 'ZWAV:Specific':ZWaveSwitchMultilevelSpecificDevices.SPECIFIC_TYPE_FAN_SWITCH   // 0x11, 0x05
+
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Switch {
+    state Switch.STATE_OFF
+    bind statechanged to state
+}
+
+Fan {
+    maxSpeed 3
+    speed 1
+}
+
+
+@Field final int  OFFLINE_TIMEOUT_SECS      = 11400      // 190 minutes
+@Field final int  POLLING_INTERVAL_SEC      = 3600       // Ask for current state every 60 minutes
+@Field final long DEFERRED_READ_DELAY_MSEC  = 2000
+
+
+final byte SWITCH_ON     = 0xff
+final byte SWITCH_OFF    = 0x00
+
+final byte SPEED_LOW     = 33
+final byte SPEED_MEDIUM  = 66
+final byte SPEED_HIGH    = 99
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Attributes: {}", message.attributes
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    vars.'DFLT_READBACK_DELAY' = DEFERRED_READ_DELAY_MSEC        // used by GenericZWaveFan to determine delay before reading back level setting (in mSec)
+
+    ZWave.switch_multilevel.get()
+
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+    GenericZWaveFan.handleSetAttributes(this, message)
+    
+    def attributes = message.attributes
+    for (attribute in attributes) {
+        switch(attribute.key) {
+            case Switch.inverted:
+                log.warn "Switch inversion not supported by this device"
+                break
+
+            case Fan.direction:
+                log.warn "Fan direction not supported by this device."
+                break
+
+            default:
+                break
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+    GenericZWaveFan.handleMultilevelReport(this, message)
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveMessage.application_status.busy {
+    log.debug "Device reported Busy"
+    // when device reports that it is busy, read again after a delay
+    Scheduler.scheduleIn 'DeferredSwitchReadLevel', DEFERRED_READ_DELAY_MSEC    // see event handler in GenericZWaveFan
+}
+
+onZWaveMessage.hail.hail {
+    log.trace "Device sent a Hail"
+    Scheduler.scheduleIn 'DeferredSwitchReadLevel', DEFERRED_READ_DELAY_MSEC    // see event handler in GenericZWaveFan
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    Scheduler.scheduleIn 'DeferredSwitchReadLevel', DEFERRED_READ_DELAY_MSEC    // see event handler in GenericZWaveFan
+}
+
+onZWaveMessage {
+    log.debug "received unhandled ZWave message {}", message
+    return false
+}
+

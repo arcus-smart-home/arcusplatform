@@ -1,0 +1,26 @@
+{{#unless enhances}}
+{{#file . "Generated/Models/{{name}}Model.swift"}}
+//
+// {{name}}Model.swift
+//
+// Generated on {{today}}
+
+import Foundation
+
+public class {{name}}Model: Model, LegacyModelNotifier {
+  // MARK: LegacyModel Methods
+
+  public static func addressForId(_ modelId: String) -> String {
+    return addressForNamespace(Constants.{{uncapitalize name}}Namespace, modelId: modelId)
+  }
+
+  public static func addModelNotificationName() -> String {
+    return "Add{{name}}ModelNotification"
+  }
+
+  public static func updateModelNotificationName() -> String {
+    return "Update{{name}}ModelNotification"
+  }
+}
+{{/file}}
+{{/unless}}

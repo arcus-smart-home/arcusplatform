@@ -1,0 +1,668 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Schlage Keypad Lever Lock (BE369IR)
+ */
+driver			"ZWaveSchlageKeypadLeverLockDriver"
+description		"Driver for a Z-wave Schlage Keypad Lever Lock"
+version			"1.1"
+protocol		"ZWAV"
+deviceTypeHint	"Lock"
+productId		"8a6f19"
+vendor 			"Schlage"
+model 			"FE369IR"
+
+matcher			'ZWAV:Manufacturer': 0x003B, 'ZWAV:ProductType': 0x634B, 'ZWAV:ProductId': 0x504C
+
+capabilities	DevicePower, DoorLock
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Generic Device Class:    GENERIC_TYPE_ENTRY_CONTROL
+// Specific Device Class:   SPECIFIC_TYPE_SECURE_KEYPAD_DOOR_LOCK
+// Command Classes:
+//      0x62 (98)   COMMAND_CLASS_DOOR_LOCK
+//      0x63 (99)   COMMAND_CLASS_USER_CODE
+//		0x70 (112)  COMMAND_CLASS_CONFIGURATION
+//		0x71 (113)  COMMAND_CLASS_ALARM
+//		0x80 (-128) COMMAND_CLASS_BATTERY
+//		0x86 (-122)		COMMAND_CLASS_VERSION
+//		0x20 (32)		COMMAND_CLASS_BASIC
+////////////////////////////////////////////////////////////////////////////////
+DevicePower.battery 		     0
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+DoorLock.type					 DoorLock.TYPE_LEVERLOCK
+
+def final String DEVICE_NAME	    = "Schlage Keypad LeverLock"
+def final String RESERVED           = "RESERVED"
+def final byte DOOR_LOCKED          = 0xFF
+def final byte DOOR_UNLOCKED        = 0x00
+def final int MAX_SUPPORTED_PINS    = 19     // Schlage Lever Lock can hold up to 19 user codes
+def final int SETUP_DELAY_MILLIS    = 30000	// 30 seconds after connect ask for the lock state again in case we don't get a response from our original request
+def final int BUZZ_IN_TIMEOUT_MILLIS = 45000	//30 second buzzin timeout + 15 seconds to deliver to end device
+def final int GETPIN_DELAY_MILLIS   = 20000	//20 seconds
+def final int LOCKSTATE_DELAY_MILLIS = 10000 // 10 seconds after alarm
+def final int OFFLINE_TIMEOUT_SECS  =  44100 // 12h 15m
+def final int DOOR_STATE_POLL_SECS  =	14400	// 4h
+def final int BATTERY_POLLING_INTERVAL_SEC   = 86400	//Ask for battery level every 24 hours
+def final int CLEAR_PINS_DELAY_MILLIS        = 5000  //5 seconds after added clear lock pins to avoid initial pairing issues
+def final int MAX_CLEAR_PINS_DELAY_RETRIES   = 3     // Wait for clear pins operation to complete for a fixed number of times
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   vars.'CURRENT_NAME' = DEVICE_NAME
+   log.debug "${DEVICE_NAME} added"
+
+   // set default attribute values
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   DoorLock.type                 DoorLock.TYPE_LEVERLOCK
+   DoorLock.supportsBuzzIn		   true
+   DoorLock.supportsInvalidPin	true
+   DoorLock.numPinsSupported     MAX_SUPPORTED_PINS
+   DoorLock.lockstate            DoorLock.LOCKSTATE_UNLOCKED
+   DoorLock.lockstatechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   DoorLock.slots			         [:]
+
+   Scheduler.scheduleIn 'ClearPins', CLEAR_PINS_DELAY_MILLIS
+   vars.'CLEAR_PINS_ON_ADD' = 0x01
+   vars.'CLEAR_PINS_DELAY_RETRIES' = MAX_CLEAR_PINS_DELAY_RETRIES
+}
+
+onConnected {
+   log.debug "${DEVICE_NAME} connected"
+
+   // this must be set on group 2 in order to communicate with the hub correctly
+   ZWave.association.set(2,1);
+
+   // Get initial state to match reality rather than initial UNLOCKED state we guessed above...
+   ZWave.door_lock.operation_get()
+
+   // Setup poll routines
+   ZWave.poll(DOOR_STATE_POLL_SECS, ZWave.door_lock.operation_get)
+   ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+   // Setup offline timeout
+   ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+   // Complete setup later to avoid loss of commands to lock
+   Scheduler.scheduleIn 'SetupLock', SETUP_DELAY_MILLIS
+}
+
+onDisconnected {
+   log.debug "${DEVICE_NAME} disconnected"
+}
+
+onRemoved {
+   log.debug "${DEVICE_NAME} removed"
+}
+     
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+   handleBatteryLevelReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.user_code.report {
+   handleUserCodeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.door_lock.operation_report {
+   handleLockOperationReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.alarm.report {
+   handleSchlageAlarmReportViaType(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage {
+   log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
+   return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled event handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('SetupLock') {
+   log.debug "${DEVICE_NAME} received SetupLock event"
+
+   // If still clearing pins, try again later
+   if (vars.'CLEAR_PINS_ON_ADD' != null && vars.'CLEAR_PINS_DELAY_RETRIES' > 0) {
+      Scheduler.scheduleIn 'SetupLock', SETUP_DELAY_MILLIS
+      vars.'CLEAR_PINS_DELAY_RETRIES'--
+      return
+   }
+
+   // Get initial battery level
+   ZWave.battery.get()
+
+   // get the version
+   ZWave.version.get()
+}
+
+onEvent('ClearPins') {
+   log.debug "${DEVICE_NAME} clear out all existing pins....."
+   ZWave.user_code.set( 0, 0x00, 0x00, 0x00, 0x00, 0x00 )  //Clear out all existing pins
+}
+
+setAttributes('doorlock') {
+   log.debug "${DEVICE_NAME} driver received set doorlock attribute message"
+
+   def attributes = message.attributes
+   for(attribute in attributes) {
+      switch(attribute.key) {
+      case DoorLock.lockstate:
+         if (DoorLock.LOCKSTATE_LOCKED == attribute.value ) {
+            ZWave.door_lock.operation_set(DOOR_LOCKED)
+            updateLockState(this,DoorLock.LOCKSTATE_LOCKING)
+         } else if (DoorLock.LOCKSTATE_UNLOCKED == attribute.value ) {
+            ZWave.door_lock.operation_set( DOOR_UNLOCKED )
+            updateLockState(this,DoorLock.LOCKSTATE_UNLOCKING)
+         } else {
+            log.warn "${DEVICE_NAME} Ignoring attempt to set lock to unexpected Lock State:{}", attribute.value
+         }
+         break
+
+      default:
+         log.error "${DEVICE_NAME} Unrecognized attribute: {}", attribute
+         break
+      }
+   }
+}
+
+/**
+ * Authorize the person with the given person Id to unlock the door with his/her pin.
+ *
+ * Returns the slot number the person has been assigned or 0 if there a no available slots.
+ */
+onDoorLock.AuthorizePerson {
+   String name = vars.'CURRENT_NAME'?:DEVICE_NAME
+   def personId = message.attributes['personId']
+   def slots = getDoorLockSlots(this)
+
+   log.debug "${DEVICE_NAME} - AuthorizePerson: current slots: ${slots}"
+   // Check to see if the user has already been assigned a slot on the
+   // lock. If they haven't look for a new slot to assign the user into.
+   int slot = findSlotForUser(this,name,slots,personId)
+   slot = (slot != 0) ? slot : findAndAssignNewSlotToUser(this,name,slots,personId,DoorLock.numPinsSupported.get())
+
+   // If we couldn't assign the slot to the user then return an error
+   // to the source of the original request.
+   if (slot == 0) {
+      emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':slot, 'message': 'No slot available']
+      sendResponse ('Error', [ code: 'request.unsatisfiable', message: 'No slot available' ])
+      return
+   }
+
+   // Update the slot mappings and attempt to provision the PIN into
+   // the doorlock in the given slot.
+   log.info "${DEVICE_NAME} attempting to provision user ${personId} into slot ${slot}"
+   DoorLock.slots slots
+   log.debug "${DEVICE_NAME} - AuthorizePerson: updated slots: ${DoorLock.slots.get()}"
+
+   byte[] pinData = PinManagement.getPin( personId )
+   ZWave.user_code.set(slot, 0x01, pinData[0], pinData[1], pinData[2], pinData[3])
+
+   if (true != vars.'DISABLE_GET_AFTER_PINSET') {
+      log.debug "${DEVICE_NAME} - AuthorizePerson: scheduling GetPinAfterAuthorize"
+      vars.'DEFERRED_GETPIN_SLOT' = slot
+      Scheduler.scheduleIn 'GetPinAfterAuthorize', GETPIN_DELAY_MILLIS
+   }
+
+   sendResponse( 'doorlock:AuthorizePersonResponse', ['slotId':slot] )
+}
+
+/**
+ * Remove the person with the given person Id ability to unlock the door with their pin.
+ */
+onDoorLock.DeauthorizePerson {
+   String name = vars.'CURRENT_NAME'?:DEVICE_NAME
+   def personId = message.attributes['personId']
+   def slots = getDoorLockSlots(this)
+
+   log.debug "${DEVICE_NAME} - DeauthorizePerson: current slots: ${slots}"
+   int slot = findSlotForUser(this,name,slots,personId)
+   if (slot == 0) {
+      emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':slot, 'message': 'No slot assigned to ${personId}']
+      sendResponse ('Error', [ code: 'request.unsatisfiable', message: 'No slot assigned to person ${personId}' ])
+      return;
+   }
+
+   // Attempt to deprovision the PIN from the given slot on the door lock.
+   log.info "${DEVICE_NAME} attempting to deprovision user ${personId} from slot ${slot}"
+   ZWave.user_code.set(slot, 0x00, 0x00, 0x00, 0x00, 0x00)
+
+   if (true != vars.'DISABLE_GET_AFTER_PINSET') {
+      log.debug "${DEVICE_NAME} - DeauthorizePerson: scheduling GetPinAfterAuthorize"
+      vars.'DEFERRED_GETPIN_SLOT' = slot
+      Scheduler.scheduleIn 'GetPinAfterAuthorize', GETPIN_DELAY_MILLIS
+   }
+
+   sendResponse('doorlock:DeauthorizePersonResponse', [:])
+}
+
+/**
+ * Clear all the pins currently set in the lock.
+ */
+onDoorLock.ClearAllPins {
+
+   log.warn "${DEVICE_NAME} attempting to clear all PINs"
+   log.debug "${DEVICE_NAME} - ClearAllPins: current slots: ${DoorLock.slots.get()}"
+
+   DoorLock.slots [:]
+   log.debug "${DEVICE_NAME} - ClearAllPins: updated slots: ${DoorLock.slots.get()}"
+
+   ZWave.user_code.set(0, 0x00, 0x00, 0x00, 0x00, 0x00)
+   sendResponse('doorlock:ClearAllPinsResponse', ['unlocked':true])
+}
+
+/**
+ * Buzz a user in.
+ */
+onDoorLock.BuzzIn {
+
+   def state = DoorLock.lockstate.get()
+   boolean isLocked = (DoorLock.LOCKSTATE_LOCKED == state) ||
+	                   (DoorLock.LOCKSTATE_LOCKING == state)
+
+   if(isLocked) {
+      log.info "${DEVICE_NAME} buzzing user in"
+
+      updateLockState(this,DoorLock.LOCKSTATE_UNLOCKING)
+      ZWave.door_lock.operation_set(DOOR_UNLOCKED)
+
+      Scheduler.scheduleIn 'LockAfterBuzzIn', BUZZ_IN_TIMEOUT_MILLIS
+   }
+
+   sendResponse('doorlock:BuzzInResponse', ['unlocked':isLocked])
+}
+
+onEvent('LockAfterBuzzIn') {
+   log.info "${DEVICE_NAME} locking door after buzz in"
+
+   updateLockState(this,DoorLock.LOCKSTATE_LOCKING)
+   ZWave.door_lock.operation_set(DOOR_LOCKED)
+}
+
+onEvent('GetPinAfterAuthorize') {
+   log.info "${DEVICE_NAME} getting PIN after pin operation"
+   ZWave.user_code.get(vars.'DEFERRED_GETPIN_SLOT')
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utilities
+////////////////////////////////////////////////////////////////////////////////
+
+static def getDoorLockSlots(ctx) {
+   def slots = ctx.DoorLock.slots.get()
+   if (slots == null) {
+      return [:]
+   }
+
+   return [:] << slots
+}
+
+static def getUserInSlot(ctx,slot) {
+   return ctx.DoorLock.slots.get()[slot.toString()]
+}
+
+static void updateLockState(ctx,newState) {
+   def prevState = ctx.DoorLock.lockstate.get()
+   ctx.DoorLock.lockstate newState
+
+   if (newState != prevState) {
+      ctx.DoorLock.lockstatechanged new Date()
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Door Lock Operation Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleLockOperationReport(ctx,name,message) {
+   def mode = message.command.get('doorlockmode') & 0xFF;
+   ctx.log.debug "${name} driver received an operation report: ${mode} -- ${message}"
+
+   switch (mode) {
+   case 0x00: // door unsecured
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+      break;
+
+   case 0x01: // door unsecured with timeout
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+      break;
+
+   case 0x10: // door unsecured for inside door handle
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+      break;
+
+   case 0x11: // door unsecured for inside door handle with timeout
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+      break;
+
+   case 0x20: // door unsecured for outside door handle
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+      break;
+
+   case 0x21: // door unsecured for outside door handle with timeout
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+      break;
+
+   case 0xFE: // door in unknown state
+      ctx.log.warn "${name} driver reported unknown state: ${mode}"
+      break;
+
+   case 0xFF:
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
+      break;
+
+   default:
+      ctx.log.warn "${name} driver reported unrecognized state: ${mode}"
+      break;
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Battery Level Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleBatteryLevelReport(ctx,name,message) {
+   def batteryLevel = message.command.get('level')
+   if (batteryLevel == null) {
+      ctx.log.warn "${name} battery level null"
+      return
+   }
+
+   int bl = batteryLevel & 0xFF
+   if(0xFF == bl) {
+      ctx.log.warn "${name} battery level is low"
+      ctx.DevicePower.battery 0
+   } else {
+      ctx.DevicePower.battery bl
+      ctx.log.debug "${name} battery level [${bl}]"
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave User Code Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleUserCodeReport(ctx,name,message) {
+   def slots = getDoorLockSlots(ctx)
+   def userId = message.command.get('useridentifier')
+   def status = message.command.get('useridstatus')
+
+   if (status == null || userId == null || slots == null) {
+      ctx.log.warn "${name} received bad status report: slot=${userId}, status=${status}"
+      return
+   }
+   ctx.log.debug "${name} driver received an user code report: slot=${userId}, status=${status} -- message=${message}, slots=${slots}"
+
+   switch (status & 0xFF) {
+   case 0:
+      handleUserSlotAvailable(ctx,name,slots,userId)
+      break
+   case 1:
+      handleUserSlotOccupied(ctx,name,slots,userId)
+      break
+   case 2:
+      // For Schlage, this indicates a PIN matches the first 4 digits of the programming code
+      handleUserSlotReserved(ctx,name,slots,userId)
+      break
+   case 0xFE:
+      // For Schlage, this indicates a duplicate PIN
+	  handleUserSlotNotAvailable(ctx,name,slots,userId)
+      break
+   default:
+      ctx.log.warn "${name} received unknown status report: slot=${userId}, status=${status}"
+      break
+   }
+}
+
+static int findSlotForUser(ctx,name,slots,personId) {
+   for (def s : slots.keySet()) {
+      if (personId == slots[s]) {
+         ctx.log.debug "${name} - findSlotForUser: slot: ${s}, person: ${personId}"
+         return s.toInteger()
+      }
+   }
+
+   return 0
+}
+
+static int findAndAssignNewSlotToUser(ctx,name,slots,personId,maxPinSupported) {
+   for (def pc in 1..maxPinSupported) {
+      def key = pc.toString()
+      if (!slots.containsKey(key)) {
+         slots.put(key,personId)
+         ctx.log.debug "${name} - findAndAssignNewSlotToUser: slot: ${pc}, person: ${personId}"
+         return pc
+      }
+   }
+
+   return 0
+}
+
+static void handleUserSlotAvailable(ctx,name,slots,userId) {
+   if (userId == 0) {
+      //The reason we need to do this is not to clear slots when the device is first added as the slots should be empty.  
+      //This is to avoid the issue report for clearing all the pins came in after the first automatic AuthorizePerson request's report.
+      if (ctx.vars.'CLEAR_PINS_ON_ADD' == null) {
+         ctx.log.warn "${name} has deprovisioned all user PINS"
+         ctx.DoorLock.slots [:]
+      } else {
+         ctx.vars.'CLEAR_PINS_ON_ADD' = null
+      }
+
+      doPinsCleared(ctx,name)
+      return
+   }
+
+   def personId = slots.remove(userId.toString())
+   if (personId != null) {
+      ctx.log.warn "${name} received report that ${personId} was deprovisioned from slot ${userId}"		
+
+      ctx.DoorLock.slots slots
+      ctx.log.debug "${name} - handleUserSlotAvailable - current slots: ${slots}"
+
+      ctx.emit 'doorlock:PersonDeauthorized', ['personId':personId, 'slot':userId]
+   } else {
+      ctx.log.warn "${name} person was not found in slots - ${userId}"
+   }
+}
+
+static void handleUserSlotOccupied(ctx,name,slots,userId) {
+   if (userId == 0) {
+      return
+   }
+
+   def personId = slots.get(userId.toString())
+   ctx.log.debug "${name}  - handleUserSlotOccupied - current slots: ${slots}"
+   if(personId == null) {
+      ctx.log.warn "${name} handleUserSlotOccupied - unknown user ${userId} added at lock"
+      doPinAddedAtLock(ctx,name,userId)
+      return
+   }
+
+   ctx.log.info "${name} received report that ${personId} was provisioned into slot ${userId}"		
+   ctx.emit 'doorlock:PersonAuthorized', ['personId':personId, 'slot':userId]
+}
+
+static void handleUserSlotReserved(ctx,name,slots,userId) {
+   handleUserSlotFailure(ctx,name,slots,userId, "slot reserved")
+}
+
+static void handleUserSlotNotAvailable(ctx,name,slots,userId) {
+   handleUserSlotFailure(ctx,name,slots,userId, "slot state not available")
+}
+
+static void handleUserSlotFailure(ctx,name,slots,userId,msg) {
+   if (userId == 0) {
+      return
+   }
+
+   def personId = slots.remove(userId.toString())
+   if (personId != null) {
+      ctx.log.warn "${name} received report that ${personId} failed in slot ${userId}: ${msg}"		
+
+      ctx.DoorLock.slots slots
+      ctx.emit 'doorlock:PinOperationFailed', ['personId':personId, 'slot':userId, 'message': "${msg}"]
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Alarm Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleSchlageAlarmReportViaType(ctx,name,message) {
+   def final int LOCKSTATE_DELAY_MILLIS   = 10000
+   def alarmType = message.command.get('alarmtype') & 0xFF
+   def alarmLevel = message.command.get('alarmlevel') & 0xFF
+
+   ctx.log.debug "${name} driver received an alarm report type [${alarmType}] level [${alarmLevel}] message [${message}]"
+   switch(alarmType) {
+   case 0x10:
+      updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
+      doPinUsed(ctx, name, alarmLevel, "locked")
+      ctx.Scheduler.scheduleIn 'DeferredLockStateRead', LOCKSTATE_DELAY_MILLIS
+      break;
+
+   case 0x30:
+      if (alarmLevel == 0xFF) {
+         ctx.log.debug "${name} Lock was reset manually to factory default."
+      } else {
+         ctx.log.debug "${name} Lock was reset to factory default, invalid level [${alarmLevel}]"
+      }
+      break;
+
+   case 0x60:
+      if (alarmLevel == 0xFF) {
+         ctx.log.debug "${name} Lock keypad temporarily disabled."
+      } else {
+         ctx.log.debug "${name} Lock keypad temporarily disabled, invalid level [${alarmLevel}]"
+      }
+      break;
+
+   case 0x70:
+      if (alarmLevel == 0xFF) {
+         ctx.log.debug "${name} Lock new master code added."
+      } else {
+         ctx.log.debug "${name} Lock new master code added, invalid level [${alarmLevel}]"
+      }
+      break;
+
+   case 0x80:
+      if (alarmLevel == 0xFF) {
+         ctx.log.debug "${name} Lock keypad power up."
+      } else {
+         ctx.log.debug "${name} Lock keypad power up, invalid level [${alarmLevel}]"
+      }
+      break;
+
+   case 0x90:
+      if (alarmLevel == 0) {
+         ctx.log.debug "${name} Lock is busy, cleared."
+      } else if (alarmLevel == 0xFF) {
+         ctx.log.debug "${name} Lock is busy, set."
+      } else {
+         ctx.log.debug "${name} Lock is busy, invalid level [${alarmLevel}]"
+      }
+      break;
+
+   default:
+      ctx.log.error "${name} driver received an unhandled alarm report type [${alarmType}] level [${alarmLevel}]"
+      break;
+   }
+}
+
+
+onEvent('DeferredLockStateRead') {
+   log.debug "${DEVICE_NAME} driver received DeferredLockStateRead event"
+   ZWave.door_lock.operation_get()
+}
+
+
+static void doPinUsed(ctx,name,slot,action) {
+   if (slot < 0) {
+      return
+   }
+
+   def personId = getUserInSlot(ctx,slot)
+   ctx.log.debug "${name} was ${action} by ${personId?:'Unknown Person'}"
+
+   if ( (null != personId) && ('RESERVED' != personId) ) {
+      ctx.PinManagement.setActor(personId)
+   }
+
+   ctx.emit 'doorlock:PinUsed', [:]
+}
+
+static void doPinInvalid(ctx,name,slot,msg) {
+   if (slot < 0) {
+      return
+   }
+
+   def personId = getUserInSlot(ctx,slot)
+   ctx.log.debug "${name} reported invalid pin used by ${personId?:'Unknown Person'}: ${msg}"
+
+   if ( (null != personId) && ('RESERVED' != personId) ) {
+      ctx.PinManagement.setActor(personId)
+   }
+
+   ctx.emit 'doorlock:InvalidPin', [:]
+}
+
+static void doPinAddedAtLock(ctx,name,slot) {
+   if (slot <= 0) {
+      return
+   }
+
+   ctx.log.warn "${name} attempting to remove PIN from slot ${slot} because PIN was added manually at door"
+   ctx.ZWave.user_code.set(slot, 0x00, 0x00, 0x00, 0x00, 0x00)
+
+   def personId = getUserInSlot(ctx,slot)
+   if ( (null != personId) && ('RESERVED' != personId) ) {
+      ctx.PinManagement.setActor(personId)
+   }
+
+   ctx.emit 'doorlock:PinAddedAtLock', [:]
+}
+
+static void doPinsCleared(ctx,name) {
+   ctx.log.warn "${name} cleared all pins"
+   ctx.emit 'doorlock:AllPinsCleared', [:]
+}
+
+onZWaveMessage.version.report {
+	log.debug "Received version message: {} ", message.command
+	String versionstr = getVersionUnsigned(message, 'protocol', "null" )+'.'+getVersionUnsigned(message, 'sub-protocol', "null" )+'.'+getVersionUnsigned(message, 'firmware_0_version', "null" )+'.'+getVersionUnsigned(message, 'firmware_0_sub_version', "null" )
+	log.debug "Reported version: {}", versionstr
+	DeviceAdvanced.firmwareVersion  versionstr
+}
+
+static String getVersionUnsigned(message, name, dflt) {
+    Integer field = message.command.get(name)
+    return (field != null) ? field & 0xFF : dflt
+}
+

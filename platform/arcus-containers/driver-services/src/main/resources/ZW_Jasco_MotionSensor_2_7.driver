@@ -1,0 +1,188 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Jasco Motion Sensor
+ * 
+ * ZWave Plus device.
+ * 
+ * NOTES: 
+ * 
+ * PAIRING
+ * - Place hub in 'pairing' mode and insert battery or connect power supply.
+ * - Press and release button the blue LED will light for 3 seconds when the sensor connects"
+ * 
+ * UNPAIRING
+ * - Place hub in 'unpairing' mode (or select "Remove Device").
+ * - Press and release button the blue LED will flash for 3 seconds when the sensor dis-connects"
+ *
+ * FACTORY RESET
+ * - Press and release button 10 times in 6 seconds. The blue LED will flash for 3 seconds when sensor resets"
+ * 
+ * DEFAULT RESET 4 minutes
+ *
+ *
+ * NOTES:
+ *   - Device is capable of being on an external power supply.  The NodeInfo information is supposed to state if it is 
+ *		an RSS (battery) or AOS (line).  The firmware version on our hardware 5.15 always reports 0x04 Routing_.  We have newer
+ *		firmware (5.24) but need to implement ZWave OTA to try it.
+ *
+ * 
+ */
+//import static com.iris.protocol.zwave.Configuration.ConfigurationSetV2.*
+//import static com.iris.protocol.zwave.Alarm.AlarmReportV2.*
+
+driver          "ZWJascoMotionSensorDriver"
+description     "Driver for a Jasco Motion Sensor"
+version         "2.7"
+protocol        "ZWAV"
+deviceTypeHint  "Motion"
+productId       "94da7e"
+vendor          "GE"
+model           "34193"
+
+matcher         'ZWAV:Manufacturer': 0x63, 'ZWAV:ProductType': 0x4953, 'ZWAV:ProductId': 0x3133	//GE
+matcher         'ZWAV:Manufacturer': 0x63, 'ZWAV:ProductType': 0x4953, 'ZWAV:ProductId': 0x3134	//Jasco
+
+
+uses 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+uses 'zwave/GenericZWaveVersion'
+
+
+final byte CNFG_RETRIGGER_PARAM_NO              = 18       // parameter number to set Re-trigger Wait Time (in Minutes, 1-60 255 is test)
+final byte CNFG_RETRIGGER_SIZE                  = 1       // size is 1 byte
+final byte CNFG_RETRIGGER_DEFAULT               = 4       // 4 minutes
+
+final byte HUB_NODE_ID                          = 1
+final int WAKE_UP_INTERVAL_SECONDS              = 43200   //12 hours 
+
+//DevicePower attributes, battery assumed because shipped with batteries
+// NIF is difficult to tell apart, ZWave chip on hub is not parsing.
+DevicePower {
+	linecapable          true
+	backupbatterycapable false
+	source 		         DevicePower.SOURCE_BATTERY
+	bind sourcechanged to source
+}
+
+Motion {
+	Motion.motion				Motion.MOTION_NONE
+	bind Motion.motionchanged to Motion.motion
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Reflexes
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+	offlineTimeout 37, HOURS
+
+	poll reflex {
+		on connected
+		send wake_up.set, seconds1:(byte)((WAKE_UP_INTERVAL_SECONDS>>16) & 0XFF), seconds2:(byte)((WAKE_UP_INTERVAL_SECONDS>>8) & 0XFF), seconds3:(byte)(WAKE_UP_INTERVAL_SECONDS & 0XFF), node:HUB_NODE_ID
+	}
+	
+	poll reflex {
+		after 12, HOURS
+		send battery.get
+	}
+	
+	match reflex {
+		on alarm.report, notificationtype:7, event:8, alarmtype:0, alarmlevel:0, notificationstatus:-1
+		set Motion.motion, Motion.MOTION_DETECTED
+	}
+	
+	match reflex {
+		on alarm.report, notificationtype:7, event:0, alarmtype:0, alarmlevel:0, notificationstatus:-1
+		set Motion.motion, Motion.MOTION_NONE
+	}
+	
+	match reflex {
+		on basic.report, value:-1
+		set Motion.motion, Motion.MOTION_DETECTED
+	}
+	
+	match reflex {
+		on basic.report, value:0
+		set Motion.motion, Motion.MOTION_NONE
+	}
+	
+	match reflex {
+		on basic.set, value:-1
+		set Motion.motion, Motion.MOTION_DETECTED
+	}
+	
+	match reflex {
+		on basic.set, value:0
+		set Motion.motion, Motion.MOTION_NONE
+	}
+		
+}
+
+
+///////////////////////////////////////
+//  Driver Lifecycle Events
+////////////////////////////////////////
+
+onUpgraded {
+	//Driver Version 1.0 configured to 1 minute, adversely impacting battery life
+	//Did not use configuration reset because device ACKs, but does not reset.
+	ZWave.configuration.set(CNFG_RETRIGGER_PARAM_NO, CNFG_RETRIGGER_SIZE, CNFG_RETRIGGER_DEFAULT)
+	}
+
+
+onConnected {
+	//In case upgrade occurs while offline.
+	ZWave.configuration.set(CNFG_RETRIGGER_PARAM_NO, CNFG_RETRIGGER_SIZE, CNFG_RETRIGGER_DEFAULT)
+	log.debug "Reset Retrigger Configuration"
+	}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.version.report{
+    log.trace "{} received version report ZWave message {}", DEVICE_NAME, message
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+	log.trace "{} sent Alarm/Notification Report",DEVICE_NAME
+	def alarmType =  message.command.get('alarmtype')
+	def alarmLevel =  message.command.get('alarmlevel')
+	def notificationStatus =  message.command.get('notificationstatus')
+	def notificationType =  message.command.get('notificationtype')
+	def event =  message.command.get('event')
+	def byte[] bytes = message.command.recvBytes
+			log.info "Driver reported invalid Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}", alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+}
+
+onZWaveNodeInfo {
+	log.trace "{} reported Node Info: ID:{}, Status:{}, Basic:{}, Generic:{}, Specific:{}", DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+onZWaveMessage.wake_up.notification{
+	log.trace "{} received Wake_up notification: {}", DEVICE_NAME, message
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {} with data {}", DEVICE_NAME, message, message.command.recvBytes
+    return false;
+}
+

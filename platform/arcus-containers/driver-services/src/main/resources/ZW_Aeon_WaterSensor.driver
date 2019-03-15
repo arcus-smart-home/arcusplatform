@@ -1,0 +1,225 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Aeon Labs Water Sensor
+ * (JDH)
+ *
+ * ISSUES/NOTES:
+ *  - http://www.pepper1.net/zwavedb/device/637
+ *  - We set the battery to be reported along with any state changes, since we cannot reliably read it from this "sleepy" device.
+ *  - There does not appear to be a way to force the device to communicate every so often, so we cannot determine if it is OFFLINE or not.
+ * 
+ * FACTORY RESET: Press and hold the "Z-Wave" button for 20 seconds (until flashing LED goes solid for 2 seconds) and then release.
+ *                Press the "Z-Wave" button again to initiate pairing.
+ *
+ * PAIR:          Press the "Z-Wave" button once while hub is in "pairing" mode.
+ * UNPAIR:        Press the "Z-Wave" button once while hub is in "unpairing" mode.
+ * 
+ */
+import groovy.transform.Field
+
+
+driver			"ZWaveAeonWaterSensorDriver"
+description		"Driver for a Z-wave Aeon Labs Water Sensor"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Water Leak"
+productId		"f91099"
+vendor 			"AEOTEC"
+model 			"DSB45-ZWUS"
+
+matcher			'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x002D
+
+capabilities	DevicePower, LeakH2O
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+
+// Generic Device Class:    Binary Sensor
+// Specific Device Class:   Routing Binary Sensor
+//
+// Command Classes:
+//		0x30 (48)   Sensor Binary
+//		0x70 (112)  Configuration
+//      0x71 (113)  Alarm / Notification
+//		0x72 (114)  Manufacturer Specific
+//		0x80 (-128) Battery
+//		0x84 (-124) Wake Up
+//      0x85 (-123) Association
+//		0x86 (-122) Version
+
+
+// Setup some constants
+// //////////////////////////////////////////////////////////
+
+// alarm states
+@Field def final int SAFE              = 0x00
+@Field def final int LEAK_DETECTED     = 0xFF
+
+@Field def final OFFLINE_TIMEOUT_SECS  = 3600			// 60 minutes
+
+// the polling schedule to align with the 20 minutes wake up interval 
+def final int BATTERY_POLLING_INTERVAL_SEC = 21600		// Ask for battery level every 6 hours
+def final int STATE_POLLING_INTERVAL_SEC = 900          // Ask for current state every 15 minutes
+
+def final String DEVICE_NAME = "Aeon Water Sensor"
+
+// Config Parameters  (see http://www.pepper1.net/zwavedb/device/637)
+// ------------------------------------------------------------------
+@Field def byte CNFG_RPTS_PARAM_NO                 = 0x79       // (121) Configure Reports that will be sent
+def byte CNFG_RPTS_SIZE                            = 0x04
+def byte CNFG_RPTS_VALUE_B0                        = 0x01		// 0x00000101	bit 0 sets if Battery Reported with each state change, bit 
+def byte CNFG_RPTS_VALUE_B1                        = 0x01
+def byte CNFG_RPTS_VALUE_B2                        = 0x00
+def byte CNFG_RPTS_VALUE_B3                        = 0x00
+
+@Field def byte CNFG_RESET_PARAM_NO                = 0xFF       // (255) parameter number to reset configuration to factory default
+def byte CNFG_RESET_SIZE                           = 0x01
+def byte CNFG_RESET_VALUE                          = 0x01
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+	
+	LeakH2O.state           LeakH2O.STATE_SAFE
+	LeakH2O.statechanged    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	// reset the device configuration to factory defaults
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+	
+	// set recommended offline timeout interval
+//	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )					No way to force device to comm. every so often, so don't trigger Offline
+
+	// read the current state
+	ZWave.basic.get()
+//	ZWave.poll(STATE_POLLING_INTERVAL_SEC, ZWave.basic.get)			Sleepy device does not wakeup unless state changes, so async reads not supported
+	
+	// get the level of the battery 0 - 100%
+	ZWave.battery.get()
+//	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+	// configure reports sent when state changes
+	ZWave.configuration.set(CNFG_RPTS_PARAM_NO, CNFG_RPTS_SIZE,
+		CNFG_RPTS_VALUE_B3, CNFG_RPTS_VALUE_B2, CNFG_RPTS_VALUE_B1, CNFG_RPTS_VALUE_B0)
+
+	// set Association to Group 1, Node 1 (supports upto 5 nodes)
+	ZWave.association.set( 1, 1, 0, 0, 0);
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// LeakH2O Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('leakh2o') {
+	log.debug "Aeon Labs Water Sensor set 'leakh2o': {}", message
+	
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case LeakH2O.state:
+				if (attribute.value == LeakH2O.STATE_SAFE) {
+					ZWave.basic.set(SAFE)
+				}
+				break
+				
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+	ZWave.battery.get()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(byte currentState) {
+	def prevState = LeakH2O.state.get()		// save previous state
+	LeakH2O.state (currentState == SAFE ? LeakH2O.STATE_SAFE : LeakH2O.STATE_LEAK)
+	// if state changed, capture timestamp
+	if (LeakH2O.state.get() != prevState) {
+		LeakH2O.statechanged new Date()
+	}
+}
+
+onZWaveMessage.basic.report {
+	log.debug "Received Basic Report: {}", message
+	def byte currState = message.command.get('value')
+	handleStateMsg currState
+}
+
+onZWaveMessage.basic.set {
+	log.debug "Received Basic Set: {}", message
+	def byte[] bytes = message.command.recvBytes
+	log.debug "State: " + bytes[0]
+	handleStateMsg bytes[0]
+}
+
+onZWaveMessage.sensor_binary.report {
+	log.debug "Received Sensor Binary Report {}", message
+	def byte currentState = message.command.get('value')
+	handleStateMsg currState
+}
+
+
+onZWaveMessage.alarm.report {
+	log.debug "Device sent Alarm/Notification Report"
+	def alarmType =  message.command.get('alarmtype')
+	def alarmLevel =  message.command.get('alarmlevel')
+	def notificationStatus =  message.command.get('notificationstatus')
+	def notificationType =  message.command.get('notificationtype')
+	def event =  message.command.get('event')
+	def byte[] bytes = message.command.recvBytes
+	log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", alarmType, alarmLevel, event, notificationType, notificationStatus
+}
+
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+
+onZWaveNodeInfo {
+	log.debug "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+

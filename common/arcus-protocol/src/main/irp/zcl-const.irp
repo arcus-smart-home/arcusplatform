@@ -1,0 +1,374 @@
+constants zcl.Constants {
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.2.2 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZCL_CLUSTER_RSSI_LOCATION = 0x000B;
+   const u16 ZCL_CLUSTER_ANALOG_INPUT = 0x000C;
+   const u16 ZCL_CLUSTER_ANALOG_OUTPUT = 0x000D;
+   const u16 ZCL_CLUSTER_ANALOG_VALUE = 0x000E;
+   const u16 ZCL_CLUSTER_BINARY_INPUT = 0x000F;
+   const u16 ZCL_CLUSTER_BINARY_OUTPUT = 0x0010;
+   const u16 ZCL_CLUSTER_BINARY_VALUE = 0x0011;
+   const u16 ZCL_CLUSTER_MULTISTATE_INPUT = 0x0012;
+   const u16 ZCL_CLUSTER_MULTISTATE_OUTPUT = 0x0013;
+   const u16 ZCL_CLUSTER_MULTISTATE_VALUE = 0x0014;
+   const u16 ZCL_CLUSTER_COMMISSIONING = 0x0015;
+   const u16 ZCL_CLUSTER_GENERIC_TUNNEL = 0x0600;
+   const u16 ZCL_CLUSTER_BACNET_PROTOCOL_TUNNEL = 0x0601;
+   const u16 ZCL_CLUSTER_ANALOG_INPUT_BACNET = 0x0602;
+   const u16 ZCL_CLUSTER_ANALOG_INPUT_BACNET_EXTENDED = 0x0603;
+   const u16 ZCL_CLUSTER_ANALOG_OUTPUT_BACNET = 0x0604;
+   const u16 ZCL_CLUSTER_ANALOG_OUTPUT_BACNET_EXTENDED = 0x0605;
+   const u16 ZCL_CLUSTER_ANALOG_VALUE_BACNET = 0x0606;
+   const u16 ZCL_CLUSTER_ANALOG_VALUE_BACNET_EXTENDED = 0x0607;
+   const u16 ZCL_CLUSTER_BINARY_INPUT_BACNET = 0x0608;
+   const u16 ZCL_CLUSTER_BINARY_INPUT_BACNET_EXTENDED = 0x0609;
+   const u16 ZCL_CLUSTER_BINARY_OUTPUT_BACNET = 0x060A;
+   const u16 ZCL_CLUSTER_BINARY_OUTPUT_BACNET_EXTENDED = 0x060B;
+   const u16 ZCL_CLUSTER_BINARY_VALUE_BACNET = 0x060C;
+   const u16 ZCL_CLUSTER_BINARY_VALUE_BACNET_EXTENDED = 0x060D;
+   const u16 ZCL_CLUSTER_MULTISTATE_INPUT_BACNET = 0x060E;
+   const u16 ZCL_CLUSTER_MULTISTATE_INPUT_BACNET_EXTENDED = 0x060F;
+   const u16 ZCL_CLUSTER_MULTISTATE_OUTPUT_BACNET = 0x0610;
+   const u16 ZCL_CLUSTER_MULTISTATE_OUTPUT_BACNET_EXTENDED = 0x0611;
+   const u16 ZCL_CLUSTER_MULTISTATE_VALUE_BACNET = 0x0612;
+   const u16 ZCL_CLUSTER_MULTISTATE_VALUE_BACNET_EXTENDED = 0x0613;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.3.1 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZCL_FRAME_TYPE_PROFILE = 0x00;
+   const u8 ZCL_FRAME_TYPE_CLUSTER = 0x01;
+   const u8 ZCL_FRAME_MSP = 0x04;
+   const u8 ZCL_FRAME_FROM_SERVER = 0x08;
+   const u8 ZCL_FRAME_DISABLE_DEFAULT_RSP = 0x10;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.1.1 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZB_PROFILE_ID_STD_START = 0x0000;
+   const u16 ZB_PROFILE_ID_STD_END = 0x7FFF;
+
+   const u16 ZB_PROFILE_ID_RSV_START = 0x8000;
+   const u16 ZB_PROFILE_ID_RSV_END = 0xBFFF;
+
+   const u16 ZB_PROFILE_ID_MSP_START = 0xC000;
+   const u16 ZB_PROFILE_ID_MSP_END = 0xFFFF;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.1.2 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZB_DEVICE_ID_STD_START = 0x0000;
+   const u16 ZB_DEVICE_ID_STD_END = 0xBFFF;
+
+   const u16 ZB_DEVICE_ID_RSV_START = 0xC000;
+   const u16 ZB_DEVICE_ID_RSV_END = 0xFFFF;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.1.3 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZB_CLUSTER_ID_STD_START = 0x0000;
+   const u16 ZB_CLUSTER_ID_STD_END = 0x7FFF;
+
+   const u16 ZB_CLUSTER_ID_RSV_START = 0x8000;
+   const u16 ZB_CLUSTER_ID_RSV_END = 0xFBFF;
+
+   const u16 ZB_CLUSTER_ID_MSP_START = 0xFC00;
+   const u16 ZB_CLUSTER_ID_MSP_END = 0xFFFF;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.1.4 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZB_ATTR_ID_STD_START = 0x0000;
+   const u16 ZB_ATTR_ID_STD_END = 0x3FFF;
+
+   const u16 ZB_ATTR_ID_RSV_START = 0x4000;
+   const u16 ZB_ATTR_ID_RSV_END = 0xFFFF;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.1.5 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZB_CMD_ID_STD_START = 0x00;
+   const u8 ZB_CMD_ID_STD_END = 0x7F;
+
+   const u8 ZB_CMD_ID_RSV_START = 0x80;
+   const u8 ZB_CMD_ID_RSV_END = 0xFF;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.2 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZB_TYPE_NO_DATA = 0x00;
+   const u8 ZB_TYPE_8BIT = 0x08;
+   const u8 ZB_TYPE_16BIT = 0x09;
+   const u8 ZB_TYPE_24BIT = 0x0a;
+   const u8 ZB_TYPE_32BIT = 0x0b;
+   const u8 ZB_TYPE_40BIT = 0x0c;
+   const u8 ZB_TYPE_48BIT = 0x0d;
+   const u8 ZB_TYPE_56BIT = 0x0e;
+   const u8 ZB_TYPE_64BIT = 0x0f;
+   const u8 ZB_TYPE_BOOLEAN = 0x10;
+   const u8 ZB_TYPE_BITMAP_8BIT = 0x18;
+   const u8 ZB_TYPE_BITMAP_16BIT = 0x19;
+   const u8 ZB_TYPE_BITMAP_24BIT = 0x1a;
+   const u8 ZB_TYPE_BITMAP_32BIT = 0x1b;
+   const u8 ZB_TYPE_BITMAP_40BIT = 0x1c;
+   const u8 ZB_TYPE_BITMAP_48BIT = 0x1d;
+   const u8 ZB_TYPE_BITMAP_56BIT = 0x1e;
+   const u8 ZB_TYPE_BITMAP_64BIT = 0x1f;
+   const u8 ZB_TYPE_UNSIGNED_8BIT = 0x20;
+   const u8 ZB_TYPE_UNSIGNED_16BIT = 0x21;
+   const u8 ZB_TYPE_UNSIGNED_24BIT = 0x22;
+   const u8 ZB_TYPE_UNSIGNED_32BIT = 0x23;
+   const u8 ZB_TYPE_UNSIGNED_40BIT = 0x24;
+   const u8 ZB_TYPE_UNSIGNED_48BIT = 0x25;
+   const u8 ZB_TYPE_UNSIGNED_56BIT = 0x26;
+   const u8 ZB_TYPE_UNSIGNED_64BIT = 0x27;
+   const u8 ZB_TYPE_SIGNED_8BIT = 0x28;
+   const u8 ZB_TYPE_SIGNED_16BIT = 0x29;
+   const u8 ZB_TYPE_SIGNED_24BIT = 0x2a;
+   const u8 ZB_TYPE_SIGNED_32BIT = 0x2b;
+   const u8 ZB_TYPE_SIGNED_40BIT = 0x2c;
+   const u8 ZB_TYPE_SIGNED_48BIT = 0x2d;
+   const u8 ZB_TYPE_SIGNED_56BIT = 0x2e;
+   const u8 ZB_TYPE_SIGNED_64BIT = 0x2f;
+   const u8 ZB_TYPE_ENUM_8BIT = 0x30;
+   const u8 ZB_TYPE_ENUM_16BIT = 0x31;
+   const u8 ZB_TYPE_SEMIFLOAT = 0x38;
+   const u8 ZB_TYPE_FLOAT = 0x39;
+   const u8 ZB_TYPE_DOUBLE = 0x3a;
+   const u8 ZB_TYPE_STRING_OCTET = 0x41;
+   const u8 ZB_TYPE_STRING_CHAR = 0x42;
+   const u8 ZB_TYPE_LONG_STRING_OCTET = 0x43;
+   const u8 ZB_TYPE_LONG_STRING_CHAR = 0x44;
+   const u8 ZB_TYPE_ARRAY = 0x48;
+   const u8 ZB_TYPE_STRUCT = 0x4c;
+   const u8 ZB_TYPE_SET = 0x50;
+   const u8 ZB_TYPE_BAG = 0x51;
+   const u8 ZB_TYPE_TIME_OF_DAY = 0xe0;
+   const u8 ZB_TYPE_DATE = 0xe1;
+   const u8 ZB_TYPE_UTCTIME = 0xe2;
+   const u8 ZB_TYPE_CLUSTER_ID = 0xe8;
+   const u8 ZB_TYPE_ATTR_ID = 0xe9;
+   const u8 ZB_TYPE_BACNET_OID = 0xea;
+   const u8 ZB_TYPE_IEEE = 0xf0;
+   const u8 ZB_TYPE_KEY_128BIT = 0xf1;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Section 2.5.3 from the ZCL specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u8 ZB_STATUS_SUCCESS = 0x00;
+   const u8 ZB_STATUS_FAILURE = 0x01;
+   const u8 ZB_STATUS_NOT_AUTHORIZED = 0x7e;
+   const u8 ZB_STATUS_RESERVED_FIELD_NOT_ZERO = 0x7f;
+   const u8 ZB_STATUS_MALFORMED_COMMAND = 0x80;
+   const u8 ZB_STATUS_UNSUP_CLUSTER_COMMAND = 0x81;
+   const u8 ZB_STATUS_UNSUP_GENERAL_COMMAND = 0x82;
+   const u8 ZB_STATUS_UNSUP_MANUF_CLUSTER_COMMAND = 0x83;
+   const u8 ZB_STATUS_UNSUP_MANUF_GENERAL_COMMAND = 0x84;
+   const u8 ZB_STATUS_INVALID_FIELD = 0x85;
+   const u8 ZB_STATUS_UNSUPPORTED_ATTRIBUTE = 0x86;
+   const u8 ZB_STATUS_INVALID_VALUE = 0x87;
+   const u8 ZB_STATUS_READ_ONLY = 0x88;
+   const u8 ZB_STATUS_INSUFFICIENT_SPACE = 0x89;
+   const u8 ZB_STATUS_DUPLICATE_EXISTS = 0x8a;
+   const u8 ZB_STATUS_NOT_FOUND = 0x8b;
+   const u8 ZB_STATUS_UNREPORTABLE_ATTRIBUTE = 0x8c;
+   const u8 ZB_STATUS_INVALID_DATA_TYPE = 0x8d;
+   const u8 ZB_STATUS_INVALID_SELECTOR = 0x8e;
+   const u8 ZB_STATUS_WRITE_ONLY = 0x8f;
+   const u8 ZB_STATUS_INCONSISTENT_STARTUP_STATE = 0x90;
+   const u8 ZB_STATUS_DEFINED_OUT_OF_BAND = 0x91;
+   const u8 ZB_STATUS_INCONSISTENT = 0x92;
+   const u8 ZB_STATUS_ACTION_DENIED = 0x93;
+   const u8 ZB_STATUS_TIMEOUT = 0x94;
+   const u8 ZB_STATUS_ABORT = 0x95;
+   const u8 ZB_STATUS_INVALID_IMAGE = 0x96;
+   const u8 ZB_STATUS_WAIT_FOR_DATA = 0x97;
+   const u8 ZB_STATUS_NO_IMAGE_AVAILABLE = 0x98;
+   const u8 ZB_STATUS_REQUIRE_MORE_IMAGE = 0x99;
+   const u8 ZB_STATUS_HARDWARE_FAILURE = 0xc0;
+   const u8 ZB_STATUS_SOFTWARE_FAILURE = 0xc1;
+   const u8 ZB_STATUS_CALIBRATION_ERROR = 0xc2;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Table 5.1 from the ZHA specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZHA_DEVICE_ON_OFF_SWITCH = 0x0000;
+   const u16 ZHA_DEVICE_LEVEL_CONTROL_SWITCH = 0x0001;
+   const u16 ZHA_DEVICE_ON_OFF_OUTPUT = 0x0002;
+   const u16 ZHA_DEVICE_LEVEL_CONTROLLABLE_OUTPUT = 0x0003;
+   const u16 ZHA_DEVICE_SCENE_SELECTOR = 0x0004;
+   const u16 ZHA_DEVICE_CONFIGURATION_TOOL = 0x0005;
+   const u16 ZHA_DEVICE_REMOTE_CONTROL = 0x0006;
+   const u16 ZHA_DEVICE_COMBINED_INTERFACE = 0x0007;
+   const u16 ZHA_DEVICE_RANGE_EXTENDER = 0x0008;
+   const u16 ZHA_DEVICE_MAINS_POWER_OUTLET = 0x0009;
+   const u16 ZHA_DEVICE_DOOR_LOCK = 0x000A;
+   const u16 ZHA_DEVICE_DOOR_LOCK_CONTROLLER = 0x000B;
+   const u16 ZHA_DEVICE_SIMPLE_SENSOR = 0x000C;
+   const u16 ZHA_DEVICE_CONSUMPTION_AWARENESS_DEVICE = 0x000D;
+   const u16 ZHA_DEVICE_HOME_GATEWAY = 0x0050;
+   const u16 ZHA_DEVICE_SMART_PLUG = 0x0051;
+   const u16 ZHA_DEVICE_WHITE_GOODS = 0x0052;
+   const u16 ZHA_DEVICE_METER_INTERFACE = 0x0053;
+   const u16 ZHA_DEVICE_ON_OFF_LIGHT = 0x0100;
+   const u16 ZHA_DEVICE_DIMMABLE_LIGHT = 0x0101;
+   const u16 ZHA_DEVICE_COLOR_DIMMABLE_LIGHT = 0x0102;
+   const u16 ZHA_DEVICE_ON_OFF_LIGHT_SWITCH = 0x0103;
+   const u16 ZHA_DEVICE_DIMMER_SWITCH = 0x0104;
+   const u16 ZHA_DEVICE_COLOR_DIMMER_SWITCH = 0x0105;
+   const u16 ZHA_DEVICE_LIGHT_SENSOR = 0x0106;
+   const u16 ZHA_DEVICE_OCCUPANCY_SENSOR = 0x0107;
+   const u16 ZHA_DEVICE_SHADE = 0x0200;
+   const u16 ZHA_DEVICE_SHADE_CONTROLLER = 0x0201;
+   const u16 ZHA_DEVICE_WINDOW_COVERING_DEVICE = 0x0202;
+   const u16 ZHA_DEVICE_WINDOW_COVERING_CONTROLLER = 0x0203;
+   const u16 ZHA_DEVICE_HEATING_COOLING_UNIT = 0x0300;
+   const u16 ZHA_DEVICE_THERMOSTAT = 0x0301;
+   const u16 ZHA_DEVICE_TEMPERATURE_SENSOR = 0x0302;
+   const u16 ZHA_DEVICE_PUMP = 0x0303;
+   const u16 ZHA_DEVICE_PUMP_CONTROLLER = 0x0304;
+   const u16 ZHA_DEVICE_PRESSURE_SENSOR = 0x0305;
+   const u16 ZHA_DEVICE_FLOW_SENSOR = 0x0306;
+   const u16 ZHA_DEVICE_MINI_SPLIT_AC = 0x0307;
+   const u16 ZHA_DEVICE_IAS_CONTROL_AND_INDICATING_EQUIPMENT = 0x0400;
+   const u16 ZHA_DEVICE_IAS_ANCILLARY_CONTROL_EQUIPMENT = 0x0401;
+   const u16 ZHA_DEVICE_IAS_ZONE = 0x0402;
+   const u16 ZHA_DEVICE_IAS_WARNING_DEVICE = 0x0403;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Table 5.2 from the ZHA specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u16 ZHA_CLUSTER_BASIC = 0x0000;
+   const u16 ZHA_CLUSTER_POWER_CONFIGURATION = 0x0001;
+   const u16 ZHA_CLUSTER_DEVICE_TEMPERATURE_CONFIGURATION = 0x0002;
+   const u16 ZHA_CLUSTER_IDENTIFY = 0x0003;
+   const u16 ZHA_CLUSTER_GROUPS = 0x0004;
+   const u16 ZHA_CLUSTER_SCENES = 0x0005;
+   const u16 ZHA_CLUSTER_ON_OFF = 0x0006;
+   const u16 ZHA_CLUSTER_ON_OFF_SWITCH_CONFIGURATION = 0x0007;
+   const u16 ZHA_CLUSTER_LEVEL_CONTROL = 0x0008;
+   const u16 ZHA_CLUSTER_ALARMS = 0x0009;
+   const u16 ZHA_CLUSTER_TIME = 0x000A;
+   const u16 ZHA_CLUSTER_BINARY_INPUT = 0x000F;
+   const u16 ZHA_CLUSTER_PARTITION = 0x0016;
+   const u16 ZHA_CLUSTER_POWER_PROFILE = 0x001A;
+   const u16 ZHA_CLUSTER_EN50523APPLIANCE_CONTROL = 0x001B;
+   const u16 ZHA_CLUSTER_POLL_CONTROL = 0x0020;
+   const u16 ZHA_CLUSTER_SHADE_CONFIGURATION = 0x0100;
+   const u16 ZHA_CLUSTER_DOOR_LOCK = 0x0101;
+   const u16 ZHA_CLUSTER_WINDOW_COVERING = 0x0102;
+   const u16 ZHA_CLUSTER_PUMP_CONFIGURATION_AND_CONTROL = 0x0200;
+   const u16 ZHA_CLUSTER_THERMOSTAT = 0x0201;
+   const u16 ZHA_CLUSTER_FAN_CONTROL = 0x0202;
+   const u16 ZHA_CLUSTER_THERMOSTAT_USER_INTERFACE_CONFIGURATION = 0x0204;
+   const u16 ZHA_CLUSTER_COLOR_CONTROL = 0x0300;
+   const u16 ZHA_CLUSTER_ILLUMINANCE_MEASUREMENT = 0x0400;
+   const u16 ZHA_CLUSTER_ILLUMINANCE_LEVEL_SENSING = 0x0401;
+   const u16 ZHA_CLUSTER_TEMPERATURE_MEASUREMENT = 0x0402;
+   const u16 ZHA_CLUSTER_PRESSURE_MEASUREMENT = 0x0403;
+   const u16 ZHA_CLUSTER_FLOW_MEASUREMENT = 0x0404;
+   const u16 ZHA_CLUSTER_RELATIVE_HUMIDITY_MEASUREMENT = 0x0405;
+   const u16 ZHA_CLUSTER_OCCUPANCY_SENSING = 0x0406;
+   const u16 ZHA_CLUSTER_IAS_ZONE = 0x0500;
+   const u16 ZHA_CLUSTER_IAS_ACE = 0x0501;
+   const u16 ZHA_CLUSTER_IAS_WD = 0x0502;
+   const u16 ZHA_CLUSTER_METERING = 0x0702;
+   const u16 ZHA_CLUSTER_EN50523_APPLIANCE_IDENTIFICATION = 0x0B00;
+   const u16 ZHA_CLUSTER_METER_IDENTIFICATION = 0x0B01;
+   const u16 ZHA_CLUSTER_EN50523_APPLIANCE_EVENTS_AND_ALERT = 0x0B02;
+   const u16 ZHA_CLUSTER_APPLIANCE_STATISTICS = 0x0B03;
+   const u16 ZHA_CLUSTER_ELECTRICITY_MEASUREMENT = 0x0B04;
+   const u16 ZHA_CLUSTER_DIAGNOSTICS = 0x0B05;
+
+   ////////////////////////////////////////////////////////////////////////////////
+   // Table 6.1 from the ZHA specification
+   ////////////////////////////////////////////////////////////////////////////////
+
+   const u32 ZHA_MIN_GROUPS = 8;
+   const u32 ZHA_MIN_SCENES = 16;
+
+   const u8 ZHA_PHY_ENV_ATRIUM = 0x01;
+   const u8 ZHA_PHY_ENV_BAR = 0x02;
+   const u8 ZHA_PHY_ENV_COURTYARD = 0x03;
+   const u8 ZHA_PHY_ENV_BATHROOM = 0x04;
+   const u8 ZHA_PHY_ENV_BEDROOM = 0x05;
+   const u8 ZHA_PHY_ENV_BILLIARD_ROOM = 0x06;
+   const u8 ZHA_PHY_ENV_UTILITY_ROOM = 0x07;
+   const u8 ZHA_PHY_ENV_CELLAR = 0x08;
+   const u8 ZHA_PHY_ENV_CLOSET = 0x09;
+   const u8 ZHA_PHY_ENV_THEATER = 0x0A;
+   const u8 ZHA_PHY_ENV_OFFICE = 0x0B;
+   const u8 ZHA_PHY_ENV_DECK = 0x0C;
+   const u8 ZHA_PHY_ENV_DEN = 0x0D;
+   const u8 ZHA_PHY_ENV_DINING_ROOM = 0x0E;
+   const u8 ZHA_PHY_ENV_ELECTRICAL_ROOM = 0x0F;
+   const u8 ZHA_PHY_ENV_ELEVATOR = 0x10;
+   const u8 ZHA_PHY_ENV_ENTRY = 0x11;
+   const u8 ZHA_PHY_ENV_FAMILY_ROOM = 0x12;
+   const u8 ZHA_PHY_ENV_MAIN_FLOOR = 0x13;
+   const u8 ZHA_PHY_ENV_UPSTAIRS = 0x14;
+   const u8 ZHA_PHY_ENV_DOWNSTAIRS = 0x15;
+   const u8 ZHA_PHY_ENV_BASEMENT = 0x16;
+   const u8 ZHA_PHY_ENV_GALLERY = 0x17;
+   const u8 ZHA_PHY_ENV_GAME_ROOM = 0x18;
+   const u8 ZHA_PHY_ENV_GARAGE = 0x19;
+   const u8 ZHA_PHY_ENV_GYM = 0x1A;
+   const u8 ZHA_PHY_ENV_HALLWAY = 0x1B;
+   const u8 ZHA_PHY_ENV_HOUSE = 0x1C;
+   const u8 ZHA_PHY_ENV_KITCHEN = 0x1D;
+   const u8 ZHA_PHY_ENV_LAUNDRY_ROOM = 0x1E;
+   const u8 ZHA_PHY_ENV_LIBRARY = 0x1F;
+   const u8 ZHA_PHY_ENV_MASTER_BEDROOM = 0x20;
+   const u8 ZHA_PHY_ENV_MUD_ROOM = 0x21;
+   const u8 ZHA_PHY_ENV_NURSERY = 0x22;
+   const u8 ZHA_PHY_ENV_PANTRY = 0x23;
+   const u8 ZHA_PHY_ENV_OFFICE2 = 0x24;
+   const u8 ZHA_PHY_ENV_OUTSIDE = 0x25;
+   const u8 ZHA_PHY_ENV_POOL = 0x26;
+   const u8 ZHA_PHY_ENV_PORCH = 0x27;
+   const u8 ZHA_PHY_ENV_SEWING_ROOM = 0x28;
+   const u8 ZHA_PHY_ENV_SITTING_ROOM = 0x29;
+   const u8 ZHA_PHY_ENV_STAIRWAY = 0x2A;
+   const u8 ZHA_PHY_ENV_YARD = 0x2B;
+   const u8 ZHA_PHY_ENV_ATTIC = 0x2C;
+   const u8 ZHA_PHY_ENV_HOT_TUB = 0x2D;
+   const u8 ZHA_PHY_ENV_LIVING_ROOM = 0x2E;
+   const u8 ZHA_PHY_ENV_SAUNA = 0x2F;
+   const u8 ZHA_PHY_ENV_WORKSHOP = 0x30;
+   const u8 ZHA_PHY_ENV_GUEST_BEDROOM = 0x31;
+   const u8 ZHA_PHY_ENV_GUEST_BATH = 0x32;
+   const u8 ZHA_PHY_ENV_POWDER_ROOM = 0x33;
+   const u8 ZHA_PHY_ENV_BACK_YARD = 0x34;
+   const u8 ZHA_PHY_ENV_FRONT_YARD = 0x35;
+   const u8 ZHA_PHY_ENV_PATIO = 0x36;
+   const u8 ZHA_PHY_ENV_DRIVEWAY = 0x37;
+   const u8 ZHA_PHY_ENV_SUN_ROOM = 0x38;
+   const u8 ZHA_PHY_ENV_LIVING_ROOM2 = 0x39;
+   const u8 ZHA_PHY_ENV_SPA = 0x3A;
+   const u8 ZHA_PHY_ENV_WHIRLPOOL = 0x3B;
+   const u8 ZHA_PHY_ENV_SHED = 0x3C;
+   const u8 ZHA_PHY_ENV_EQUIPMENT_STORAGE = 0x3D;
+   const u8 ZHA_PHY_ENV_HOBBY_ROOM = 0x3E;
+   const u8 ZHA_PHY_ENV_FOUNTAIN = 0x3F;
+   const u8 ZHA_PHY_ENV_POND = 0x40;
+   const u8 ZHA_PHY_ENV_RECEPTION_ROOM = 0x41;
+   const u8 ZHA_PHY_ENV_BREAKFAST_ROOM = 0x42;
+   const u8 ZHA_PHY_ENV_NOOK = 0x43;
+   const u8 ZHA_PHY_ENV_GARDEN = 0x44;
+   const u8 ZHA_PHY_ENV_BALCONY = 0x45;
+   const u8 ZHA_PHY_ENV_PANIC_ROOM = 0x46;
+   const u8 ZHA_PHY_ENV_TERRACE = 0x47;
+   const u8 ZHA_PHY_ENV_ROOF = 0x48;
+}

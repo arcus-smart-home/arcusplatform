@@ -1,0 +1,208 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Key Pad
+ * 
+ * To Reset Device:
+ *    Insert battery and then press "ON" button device 5 times within the first 10 seconds.
+ * 
+ * Keypad is device type 28 (0x1C)
+ * Most messages are sent and received on the Attribute Cluster (0x00C0).
+ * The standard device messages (Hello and Lifesign) are sent on the Join and General Clusters, as usual.
+ * The lifesign will be sent every 2 minutes, in common with other AlertMe sleepy end devices.
+ * 
+ * The keypad is responsible for;
+ *   1. Driving its LEDs according to its state (see ATTRID_KEYPADSTATE attribute below),
+ *   2. Accumulating a PIN
+ *   3. Sending an action key and/or PIN when appropriate
+ *   4. Making sound sequences on demand
+ * 
+ * The keypad expects to be told its state, and may also send a triplet of attributes whenever an "action" key is used.
+ * The triplet is ATTRID_PIN (if there is one), ATTRID_ACTIONKEY_ID and ATTRID_ACTIONKEY_TIME.
+ * 
+ * While an actionKey is held down, the keypad will send ATTRID_ACTIONKEY_ID and ATTRID_ACTIONKEY_TIME once per second.
+ * It’ll also send an ATTRID_PIN (if available) with the first ATTRID_ACTIONKEY_ID.
+ * 
+ * If a PIN has been typed in, but no action key pressed within 2 seconds of the last digit, then a single ATTRID_PIN
+ * will be sent to the hub.
+ * 
+ */
+import groovy.transform.Field
+
+driver         "ZBAlertMeKeyPad"
+description    "Driver for the AlertMe Key Pad"
+version        "2.4"
+protocol       "ZIGB"
+deviceTypeHint "KeyPad"
+productId      "c3c055"
+vendor         "Iris"
+model          "KeyPad"
+
+matcher 'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'KeyPad Device'
+
+Identify {
+   handle request {
+      on Identify.Identify
+
+      forward
+	   sendResponse 'ident:IdentifyResponse'
+   }
+}
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Alert {
+   state Alert.STATE_QUIET
+
+	handle setattr {
+	   on Alert.state
+	   on Alert.maxAlertSecs
+
+	   forward
+	}
+}
+	
+KeyPad {
+   alarmState KeyPad.ALARMSTATE_DISARMED
+	alarmMode KeyPad.ALARMMODE_ON
+	alarmSounder KeyPad.ALARMSOUNDER_ON
+	enabledSounds (["BUTTONS", "DISARMED", "ARMED", "ARMING", "SOAKING", "ALERTING"])
+
+	handle setattr {
+	   on KeyPad.alarmState
+	   on KeyPad.alarmMode
+	   on KeyPad.alarmSounder
+	   on KeyPad.enabledSounds
+
+	   forward
+	}
+
+   handle request {
+      on KeyPad.BeginArming
+
+      forward
+   	sendResponse 'keypad:BeginArmingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Armed
+
+      forward
+	   sendResponse 'keypad:ArmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Disarmed
+
+      forward
+	   sendResponse 'keypad:DisarmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Soaking
+
+      forward
+	   sendResponse 'keypad:SoakingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Alerting
+
+      forward
+	   sendResponse 'keypad:AlertingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.ArmingUnavailable
+
+      forward
+      sendResponse 'keypad:ArmingUnavailableResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Chime
+
+      forward
+	   sendResponse 'keypad:ChimeResponse', [:]
+   }
+
+}
+
+Zigbee {
+   builtin reflex
+   offlineTimeout 10, MINUTES
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "AlertMe KeyPad device added to hub: {}", Long.toHexString((long)Zigbee.Hub.eui64)
+}
+
+onConnected {
+   log.debug "AlertMe KeyPad device connected."
+
+   // send a "Hello" message, to get version, etc.
+   byte[] helloBytes = []
+   Zigbee.send("cluster" : 0x00F6, "command" : 0xFC, "profile" : 0xC216, "endpoint" : 2,
+               "clusterspecific" : true, "defaultresponse" : true, "data" : helloBytes)
+}
+
+onDisconnected {
+   log.debug "AlertMe KeyPad device disconnected."
+}
+
+onRemoved {
+   log.debug "AlertMe KeyPad device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+   log.debug "Driver received onIdentify.Identify: {}", message
+
+   playSound( SOUNDID_LOCKED, (byte)0x02, VOL_MAX )
+   
+   // send a response so event processing completes and next event can be handled
+   sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def clusterId = zclMsg.getClusterId()
+   def messageId = zclMsg.getZclMessageId()
+   def payloadLen = zclMsg.getLength()
+   byte[] data = zclMsg.getPayload()
+   if ((246 == clusterId) && (254 == messageId)) {
+      if (18 <= payloadLen) {		// should be 63 bytes, but we are only looking at first 18
+         byte appRel = data[14]
+         double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+         DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+      }
+      return
+   }
+}
+

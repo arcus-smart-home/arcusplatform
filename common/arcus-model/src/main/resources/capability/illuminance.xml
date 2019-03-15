@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Illuminance"
+   namespace="ill"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="illuminance" 
+         readwrite="r" 
+         type="double" 
+         optional="false" 
+         min="0"
+         max="100000"
+         unit="lux"
+         description="Reflects the current illuminance measured by the device."/>
+      <c:attribute 
+         name="sensorType" 
+         readwrite="r" 
+         type="enum" 
+         values="PHOTODIODE,CMOS"
+         optional="true" 
+         description="Reflects the type of illuminance sensor included in the device."/>
+   </c:attributes>
+   
+</c:capability>

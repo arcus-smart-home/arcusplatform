@@ -1,0 +1,349 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the NYCE Hinge Sensor
+ *
+ *    05/02/17 - Version 2.3 for Reflexes.
+ * 
+ * Press button 2 times to see state
+ *   - red, 2 flashes, not paired
+ *   - green, 2 flashes, paired
+ *   - green, 5 flashes, reset to factory defaults
+ *   - orange, 1 flash, unsupported command
+ *   - orange, 2 flashes, comm error
+ *   - orange, 3 flashes, busy
+ * Press button 6 times to leave network
+ * Press button 8 times to join network
+ * Press button 10 times to leave network and factory reset
+ *
+ * Undocumented: Inserting batteries while holding down button for a dew seconds seems to force leave and then pair operation
+ *
+ * OFFLINE TIMEOUT:
+ *    2 hours
+ * 
+ * CHECK-IN INTERVAL:
+ *    Every 5 minutes
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours, at most every 60 minutes
+ * 
+ *
+ * 
+ * IN Clusters
+ *   0x0000     Basic
+ *   0x0001     Power Configuration
+ *   0x0003     Identify
+ *   0x0020     Poll Control
+ *   0x0406     Occupancy Sensing
+ *   0x0500     IAS Zone
+ * OUT Clusters
+ *   None
+ *
+ */
+import groovy.transform.Field                    // not needed to compile, but used in eclipse
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+import static com.iris.protocol.zigbee.zcl.Constants.*
+import static com.iris.protocol.zigbee.zcl.General.*
+import static com.iris.protocol.zigbee.zcl.IasZone.ZoneEnrollResponse.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse.*
+
+
+uses "generic.GenericContact"
+
+
+driver          "ZBNyceHingeSensor"
+description     "Driver for the Nyce Hinge Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Contact"
+productId       "76e484"
+vendor          "Nyce Sensors"
+model           "NCZ-3010"
+
+
+matcher         'ZIGB:manufacturer': 0x10B9, 'ZIGB:vendor': 'NYCE', 'ZIGB:model': '3010'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_DOOR
+    bind contactchanged to Contact.contact
+}
+
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+@Field def pwrCluster  = dvcEndPoint.Power
+@Field def zoneCluster = dvcEndPoint.IasZone
+@Field def pollCluster = dvcEndPoint.PollControl
+@Field def occupancyCluster = dvcEndPoint.OccupancySensing
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    
+    offlineTimeout 2, HOURS
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    poll reflex {
+        on added
+  
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.Power.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.IasZone.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.PollControl.CLUSTER_ID, server: true
+        bind endpoint: 1, profile: 0x0104, cluster: Zcl.OccupancySensing.CLUSTER_ID, server: true
+        
+        iaszone enroll
+    }
+
+    poll reflex {
+        on connected
+        ordered {
+            send zcl.pollcontrol.setLongPollInterval, newLongPollInterval: 20
+            send zcl.pollcontrol.setShortPollInterval, newShortPollInterval: 2
+    
+            // configure battery level reporting at most once an hour, at least once every 12 hours
+            report endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: pwrCluster.ATTR_BATTERY_VOLTAGE, type: Data.TYPE_UNSIGNED_8BIT, min: 3600, max: 43200
+            
+            // Set Poll Control Check-In interval to 27 minutes (6480 1/4 seconds)
+            write endpoint: 1, cluster: Zcl.PollControl.CLUSTER_ID, attr:Zcl.PollControl.ATTR_CHECKIN_INTERVAL, value: Data.encode32BitUnsigned(6480)
+    
+            read endpoint: 1, cluster: Zcl.IasZone.CLUSTER_ID, attr: Zcl.IasZone.ATTR_ZONE_STATUS
+            read endpoint: 1, cluster: Zcl.Power.CLUSTER_ID, attr: Zcl.Power.ATTR_BATTERY_VOLTAGE
+
+            // set long poll interval to 5 minutes (1200 1/4 seconds)
+            send zcl.pollcontrol.setLongPollInterval, newLongPollInterval: 1200
+            send zcl.pollcontrol.setShortPollInterval, newShortPollInterval: 4
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process IAS Zone Status reports locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        // if alarm1 status reported SET with 'delay' of 30 seconds or less, change Contact.contact to OPEN
+        on iaszone, endpoint: 1, set: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_OPENED
+    }
+
+    match reflex {
+        // if alarm1 status reported CLEAR with 'delay' of 30 seconds or less, change Contact.contact to CLOSED
+        on iaszone, endpoint: 1, clear: ["alarm1"], maxDelay: 30
+        set Contact.contact, Contact.CONTACT_CLOSED
+    }
+    
+    match reflex {
+        // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+        on iaszone, set: ["battery"]
+        emit DevicePower.battery, 0
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////
+    // Process IAS Zone Enrollment Requests locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on zcl.iaszone.zoneEnrollRequest
+        send zcl.iaszone.zoneEnrollResponse, zoneId: 0x01, enrollResponseCode: REPONSE_CODE_SUCCESS
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Process Poll Control Check-Ins locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        on zcl.pollcontrol.checkIn
+        // tell device to resume without short polling
+        send zcl.pollcontrol.checkInResponse, startFastPolling: START_FAST_POLLING_DISABLED, fastPollTimeout: 0
+    }
+
+}
+
+    
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+    def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+    def battAlarmMask = attributes[cluster.ATTR_BATTERY_ALARM_MASK]
+    log.trace "BatteryVoltage:{}, Min Thrshld:{}, Alarm Mask:{}", battVolt, battMinThreshold, battAlarmMask
+
+    if ( (null != battAlarmMask) && ((byte)battAlarmMask & cluster.BATTERY_ALARM_MASK_VOLTAGE_TOO_LOW) ) {        // battery alarm mask, bit 0, 1 = battery voltage too low
+        log.debug "Alarm: Battery voltage too low"
+    }
+
+    double minVolts = (null != battMinThreshold) ? (battMinThreshold / 10.0) : 2.1        // default to 2.1 volts
+    double nomVolts = 3.0
+
+    if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+        // battery Voltage is reported in tenths of Volts
+        double volts = (battVolt / 10.0)
+        log.trace "Battery Volts:{}", volts
+        // battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+        if (0 < (nomVolts - minVolts)) {    // prevent division by zero
+            double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+            battPercent = (100.0 < battPercent) ? 100.0 : battPercent        // limit maximum to 100%
+            battPercent = (0.0 > battPercent) ? 0.0 : battPercent            // limit minimum to 0%
+            int intBattPercent = battPercent
+            log.debug "Battery Percent:{}", intBattPercent
+            DevicePower.battery intBattPercent
+        }
+    }
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    log.trace "Driver received Power Attributes Response:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    log.trace "Driver received Power Attributes Report:{}", message
+    handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+    def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+    def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+    log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "Driver received Poll Control Attributes Response:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "Driver received Poll Control Attributes Report:{}", message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Occupancy Sensing Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOccupancyMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def sensitivity = attributes[cluster.ATTR_PIR_OCCUPIED_TO_UNOCCUPIED_DELAY]        // unsigned 16 bit, 0 (low sensitivity) - 2 (high sensitivity)
+    def delaySeconds = attributes[cluster.ATTR_PIR_UNOCCUPIED_TO_OCCUPIED_DELAY]    // unsigned 16 bit, minimum seconds the device must stay in a state before reporting that state, default 0
+    def reportingIntervalMinutes = attributes[cluster.ATTR_PIR_UNOCCUPIED_TO_OCCUPIED_THRESHOLD]    // unsigned 8 bit, in minutes, default 240
+    log.debug "Occupancy Sensing - Sensitivity (0:low - 2:high):{}, State Change Delay Seconds:{}, Reporting Interval Minutes:{}", sensitivity, delaySeconds, reportingIntervalMinutes
+}
+
+// called when device responds to an Occupancy Sensing Read Attributes
+onZigbeeMessage.Zcl.occupancysensing.zclreadattributesresponse() {
+    log.debug "Nyce Hinge Sensor driver received Occupancy Sensing Attributes Response:{}", message
+    handleOccupancyMsg(occupancyCluster, message)
+}
+
+// called when device asynchronously sends an Occupancy Sensing Report Attributes
+onZigbeeMessage.Zcl.occupancysensing.zclreportattributes() {
+    log.debug "Nyce Hinge Sensor driver received Occupancy Sensing Attributes Report:{}", message
+    handleOccupancyMsg(occupancyCluster, message)
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    log.trace "Nyce Hinge Sensor driver received zigbee ZCL message:{}", message
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+
+    // capture any expected responses and log any failures
+
+    if (260 == profile) {      // Home Automation Profile (0x0104)
+
+        if (ZHA_CLUSTER_POWER_CONFIGURATION == clusterId && ZclConfigureReportingResponse.ID == messageId) {
+            logResponse(data, "Power reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "Poll Control configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "Poll Control default response"
+            return
+        }
+
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclWriteAttributesResponse.ID == messageId) {
+            logResponse(data, "IAS Zone Write")
+            return
+        }
+
+        if (ZHA_CLUSTER_IAS_ZONE == clusterId && ZclDefaultResponse.ID == messageId) {
+            log.trace "IAS Zone default response"
+            return
+        }
+    }
+
+    log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+            profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+void logResponse(data, msgType) {
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "{} was successful: {}", msgType, data
+    } else {
+        log.warn "{} FAILED: {}", msgType, data
+    }
+}
+

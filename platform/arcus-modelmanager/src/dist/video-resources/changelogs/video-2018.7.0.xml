@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2018.7.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+ 
+   <cl:changeset identifier="createRecordingMigration1Table" author="dpatrow">
+      <cl:description>Add table for recording_migration_1 table which contains recordings that needed to be migrated first.  This includes all favorite videos and videos that are created in the last 24 hours.</cl:description>
+      <cl:tracking>I2-3779</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         ///////////////////////////////////////////////////////////////////////
+         // For type value: 1 - favorite video, 2 - non favorite video, 3 - stream, 4 - deleted
+         //
+         ///////////////////////////////////////////////////////////////////////
+         CREATE TABLE recording_migration_1 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_migration_1</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="createRecordingMigration2Table" author="dpatrow">
+      <cl:description>Add table for recording_migration_2 table which contains recordings to be migrated after everything in recording_migration_1 is done.</cl:description>
+      <cl:tracking>I2-3779</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_migration_2 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_migration_2</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="createRecordingMigration3Table" author="dpatrow">
+      <cl:description>Add table for recording_migration_3 table which contains streams to be migrated into the new purge table to be deleted.</cl:description>
+      <cl:tracking>I2-3779</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_migration_3 (
+            placeid uuid,
+            recordingid timeuuid,
+            created timestamp,
+            modified timestamp,
+            state text,
+            type int,            
+            ttl bigint,
+            PRIMARY KEY ((placeid), recordingid, type)
+         )
+         WITH CLUSTERING ORDER BY (recordingid DESC, type DESC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_migration_3</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>

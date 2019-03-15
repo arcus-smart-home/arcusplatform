@@ -1,0 +1,33 @@
+'use strict';
+var Iris = require('backbone.khs');
+var _ = require('underscore');
+
+/**
+* Generated from capabilities definitions
+* NOTE: all uuid generate to strings
+*
+* @name {{name}}
+* @namespace {{namespace}}
+* @description {{description}}
+* @version {{version}}
+* @mixin {{enhances}}
+*/
+module.exports = Iris.View.extend({
+
+className: 'block block--shrink block--vertical',
+
+namespace: '{{namespace}}',
+
+defaults: { {{#each attributes}}
+    {{docs this}}
+    {{name}}: {
+          type: '{{type}}' {{values}}
+        , optional: {{optional}}
+        , edit: {{readwrite}}
+        , description: '{{cleandescription}}'
+        {{supportingdata}}
+    }
+    {{#unless @last}},{{/unless}}
+    {{/each}}
+}
+});

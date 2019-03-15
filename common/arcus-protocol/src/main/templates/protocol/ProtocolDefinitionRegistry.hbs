@@ -1,0 +1,31 @@
+{{#file . "com/iris/protocol/definition/ProtocolDefinitionRegistry.java"}}
+package com.iris.protocol.definition;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import com.iris.capability.definition.AbstractProtocolDefinitionRegistry;
+import com.iris.capability.definition.ProtocolDefinition;
+
+public class ProtocolDefinitionRegistry extends AbstractProtocolDefinitionRegistry {
+   public static ProtocolDefinitionRegistry getInstance() {
+      return Holder.INSTANCE;
+   }
+
+   private static final class Holder {
+      private static final ProtocolDefinitionRegistry INSTANCE;
+       
+      static {
+         List<ProtocolDefinition> protocols = new LinkedList<ProtocolDefinition>();
+         {{#protocols}}
+         protocols.add(com.iris.protocol.constants.{{name}}Constants.DEFINITION);
+         {{/protocols}}
+         INSTANCE = new ProtocolDefinitionRegistry(protocols);
+      }
+   }
+   
+   private ProtocolDefinitionRegistry( List<ProtocolDefinition> protocolList ) {
+      super(protocolList);
+   }
+}
+{{/file}}

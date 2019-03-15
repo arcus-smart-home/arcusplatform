@@ -1,0 +1,35 @@
+<subscriptions type="array">
+  <subscription href="https://fakesubdomain.recurly.com/v2/subscriptions/301bc612b47fc9befbb4d44d789dfca4">
+    <account href="https://fakesubdomain.recurly.com/v2/accounts/b5d445a2-f821-466e-8ada-9f61625e178a"/>
+    <invoice href="https://fakesubdomain.recurly.com/v2/invoices/1665"/>
+    <plan href="https://fakesubdomain.recurly.com/v2/plans/premium">
+      <plan_code>premium</plan_code>
+      <name>Premium</name>
+    </plan>
+    <uuid>301bc612b47fc9befbb4d44d789dfca4</uuid>
+    <state>active</state>
+    <unit_amount_in_cents type="integer">999</unit_amount_in_cents>
+    <currency>USD</currency>
+    <quantity type="integer">1</quantity>
+    <activated_at type="datetime">2015-07-20T19:39:55Z</activated_at>
+    <canceled_at nil="nil"></canceled_at>
+    <expires_at nil="nil"></expires_at>
+    <total_billing_cycles nil="nil"></total_billing_cycles>
+    <remaining_billing_cycles nil="nil"></remaining_billing_cycles>
+    <current_period_started_at type="datetime">2015-07-20T19:39:55Z</current_period_started_at>
+    <current_period_ends_at type="datetime">2015-07-25T19:39:55Z</current_period_ends_at>
+    <trial_started_at nil="nil"></trial_started_at>
+    <trial_ends_at nil="nil"></trial_ends_at>
+    <terms_and_conditions nil="nil"></terms_and_conditions>
+    <customer_notes nil="nil"></customer_notes>
+    <po_number nil="nil"></po_number>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <subscription_add_ons type="array">
+    </subscription_add_ons>
+    <a name="cancel" href="https://fakesubdomain.recurly.com/v2/subscriptions/301bc612b47fc9befbb4d44d789dfca4/cancel" method="put"/>
+    <a name="terminate" href="https://fakesubdomain.recurly.com/v2/subscriptions/301bc612b47fc9befbb4d44d789dfca4/terminate" method="put"/>
+    <a name="postpone" href="https://fakesubdomain.recurly.com/v2/subscriptions/301bc612b47fc9befbb4d44d789dfca4/postpone" method="put"/>
+    <a name="notes" href="https://fakesubdomain.recurly.com/v2/subscriptions/301bc612b47fc9befbb4d44d789dfca4/notes" method="put"/>
+  </subscription>
+</subscriptions>

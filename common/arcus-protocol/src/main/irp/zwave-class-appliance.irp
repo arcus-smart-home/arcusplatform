@@ -1,0 +1,40 @@
+
+message zwave.Appliance.ApplianceTypeGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.Appliance.ApplianceTypeReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_APPLIANCE_TYPE_MASK = 0x3F;
+    const u8 PROPERTIES1_APPLIANCE_TYPE_SHIFT = 0;
+    u8 properties1;
+    u8 applianceModeSupportedBitmask;
+}
+
+message zwave.Appliance.ApplianceProgramSupportedGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.Appliance.ApplianceProgramSupportedReportV1<id="0x04", group="V1"> {
+    u8 bitMask;
+}
+
+message zwave.Appliance.ApplianceSetV1<id="0x05", group="V1"> {
+    const u8 PROPERTIES1_APPLIANCE_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_APPLIANCE_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_NO_OF_MANUFACTURER_DATA_FIELDS_MASK = 0xF0;
+    const u8 PROPERTIES1_NO_OF_MANUFACTURER_DATA_FIELDS_SHIFT = 4;
+    u8 properties1;
+    u8 applianceProgram;
+    u8[] manufacturerData;
+}
+
+message zwave.Appliance.ApplianceGetV1<id="0x06", group="V1"> {
+}
+
+message zwave.Appliance.ApplianceReportV1<id="0x07", group="V1"> {
+    const u8 PROPERTIES1_APPLIANCE_MODE_MASK = 0x0F;
+    const u8 PROPERTIES1_APPLIANCE_MODE_SHIFT = 0;
+    const u8 PROPERTIES1_NO_OF_MANUFACTURER_DATA_FIELDS_MASK = 0xF0;
+    const u8 PROPERTIES1_NO_OF_MANUFACTURER_DATA_FIELDS_SHIFT = 4;
+    u8 properties1;
+    u8 applianceProgram;
+    u8[] manufacturerData;
+}

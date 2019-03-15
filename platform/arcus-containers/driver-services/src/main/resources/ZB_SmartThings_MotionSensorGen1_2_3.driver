@@ -1,0 +1,246 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the SmartThings Motion Sensor made by SmartThings (Gen 1)
+ *
+ * Factory Reset:
+ *  - With the device powered up, Hold down the "Connect" button for 6 seconds until the red LED goes out.
+ *  - While the hub is in "pairing" mode", press the "Connect" button once to initiate pairing.
+ *
+ * OFFLINE TIMEOUT:			10.5 minutes (see OFFLINE_TIMEOUT_SECS)
+ *
+ * CHECK-IN INTERVAL:		Device sends a Profile 0xFC01 Cluster 0xFC04 Command 0x00 Manufacturer Specific (0x110A) command 
+ *                          from/to Endpoint 2 on the hub every 150 seconds (2.5 minutes)
+ *
+ * BATTERY LEVEL REPORTING:
+ *  - "Heartbeat" message sent every 2.5 minutes includes a single data byte which seems to indicate battery voltage.
+ *  - Value of ~84 is sent when powered with ~2.0 Volts
+ *  - Value of ~126 is sent when powered with ~3.0 Volts
+ *  - Value of ~200 is sent when powered with USB connection (we assume any values over 150 indicate device is USB powered)
+ *
+ * ISSUES/NOTES:
+ *  - After having reported "Motion Detected", device must not detect any motion for 60 consecutive seconds before reporting "No Motion".
+ *
+ *
+ * 05/04/17 - Initial reflex motion detection support.
+ *
+ */
+
+driver          "ZBSmartThingsMotionSensorGen1"
+description     "Driver for the SmartThings Motion Sensor (Gen 1)"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Motion"
+productId       "7dce6d"
+vendor          "SmartThings"
+model           "Motion Sensor Gen 1"
+
+matcher         'ZIGB:manufacturer': 0x110A, 'ZIGB:vendor': 'SmartThings', 'ZIGB:model': 'PGC314'
+
+uses "zigbee.GenericZigbeeDeviceOta"
+
+
+//
+// 2 End Points
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+// OUT Clusters
+//   0x0019     OTA Upgrade
+//
+// Profile ID:  0xFC01  ZigBee MSP
+// IN Clusters
+//   <none>
+// OUT Clusters
+//   <none>
+
+
+def basicCluster = Zigbee.endpoint((byte)1).Basic
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+// constants used if setting battery reporting interval
+@Field static final String DEVICE_NAME = 'SmartThings Gen 1 Motion Sensor'
+def final short PROFILE_HA              = 0x0104
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS              = 630       // 10.5 minutes
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver capability support - DevicePower, Motion, DeviceOta
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   DevicePower.source DevicePower.SOURCE_BATTERY
+   DevicePower.linecapable false
+   DevicePower.backupbatterycapable false
+
+   bind DevicePower.sourcechanged to DevicePower.source
+}
+
+Motion {
+   Motion.motion Motion.MOTION_NONE
+
+   bind Motion.motionchanged to Motion.motion
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Reflex support
+////////////////////////////////////////////////////////////////////////////////
+
+// Only handle motion detection for now!
+Zigbee {
+
+   match reflex {
+      on iaszone, endpoint: 1, set: ["alarm1"]
+      debug "Motion Detected"
+      set Motion.motion, Motion.MOTION_DETECTED
+   }
+
+   match reflex {
+      on iaszone, endpoint: 1, clear: ["alarm1"]
+      debug "No Motion"
+      set Motion.motion, Motion.MOTION_NONE
+   }
+
+   offlineTimeout OFFLINE_TIMEOUT_SECS, SECONDS
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+
+onAdded {
+	log.debug "SmartThings Motion Sensor (Gen 1) device added."
+
+	// reset the device to factory defaults
+	basicCluster.resetToFactoryDefaults()
+
+	// Bind of the command clusters is NOT supported
+	// Zigbee.bindAll()
+}
+
+
+onConnected {
+	log.debug "SmartThings Motion Sensor (Gen 1) device connected."
+}
+
+
+onDisconnected {
+	log.debug "SmartThings Motion Sensor (Gen 1) device disconnected."
+}
+
+
+onRemoved {
+	log.debug "SmartThings Motion Sensor (Gen 1) device removed."
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// Profile:64513, ClusterId:64516, MsgId:1, EndPoint:2, Flags:15, Data:[]
+	if ((0xFC01 == profile) && (0xFC04 == clusterId) && (0 == msgId) && (2 == endpoint)) {
+		log.debug "Driver received Heartbeat/Check-In from device, Flags:{}, Data:${data}", flags
+		def prevPwrSrc = DevicePower.source.get()
+		if (1 <= data.length) {
+			def rawVoltage = data[0]
+			if (0 > rawVoltage) rawVoltage += 256	// convert negative value to positive
+			def minRawVoltage = 84		// approx. 2 volts
+			def nomRawVoltage = 126		// approx. 3 volts
+			log.trace "Raw Voltage Level:{}", rawVoltage
+			if (150 < rawVoltage) {
+				DevicePower.battery 100
+				DevicePower.source DevicePower.SOURCE_LINE
+			} else {
+				// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+				if (0 < (nomRawVoltage - minRawVoltage)) {	// prevent division by zero
+					double battPercent = (100.0 / (nomRawVoltage - minRawVoltage) * (rawVoltage - minRawVoltage))
+					battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+					battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+					int intBattPercent = battPercent
+					log.debug "Battery Percent:{}", intBattPercent
+					DevicePower.battery intBattPercent
+					DevicePower.source DevicePower.SOURCE_BATTERY
+				}
+			}
+			// if power source changed, capture timestamp
+			if (DevicePower.source.get() != prevPwrSrc) {
+				DevicePower.sourcechanged new Date()
+			}
+		}
+		return
+	}
+
+	if ((260 == profile) && (1280 == clusterId) && (0 == msgId) && (1 == endpoint)) {
+		log.debug "Driver received Status from device, Flags:{}, Data:${data}", flags
+		return
+	}
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+

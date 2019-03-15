@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="LockAuthorizationState"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the lock authorization state between a person (with a pin) and a lock</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="person"
+			type="string"
+			description="The address of the person to contact"/>
+         
+		<t:attribute
+			name="state"
+			type="enum"
+         values="AUTHORIZED,UNAUTHORIZED,PENDING,ERROR"
+			description="The state of the authorization where the values imply the following:
+AUTHORIZED:  Person is authorized on the lock
+UNAUTHORIZED:  Person is authorized on the lock
+PENDING:  Person has some pin management on this lock pending.  Any other pin management operations on this person will be rejected until it is cleared
+ERROR:  Pin management operation failed"/>
+	</t:attributes>
+ </t:type>

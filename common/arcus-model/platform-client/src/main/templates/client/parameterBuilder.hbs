@@ -1,0 +1,7 @@
+                  com.iris.capability.definition.Definitions
+                     .parameterBuilder()
+                     .withName("{{name}}")
+                     .withDescription("{{description}}")
+                     .withType("{{{type.representation}}}")
+                     {{#enumValues}}.addEnumValue("{{{.}}}"){{/enumValues}}
+                     .build()

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Atmos"
+   namespace="atmos"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of an air pressure sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="pressure" 
+         readwrite="r" 
+         type="double" 
+         unit="kPa"
+         optional="false" 
+         description="Atmospheric air pressure."/>
+   </c:attributes>
+   
+</c:capability>

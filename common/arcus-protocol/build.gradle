@@ -1,0 +1,242 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply plugin: 'project-report'
+
+def genSrcMain = new File(buildDir, 'generated-src/main/java')
+def genSrcTest = new File(buildDir, 'generated-src/test/java')
+
+sourceSets.main.java.srcDirs += genSrcMain
+sourceSets.test.java.srcDirs += genSrcTest
+
+// Support for protocol definitions
+ext.generatedSrcDir = 'src/generated/java'
+ext.capabilityDir   = '../arcus-model/src/main/resources'
+ext.templateDir     = 'src/main/templates'
+ext.templateName    = 'protocol'
+
+// Support for ipcd messages
+ext.ipcdDefinitionFile = 'src/main/resources/definition/ipcd/ipcd-definition.xml'
+ext.ipcdTemplateName = 'ipcd/message/messages'
+
+// Support for aos adapter
+ext.aosDefinitionFile = 'src/main/resources/definition/ipcd/ipcd-aos.xml'
+ext.aosTemplateName = 'ipcd/adapter/aos'
+
+configurations {
+    generator {
+        description "Classpath for source generators"
+        transitive true
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir generatedSrcDir
+        }
+    }
+
+    // load it up as a source folder in eclipse,
+    // but don't include in the jar
+    generator {
+       resources {
+          srcDir templateDir
+       }
+    }
+}
+
+dependencies {
+   generator project(':common:arcus-model:capability-generator')
+   generator project(':common:protocol-generator')
+   generator files(templateDir)
+   
+   compile project(':common:arcus-client')
+   compile project(':common:arcus-common')
+   compile project(':common:arcus-protoc-runtime')
+   compile project(':common:arcus-protoc').sourceSets.main.output
+   compile project(':common:arcus-model')
+   compile project(':common:arcus-model:platform-messages')
+
+   compile libraries.commons_lang
+   compile libraries.commonsIO
+   compile libraries.gson
+   compile libraries.guava
+   compile libraries.ipcd
+   compile libraries.jacksonCore
+   compile libraries.jacksonDatabind
+
+    testCompile "org.hamcrest:hamcrest-all:1.3"
+}
+
+task generateZigbeeZclSource(type:JavaExec) {
+   description 'Compile the Iris Zigbee Cluster Library IRP files into Java.'
+   dependsOn ':common:arcus-protoc:jar'
+
+   def source = ["src/main/irp/zcl-messages.irp"]
+   def packageName = 'com.iris.protocol.zigbee'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+}
+
+task generateZigbeeZdpSource(type:JavaExec) {
+   description 'Compile the Iris Zigbee Device Profile Library IRP files into Java.'
+   dependsOn ':common:arcus-protoc:jar'
+
+   def source = ["src/main/irp/zdp-messages.irp"]
+   def packageName = 'com.iris.protocol.zigbee'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+}
+
+task generateZigbeeAmeSource(type:JavaExec) {
+   description 'Compile the AlertMe IRP files into Java.'
+   dependsOn ':common:arcus-protoc:jar'
+
+   def source = ["src/main/irp/ame-messages.irp"]
+   def packageName = 'com.iris.protocol.zigbee'
+   def protoc = project(':common:arcus-protoc')
+
+   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   main = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+}
+
+task generateZigbeeMessageSource(type:JavaExec) {
+    description 'Compile the Iris Zigbee Message file into Java files.'
+    dependsOn ':common:arcus-protoc:jar'
+    
+    def source = ["src/main/irp/zb-protocol-messages.irp"]
+    def packageName = 'com.iris.protocol.zigbee'
+    def protoc = project(':common:arcus-protoc')
+    
+    classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+    main = 'com.iris.protoc.Main'
+    args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
+}
+
+task generateZWaveMessageSource(type:JavaExec) {
+    description 'Compile the Iris Z-Wave Message file into Java files.'
+    dependsOn ':common:arcus-protoc:jar'
+    
+    def source = ["src/main/irp/zwave-messages.irp"]
+    def packageName = 'com.iris.protocol'
+    def protoc = project(':common:arcus-protoc')
+    
+    classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+    main = 'com.iris.protoc.Main'
+    args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
+}
+
+task cleanZWaveZigbeeSource(type: Delete) {
+   delete genSrcMain
+   delete genSrcTest
+}
+
+task generateZWaveZigbeeSource(type: GradleBuild) {
+    tasks = ['cleanZWaveZigbeeSource', 'generateZigbeeZclSource', 'generateZigbeeZdpSource', 'generateZigbeeAmeSource', 'generateZigbeeMessageSource', 'generateZWaveMessageSource']
+   description 'Compile the Iris Zigbee and Z-Wave IRP files into Java.'
+   dependsOn ':common:arcus-protoc:jar'
+    generateZigbeeZclSource.mustRunAfter cleanZWaveZigbeeSource
+    generateZigbeeZdpSource.mustRunAfter generateZigbeeZclSource
+    generateZigbeeAmeSource.mustRunAfter generateZigbeeZdpSource
+    generateZigbeeMessageSource.mustRunAfter generateZigbeeAmeSource
+    generateZWaveMessageSource.mustRunAfter generateZigbeeMessageSource
+
+
+    inputs.files fileTree('src/main/irp').include('**/*.irp')
+   outputs.dir genSrcMain
+   outputs.dir genSrcTest
+
+}
+
+clean {
+    delete "target"
+}
+
+// For Protocol Definitions
+task cleanGeneratedSource(type: Delete) {
+    delete generatedSrcDir
+}
+
+clean.dependsOn cleanGeneratedSource
+
+task generateSource(type: JavaExec) {
+    dependsOn ':common:arcus-model:capability-generator:jar'
+    inputs.dir capabilityDir
+    inputs.dir templateDir
+    
+    def outputDir = file(generatedSrcDir)
+    outputs.dir outputDir
+    
+    doFirst {
+        delete(outputDir)
+        outputDir.mkdirs()
+
+        genSrcMain.mkdirs()
+        genSrcTest.mkdirs()
+
+        println "Generating templates from $templateName..."
+        classpath configurations.generator.asPath.split(':')
+        args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
+        main 'com.iris.capability.generator.java.Generator'
+    }
+}
+
+task generateProtocolSource(type: JavaExec) {
+    dependsOn ':common:protocol-generator:jar'
+    inputs.dir templateDir
+    
+    def outputDir = file(generatedSrcDir)
+    outputs.dir outputDir
+    
+    doFirst {
+        println "Generating templates from $ipcdTemplateName..."
+        classpath configurations.generator.asPath.split(':')
+        args '-t', ipcdTemplateName, '-i', ipcdDefinitionFile, '-o', generatedSrcDir
+        main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    }
+}
+
+task generateAosAdapterSource(type: JavaExec) {
+    dependsOn ':common:protocol-generator:jar'
+    inputs.dir templateDir
+    
+    def outputDir = file(generatedSrcDir)
+    outputs.dir outputDir
+    
+    doFirst {
+        println "Generating templates from $ipcdTemplateName..."
+        classpath configurations.generator.asPath.split(':')
+        args '-t', aosTemplateName, '-i', aosDefinitionFile, '-o', generatedSrcDir
+        main 'com.iris.protocol.ipcd.definition.generator.AosGenerator'
+    }
+}
+
+evaluationDependsOn(':common:arcus-protoc')
+compileJava.dependsOn tasks.getByPath(':common:arcus-protoc:classes')
+generateProtocolSource.dependsOn generateSource
+generateAosAdapterSource.dependsOn generateProtocolSource
+
+compileJava.dependsOn generateZWaveZigbeeSource, generateAosAdapterSource
+compileTestJava.dependsOn generateZWaveZigbeeSource, generateAosAdapterSource
+eclipseClasspath.dependsOn generateZWaveZigbeeSource, generateAosAdapterSource
+

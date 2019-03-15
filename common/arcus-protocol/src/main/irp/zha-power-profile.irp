@@ -1,0 +1,156 @@
+constants zcl.PowerProfile {
+   const u16 CLUSTER_ID = 0x0102;
+
+   const u16 ATTR_TOTAL_PROFILE_NUM = 0x0000;
+   const u16 ATTR_MULTIPLE_SCHEDULING = 0x0001;
+   const u16 ATTR_ENERGY_FORMATTING = 0x0002;
+   const u16 ATTR_ENERGY_REMOTE = 0x0003;
+   const u16 ATTR_SCHEDULE_MODE = 0x0004;
+
+   const u8 SCHEDULE_MODE_CHEAPEST = 0x01;
+   const u8 SCHEDULE_MODE_GREENEST = 0x02;
+}
+
+struct zcl.PowerProfile.ScheduledPhase {
+   u8 energyPhaseId;
+   u16 scheduledTime;
+}
+
+struct zcl.PowerProfile.TransferredPhase {
+   u8 energyPhaseId;
+   u8 macroPhaseId;
+   u16 expectedDuration;
+   u16 peakPower;
+   u16 energy;
+   u16 maxActivationDelay;
+}
+
+struct zcl.PowerProfile.PowerProfileRecord {
+   const u8 POWER_PROFILE_IDLE = 0x00;
+   const u8 POWER_PROFILE_PROGRAMMED = 0x01;
+   const u8 POWER_PROFILE_RUNNING = 0x03;
+   const u8 POWER_PROFILE_PAUSED = 0x04;
+   const u8 POWER_PROFILE_WAITING_TO_START = 0x05;
+   const u8 POWER_PROFILE_WAITING_PAUSED = 0x06;
+   const u8 POWER_PROFILE_ENDED = 0x07;
+
+   u8 powerProfileId;
+   u8 energyPhaseId;
+   u8 powerProfileRemoteControl;
+   u8 powerProfileState;
+}
+
+message zcl.PowerProfile.Request<id="0x00",group="client"> {
+   u8 powerProfileId;
+}
+
+message zcl.PowerProfile.StateRequest<id="0x01",group="client"> {
+}
+
+message zcl.PowerProfile.GetPriceResponse<id="0x02",group="client"> {
+   u8 powerProfileId;
+   u16 currency;
+   u32 price;
+   u8 priceTrailingDigit;
+}
+
+message zcl.PowerProfile.GetOverallSchedulePriceResponse<id="0x03",group="client"> {
+   u16 currency;
+   u32 price;
+   u8 priceTrailingDigit;
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleNotification<id="0x04",group="client"> {
+   u8 powerProfileId;
+   u8 numOfScheduledPhases;
+   ScheduledPhase[numOfScheduledPhases] scheduledPhases;
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleResponse<id="0x05",group="client"> {
+   u8 powerProfileId;
+   u8 numOfScheduledPhases;
+   ScheduledPhase[numOfScheduledPhases] scheduledPhases;
+}
+
+message zcl.PowerProfile.ScheduleConstraintsRequest<id="0x06",group="client"> {
+   u8 powerProfileId;
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleStateRequest<id="0x07",group="client"> {
+   u8 powerProfileId;
+}
+
+message zcl.PowerProfile.GetPriceExtendedResponse<id="0x08",group="client"> {
+   u8 powerProfileId;
+   u16 currency;
+   u32 price;
+   u8 priceTrailingDigit;
+}
+
+message zcl.PowerProfile.PowerProfileNotification<id="0x00",group="server"> {
+   u8 totalProfileNum;
+   u8 powerProfileId;
+   u8 numOfTransferredPhases;
+   TransferredPhase[numOfTransferredPhases] transferredPhases;
+}
+
+message zcl.PowerProfile.PowerProfileResponse<id="0x01",group="server"> {
+   u8 totalProfileNum;
+   u8 powerProfileId;
+   u8 numOfTransferredPhases;
+   TransferredPhase[numOfTransferredPhases] transferredPhases;
+}
+
+message zcl.PowerProfile.PowerProfileStateResponse<id="0x02",group="server"> {
+   u8 powerProfileCount;
+   PowerProfileRecord[powerProfileCount] powerProfileRecords;
+}
+
+message zcl.PowerProfile.GetPowerProfilePrice<id="0x03",group="server"> {
+   u8 powerProfileId;
+}
+
+message zcl.PowerProfile.PowerProfilesStateNotification<id="0x04",group="server"> {
+   u8 powerProfileCount;
+   PowerProfileRecord[powerProfileCount] powerProfileRecords;
+}
+
+message zcl.PowerProfile.GetOverallSchedulePrice<id="0x05",group="server"> {
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleRequest<id="0x06",group="server"> {
+   u8 powerProfileId;
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleStateResponse<id="0x07",group="server"> {
+   u8 powerProfileId;
+   u8 numOfScheduledPhases;
+   ScheduledPhase[numOfScheduledPhases] scheduledPhases;
+}
+
+message zcl.PowerProfile.EnergyPhasesScheduleStateNotification<id="0x08",group="server"> {
+   u8 powerProfileId;
+   u8 numOfScheduledPhases;
+   ScheduledPhase[numOfScheduledPhases] scheduledPhases;
+}
+
+message zcl.PowerProfile.PowerProfileScheduleConstraintsNotification<id="0x09",group="server"> {
+   u8 powerProfileId;
+   u16 startAfter;
+   u16 stopBefore;
+}
+
+message zcl.PowerProfile.PowerProfileScheduleConstraintsResponse<id="0x0A",group="server"> {
+   u8 powerProfileId;
+   u16 startAfter;
+   u16 stopBefore;
+}
+
+message zcl.PowerProfile.GetPowerProfilePriceExtended<id="0x0B",group="server"> {
+   const u8 OPTIONS_START_TIME_PRESENT = 0x01;
+   const u8 OPTIONS_PRICE_AS_SCHEDULED = 0x02;
+
+   u8 options;
+   u8 powerProfileId;
+   u16 powerProfileStartTime;
+}

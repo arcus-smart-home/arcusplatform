@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="WeeklyIrrigationScheduleEvent"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Extension of IrrigationScheduleEvent for weekly schedules
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="eventId"
+         type="string"
+         description="The platform generated id for this specific scheduling event for use in later updates or deletions"/>
+
+      <t:attribute
+         name="timeOfDay"
+         type="string"
+         description="The time of day at which the event starts.  This must be of the format HH:mm in the 24 hour clock."/>
+
+      <t:attribute
+         name="events"
+         type="list&lt;IrrigationTransitionEvent&gt;"
+         description="Each individual transition within this scheduling event, typically one per zone involved."/>
+
+      <t:attribute
+         name="type"
+         type="enum"
+         values="INTERVAL,ODD,EVEN,WEEKLY"
+         description="The type of schedule this event is applicable to"/>
+
+      <t:attribute
+         name="status"
+         type="enum"
+         values="UPDATING,APPLIED,FAILED"
+         description="
+The states this event may be in while applying each individual transition.
+UPDATING: At least one transition event is still in the process of being applied
+APPLIED:  All transition events have been successfully applied
+FAILED:   At least one transition could not be applied
+"
+         />
+
+      <t:attribute
+         name="days"
+         type="set&lt;string&gt;"
+         description="The days on which the event should be applied.  Values must be one of MON,TUE,WED,THU,FRI,SAT,SUN"/>
+
+   </t:attributes>
+
+</t:type>

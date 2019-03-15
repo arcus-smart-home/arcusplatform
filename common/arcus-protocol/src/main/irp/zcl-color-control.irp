@@ -1,0 +1,140 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 5.2 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Color {
+   const u16 CLUSTER_ID = 0x0300;
+
+   const u16 ATTR_CURRENT_HUE = 0x0000;
+   const u16 ATTR_CURRENT_SATURATION = 0x0001;
+   const u16 ATTR_REMAINING_TIME = 0x0002;
+   const u16 ATTR_CURRENT_X = 0x0003;
+   const u16 ATTR_CURRENT_Y = 0x0004;
+   const u16 ATTR_DRIFT_COMPENSATION = 0x0005;
+   const u16 ATTR_COMPENSATION_TEXT = 0x0006;
+   const u16 ATTR_COLOR_TEMPERATURE = 0x0007;
+   const u16 ATTR_COLOR_MODE = 0x0008;
+
+   const u16 ATTR_NUMBER_OF_PRIMARIES = 0x0010;
+   const u16 ATTR_PRIMARY_1X = 0x0011;
+   const u16 ATTR_PRIMARY_1Y = 0x0012;
+   const u16 ATTR_PRIMARY_1INTENSITY = 0x0013;
+   const u16 ATTR_PRIMARY_2X = 0x0015;
+   const u16 ATTR_PRIMARY_2Y = 0x0016;
+   const u16 ATTR_PRIMARY_2INTENSITY = 0x0017;
+   const u16 ATTR_PRIMARY_3X = 0x0019;
+   const u16 ATTR_PRIMARY_3Y = 0x001A;
+   const u16 ATTR_PRIMARY_3INTENSITY = 0x001B;
+   const u16 ATTR_PRIMARY_4X = 0x0020;
+   const u16 ATTR_PRIMARY_4Y = 0x0021;
+   const u16 ATTR_PRIMARY_4INTENSITY = 0x0022;
+   const u16 ATTR_PRIMARY_5X = 0x0024;
+   const u16 ATTR_PRIMARY_5Y = 0x0025;
+   const u16 ATTR_PRIMARY_5INTENSITY = 0x0026;
+   const u16 ATTR_PRIMARY_6X = 0x0028;
+   const u16 ATTR_PRIMARY_6Y = 0x0029;
+   const u16 ATTR_PRIMARY_6INTENSITY = 0x002A;
+
+   const u16 ATTR_WHITE_POINT_X = 0x0030;
+   const u16 ATTR_WHITE_POINT_Y = 0x0031;
+   const u16 ATTR_COLOR_POINT_RX = 0x0032;
+   const u16 ATTR_COLOR_POINT_RY = 0x0033;
+   const u16 ATTR_COLOR_POINT_RINTENSITY = 0x0034;
+   const u16 ATTR_COLOR_POINT_GX = 0x0036;
+   const u16 ATTR_COLOR_POINT_GY = 0x0037;
+   const u16 ATTR_COLOR_POINT_GINTENSITY = 0x0038;
+   const u16 ATTR_COLOR_POINT_BX = 0x003A;
+   const u16 ATTR_COLOR_POINT_BY = 0x003B;
+   const u16 ATTR_COLOR_POINT_BINTENSITY = 0x003C;
+
+   const u8 DRIFT_COMPENSATION_NONE = 0x00;
+   const u8 DRIFT_COMPENSATION_UNKNOWN = 0x01;
+   const u8 DRIFT_COMPENSATION_TEMPERATURE_MONITORING = 0x02;
+   const u8 DRIFT_COMPENSATION_OPTICAL_LUMINANCE_MONITORING_AND_FEEDBACK = 0x03;
+   const u8 DRIFT_COMPENSATION_OPTICAL_COLOR_MONITORING_AND_FEEDBACK = 0x04;
+
+   const u8 COLOR_MODE_CURRENT_HUE_AND_CURRENT_SATURATION = 0x00;
+   const u8 COLOR_MODE_CURRENT_X_AND_CURRENT_Y = 0x01;
+   const u8 COLOR_MODE_COLOR_TEMPERATURE = 0x02;
+}
+
+message zcl.Color.MoveToHue<id="0x00",group="client"> {
+   const u8 DIRECTION_SHORTEST = 0x00;
+   const u8 DIRECTION_LONGEST = 0x01;
+   const u8 DIRECTION_UP = 0x02;
+   const u8 DIRECTION_DOWN = 0x03;
+
+   u8 hue;
+   u8 direction;
+   u16 transitionTime;
+}
+
+message zcl.Color.MoveHue<id="0x01",group="client"> {
+   const u8 MOVE_MODE_STOP = 0x00;
+   const u8 MOVE_MODE_UP = 0x01;
+   const u8 MOVE_MODE_DOWN = 0x03;
+
+   u8 moveMode;
+   u8 rate;
+}
+
+message zcl.Color.StepHue<id="0x02",group="client"> {
+   const u8 STEP_MODE_UP = 0x01;
+   const u8 STEP_MODE_DOWN = 0x03;
+
+   u8 stepMode;
+   u8 stepSize;
+   u8 transitionTime;
+}
+
+message zcl.Color.MoveToSaturation<id="0x03",group="client"> {
+   u8 saturation;
+   u16 transitionTime;
+}
+
+message zcl.Color.MoveSaturation<id="0x04",group="client"> {
+   const u8 MOVE_MODE_STOP = 0x00;
+   const u8 MOVE_MODE_UP = 0x01;
+   const u8 MOVE_MODE_DOWN = 0x03;
+
+   u8 moveMode;
+   u8 rate;
+}
+
+message zcl.Color.StepSaturation<id="0x05",group="client"> {
+   const u8 STEP_MODE_UP = 0x01;
+   const u8 STEP_MODE_DOWN = 0x03;
+
+   u8 stepMode;
+   u8 stepSize;
+   u8 transitionTime;
+}
+
+message zcl.Color.MoveToHueAndSaturation<id="0x06",group="client"> {
+   u8 hue;
+   u8 saturation;
+   u16 transitionTime;
+}
+
+message zcl.Color.MoveToColor<id="0x07",group="client"> {
+   u16 colorX;
+   u16 colorY;
+   u16 transitionTime;
+}
+
+message zcl.Color.MoveColor<id="0x08",group="client"> {
+   u16 rateX;
+   u16 rateY;
+}
+
+message zcl.Color.StepColor<id="0x09",group="client"> {
+   u16 stepX;
+   u16 stepY;
+   u16 transitionTime;
+}
+
+message zcl.Color.MoveToColorTemperature<id="0x0A",group="client"> {
+   u16 colorTemperature;
+   u16 transitionTime;
+}

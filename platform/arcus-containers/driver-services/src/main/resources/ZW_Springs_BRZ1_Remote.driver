@@ -1,0 +1,127 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Springs Basic Remote
+ * 
+ * Springs replacement for Somphy Bridge
+ * Basic remote includes support for Home Button (Virtual Cord Does Not)
+ * 
+ * NOTES: 
+ * 
+ * PAIRING
+ * - Place hub in 'pairing' mode and insert battery.
+ * - You then have to press and hold "Program Switch" with paper clip through small hole on 
+ *   back of device until green light flashes.
+ * 
+ * UNPAIRING
+ * - Place hub in 'unpairing' mode ( select "Remove Device").
+ * - Press "Program Switch" with paper clip through small hole on back of device.
+ * 
+ * FACTORY RESET
+ * - Press and hold "Program Switch" with paper clip until lights flash red"
+ * 
+ */
+import groovy.transform.Field
+
+driver          "ZWSpringsBRZ1RemoteDriver"
+description     "Driver for a Springs Basic Remote"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Accessory"
+productId       "338dc3"
+vendor          "Springs Window Fashions"
+model           "BRZ1"
+
+matcher         'ZWAV:Manufacturer': 0x026E, 'ZWAV:ProductType': 0x4252, 'ZWAV:ProductId': 0x5A31
+
+
+capabilities	DevicePower
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+importCapability 'zwave/GenericZWaveVersion'
+
+// Command Classes:
+//		0x31   (49) Sensor_Multilevel
+//		0x70  (112) Configuration
+//		0x71  (113) Alarm (Notification)
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//      0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+final String DEVICE_NAME        = "Springs Virtual Cord"
+final int OFFLINE_TIMEOUT_SECS  = 133200     // 37 hours
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+
+	// get the level of the battery 0 - 100%
+	ZWave.battery.get()
+
+	// set the wakeup interval to 12 hours (0x00A8C0 = 43200 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0xA8, (byte)0xC0, (byte)0x01)
+	
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+		
+	
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.central_scene.notification {
+	log.debug "{} received central scene notification {}", DEVICE_NAME, message
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {}", DEVICE_NAME, message
+    return false;
+}
+
+

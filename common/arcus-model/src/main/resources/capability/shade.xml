@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Shade"
+   namespace="shade"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a window shade.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="level" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="false" 
+         description="The percentage that the shades are open (raised/lowered). May also be used to set how closed (lowered) or open (raised) the shade is where 100% is fully open and 0% is fully closed. For devices that only support being set fully Open (Raised) or Closed (Lowered), use 0% for Closed (Lowered) and 100% for Open (Raised)."/>
+      <c:attribute 
+         name="shadestate" 
+         readwrite="r" 
+         type="enum"
+         values="OK,OBSTRUCTION"
+         optional="false"
+         description="Reflects the current state of the shade.  Obstruction implying that something is preventing the opening or closing of the shade."/>         
+	  <c:attribute 
+         name="levelchanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC time of last level change."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="GoToOpen"
+         description="Move the shade to a pre-programmed OPEN position.">
+      </c:method>
+      <c:method 
+         name="GoToClosed"
+         description="Move the shade to a pre-programmed CLOSED position.">
+      </c:method>
+      <c:method 
+         name="GoToFavorite"
+         description="Move the shade to a pre-programmed FAVORITE position.">
+      </c:method>
+   </c:methods>
+   
+   
+</c:capability>

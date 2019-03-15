@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Tilt"
+   namespace="tilt"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Tilt sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="tiltstate" 
+         readwrite="rw" 
+         type="enum"
+         values="FLAT,UPRIGHT"
+         optional="false"
+         description="Reflects the current state of the tilt sensor."/>
+      <c:attribute 
+         name="tiltstatechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last tilt state change"/>
+   </c:attributes>
+
+</c:capability>

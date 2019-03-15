@@ -1,0 +1,37 @@
+
+message zwave.IpAssociation.IpAssociationSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_MASK = 0x3F;
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_SHIFT = 0;
+    u8 groupingIdentifier;
+    u8[16] ipv6Address;
+    u8 endpoint;
+    u8 properties1;
+    u8[] resourceName;
+}
+
+message zwave.IpAssociation.IpAssociationGetV1<id="0x02", group="V1"> {
+    u8 groupingIdentifier;
+    u8 index;
+}
+
+message zwave.IpAssociation.IpAssociationReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_MASK = 0x3F;
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_SHIFT = 0;
+    u8 groupingIdentifier;
+    u8 index;
+    u8 actualNodes;
+    u8[16] ipv6Address;
+    u8 endpoint;
+    u8 properties1;
+    u8[] resourceName;
+}
+
+message zwave.IpAssociation.IpAssociationRemoveV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_MASK = 0x3F;
+    const u8 PROPERTIES1_RESOURCE_NAME_LENGTH_SHIFT = 0;
+    u8 groupingIdentifier;
+    u8[16] ipv6Address;
+    u8 endpoint;
+    u8 properties1;
+    u8[] resourceName;
+}

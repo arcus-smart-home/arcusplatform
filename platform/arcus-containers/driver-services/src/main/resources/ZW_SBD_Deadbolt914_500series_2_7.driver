@@ -1,0 +1,157 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-Wave Stanley Black & Decker (Kwikset) 914 10-Button Deadbolt, 500 Series
+ * 
+ * https://products.z-wavealliance.org/products/2237
+ * https://products.z-wavealliance.org/products/2005
+ * 
+ * Command Classes:
+ *   0x4C (76)   Door Lock Logging
+ *   0x4E (78)   Schedule Entry Lock
+ *   0x59 (89)   Association Group Information
+ *   0x5A (90)   Device Reset Local
+ *   0x5D (93)   Anti theft
+ *   0x5E (94)   ZWavePlusInfo
+ *   0x62 (98)   Door Lock
+ *   0x63 (99)   User Code
+ *   0x70 (112)  Configuration
+ *   0x71 (113)  Notification
+ *   0x72 (114)  Manufacturer Specific
+ *   0x73 (115)  Power Level
+ *   0x7A (122)  Firmware Update
+ *   0x80 (-128) Battery
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8B (-117) Time Parameters
+ *   0x98 (-104) Security
+ */
+
+driver           'ZWSBDDeadbolt914ZwavePlus'
+description      'Driver for a ZWave Stanley Black & Decker (Kwikset) 914 10-Button Deadbolt, 500 Series Z-Wave Plus'
+version          '2.7'
+protocol         'ZWAV'
+deviceTypeHint   'Lock'
+productId        'e97ca1'
+vendor           'Kwikset'
+model            '914'
+
+matcher          'ZWAV:Manufacturer': 0x90, 'ZWAV:ProductType': 3, 'ZWAV:ProductId': 0x4006
+matcher          'ZWAV:Manufacturer': 0x90, 'ZWAV:ProductType': 3, 'ZWAV:ProductId': 0x0440
+matcher          'ZWAV:Manufacturer': -112, 'ZWAV:ProductType': 3, 'ZWAV:ProductId': 0x4006
+matcher          'ZWAV:Manufacturer': -112, 'ZWAV:ProductType': 3, 'ZWAV:ProductId': 0x0440
+
+capabilities     DevicePower, DoorLock
+
+importCapability 'zwave/GenericZWaveDoorLock_2_6'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+final int  MAX_SUPPORTED_PINS    = 30
+final int  OFFLINE_TIMEOUT_SECS  = 44100   // 12h 15m
+final int  DOOR_STATE_POLL_SECS  = 14400   // 4h
+final int  BATTERY_POLL_SECS     = 86400   // Ask for battery level every 24 hours
+final long SETUP_DELAY_MILLIS    = 30000   // 30 seconds after connect ask for the lock state again in case we don't get a response from our original request
+final String EVNT_SETUP_LOCK     = 'SetupLock'
+
+
+DevicePower.battery              0
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+DoorLock.type                    DoorLock.TYPE_DEADBOLT
+DoorLock.supportsBuzzIn          true
+DoorLock.supportsInvalidPin      true
+DoorLock.numPinsSupported        MAX_SUPPORTED_PINS
+DoorLock.lockstate               DoorLock.LOCKSTATE_UNLOCKED
+DoorLock.slots                   [:]
+   
+DeviceAdvanced.errors            [:]
+
+  
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    DoorLock.lockstatechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+    log.info "Clear existing PIN codes from lock"
+    ZWave.user_code.set( 0, 0x00, 0x00, 0x00, 0x00, 0x00 )    //Clear out all existing PINs
+    vars.'CLEAR_PINS_ON_ADD' = 0x01    // flag that we sent the Clear-All-PINs, see GenericZWaveDoorLock_2_6.capability
+}
+
+onConnected {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+    ZWave.battery.get()
+    ZWave.poll(BATTERY_POLL_SECS, ZWave.battery.get)
+    
+    ZWave.door_lock.operation_get()
+    ZWave.poll(DOOR_STATE_POLL_SECS, ZWave.door_lock.operation_get)
+    
+    // schedule event to get lock state since these seem to get missed a lot when done here in onConnected
+    Scheduler.scheduleIn EVNT_SETUP_LOCK, SETUP_DELAY_MILLIS
+}
+
+     
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled event handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(EVNT_SETUP_LOCK) {
+    // if we don't have it yet, ask for the lock state again
+    if (null == DoorLock.lockstate.get()) ZWave.door_lock.operation_get()
+
+    // if we don't have it yet or it's the default, ask for battery level
+    int currLevel = DevicePower.battery.get()
+    if (0 == currLevel) ZWave.battery.get()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+    GenericZWaveDoorLock_2_6.handleBatteryLevelReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.door_lock.operation_report {
+    GenericZWaveDoorLock_2_6.handleLockOperationReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.user_code.report {
+    GenericZWaveDoorLock_2_6.handleUserCodeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.alarm.report {
+    GenericZWaveDoorLock_2_6.handleSbdAlarmReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+

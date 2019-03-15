@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="ThermostatScheduleStatus"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the state of the schedule associated with a thermostat.</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="thermostat"
+			type="string"
+			description="The address of the thermostat"/>
+		<t:attribute
+			name="enabled"
+			type="boolean"
+			description="Whether or not scheduling is enabled on this thermostat"/>
+		<t:attribute
+			name="scheduler"
+			type="string"
+			description="The address of the associated scheduler object (if it exists)"/>
+	</t:attributes>
+ </t:type>

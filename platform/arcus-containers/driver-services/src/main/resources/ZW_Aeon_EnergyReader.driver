@@ -1,0 +1,161 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for Aeon Labs Home Energy Monitor - Version 1 (battery powered)
+ *
+ */
+import groovy.transform.Field
+
+driver			"ZWAeonEnergyReader"
+description		"Driver for a Aeon Energy Reader"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"EnergyMonitor"
+productId		"b4dd14"
+vendor 			"Uncertified"		// "AEOTEC"
+model 			"DSB09104-ZWUS"
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as
+// a negative number (similar to codes greater than 0x7FFF)
+
+matcher     'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x0009
+matcher		'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x0009
+
+
+// Generic Device Class:    GENERIC_TYPE_SENSOR_MULTILEVEL
+// Specific Device Class:   SPECIFIC_TYPE_ROUTING_SENSOR_MULTILEVEL
+// Command Classes:
+//      0x70 (112)  COMMAND_CLASS_CONFIGURATION
+//      0x31 (49)	COMMAND_CLASS_SENSOR_MULTILEVEL
+//		0x72 (114)	COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//		0x86 (-122)	COMMAND_CLASS_VERSION
+//		0x32 (50)	COMMAND_CLASS_METER
+//		0x80 (-128) COMMAND_CLASS_BATTERY
+//		0x85 (-121)	COMMAND_CLASS_ASSOCIATION
+//		0x60 (96)	COMMAND_CLASS_MULTI_CHANNEL_V2
+
+capabilities	DevicePower, PowerUse
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+
+DevicePower.linecapable				true
+DevicePower.backupbatterycapable	false
+
+PowerUse.wholehome                  true
+
+
+def final OFFLINE_TIMEOUT_SECS      = 600        // 10 min
+
+def final int BATTERY_POLLING_INTERVAL_SEC = 21600   // Ask for battery level every 6 hours
+def final String DEVICE_NAME = "Aeon Energy Reader V1"
+
+// Config Parameters  (see http://www.pepper1.net/zwavedb/device/410)
+// ------------------------------------------------------------------
+def byte CNFG_RESET_PARAM_NO                  = 0xFF       // parameter number to reset configuration to factory default
+def byte CNFG_RESET_SIZE                      = 0x01
+def byte CNFG_RESET_VALUE                     = 0x00
+
+@Field def byte CNFG_MAINS_VOLTAGE_PARAM_NO   = 0x01       // parameter number to set 'mains' voltage level (0 V - 32000 V, Default 240 V)
+def byte CNFG_MAINS_VOLTAGE_SIZE              = 0x02       // size is 2 bytes
+def byte CNFG_MAINS_VOLTAGE_VALUE_1           = 0x00
+def byte CNFG_MAINS_VOLTAGE_VALUE_2           = 0x6E       // (110) Volts
+
+
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+	
+	PowerUse.instantaneous              0.0
+	PowerUse.cumulative                 0.0
+	PowerUse.wholehome                  true
+
+	DevicePower.linecapable				true
+
+	// reset the device configuration to factory defaults
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+	
+	DevicePower.linecapable true
+	
+	log.debug "Read battery level and configure polling for every {} seconds", BATTERY_POLLING_INTERVAL_SEC
+	ZWave.battery.get()
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+	// set Mains Voltage
+	ZWave.configuration.set(CNFG_MAINS_VOLTAGE_PARAM_NO, CNFG_MAINS_VOLTAGE_SIZE, CNFG_MAINS_VOLTAGE_VALUE_1, CNFG_MAINS_VOLTAGE_VALUE_2)
+
+	// configure meter report reading as a whole unit (0x0C) 
+	ZWave.configuration.set(0x67,0x04,0x00,0x00,0x00,0x0C)
+	// configure meter report interval 120 sec (0x78)
+	ZWave.configuration.set(0x71,0x04,0x00,0x00,0x00,0x78)
+	ZWave.association.set(0x01,0x01)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+
+onZWaveMessage.meter.report  {
+	//log.debug "meter report " + message.command
+	def precisionScaleSize = message.command.get("Scale")
+
+	double precision = (precisionScaleSize & 0xE0) >> 5
+	double scale	 = (precisionScaleSize & 0x18) >> 3
+	double size      = (precisionScaleSize & 0x07)
+
+	def byte[] vals = new byte[size]
+	for(i=0; i<size; i++){
+		vals[i] = message.command.get("Value${i+1}")
+	}
+
+	def value = java.nio.ByteBuffer.wrap(vals).getInt()
+	if(2 == scale) {
+		// Watts
+		value /= Math.pow(10, precision)
+		log.debug "precision:{}, scale:{}, value:{} watts", precision, scale, value
+		PowerUse.instantaneous value
+	} else {
+		// The device report in term of kWh
+		// PowerUse capability is in terms of watt/hour
+		log.debug "precision:{}, scale:{}, value:{} watts/hour", precision, scale, value
+		PowerUse.cumulative value
+	}
+}
+

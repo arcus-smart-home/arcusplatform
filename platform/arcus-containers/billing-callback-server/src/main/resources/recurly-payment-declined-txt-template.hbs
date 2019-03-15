@@ -1,0 +1,9 @@
+*** Your payment was declined ***
+
+Your most recent payment of {{{invoice_total_due}}} was *declined*.
+{{#company_hosted_account_management_enabled?}}
+Please update your billing information at:
+{{account_hosted_maintenance_url}}
+
+View your invoice online: {{invoice_guest_view_url}}
+{{/company_hosted_account_management_enabled?}}

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubConnection"
+   namespace="hubconn"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="state"
+         readwrite="r"
+         type="enum"
+         values="ONLINE,HANDSHAKE,OFFLINE"
+         optional="false" 
+         description="Determines if the connected state of the hub, if it is online or offline."/>
+      <c:attribute 
+         name="lastchange"
+         readwrite="r"
+         type="timestamp"
+         optional="false" 
+         description="Time of the last change in connect.state."/>
+      <c:attribute
+         name="connQuality"
+         readwrite="r"
+         type="int"
+         min="0"
+         max="100"
+         unit="percent"
+         optional="true" 
+         description="Determines if the connected state of the hub, if it is online or offline."/>
+      <c:attribute
+         name="pingTime"
+         readwrite="r"
+         type="int"
+         min="0"
+         max="100000"
+         unit="ms"
+         optional="false" 
+         description="A measure of the hub to hub bridge ping time."/>
+      <c:attribute
+         name="pingResponse"
+         readwrite="r"
+         type="int"
+         min="0"
+         max="100"
+         unit="ms"
+         optional="false" 
+         description="Percent number of pongs recevied for pongs sent over X period of time."/>
+   </c:attributes>
+   
+   <c:methods>
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

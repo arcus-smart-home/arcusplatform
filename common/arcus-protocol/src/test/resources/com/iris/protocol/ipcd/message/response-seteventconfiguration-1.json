@@ -1,0 +1,40 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+    "command" : "SetEventConfiguration",
+    "enabledEvents" : ["onBoot", "onDownloadComplete", "onDownloadFailed",
+                       "onUpdate","onValueChange"],
+    "enabledValueChanges" : {
+      "ms2.temperature" : {
+        "onLessThan" : 5,
+        "onGreaterThan" : 23
+      },
+      "ms2.batterylevel" : {
+        "onChangeBy" : 10,
+        "onLessThan" : 15 
+      }
+    }
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "enabledEvents" : ["onBoot", "onDownloadComplete", "onDownloadFailed",
+                       "onUpdate", "onValueChange"],
+    "enabledValueChanges" : {
+      "ms2.temperature" : {
+        "onLessThan" : 5,
+        "onGreaterThan" : 23
+      },
+      "ms2.batterylevel" : {
+        "onChangeBy" : 10,
+        "onLessThan" : 15 
+      }
+    }
+  }
+}

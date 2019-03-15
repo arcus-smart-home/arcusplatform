@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:capability name="Rule" namespace="rule"
+   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a rule, which is a specific instance of a RuleTemplate with context necessary for evaluation
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute name="name" readwrite="rw" type="string"
+                   optional="false" description="The name of the rule"/>
+      <c:attribute name="description" readwrite="rw" type="string"
+                   optional="true" description="User provided description of the rule"/>
+      <c:attribute name="created" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule was created"/>
+      <c:attribute name="modified" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule was last modified"/>
+      <c:attribute name="state" readwrite="r" type="enum" values="ENABLED,DISABLED"
+                   optional="false" description="The current state of the rule"/>
+      <c:attribute name="template" readwrite="r" type="string"
+                   optional="true" description="The platform-owned identifier for the template this rule was created from (if a template based rule)"/>
+      <c:attribute name="context" readwrite="r" type="Object"
+                   optional="true" description="The context for rule evaluation, if no user defined context is required this is may be null or empty"/>
+
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method name="Enable" description="Enables the rule if it is disabled"/>
+      <c:method name="Disable" description="Disables the rule if it is enabled"/>
+      <c:method name="UpdateContext" description="Updates the context for the rule">
+         <c:parameters>
+            <c:parameter name="context" type="Object" description="New context values to update" optional="true"/>
+            <c:parameter name="template" type="string" description="New template identifier to update" optional="true"/>
+         </c:parameters>
+      </c:method>
+      <c:method name="Delete" description="Deletes the rule"/>
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this rule">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this rule" />
+      </c:method>
+      
+      
+   </c:methods>
+
+</c:capability>

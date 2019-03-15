@@ -1,0 +1,52 @@
+
+message zwave.HrvControl.HrvControlBypassGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.HrvControl.HrvControlBypassReportV1<id="0x06", group="V1"> {
+    u8 bypass;
+}
+
+message zwave.HrvControl.HrvControlBypassSetV1<id="0x04", group="V1"> {
+    u8 bypass;
+}
+
+message zwave.HrvControl.HrvControlModeGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.HrvControl.HrvControlModeReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_MODE_MASK = 0x1F;
+    const u8 PROPERTIES1_MODE_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.HrvControl.HrvControlModeSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_MODE_MASK = 0x1F;
+    const u8 PROPERTIES1_MODE_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.HrvControl.HrvControlModeSupportedGetV1<id="0x0A", group="V1"> {
+}
+
+message zwave.HrvControl.HrvControlModeSupportedReportV1<id="0x0B", group="V1"> {
+    const u8 PROPERTIES1_MANUAL_CONTROL_SUPPORTED_MASK = 0x0F;
+    const u8 PROPERTIES1_MANUAL_CONTROL_SUPPORTED_SHIFT = 0;
+    const u8 BIT_MASK_OFF = 0x00;
+    const u8 BIT_MASK_DEMAND_AUTOMATIC = 0x01;
+    const u8 BIT_MASK_SCHEDULE = 0x02;
+    const u8 BIT_MASK_ENERGY_SAVINGS_MODE = 0x03;
+    const u8 BIT_MASK_MANUAL = 0x04;
+    u8 properties1;
+    u8 bitMask;
+}
+
+message zwave.HrvControl.HrvControlVentilationRateGetV1<id="0x08", group="V1"> {
+}
+
+message zwave.HrvControl.HrvControlVentilationRateReportV1<id="0x09", group="V1"> {
+    u8 ventilationRate;
+}
+
+message zwave.HrvControl.HrvControlVentilationRateSetV1<id="0x07", group="V1"> {
+    u8 ventilationRate;
+}

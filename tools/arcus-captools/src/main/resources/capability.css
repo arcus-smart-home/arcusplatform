@@ -1,0 +1,42 @@
+body {
+   font-family: Arial, sans-serif;
+}
+
+.capability-title {
+   font-weight: bold;
+   font-size: 24px;
+}
+
+.capability-table {
+   border-collapse: collapse;
+}
+
+.capability-grey-shade {
+   background-color: #f0f0f0;
+}
+
+.capability-table-cell {
+   border: 1px solid #ddd;
+   padding: 7px 10px;
+   vertical-align: top;
+   text-align: left;
+}
+
+.attribute-blue-shade {
+   background-color: #e0f0ff;
+}
+
+.attribute-table-cell {
+   border: 1px solid #ddd;
+   padding: 4px 7px;
+   vertical-align: top;
+   text-align: left;
+}
+
+.method-title {
+   font-weight: bold;
+}
+
+.return-attributes {
+   padding-left: 20px;
+}

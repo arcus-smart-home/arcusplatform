@@ -1,0 +1,84 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Genie Aladdin Bridge
+ */
+
+driver			"MOCK_GenieAladdinBridge"
+description		"Driver for the Mock Genie Aladdin Bridge"
+version			"2.6"
+protocol		"MOCK"
+deviceTypeHint	"Genie Aladdin Controller"
+productId		"aeda43"
+vendor 			"Mockitron"
+model 			"GenieAladdinBridge"
+
+matcher        'MOCK:Capability' : 'GenieAladdinBridge'
+matcher        'MOCK:ProductId'  : 'aeda43'
+
+capabilities	DevicePower, Bridge, WiFi, DeviceMock
+
+WiFi.state                 WiFi.STATE_CONNECTED
+WiFi.enabled               true
+Bridge.pairedDevices       [:]
+Bridge.unpairedDevices     new HashSet()
+Bridge.pairingState        Bridge.PAIRINGSTATE_IDLE
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+   Device.name 'Mock GenieAladdinBridge'
+   log.debug 'Mock GenieAladdinBridge added'
+}
+
+onConnected {
+   log.debug "Mock GenieAladdinBridge connected."
+}
+
+onDisconnected {
+   log.debug "Mock GenieAladdinBridge disconnected."
+}
+
+onRemoved {
+   log.debug "Mock GenieAladdinBridge removed."
+}
+
+
+// ########### capability support ##################
+
+
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+   log.debug "devmock:Connect"
+   connected();
+   sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+   log.debug "devmock:Disconnect"
+   disconnected();
+   sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+   log.debug "devmock:SetAttributes:" + message.attributes.attrs
+   attributes << message.attributes.attrs;
+   sendResponse "devmock:SetAttributesResponse", [:]
+}
+

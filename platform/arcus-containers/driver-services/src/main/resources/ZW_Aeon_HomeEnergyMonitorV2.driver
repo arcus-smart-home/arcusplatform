@@ -1,0 +1,407 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for Aeon Labs Home Energy Monitor - Version 2
+ *
+ * The Version 2 device is 'mains' powered, unlike the Version 1 device which is battery powered.
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZWAeonHomeEnergyMonitorV2"
+description		"Driver for a Aeon Home Energy Monitor - Version 2"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"EnergyMonitor"
+productId		"b4dd14"
+vendor 			"Uncertified"		// "Aeon Labs"
+model 			"DSB28-ZWUS"
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as 
+// a negative number (similar to codes greater than 0x7FFF)
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x001C		// matcher for 2nd Edition (V2) device
+matcher			'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x001C		// matcher for 2nd Edition (V2) device
+
+capabilities	DevicePower, PowerUse
+
+
+// Generic Device Class:    Meter
+// Specific Device Class:   Simple Meter
+//
+// Command Classes:
+//		0x20   (32) Basic
+//		0x32   (50) Meter
+//		0x60   (96) Multi Channel
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+
+
+// set DevicePower
+// ---------------
+DevicePower.source					DevicePower.SOURCE_LINE
+DevicePower.linecapable				true
+DevicePower.backupbatterycapable	false
+
+PowerUse.wholehome                  true
+
+
+def final int POLL_PWR_INTERVAL_MSEC = 60000        // Poll for power readings (in mSec)  (0 = don't poll)
+def final OFFLINE_TIMEOUT_SECS       = 600          // 10 min
+
+def final byte METER_SCALE_WATTS     = 0x10
+def final byte METER_SCALE_KW_HRS    = 0x00
+
+// Config Parameters
+// -----------------
+@Field def byte CNFG_RESET_PARAM_NO                = 0xFF       // parameter number to reset configuration to factory default
+def byte CNFG_RESET_SIZE                           = 0x01
+def byte CNFG_RESET_VALUE                          = 0x00
+
+@Field def byte CNFG_MAINS_VOLTAGE_PARAM_NO        = 0x01       // (1) parameter number to set 'mains' voltage level (0 V - 32000 V, Default 240 V)
+def byte CNFG_MAINS_VOLTAGE_SIZE                   = 0x02       // size is 2 bytes
+def byte CNFG_MAINS_VOLTAGE_VALUE_1                = 0x00
+def byte CNFG_MAINS_VOLTAGE_VALUE_2                = 0x78       // (120) Volts
+
+@Field def byte CNFG_REVERSE_IF_NEG_PARAM_NO       = 0x02       // (2) parameter number to Reverse if negative power detected
+def byte CNFG_REVERSE_IF_NEG_SIZE                  = 0x01
+def byte CNFG_REVERSE_IF_NEG_VALUE                 = 0x01       // 0=disabled(default), 1=enabled
+
+@Field def byte CNFG_AUTO_RPT_PARAM_NO             = 0x03       // (3) parameter number for Automated Report only when power is changed
+def byte CNFG_AUTO_RPT_SIZE                        = 0x01
+def byte CNFG_AUTO_RPT_VALUE                       = 0x01       // 0=disabled(default), 1=enabled
+
+@Field def byte CNFG_MIN_WATT_CHNG_HEM_PARAM_NO    = 0x04       // (4) parameter number for Minimum Change to send Report (Watt) for the whole HEM
+def byte CNFG_MIN_WATT_CHNG_HEM_SIZE               = 0x02
+def byte CNFG_MIN_WATT_CHNG_HEM_VALUE_1            = 0x00
+def byte CNFG_MIN_WATT_CHNG_HEM_VALUE_2            = 0x32       // (50) Watts (Default 50 Watts)
+
+@Field def byte CNFG_MIN_WATT_CHNG_CLAMP1_PARAM_NO = 0x05       // (5) parameter number for Minimum Change to send Report (Watt) for clamp 1
+def byte CNFG_MIN_WATT_CHNG_CLAMP1_SIZE            = 0x02
+def byte CNFG_MIN_WATT_CHNG_CLAMP1_VALUE_1         = 0x00
+def byte CNFG_MIN_WATT_CHNG_CLAMP1_VALUE_2         = 0x32       // (50) Watts (Default 50 Watts)
+
+@Field def byte CNFG_MIN_WATT_CHNG_CLAMP2_PARAM_NO = 0x06       // (6) parameter number for Minimum Change to send Report (Watt) for clamp 2
+def byte CNFG_MIN_WATT_CHNG_CLAMP2_SIZE            = 0x02
+def byte CNFG_MIN_WATT_CHNG_CLAMP2_VALUE_1         = 0x00
+def byte CNFG_MIN_WATT_CHNG_CLAMP2_VALUE_2         = 0x32       // (50) Watts (Default 50 Watts)
+
+@Field def byte CNFG_MIN_WATT_CHNG_CLAMP3_PARAM_NO = 0x07       // (7) parameter number for Minimum Change to send Report (Watt) for clamp 3
+def byte CNFG_MIN_WATT_CHNG_CLAMP3_SIZE            = 0x02
+def byte CNFG_MIN_WATT_CHNG_CLAMP3_VALUE_1         = 0x00
+def byte CNFG_MIN_WATT_CHNG_CLAMP3_VALUE_2         = 0x32       // (50) Watts (Default 50 Watts)
+
+@Field def byte CNFG_MIN_PCT_CHNG_HEM_PARAM_NO     = 0x08       // (8) parameter number for Minimum Change to send Report (%) for the whole HEM
+def byte CNFG_MIN_PCT_CHNG_HEM_SIZE                = 0x02
+def byte CNFG_MIN_PCT_CHNG_HEM_VALUE_1             = 0x00
+def byte CNFG_MIN_PCT_CHNG_HEM_VALUE_2             = 0x03       // (3 Watts (Default 10 Pct)
+
+@Field def byte CNFG_MIN_PCT_CHNG_CLAMP1_PARAM_NO  = 0x09       // (9) parameter number for Minimum Change to send Report (%) for clamp 1
+def byte CNFG_MIN_PCT_CHNG_CLAMP1_SIZE             = 0x02
+def byte CNFG_MIN_PCT_CHNG_CLAMP1_VALUE_1          = 0x00
+def byte CNFG_MIN_PCT_CHNG_CLAMP1_VALUE_2          = 0x05       // (5) Watts (Default 10 Pct)
+
+@Field def byte CNFG_MIN_PCT_CHNG_CLAMP2_PARAM_NO  = 0x0A       // (10) parameter number for Minimum Change to send Report (%) for clamp 2
+def byte CNFG_MIN_PCT_CHNG_CLAMP2_SIZE             = 0x02
+def byte CNFG_MIN_PCT_CHNG_CLAMP2_VALUE_1          = 0x00
+def byte CNFG_MIN_PCT_CHNG_CLAMP2_VALUE_2          = 0x05       // (5) Watts (Default 10 Pct)
+
+@Field def byte CNFG_MIN_PCT_CHNG_CLAMP3_PARAM_NO  = 0x0B       // (11) parameter number for Minimum Change to send Report (%) for clamp 3
+def byte CNFG_MIN_PCT_CHNG_CLAMP3_SIZE             = 0x02
+def byte CNFG_MIN_PCT_CHNG_CLAMP3_VALUE_1          = 0x00
+def byte CNFG_MIN_PCT_CHNG_CLAMP3_VALUE_2          = 0x05       // (5) Watts (Default 10 Pct)
+
+@Field def byte CNFG_USE_CRC_16_PARAM_NO           = 0x0D       // (33) parameter number to Enable/Disable reporting CRC-16 Encapsulation Command
+def byte CNFG_USE_CRC_16_SIZE                      = 0x01
+def byte CNFG_USE_CRC_16_VALUE                     = 0x00       // 0=disabled(default), 1=enabled
+
+@Field def byte CNFG_RPT_GRP_1_PARAM_NO            = 0x65       // (101) parameter number to set what is included in Report Group 1
+@Field def byte CNFG_RPT_GRP_2_PARAM_NO            = 0x66       // (102) parameter number to set what is included in Report Group 2
+@Field def byte CNFG_RPT_GRP_3_PARAM_NO            = 0x67       // (103) parameter number to set what is included in Report Group 3
+def byte CNFG_RPT_GRP_SIZE                         = 0x04       // I don't know why these 3 parameters are 4 bytes long, but that's what the spec says
+def byte CNFG_RPT_GRP_VALUE_1                      = 0x04       // 
+def byte CNFG_RPT_GRP_VALUE_2                      = 0x00       //
+def byte CNFG_RPT_GRP_1_VALUE_3                    = 0x00       // 
+def byte CNFG_RPT_GRP_1_VALUE_4                    = 0x08       // (8) Meter Report in kWh for the whole device (Default 8, see below)
+def byte CNFG_RPT_GRP_2_VALUE_3                    = 0x00       // 
+def byte CNFG_RPT_GRP_2_VALUE_4                    = 0x04       // (4) Meter Report in Watt for the whole device (Default 0, see below)
+def byte CNFG_RPT_GRP_3_VALUE_3                    = 0x00       // 
+def byte CNFG_RPT_GRP_3_VALUE_4                    = 0x02       // (2) MultiSensor Report for the whole device (Default 0, see below)
+
+                                                                // 0x00000001    1 = Battery Report
+                                                                // 0x00000002    2 = MultiSensor Report for the whole device
+                                                                // 0x00000004    4 = Meter Report in Watt for the whole device
+                                                                // 0x00000008    8 = Meter Report in kWh for the whole device
+                                                                // 0x00000100  256 = Meter Report in Watt for clamp 1
+                                                                // 0x00000200  512 = Meter Report in Watt for clamp 2
+                                                                // 0x00000400 1024 = Meter Report in Watt for clamp 3
+                                                                // 0x00000800 2048 = Meter Report in kWh for clamp 1
+                                                                // 0x00001000 4096 = Meter Report in kWh for clamp 2
+                                                                // 0x00002000 8192 = Meter Report in kWh for clamp 3
+
+@Field def byte CNFG_RPT_GRP_1_INTVL_PARAM_NO      = 0x6F       // (111) parameter number to set interval in seconds for Report Group 1
+@Field def byte CNFG_RPT_GRP_2_INTVL_PARAM_NO      = 0x70       // (112) parameter number to set interval in seconds for Report Group 2
+@Field def byte CNFG_RPT_GRP_3_INTVL_PARAM_NO      = 0x71       // (113) parameter number to set interval in seconds for Report Group 3
+def byte CNFG_RPT_GRP_INTVL_SIZE                   = 0x04
+def byte CNFG_RPT_GRP_INTVL_VALUE_1                = 0x00
+def byte CNFG_RPT_GRP_INTVL_VALUE_2                = 0x00
+def byte CNFG_RPT_GRP_INTVL_VALUE_3                = 0x01
+def byte CNFG_RPT_GRP_INTVL_VALUE_4                = 0x2C       // (300) seconds (default is 600 seconds)
+
+
+@Field def byte CNFG_PARTNER_ID_PARAM_NO           = 0xC8       // (200) parameter number for Partner ID, size 1 byte, (0 = Aeon Labs Standard Product, 1 = AT&T)
+@Field def byte CNFG_LOCK_PARAM_NO                 = 0xFC       // (252) parameter number for Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+@Field def byte CNFG_DVC_TAG_PARAM_NO              = 0xFE       // (254) parameter number for Device Tag, size 2 bytes, pairing and/or reset will not change the value
+
+
+onAdded {
+	log.debug "Aeon Labs Home Energy Monitor V2 added"
+	
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	PowerUse.instantaneous              0.0
+	PowerUse.cumulative                 0.0
+	PowerUse.wholehome                  true
+
+	// reset the device configuration to factory defaults
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+onConnected {
+	log.debug 'Aeon Labs Home Energy Monitor V2 connected'
+	
+	// read the configuration settings, if needed
+//	readConfigSettings()
+	
+	// set Mains Voltage
+	ZWave.configuration.set(CNFG_MAINS_VOLTAGE_PARAM_NO, CNFG_MAINS_VOLTAGE_SIZE, CNFG_MAINS_VOLTAGE_VALUE_1, CNFG_MAINS_VOLTAGE_VALUE_2)
+
+	// set Reverse Negative Power
+	ZWave.configuration.set(CNFG_REVERSE_IF_NEG_PARAM_NO, CNFG_REVERSE_IF_NEG_SIZE, CNFG_REVERSE_IF_NEG_VALUE)
+
+	// set Auto Report on Change
+	ZWave.configuration.set(CNFG_AUTO_RPT_PARAM_NO, CNFG_AUTO_RPT_SIZE, CNFG_AUTO_RPT_VALUE)
+
+	// set Minimum Change to send Report (Watt) for the whole HEM
+	ZWave.configuration.set(CNFG_MIN_WATT_CHNG_HEM_PARAM_NO, CNFG_MIN_WATT_CHNG_HEM_SIZE, CNFG_MIN_WATT_CHNG_HEM_VALUE_1, CNFG_MIN_WATT_CHNG_HEM_VALUE_2)
+
+	// set Minimum Change to send Report (Watt) for clamp 1
+	ZWave.configuration.set(CNFG_MIN_WATT_CHNG_CLAMP1_PARAM_NO, CNFG_MIN_WATT_CHNG_CLAMP1_SIZE, CNFG_MIN_WATT_CHNG_CLAMP1_VALUE_1, CNFG_MIN_WATT_CHNG_CLAMP1_VALUE_2)
+
+	// set Minimum Change to send Report (Watt) for clamp 2
+	ZWave.configuration.set(CNFG_MIN_WATT_CHNG_CLAMP2_PARAM_NO, CNFG_MIN_WATT_CHNG_CLAMP2_SIZE, CNFG_MIN_WATT_CHNG_CLAMP2_VALUE_1, CNFG_MIN_WATT_CHNG_CLAMP2_VALUE_2)
+
+	// set Minimum Change to send Report (Watt) for clamp 3
+	ZWave.configuration.set(CNFG_MIN_WATT_CHNG_CLAMP3_PARAM_NO, CNFG_MIN_WATT_CHNG_CLAMP3_SIZE, CNFG_MIN_WATT_CHNG_CLAMP3_VALUE_1, CNFG_MIN_WATT_CHNG_CLAMP3_VALUE_2)
+
+	// set Minimum Change to send Report (%) for the whole HEM
+	ZWave.configuration.set(CNFG_MIN_PCT_CHNG_HEM_PARAM_NO, CNFG_MIN_PCT_CHNG_HEM_SIZE, CNFG_MIN_PCT_CHNG_HEM_VALUE_1, CNFG_MIN_PCT_CHNG_HEM_VALUE_2)
+
+	// set Minimum Change to send Report (%) for clamp 1
+	ZWave.configuration.set(CNFG_MIN_PCT_CHNG_CLAMP1_PARAM_NO, CNFG_MIN_PCT_CHNG_CLAMP1_SIZE, CNFG_MIN_PCT_CHNG_CLAMP1_VALUE_1, CNFG_MIN_PCT_CHNG_CLAMP1_VALUE_2)
+
+	// set Minimum Change to send Report (%) for clamp 2
+	ZWave.configuration.set(CNFG_MIN_PCT_CHNG_CLAMP2_PARAM_NO, CNFG_MIN_PCT_CHNG_CLAMP2_SIZE, CNFG_MIN_PCT_CHNG_CLAMP2_VALUE_1, CNFG_MIN_PCT_CHNG_CLAMP2_VALUE_2)
+
+	// set Minimum Change to send Report (%) for clamp 3
+	ZWave.configuration.set(CNFG_MIN_PCT_CHNG_CLAMP3_PARAM_NO, CNFG_MIN_PCT_CHNG_CLAMP3_SIZE, CNFG_MIN_PCT_CHNG_CLAMP3_VALUE_1, CNFG_MIN_PCT_CHNG_CLAMP3_VALUE_2)
+
+	// configure contents of Report Group 1, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_1_PARAM_NO, CNFG_RPT_GRP_SIZE,
+		CNFG_RPT_GRP_VALUE_1, CNFG_RPT_GRP_VALUE_2, CNFG_RPT_GRP_1_VALUE_3, CNFG_RPT_GRP_1_VALUE_4)
+
+	// configure contents of Report Group 2, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_2_PARAM_NO, CNFG_RPT_GRP_SIZE,
+		CNFG_RPT_GRP_VALUE_1, CNFG_RPT_GRP_VALUE_2, CNFG_RPT_GRP_2_VALUE_3, CNFG_RPT_GRP_2_VALUE_4)
+	
+	// configure contents of Report Group 3, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_3_PARAM_NO, CNFG_RPT_GRP_SIZE,
+		CNFG_RPT_GRP_VALUE_1, CNFG_RPT_GRP_VALUE_2, CNFG_RPT_GRP_3_VALUE_3, CNFG_RPT_GRP_3_VALUE_4)
+
+	// configure interval for Report Group 1, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_1_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+		CNFG_RPT_GRP_INTVL_VALUE_1, CNFG_RPT_GRP_INTVL_VALUE_2, CNFG_RPT_GRP_INTVL_VALUE_3, CNFG_RPT_GRP_INTVL_VALUE_4)
+
+	// configure interval for Report Group 2, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_2_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+		CNFG_RPT_GRP_INTVL_VALUE_1, CNFG_RPT_GRP_INTVL_VALUE_2, CNFG_RPT_GRP_INTVL_VALUE_3, CNFG_RPT_GRP_INTVL_VALUE_4)
+
+	// configure interval for Report Group 3, if needed
+	ZWave.configuration.set(CNFG_RPT_GRP_3_INTVL_PARAM_NO, CNFG_RPT_GRP_INTVL_SIZE,
+		CNFG_RPT_GRP_INTVL_VALUE_1, CNFG_RPT_GRP_INTVL_VALUE_2, CNFG_RPT_GRP_INTVL_VALUE_3, CNFG_RPT_GRP_INTVL_VALUE_4)
+
+	// read the configuration settings, if needed
+//	readConfigSettings()
+	
+
+	// get the current cumulative power reading
+	ZWave.meter.get(METER_SCALE_KW_HRS)
+
+	// get the current power reading
+	ZWave.meter.get(METER_SCALE_WATTS)
+
+	// schedule next poll of power readings
+	if (0 != POLL_PWR_INTERVAL_MSEC) {
+		Scheduler.scheduleIn 'PollPowerUsage', POLL_PWR_INTERVAL_MSEC
+	}
+	
+	// get the supported features of the meter (if needed)
+	ZWave.meter.supported_get(METER_SCALE_WATTS)
+	
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+
+onEvent('PollPowerUsage') {
+	log.debug "Aeon Labs Home Energy Monitor V2 PollPowerUsage"
+	// get the current power reading
+	ZWave.meter.get(METER_SCALE_WATTS)
+	// get the current cumulative power reading
+	ZWave.meter.get(METER_SCALE_KW_HRS)
+	// schedule next poll
+	if (0 != POLL_PWR_INTERVAL_MSEC) {
+		Scheduler.scheduleIn 'PollPowerUsage', POLL_PWR_INTERVAL_MSEC
+	}
+}
+
+onDisconnected {
+	log.debug "Aeon Labs Home Energy Monitor V2 disconnected"
+}
+
+
+onRemoved {
+	log.debug "Aeon Labs Home Energy Monitor V2 removed"
+}
+
+
+void readConfigSettings() {
+	ZWave.configuration.get( CNFG_MAINS_VOLTAGE_PARAM_NO )
+	ZWave.configuration.get( CNFG_REVERSE_IF_NEG_PARAM_NO )
+	ZWave.configuration.get( CNFG_AUTO_RPT_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_WATT_CHNG_HEM_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_WATT_CHNG_CLAMP1_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_WATT_CHNG_CLAMP2_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_WATT_CHNG_CLAMP3_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_PCT_CHNG_HEM_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_PCT_CHNG_CLAMP1_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_PCT_CHNG_CLAMP2_PARAM_NO )
+	ZWave.configuration.get( CNFG_MIN_PCT_CHNG_CLAMP3_PARAM_NO )
+	ZWave.configuration.get( CNFG_USE_CRC_16_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_1_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_2_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_3_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_1_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_2_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_RPT_GRP_3_INTVL_PARAM_NO )
+	ZWave.configuration.get( CNFG_PARTNER_ID_PARAM_NO )
+	ZWave.configuration.get( CNFG_LOCK_PARAM_NO )
+	ZWave.configuration.get( CNFG_DVC_TAG_PARAM_NO )
+}
+
+
+onZWaveMessage.configuration.report {
+	log.debug "Aeon Labs Home Energy Monitor V2 Configuration Report: {}", message
+	byte param = message.command.get('param')
+	byte level = message.command.get('level')
+	byte val1 = message.command.get('val1')
+	log.debug "param: {}, level: {}, val1: {}", param, level, val1
+}
+
+
+onZWaveMessage.meter.report {
+	log.debug "Aeon Labs Home Energy Monitor V2 sent meter report: {}", message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+	def byte meterType = bytes[0]
+	def byte scaleByte = bytes[1]
+	
+	def prec = (scaleByte >> 5)					     // bits 5-7 are precision
+	def scale = ((scaleByte >> 3) & 0b00000011)      // bits 3-4 are scale (0=kWh, 2=Watts)
+	def vSize = (scaleByte & 0b00000111)             // bits 0-2 are size (should be 4 bytes)
+
+	// read int value
+	def int val1 = java.nio.ByteBuffer.wrap(bytes, 2, vSize).getInt()
+	log.debug "MeterType: {}, Scale: {}, IntVal: {}", meterType, scaleByte, val1
+	log.debug "Precision: {}, Scale: {}, Size: {}", prec, scale, vSize
+	
+	if (0 == scale) {			    // kWh cumulative reading reported
+		def double kwh = val1 / Math.pow( 10, prec )
+		log.debug "Cumulative kWh: {}", kwh
+		PowerUse.cumulative kwh * 1000		// capability units are Watt Hours, not kWh
+	} else if (2 == scale) {		// Watts instantanious power reading reported
+		def double watts = val1 / Math.pow( 10, prec )
+		if(watts > -1){
+			log.debug "Instantaneous Watts: {}", watts
+			PowerUse.instantaneous watts
+		}
+
+	}
+}
+
+onZWaveMessage.meter.supported_report {
+	log.debug "Aeon Labs Home Energy Monitor sent meter supported report: {}", message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+	def byte meterType = bytes[0]
+	def byte scaleByte = bytes[1]
+	log.debug "MeterType: {}, ScalesSupported: {}", meterType, scaleByte
+	
+	// this should be an Electrical Meter that supports Reset, and reports Watts and kWh
+	
+	if (0x01 == (0x1F & meterType)) {
+		log.debug "Electrical Meter"
+	}
+
+	if (0 < (0x80 & meterType)) {
+		log.debug "Meter supports RESET"
+	}
+	
+	if (0x01 & scaleByte) {
+		log.debug "Meter reports kWatt hours cumulative power"
+	}
+
+	if (0x04 & scaleByte) {
+		log.debug "Meter reports Watts"
+	}
+}
+
+
+// default ZWaveMessage handler   DO NOT USE UNLESS YOU PROCESS THE CONNECTION STATE YOURSELF
+//onZWaveMessage {
+//	log.debug "Aeon Labs Home Energy Monitor received ZWave message " + message
+//	def node = message.node
+//	def command = message.command
+//
+//	def nodeNum = node.number
+//	int cmdClass = command.commandClass
+//	int cmdNum = command.commandNumber
+//	def cmdName = command.commandName
+//	def rcvNames = command.receiveNames
+//	byte[] bytes = command.recvBytes
+//
+//	log.debug "Aeon Labs Home Energy Monitor received ZWave message - NodeNo:" + nodeNum + ", CmdClass:" + cmdClass + ", CmdNo:" + cmdNum + ", CmdName:" + cmdName + ", RcvNames:" + rcvNames + ", MsgBytes:" + bytes
+//}
+
+
+

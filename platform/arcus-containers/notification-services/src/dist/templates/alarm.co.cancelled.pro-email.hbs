@@ -1,0 +1,27 @@
+{{#section "subject"}}
+CO Alarm Cancelled
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+The CO Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  The monitoring station will attempt to notify the Fire Dept. Check the Iris app for details.
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The CO Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  The monitoring station will attempt to notify the Fire Dept. Check the Iris app for details.</p>
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

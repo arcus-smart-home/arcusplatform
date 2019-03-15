@@ -1,0 +1,16 @@
+{{> client/StaticDefinitionRegistry }}
+{{> client/Types }}
+
+{{#capabilities}}
+   {{> client/Capability }}
+   {{> client/Model }}
+{{/capabilities}}
+
+{{#types}}
+   {{> client/Bean }}
+{{/types}}
+
+{{#services}}
+   {{> client/Service }}
+   {{> client/ServiceImpl }}
+{{/services}}

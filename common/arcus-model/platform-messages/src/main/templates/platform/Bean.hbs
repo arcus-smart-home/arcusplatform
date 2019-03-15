@@ -1,0 +1,46 @@
+{{#file . "com/iris/messages/type/{{name}}.java"}}
+package com.iris.messages.type;
+
+import com.google.gson.annotations.SerializedName;
+
+public class {{name}} {
+   public static final String NAME = "{{name}}";
+
+{{> platform/attributes attributes}}
+   
+   {{#attributes}}@SerializedName("{{name}}") private {{{javaTypeOf type}}} _{{name}};{{/attributes}}
+
+   public {{name}}() {
+   }
+
+   public {{name}}(java.util.Map<String, Object> attributes) {
+      if(attributes != null) {
+         {{#attributes}}this._{{name}} = 
+            ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(attributes.get(ATTR_{{toUpperCase name}}));
+         {{/attributes}}
+      }
+   }
+
+   {{#attributes}}
+   public {{{javaTypeOf type}}} get{{capitalize name}}() {
+      return _{{name}};
+   }
+
+   public void set{{capitalize name}}({{{javaTypeOf type}}} value) {
+      this._{{name}} = value;
+   }
+   {{/attributes}}
+   
+   public java.util.Map<String,Object> toMap() {
+      java.util.Map<String, Object> attributes = 
+         new java.util.HashMap<String, Object>();
+      {{#attributes}}
+      attributes.put(ATTR_{{toUpperCase name}}, _{{name}});
+      {{/attributes}}
+      return attributes;
+   }   
+   
+{{> platform/ObjectType}}   
+
+}
+{{/file}}

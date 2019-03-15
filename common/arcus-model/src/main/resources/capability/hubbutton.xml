@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubButton"
+   namespace="hubbutton"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+		Iris button on the top of the V3 hub.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="state" 
+         readwrite="rw" 
+         type="enum"
+         values="RELEASED,PRESSED,DOUBLE_PRESSED"
+         optional="false"
+         description="Reflects the current state of the button where pressed implies the user has pressed the button and released the opposite. Also used to set the state of the button."/>
+		<c:attribute 
+         name="duration" 
+         readwrite="r" 
+         type="int" 
+         optional="false" 
+         description="How long has the button been in the given state"/>
+		<c:attribute 
+         name="statechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last state change"/>
+   </c:attributes>
+   
+   <c:methods>   
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

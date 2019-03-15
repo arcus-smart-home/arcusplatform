@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubChime"
+   namespace="hubchime"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+   </c:attributes>
+   
+   <c:methods>   
+      <c:method
+         name="chime"
+         description="Causes the hub to play the chime sound."/>
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

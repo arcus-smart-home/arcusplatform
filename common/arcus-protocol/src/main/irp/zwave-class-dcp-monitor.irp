@@ -1,0 +1,54 @@
+
+message zwave.DcpMonitor.DcpEventStatusGetV1<id="0x03", group="V1"> {
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.DcpMonitor.DcpEventStatusReportV1<id="0x04", group="V1"> {
+    const u8 EVENT_STATUS_EVENT_STARTED = 0x01;
+    const u8 EVENT_STATUS_EVENT_COMPLETED = 0x02;
+    const u8 EVENT_STATUS_EVENT_REJECTED = 0x03;
+    const u8 EVENT_STATUS_EVENT_NOT_APPLICABLE = 0x04;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+    u8 eventStatus;
+}
+
+message zwave.DcpMonitor.DcpListGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.DcpMonitor.DcpListReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_DC_MASK = 0x03;
+    const u8 PROPERTIES1_NUMBER_OF_DC_SHIFT = 0;
+    u8 reportsToFollow;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+    u8 dcpId;
+    u8 properties1;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u8 durationHourTime;
+    u8 durationMinuteTime;
+    u8 durationSecondTime;
+    u8 eventPriority;
+    u8 loadShedding;
+    u8 startAssociationGroup;
+    u8 stopAssociationGroup;
+    u8 randomizationInterval;
+}

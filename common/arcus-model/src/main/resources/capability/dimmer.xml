@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Dimmer"
+   namespace="dim"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a dimmable device.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="brightness" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="false" 
+         description="Reflects the current level of brightness, as a percentage. If ramping is not desired, this parameter can be set to immediately achieve the desired brightness level."/>
+      <c:attribute 
+         name="rampingtarget" 
+         readwrite="r" 
+         type="int"
+         min="0"
+         max="100" 
+         unit="percent"
+         optional="true" 
+         description="Reflects the target brightness, as a percentage, that the dimmer is ramping towards. This should be set to current brightness if ramping is complete. This parameter is read-only and should be controlled via the RampBrightness method if ramping is desired."/>
+      <c:attribute 
+         name="rampingtime" 
+         readwrite="r" 
+         type="int" 
+         optional="true" 
+         description="Number of seconds remaining at current ramping rate before brightness is equal to rampingtarget. When ramping is complete, this value should be set to 0. This parameter is read-only and should be controlled via the RampBrightness method if ramping is desired."/>
+   </c:attributes>
+
+   <c:methods>
+       <c:method 
+         name="RampBrightness"
+         description="Sets a rampingtarget and a rampingtime for the dimmer. Brightness must be 0..100, seconds must be a positive integer.">
+         <c:parameters>
+         	<c:parameter name="brightness" type="int" optional="false" description="Brightness percentage within the range of 0..100"></c:parameter>         	
+         	<c:parameter name="seconds" type="int" optional="false" description="Number of seconds to reach desired brightness; must be a positive integer"></c:parameter>
+         </c:parameters>
+      </c:method>
+      
+      <!-- Alexa-related methods -->
+      
+      <c:method
+         name="IncrementBrightness"
+         description="Increments the brightness of the dimmer by a given amount.">
+         
+         <c:parameters>
+            <c:parameter name="amount" type="int" optional="false" description="The amount to increase the brightness as a percentage from 0 to 100"/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method
+         name="DecrementBrightness"
+         description="Decrements the brightness of the dimmer by a given amount.">
+         
+         <c:parameters>
+            <c:parameter name="amount" type="int" optional="false" description="The amount to decrease the brightness as a percentage from 0 to 100"/>
+         </c:parameters>
+      </c:method>
+         
+   </c:methods>
+      
+</c:capability>

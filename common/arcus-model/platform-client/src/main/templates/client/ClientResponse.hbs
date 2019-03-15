@@ -1,0 +1,23 @@
+   public static class {{name}}Response extends com.iris.client.ClientEvent {
+      public static final String NAME = "{{namespace}}:{{name}}Response";
+
+      public {{name}}Response(String type, String sourceAddress) {
+         super(type, sourceAddress);
+      }
+   
+      public {{name}}Response(String type, String sourceAddress, java.util.Map<String, Object> attributes) {
+         super(type, sourceAddress, attributes);
+      }
+
+      public {{name}}Response(com.iris.client.ClientEvent copy) {
+         super(copy.getType(), copy.getSourceAddress(), new java.util.HashMap<String, Object>(copy.getAttributes()));
+      }
+
+{{> client/parameters returnValues}}
+
+      {{#returnValues}}
+      public {{{javaTypeOf type}}} get{{capitalize name}}() {
+         return ({{{javaTypeOf type}}}) getAttribute("{{name}}");
+      }
+      {{/returnValues}}
+   }

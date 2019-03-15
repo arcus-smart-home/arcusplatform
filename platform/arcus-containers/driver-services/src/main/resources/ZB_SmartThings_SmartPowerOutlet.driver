@@ -1,0 +1,410 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the SmartThings SmartPower Outlet
+ * 
+ * TODOs:
+ *  - This driver could be combined with the CentraLite Smart Plug driver if the driver could be made
+ *    to only conditionally send the Z-Wave Range Extender messages when the device supports it.  For now
+ *    the driver is kept separate in case there are specific changes needed/desired to manage support for
+ *    the SmartThings devices.  Even if the devices can physically support being a Z-Wave Range Extender
+ *    with a firmware upgrade it may not be desired to allow such.
+ *  
+ * ISSUES/NOTES:
+ * - These devices use the incorrect CentraLite Manufacturer code of 0xC2DF.
+ * - The driver is basically the same as the CentraLight Smart Plug, but these devices do NOT support
+ *   ZigBee Command Cluster 0xFC03, the MSP Z-Wave Cluster, so they cannot act as a Z-Wave Range Extender.
+ * - See CentraLite Notes at: http://centralite.readthedocs.org/en/latest/devices/lights/usrelay.html
+ * 
+ * Factory Reset:
+ *  - Hold down the button on the device while pluging it in
+ *  - Release the button when the blue LED has been lit for a second
+ *  - The LED will blink blue while attempting to connect
+ *  
+ */
+import groovy.transform.Field
+
+driver			"ZBSmartThingsSmartPowerOutlet"
+description		"Driver for the SmartThings SmartPower Outlet"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Switch"
+productId		"78725b"
+vendor 			"SmartThings"
+model 			"CEN-APP-PLUG-1"
+
+
+matcher			'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '4257050-RZHAC'
+
+
+capabilities	DevicePower, Switch, PowerUse, Identify, DeviceOta
+
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+PowerUse.wholehome               false
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+// Manufacturer ID:       0xC2DF
+// Manufacturer:          CentraLite
+// Model:                 4257050-RZHAC
+//
+// 1 End Point
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0B04     Electrical Measurement
+//   0x0B05     Diagnostics
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+
+def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+@Field static final String DEVICE_NAME = 'SmartThings Smart Power Outlet'
+def final short PROFILE_HA				= 0x0104
+
+def final short CLUSTER_ELEC_MEASURE	= 0x0B04		// (2820) Electrical Measurement Cluster
+def final short CLUSTER_DIAGNOSTICS     = 0x0B05        // (2821) Diagnostics
+
+def final byte ATTR_SET_AC_MEASURE	    = 0x05
+
+def final short ATTR_ID_ACTIVE_POWER	= 0x050B		// (1291) Active Power sttribute in 0x0B04 cluster
+
+def final CMD_READ_ATTR                 = 0x00          // General Command Frame - Read Attributes
+def final CMD_WRT_ATTR 					= 0x02          // General Command Frame - Write Attributes
+def final CMD_CNFG_RPT 					= 0x06			// General Command Frame - Configure Reporting
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes
+def final short IDENT_PERIOD_SECS           = 180       // number of seconds (0-600) for device to Identify itself (Flash LED) when Identify method is called
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "SmartThings SmartPower Outlet added."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_LINE
+	DevicePower.linecapable          true
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	PowerUse.instantaneous           0.0
+	PowerUse.wholehome               false
+	
+	Switch.state                     Switch.STATE_OFF
+	Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   
+	// Bind all of the command clusters on the enpoints we need
+	//Zigbee.bindAll()
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_ELEC_MEASURE),
+		diagCluster.bindServerCluster() )
+}
+
+onConnected {
+	log.debug "SmartThings SmartPower Outlet connected."
+	
+	// read current OnOff attributes
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+	
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+	// set reporting of Electrical Measurement cluster Measured Value 
+	byte[] rptElecCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x050B) Measured Value
+		0x0B, 0x05,
+		// Attr Data Type (0x29) Signed 16-Bit Int
+		0x29,
+		// Min Interval (0x000F) 15 secs
+		0x0F, 0x00,
+		// Max Interval (0x0078) 120 secs
+		0x78, 0x00,
+		// Reportable Change (0x0001)
+		0x01, 0x00 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_ELEC_MEASURE,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptElecCnfgBytes )
+	
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+	byte[] rptDiagCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x011C) Last Message LQI
+		0x1C, 0x01,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x003C) 60 secs
+		0x3C, 0x00,
+		// Max Interval (0x0078) 120 secs
+		0x78, 0x00,
+		// Reportable Change (0x01)
+		0x01 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_DIAGNOSTICS,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptDiagCnfgBytes )
+
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	// defer reading of current zone states (because when pairing this seems to get cut-off)
+	Scheduler.scheduleIn 'DeferredZWaveRead', ZWAVE_DELAY_READ_MSEC
+}
+
+
+onDisconnected {
+	log.debug "SmartThings SmartPower Outlet disconnected."
+}
+
+
+onRemoved {
+	log.debug "SmartThings SmartPower Outlet removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Switch capability attrbutes (only 'state' attribute can be written/set)
+setAttributes('swit') {
+	log.debug "Driver received 'swit' setAttribute message:{}", message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				if (attribute.value == 'ON') {
+					onOffCluster.on()
+				} else { 
+					onOffCluster.off()
+				}
+			// read current OnOff attributes (1st article devices automatically report setting after each change, 2nd article devices do not, so we have to read setting to make sure it was changed)
+			onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+			break;
+
+			default:
+				log.error "unrecognized attribute:{}", attribute
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOnOffMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[cluster.ATTR_ONOFF]
+	log.trace "OnOff:{}", onoff
+	
+	if (onoff != null) {
+		def prevState = Switch.state.get()
+		Switch.state onoff ? Switch.STATE_ON : Switch.STATE_OFF
+		// if state changed, capture timestamp
+		if (Switch.state.get() != prevState) {
+			Switch.statechanged new Date()
+		}
+	}
+}
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.trace "Driver received OnOff Attributes Response:{}", message
+	handleOnOffMsg(onOffCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.trace "Driver received OnOff Attributes Report:{}", message
+	handleOnOffMsg(onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.trace "RSSI:{}, LQI:{}", rssi, lqi
+	
+	if (lqi != null) {
+		if ('INVALID' == lqi.toString()) lqi = 255	// helper parses 255 value as 'INVALID', but it just means 100%
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		int sigPct = Math.round( (lqi * 100.0) / 255.0)
+		log.trace "LQI:{}, (percent:{})", lqi, sigPct
+		DeviceConnection.signal sigPct
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "Driver received Diagnostics Attributes Response:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "Driver received Diagnostics Attributes Report:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify:{}", message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// see http://centralite.readthedocs.org/en/latest/devices/lights/usrelay/electricalmeasurement.html
+	// we only read attribute 0x050B Active Power
+	if (CLUSTER_ELEC_MEASURE == clusterId) {
+		int buffLen= data.length
+		log.debug "Buffer:" + data
+		if (4 < buffLen) {
+			short attrId = (data[1] * 256) + data[0];
+			
+			double d3 = (0x7F & data[3])
+			if (0x80 & data[3]) {	// if high bit set, treat low byte value as unsigned
+				d3 += 128
+			}
+			double d4 = (0x7F & data[4])
+			double val = (d4 * 256) + d3;
+			// account for negative power values (solar panels, etc.)
+			if (0x80 & data[4]) {
+				val = -32768 + val;
+			}
+			val /= 10	// this device returns 10ths of Watts
+			
+			// devices sometimes report -0.1 when nothing pluged in, convert to 0.0
+			if ( (-0.2 < val) && (0.1 > val) ) {
+				val = 0.0
+			}
+			
+			log.trace "Electrical Measurement, Attr ID:{}, Value:{}", attrId, val
+			
+			if (ATTR_ID_ACTIVE_POWER == attrId) {
+				PowerUse.instantaneous val
+			} else {
+				log.debug "Not an Active Power reading for AC (Single Phase) Measurements"
+			}
+		} else {
+			log.warn "Payload too short"
+		}
+		return
+	}
+	
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+
+

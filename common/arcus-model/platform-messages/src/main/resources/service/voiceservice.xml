@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service
+   name="VoiceService"
+   namespace="voice"
+   version="1.0"
+   xmlns:s="http://www.iris.com/schema/service/1.0.0"
+>
+           
+   <s:description>
+   Internal communication channel between the Voice Assistant bridges/Voice Service.
+   </s:description>
+
+   <s:methods>
+
+      <s:method
+         name="StartPlace"
+         description="
+Issued by a voice service bridge when the default place is selected through the OAuth flow.  On receipt the voice service
+will create a new in-memory cache of the place's model and return success.  This method takes in the key for the service.
+Regardless of how many start place requests are issued only one in-memory cache will be created.
+"
+         internal="true"
+      >
+         <s:parameter
+            name="assistant"
+            type="enum"
+            values="GOOGLE,ALEXA"
+            description="The type of assistant that successfully went through OAuth and is starting a place (if not already started)."
+         />
+      </s:method>
+
+      <s:method
+            name="StopPlace"
+            description="
+Issued by a voice service bridge when/if the assistant service revokes their access to Iris, for example by unlinking the
+account.  On receipt the Voice service will clear out any peristed data for the specific voice assistant.  If the place
+no longer has any voice assistant services linked the in-memory cache will also be purged.
+"
+            internal="true"
+      >
+         <s:parameter
+            name="assistant"
+            type="enum"
+            values="GOOGLE,ALEXA"
+            description="The type of assistant that is being removed."
+         />
+      </s:method>
+
+   </s:methods>
+
+</s:service>
+

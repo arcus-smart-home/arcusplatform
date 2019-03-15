@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ ! -z "${ZOOKEEPER}"  ]; then
+    exec ${KAFKA_HOME}/bin/kafka-console-consumer.sh --zookeeper "$ZOOKEEPER" $@
+else
+    exec ${KAFKA_HOME}/bin/kafka-console-consumer.sh --zookeeper "$ZOOKEEPEROPS" $@
+fi

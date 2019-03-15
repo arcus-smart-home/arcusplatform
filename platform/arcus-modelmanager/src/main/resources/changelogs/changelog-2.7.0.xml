@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.7.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="addHandoffToken" author="ted">
+      <cl:description>Add a table for session handoff tokens</cl:description>
+      <cl:tracking>ITWO-13920</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE app_handoff_token (
+            handoffToken varchar,
+            personId uuid,
+            ip varchar,
+            url varchar,
+            PRIMARY KEY(handoffToken)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE app_handoff_token</cl:rollback>
+      </cl:cql>
+      <cl:cql>
+         <cl:update>ALTER TABLE person ADD handoffToken varchar</cl:update>
+         <cl:rollback>ALTER TABLE person DROP handoffToken</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+	<cl:changeset identifier="addUsernameToHandoffToken" author="dpatrow">
+      <cl:description>Add username to app_handoff_token table</cl:description>
+      <cl:tracking>I2-896</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE app_handoff_token ADD username varchar</cl:update>
+         <cl:rollback>ALTER TABLE app_handoff_token DROP username</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="addPreferences" author="dignat">
+      <cl:description>Adds a table for maintaining user-at-place preferences</cl:description>
+      <cl:tracking>I2-221</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE IF NOT EXISTS preferences (
+            personId uuid,
+            placeId uuid,
+            prefs map&lt;varchar,varchar&gt;,
+            PRIMARY KEY(personId, placeId)
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS preferences</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

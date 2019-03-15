@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Access to {{{_owner.firstName}}}'s place ({{{_place.name}}}) Removed.
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+You have successfully removed {{{removedFirstName}}} {{{removedLastName}}} access to {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}). 
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	You have successfully removed {{removedFirstName}} {{removedLastName}} access to {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}).<br/>
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

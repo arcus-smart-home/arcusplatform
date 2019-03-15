@@ -1,0 +1,28 @@
+
+message zwave.SecurityPanelMode.SecurityPanelModeGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.SecurityPanelMode.SecurityPanelModeReportV1<id="0x04", group="V1"> {
+    const u8 MODE_ARM_HOME = 0x01;
+    const u8 MODE_ARM_AWAY_NO_DELAY = 0x02;
+    const u8 MODE_ARM_AWAY_DELAYED = 0x03;
+    const u8 MODE_DISARM = 0x04;
+    const u8 MODE_ALARM_TRIGGER = 0x05;
+    u8 mode;
+}
+
+message zwave.SecurityPanelMode.SecurityPanelModeSetV1<id="0x05", group="V1"> {
+    const u8 MODE_ARM_HOME = 0x01;
+    const u8 MODE_ARM_AWAY_NO_DELAY = 0x02;
+    const u8 MODE_ARM_AWAY_DELAYED = 0x03;
+    const u8 MODE_DISARM = 0x04;
+    const u8 MODE_ALARM_TRIGGER = 0x05;
+    u8 mode;
+}
+
+message zwave.SecurityPanelMode.SecurityPanelModeSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.SecurityPanelMode.SecurityPanelModeSupportedReportV1<id="0x02", group="V1"> {
+    u16 supportedModeBitMask;
+}

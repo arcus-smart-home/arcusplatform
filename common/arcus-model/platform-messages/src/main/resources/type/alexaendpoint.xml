@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaEndpoint"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the Alexa V3 endpoint structure</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="endpointId"
+         type="string"
+         description="A device identifier. The identifier must be unique across all devices owned by an end user within the domain for the skill."
+         optional="false"
+      />
+      <t:attribute
+         name="friendlyName"
+         type="string"
+         description="The name used by the customer to identify the device."
+         optional="false"
+      />
+      <t:attribute
+         name="description"
+         type="string"
+         description="A human-readable description of the device."
+         optional="false"
+      />
+      <t:attribute
+         name="manufacturerName"
+         type="string"
+         description="The name of the device manufacturer."
+         optional="false"
+      />
+      <t:attribute
+         name="displayCategories"
+         type="set&lt;string&gt;"
+         description="Indicates the group name where the device should display in the Alexa app."
+         optional="false"
+      />
+      <t:attribute
+         name="cookie"
+         type="map&lt;string&gt;"
+         description="String name/value pairs that provide additional information about a device for use by the skill adapter."
+         optional="true"
+      />
+      <t:attribute
+         name="capabilities"
+         type="list&lt;AlexaCapability&gt;"
+         description="An array of capability objects that represents actions particular device supports and can respond to."
+         optional="false"
+      />
+
+      <!-- Used only by V2 -->
+      <t:attribute
+         name="online"
+         type="boolean"
+         description="True if the endpoint is online, false otherwise"
+         optional="false"
+      />
+      <t:attribute
+         name="model"
+         type="string"
+         description="The model name of the endpoint"
+         optional="false"
+      />
+
+   </t:attributes>
+
+ </t:type>

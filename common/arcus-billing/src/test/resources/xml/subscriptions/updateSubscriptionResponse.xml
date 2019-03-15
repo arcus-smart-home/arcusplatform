@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<subscription href="https://your-subdomain.recurly.com/v2/subscriptions/44f83d7cba354d5b84812419f923ea96">
+  <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+  <invoice href="https://your-subdomain.recurly.com/v2/invoices/1108"/>
+  <plan href="https://your-subdomain.recurly.com/v2/plans/gold">
+    <plan_code>gold</plan_code>
+    <name>Gold plan</name>
+  </plan>
+  <uuid>44f83d7cba354d5b84812419f923ea96</uuid>
+  <state>active</state>
+  <unit_amount_in_cents type="integer">800</unit_amount_in_cents>
+  <currency>EUR</currency>
+  <quantity type="integer">1</quantity>
+  <activated_at type="datetime">2011-05-27T07:00:00Z</activated_at>
+  <canceled_at nil="nil"></canceled_at>
+  <expires_at nil="nil"></expires_at>
+  <current_period_started_at type="datetime">2011-06-27T07:00:00Z</current_period_started_at>
+  <current_period_ends_at type="datetime">2010-07-27T07:00:00Z</current_period_ends_at>
+  <tax_in_cents type="integer">80</tax_in_cents>
+  <tax_type>usst</tax_type>
+  <tax_region>CA</tax_region>
+  <tax_rate type="float">0.0875</tax_rate>
+  <po_number nil="nil"></po_number>
+  <net_terms type="integer">0</net_terms>
+  <collection_method>automatic</collection_method>
+  <trial_started_at nil="nil"></trial_started_at>
+  <trial_ends_at nil="nil"></trial_ends_at>
+  <subscription_add_ons type="array">
+    <subscription_add_on>
+      <add_on_code>ipaddresses</add_on_code>
+      <quantity>10</quantity>
+      <unit_amount_in_cents>150</unit_amount_in_cents>
+    </subscription_add_on>
+  </subscription_add_ons>
+  <a name="cancel" href="https://your-subdomain.recurly.com/v2/subscriptions/44f83d7cba354d5b84812419f923ea96/cancel" method="put"/>
+  <a name="terminate" href="https://your-subdomain.recurly.com/v2/subscriptions/44f83d7cba354d5b84812419f923ea96/terminate" method="put"/>
+</subscription>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="ThermostatAction"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>A structure which describes how actions may be applied to a thermostat in the Scene system.</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="scheduleEnabled"
+			type="boolean"
+			description="Whether or not the normal thermostat schedule should be enabled."/>
+		<t:attribute
+			name="mode"
+			type="enum"
+			values="OFF,COOL,HEAT,AUTO,ECO"
+			description="The mode the thermostat should be set to."/>
+		<t:attribute
+			name="coolSetPoint"
+			type="double"
+			description="The cool set point (see min / max on the selector for range)"
+			unit="C"
+			/>
+		<t:attribute
+			name="heatSetPoint"
+			type="double"
+			description="The heat set point (see min / max on the selector for range)"
+			unit="C"
+			/>
+	</t:attributes>
+ </t:type>

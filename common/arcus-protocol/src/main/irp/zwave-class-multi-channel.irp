@@ -1,0 +1,158 @@
+
+message zwave.MultiChannel.MultiChannelCapabilityGetV2<id="0x09", group="V2"> {
+    const u8 PROPERTIES1_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 properties1;
+}
+
+message zwave.MultiChannel.MultiChannelCapabilityReportV2<id="0x0A", group="V2"> {
+    const u8 PROPERTIES1_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_DYNAMIC = 0x80;
+    u8 properties1;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+    u8[] commandClass;
+}
+
+message zwave.MultiChannel.MultiChannelCmdEncapV2<id="0x0D", group="V2"> {
+    const u8 PROPERTIES1_SOURCE_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_SOURCE_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    const u8 PROPERTIES2_DESTINATION_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES2_DESTINATION_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES2_BIT_ADDRESS = 0x80;
+    u8 properties1;
+    u8 properties2;
+    u8 commandClass;
+    u8 command;
+    u8[] parameter;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointFindV2<id="0x0B", group="V2"> {
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointFindReportV2<id="0x0C", group="V2"> {
+    u8 reportsToFollow;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointGetV2<id="0x07", group="V2"> {
+}
+
+message zwave.MultiChannel.MultiChannelEndPointReportV2<id="0x08", group="V2"> {
+    const u8 PROPERTIES1_RES_MASK = 0x3F;
+    const u8 PROPERTIES1_RES_SHIFT = 0;
+    const u8 PROPERTIES1_IDENTICAL = 0x40;
+    const u8 PROPERTIES1_DYNAMIC = 0x80;
+    const u8 PROPERTIES2_END_POINTS_MASK = 0x7F;
+    const u8 PROPERTIES2_END_POINTS_SHIFT = 0;
+    const u8 PROPERTIES2_RES = 0x80;
+    u8 properties1;
+    u8 properties2;
+}
+
+message zwave.MultiChannel.MultiInstanceCmdEncapV2<id="0x06", group="V2"> {
+    const u8 PROPERTIES1_INSTANCE_MASK = 0x7F;
+    const u8 PROPERTIES1_INSTANCE_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 properties1;
+    u8 commandClass;
+    u8 command;
+    u8[] parameter;
+}
+
+message zwave.MultiChannel.MultiInstanceGetV2<id="0x04", group="V2"> {
+    u8 commandClass;
+}
+
+message zwave.MultiChannel.MultiInstanceReportV2<id="0x05", group="V2"> {
+    const u8 PROPERTIES1_INSTANCES_MASK = 0x7F;
+    const u8 PROPERTIES1_INSTANCES_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 commandClass;
+    u8 properties1;
+}
+
+message zwave.MultiChannel.MultiChannelCapabilityGetV3<id="0x09", group="V3"> {
+    const u8 PROPERTIES1_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 properties1;
+}
+
+message zwave.MultiChannel.MultiChannelCapabilityReportV3<id="0x0A", group="V3"> {
+    const u8 PROPERTIES1_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_DYNAMIC = 0x80;
+    u8 properties1;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+    u8[] commandClass;
+}
+
+message zwave.MultiChannel.MultiChannelCmdEncapV3<id="0x0D", group="V3"> {
+    const u8 PROPERTIES1_SOURCE_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES1_SOURCE_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    const u8 PROPERTIES2_DESTINATION_END_POINT_MASK = 0x7F;
+    const u8 PROPERTIES2_DESTINATION_END_POINT_SHIFT = 0;
+    const u8 PROPERTIES2_BIT_ADDRESS = 0x80;
+    u8 properties1;
+    u8 properties2;
+    u8 commandClass;
+    u8 command;
+    u8[] parameter;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointFindV3<id="0x0B", group="V3"> {
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointFindReportV3<id="0x0C", group="V3"> {
+    u8 reportsToFollow;
+    u8 genericDeviceClass;
+    u8 specificDeviceClass;
+}
+
+message zwave.MultiChannel.MultiChannelEndPointGetV3<id="0x07", group="V3"> {
+}
+
+message zwave.MultiChannel.MultiChannelEndPointReportV3<id="0x08", group="V3"> {
+    const u8 PROPERTIES1_RES_MASK = 0x3F;
+    const u8 PROPERTIES1_RES_SHIFT = 0;
+    const u8 PROPERTIES1_IDENTICAL = 0x40;
+    const u8 PROPERTIES1_DYNAMIC = 0x80;
+    const u8 PROPERTIES2_END_POINTS_MASK = 0x7F;
+    const u8 PROPERTIES2_END_POINTS_SHIFT = 0;
+    const u8 PROPERTIES2_RES = 0x80;
+    u8 properties1;
+    u8 properties2;
+}
+
+message zwave.MultiChannel.MultiInstanceCmdEncapV3<id="0x06", group="V3"> {
+    const u8 PROPERTIES1_INSTANCE_MASK = 0x7F;
+    const u8 PROPERTIES1_INSTANCE_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 properties1;
+    u8 commandClass;
+    u8 command;
+    u8[] parameter;
+}
+
+message zwave.MultiChannel.MultiInstanceGetV3<id="0x04", group="V3"> {
+    u8 commandClass;
+}
+
+message zwave.MultiChannel.MultiInstanceReportV3<id="0x05", group="V3"> {
+    const u8 PROPERTIES1_INSTANCES_MASK = 0x7F;
+    const u8 PROPERTIES1_INSTANCES_SHIFT = 0;
+    const u8 PROPERTIES1_RES = 0x80;
+    u8 commandClass;
+    u8 properties1;
+}

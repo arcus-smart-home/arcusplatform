@@ -1,0 +1,36 @@
+
+message zwave.ManufacturerSpecific.ManufacturerSpecificGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.ManufacturerSpecific.ManufacturerSpecificReportV1<id="0x05", group="V1"> {
+    u16 manufacturerId;
+    u16 productTypeId;
+    u16 productId;
+}
+
+message zwave.ManufacturerSpecific.ManufacturerSpecificGetV2<id="0x04", group="V2"> {
+}
+
+message zwave.ManufacturerSpecific.ManufacturerSpecificReportV2<id="0x05", group="V2"> {
+    u16 manufacturerId;
+    u16 productTypeId;
+    u16 productId;
+}
+
+message zwave.ManufacturerSpecific.DeviceSpecificGetV2<id="0x06", group="V2"> {
+    const u8 PROPERTIES1_DEVICE_ID_TYPE_MASK = 0x07;
+    const u8 PROPERTIES1_DEVICE_ID_TYPE_SHIFT = 0;
+    u8 properties1;
+}
+
+message zwave.ManufacturerSpecific.DeviceSpecificReportV2<id="0x07", group="V2"> {
+    const u8 PROPERTIES1_DEVICE_ID_TYPE_MASK = 0x07;
+    const u8 PROPERTIES1_DEVICE_ID_TYPE_SHIFT = 0;
+    const u8 PROPERTIES2_DEVICE_ID_DATA_LENGTH_INDICATOR_MASK = 0x1F;
+    const u8 PROPERTIES2_DEVICE_ID_DATA_LENGTH_INDICATOR_SHIFT = 0;
+    const u8 PROPERTIES2_DEVICE_ID_DATA_FORMAT_MASK = 0xE0;
+    const u8 PROPERTIES2_DEVICE_ID_DATA_FORMAT_SHIFT = 5;
+    u8 properties1;
+    u8 properties2;
+    u8[] deviceIdData;
+}

@@ -1,0 +1,82 @@
+#!groovy
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps{
+                script{
+                    GIT_COMMIT = sh(returnStdout: true, script: "git log -n 1 --pretty=format:'%h'").trim()
+                    def props = readProperties interpolate: true, file: 'version.properties'
+                    BUILD_VERSION = "${props.major}.${props.minor}.${props.patch}"     
+                }
+                writeFile file: "material.version", text: "version=${BUILD_VERSION}\ncommit=${GIT_COMMIT}\nBRANCH_NAME=${BRANCH_NAME}"
+                archiveArtifacts artifacts: 'material.version'
+                stash name: "material.version", includes: "material.version"
+
+                script{
+                    server = Artifactory.server 'Artifactory'
+                    buildInfo = Artifactory.newBuildInfo()
+                    rtGradle = Artifactory.newGradleBuild()
+                    rtGradle.useWrapper = true 
+                    rtGradle.deployer repo: 'libs-snapshot-local', server: server // For artifactory
+                    rtGradle.deployer.deployArtifacts = true // Disable artifacts deployment during Gradle run
+                    // This actually calls gradle, so need to make sure targets are right. 
+                    rtGradle.run rootDir: './', buildFile: 'build.gradle', tasks: 'clean release artifactoryPublish -x selenium:test --refresh-dependencies -Puse_maven_local=false', buildInfo: buildInfo
+                    server.publishBuildInfo buildInfo
+                }
+            }
+            post {
+                success {
+                    script {
+                        def changeString = ""
+                        def faultString = ""
+                        def changeLogSets = currentBuild.changeSets
+                        for (int i = 0; i < changeLogSets.size(); i++) {
+                            def entries = changeLogSets[i].items
+                            for (int j = 0; j < entries.length; j++) {
+                                def entry = entries[j]
+                                changeString += " * ${entry.msg} [${entry.author}]\n"
+                                faultString += " * ${entry.author}\n"
+                            }
+                        }
+
+                        if (!changeString) {
+                            changeString = "\tNo changes"
+                        }
+                        if (!faultString) {
+                            faultString = " * Unknown"
+                        }
+                        CHANGELOG = changeString    
+                        FAULTLOG = faultString
+                    }
+                    slackSend color: 'good', channel: "#platform", message: "<${currentBuild.absoluteUrl}|${currentBuild.fullDisplayName}> ${BUILD_VERSION} passed with changes:\n${CHANGELOG}"
+                }
+                failure {
+                    script {
+                        def changeString = ""
+                        def faultString = ""
+                        def changeLogSets = currentBuild.changeSets
+                        for (int i = 0; i < changeLogSets.size(); i++) {
+                            def entries = changeLogSets[i].items
+                            for (int j = 0; j < entries.length; j++) {
+                                def entry = entries[j]
+                                changeString += " * ${entry.msg} [${entry.author}]\n"
+                                faultString += " * ${entry.author}\n"
+                            }
+                        }
+
+                        if (!changeString) {
+                            changeString = "\tNo changes"
+                        }
+                        if (!faultString) {
+                            faultString = " * Unknown"
+                        }
+                        CHANGELOG = changeString    
+                        FAULTLOG = faultString
+                    }
+                    slackSend color: 'danger', channel: "#platform", message: "<${currentBuild.absoluteUrl}|${currentBuild.fullDisplayName}> ${BUILD_VERSION} failed with changes from:\n${FAULTLOG}"
+                }
+            }
+        }
+    }
+}

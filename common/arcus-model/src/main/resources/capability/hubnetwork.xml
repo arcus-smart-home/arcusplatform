@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubNetwork"
+   namespace="hubnet"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="type"
+         readwrite="r"
+         type="enum"
+         values="ETH,3G,WIFI"
+         optional="false" 
+         description="Name of the primary network interface."/>
+      <c:attribute 
+         name="uptime"
+         readwrite="r"
+         type="long"
+         unit="second" 
+         optional="false" 
+        description="Elapsed second since last change of the active interface type."/>
+      <c:attribute 
+         name="ip"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="ip address of the active interface"/>
+      <c:attribute 
+         name="externalip"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="External ip address of the active interface as detected by the hub bridge."/>
+      <c:attribute 
+         name="netmask"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="netmask of the gateway"/>
+      <c:attribute 
+         name="gateway"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="IP Address gateway"/>
+      <c:attribute 
+         name="dns"
+         readwrite="r"
+         type="string"
+         optional="false" 
+         description="CSV of the DNS server IP Addresses."/>
+      <c:attribute 
+         name="interfaces"
+         readwrite="r"
+         type="list&lt;string&gt;"
+         optional="false" 
+         description="ip address of the active interface"/>
+
+   </c:attributes>
+   
+   <c:methods>
+   	<c:method
+         name="GetRoutingTable"
+         description="Gets the routing table for the active netowrk interface.">
+         <c:parameters>
+         </c:parameters>
+      </c:method> 
+   	
+   </c:methods>
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

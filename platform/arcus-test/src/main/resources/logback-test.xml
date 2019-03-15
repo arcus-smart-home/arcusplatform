@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+         <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      </encoder>
+   </appender>
+   
+   <logger name="org.apache" level="WARN" />
+   <logger name="kafka" level="WARN" />
+   <logger name="org.I0Itec.zkclient" level="WARN" />
+   <logger name="com.iris.driver" level="ALL" />
+   <logger name="com.iris.driver.groovy.customizer" level="DEBUG" />
+   <logger name="driver" level="ALL" />
+
+   <root level="DEBUG">
+      <appender-ref ref="STDOUT" />
+   </root>
+ 
+</configuration>

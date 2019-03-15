@@ -1,0 +1,19 @@
+   public static class {{name}}Request extends com.iris.client.ClientRequest {
+      public static final String NAME = "{{namespace}}:{{name}}";
+
+      public {{name}}Request() {
+         setCommand(NAME);
+      }
+
+{{> client/parameters parameters}}
+
+      {{#parameters}}
+      public {{{javaTypeOf type}}} get{{capitalize name}}() {
+         return ({{{javaTypeOf type}}}) getAttribute("{{name}}");
+      }
+
+      public void set{{capitalize name}}({{{javaTypeOf type}}} value) {
+         setAttribute("{{name}}", value);
+      }
+      {{/parameters}}
+   }

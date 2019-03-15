@@ -1,0 +1,33 @@
+
+message zwave.SecurityPanelZoneSensor.CommandClassSecurityPanelZoneSensorInstalledReportV1<id="0x02", group="V1"> {
+    u8 zoneNumber;
+    u8 numberOfSensors;
+}
+
+message zwave.SecurityPanelZoneSensor.SecurityPanelZoneSensorTypeGetV1<id="0x03", group="V1"> {
+    u8 zoneNumber;
+    u8 sensorNumber;
+}
+
+message zwave.SecurityPanelZoneSensor.SecurityPanelZoneSensorTypeReportV1<id="0x04", group="V1"> {
+    u8 zoneNumber;
+    u8 sensorNumber;
+    u8 zwaveAlarmType;
+}
+
+message zwave.SecurityPanelZoneSensor.SecurityPanelZoneSensorInstalledGetV1<id="0x01", group="V1"> {
+    u8 zoneNumber;
+}
+
+message zwave.SecurityPanelZoneSensor.SecurityPanelZoneSensorStateGetV1<id="0x05", group="V1"> {
+    u8 zoneNumber;
+    u8 sensorNumber;
+}
+
+message zwave.SecurityPanelZoneSensor.SecurityPanelZoneSensorStateReportV1<id="0x06", group="V1"> {
+    u8 zoneNumber;
+    u8 sensorNumber;
+    u8 zwaveAlarmType;
+    u8 zwaveAlarmEvent;
+    u8 eventParameters;
+}

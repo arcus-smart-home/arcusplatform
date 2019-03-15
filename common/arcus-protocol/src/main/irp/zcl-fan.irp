@@ -1,0 +1,25 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 6.4 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Fan {
+   const u16 CLUSTER_ID = 0x0202;
+
+   const u16 ATTR_FAN_MODE = 0x0000;
+   const u16 ATTR_FAN_MODE_SEQUENCE = 0x0001;
+
+   const u8 FAN_MODE_OFF = 0x00;
+   const u8 FAN_MODE_LOW = 0x01;
+   const u8 FAN_MODE_MEDIUM = 0x02;
+   const u8 FAN_MODE_HIGH = 0x03;
+   const u8 FAN_MODE_ON = 0x04;
+   const u8 FAN_MODE_AUTO = 0x05;
+   const u8 FAN_MODE_SMART = 0x06;
+
+   const u8 FAN_MODE_SEQUENCE_LOW_MEDIUM_HIGH = 0x00;
+   const u8 FAN_MODE_SEQUENCE_LOW_HIGH = 0x01;
+   const u8 FAN_MODE_SEQUENCE_LOW_MEDIUM_HIGH_AUTO = 0x02;
+   const u8 FAN_MODE_SEQUENCE_LOW_HIGH_AUTO = 0x03;
+   const u8 FAN_MODE_SEQUENCE_ON_AUTO = 0x04;
+}

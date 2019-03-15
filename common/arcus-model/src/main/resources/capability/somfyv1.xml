@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Somfyv1"
+   namespace="somfyv1"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Somfy V1 Blind or Shade.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="type"
+         readwrite="rw"
+         type="enum"
+         values="SHADE,BLIND"
+         optional="false"
+         description="The user has to set the type of device (Blinds or Shade) they have to generate the proper UI. Defaults to SHADE."/>
+      <c:attribute
+         name="reversed"
+         readwrite="rw"
+         type="enum"
+         values="NORMAL,REVERSED"
+         optional="false"
+         description="The user may need to reverse the shade motor direction if wiring is reversed. Defaults to NORMAL."/>
+      <c:attribute
+         name="channel"
+         readwrite="r"
+         type="int"
+         min="1"
+         max="16"
+         optional="false"
+         description="The channel of the Blinds or Shade on the Bridge."/>
+      <c:attribute
+         name="currentstate"
+         readwrite="r"
+         type="enum"
+         values="OPEN,CLOSED"
+         optional="false"
+         description="The current state (position) of the Blinds or Shade reported by the bridge."/>
+	  <c:attribute 
+         name="statechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC time of last state (OPEN/CLOSED/FAVORITE) change."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="GoToOpen"
+         description="Move the Blinds or Shade to a pre-programmed OPEN position.">
+      </c:method>
+      <c:method 
+         name="GoToClosed"
+         description="Move the Blinds or Shade to a pre-programmed CLOSED position.">
+      </c:method>
+      <c:method 
+         name="GoToFavorite"
+         description="Move the Blinds or Shade to a pre-programmed FAVORITE position.">
+      </c:method>
+   </c:methods>
+
+</c:capability>

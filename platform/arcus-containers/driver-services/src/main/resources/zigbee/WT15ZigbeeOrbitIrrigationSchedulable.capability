@@ -1,0 +1,573 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability     IrrigationSchedulable
+description		"Implementation of IrrigationSchedulable for Orbit devices"
+version			"1.0"
+
+@Field static final String ZONE_PREFIX = 'z'
+@Field static final String ONOFF_CLUSTER = 'OnOff'
+@Field static final String DEFERRED_RESPONSE = 'IrrigationSchedulableDeferredResponse'
+@Field static final long DEFERRED_RESPONSE_DELAY = 250
+
+@Field static final String READ_BACK_EVENODD = 'IrrigationSchedulableReadEvenOdd'
+@Field static final String READ_BACK_INTERVAL = 'IrrigationSchedulableReadInterval'
+@Field static final String READ_BACK_WEEKLY = 'IrrigationSchedulableReadWeekly'
+@Field static final long READ_BACK_DELAY = 4000
+
+@Field static final short PROFILE_HA = 0x0104   // HA profile id
+@Field static final short ORBIT_MSP	 = 0x1039   // MSP cluster id for Orbit devices
+
+@Field static final short CLUSTER_ON_OFF = 0x0006
+@Field static final short CLUSTER_THERMOSTAT = 0x0201
+
+@Field static final byte CMD_ON_WITH_DURATION = 0x03
+
+@Field static final short ATTR_ONOFF = 0x0000
+@Field static final short ATTR_MAX_ON_DURATION = 0x0001
+@Field static final short ATTR_CURRENT_ON = 0x0002
+@Field static final short ATTR_DEFAULT_ON_DURATION = 0x0003
+
+@Field static final byte CMD_REFRESH_SCHEDULE = 0x02
+
+@Field static final byte CMD_RSP_WEEKLY_SCHEDULE = 0x00
+@Field static final byte CMD_SET_WEEKLY_SCHEDULE = 0x01
+@Field static final byte CMD_GET_WEEKLY_SCHEDULE = 0x02
+@Field static final byte CMD_CLR_WEEKLY_SCHEDULE = 0x03
+
+@Field static final byte CMD_RSP_EVENODD_SCHEDULE = 0x03
+@Field static final byte CMD_SET_EVENODD_SCHEDULE = 0x05
+@Field static final byte CMD_GET_EVENODD_SCHEDULE = 0x06
+@Field static final byte CMD_CLR_EVENODD_SCHEDULE = 0x07
+
+@Field static final byte CMD_RSP_INTERVAL_SCHEDULE = 0x04
+@Field static final byte CMD_SET_INTERVAL_SCHEDULE = 0x08
+@Field static final byte CMD_GET_INTERVAL_SCHEDULE = 0x09
+@Field static final byte CMD_CLR_INTERVAL_SCHEDULE = 0x0A
+
+@Field static final short ATTR_NUM_WEEKLY_TRANSITIONS = 0x0021
+@Field static final short ATTR_NUM_DAILY_TRANSITIONS = 0x0022
+@Field static final short ATTR_TEMP_SETPOINT_HOLD = 0x0023
+@Field static final short ATTR_TEMP_SETPOINT_HOLD_DURATION = 0x0024
+
+// This attribute doesn't actually exist on the device. It is used to figure out
+// if a write attribute response is for the interval start date.
+//
+// The Zigbee standard says that the write attribute response doesn't include the
+// attribute identifier for write attributes that are successful, but we really need
+// the attribute identifier.
+//
+// What we do instead is to pack in this fake attribute when the set interval date
+// attribute is written. Because this fake attribute doesn't actually exist on the 
+// device, we will get a write attributes response back with an error code and this
+// fake attribute.
+//
+// To check if configuring the write attributes was successful we examine the write
+// attributes response looking for this fake attribute. If this attribute is present
+// then we check to see if a status code is present for the real attribute as well. If
+// it is present then the write attribute failed, otherwise it was successful.
+@Field static final short ATTR_SET_INTERVAL_START_RESPONSE = 0xBEEF
+
+// This attribute doesn't actually exist on the device. It is used to figure out
+// if a write attribute response is for the hold duration.
+@Field static final short ATTR_ENABLE_SCHEDULE_RESPONSE = 0xCEEF
+@Field static final short ATTR_DISABLE_SCHEDULE_RESPONSE = 0xDEEF
+
+@Field static final java.util.Calendar ZIGBEE_EPOCH = createZigbeeEpoch()
+
+static void doHandleSetAttributes(ctx,name,message) {
+	def attrs = message.attributes;
+	ctx.log.debug "{} received irrigation schedulable set attributes: {}", name, attrs
+
+	for(attribute in attrs) {
+		switch(attribute.key) {
+		case ctx.IrrigationSchedulable.refreshSchedule:
+		   ctx.IrrigationSchedulable.refreshSchedule attribute.value
+			break;
+
+		default:
+			ctx.log.error "{} received set attributes for unrecognized attribute: {}", name, attribute
+			break;
+		}
+	}
+}
+
+static void clearAllSchedules(ctx,name,numZones) {
+   1.upto(numZones,{
+	   sendClusterSpecificCommandNoResponse(ctx,it,CLUSTER_THERMOSTAT,CMD_CLR_EVENODD_SCHEDULE,[])
+	   sendClusterSpecificCommandNoResponse(ctx,it,CLUSTER_THERMOSTAT,CMD_CLR_INTERVAL_SCHEDULE,[])
+	   sendClusterSpecificCommandNoResponse(ctx,it,CLUSTER_THERMOSTAT,CMD_CLR_WEEKLY_SCHEDULE,[])
+   })
+}
+
+static void doHandleEnableSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable enable schedule: {}", name, message
+
+   byte[] payload = [0x24, 0x00, 0x21, 0xFF, 0xFF, 0x23, 0x00, 0x30, 0x00, ATTR_ENABLE_SCHEDULE_RESPONSE & 0xFF, ATTR_ENABLE_SCHEDULE_RESPONSE >> 8, 0x30, 0x00]
+	sendThermostatWriteCommand(ctx,payload)
+
+	ctx.sendResponse 'irrsched.EnableScheduleResponse', [:]
+}
+
+static void doHandleDisableSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable disable schedule: {}", name, message
+	int duration = message.attributes['duration'] & 0xFFFF
+   if (duration <= 0) {
+      duration = 0xFFFF
+   }
+
+   byte[] payload = [0x24, 0x00, 0x21, duration & 0xFF, (duration >> 8) & 0xFF, 0x23, 0x00, 0x30, 0x01,
+                     ATTR_DISABLE_SCHEDULE_RESPONSE & 0xFF, ATTR_DISABLE_SCHEDULE_RESPONSE >> 8, 0x30, 0x00]
+
+	sendThermostatWriteCommand(ctx,payload)
+   1.upto(ctx.IrrigationController.numZones.get(),{ctx[ONOFF_CLUSTER+it].off()})
+
+	ctx.sendResponse 'irrsched.DisableScheduleResponse', [:]
+}
+
+static void doHandleClearEvenOddSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable clear even/odd schedule: {}", name, message
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	sendClusterSpecificCommand(ctx,zone,CLUSTER_THERMOSTAT,CMD_CLR_EVENODD_SCHEDULE,[])
+
+	ctx.sendResponse 'irrsched.ClearEvenOddScheduleResponse', [:]
+}
+
+static void doHandleSetEvenOddSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable set even/odd schedule: {}", name, message
+
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	boolean even = message.attributes['even']
+   byte[] schedule = convertTransitionsToBytes(message.attributes['transitions'], even ? 0x01 : 0x02)
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	ctx.vars.SCHEDULE_DAYS = even ? 0x01 : 0x02
+	ctx.vars.SCHEDULE_BYTES = schedule
+
+   sendClusterSpecificCommand(ctx,zone,CLUSTER_THERMOSTAT,CMD_SET_EVENODD_SCHEDULE,schedule)
+
+	ctx.sendResponse 'irrsched.SetEvenOddScheduleResponse', [:]
+}
+
+static void doHandleClearIntervalSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable clear interval schedule: {}", name, message
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_CLR_INTERVAL_SCHEDULE, [])
+
+	ctx.sendResponse 'irrsched.ClearIntervalScheduleResponse', [:]
+}
+
+static void doHandleSetIntervalSchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable set interval schedule: {}", name, message
+	ctx.log.debug "{} received irrigation schedulable set interval schedule: {}", name, message.attributes
+
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	int days = message.attributes['days'] as int
+   byte[] schedule = convertTransitionsToBytes(message.attributes['transitions'], days & 0xFF)
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	ctx.vars.SCHEDULE_DAYS = days
+	ctx.vars.SCHEDULE_BYTES = schedule
+
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_SET_INTERVAL_SCHEDULE, schedule)
+
+	ctx.sendResponse 'irrsched.SetIntervalScheduleResponse', [:]
+}
+
+static void doHandleSetIntervalStart(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable set interval start: {}", name, message
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	long startDate = message.attributes['startDate']
+   long time = toUtcTime(startDate)
+
+   // See documentation for ATTR_SET_INTERVAL_START_RESPONSE to see why we are packing two
+   // attributes into this write attributes request.
+   byte[] payload = [0x04, 0x01, 0xE2, time & 0xFF, (time >> 8) & 0xFF, (time >> 16) & 0xFF, (time >> 24) & 0xFF, 
+                     ATTR_SET_INTERVAL_START_RESPONSE & 0xFF, ATTR_SET_INTERVAL_START_RESPONSE >> 8, 0x30, 0x00]
+	sendThermostatWriteCommand(ctx,zone,payload)
+
+	ctx.sendResponse 'irrsched.SetIntervalStartResponse', [:]
+}
+
+static void doHandleClearWeeklySchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable clear weekly schedule: {}", name, message
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_CLR_WEEKLY_SCHEDULE, [])
+
+	ctx.sendResponse 'irrsched.ClearWeeklyScheduleResponse', [:]
+}
+
+static void doHandleSetWeeklySchedule(ctx,name,message) {
+	ctx.log.debug "{} received irrigation schedulable set weekly schedule: {}", name, message
+
+	int zone = message.attributes['zone'].substring(ZONE_PREFIX.length()) as int
+	int days = convertDaysToBits(ctx,name,message.attributes['days'])
+   byte[] schedule = convertTransitionsToBytes(message.attributes['transitions'], days & 0xFF)
+
+	ctx.vars.SCHEDULE_OPID = message.attributes['opId']
+	ctx.vars.SCHEDULE_DAYS = days
+	ctx.vars.SCHEDULE_BYTES = schedule
+
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_SET_WEEKLY_SCHEDULE, schedule)
+
+	ctx.sendResponse 'irrsched.SetWeeklyScheduleResponse', [:]
+}
+
+static boolean doHandleZigbeeDefaultResponse(ctx,name,endpoint,data) {
+	byte cmdId = data[0]
+	byte status = data[1]
+	def schedSetType = status == 0 ? 'irrsched:ScheduleApplied' : 'irrsched:ScheduleFailed'
+	def schedClrType = status == 0 ? 'irrsched:ScheduleCleared' : 'irrsched:ScheduleClearFailed'
+	def zone = ZONE_PREFIX + endpoint
+	def opId = ctx.vars.SCHEDULE_OPID
+
+	switch (cmdId) {
+	case CMD_SET_EVENODD_SCHEDULE:
+	   if (status == 0) {
+	      ctx.Scheduler.scheduleIn READ_BACK_EVENODD, ['endpoint': endpoint], READ_BACK_DELAY
+	   } else {
+	      ctx.Scheduler.scheduleIn DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]], DEFERRED_RESPONSE_DELAY
+	   }
+	   return true
+
+	case CMD_SET_INTERVAL_SCHEDULE:
+	   if (status == 0) {
+	      ctx.Scheduler.scheduleIn READ_BACK_INTERVAL, ['endpoint': endpoint], READ_BACK_DELAY
+	   } else {
+	      ctx.Scheduler.scheduleIn DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]], DEFERRED_RESPONSE_DELAY
+	   }
+	   return true;
+
+	case CMD_SET_WEEKLY_SCHEDULE:
+	   if (status == 0) {
+	      ctx.Scheduler.scheduleIn READ_BACK_WEEKLY, ['endpoint': endpoint], READ_BACK_DELAY
+	   } else {
+	      ctx.Scheduler.scheduleIn DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]], DEFERRED_RESPONSE_DELAY
+	   }
+      return true
+
+	case CMD_CLR_EVENODD_SCHEDULE:
+	case CMD_CLR_INTERVAL_SCHEDULE:
+	case CMD_CLR_WEEKLY_SCHEDULE:
+	   ctx.Scheduler.scheduleIn DEFERRED_RESPONSE, ['msg': schedClrType, 'attrs':['opId': opId]], DEFERRED_RESPONSE_DELAY
+      return true
+
+   default:
+      return false
+	}
+}
+
+static boolean doHandleReadEvenOdd(ctx,name,message) {
+	def days = ctx.vars.SCHEDULE_DAYS
+   def zone = message.data.endpoint
+   def payload = [days, 0x04]
+
+	ctx.log.debug "{} reading back even/odd schedule: zone={}, days={}", name, zone, days
+   sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_GET_EVENODD_SCHEDULE, payload)
+}
+
+static boolean doHandleReadInterval(ctx,name,message) {
+   def zone = message.data.endpoint
+   def payload = [0x00, 0x04]
+
+	ctx.log.debug "{} reading back interval schedule: zone={}", name, zone
+   sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_GET_INTERVAL_SCHEDULE, payload)
+}
+
+static boolean doHandleReadWeekly(ctx,name,message) {
+	def days = ctx.vars.SCHEDULE_DAYS
+   def zone = message.data.endpoint
+   def payload = [days, 0x04]
+
+	ctx.log.debug "{} reading back weekly schedule: zone={}, days={}", name, zone, days
+   sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_GET_WEEKLY_SCHEDULE, payload)
+}
+
+static void doHandleDeferredResponse(ctx,name,message) {
+   def msg = message.data.msg
+   def attrs = message.data.attrs
+   ctx.emit msg, attrs
+}
+
+static void doHandleZigbeeGetEvenOddResponse(ctx,name,endpoint,data) {
+	def opId = ctx.vars.SCHEDULE_OPID
+	def bytes  = ctx.vars.SCHEDULE_BYTES
+	ctx.log.debug "{} read even/odd schedule: zone={}, data={}, bytes={}", name, endpoint, data, bytes
+
+	def schedSetType = (data == bytes) ? 'irrsched:ScheduleApplied' : 'irrsched:ScheduleFailed'
+   ctx.Scheduler.defer DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]]
+}
+
+static void doHandleZigbeeGetIntervalResponse(ctx,name,endpoint,data) {
+	def opId = ctx.vars.SCHEDULE_OPID
+	def bytes  = ctx.vars.SCHEDULE_BYTES
+	ctx.log.debug "{} read interval schedule: zone={}, data={}, bytes={}", name, endpoint, data, bytes
+
+	def schedSetType = (data == bytes) ? 'irrsched:ScheduleApplied' : 'irrsched:ScheduleFailed'
+   ctx.Scheduler.defer DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]]
+}
+
+static boolean doHandleZigbeeGetWeeklyResponse(ctx,name,endpoint,data) {
+	def opId = ctx.vars.SCHEDULE_OPID
+	def bytes  = ctx.vars.SCHEDULE_BYTES
+	ctx.log.debug "{} read weekly schedule: zone={}, data={}, bytes={}", name, endpoint, data, bytes
+
+	def schedSetType = (data == bytes) ? 'irrsched:ScheduleApplied' : 'irrsched:ScheduleFailed'
+   ctx.Scheduler.defer DEFERRED_RESPONSE, ['msg': schedSetType, 'attrs':['opId': opId]]
+}
+
+static boolean doHandleZigbeeWriteAttributesResponse(ctx,name,endpoint,data) {
+	def zone = ZONE_PREFIX + endpoint
+	def opId = ctx.vars.SCHEDULE_OPID
+
+   byte setIntervalStatus = getWriteAttributeStatus(data, (short)0x0104)
+   byte fakeIntervalStatus = getWriteAttributeStatus(data, ATTR_SET_INTERVAL_START_RESPONSE)
+
+   byte setHoldEnable = getWriteAttributeStatus(data, (short)0x0023)
+   byte setHoldDuration = getWriteAttributeStatus(data, (short)0x0024)
+   byte fakeEnableStatus = getWriteAttributeStatus(data, ATTR_ENABLE_SCHEDULE_RESPONSE)
+   byte fakeDisableStatus = getWriteAttributeStatus(data, ATTR_DISABLE_SCHEDULE_RESPONSE)
+
+   if (fakeIntervalStatus != 0) {
+	   def setIntervalType = setIntervalStatus == 0 ? 'irrsched:SetIntervalStartSucceeded' : 'irrsched:SetIntervalStartFailed'
+	   ctx.emit setIntervalType, ['opId': opId]
+      return true
+   }
+
+   if (fakeEnableStatus != 0 && setHoldEnable == 0) {
+      ctx.IrrigationController.rainDelayDuration 0
+	   ctx.emit 'irrsched:ScheduleEnabled', ['opId': opId]
+      return true
+   }
+
+   if (fakeDisableStatus != 0 && setHoldEnable == 0) {
+	   sendThermostatReadCommand(ctx,[0x24,0x00])
+      return true
+   }
+
+   return false
+}
+
+static boolean doHandleZigbeeRefreshSchedule(ctx,name,endpoint,data) {
+   ctx.log.info "{} needs to have its schedule refreshed", name
+   ctx.IrrigationSchedulable.refreshSchedule true
+   return true
+}
+
+static boolean doHandleZigbeeResponse(ctx,name,message) {
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	def profile = zclMsg.getProfileId() as short
+	def clusterId = zclMsg.getClusterId() as short
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	byte[] data = zclMsg.getPayload()
+
+	if ((msgId & 0xFF) == 0x0B && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA && data != null && data.length >= 2) {
+      return doHandleZigbeeDefaultResponse(ctx,name,endpoint,data)
+	}
+
+	if ((msgId & 0xFF) == 0x04 && (flags & 0xFF) == 0x0E && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA && data != null && data.length >= 1) {
+      return doHandleZigbeeWriteAttributesResponse(ctx,name,endpoint,data)
+	}
+
+	if ((msgId & 0xFF) == CMD_REFRESH_SCHEDULE && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA) {
+      return doHandleZigbeeRefreshSchedule(ctx,name,endpoint,data)
+	}
+
+   if ((msgId & 0xFF) == CMD_RSP_EVENODD_SCHEDULE && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA && data != null && data.length >= 1) {
+      return doHandleZigbeeGetEvenOddResponse(ctx,name,endpoint,data)
+	}
+
+	if ((msgId & 0xFF) == CMD_RSP_INTERVAL_SCHEDULE && (flags & 0xFF) == 0x0F && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA && data != null && data.length >= 1) {
+      return doHandleZigbeeGetIntervalResponse(ctx,name,endpoint,data)
+	}
+
+	if ((msgId & 0xFF) == CMD_RSP_WEEKLY_SCHEDULE && clusterId == CLUSTER_THERMOSTAT && profile == PROFILE_HA && data != null && data.length >= 1) {
+      return doHandleZigbeeGetWeeklyResponse(ctx,name,endpoint,data)
+	}
+
+   return false
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Weekly Schedule Support
+////////////////////////////////////////////////////////////////////////////////
+
+static void doSetWeeklySchedule(ctx,name,zone,numTransitions,days,time,duration) {
+   def payload = [numTransitions, days, 0x04, time & 0xFF, time >> 8, duration & 0xFF, duration >> 8]
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_SET_WEEKLY_SCHEDULE, payload)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Even/Odd Schedule Support
+////////////////////////////////////////////////////////////////////////////////
+
+static void doSetEvenOddSchedule(ctx,name,zone,numTransitions,days,time,duration) {
+   def payload = [numTransitions, days, 0x04, time & 0xFF, time >> 8, duration & 0xFF, duration >> 8]
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_SET_EVENODD_SCHEDULE, payload)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Interval Schedule Support
+////////////////////////////////////////////////////////////////////////////////
+
+static void doSetIntervalSchedule(ctx,name,zone,numTransitions,days,time,duration) {
+   def payload = [numTransitions, days, 0x04, time & 0xFF, time >> 8, duration & 0xFF, duration >> 8]
+	sendClusterSpecificCommand(ctx, zone, CLUSTER_THERMOSTAT, CMD_SET_EVENODD_SCHEDULE, payload)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility methods
+////////////////////////////////////////////////////////////////////////////////
+
+static byte getWriteAttributeStatus(data,attr) {
+   byte a1 = attr & 0xFF
+   byte a2 = (attr >> 8) & 0xFF
+
+   if (data.length < 3) {
+      return data[0]
+   }
+
+   for (int i = 0; i < data.length - 2; i += 3) {
+      if (data[i+1] == a1 && data[i+2] == a2) {
+         return data[i]
+      }
+   }
+
+   return 0
+}
+
+static java.util.Calendar createZigbeeEpoch() {
+   java.util.Calendar zec = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+   zec.set(2000, 0, 1, 0, 0, 0)
+   return zec
+}
+
+static long toUtcTime(date) throws IOException {
+   long millisInJavaEpoch = date
+   long millis = millisInJavaEpoch - ZIGBEE_EPOCH.getTimeInMillis()
+   return millis / 1000
+}
+
+static byte convertDaysToBits(ctx,name,days) {
+   byte result = 0
+   days.each {
+      switch (it) {
+      case "SUN": result |= 0x01; break;
+      case "MON": result |= 0x02; break;
+      case "TUE": result |= 0x04; break;
+      case "WED": result |= 0x08; break;
+      case "THU": result |= 0x10; break;
+      case "FRI": result |= 0x20; break;
+      case "SAT": result |= 0x40; break;
+      default: ctx.log.warn "{} encountered unknown day enumeration, ignoring: {}", name, it; break;
+      }
+   }
+
+   return result
+}
+
+static int convertStartTime(time) {
+   def (hr,mn,sc) = time.tokenize(":")
+   def h = hr.toInteger()
+   def m = mn.toInteger()
+   return h*60 + m
+}
+
+static byte[] convertTransitionsToBytes(trans,days) {
+   byte[] result = new byte[3 + trans.size()*4]
+
+   int i = 0;
+   result[i++] = trans.size()
+   result[i++] = days as byte
+   result[i++] = 0x04
+
+   trans.each {
+      def time = convertStartTime(it["startTime"])
+      def dur = it["duration"] as int
+      result[i++] = (time & 0xFF) as byte
+      result[i++] = ((time >> 8) & 0xFF) as byte
+      result[i++] = (dur & 0xFF) as byte
+      result[i++] = ((dur >> 8) & 0xFF) as byte
+   }
+
+   return result
+}
+
+static void sendThermostatReadCommand(ctx,payload) {
+	sendGenericCommand(ctx,1,CLUSTER_THERMOSTAT, 0x00, payload)
+}
+
+static void sendThermostatWriteCommand(ctx,payload) {
+   sendThermostatWriteCommand(ctx,1,payload)
+}
+
+static void sendThermostatWriteCommand(ctx,endpoint,payload) {
+   sendGenericCommand(ctx,endpoint,CLUSTER_THERMOSTAT, 0x02, payload)
+}
+
+static void sendGenericCommand(ctx,endpoint,cluster,command,payload) {
+	ctx.Zigbee.send(
+      "msp": ORBIT_MSP,
+      "cluster" : cluster,
+      "command" : command,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : false,
+		"defaultresponse" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static void sendClusterSpecificCommand(ctx,endpoint,cluster,command,payload) {
+	ctx.Zigbee.send(
+      "msp": ORBIT_MSP,
+      "cluster" : cluster,
+      "command" : command,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : true,
+		"defaultresponse" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static void sendClusterSpecificCommandNoResponse(ctx,endpoint,cluster,command,payload) {
+	ctx.Zigbee.send(
+      "msp": ORBIT_MSP,
+      "cluster" : cluster,
+      "command" : command,
+      "profile" : PROFILE_HA,
+      "endpoint" : endpoint,
+      "clusterspecific" : true,
+      "data" : payload as byte[]
+   )
+}
+
+static byte[] toBytes(short value) {
+   return [value & 0xFF,value >> 8]
+}
+

@@ -1,0 +1,40 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "GetEventConfiguration",
+      "txnid" : "316ce17a-9748-4713-9b07-951c34eb12ab"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "supportedEvents" : ["onBoot", "onDownloadComplete", "onDownloadFailed", "onUpdate", "onFactoryReset", "onValueChange"],
+    "enabledEvents" : ["onBoot", "onUpdate", "onFactoryReset", "onValueChange"],
+    "supportedValueChanges" : {
+      "ms2.temperature" : ["onChange", "onChangeBy", "onEquals", "onLessThan", "onGreaterThan"],
+      "ms2.humidity" : ["onChange", "onChangeBy", "onEquals", "onLessThan", "onGreaterThan"],
+      "ms2.luminosity" : ["onChange", "onChangeBy", "onEquals", "onLessThan", "onGreaterThan"],
+      "ms2.batterylevel" : ["onChange", "onChangeBy", "onEquals", "onLessThan", "onGreaterThan"],
+      "ms2.lightsensorenabled" : ["onChange", "onEquals"],
+      "ms2.temperaturescale" : ["onChange", "onEquals"]
+    },
+    "enabledValueChanges" : {
+      "ms2.temperature" : {
+        "onLessThan" : 2,
+        "onGreaterThan" : 27
+      },
+      "ms2.batterylevel" : {
+        "onChangeBy" : 10,
+        "onLessThan" : 15 
+      },
+      "ms2.lightsensorenabled" : {
+        "onChange" : true
+      }
+    }
+  }
+}

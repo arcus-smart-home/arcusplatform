@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="TwinStar"
+   namespace="twinstar"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of Twinstar (Duraflame) specific space heater features.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="ecomode" 
+         readwrite="rw" 
+         type="enum"
+         values="ENABLED, DISABLED"
+         optional="false"
+         description="If enabled the heater will reduce power consumption to save energy."/>
+   </c:attributes>
+                
+</c:capability>

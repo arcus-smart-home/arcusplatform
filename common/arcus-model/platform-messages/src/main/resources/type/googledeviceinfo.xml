@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="GoogleDeviceInfo"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>Represents a the device info model used by Google.</t:description>
+
+   <t:attributes>
+      <t:attribute name="manufacturer" type="string" description="The manufacturer of the device" optional="true"/>
+      <t:attribute name="model" type="string" description="The model or SKU for the device" optional="true"/>
+      <t:attribute name="hwVersion" type="string" description="Specific version number attached to the hardware" optional="true"/>
+      <t:attribute name="swVersion" type="string" description="Specific version number attached to the firmware" optional="true"/>
+  </t:attributes>
+
+ </t:type>

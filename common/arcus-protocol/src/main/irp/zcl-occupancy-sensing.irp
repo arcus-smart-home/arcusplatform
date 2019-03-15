@@ -1,0 +1,23 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 4.8 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.OccupancySensing {
+   const u16 CLUSTER_ID = 0x0406;
+
+   const u16 ATTR_OCCUPANCY = 0x0000;
+   const u16 ATTR_OCCUPANCY_SENSOR_TYPE = 0x0001;
+
+   const u16 ATTR_PIR_OCCUPIED_TO_UNOCCUPIED_DELAY = 0x0010;
+   const u16 ATTR_PIR_UNOCCUPIED_TO_OCCUPIED_DELAY = 0x0011;
+   const u16 ATTR_PIR_UNOCCUPIED_TO_OCCUPIED_THRESHOLD = 0x0012;
+
+   const u16 ATTR_ULTRASONIC_OCCUPIED_TO_UNOCCUPIED_DELAY = 0x0020;
+   const u16 ATTR_ULTRASONIC_UNOCCUPIED_TO_OCCUPIED_DELAY = 0x0021;
+   const u16 ATTR_ULTRASONIC_UNOCCUPIED_TO_OCCUPIED_THRESHOLD = 0x0022;
+
+   const u8 OCCUPANCY_SENSOR_TYPE_PIR = 0x00;
+   const u8 OCCUPANCY_SENSOR_TYPE_ULTRASONIC = 0x01;
+   const u8 OCCUPANCY_SENSOR_TYPE_PIR_AND_ULTRASONIC = 0x02;
+}

@@ -1,0 +1,69 @@
+#!/bin/bash
+
+KAFKA_REPLICATION=${KAFKA_REPLICATION:-3}
+
+if [ -e /etc/install/.eyeris-kafka ]; then
+   if [ "$1" == "-f" ]; then
+      echo "Kafka appears to already be provisioned, re-running since '-f' was specified"
+   else
+      echo "Kafka appears to already be provisioned, exiting..."
+      exit 0
+   fi
+fi
+
+check_kafka() {
+   # cqlsh will return an error code if it can't connect to cassandra
+   "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --list
+}
+
+# wait for kafka to come online
+check_kafka
+ONLINE=$?
+if [ $ONLINE != 0 ]; then
+   echo "Waiting for Kafka to come online..."
+   RETRIES=10
+   until [ $ONLINE == 0 ] || [ $RETRIES == 0 ]; do
+      sleep 10
+      RETRIES=$RETRIES-1
+      check_kafka
+      ONLINE=$?
+      echo "."
+   done
+fi
+if [ $ONLINE != 0 ]; then
+   echo "Timed out waiting for Kafka to come online..."
+   exit -1
+else
+   echo "Kafka is online"
+fi
+
+echo "127.0.0.1	kafka.eyeris" >> /etc/hosts
+
+export KAFKA_HEAP_OPTS="-Xmx4m -Xms4m"
+export KAFKA_JVM_PERFORMANCE_OPTS="-client -Djava.awt.headless=true"
+
+RESULT=0	
+echo "Creating Kafka Topics..."
+
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 32 --replication-factor ${KAFKA_REPLICATION} --topic "protocol_ipcdtodevice" & PID0=$!
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 32 --replication-factor ${KAFKA_REPLICATION} --topic "protocol_todriver" & PID1=$!
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 32 --replication-factor ${KAFKA_REPLICATION} --topic "protocol_tohub" & PID2=$!
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 32 --replication-factor ${KAFKA_REPLICATION} --topic "platform" & PID3=$!
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 32 --replication-factor ${KAFKA_REPLICATION} --topic "test" & PID4=$!
+
+wait $PID0; RESULT=$(($RESULT | $?))
+wait $PID1; RESULT=$(($RESULT | $?))
+wait $PID2; RESULT=$(($RESULT | $?))
+wait $PID3; RESULT=$(($RESULT | $?))
+wait $PID4; RESULT=$(($RESULT | $?))
+
+echo "DONE!"
+if [ $RESULT == 0 ]; then
+   echo "Kafka topics successfully provisioned!"
+   mkdir /etc/install
+   touch /etc/install/.eyeris-kafka
+else
+   echo "ERROR Provisioning Kafka topics, see log for more details"
+fi
+
+exit $RESULT

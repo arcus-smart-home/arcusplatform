@@ -1,0 +1,5 @@
+struct ZWaveCommandClassFrame {
+   u8 commandClassId;
+   u8 command;
+   u8[] payload;
+}

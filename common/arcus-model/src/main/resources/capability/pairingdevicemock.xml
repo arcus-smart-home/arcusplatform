@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+      name="PairingDeviceMock"
+      namespace="pairdevmock"
+      version="1.0"
+      xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      A mock for testing different pairing states
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+            name="targetProductAddress"
+            readwrite="r"
+            type="string"
+            optional="false"
+            description="The eventual product address that will be displayed when / if a driver is created for this mock." />
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="UpdatePairingPhase"
+         description="Updates the pairing phase, does not allow the mock to 'go backwards'">
+         <c:parameter 
+            name="phase"
+            type="enum"
+            values="JOIN,CONNECT,IDENTIFY,PREPARE,CONFIGURE,FAILED,PAIRED"
+            description="The phase to set the mock to, or empty / null to progress to the next logical phase for the given type of device."
+            optional="true"/>
+         <c:errors>
+            <c:error code="request.state.invalid" description="If there is an attempt to revert to a 'previous' phase." />
+         </c:errors>
+      </c:method>
+   </c:methods>
+
+</c:capability>

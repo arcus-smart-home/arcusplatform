@@ -1,0 +1,126 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+uses "zwave.GenericZWaveBattery"
+
+driver         "ZWaveUtilitechIndoorSirenDriver"
+description    "Driver for a Z-wave Utilitech Indoor Siren"
+version        "2.4"
+protocol       "ZWAV"
+deviceTypeHint "Siren"
+productId      "45fe8f"
+vendor         "Utilitech"
+model          "SE812"
+
+matcher        'ZWAV:Manufacturer': 0x0060, 'ZWAV:ProductType': 0x000C, 'ZWAV:ProductId': 0x0001
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Alert {
+   state Alert.STATE_QUIET
+}
+
+Identify {
+}
+
+ZWave {
+   match reflex {
+      on switch_binary.report, value: 0xFF
+      set Alert.state, Alert.STATE_ALERTING
+   }
+
+   match reflex {
+      on switch_binary.report, value: 0x00
+      set Alert.state, Alert.STATE_QUIET
+   }
+
+   match reflex {
+      on alarm.report, alarmtype: 0x01    // low battery alarm
+      on alarm.report, alarmtype: 0x02    // power applied alarm
+      send battery.get
+   }
+
+   match reflex {
+      on Identify.Identify
+
+      ordered {
+         send switch_binary.set, value: 0xFF
+         delay {
+            after 10, SECONDS
+            send switch_binary.set, value: 0x00
+         }
+      }
+
+      respond 'ident:IdentifyResponse'
+   }
+
+   match reflex {
+      on Alert.state, Alert.STATE_QUIET
+      ordered {
+         send switch_binary.set, value: 0x00
+         send switch_binary.get
+      }
+   }
+ 
+   match reflex {
+      on Alert.state, Alert.STATE_ALERTING
+      ordered {
+         send switch_binary.set, value: 0xFF
+         send switch_binary.get
+      }
+   }
+
+   poll reflex {
+      on connected
+      after 6, HOURS
+      send switch_binary.get
+   }
+
+   offlineTimeout 24, HOURS
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "{} added", DEVICE_NAME
+}
+
+onConnected {
+   log.debug "{} connected", DEVICE_NAME
+}
+
+onDisconnected {
+   log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+   log.debug "{} removed", DEVICE_NAME
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Battery report handling
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+

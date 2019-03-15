@@ -1,0 +1,355 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Care Pendant
+ *
+ * To Reset Device:
+ *    Insert battery and then press button inside device 5 times within the first 10 seconds.
+ *
+ * Check-in/Offline:
+ *    These devices send a heartbeat command approximately every 120 seconds (two minutes).
+ *    The offline timeout is set to 6.5 minutes, marking the device as offline if three consecutive checkins are missed.
+ *
+ * Not Supported:
+ *  - Currently no capability methods or framework in place to support the "Help Called" and "Help Comming" states
+ *
+ *  - Currently no support provided for "Walk Test" which buts the device into a mode where it is reporting and displaying
+ *    (via LEDs and Beeps) its LQI readings, used to verify coverage throughout a residence.
+ *
+ */
+import groovy.transform.Field
+
+driver			"ZB_AlertMe_CarePendant"
+description		"Driver for the AlertMe Care Pendant"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Pendant"
+productId		"2c982d"
+vendor 			"Iris"
+model 			"CarePendant"
+
+matcher         'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'Care Pendant Device'
+
+capabilities	DevicePower, Button, Presence
+
+importCapability 'generic/PresenceDeviceConnection'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS = 600            // 10 minutes
+
+@Field def short PROFILE_ALERTME_MSP = 49686    // 0xC216
+
+@Field def short CLUSTER_GENERAL = 240          // 0x00F0
+@Field def short CLUSTER_ATTRIBUTES = 192       // 0x00C0
+
+@Field def byte MSG_LIFESIGN = 251              // 0xFB Lifesign message from General Cluster
+@Field def byte MSG_STOP_POLLING = 253          // 0xFD Stop Polling message from General Cluster
+
+
+@Field def byte HELPSTATE_IDLE = 0
+@Field def byte HELPSTATE_HELP_NEEDED = 1
+@Field def byte HELPSTATE_HELP_NEEDED_ACK = 2
+@Field def byte HELPSTATE_HELP_CALLED = 3
+@Field def byte HELPSTATE_HELP_COMING = 4
+
+@Field def final long DFLT_RELEASE_DELAY_MSEC = 1000		    // 1 second delay before marking button released
+
+
+// The Pendant needs to know the state of the system so that it can play appropriate sounds and light appropriate LEDs.
+// It expects to be told the state whenever it changes, or whenever it asks.
+// The Pendant will change the state to HELPSTATE_HELP_NEEDED whenever the button is pressed and then tell the hub immediately.
+// It will continue to tell the hub the state every 30 seconds until the hub alters the state.
+// If it is altered to HELPSTATE_HELP_NEEDED_ACK, then the state will still be sent to the hub on a regular basis, but only every 2 minutes.
+// The idea here is that even though the hub has acknowledged the message, it may get reset before it can talk to the servers,
+// so the pendant keeps reminding it until the Pendant’s state is changed to either HELPSTATE_HELP_CALLED or HELPSTATE_HELP_COMING.
+//
+// Note that there is no expectation in the Pendant firmware for the state to change in any particular order.
+// Also, there is nothing to stop the hub setting the state to HELPSTATE_HELP_NEEDED, although that would be odd.
+// There is nothing in the firmware to tell what caused the state to change, so it would then proceed as if the button had been pressed.
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// User defined methods
+////////////////////////////////////////////////////////////////////////////////
+
+void setDvcHelpState(byte state) {
+	byte[] bytes = [state]
+	Zigbee.send("cluster" : CLUSTER_ATTRIBUTES, "command" : 2, "profile" : PROFILE_ALERTME_MSP, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : bytes)
+}
+
+
+void updateHelpState(byte state) {
+
+	log.debug "Care pendant set helpState to {}", state
+
+	switch(state)
+	{
+		    // if state changed to Help Needed, set Alerting to ALERTING and set device state to
+		    // Help Needed Ack to acknowledge that we know about the new state
+			// also mark Button.state Pressed, and then Released, a short time later
+		case HELPSTATE_HELP_NEEDED:
+			Button.state Button.STATE_PRESSED
+			Scheduler.scheduleIn 'ButtonRelease', DFLT_RELEASE_DELAY_MSEC
+			log.debug "Device reported Help State NEEDED."
+			vars.'targetHelpState' = HELPSTATE_HELP_NEEDED_ACK
+			//setDvcHelpState(HELPSTATE_HELP_NEEDED_ACK)
+			break
+
+			// if state changed to Help Called or Help Coming, make sure Alerting is still set to ALERTING
+		case HELPSTATE_HELP_CALLED:
+			log.debug "Device reported Help State CALLED"
+			break
+
+		case HELPSTATE_HELP_COMING:
+			log.debug "Device reported Help State COMING."
+			break
+
+			// if state changed to Idle, make sure Alerting is set to Quiet
+		case HELPSTATE_IDLE:
+			log.debug "Device reported Help State IDLE."
+			break
+
+		default:
+			break
+	}
+}
+
+onEvent('ButtonRelease') {
+	Button.state Button.STATE_RELEASED
+}
+
+
+void processRecievedAttrs(byte[] data, int payloadLen) {
+	log.debug "Care pendant processing received attrs, payload: " + data + " payload len: " + payloadLen
+	def i = 0
+	while(i < payloadLen){
+		def leByte2 = (byte)data[i++]
+		def leByte1 = (byte)data[i++]
+		def attrID = leByte1 + leByte2
+		log.debug "Care Pendant received from attrID : {}", attrID
+		if(attrID == 0x0020){
+			updateHelpState(data[++i])
+		}
+		++i
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "AlertMe CarePendant device added."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Button.state                     Button.STATE_RELEASED
+	Button.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Presence.presence                Presence.PRESENCE_PRESENT
+	Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+        Presence.usehint                 Presence.USEHINT_UNKNOWN
+        Presence.person                 'UNSET'
+
+	vars.'targetHelpState' = -1      // initialize to no "target" help state for device
+
+	// send a Mode Change message to make sure device is in normal ops mode
+	byte[] modeBytes = [0x00, 0x01]		// normal mode, set Home Network Flag (HNF)
+	Zigbee.send("cluster" : 0x00F0, "command" : 0xFA, "profile" : 0xC216, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : modeBytes)
+}
+
+onConnected {
+	log.debug "AlertMe CarePendant device connected."
+
+	// send a "Hello" message, if needed/wanted
+	byte[] helloBytes = []
+	Zigbee.send("cluster" : 0x00F6, "command" : 0xFC, "profile" : 0xC216, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : helloBytes)
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "AlertMe CarePendant device disconnected."
+}
+
+onRemoved {
+	log.debug "AlertMe CarePendant device removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Attribute Setters
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('but') {
+   log.debug "setAttributes('but'): {}", message
+   def attributes = message.attributes
+
+   for(attribute in attributes) {
+	   switch(attribute.key) {
+		   case Button.state:
+			   def prevState = Button.state.get()
+			   log.debug "Setting button state to {}", attribute.value
+			   if (attribute.value == 'PRESSED') {
+			       log.debug "Setting home button state to pressed"
+			       Button.state Button.STATE_PRESSED
+			   }
+			   else if (attribute.value == 'RELEASED'){
+			       log.debug "Setting home button state to released"
+			       Button.state Button.STATE_RELEASED
+			   }
+			   // if button state changed, capture timestamp
+			   if (Button.state.get() != prevState) {
+			       Button.statechanged new Date()
+			   }
+			   break
+
+		   default:
+			   log.warn "unrecognized attribute: {}", attribute
+			   break
+	   }
+   }
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute: {}" attribute
+      }
+   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	def zclMsg = Zigbee.Message.toZcl(message)
+	def clusterId = zclMsg.getClusterId()
+	def messageId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def profile = zclMsg.getProfileId()
+	def flags = zclMsg.getFlags()
+	def payloadLen = zclMsg.getLength()
+	byte[] data = zclMsg.getPayload()
+
+	// Cluster 0xF0, CmdId 0xFB, Heartbeat
+	if ((240 == clusterId) && (251 == messageId)) {
+		log.trace "Care Pendant received heartbeat"
+
+		if (0 != (0x01 & data[0])) {		// bit 0 set in first byte, so Voltage reported
+			int mVolts = ((data[6] & 0xFF) * 256) + (data[5] & 0xFF)
+			double volts = mVolts / 1000.0
+			log.trace "Battery Volts:{}", volts
+			double minVolts = 2.1
+			double nomVolts = 3.0
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = Math.round(battPercent)
+			log.debug "Battery Percent:{}", intBattPercent
+			DevicePower.battery intBattPercent
+		}
+
+		if (0 != (0x08 & data[0])) {		// bit 3 set in first byte, so LQI reported
+			int lqi = data[10]
+			if (0 > lqi) {
+				lqi = 256 + lqi
+			}
+			double signal = (lqi * 100.0) / 255.0
+			log.trace "LQI: {}, (percent:{})", lqi, (int)signal
+			DeviceConnection.signal ((int)signal)
+		}
+
+		// if bit 2 set in first byte, so State is reported,
+		if (0 != (0x04 & data[0])) {
+			log.trace "Pendant State: " + data[12]
+		}
+
+		// if a target Help State is set, send that
+		if (-1 != vars.'targetHelpState') {
+			setDvcHelpState((byte)vars.'targetHelpState')
+			// after we set the target Help state, tell device we are done until next Checkin
+			vars.'targetHelpState' = -1;
+			Scheduler.scheduleIn 'DeferredStopPolling', 500
+		} else {	// otherwise, tell device we are done until next Checkin
+
+			// send Stop Polling (ID:0xFD) for General Cluster (ID:0x00F0) so device
+			// only sends a heartbeat message once every 2 minutes instead of 3 times a minute.
+			byte[] bytes = []
+			Zigbee.send("cluster" : CLUSTER_GENERAL, "command" : MSG_STOP_POLLING, "profile" : PROFILE_ALERTME_MSP, "endpoint" : 2,
+				"clusterspecific" : true, "defaultresponse" : true, "data" : bytes)
+		}
+
+		return
+	}
+	
+	// Join Cluster 0xF6, Hello Response 0xFE
+	if ((246 == clusterId) && (254 == messageId)) {
+		log.trace "Device received Hello Response"
+		if (18 <= payloadLen) {		// should be 63 bytes, but we are only looking at first 18
+			int nodeId = ((data[1] * 256) + data[0]) & 0xFFFF
+			int mfgId = ((data[11] * 256) + data[10]) & 0xFFFF
+			int dvcType = (data[13] * 256) + data[12]
+			byte appRel = data[14]
+			double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+			double hwVer = new Double(data[17]) + (new Double(data[16]) / 10)
+			log.trace "NodeId:0x{}, MfgId:0x{}, DvcType:{}, App Release:{}, App Ver:{}, HW Ver:{}", 
+				Integer.toHexString(nodeId).toUpperCase(), Integer.toHexString(mfgId).toUpperCase(), dvcType, appRel, appVer, hwVer
+                        DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+		}
+		return
+	}
+
+	if ((CLUSTER_ATTRIBUTES == clusterId) && (messageId == 10 || messageId == 0)){
+		processRecievedAttrs(data, payloadLen)
+		return
+	}
+
+	log.debug "Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:" + data, profile, clusterId, messageId, endpoint, flags, payloadLen
+}
+
+onEvent('DeferredStopPolling') {
+
+	// send Stop Polling (ID:0xFD) for General Cluster (ID:0x00F0) so device
+	// only sends a heartbeat message once every 2 minutes instead of 3 times a minute.
+	byte[] bytes = []
+	Zigbee.send("cluster" : CLUSTER_GENERAL, "command" : MSG_STOP_POLLING, "profile" : PROFILE_ALERTME_MSP, "endpoint" : 2,
+		"clusterspecific" : true, "defaultresponse" : true, "data" : bytes)
+}
+

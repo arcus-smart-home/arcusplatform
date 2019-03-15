@@ -1,0 +1,23 @@
+
+message zwave.ThermostatSetback.ThermostatSetbackGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.ThermostatSetback.ThermostatSetbackReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_SETBACK_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_SETBACK_TYPE_SHIFT = 0;
+    const u8 SETBACK_STATE_FROST_PROTECTION = 0x79;
+    const u8 SETBACK_STATE_ENERGY_SAVING_MODE = 0x7A;
+    const u8 SETBACK_STATE_UNUSED_STATE = 0x7F;
+    u8 properties1;
+    u8 setbackState;
+}
+
+message zwave.ThermostatSetback.ThermostatSetbackSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_SETBACK_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_SETBACK_TYPE_SHIFT = 0;
+    const u8 SETBACK_STATE_FROST_PROTECTION = 0x79;
+    const u8 SETBACK_STATE_ENERGY_SAVING_MODE = 0x7A;
+    const u8 SETBACK_STATE_UNUSED_STATE = 0x7F;
+    u8 properties1;
+    u8 setbackState;
+}

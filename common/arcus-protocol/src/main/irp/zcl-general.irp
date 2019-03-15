@@ -1,0 +1,167 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library general command frames
+//    From Section 2.4 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+message zcl.General.ZclReadAttributes<id="0x00"> {
+   u16[] attributes;
+}
+
+struct zcl.General.ZclReadAttributeRecord {
+   u16 attributeIdentifier;
+   u8 status;
+   ZclData attributeData when (status == ZB_STATUS_SUCCESS);
+   // u8 attributeDataType when (status == ZB_STATUS_SUCCESS);
+   // u8[] attributeValue when (status == ZB_STATUS_SUCCESS);
+}
+
+message zcl.General.ZclReadAttributesResponse<id="0x01"> {
+   ZclReadAttributeRecord[] attributes;
+}
+
+struct zcl.General.ZclWriteAttributeRecord {
+   u16 attributeIdentifier;
+   ZclData attributeData;
+   // u8 attributeDataType;
+   // u8[] attributeData;
+}
+
+message zcl.General.ZclWriteAttributes<id="0x02"> {
+   ZclWriteAttributeRecord[] attributes;
+}
+
+message zcl.General.ZclWriteAttributesUndivided<id="0x03"> {
+   ZclWriteAttributeRecord[] attributes;
+}
+
+struct zcl.General.ZclWriteAttributeStatus {
+   u8 status;
+   u16 attributeIdentifier;
+}
+
+message zcl.General.ZclWriteAttributesResponse<id="0x04"> {
+   ZclWriteAttributeStatus[] attributes;
+}
+
+message zcl.General.ZclWriteAttributesNoResponse<id="0x05"> {
+   ZclWriteAttributeRecord[] attributes;
+}
+
+struct zcl.General.ZclAttributeReportingConfigurationRecord {
+   u8 direction;
+   u16 attributeIdentifier;
+   u8 attributeDataType 
+      random (byte)ZclDataUtil.getRandomInstanceType()
+      when (direction == 0x00);
+   u16 minimumReportingInterval when (direction == 0x00);
+   u16 maximumReportingInterval when (direction == 0x00);
+   u8[] reportableChange 
+      size ZclDataUtil.extraSize(attributeDataType)
+      encoding ZclDataUtil.writeValue(output, attributeDataType, reportableChange)
+      decoding ZclDataUtil.readValue(input, attributeDataType)
+      random ZclDataUtil.getEncodedRandomInstanceValue(attributeDataType)
+      when (direction == 0x00 && ZclDataUtil.isAnalog(attributeDataType));
+   u16 timeoutPeriod when (direction != 0x00);
+}
+
+message zcl.General.ZclConfigureReporting<id="0x06"> {
+   ZclAttributeReportingConfigurationRecord[] attributes;
+}
+
+struct zcl.General.ZclAttributeStatusRecord {
+   u8 status;
+   u8 direction;
+   u16 attributeIdentifier;
+}
+
+message zcl.General.ZclConfigureReportingResponse<id="0x07"> {
+   ZclAttributeStatusRecord[] attributes;
+}
+
+struct zcl.General.ZclAttributeRecord {
+   u8 direction;
+   u16 attributeIdentifier;
+}
+
+message zcl.General.ZclReadReportingConfiguration<id="0x08"> {
+   ZclAttributeRecord[] attributes;
+}
+
+struct zcl.General.ZclReadReportingConfigurationRecord {
+   u8 status;
+   u8 direction;
+   u16 attributeIdentifier;
+   u8 attributeDataType 
+      random (byte)ZclDataUtil.getRandomInstanceType()
+      when (status == ZB_STATUS_SUCCESS);
+   u16 minimumReportingInterval when (status == ZB_STATUS_SUCCESS && direction == 0x00);
+   u16 maximumReportingInterval when (status == ZB_STATUS_SUCCESS && direction == 0x00);
+   u8[] reportableChange 
+      size ZclDataUtil.extraSize(attributeDataType)
+      encoding ZclDataUtil.writeValue(output, attributeDataType, reportableChange)
+      decoding ZclDataUtil.readValue(input, attributeDataType)
+      random ZclDataUtil.getEncodedRandomInstanceValue(attributeDataType)
+      when (status == ZB_STATUS_SUCCESS && direction == 0x00 && ZclDataUtil.isAnalog(attributeDataType));
+   u16 timeoutPeriod when (status == ZB_STATUS_SUCCESS && direction != 0x00);
+}
+
+message zcl.General.ZclReadReportingConfigurationResponse<id="0x09"> {
+   ZclReadReportingConfigurationRecord[] attributes;
+}
+
+struct zcl.General.ZclAttributeReport {
+   u16 attributeIdenifier;
+   ZclData attributeData;
+}
+
+message zcl.General.ZclReportAttributes<id="0x0A"> {
+   ZclAttributeReport[] attributes;
+}
+
+message zcl.General.ZclDefaultResponse<id="0x0B"> {
+   u8 commandIdentifier;
+   u8 status;
+}
+
+message zcl.General.ZclDiscoverAttributes<id="0x0C"> {
+   u16 startAttributeIdentifier;
+   u8 maximumAttributeIdentifiers;
+}
+
+struct zcl.General.ZclAttributeInformation {
+   u16 attributeIdentifer;
+   u8 attributeDataType;
+}
+
+message zcl.General.ZclDiscoverAttributesResponse<id="0x0D"> {
+   u8 discoveryComplete;
+   ZclAttributeInformation[] attributes;
+}
+
+struct zcl.General.ZclAttributeSelector {
+   u16 attributeIdentifier;
+   u8 indicator;
+   u16[indicator] indexes;
+}
+
+message zcl.General.ZclReadAttributesStructured<id="0x0E"> {
+   ZclAttributeSelector[] attributes;
+}
+
+struct zcl.General.ZclWriteAttributeSelector {
+   ZclAttributeSelector selector;
+   ZclData attributeData;
+}
+
+message zcl.General.ZclWriteAttributesStructured<id="0x0F"> {
+   ZclWriteAttributeSelector[] attributes;
+}
+
+struct zcl.General.ZclWriteStatusRecord {
+   u8 status;
+   ZclAttributeSelector selector when (status != ZB_STATUS_SUCCESS);
+}
+
+message zcl.General.ZclWriteAttributesStructuredResponse<id="0x10"> {
+   ZclWriteStatusRecord[] attributes;
+}

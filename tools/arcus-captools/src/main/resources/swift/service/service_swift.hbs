@@ -1,0 +1,44 @@
+{{#file . "Generated/Services/{{name}}.swift"}}
+//
+// {{name}}.swift
+//
+// Generated on {{today}}
+
+import Foundation
+import RxSwift
+import PromiseKit
+
+// MARK: Constants
+
+extension Constants {
+  public static let {{uncapitalize name}}Namespace: String = "{{namespace}}"
+  public static let {{uncapitalize name}}Name: String = "{{name}}"
+  public static let {{uncapitalize name}}Address: String = "SERV:{{namespace}}:"
+}
+
+/** {{description}} */
+public protocol Iris{{name}}: RxIrisService {
+  {{#methods}}/** {{description}} */
+  {{#if parameters}}func request{{parent (capitalize name)}}({{#parameters}}{{#if @first}}_ {{/if}}{{cleanse name}}: {{swiftTypeOfRequestParam type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}){{else}}func request{{parent (capitalize name)}}(){{/if}} throws -> Observable<IrisSessionEvent>{{/methods}}
+}
+
+extension Iris{{name}} {
+  {{#methods}}{{#if parameters}}public func request{{parent (capitalize name)}}({{#parameters}}{{#if @first}}_ {{/if}}{{cleanse name}}: {{swiftTypeOfRequestParam type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}){{else}}public func request{{parent (capitalize name)}}(){{/if}} throws -> Observable<IrisSessionEvent> {
+    let request: {{parent (capitalize name)}}Request = {{parent (capitalize name)}}Request()
+    {{#equals name "RegisterDevice"}}{{#equals ../name "BridgeService"}}request.source = "BRDG::IPCD"
+    {{else}}request.source = Constants.{{uncapitalize ../name}}Address{{/equals}}{{else}}request.source = Constants.{{uncapitalize ../name}}Address{{/equals}}
+    {{#if restful}}request.isRequest = true{{/if}}
+    {{#equals name "ChangePin"}}request.setNewPin(newPin)
+    if (currentPin.characters.count > 0) {
+      request.setCurrentPin(currentPin)
+    }{{else}}{{#equals name "AddPerson"}}if let model = person as? IrisModel,
+      let attributes: [String: AnyObject] = model.get() {
+      request.setPerson(attributes)
+    }{{else}}{{#if parameters}}{{#parameters}}
+    request.set{{responseProperty name}}({{cleanse name}}){{/parameters}}{{/if}}{{/equals}}{{/equals}}
+
+    return try sendRequest(request)
+  }
+  {{/methods}}
+}
+{{/file}}

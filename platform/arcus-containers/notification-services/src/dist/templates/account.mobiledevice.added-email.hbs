@@ -1,0 +1,36 @@
+{{#section "subject"}}
+Your Iris Account Was Logged Into From A New Device
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+A new mobile device was used to sign into your Iris account. If you 
+are aware of this change, please disregard this email.
+
+By default, this device will now receive your push notifications. 
+Edit these settings by going to Settings > Profile > Push Notifications.
+
+If you did not recently sign into your Iris account from a new mobile 
+device, your account may have been compromised.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>A new mobile device was used to sign into your Iris account. If you are aware of this change, please disregard this email.</p>
+	<p/>
+	<p>By default, this device will now receive your push notifications. Edit these settings by going to Settings &gt; Profile &gt; Push Notifications.</p>
+	<p/>
+	<p>If you did not recently sign into your Iris account from a new mobile device, your account may have been compromised.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

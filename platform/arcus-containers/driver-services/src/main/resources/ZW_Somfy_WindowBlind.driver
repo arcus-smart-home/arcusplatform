@@ -1,0 +1,303 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * !!!! DRIVER NO LONGER USED !!!!
+ * Driver for a Somfy Window Blind
+ *
+ *
+ *
+ * http://www.automatedshadestore.com/shop/product-info.php?Somfy_Z-Wave_to_RTS_Interface_NEW-pid561.html
+ * http://www.automatedshadestore.com/shop/product-info.php?Somfy_WireFree_Tilt_Motor__RTS__for_2__Blinds-pid120.html
+ * 
+ * 
+ * NOTES:
+ * - A single Blind can be RTS joined to multiple channels.  So Channel 1 might control Blind 1, Channel 2 Blind 2,
+ *   and Channel 3 both Blind 1 and 2.
+ * - Send a "switch_multilevel.stop_level_change" message to move the shades/blinds to a stored "favorite" position, if any.
+ * 
+ */
+
+ 
+driver			"ZWSomfyWindowBlindsDriver"
+description		"Driver for a Z-Wave Somfy Window Blind"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"SomfyV1Blind"
+productId		"f05b37"
+vendor 			"Uncertified"		// "Somfy"
+model 			"1811265"
+
+//matcher			'ZWAV:Manufacturer': 0x0047, 'ZWAV:ProductType': 0x5A52
+matcher			'ZWAV:Manufacturer': 999999999, 'ZWAV:ProductType': 999999999, 'ZWAV:ProductId': 999999999		//  !!!! DRIVER NO LONGER USED !!!!
+
+capabilities	DevicePower, Shade, Somfy1  // , Identify (used to test "Favorite"
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+
+// Command Classes:
+//		0x20 (32)   Basic
+//		0x25 (37)   Switch_Binary
+//		0x26 (38)   Switch_Multilevel
+//      0x2B (43)   Scene_Activation
+//      0x2C (44)   Scene_Actuator_Conf
+//		0x72 (114)  Manufacturer_Specific
+//		0x86 (-122) Version
+
+
+def final int POLLING_INTERVAL_SEC = 71         // Iris 1 polls every 30 seconds
+def final int OFFLINE_TIMEOUT_SECS = 1800       // Offline if no communications for 30 minutes
+
+def final byte MOVE_INSTANTLY = 0x01
+def final long DFLT_READBACK_DELAY_MSEC = 1000  // delay before reading back current setting
+
+def final String CURRENT_NAME = 'Somfy Window Blind'
+
+
+onAdded {
+	log.debug "${CURRENT_NAME} added"
+	log.debug "Message Attributes: {}", message.attributes
+	
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable             false
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Somfy1.mode                         Somfy1.MODE_SHADE
+	Somfy1.reversed                     Somfy1.REVERSED_NORMAL
+	
+	Shade.supportsopen                  Shade.SUPPORTSOPEN_LEVEL
+	Shade.open                          0
+	Shade.supportstilt                  Shade.SUPPORTSTILT_NONE
+	Shade.tilt                          0
+	Shade.settingchanged                ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	vars.'targetTilt' = 0
+	vars.'targetOpen' = 0
+}
+
+onConnected {
+	log.debug "${CURRENT_NAME} connected"
+
+	// get the current switch level
+	ZWave.switch_multilevel.get()
+
+	// These devices do not send a switch_multilevel.report when their level is changed locally,
+	// so periodically poll for the current switch level.  They do send a Node Info when the
+	// level is changed locally, but we also periodically poll in case we miss that message.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+onDisconnected {
+	log.debug "${CURRENT_NAME} disconnected"
+}
+
+
+onRemoved {
+	log.debug "${CURRENT_NAME} removed"
+}
+
+
+// ########### capability support ##################
+
+setAttributes('somfy1') {
+	log.debug "Driver received setAttributes(somfy1) message: {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Somfy1.mode:
+				log.debug "Set Smofy1.mode to: {}", attribute.value
+				Somfy1.mode attribute.value
+
+				// since Mode was set, adjust shade attributes to match
+				if (Somfy1.MODE_SHADE == Somfy1.mode.get()) {
+					Shade.supportsopen Shade.SUPPORTSOPEN_LEVEL
+					Shade.supportstilt Shade.SUPPORTSTILT_NONE
+					Shade.tilt 0
+				} else {
+					Shade.supportsopen Shade.SUPPORTSOPEN_NONE
+					Shade.supportstilt Shade.SUPPORTSTILT_OPENCLOSED
+					Shade.open 0
+				}
+				ZWave.switch_multilevel.get()
+				break
+	
+			case Somfy1.reversed:
+				log.debug "Set Smofy1.reversed to: {}", attribute.value
+				Somfy1.reversed attribute.value
+				ZWave.switch_multilevel.get()
+				break
+	
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+setAttributes('shade') {
+	log.debug "Driver received setAttributes(shade) message: {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Shade.tilt:
+				if (Somfy1.MODE_BLIND == Somfy1.mode.get()) {
+					// determine if previous state of blinds was Closed
+					def boolean prevStateClosed = ((0 == Shade.tilt.get()) ? true : false)
+					if (Somfy1.REVERSED_REVERSED == Somfy1.reversed.get()) {
+						prevStateClosed = !prevStateClosed
+					}
+					
+					// Set tilt level of blinds
+					def int targetTilt = normalizePercent((int)attribute.value)
+					
+					if (0 == targetTilt) {
+						// tell device to Close
+					log.trace 'Close Blinds'
+						if (Somfy1.REVERSED_NORMAL == Somfy1.reversed.get()) {
+							ZWave.switch_multilevel.set( (byte)0x00, MOVE_INSTANTLY)
+						} else {
+							ZWave.switch_multilevel.set( (byte)0xFF, MOVE_INSTANTLY)
+						}
+						if (!prevStateClosed) { Shade.settingchanged new Date() }
+					} else {
+						// tell device to Open
+					log.trace 'Open Blinds'
+						if (Somfy1.REVERSED_NORMAL == Somfy1.reversed.get()) {
+							ZWave.switch_multilevel.set( (byte)0xFF, MOVE_INSTANTLY)
+						} else {
+							ZWave.switch_multilevel.set( (byte)0x00, MOVE_INSTANTLY)
+						}
+						if (prevStateClosed) { Shade.settingchanged new Date() }
+					}
+					
+					vars.'targetTilt' = targetTilt
+					
+					// read back the level (delay this so device has time to reposition)
+					Scheduler.scheduleIn 'DeferredRead', DFLT_READBACK_DELAY_MSEC
+
+				} else {
+					log.warn "Error, cannot set tilt for Somfy Shade"
+				}
+				break
+	
+			case Shade.open:
+				if (Somfy1.MODE_SHADE == Somfy1.mode.get()) {
+					def int prevOpenLevel = Shade.open.get()
+					def int targetOpenLevel = normalizePercent((int)attribute.value)
+
+					if (Somfy1.REVERSED_REVERSED == Somfy1.reversed.get()) {
+						targetOpenLevel = 100 - targetOpenLevel
+					}
+
+					log.trace "Set Shade to: $targetOpenLevel"
+					ZWave.switch_multilevel.set( (byte)targetOpenLevel, MOVE_INSTANTLY)
+					
+					vars.'targetOpen' = targetOpenLevel
+					
+					// read back the level (delay this so device has time to reposition)
+					Scheduler.scheduleIn 'DeferredRead', DFLT_READBACK_DELAY_MSEC
+
+				} else {
+					log.warn "Error, cannot set open(raise) for Somfy Blind"
+				}
+				break
+	
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+int normalizePercent (int targetVal) {
+	// limit Value from 0 to 100
+	if (100 < targetVal) {
+		log.warn "Limitting requested Value of $targetVal to max allowed of 100"
+		targetVal = 100
+	}
+	if (0 > targetVal) {
+		log.warn "Limitting requested Value of $targetVal to min allowed of 0"
+		targetVal = 0
+	}
+	return targetVal
+}
+
+
+onEvent('DeferredRead') {
+	log.debug 'Perform Deferred switch_multilevel.get'
+	ZWave.switch_multilevel.get()
+}
+
+
+
+onZWaveMessage.switch_multilevel.report {
+	log.debug "Driver received multilevel switch report: {}", message
+
+	if (Somfy1.MODE_BLIND == Somfy1.mode.get()) {
+		int tilt = new Double(message.command.get('value')).intValue()
+		
+		if (0x00 == tilt) {
+			if (Somfy1.REVERSED_NORMAL == Somfy1.reversed.get()) {
+				Shade.tilt 0
+			} else {
+				Shade.tilt ( (0 == vars.'targetTilt') ? 50 : vars.'targetTilt' )		// if targetTilt was never set to non-zero just use 50
+			}
+		} else {
+			if (Somfy1.REVERSED_NORMAL == Somfy1.reversed.get()) {
+				Shade.tilt ( (0 == vars.'targetTilt') ? 50 : vars.'targetTilt' )		// if targetTilt was never set to non-zero just use 50
+			} else {
+				Shade.tilt 0
+			}
+		}
+	} else {
+		int openLevel = new Double(message.command.get('value')).intValue()
+		def int reportedOpenLevel = normalizePercent((int)openLevel)
+		if (Somfy1.REVERSED_REVERSED == Somfy1.reversed.get()) {
+			reportedOpenLevel = 100 - reportedOpenLevel
+		}
+		Shade.open reportedOpenLevel
+	}
+}
+
+
+onZWaveNodeInfo {
+	log.debug "${CURRENT_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+
+onIdentify.Identify {
+	log.debug 'Move to Favorite'
+	
+	// send a "stop_level_change" message to move the shades/blinds to a stored "favorite" position, if any
+	ZWave.switch_multilevel.stop_level_change()
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubDebug"
+   namespace="hubdebug"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+   </c:description>
+
+   <c:attributes>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="GetFiles"
+         description="Gets the current contents of the HubOS syslog file.">
+         <c:parameters>
+            <c:parameter
+               name="paths"
+               type="list&lt;string&gt;"
+               description="List of files/directories to return."
+               optional="false"/>
+           <c:return
+               name="content"
+               type="string"
+               description="Zip file of files, base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="GetAgentDb"
+         description="Gets the current contents of the agent database.">
+         <c:parameters>
+           <c:return
+               name="db"
+               type="string"
+               description="Agent database, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="GetSyslog"
+         description="Gets the current contents of the HubOS syslog file.">
+         <c:parameters>
+           <c:return
+               name="syslogs"
+               type="string"
+               description="Recent syslog statements from the hub, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="GetBootlog"
+         description="Gets the current contents of the HubOS bootlog file.">
+         <c:parameters>
+           <c:return
+               name="bootlogs"
+               type="string"
+               description="Recent bootlog statements from the hub, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="GetProcesses"
+         description="Gets the current list of processes from the HubOS.">
+         <c:parameters>
+           <c:return
+               name="processes"
+               type="string"
+               description="Current processes from the hub, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="GetLoad"
+         description="Gets the current process load information from the HubOS.">
+         <c:parameters>
+           <c:return
+               name="load"
+               type="string"
+               description="Current process load information from the hub, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+   </c:methods>
+
+   <c:events>
+   </c:events>
+
+</c:capability>

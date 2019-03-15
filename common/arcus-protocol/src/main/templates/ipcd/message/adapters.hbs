@@ -1,0 +1,29 @@
+{{#file . "com/iris/protocol/ipcd/message/serialize/{{capitalize name}}CommandAdapter.java"}}
+package com.iris.protocol.ipcd.message.serialize;
+
+import java.lang.reflect.Type;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import com.iris.protocol.ipcd.message.model.{{capitalize name}}Command;
+
+public class {{capitalize name}}CommandAdapter implements JsonSerializer<{{capitalize name}}Command> {
+	
+	@Override
+	public JsonElement serialize({{capitalize name}}Command input, Type typeOfSrc, JsonSerializationContext context) {
+		final JsonObject object = new JsonObject();
+		{{#properties}}{{#if required}}
+		object.add("{{name}}", context.serialize(input.{{toGetter name}}));
+		{{else}}
+		if (input.{{toGetter name}} != null) {
+			object.add("{{name}}", context.serialize(input.{{toGetter name}}));
+		}
+		{{/if}}{{/properties}}
+		return object;
+	}
+}
+
+{{/file}}

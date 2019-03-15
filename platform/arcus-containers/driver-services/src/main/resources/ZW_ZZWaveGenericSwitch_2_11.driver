@@ -1,0 +1,162 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Generic ZWave Switch
+ *
+ * The following Binary Switch Types are intentionally not included:
+ *         SPECIFIC_TYPE_SIREN					Will do a specific Siren implementation
+ *         SPECIFIC_TYPE_VALVE_OPEN_CLOSE		Per ZWave specs gets Basic UI.  They let valves get certified before defining if Set is open or closed.
+ */
+import groovy.transform.Field
+import com.iris.protocol.zwave.ZWaveGenericDevices;
+import com.iris.protocol.zwave.ZWaveSwitchBinarySpecificDevices;
+
+uses 'zwave.GenericZWaveVersion'
+uses 'zwave.GenericZWaveSwitch'
+
+
+driver           "ZZWaveGenericSwitch"		// must be after "ZW*" but before "_Z", note "Z" < "_" < "a", so must start with "ZX" to "Zz"
+description      "Driver for a Generic ZWave Switch"
+version          "2.11"
+protocol         "ZWAV"
+deviceTypeHint   "Switch"
+productId        "6a53b8"
+vendor           "Z-Wave"
+model            "Switch"
+
+
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_TYPE_NOT_USED                      // 0x10, 0x00
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_TYPE_POWER_SWITCH_BINARY           // 0x10, 0x01
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_DEVICE_BINARY_TUNABLE_COLOR_LIGHT  // 0x10, 0x02
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_TYPE_SCENE_SWITCH_BINARY           // 0x10, 0x03
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_TYPE_POWER_STRIP                   // 0x10, 0x04
+
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    bind sourcechanged to source
+}
+
+Switch {
+    state Switch.STATE_OFF
+    bind statechanged to state
+}
+
+@Field final int OFFLINE_TIMEOUT_SECS     = 11400        // 190 minutes
+@Field final int POLLING_INTERVAL_SEC     = 3600         // Ask for current state every 60 minutes
+
+@Field final byte CMD_CLASS_SWITCH_BINARY = 0x25
+@Field final byte CMD_SWITCH_REPORT       = 0x03
+@Field final byte SWITCH_ON               = 0xff
+@Field final byte SWITCH_OFF              = 0x00
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handle Switch Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+    def attributes = message.attributes
+    log.debug "setAttributes('swit'): {} ", attributes
+    GenericZWaveSwitch.handleSwitchState this, message
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+// some multi-channel devices send encapsulated Switch Binary Reports, for each channel,
+// so we process those for channel 1, if any
+onZWaveMessage.multi_channel.encapsulate {
+    log.trace "Multi Channel Encapsulate: " + message
+    byte source = message.command.get('source')
+    byte cmdClass = message.command.get('command_class')
+    byte cmd = message.command.get('command')
+    byte[] bytes = message.command.recvBytes
+    log.trace "Source:${source}, CmdClass:${cmdClass}, Command:${cmd}, MsgBytes:" + bytes
+
+    switch (cmdClass) {
+        case CMD_CLASS_SWITCH_BINARY:
+            if (CMD_SWITCH_REPORT == cmd && 1 == source) {
+                log.trace "Encapsulated Switch Binary Report"
+                Switch.state (message.command.get('parameter1') == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+            } else {
+                log.trace "Unhandled Encapsulated Command for Switch Binary Cmd Class"
+            }
+            break
+        default:
+            log.trace "Unhandled Encapsulated Message"
+            break
+    }
+}
+
+onZWaveMessage.switch_binary.report {
+    log.trace 'Switch_binary.report event'
+    GenericZWaveSwitch.handleBinarySwitchReport this, message
+}
+ 
+onZWaveMessage.basic.report {
+    log.trace 'Basic.report event'
+    GenericZWaveSwitch.handleBinarySwitchReport this, message
+}
+ 
+onZWaveMessage.application_status.busy {
+    log.debug "Device reported Busy"
+    // when device reports that it is busy, do another Binary Switch Get, if we haven't done too many already
+    GenericZWaveSwitch.readSwitchState this
+}
+ 
+ onZWaveMessage.hail.hail {
+    log.trace "Device sent a Hail"
+    ZWave.switch_binary.get()
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    ZWave.switch_binary.get()
+}
+
+// supported in case the device supports this and sends it
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+// supported in case the device supports this and sends it
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveMessage {
+    log.trace "received unhandled ZWave message {}", message
+    return false;
+}
+
+

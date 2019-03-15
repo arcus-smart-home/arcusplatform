@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DeviceConnection"
+   namespace="devconn"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of a device's connection to the platform.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="state"
+         readwrite="r"
+         type="enum"
+         values="ONLINE,OFFLINE"
+         optional="false"
+         description="Reflects the state of the connection to this device. If the device has intermediate connectivity states at the protocol level, it must be marked as offline until it can be fully controlled by the platform" />
+      <c:attribute
+         name="status"
+         readwrite="r"
+         type="enum"
+         values="ONLINE,FLAPPING,LOST"
+         optional="false"
+         description="Reflects the status of the connection to this device." />
+      <c:attribute
+         name="lastchange"
+         readwrite="r"
+         type="timestamp"
+         optional="false"
+         description="Time of the last change in connect.state" />
+      <c:attribute
+         name="signal"
+         readwrite="r"
+         type="int"
+         min="0"
+         max="100"
+         unit="percent"
+         optional="true"
+         description="A projection from a protocol transport specific measurement of signal strength. For zigbee or wifi this may be the RSSI normalized to percentage." />
+   </c:attributes>
+   <c:methods>
+      <c:method
+         name="LostDevice"
+         description="Sent when a device exists on the platform but is not reported by the hub.">
+      </c:method>
+   </c:methods>
+</c:capability>

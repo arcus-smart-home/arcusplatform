@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DeviceMock"
+   namespace="devmock"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   <c:description>
+   Represents a mock device used for testing.
+   </c:description>
+   
+   <c:methods>
+      <c:method name="SetAttributes" description="Sets the attributes on the mock device">
+         <c:parameter 
+         	name="attrs" 
+         	type="map&lt;any&gt;" 
+         	description="Attributes to set on the device"/>
+      </c:method>
+      <c:method name="Connect" description="Causes the device to connect" />
+      <c:method name="Disconnect" description="Causes the device to disconnect" />
+   </c:methods>
+   
+</c:capability>

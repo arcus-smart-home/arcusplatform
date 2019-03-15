@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Ipcd"
+   namespace="IPCD"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   IPCD Protocol
+   </p:description>
+   
+   <p:attributes>
+      <p:attribute 
+         name="vendor" 
+         type="string" 
+         description="The name of the device vendor" />
+      <p:attribute
+         name="model"
+         type="string"
+         description="The model name of the device" />
+      <p:attribute
+         name="sn"
+         type="string"
+         description="The serial number of the device" />
+      <p:attribute
+         name="ipcdver"
+         type="string"
+         description="The version of the IPCD protocol implemented by the device" />
+      <p:attribute
+         name="fwver"
+         type="string"
+         description="The version of firmware on the device" />
+      <p:attribute
+         name="connection"
+         type="string"
+         description="The type of connection supported by the device, one of 'on-demand' or 'persistant'" />
+      <p:attribute
+         name="actions"
+         type="set&lt;string&gt;"
+         description="The IPCD Action names supported by the device" />
+      <p:attribute
+         name="commands"
+         type="set&lt;string&gt;"
+         description="The IPCD Command names supported by the device" />
+      <p:attribute
+         name="modelcode"
+         type="string"
+         description="The manually entered model code for the device" />
+      <p:attribute
+         name="serialcode"
+         type="string"
+         description="The manually entered serial code for the device" />
+      <p:attribute
+         name="v1devicetype"
+         type="string"
+         description="The v1 device type. Only valid values are AosmithWaterHeader, GenieGDOController, EcowaterSoftener. Does not apply to non-legacy devices." />
+   </p:attributes>
+   
+</p:protocol>

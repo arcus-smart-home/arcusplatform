@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="PetToken"
+   namespace="pettoken"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a pet collar token for a controlling access to a smart pet door.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="tokenNum" 
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         description="Holds the index of the pet token up to 5."/>
+      <c:attribute 
+         name="tokenId" 
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         description="Holds the ID of the access token assoctiated with the smart pet door."/>
+      <c:attribute 
+         name="paired" 
+         readwrite="r" 
+         type="boolean"
+         optional="false" 
+         description="Is a token currently paired in this slot or not"/>
+      <c:attribute 
+         name="petName" 
+         readwrite="rw" 
+         type="string"
+         optional="false"
+         description="The name of the pet identified by this token."/>
+      <c:attribute 
+         name="lastAccessTime" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="Holds the timestamp of the last time this token was used to access the smart pet door."/>
+      <c:attribute 
+         name="lastAccessDirection" 
+         readwrite="r" 
+         type="enum"
+         values="IN,OUT"
+         optional="false" 
+         description="Identifies the direction of traffic, in or out, the last time the smart pet door was used by this pet."/>
+   </c:attributes>
+   
+</c:capability>

@@ -1,0 +1,152 @@
+
+message zwave.FirmwareUpdateMd.FirmwareMdGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.FirmwareUpdateMd.FirmwareMdReportV1<id="0x02", group="V1"> {
+    u16 manufacturerId;
+    u16 firmwareId;
+    u16 checksum;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdGetV1<id="0x05", group="V1"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_ZERO = 0x80;
+    u8 numberOfReports;
+    u8 properties1;
+    u8 reportNumber2;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdReportV1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_LAST = 0x80;
+    u8 properties1;
+    u8 reportNumber2;
+    u8[] data;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestGetV1<id="0x03", group="V1"> {
+    u16 manufacturerId;
+    u16 firmwareId;
+    u16 checksum;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestReportV1<id="0x04", group="V1"> {
+    const u8 STATUS_INVALID_COMBINATION = 0x00;
+    const u8 STATUS_REQUIRES_AUTHENTICATION = 0x01;
+    const u8 STATUS_VALID_COMBINATION = 0xFF;
+    u8 status;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdStatusReportV1<id="0x07", group="V1"> {
+    const u8 STATUS_UNABLE_TO_RECEIVE_WITHOUT_CHECKSUM_ERROR = 0x00;
+    const u8 STATUS_UNABLE_TO_RECEIVE = 0x01;
+    const u8 STATUS_SUCCESSFULLY = 0xFF;
+    u8 status;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareMdGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.FirmwareUpdateMd.FirmwareMdReportV2<id="0x02", group="V2"> {
+    u16 manufacturerId;
+    u16 firmwareId;
+    u16 checksum;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdGetV2<id="0x05", group="V2"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_ZERO = 0x80;
+    u8 numberOfReports;
+    u8 properties1;
+    u8 reportNumber2;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdReportV2<id="0x06", group="V2"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_LAST = 0x80;
+    u8 properties1;
+    u8 reportNumber2;
+    u8[] data;
+    // checksum contained in previous field
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestGetV2<id="0x03", group="V2"> {
+    u16 manufacturerId;
+    u16 firmwareId;
+    u16 checksum;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestReportV2<id="0x04", group="V2"> {
+    const u8 STATUS_INVALID_COMBINATION = 0x00;
+    const u8 STATUS_REQUIRES_AUTHENTICATION = 0x01;
+    const u8 STATUS_VALID_COMBINATION = 0xFF;
+    u8 status;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdStatusReportV2<id="0x07", group="V2"> {
+    const u8 STATUS_UNABLE_TO_RECEIVE_WITHOUT_CHECKSUM_ERROR = 0x00;
+    const u8 STATUS_UNABLE_TO_RECEIVE = 0x01;
+    const u8 STATUS_SUCCESSFULLY = 0xFF;
+    u8 status;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareMdGetV3<id="0x01", group="V3"> {
+}
+
+message zwave.FirmwareUpdateMd.FirmwareMdReportV3<id="0x02", group="V3"> {
+    u16 manufacturerId;
+    u16 firmware0Id;
+    u16 firmware0Checksum;
+    u8 firmwareUpgradable;
+    u8 numberOfFirmwareTargets;
+    u16 maxFragmentSize;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdGetV3<id="0x05", group="V3"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_ZERO = 0x80;
+    u8 numberOfReports;
+    u8 properties1;
+    u8 reportNumber2;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdReportV3<id="0x06", group="V3"> {
+    const u8 PROPERTIES1_REPORT_NUMBER_1_MASK = 0x7F;
+    const u8 PROPERTIES1_REPORT_NUMBER_1_SHIFT = 0;
+    const u8 PROPERTIES1_LAST = 0x80;
+    u8 properties1;
+    u8 reportNumber2;
+    u8[] data;
+    // checksum contained in previous field
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestGetV3<id="0x03", group="V3"> {
+    u16 manufacturerId;
+    u16 firmwareId;
+    u16 checksum;
+    u8 firmwareTarget;
+    u16 fragmentSize;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdRequestReportV3<id="0x04", group="V3"> {
+    const u8 STATUS_INVALID_COMBINATION = 0x00;
+    const u8 STATUS_REQUIRES_AUTHENTICATION = 0x01;
+    const u8 STATUS_INVALID_FRAGMENT_SIZE = 0x02;
+    const u8 STATUS_NOT_UPGRADABLE = 0x03;
+    const u8 STATUS_VALID_COMBINATION = 0xFF;
+    u8 status;
+}
+
+message zwave.FirmwareUpdateMd.FirmwareUpdateMdStatusReportV3<id="0x07", group="V3"> {
+    const u8 STATUS_UNABLE_TO_RECEIVE_WITHOUT_CHECKSUM_ERROR = 0x00;
+    const u8 STATUS_UNABLE_TO_RECEIVE = 0x01;
+    const u8 STATUS_SUCCESSFULLY_STORED = 0xFE;
+    const u8 STATUS_SUCCESSFULLY = 0xFF;
+    u8 status;
+    u16 waittime;
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="ActivityInterval"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an interval of activity.</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="start"
+         type="timestamp"
+         description="The time at which the activity started."
+         />
+      <t:attribute
+         name="devices"
+         type="map&lt;string&gt;"
+		   values="ACTIVATED,DEACTIVATED"
+         description="List of triggered care devices."
+         />
+
+   </t:attributes>
+ </t:type>

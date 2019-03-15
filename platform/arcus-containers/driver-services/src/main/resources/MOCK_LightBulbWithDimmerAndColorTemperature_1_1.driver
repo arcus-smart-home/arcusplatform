@@ -1,0 +1,190 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Dimmable Light Bulb
+ * 
+ * Notes: When Light Bulb is turned On or Off, or level changed, a slight delay will be incorporated.
+ * 
+ */
+driver			"MOCK_DimmableLightBulbWithColorTemperature"
+description		"Driver for a Dimmable Light Bulb that also supports color temperature"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Light"
+productId		"9a73b2"
+vendor 			"Mockitron"
+model 			"Mock Dimmable Light Bulb with Color Temperature"
+
+matcher         'MOCK:Capability' : 'LightBulbWithDimmerAndColorTemp'
+matcher         'MOCK:ProductId'  : '9a73b2'
+
+capabilities	DevicePower, Switch, Dimmer, Light, ColorTemperature, 'devmock'
+
+importCapability 'mock/MOCK_Switch'
+importCapability 'mock/MOCK_Dimmer'
+
+def final long ON_OFF_DELAY_MSEC = 500		// simulate On/Off latency delay
+def final long LEVEL_DELAY_MSEC = 2500		// simulate Level latency delay
+def final long COLOR_TEMP_DELAY_MSEC = 2500		// simulate color temperature change delay
+
+def final String CURRENT_NAME = 'Mock Dimmable Light Bulb with Color Temperature'
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	Device.name CURRENT_NAME
+	log.debug CURRENT_NAME+" started."
+	
+	// set inital attribute values
+	DeviceConnection.signal	73
+
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Switch.state			Switch.STATE_OFF
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Light.colormode                 Light.COLORMODE_COLORTEMP
+	ColorTemperature.colortemp	    2700
+	ColorTemperature.mincolortemp	2700
+	ColorTemperature.maxcolortemp	6500
+}
+ 
+onConnected {
+	log.debug CURRENT_NAME+" connected."
+	vars.'ON_OFF_DELAY_MSEC' = ON_OFF_DELAY_MSEC
+	vars.'CURRENT_NAME' = CURRENT_NAME
+	vars.'LEVEL_DELAY_MSEC' = LEVEL_DELAY_MSEC
+}
+
+onDisconnected {
+	log.debug CURRENT_NAME+"disconnected."
+}
+
+onRemoved {
+	log.debug CURRENT_NAME+"removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes() {
+	def prevSwitch = Switch.state.get()
+	attributes << message.attributes
+ 
+	def int level = -1
+	def boolean stateSet = false
+	
+	def attribs = message.attributes
+	for(attribute in attribs) {
+		switch(attribute.key) {
+		   case Dimmer.brightness:
+			   level = attribute.value
+			   if (level < 0) level = 0
+			   if (level > 100) level = 100
+			   log.debug "Set Bulb Brightness to: $level"
+			   break
+			   
+		   case Switch.state:
+			   stateSet = true
+			   if (Switch.state.get() != prevSwitch) {
+				   Switch.statechanged new Date()
+			   }
+			   break
+	 
+			case ColorTemperature.colortemp:
+				int val = attribute.value
+				int min = ColorTemperature.mincolortemp.get()
+				int max = ColorTemperature.maxcolortemp.get()
+				if (max < val) { val = max }					// make sure level is within the max and min range
+				if (min > val) { val = min }
+				Scheduler.scheduleIn 'MockColorTemperatureChange', val.toString(), COLOR_TEMP_DELAY_MSEC
+				break
+				
+		   default:
+			   break
+		   }
+	   }
+	
+	// if level has been set
+	if (-1 != level) {
+		// if level is 0
+		if (0 == level) {
+			Dimmer.brightness 100
+			// if switch state was not set, set it to OFF
+			if (!stateSet) {
+				Switch.state Switch.STATE_OFF
+			}
+		} else {
+			Dimmer.brightness level
+		}
+ 
+	}
+}
+
+
+onEvent('MockColorTemperatureChange') {
+	Integer temp = Integer.parseInt(message.data)
+	log.debug "${CURRENT_NAME} Perform deferred MockColorTemperatureChange to change color temperture to ${temp}"
+	ColorTemperature.colortemp temp
+}
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onDimmer.IncrementBrightness {
+   log.debug "Mock Dimmable Light Bulb with Color Temperature driver received onDimmer.IncrementBrightness message: " + message
+   int newBrightness = new Double(message.attributes['amount']).intValue() + Dimmer.brightness.get();
+   if(newBrightness > 100) {
+      newBrightness = 100
+   }
+   if(newBrightness > 0) {
+      Switch.state Switch.STATE_ON
+   }
+   Dimmer.brightness newBrightness
+   sendResponse 'dim:IncrementBrightness', [:]
+}
+
+onDimmer.DecrementBrightness {
+   log.debug "Mock Dimmable Light Bulb with Color Temperature driver received onDimmer.DecrementBrightness message: " + message
+   int newBrightness = Dimmer.brightness.get() - new Double(message.attributes['amount']).intValue()
+   if(newBrightness <= 0) {
+      newBrightness = 0
+      Switch.state Switch.STATE_OFF
+   }
+   Dimmer.brightness newBrightness
+   sendResponse 'dim:IncrementBrightness', [:]
+}
+

@@ -1,0 +1,48 @@
+{{#file . "com/iris/protocol/ipcd/message/model/Ipcd{{capitalize name}}.java"}}
+package com.iris.protocol.ipcd.message.model;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.IpcdMessage;
+import com.iris.protocol.ipcd.message.Mapifier;
+
+public {{#if virtual}}abstract{{/if}} class Ipcd{{capitalize name}} implements IpcdMessage {
+	{{#properties}}protected {{{type}}} {{name}};
+	{{/properties}}
+	
+	public Ipcd{{capitalize name}}({{#properties}}{{#if key}}{{{type}}} {{name}}{{/if}}{{/properties}}) {
+	    {{#properties}}{{#if key}}this.{{name}} = {{name}};{{/if}}{{/properties}}
+	}
+	
+	@Override 
+	public MessageType getMessageType() { return MessageType.{{name}}; }
+	
+	@Override
+	public Map<String, Object> mapify() {
+	   Map<String, Object> map = new HashMap<>();
+	   {{#properties}}map.put("{{name}}", Mapifier.Mapper.map({{name}}));
+	   {{/properties}}
+	   return map;
+	}
+	
+	{{#unless hasDevice}}@Override
+	public Device getDevice() {
+		return null;
+	}{{/unless}}
+	
+	{{#if virtual}}{{#virtualProperties}}public abstract {{{Type}}} {{toGetter name}};
+	{{/virtualProperties}}{{/if}}
+	
+	{{#properties}}
+    public {{{type}}} {{toGetter name}} {
+	   return {{name}};
+	}
+	{{#unless key}}{{#unless virtual}}
+		public void set{{capitalize name}}({{{type}}} {{name}}) {
+			this.{{name}} = {{name}};
+		}
+	{{/unless}}{{/unless}}{{/properties}}
+}
+{{/file}}

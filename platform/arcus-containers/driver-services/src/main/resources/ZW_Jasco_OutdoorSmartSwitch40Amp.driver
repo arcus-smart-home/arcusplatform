@@ -1,0 +1,236 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a GE/Jasco Outdoor Smart Switch (40 Amp)
+ *
+ */
+driver			"ZWJascoOutdoor40AmpSwitchDriver"
+description		"Driver for a GE/Jasco Outdoor Smart Switch (40 Amp)"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+vendor 			"GE"
+model 			"12726"
+productId		"b65108"
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F44, 'ZWAV:ProductId': 0x3031
+// samples?
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x5042, 'ZWAV:ProductId': 0x4004
+
+capabilities	DevicePower, Switch, PowerUse
+
+importCapability 'zwave/GenericZWaveSwitch'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Generic Device Class:    GENERIC_TYPE_SWITCH_BINARY
+// Specific Device Class:   SPECIFIC_TYPE_POWER_SWITCH_BINARY
+// Command Classes:
+//		0x25   (37) Switch_Binary
+//		0x27   (39) Switch_All
+//		0x32   (50) Meter
+//		0x72  (114) Manufacturer_Specific
+//		0x86 (-122) Version
+
+
+// set DevicePower
+// ---------------
+DevicePower.source 		 DevicePower.SOURCE_LINE
+DevicePower.linecapable	         true
+DevicePower.backupbatterycapable false
+
+PowerUse.wholehome               false
+PowerUse.instantaneous           0.0
+PowerUse.cumulative              0.0
+
+Switch.state                     Switch.STATE_OFF
+Switch.inverted                  false
+
+final String DEVICE_NAME        = "Jasco 40Amp Switch"
+final int POLLING_INTERVAL_SEC  = 120
+final int OFFLINE_TIMEOUT_SECS  = 600       // 10 minutes
+
+final byte SWITCH_ON            = 0xff
+final byte METER_SCALE_WATTS    = 0x10
+final byte METER_SCALE_KW_HRS   = 0x00
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes
+
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected"
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+
+        ZWave.switch_binary.get()
+}
+
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected"
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed"
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+	log.debug "${DEVICE_NAME} received Set Switch Attributes {}", message
+	GenericZWaveSwitch.handleSwitchState(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	GenericZWaveSwitch.handleBinarySwitchReport(this,DEVICE_NAME,message)
+	
+	currentState = message.command.get('value')
+	
+	// in case autonomous power reporting is not working, every time
+	// we poll the switch state and see that it is on, request the power readings also.
+	if (SWITCH_ON == currentState) {
+		// get the current power reading (delay a couple of seconds to allow current draw to settle, otherwise usually get 0 response)
+		vars.'PwrReadCnt' = 1
+		Scheduler.scheduleIn 'ReadInstantaneousPower', 500
+		// get the current cumulative power reading (delay a few seconds)
+		Scheduler.scheduleIn 'ReadCumulativePower', 5000
+	} else {
+		// set instantaneous power to 0.0
+		double watts = 0.0
+		PowerUse.instantaneous watts
+	}
+
+}
+
+onEvent('ReadInstantaneousPower') {
+	log.debug 'ReadInstantaneousPower: {}', vars.'PwrReadCnt'
+	ZWave.meter.get(METER_SCALE_WATTS)
+	if (8 > vars.'PwrReadCnt') {
+		vars.'PwrReadCnt'++
+		Scheduler.scheduleIn 'ReadInstantaneousPower', vars.'PwrReadCnt' * 500
+	}
+}
+
+onEvent('ReadCumulativePower') {
+	log.debug 'ReadCumulativePower'
+	ZWave.meter.get(METER_SCALE_KW_HRS)
+}
+
+onZWaveNodeInfo {
+	log.debug "${DEVICE_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	GenericZWaveSwitch.readSwitchState(this, DEVICE_NAME)
+}
+
+onZWaveMessage {
+    log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
+    return false;
+}
+
+
+onZWaveMessage.meter.report {
+	log.debug "{} sent meter report: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+
+	def byte meterType = message.command.get('MeterType')
+	def byte scaleByte = message.command.get('Scale')
+
+	if (6 <= bytes.length) {
+		// read int value
+		def int val1 = bytes[2]
+		if (0 > val1) val1 = 256 + val1
+		val1 *= 256 * 256 * 256
+		def int val2 = bytes[3]
+		if (0 > val2) val2 = 256 + val2
+		val2 *= 256 * 256
+		def int val3 = bytes[4]
+		if (0 > val3) val3 = 256 + val3
+		val3 *= 256
+		def int val4 = bytes[5]
+		if (0 > val4) val4 = 256 + val4
+		def int val = val1 + val2 + val3 + val4
+		log.debug "MeterType:{}, Scale:{}, Val:{}", meterType, scaleByte, val
+	
+		def prec = (scaleByte >> 5)					// bits 5-7 are precision
+		def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
+		def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
+		log.debug "Precision:{}, Scale:{}, Size:{}", prec, scale, vSize
+	
+		if (0 == scale) {			// kWh cumulative reading reported
+			def double kwh = val / Math.pow( 10, prec )
+			log.debug "Cumulative kWh:{}", kwh
+			PowerUse.cumulative kwh * 1000		// capability units are Watt Hours, not kWh
+		} else if (2 == scale) {		// Watts instantanious power reading reported
+			def double watts = val / Math.pow( 10, prec )
+			log.debug "Instantaneous Watts:{}", watts
+			if (Switch.STATE_ON == Switch.state.get()) {
+				PowerUse.instantaneous watts
+			}
+		}
+	}
+}
+
+onZWaveMessage.meter.supported_report {
+	log.debug "{} sent meter supported report: {}", DEVICE_NAME, message
+	byte[] bytes = message.command.recvBytes
+	log.debug "MsgBytes: ${bytes}"
+
+//	def byte meterType = message.command.get('MeterType')
+//	def byte scaleSupported = message.command.get('ScaleSupported')
+	def byte meterType = bytes[0]
+	def byte scaleSupported = bytes[1]
+	log.debug "MeterType:{}, ScalesSupported:{}", meterType, scaleSupported
+
+	// this should be an Electrical Meter that supports Reset, and reports Watts and kWh
+
+	if (0x01 == (0x1F & meterType)) {
+		log.debug "Electrical Meter"
+	}
+
+	if (0 < (0x80 & meterType)) {
+		log.debug "Meter supports RESET"
+	}
+
+	if (0x01 & scaleSupported) {
+		log.debug "Meter reports kWatt hours cumulative power"
+	}
+
+	if (0x04 & scaleSupported) {
+		log.debug "Meter reports Watts"
+	}
+}
+

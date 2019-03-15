@@ -1,0 +1,237 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-wave Fibaro Motion Sensor
+ *   by Hans Harmon 3/6/2015
+ *
+ * WARN:  
+ *   This driver may not be complete.
+ *   Currently written without manufacture documentation.
+ *
+ * The fibaro motion sensor will behave like a normal motion sensor
+ * That is a binary sensor, that will report motion/no motion when detected
+ * This is also a multi-level sensor with a lux and temperature sensor on board.
+ * The sensor also uses a battery and therefore has all of the battery functions
+ * This is to provide an example of how to use the scheduling of getting sensor values.
+ */
+driver			"ZWaveFibaroMotionSensor"
+description		"Driver for a Fibaro Motion, Lux and Temperature Sensor"
+version			"1.2"
+protocol		"ZWAV"
+deviceTypeHint	"Motion"
+vendor 			"Fibaro"
+model 			"Motion Sensor"			// Shows up with productId of 2048.
+
+matcher			'ZWAV:Manufacturer': 0x010F, 'ZWAV:ProductType': 0x0800  // , 'ZWAV:ProductId': 0x2001
+
+capabilities	DevicePower, Motion, Temperature, Illuminance
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+
+
+DevicePower.source 		DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	false
+DevicePower.backupbatterycapable false
+DevicePower.sourcechanged        0
+
+
+// Generic Device Class:    GENERIC_TYPE_SENSOR_BINARY
+// Specific Device Class:   SPECIFIC_TYPE_ROUTING_SENSOR_BINARY
+//
+// Command Classes:
+//      0x20   (32) Basic
+//      0x30   (48) Sensor_Binary
+//      0x31   (49) Sensor_Multilevel
+//      0x56   (86) CRC_16_Encap
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//		0x84 (-124) Wake_Up
+//      0x85 (-123) Association
+//		0x86 (-122) Version
+//      0x8E (-114) Multi_Channel_Association_v2
+//      0x8F (-113) Multi_Cmd
+//      0x9C (-100) Sensor_Alarm
+
+
+def byte MOTION_NONE		= 0x00
+def byte MOTION_DETECTED	= 0xFF
+
+// Configuration Settings
+def byte CONFIG_MOTION_SENSITIVITY					= 1
+def byte CONFIG_MOTION_SENSOR_BLIND_TIME			= 2
+def byte CONFIG_PIR_COUNTER							= 3
+def byte CONFIG_PIR_WINDOW_TIME						= 4
+def byte CONFIG_MOTION_ALARM_CANCEL_TIME			= 6
+def byte CONFIG_PIR_SENSOR_OPERATING_MODE			= 8
+def byte CONFIG_NIGHT_DAY_THRESHOLD					= 9
+def byte CONFIG_BASIC_COMMAND_CLASS_FRAMES			= 12
+def byte CONFIG_BASIC_ON_COMMAND_VALUE				= 14
+def byte CONFIG_BASIC_OFF_COMMAND_VALUE				= 16
+def byte CONFIG_TAMPER_SENSITIVITY					= 20
+def byte CONFIG_TAMPER_ALARM_CANCEL_DELAY			= 22
+def byte CONFIG_TAMPER_OPERATING_MODES				= 24
+def byte CONFIG_TAMPER_ALARM_BROADCAST_MODE			= 26
+def byte CONFIG_THRESHOLD_FOR_ILLUMINATION_REPORT	= 40
+def byte CONFIG_INTERVAL_FOR_ILLUMINATION_REPORT	= 42
+def byte CONFIG_THRESHOLD_FOR_TEMPERATURE_REPORT	= 60
+def byte CONFIG_INTERVAL_FOR_TEMPERATURE_MEASURING	= 62
+def byte CONFIG_INTERVAL_FOR_TEMPERATURE_REPORT		= 64
+def byte CONFIG_TEMPERATURE_OFFSET					= 66
+def byte CONFIG_LED_SIGNALING_MODE					= 80
+def byte CONFIG_LED_BRIGHTNESS						= 81
+def byte CONFIG_AMBIENT_ILLUMINATIION_LED_0			= 82
+def byte CONFIG_AMBIENT_ILLUMINATIION_LED_100		= 83
+def byte CONFIG_MIN_TEMP_BLUE_LED					= 86
+def byte CONFIG_MAX_TEMP_RED_LED					= 87
+def byte CONFIG_LED_TAMPER_ALARM					= 89
+
+def final OFFLINE_TIMEOUT_SECS          = 8100 // 2 hr 15 min
+
+def final int BATTERY_POLLING_INTERVAL_SEC = 21600   // Ask for battery level every 6 hours
+
+def final String DEVICE_NAME = "Fibaro Motion Sensor"
+
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+
+	// set default attribute values
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+
+//	ZWave.association.set( 1, 1 )		// set to Grouping Identifier 1, Node 1
+
+	ZWave.battery.get()					// Get the state of the battery 0 - 100
+	ZWave.sensor_multilevel.get();		// Get the temperature and lux values
+
+	// If possible we should remove the wake_up and just use schedule, currently working on that.
+	// Basically this is all the same idea.
+	// That is wake up every minute and get the sensor values.
+	// Actually we should hide the wake_up and use the scheduler to determine best wake-up times.
+	// ZWave.wake_up.set(0,0,60,1)	// Wake up the device for reports every minute.
+	ZWave.poll(60, ZWave.sensor_multilevel.get);
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get);
+
+	// Adjust the sensitivity of the sensor	
+	// In this case it goes to 11.
+	// TODO:  Revamp the configuration to not be so byte based
+	//        Current need to put in the size being sent and the byte value
+	ZWave.configuration.set(CONFIG_MOTION_SENSITIVITY,1,11);
+	// Ideally should look like:
+	//  ZWave.configuration.set(CONFIG_MOTION_SENSITIVITY,11);
+	
+	// Broadcast the alarm
+	ZWave.configuration.set(CONFIG_TAMPER_ALARM_BROADCAST_MODE,1,1);
+	
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+//
+// We need a config method here as there are various parameters that will need to be configured
+// Such as motion sensor senitivity, the alert on light change, enable/disable tampering.
+// A the time of writing this is not supported on in the Z-Wave controller side.
+// Would either be proprietary or configuration command classes to handle this.
+/*
+setAttributes('config') {
+	log.debug "Received message " + message
+	
+	def attributes = message.attributes;
+	for(attribute in attributes) {
+		switch(attribute.key) {
+
+		// TODO:  Make configuration class work properly.
+		case Config.sensitivy:
+			ZWave.configuration.set(0x01,attribute.value);
+					
+		default:
+			// TODO throw an exception?
+			log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+*/
+
+
+/******************************************
+ * ZWave message handling
+ * 
+ * Using the variety of ways to handle messages
+ * here for demonstration purposes.
+ ******************************************/
+
+onZWaveMessage.sensor_binary.report {
+	log.debug "Received sensor binary report {}", message
+	def prevMotion = Motion.motion.get()
+	Motion.motion message.command.get('sensorvalue') == MOTION_DETECTED ? Motion.MOTION_DETECTED : Motion.MOTION_NONE;
+	// if motion state changed, capture timestamp
+	if (Motion.motion.get() != prevMotion) {
+		Motion.motionchanged new Date()
+	}
+}
+
+onZWaveMessage.sensor_multilevel.report {
+	log.debug 'ZWaveFibaroMotionSensor driver handle sensor multilevel report...'
+	sensor_type = message.command.get('type')
+	level       = message.command.get('level')
+	
+	double precision = (level & 0xE0) >> 5
+	double scale	 = (level & 0x18) >> 3
+	double size      = (level & 0x07)
+	
+	log.debug "ZWaveFibaroMotionSensor driver handle sensor multilevel report: {} - {} - {}", precision, scale, size
+	
+	byte value1 = message.command.get('val1')
+	byte value2 = message.command.get('val2')
+	byte value3 = message.command.get('val3')
+	byte value4 = message.command.get('val4')
+	
+	double value = value1
+	if ( size == 2 ) {
+		value *= Math.pow(2,8)
+		value += value2
+	}
+	
+	if( 4 == size ) {
+		double v1 = value1 *= Math.pow(2,32)
+		double v2 = vlaue2 *= Math.pow(2,16)
+		double v3 = value3 *= Math.pow(2,8)
+		value = v1 + v2 + v3 + value4
+	}
+	
+	if (sensor_type == 0x01) {
+		double temp = value
+		//Convert from F to C
+		temp = 5 * (temp-32) / 9;
+		log.debug 'ZWaveFibaroMotionSensor driver handle sensor multilevel report - temp: {}', temp
+		temp = Math.round( temp * Math.pow(10, precision) ) / Math.pow(10, precision)
+		log.debug 'ZWaveFibaroMotionSensor driver handle sensor multilevel report - temp: {}', temp
+		Temperature.temperature temp
+	}
+}
+
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+

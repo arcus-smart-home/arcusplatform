@@ -1,0 +1,588 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Samsung SmartThings SmartSense Temperature and Humidity Sensor
+ * (JDH)
+ * 
+ * TODOs:
+ *  - Not officially supported.  Need an Iris 2 Product ID assigned.  Need a deviceTypeHint specified.
+ * 
+ * Factory Reset:
+ *  - Remove the cover of the Temperature/Humidity Sensor
+ *  - Hold down the Connect button on the Temperature/Humidity Sensor while reinserting the battery
+ *  - Release the button when the LED is lit
+ *  - The LED will blink blue while attempting to connect
+ *  
+ *  ISSUES/NOTES:
+ *  - This device reads Temperature from -40.00C (-40.00F)to 60.00C (140.00F), with tolerance of 1.00C (1.80F)
+ *  - This device reads Relative Humidity from 0.00% to 80.00%, with tolerance of 3.00%
+ *  - CentraLite Device Docs: http://centralite.readthedocs.org/en/latest/devices/sensors/temp_humidity.html
+ *  - This device uses a Manufacturer Specific Relative Humidity Measurement cluster (0xFC45) instead of the
+ *    standard Relative Humidity Measurement cluster (0x0405).  See documentation at:
+ *    http://centralite.readthedocs.org/en/latest/devices/sensors/temp_humidity/relativehumiditymeasurement.html
+ *  
+ */
+import groovy.transform.Field
+
+driver			"ZBSmartThingsTempHumiditySensor"
+description		"Driver for the Samsung SmartThings SmartSense Temperature and Humidity Sensor"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Accessory"
+productId		"2eee13"
+vendor 			"SmartThings"		// "CentraLite"
+model 			"ST-CEN-TEMP-1"
+
+matcher			'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3310-S'
+
+capabilities	DevicePower, Temperature, RelativeHumidity, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+
+// Manufacturer ID:       0xC2DF
+// Manufacturer:          CentraLite
+// Model:                 3310-S
+//
+// End Point:   0x01
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0020     (32) Poll Control
+//   0x0402     (1026) Temperature Measurement
+//   0x0B05     (2821) Diagnostics
+//   0xFC45     (64581) Manufacturer Specific Relative Humidity Measurement
+// OUT Clusters
+//   0x0003     Identify
+//   0x0019     (25) OTA Upgrade
+//
+
+
+def pwrCluster   = Zigbee.endpoint((byte)1).Power
+def pollCluster  = Zigbee.endpoint((byte)1).PollControl
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def tempCluster  = Zigbee.endpoint((byte)1).TemperatureMeasurement
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+// constants used if setting battery reporting interval
+@Field static final String DEVICE_NAME = 'SmartThings Temp Humidity Sensor'
+def final short PROFILE_HA              = 0x0104
+
+def final short CLUSTER_PWR_CNFG        = 0x0001
+def final short CLUSTER_POLL_CONTROL    = 0x0020
+def final short CLUSTER_TEMPERATURE     = 0x0402
+def final short CLUSTER_DIAGNOSTICS     = 0x0B05
+def final short CLUSTER_MSP_HUMIDITY    = 0xFC45
+
+def final short MSP_CODE                = 0xC2DF        // Manufacturer Specific Code (ID)
+
+def final CMD_READ_ATTR                 = 0x00          // General Command Frame - Read Attributes
+def final CMD_WRT_ATTR 					= 0x02          // General Command Frame - Write Attributes
+def final CMD_CNFG_RPT 					= 0x06          // General Command Frame - Configure Reporting
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS              = 11700     // 195 minutes (3 hours, 15 minutes)
+@Field def final long WRITE_IAS_CIE_DELAY   = 5000
+@Field def final long ZONE_ENROLL_DELAY     = 5000
+def final short IDENT_PERIOD_SECS           = 180       // number of seconds (0-600) for device to Identify itself (LED changes color) when Identify method is called
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "SmartThings Temperature and Humidity Sensor device added."
+	
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	// Bind all of the command clusters on the enpoints we need
+	//Zigbee.bindAll()
+	Zigbee.bindEndpoints(
+		pwrCluster.bindServerCluster(),
+		pollCluster.bindServerCluster(),
+		tempCluster.bindServerCluster(),
+		Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_MSP_HUMIDITY),
+		diagCluster.bindServerCluster() )
+}
+
+
+onConnected {
+	log.debug "SmartThings Temperature and Humidity Sensor device connected."
+	
+	// read current Poll Control attributes (if needed)
+	// Default - CheckinInterval:14400, LongPoll:24, ShortPoll:4      - Check-in once an hour
+	pollCluster.zclReadAttributes(
+		pollCluster.ATTR_CHECKIN_INTERVAL,
+		pollCluster.ATTR_LONG_POLL_INTERVAL,
+		pollCluster.ATTR_SHORT_POLL_INTERVAL )
+
+	// set long poll interval to 24 quarter seconds, and short poll interval to 2 quarter seconds
+//	pollCluster.setLongPollInterval((int)24)
+//	pollCluster.setShortPollInterval((short)2)
+
+	// read current Power attributes
+	pwrCluster.zclReadAttributes( 
+		pwrCluster.ATTR_BATTERY_VOLTAGE,
+		pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD )
+	
+	// read Temperature Measured Value attribute
+	tempCluster.zclReadAttributes( 
+		tempCluster.ATTR_MEASURED_VALUE )
+	
+	// read Humidity Measured Value (0x0000) attribute
+	byte[] readHumidityAttr = [0x00, 0x00]
+	Zigbee.send("msp": MSP_CODE,
+				"cluster" : CLUSTER_MSP_HUMIDITY,
+				"command" : CMD_READ_ATTR,
+				"profile" : PROFILE_HA,
+				"endpoint" : 1,
+				"clusterspecific" : false,
+				"data" : readHumidityAttr)
+
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+	// configure reporting of PowerConfig cluster BatteryVoltage
+	byte[] rptPwrCnfgBytes = [
+		// Dir (0x00)
+		0x00, 
+		// Attr Id (0x0020) Battery Voltage
+		0x20, 0x00, 
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20, 
+		// Min Interval (0x0E10) 3600 secs (at most once per hour)
+		0x10, 0x0E,
+		// Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+		0xC0, 0xA8,
+		// Reportable Change (0x02) 0.2 volts (ignore jitter of +/- 0.1 volt)
+		0x02 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_PWR_CNFG, 
+		"command" : CMD_CNFG_RPT, 
+		"profile" : PROFILE_HA, 
+		"endpoint" : 1, 
+		"clusterspecific" : false, 
+		"defaultresponse" : true, 
+		"data" : rptPwrCnfgBytes )
+
+	// configure reporting of Temperature Measurement cluster Measured Value
+	// NOTE: device appears to only measure temperature once every 60 seconds, so reporting any more frequently is a waste
+	byte[] rptTempCnfgBytes = [
+		// Dir (0x00)
+		0x00, 
+		// Attr Id (0x0000) Measured Value
+		0x00, 0x00, 
+		// Attr Data Type (0x29) Signed 16-Bit Int
+		0x29, 
+		// Min Interval (0x003C) 60 secs
+		0x3C, 0x00, 
+		// Max Interval (0x0708) 1800 secs, 30 minutes
+		0x08, 0x07, 
+		// Reportable Change (0x000A) 10/100ths C
+		0x0A, 0x00 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_TEMPERATURE, 
+		"command" : CMD_CNFG_RPT, 
+		"profile" : PROFILE_HA, 
+		"endpoint" : 1, 
+		"clusterspecific" : false,		// using general Configure Report command
+		"defaultresponse" : true, 
+		"data" : rptTempCnfgBytes )
+
+	// configure reporting of Humidity Measurement cluster Measured Value
+	byte[] rptHumidCnfgBytes = [
+		// Dir (0x00)
+		0x00, 
+		// Attr Id (0x0000) Measured Value
+		0x00, 0x00, 
+		// Attr Data Type (0x21) Unsigned 16-Bit Int
+		0x21, 
+		// Min Interval (0x003C) 60 secs
+		0x3C, 0x00, 
+		// Max Interval (0x0708) 1800 secs, 30 minutes
+		0x08, 0x07, 
+		// Reportable Change (0x000A) 10/100ths %RH
+		0x0A, 0x00 ]
+	Zigbee.send(
+		"msp": (short) -15649,					// MSP_CODE,				(short) -15649,		(short) 0xC2DF,
+		"cluster" : (short) -955,				// CLUSTER_MSP_HUMIDITY,	(short) -955,		(short) 0xFC45,
+		"command" : CMD_CNFG_RPT, 
+		"profile" : PROFILE_HA, 
+		"endpoint" : 1, 
+		"clusterspecific" : false,		// using general Configure Report command
+		"defaultresponse" : true, 
+		"data" : rptHumidCnfgBytes )
+
+	// write Poll Control cluster Checkin Interval
+	byte[] wrtChkIntvlBytes = [
+		// Attr Id (0x0000) Checkin Interval
+		0x00, 0x00, 
+		// Attr Data Type (0x23) Unsigned 32- bit integer
+		0x23, 
+		// Attr Data (0x00003840) 14400 1/4 secs, 60 minutes
+		0x40, 0x38, 0x00, 0x00 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_POLL_CONTROL, 
+		"command" : CMD_WRT_ATTR, 
+		"profile" : PROFILE_HA, 
+		"endpoint" : 1, 
+		"clusterspecific" : false,		// using general Write Attribute command
+		"defaultresponse" : true, 
+		"data" : wrtChkIntvlBytes)
+
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+	byte[] rptDiagCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x011C) Last Message LQI
+		0x1C, 0x01,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x003C) 60 secs
+		0x3C, 0x00,
+		// Max Interval (0x0708) 1800 secs, 30 minutes
+		0x08, 0x07, 
+		// Reportable Change (0x01)
+		0x01 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_DIAGNOSTICS,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptDiagCnfgBytes )
+
+
+	// read current Poll Control attributes (if needed)
+	pollCluster.zclReadAttributes(
+		pollCluster.ATTR_CHECKIN_INTERVAL,
+		pollCluster.ATTR_LONG_POLL_INTERVAL,
+		pollCluster.ATTR_SHORT_POLL_INTERVAL )
+
+	// reset long poll interval to 24 quarter seconds, and short poll interval to 4 quarter seconds
+//	pollCluster.setLongPollInterval((int)24)
+//	pollCluster.setShortPollInterval((short)4)
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+
+onDisconnected {
+	log.debug "SmartThings Temperature and Humidity Sensor device disconnected."
+}
+
+
+onRemoved {
+	log.debug "SmartThings Temperature and Humidity Sensor device removed."
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+	def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+	log.trace "BatteryVoltage:{}, Min Thrshld:{}", battVolt, battMinThreshold
+
+	double minVolts = (null != battMinThreshold) ? (battMinThreshold / 10.0) : 2.1		// default to 2.1 volts
+	double nomVolts = 3.0
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+		// battery Voltage is reported in tenths of Volts
+		double volts = (battVolt / 10.0)
+		log.trace "Battery Volts:{}", volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (nomVolts - minVolts)) {	// prevent division by zero
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = battPercent
+			log.debug "Battery Percent:{}", intBattPercent
+			DevicePower.battery intBattPercent
+		}
+	}
+}
+
+// called when device responds to a Power Read Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.trace "Driver received Power Attributes Response:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.trace "Driver received Power Attributes Report:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+	def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+	def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+	log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+	log.trace "Driver received Poll Control Attributes Response:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+	log.trace "Driver received Poll Control Attributes Report:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Checkin
+onZigbeeMessage.Zcl.pollcontrol.checkin() {
+	log.trace "Driver received Poll Control Checkin:{}", message
+	// tell device to resume without short polling
+	pollCluster.checkInResponse( (byte)0x00, (short)0x0000 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+	// def tempMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+	// def tempMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+	// def tempTolerance = attributes[cluster.ATTR_TOLERANCE]
+	log.trace "Temp:{}", tempVal
+	
+   if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+		// temperature is reported in 100ths degree C, so convert to C and save
+		double tempC = tempVal
+		tempC /= 100
+		log.trace "Set Temp:{}", tempC
+		Temperature.temperature tempC
+	}
+}
+
+// called when device responds to a Temperature Measurement Read Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+	log.trace "Driver received Temperature Measurement Attributes Response:{}", message
+	handleTemperatureMeasurement(tempCluster, message)
+}
+
+// called when device asynchronously sends a Temperature Measurement Report Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+	log.trace "Driver received Temperature Measurement Attributes Report:{}", message
+	handleTemperatureMeasurement(tempCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Humidity Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+//void handleHumidityMeasurement(Object cluster, Object msg) {
+//	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+//	def humidVal = attributes[cluster.ATTR_MEASURED_VALUE]
+//	// def humidMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+//	// def humidMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+//	// def humidTolerance = attributes[cluster.ATTR_TOLERANCE]
+//	log.debug "Humidity:" + humidVal // + ", Min:" + humidMin + ", Max:" + humidMax + ", Tolerance:" + humidTolerance
+//	
+//	if (null != humidVal) {
+//		// Humidity is reported in 100ths %RH, so convert to %RH and save
+//		double pctRH = humidVal / 100.0
+//		log.debug "Set Pct. RH:" + pctRH
+//		RelativeHumidity.humidity pctRH
+//	}
+//}
+//
+//// called when device responds to a Humidity Measurement Read Attributes
+//onZigbeeMessage.Zcl.humiditymeasurement.zclreadattributesresponse() {
+//	log.debug "Driver received Humidity Measurement Attributes Response: " + message
+//	handleHumidityMeasurement(humidCluster, message)
+//}
+//
+//// called when device asynchronously sends a Humidity Measurement Report Attributes
+//onZigbeeMessage.Zcl.humiditymeasurement.zclreportattributes() {
+//	log.debug "Driver received Humidity Measurement Attributes Report: " + message
+//	handleHumidityMeasurement(humidCluster, message)
+//}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	log.trace "RSSI:{}, LQI:{}", rssi, lqi
+	
+	if (lqi != null) {
+		if ('INVALID' == lqi.toString()) lqi = 255	// helper parses 255 value as 'INVALID', but it just means 100%
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		int sigPct = Math.round( (lqi * 100.0) / 255.0)
+		log.trace "LQI:{}, (percent:{})", lqi, sigPct
+		DeviceConnection.signal sigPct
+	}
+	return true
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "Driver received Diagnostics Attributes Response:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "Driver received Diagnostics Attributes Report:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify:{}", message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def short profile = zclMsg.getProfileId()
+	def short clusterId = zclMsg.getClusterId()
+	def byte msgId = zclMsg.getZclMessageId()
+	def byte endpoint = zclMsg.getEndpoint()
+	def byte flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// if message is from MSP Humidity Cluster, 0x01 (ReadAttribResp), and 6 bytes or more,
+	if ((-955 == clusterId) && (1 == msgId) && (5 < data.length)) {
+		log.trace "Driver received Read Attr Response MSP Relative Humidity message"
+		// if AttrID is 0x0000, and Status is 0x00 (success), then read %RH Value
+		if ((0 == data[0]) && (0 == data[1]) && (0 == data[2])) {
+			int msb = data[5]
+			if (0 > msb) msb = 256 + msb	// convert signed value to unsigned
+			int lsb = data[4]
+			if (0 > lsb) lsb = 256 + lsb	// convert signed value to unsigned
+			int val = (msb * 256) + lsb
+			double pctRH = new Double(val) / 100.0
+			log.trace "Set Pct. RH:{}", pctRH
+			RelativeHumidity.humidity pctRH
+		}
+		return
+	}
+	// if message is from MSP Humidity Cluster, 0x0A (Report), and 5 bytes or more,
+	if ((-955 == clusterId) && (10 == msgId) && (4 < data.length)) {
+		log.trace "Driver received Report MSP Relative Humidity message"
+		// if AttrID is 0x0000, then read %RH Value
+		if ((0 == data[0]) && (0 == data[1])) {
+			int msb = data[4]
+			if (0 > msb) msb = 256 + msb	// convert signed value to unsigned
+			int lsb = data[3]
+			if (0 > lsb) lsb = 256 + lsb	// convert signed value to unsigned
+			int val = (msb * 256) + lsb
+			double pctRH = new Double(val) / 100.0
+			log.trace "Set Pct. RH:{}", pctRH
+			RelativeHumidity.humidity pctRH
+		}
+		return
+	}
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+
+
+ 
+

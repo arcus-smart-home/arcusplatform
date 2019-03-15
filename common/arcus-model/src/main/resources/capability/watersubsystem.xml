@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WaterSubsystem"
+   namespace="subwater"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Water Subsystem
+   </c:description>
+   
+   <c:attributes>
+   	<c:attribute
+         name="primaryWaterHeater"
+         type="string"
+         readwrite="rw"
+         optional="true"
+         description="When the first water heater is added it will be populated with that value.  This will be null if no water heater devices exist in the system."/>
+	<c:attribute
+         name="primaryWaterSoftener"
+         type="string"
+         readwrite="rw"
+         optional="true"
+         description="When the first water softener is added it will be populated with that value. This will be null if no water softener devices exist in the system."/>         
+    <c:attribute
+         name="closedWaterValves"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of water shutoff valves that are currently closed."/> 
+    <c:attribute
+         name="waterDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of devices that participate in the water service."/> 
+    <c:attribute
+         name="continuousWaterUseDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of devices that have a continuous water use alert enabled and active."/>
+     <c:attribute
+         name="excessiveWaterUseDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of devices that have an excessive water use alert enabled and active."/> 
+     <c:attribute
+         name="lowSaltDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of water softeners that have a low salt level."/>        
+   </c:attributes>
+   
+   <c:methods>
+         
+   </c:methods>
+   
+   <c:events>
+   	<c:event
+         name="ContinuousWaterUse"
+         description="Emitted when a new water flow sensor detects continuous use. The device address will also be added to continuousWaterUseDevices.">
+         <c:parameters>
+            <c:parameter
+               name="sensor"
+               type="String"
+               description="The address of the sensor that detected continuous water use."
+               optional="false" />
+            <c:parameter
+               name="flowRate"
+               type="double"
+               description="The configured flowRate in gallons per minute that was set when the alert was triggered."
+               optional="false" />
+            <c:parameter
+               name="durationSec"
+               type="int"
+               description="The configured duration in seconds that was set when the alert was triggered."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="ExcessiveWaterUse"
+         description="Emitted when a new water flow sensor detects excessive use. The device address will also be added to excessiveWaterUseDevices.">
+         <c:parameters>
+            <c:parameter
+               name="sensor"
+               type="String"
+               description="The address of the sensor that detected excessive water use."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="LowSalt"
+         description="Emitted when a new water softener is added to the set of low salt devices.">
+         <c:parameters>
+            <c:parameter
+               name="sensor"
+               type="String"
+               description="The address of the device that has a low salt level."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+   </c:events>
+</c:capability>

@@ -1,0 +1,15 @@
+
+message zwave.CentralScene.CentralSceneSupportedGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.CentralScene.CentralSceneSupportedReportV1<id="0x02", group="V1"> {
+    u8 supportedScenes;
+}
+
+message zwave.CentralScene.CentralSceneNotificationV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_KEY_ATTRIBUTES_MASK = 0x07;
+    const u8 PROPERTIES1_KEY_ATTRIBUTES_SHIFT = 0;
+    u8 sequenceNumber;
+    u8 properties1;
+    u8 sceneNumber;
+}

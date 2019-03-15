@@ -1,0 +1,405 @@
+<rule-catalog>
+  
+<metadata
+    version="2015-04-23T18:23:09.123"
+    hash="6a757c1cd50d9486df652ef579b4e954"
+    publisher="Human"
+/>
+
+<categories>
+      <category name="Buttons &amp; Fobs"/>
+      <category name="Cameras &amp; Sensors"/>
+      <category name="Care"/>
+      <category name="Climate"/>
+      <category name="Doors &amp; Locks"/>
+      <category name="Energy"/>
+      <category name="Family &amp; Friends"/>
+      <category name="Lawn &amp; Garden"/>
+      <category name="Lights &amp; Switches"/>
+      <category name="Notifications"/>
+      <category name="Other"/>
+      <category name="Smoke &amp; CO"/>
+      <category name="Security"/>
+      <category name="Water"/>
+      <category name="Windows &amp; Blinds"/>
+   </categories>
+ 
+<templates>
+   <template id="00000"
+             keywords="motion"
+             tags="dev, mot"
+             added="2015-07-01T00:00:00"
+             lastchanged="2015-07-01T00:00:00"
+             name="When motion detected turn on light"
+             description="Template00000 description"
+   >
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Cameras &amp; Sensors"/>
+         <category name="Lights &amp; Switches"/>
+      </categories>
+       
+      <description>When motion is detected, Turn on ${device}</description>
+      <conditions>
+         <attribute-value-change attribute="mot:motion" new="DETECTED" />
+      </conditions>
+      <actions>
+         <set-attribute
+         	to="${device}" 
+         	name="swit:state"
+         	value="ON"
+         	/>
+      </actions>
+      <selectors>
+         <selector type="device" name="device" query="mot:motion is supported" />
+      </selectors>
+ 
+   </template>
+ 
+   <template id="00001"
+             keywords="motion, presence"
+             tags="dev, mot"
+             added="2015-03-18T12:41:13"
+             lastchanged="2015-04-23T18:23:09"
+             name="When motion not detected notify person"
+             description="Template00001 description"
+   >
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Cameras &amp; Sensors"/>
+         <category name="Notifications"/>
+      </categories>
+       
+      <description>
+      	When motion is not detected by ${sensor-selector} on ${day-of-week} for ${duration}, Notify ${person} by ${method}
+      </description>
+      <!-- what causes the rule to fire -->
+      <conditions>
+         <day-of-week days="${day-of-week}">
+            <duration-trigger
+         	   duration="${duration}"
+         	   device-query="base:address == '${sensor-selector}'"
+         	   condition="mot:motion == 'DETECTED'"
+         	/>
+         </day-of-week>
+      </conditions>
+      <!-- what to do -->
+      <actions>
+         <!-- TODO should notify have a template as its contents? -->
+         <notify-custom 
+         	to="${person}" 
+         	method="${method}" 
+         	message="Motion was detected" 
+         	/>
+      </actions>
+      <selectors>
+         <selector
+         	type="device" 
+         	name="sensor-selector"
+           	query="mot:motion is supported"
+         	/>
+         <selector type="day-of-week" name="day-of-week" />
+         <selector type="person" name="person"/>
+      </selectors>
+ 
+   </template>
+ 
+   <template id="00002"
+             keywords="contact, door, video"
+             tags="dev, cont, vid"
+             added="2015-03-18T12:41:13"
+             lastchanged="2015-04-23T18:23:09"
+             name="When door is opened record video"
+   >
+      <populations>
+         <population name="alpha" />
+         <population name="beta" />
+      </populations>
+      <categories>
+         <category name="Cameras &amp; Sensors"/>
+         <category name="Doors &amp; Locks"/>
+         <category name="Security"/>
+      </categories>
+       
+      <description>
+      	When the ${door} is opened, 
+      	Record video from ${camera} 
+      	for ${duration} seconds
+      </description>
+      <conditions>
+         <attribute-value-change attribute="cont:contact" old="CLOSED" new="OPENED" />
+      </conditions>
+      <actions>
+         <send to="${camera}" method="cam:Record">
+            <attribute name="duration" value="${duration}" />
+         </send>
+         <log message="Starting recording for ${duration}" />
+      </actions>
+      <selectors>
+         <selector 
+         	type="device" 
+         	name="door" 
+         	query="base:caps contains 'cont' and dev:devTypeHint == 'door'"
+         	/>
+         <selector
+         	type="device"
+          	name="camera"
+          	query="base:caps contains 'cam'"
+          	/>
+         <selector
+         	type="duration"
+          	name="duration"
+          	unit="seconds"
+          	/> <!-- TODO support min/max intervals -->
+      </selectors>
+   </template>
+   
+   <template id="00003"
+             keywords="motion"
+             tags="dev, mot"
+             added="2015-07-01T00:00:00"
+             lastchanged="2015-07-01T00:00:00"
+             name="When motion detected turn on light for a duration"
+             description="Template00003 description"
+   >
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Cameras &amp; Sensors"/>
+         <category name="Lights &amp; Switches"/>
+      </categories>
+       
+      <description>When motion is detected, Turn on ${device} for ${duration}</description>
+      <conditions>
+         <attribute-value-change attribute="mot:motion" new="DETECTED" />
+      </conditions>
+      <actions>
+         <set-attribute
+         	to="${device}" 
+         	name="swit:state"
+         	value="ON"
+         	duration="${duration}"
+         	unit="MINUTES"
+         	/>
+      </actions>
+      <selectors>
+         <selector type="device" name="device" query="mot:motion is supported" />
+         <selector type="duration" name="duration" unit="MINUTES" />
+      </selectors>
+ 
+   </template>
+ 
+   <template id="DEMO8" keywords="button" tags="note, but"
+      added="2015-08-05T00:00:00" modified="2015-08-05T00:00:00" name="Who Pressed a Smart Button?"
+      description="Notify someone when a smart button has been pressed."
+      premium="true">
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Buttons &amp; Fobs" />
+      </categories>
+      <description>When ${button} is pressed during ${timerange} then send ${person} a message
+         via ${method}
+      </description>
+      <conditions>
+         <filter ref="timerange" >
+            <attribute-value-change attribute="but:state"
+               new="pressed" />
+         </filter>
+      </conditions>
+      <actions>
+         <notify to="${person}" priority="${method}" key="button.pressed">
+            <parameters>
+               <parameter name="button">
+                  <attribute-value address="${button}" attribute="dev:name" />
+               </parameter>
+               <parameter name="time">
+                  <datetime-value type="datetime" />
+               </parameter>
+            </parameters>
+         </notify>
+      </actions>
+      <selectors>
+         <selector type="device" name="button" query="but:state is supported" />
+         <selector type="time-range" name="timerange" />
+         <selector type="person" name="person" />
+         <selector type="constant" name="method">
+            <options>
+               <option label="Mobile App" value="medium" />
+               <option label="EMail" value="low" />
+            </options>
+         </selector>
+      </selectors>
+   </template>
+   
+   <!-- Alpha rules -->
+   <template id="bd1116" keywords="button" tags="note, but"
+             added="2015-08-05T00:00:00" modified="2015-08-05T00:00:00"
+             name="Who Pressed a Smart Button?"
+             description="Notify someone when a smart button has been pressed."
+             premium="true" >
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Buttons &amp; Fobs" />
+      </categories>
+      <description>When ${button} is pressed then send ${person} a message via ${method}
+      </description>
+      <conditions> 
+         <attribute-value-change attribute="but:state" new="pressed" />
+      </conditions>
+      <actions>
+         <notify to="${person}" priority="${method}" key="button.pressed">
+            <parameters>
+               <parameter name="button">
+                  <attribute-value address="${button}" attribute="dev:name" />
+               </parameter>
+               <parameter name="time">
+                  <datetime-value type="datetime" />
+               </parameter>
+            </parameters>
+         </notify>
+      </actions>
+      <selectors>
+         <selector type="device" name="button"
+            query="but:state is supported" />
+         <selector type="person" name="person" />
+         <selector type="constant" name="method">
+            <options>
+               <option label="Mobile App" value="medium" />
+               <option label="EMail" value="low" />
+            </options>
+         </selector>
+      </selectors>
+   </template>
+   
+   <template id="16536e" keywords="button" tags="swit, but"
+            added="2015-08-05T00:00:00" modified="2015-08-05T00:00:00"
+            name="Control Devices with a Button"
+            description="Turn a device on or off by pressing a custom button."
+            premium="true" >
+     <populations>
+        <population name="general" />
+     </populations>
+     <categories>
+        <category name="Buttons &amp; Fobs" />
+     </categories>
+     <description>When ${button} is pressed then toggle state of ${switch}
+     </description>
+     <conditions> 
+        <attribute-value-change attribute="but:state" new="pressed" />
+     </conditions>
+     <actions>
+        <device-query var="address" query="base:addr = '${switch}' AND swit:state == 'ON'">
+           <set-attribute to="${address}" name="swit:state" value="OFF" />
+        </device-query>
+        <device-query var="address" query="base:addr = '${switch}' AND swit:state != 'ON'">
+           <set-attribute to="${address}" name="swit:state" value="ON" />
+        </device-query>
+     </actions>
+     <selectors>
+        <selector type="device" name="button"
+           query="but:state is supported" />
+        <selector type="device" name="switch"
+               query="base:caps contains 'swit'" />
+     </selectors>
+  </template>
+  
+  <template id="80d915" keywords="button" tags="vent, but"
+      added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00" name="Touch-Button Comfort"
+      description="Open or close a vent when a Smart Button is pressed."
+      premium="true">
+      <populations>
+         <population name="general" />
+      </populations>
+      <categories>
+         <category name="Buttons &amp; Fobs" />
+      </categories>
+      <description>When ${button} is pressed then open or close ${vent}
+      </description>
+      <conditions>
+         <attribute-value-change attribute="but:state"
+            new="pressed" />
+      </conditions>
+      <actions>
+         <device-query var="address" query="base:address == '${vent}' and vent:level == 0">
+            <set-attribute to="${address}" name="vent:level" value="100" />
+         </device-query>
+         <device-query var="address" query="base:address == '${vent}' and vent:level != 0">
+            <set-attribute to="${address}" name="vent:level" value="0" />
+         </device-query>
+      </actions>
+      <selectors>
+         <selector type="device" name="button" query="but:state is supported" />
+         <selector type="device" name="vent" query="base:caps contains 'vent'" />
+      </selectors>
+   </template>
+      
+   <template id="test1e1f0d" keywords="mot" tags="mot,swit"
+         added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
+         name="Motion Detected, Activate Switch"
+         description="Turn a light on when something moves."
+         premium="true">
+         <populations>
+            <population name="general" />
+         </populations>
+         <categories>
+            <category name="Lights &amp; Switches" />
+         </categories>
+         <description>When the ${motion} detects motion, then turn the ${switch} to ${state} ${for awhile}.</description>
+         <satisfiable-if>
+            <satisfiable query="base:caps contains 'swit'" />
+         </satisfiable-if>
+		 <conditions>
+            <attribute-value-change attribute="mot:motion" new="DETECTED" query="base:address == '${motion}'" />
+         </conditions>
+         <actions>
+               <set-attribute to="${address}" name="swit:state" value="${state}" duration="${for awhile}" condition-query="base:address = '${address}' AND mot:motion = 'NONE'"/>
+         </actions>
+         <selectors>
+            <selector type="device" name="motion" query="base:caps contains 'mot'" />
+            <selector type="device" name="switch" query="base:caps contains 'swit'" /> 
+            <selector type="constant" name="state">
+            	<options>
+            		<option label="On" value="ON" />
+            		<option label="Off" value="OFF" />
+            	</options>        
+            </selector>
+            <selector type="constant" name="for awhile">
+               <options>
+                  <option label="and leave it"  value="0" />
+                  <option label="for 30 secs"   value="30" />
+                  <option label="for 1 min"     value="60" />
+                  <option label="for 2 mins"    value="120" />
+                  <option label="for 3 mins"    value="180" />
+                  <option label="for 4 mins"    value="240" />
+                  <option label="for 5 mins"    value="300" />
+                  <option label="for 6 mins"    value="360" />
+                  <option label="for 7 mins"    value="420" />
+                  <option label="for 8 mins"    value="480" />
+                  <option label="for 9 mins"    value="540" />
+                  <option label="for 10 mins"   value="600" />
+                  <option label="for 15 mins"   value="900" />
+                  <option label="for 30 mins"   value="1800" />
+                  <option label="for 45 mins"   value="2700" />
+                  <option label="for 1 hour"    value="3600" />
+                  <option label="for 2 hours"   value="7200" />
+                  <option label="for 3 hours"   value="10800" />
+                  <option label="for 4 hours"   value="14400" />
+                  <option label="for 5 hours"   value="18000" />
+                  <option label="for 6 hours"   value="21600" />
+                  <option label="for 7 hours"   value="25200" />
+                  <option label="for 8 hours"   value="28800" />
+               </options>
+            </selector>
+         </selectors>
+      </template>   
+</templates>
+</rule-catalog>

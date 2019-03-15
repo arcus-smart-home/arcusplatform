@@ -1,0 +1,57 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "GetParameterInfo"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "ms2.temperature" : {
+      "type": "number",
+      "attrib": "readonly",
+      "description" : "Temperature in degrees.  Scale is either Celcius or Farenheit based on the value of the ms2.temperaturescale parameter"
+    },
+    "ms2.humidity" : {
+      "type": "number",
+      "attrib": "readonly",
+      "unit" : "percent",
+      "floor" : 0,
+      "ceiling" : 100,
+      "description" : "Relative humidity as a percentage from 0 to 100"
+    },
+    "ms2.luminosity" : {
+      "type": "number",
+      "attrib": "readonly",
+      "unit" : "lux",
+      "floor" : 1.0,
+      "ceiling" : 100000.0,
+      "description" : "Illuminance in lux"
+    },
+    "ms2.batterylevel" : {
+      "type": "number",
+      "attrib": "readonly",
+      "unit" : "percent",
+      "floor" : 1,
+      "ceiling" : 100,
+      "description" : "Approximate percentage of battery power remaining in units of 10"
+    },
+    "ms2.lightsensorenabled" : {
+      "type": "enum",
+      "enumvalues" : ["on", "off"],
+      "attrib": "readwrite",
+      "description" : "When on, the light sensor will be enabled and illuminance measurements will be reported.  When off, ms2.luminosity will always return 0"
+    },
+    "ms2.temperaturescale" : {
+      "type": "enum",
+      "enumvalues" : ["celcius", "farenheit"],
+      "attrib": "readwrite",
+      "description" : "The scale of the ms2.temperature attribute"
+    }
+  }
+}

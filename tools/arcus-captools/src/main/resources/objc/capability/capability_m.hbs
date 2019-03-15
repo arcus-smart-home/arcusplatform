@@ -1,0 +1,53 @@
+{{#file . "generated/{{name}}Capability.m"}}
+
+#import <Foundation/Foundation.h>
+#import <PromiseKit/PromiseKit.h>
+#import "{{name}}Capability.h"
+#import <i2app-Swift.h>
+
+{{#attributes}}
+NSString *const kAttr{{../name}}{{capitalize name}}=@"{{namespace}}:{{name}}";
+{{/attributes}}
+{{#methods}}
+NSString *const kCmd{{../name}}{{capitalize name}}=@"{{namespace}}:{{name}}";
+{{/methods}}
+{{#events}}
+NSString *const kEvt{{../name}}{{capitalize name}}=@"{{namespace}}:{{name}}";
+{{/events}}
+{{#attributes}}{{#if type.values}}{{#type.values}}NSString *const kEnum{{enumType ../type}}{{this}} = @"{{this}}";
+{{/type.values}}{{/if}}{{/attributes}}
+
+@implementation {{name}}Capability
++ (NSString *)namespace { return @"{{namespace}}"; }
++ (NSString *)name { return @"{{name}}"; }
+{{#attributes}}
++ ({{objCTypeOf type}})get{{capitalize name}}FromModel:({{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model *)modelObj {
+  if (modelObj == nil) { {{#isNumeric type}}return 0;{{else}}return nil;{{/isNumeric}} }
+  {{#isCoercionRequired type}}
+  return {{preCoercion type}}[{{capitalize ../name}}CapabilityLegacy get{{capitalize name}}:modelObj]{{postCoercion type}};
+  {{else}}
+  return [{{capitalize ../name}}CapabilityLegacy get{{capitalize name}}:modelObj];
+  {{/isCoercionRequired}}
+}
+{{#if writable}}
++ ({{objCTypeOf type}})set{{capitalize name}}:({{objCTypeOfParam type}}){{name}} onModel:({{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model *)modelObj {
+  [{{capitalize ../name}}CapabilityLegacy set{{capitalize name}}:{{name}} model:modelObj];
+  {{#isCoercionRequired type}}
+  return {{preCoercion type}}[{{capitalize ../name}}CapabilityLegacy get{{capitalize name}}:modelObj]{{postCoercion type}};
+  {{else}}
+  return [{{capitalize ../name}}CapabilityLegacy get{{capitalize name}}:modelObj];
+  {{/isCoercionRequired}}
+}
+{{/if}}
+{{/attributes}}
+{{#methods}}
+{{#if parameters}}
++ (PMKPromise *) {{uncapitalize name}}{{#parameters}}{{#if @first}}W{{else}} w{{/if}}ith{{capitalize name}}:({{objCTypeOfParam type}}){{name}}{{/parameters}} onModel:({{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model *)modelObj {
+  return [{{capitalize ../name}}CapabilityLegacy {{uncapitalize name}}:modelObj {{#parameters}}{{cleanseForSwift name}}:{{cleanseForSwiftParam name}}{{#if @last}}{{else}} {{/if}}{{/parameters}}];
+{{else}}
++ (PMKPromise *) {{uncapitalize name}}OnModel:({{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model *)modelObj {
+  return [{{capitalize ../name}}CapabilityLegacy {{uncapitalize name}}:modelObj ];{{/if}}
+}
+{{/methods}}
+@end
+{{/file}}

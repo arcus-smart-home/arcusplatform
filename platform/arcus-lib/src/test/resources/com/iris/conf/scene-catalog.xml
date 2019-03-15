@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<scene-catalog xmlns="http://arcus.com/scene-catalog_1.0.0">
+    <metadata version="1.0.1" publisher="louis parks"/>
+    <scenes>
+        <scene id="home" name="I'm Home" description="Wherever you go, receive a warm welcome when you return." populations="general,beta"/>
+        <scene id="away" name="Away" description="Leave a safer, more efficient home every time you walk out the door." populations="general,beta"/>
+        <scene id="night" name="Good Night" description="Turn in for the night by automating your nightly tasks." populations="general,beta"/>
+        <scene id="vacation" name="Vacation" description= "More fun. Less worry. Monitor an energy efficient home when you're on vacation." populations="general,beta"/>
+        <scene id="morning" name="Wake Up" description= "Good morning. Automate your morning routine with ease." populations="general,beta"/>
+        <scene id="custom" name="Custom" description= "Create a custom scene." populations="general,beta"/>
+    </scenes>
+    <action-templates>
+        <actionTemplate id="cat-switches" type-hint="lights" name="Turn Lights On or Off" satifisable-if="base:caps contains 'swit' || base:caps contains 'dim' " default-scenes="home">
+         <selector type="group" query="base:caps contains 'swit'" name="switch">
+             <groups>
+                 <group label="On" value="ON">
+                     <set-attributes name="swit:state" value="ON" />
+                     <selector name="dim" type="percent" query="base:caps contains 'dim'" var="brightness">
+                         <set-attributes name="dim:brightness" value="${brightness}" />
+                     </selector>
+                 </group>
+                 <group label="Off" value="OFF">
+                     <set-attributes name="swit:state" value="OFF"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+        <actionTemplate id="cat-fans" type-hint="fan" name="Turn Lights On or Off" satifisable-if="base:caps contains 'fan'" default-scenes="home">
+         <selector type="group" query="base:caps contains 'fan'" name="switch">
+             <groups>
+                 <group label="On" value="ON">
+                     <selector name="fanspeed" type="fan" var="fanspeed" />
+                     <set-attributes name="swit:state" value="ON"/>
+                     <set-attributes name="fan:speed" value="${fanspeed}" valueType="int"/>
+                 </group>
+                 <group label="Off" value="OFF">
+                     <set-attributes name="swit:state" value="OFF"/>
+                 </group>
+             </groups>
+         </selector>
+        </actionTemplate>
+        <actionTemplate id="cameras" type-hint="camera" name="Record video on cameras" satifisable-if="base:caps contains 'camera'" default-scenes="home" premium="true">
+            <selector name="duration" type="duration" query="base:caps contains 'camera'" min="30" max="60000" step="30" unit="SEC"/>
+        </actionTemplate>
+       <actionTemplate id="thermostats" type-hint="thermostat" name="Set Thermostats" satifisable-if="base:caps contains 'camera'" default-scenes="home" >
+            <selector name="thermostat" type="thermostat" query="base:caps contains 'therm'"/>
+        </actionTemplate>        
+        <actionTemplate id="security" type-hint="security" name="Set the Security Alarm" satifisable-if="base:caps contains 'subsecurity'" default-scenes="home">
+            <selector name="alarm-state" type="list" query="base:caps contains 'subsecurity'" >
+                <options>
+                    <option value="ON" label="Arm On"/>
+                    <option value="PARTIAL" label="Arm Partial" />
+                    <option value="OFF" label="Disarm"/>
+                </options>
+            </selector>
+        </actionTemplate>
+        
+        <actionTemplate id="blinds" type-hint="blind" name="Open or Close Blinds" satifisable-if="base:caps contains 'somfyv1'" default-scenes="home">
+         <selector name="shadeopen" type="group" query="base:caps contains 'somfyv1'" >
+             <groups>
+                 <group label="Open" value="OPEN" />
+                 <group label="Close" value="CLOSED" />
+             </groups>
+         </selector>
+        </actionTemplate>
+        
+    </action-templates>
+</scene-catalog>

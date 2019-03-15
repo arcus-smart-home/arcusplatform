@@ -1,0 +1,30 @@
+{{#section "greeting"}}
+   <Response>
+      <Gather timeout="5" numDigits="1" finishOnKey="" action="{{callbackURL}}&amp;step=submitAck" method="GET">
+         <Say voice="{{voice}}" language="{{language}}">{{block "greeting"}}</Say>
+         <Say voice="{{voice}}" language="{{language}}">{{block "notification"}}</Say>
+         <Say voice="{{voice}}" language="{{language}}">{{block "prompt"}}</Say>
+      </Gather>
+      <Say voice="{{voice}}" language="{{language}}">{{block "error"}}</Say>
+      <Redirect method="GET">{{callbackURL}}&amp;step=greeting</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "acknowledged"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "exit"}}</Say>
+   </Response>
+{{/section}}
+
+{{#section "retry"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "error"}}</Say>
+      <Redirect method="GET">{{callbackURL}}&amp;step=greeting</Redirect>
+   </Response>
+{{/section}}
+
+{{#section "error"}}
+   <Response>
+      <Say voice="{{voice}}" language="{{language}}">{{block "exit"}}</Say>
+   </Response>
+{{/section}}

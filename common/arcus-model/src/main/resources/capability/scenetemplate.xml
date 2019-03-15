@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:capability name="SceneTemplate" namespace="scenetmpl"
+   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a scene template
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute name="added" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the scene template was added to the catalog"/>
+      <c:attribute name="modified" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the scene template was last modified"/>
+      <c:attribute name="name" readwrite="r" type="string"
+                   optional="false" description="The name of the rule template"/>
+      <c:attribute name="description" readwrite="r" type="string"
+                   optional="true" description="A description of the rule template"/>
+      <c:attribute name="custom" readwrite="r" type="boolean"
+                   optional="false" description="True if this is a custom template that may be re-used."/>
+      <c:attribute name="available" readwrite="r" type="boolean"
+                   optional="false" description="Indicates if the scene template is in use or not."/>
+   </c:attributes>
+  
+   <c:methods>
+   <c:method
+      name="Create"
+      description="Creates a scene instance from a given scene template">
+         <c:parameters>
+            <c:parameter
+               name="placeId"
+               type="string"
+               description="The platform-owned identifier for the place at which the scene is being created"
+               optional="false" />
+            <c:parameter
+               name="name"
+               type="string"
+               description="Default: Name of the scene template.  The name assigned to the scene, defaults to the template name."
+               optional="true" />
+            <c:parameter
+               name="actions"
+               type="list&lt;Action&gt;"
+               description="Default: Empty list.  A list of Actions for the scene to execute"
+               optional="true"/>
+         </c:parameters>
+         <c:return name="address" type="string" description="The address of the created scene" />
+      </c:method>
+      
+      <c:method name="ResolveActions" description="Resolves the actions that are applicable to a scene template.">
+         <c:parameters>
+            <c:parameter
+               name="placeId"
+               type="string"
+               description="The place id of the scene to resolve."
+               optional="false" />
+         </c:parameters>
+         <c:return name="actions" type="list&lt;ActionTemplate&gt;" description="The resolved actions for the place and scene."/>
+      </c:method>
+	</c:methods>
+
+</c:capability>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="LeakGas"
+   namespace="gas"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Natural Gas leak detection sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="state" 
+         readwrite="r" 
+         type="enum"
+         values="SAFE,LEAK"
+         optional="false"
+         description="Reflects whether or not a natural gas leak has been detected by the sensor."/>
+		<c:attribute 
+         name="statechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last state change"/>
+   </c:attributes> 
+
+</c:capability>

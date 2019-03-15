@@ -1,0 +1,236 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+
+description		"Default implementation for the ZWave Fan capability"
+version			"1.0"
+capability       Fan
+capability		 Switch
+
+@Field static final int DEFAULT_LOW_SPEED_VALUE     = 32
+
+onConnected {
+	// read current device level
+	ZWave.switch_multilevel.get()
+}
+
+// Note: this method must handle if both Fan.speed and Switch.state are set in the same message.
+//
+// Note: fan.speed ranges from 1 to fan.maxSpeed, but Z-Wave device level ranges from 1 to 99, with 0 = OFF.
+//
+// Fan Test Cases:
+//	1.	Setting a fan speed and turning it OFF at the same time should turn the fan OFF, but remember the speed to use
+//		as the speed the next time the fan is turned ON (if a speed is not specified when it is turned on).
+//
+// Z-Wave Edge Cases
+//	1.	Setting just the speed to 0 will send level 0 to the fan (0 turns the fan off), sets the Switch.state to OFF and
+//		Fan.speed to 'maxSpeed'.
+//	2.	Setting the fan to ON and speed to 0 turns the fan ON at level 99, and Fan.speed is set to 'maxSpeed'. This is done so
+//		that we do not get is a strange situation where speed is 0 and fan cannot be turned on because setting state to ON
+//		sends level 0 which just turns it right back off.  So explicitly setting state to ON will limit speed setting from 1 to 'maxSpeed'.
+//
+// Resulting Expected Behavior:
+// - In general, Apps should not set the Fan.speed level to zero.
+//
+// - Setting just the Fan.speed to 1 - maxSpeed will adjust the speed to that value and turn the fan ON if it was OFF.
+// - Setting just the Fan.speed to 0 will turn the fan Off and leave the speed setting at whatever value it was previously (Apps should not really be doing this, but we handle it).
+// + Setting just the Switch.state to OFF, will turn the fan off and leave the speed setting at whatever value it was previously (Scene scheduler currently uses this to turn fan OFF).
+// - Setting just the Switch.state to ON, will turn the fan on at the current Fan.speed (which should be non-zero, but if it is zero then the speed will default to maxSpeed (level 99)).
+// - Setting the Switch.state to OFF and Fan.speed to 1 - maxSpeed will adjust the fan to the specified speed and then turn it off, so that the next time it is switched on it will default to that speed.
+// * Setting the Switch.state to OFF and Fan.speed to 0 will turn the fan off and leave the speed setting at whatever value it was previously (Apps should not really be doing this, but they do so we handle it).
+// * Setting the Switch.state to ON and Fan.speed to 1 - maxSpeed will adjust the fan to the specified speed and turn the fan on (Apps and Scene Scheduler currently do this to turn fan ON at a specific speed).
+// - Setting the Switch.state to ON and Fan.speed to 0 will adjust the speed to maxSpeed and then turn the fan on because ON at 0% makes no sense (Apps should not really be doing this, but we handle it).
+// 
+// (* currently sent by mobile apps, or scene schedule to turn fan ON at a specific Speed)
+// (+ currently sent by scene scheduler to turn fan OFF)
+//
+static void handleSetAttributes(ctx, name, message){
+	handleSetAttributes(ctx, message)
+}
+
+static void handleSetAttributes(ctx, message) {
+	byte SWITCH_NOTSET = 0xFE
+	byte SWITCH_ON     = 0xFF
+	byte SWITCH_OFF    = 0x00
+
+	ctx.log.debug "Received setAttributes message: {}", message
+
+	long readbackDelay = ctx.vars.'DFLT_READBACK_DELAY' ?: 1000		// use 1000 mSec if no value set by parent driver
+	
+	int level = -1
+	def newSpeed
+	byte onoff = SWITCH_NOTSET
+
+	def attributes = ctx.message.attributes
+	
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Switch.state:
+				onoff = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+				break
+
+			case ctx.Fan.speed:
+				newSpeed = attribute.value
+				if (null == newSpeed) {
+					ctx.log.warn "Fan Speed has no value"
+					newSpeed = 0
+				}
+				// if speed is set to 0, same as turning OFF
+				if (0 >= newSpeed) {
+					level = 0
+				} else {
+					// map fan.speed to a level for the multilevel.set command
+					int maxSpeed = 3
+					try {
+						maxSpeed = new Integer(ctx.Fan.maxSpeed.toString())
+					} catch (NumberFormatException nfe) {}
+					if (maxSpeed < newSpeed) newSpeed = maxSpeed
+					int interval = 100 / maxSpeed
+					level = (newSpeed * interval) - 1
+					setTargetLevel( ctx, level )
+				}
+				break
+				
+			case ctx.Device.name:
+				ctx.Device.name attribute.value
+				break
+
+			default:
+				break
+		}   
+	}
+	
+	// if state was set to OFF
+	if (SWITCH_OFF == onoff) {
+		// if level was set to non-zero (both state:OFF and level:nnn were set)
+		if (0 < level) {
+			ctx.Fan.speed newSpeed
+		}
+		ctx.log.debug "Set fan to OFF"
+		ctx.ZWave.switch_multilevel.set(SWITCH_OFF)
+	} else if (SWITCH_ON == onoff) {
+		// if level was set (both state (ON) and level were set)
+		if (-1 != level) {
+			// cannot set device ON at level 0
+			if (0 == level) level = 99
+			// set 'targetlevel' to level
+			setTargetLevel( ctx, level )
+			// set device to 'targetlevel'
+			ctx.log.debug "Set fan to ON at level:{}", level
+			ctx.ZWave.switch_multilevel.set((byte)level)
+		} else {	// only state (ON) was set, level was not set, so use 'targetlevel'
+			level = getTargetLevel( ctx )
+			// cannot set device ON at level 0
+			if (0 == level) level = 99
+			ctx.log.debug "Set fan to ON at previous level:{}", level
+			ctx.ZWave.switch_multilevel.set((byte)level)
+		}
+	} else {	// state was not set
+		// if level was set from 1-99, (only speed was set)
+		if (0 < level) {
+			// set device to 'targetlevel'
+			ctx.log.debug "Set fan to level:{}", level
+			ctx.ZWave.switch_multilevel.set((byte)level)
+		} else if (0 == level) {
+			ctx.log.debug "Set fan to OFF"
+			ctx.ZWave.switch_multilevel.set(SWITCH_OFF)
+		}
+	}
+	ctx.log.debug "Last Level:{}", getTargetLevel( ctx )
+
+	if ((-1 != level) || (SWITCH_NOTSET != onoff)) {
+		ctx.ZWave.switch_multilevel.get()		
+		// read back the level after short delay to give device time to act on request
+		ctx.Scheduler.scheduleIn 'DeferredSwitchReadLevel', readbackDelay
+	}
+}
+
+onEvent('DeferredSwitchReadLevel') {
+	log.debug "Generic ZWave Fan performed deferred switch_multilevel.get"
+	ZWave.switch_multilevel.get()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Binary Switch Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleMultilevelReport(ctx, name, message) {
+	handleMultilevelReport(ctx, message)
+}
+
+static void handleMultilevelReport(ctx, message){
+	ctx.log.debug "Received multilevel switch report: {}", message
+
+	byte levelByte = message.command.get('value')
+	int level = levelByte & 0xFF
+	ctx.log.debug "Reported Level:{}", level
+
+	def prevState = ctx.Switch.state.get()
+
+	//Per ZWave command class specification 4.86.3
+	if (0xFF == level){
+		level = 99
+		ctx.log.trace("Sent 0xFF for Level, setting to 100% (99) per spec")
+	}
+	if( (100 > level) && ( 0 <= level ) ) {
+
+		// set the state attribute of the Switch capability to OFF if value is 0x00, or ON if not
+		if( level == 0 ) {
+			ctx.Switch.state ctx.Switch.STATE_OFF
+			if( null == ctx.Fan.speed.get() ) {
+				ctx.log.debug "Fan speed set to default of 1 if not set and fan state is OFF"
+				ctx.Fan.speed 1
+			}
+		}
+		else {
+			ctx.Switch.state ctx.Switch.STATE_ON
+		
+			int maxSpeed = ctx.Fan.maxSpeed.get() ?: 3
+			int interval = 100 / (maxSpeed)
+			int speed = (level / interval) + 1
+			
+			if (maxSpeed < speed) speed = maxSpeed
+			ctx.log.debug "Fan speed:{} level:{}", speed, level
+	
+			ctx.Fan.speed speed
+			setTargetLevel( ctx, level )
+		}
+	} else {
+		ctx.log.info "Unexpected value reported, ignored:{}", level
+	}
+
+	// if state changed, capture timestamp
+	if (ctx.Switch.state.get() != prevState) {
+		ctx.Switch.statechanged new Date()
+	}
+}
+
+static int getTargetLevel( ctx ) {
+	if( null == ctx.vars.'targetlevel')
+		return DEFAULT_LOW_SPEED_VALUE
+		
+	return ctx.vars.'targetlevel'	
+}
+
+static void setTargetLevel( ctx, int level ) {
+	if( ( 0 > level ) || ( 99 < level ) )
+		ctx.vars.'targetlevel' = 99
+	else
+		ctx.vars.'targetlevel' = level
+}
+
+

@@ -1,0 +1,31 @@
+{{#section "subject"}}
+Confirm Your Email
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+We are glad you are here. Confirm your email address below to activate your Iris account. Click Here to Verify Email {{{_webHomeBaseUrl}}}/login/{{{platform}}}?token={{{emailVerificationToken}}}&email={{{urlEncode _person.email}}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>We are glad you are here. Confirm your email address below to activate your Iris account.</p>
+    <table align="center" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" height="44" style="background-color: #00bfb3 ; background-image: linear-gradient(to right, #00bfb3 , #0095c8 ); border-radius: 6px; padding-left:20px; padding-right:20px; font-family: Arial, Helvetica, sans-serif; font-size:15px; color: #ffffff " width="100%"><a href="{{_webHomeBaseUrl}}/login/{{platform}}?token={{emailVerificationToken}}&email={{urlEncode _person.email}}" style="text-decoration: none; color: #ffffff ;" target="_blank">Click Here to Verify Email</a></td>
+                  </tr>
+                </table>
+	<p/>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,27 @@
+{{#section "subject"}}
+Hub Power Restored
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Great news! The power to your hub at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}) has been restored.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		Great news! The power to your hub at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) has been restored. 
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

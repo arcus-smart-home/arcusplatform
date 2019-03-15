@@ -1,0 +1,38 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Home Automation diagnostics command frames
+//    From Section 9.4 of the ZHA specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.PollControl {
+   const u16 CLUSTER_ID = 0x0020;
+
+   const u16 ATTR_CHECKIN_INTERVAL = 0x0000;
+   const u16 ATTR_LONG_POLL_INTERVAL = 0x001;
+   const u16 ATTR_SHORT_POLL_INTERVAL = 0x002;
+   const u16 ATTR_FAST_POLL_TIMEOUT = 0x003;
+   const u16 ATTR_CHECKIN_INTERVAL_MIN = 0x004;
+   const u16 ATTR_LONG_POLL_INTERVAL_MIN = 0x005;
+   const u16 ATTR_FAST_POLL_TIMEOUT_MAX = 0x006;
+}
+
+message zcl.PollControl.CheckIn<id="0x00", group="server"> {
+}
+
+message zcl.PollControl.CheckInResponse<id="0x00", group="client"> {
+   const u8 START_FAST_POLLING_DISABLED = 0x00;
+   const u8 START_FAST_POLLING_ENABLED = 0x01;
+
+   u8 startFastPolling;
+   u16 fastPollTimeout;
+}
+
+message zcl.PollControl.FastPollStop<id="0x01", group="client"> {
+}
+
+message zcl.PollControl.SetLongPollInterval<id="0x02", group="client"> {
+   u32 newLongPollInterval;
+}
+
+message zcl.PollControl.SetShortPollInterval<id="0x03", group="client"> {
+   u16 newShortPollInterval;
+}

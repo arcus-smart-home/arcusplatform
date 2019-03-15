@@ -1,0 +1,49 @@
+{{#file . "Generated/Capabilities/{{name}}CapabilityLegacy.swift"}}
+//
+// {{name}}CapabilityLegacy.swift
+//
+// Generated on {{today}}
+
+import Foundation
+import PromiseKit
+import RxSwift
+
+// MARK: Legacy Support
+
+public class {{name}}CapabilityLegacy: NSObject, Iris{{name}}Capability, IrisPromiseConverter {
+  public var disposeBag: DisposeBag = DisposeBag()
+  private static let capability: {{name}}CapabilityLegacy  = {{name}}CapabilityLegacy()
+  {{#attributes}}{{#if type.values}}
+  {{#type.values}}static let {{swiftTypeOfParent ../this}}{{toUpperCase this}}: String = {{swiftTypeOfParent ../this}}.{{cleanse (toLowerCase this)}}.rawValue
+  {{/type.values}}{{/if}}{{/attributes}}
+
+  {{#attributes}}
+  public static func get{{capitalize name}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) -> {{swiftTypeOfReturnLegacy type}}? {
+    {{#isCoercionRequired type}}guard let {{name}}: {{#isNumeric type}}{{swiftTypeOfParamLegacy type}}{{else}}{{swiftTypeOfReturnLegacy type}}{{/isNumeric}} = capability.get{{parent (capitalize name)}}(model){{#isEnum type}}?.rawValue{{/isEnum}} else {
+      return nil
+    }
+    return {{#isNumeric type}}NSNumber(value: {{name}}){{else}}{{name}}{{/isNumeric}}{{else}}return capability.get{{parent (capitalize name)}}(model){{#isEnum type}}?.rawValue{{/isEnum}}{{/isCoercionRequired}}
+  }
+  {{#if writable}}
+  public static func set{{capitalize name}}(_ {{name}}: {{#isEnum type}}String{{else}}{{swiftTypeOfParamLegacy type}}{{/isEnum}}, model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) {
+    {{#isEnum type}}guard let {{name}}: {{swiftTypeOfParam type}} = {{swiftTypeOfParam type}}(rawValue: {{name}}) else { return }{{/isEnum}}
+    {{#isTimestamp type}}let {{name}}: Date = Date(milliseconds: {{name}}){{/isTimestamp}}
+    capability.set{{parent (capitalize name)}}({{name}}, model: model)
+  }
+  {{/if}}{{/attributes}}{{#methods}}
+  {{#if parameters}}public static func {{uncapitalize name}}(_  model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model, {{#parameters}}{{cleanse name}}: {{swiftTypeOfParamLegacy type}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}) -> PMKPromise {
+  {{else}}public static func {{uncapitalize name}}(_ model: {{#if ../enhances}}{{../enhances}}{{/if}}{{#unless ../enhances}}{{../name}}{{/unless}}Model) -> PMKPromise { {{/if}}
+    {{#if parameters}}{{#parameters}}{{#isTimestamp type}}let {{name}}: Date = Date(milliseconds: {{name}}){{/isTimestamp}}
+    {{/parameters~}}{{/if}}
+    do {
+      return try capability.promiseForObservable(capability{{#if parameters}}
+        .request{{parent (capitalize name)}}(model, {{#parameters}}{{cleanse name}}: {{cleanse name}}{{#if @last}}{{else}}, {{/if}}{{/parameters}}){{else}}.request{{parent (capitalize name)}}(model){{/if}})
+    } catch {
+      return PMKPromise.new { (_: PMKFulfiller?, rejecter: PMKRejecter?) in
+        rejecter?(error)
+      }
+    }
+  }
+  {{/methods}}
+}
+{{/file}}

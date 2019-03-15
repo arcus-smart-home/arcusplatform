@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Camera"
+   namespace="camera"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Internal attributes and methods for cameras.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="streamUrl"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="URL to stream live and recorded video to if the default value configured for the video recording server is not correct."/>
+   </c:attributes>
+
+   <c:methods>
+   </c:methods>
+</c:capability>
+

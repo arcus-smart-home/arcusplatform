@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="IrrigationController"
+   namespace="irrcont"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of an Irrigation Controller.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="numZones" 
+         readwrite="r" 
+         type="int"
+         optional="false"
+         description="The number of irrigation zones this device controls."/>
+      <c:attribute 
+         name="controllerState" 
+         readwrite="r" 
+         type="enum"
+         values="OFF, WATERING, NOT_WATERING, RAIN_DELAY"
+         optional="false" 
+         description="Indicates whether the zone is currently watering or not"/>
+      <c:attribute 
+         name="rainDelayStart" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="The start time of a rain delay. Used together with rainDelayDuration this can be used to define a time range during which the rain delay is active."/>
+      <c:attribute 
+         name="rainDelayDuration" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         unit="minutes"
+         optional="false" 
+         description="If zero, no rain delay is in affect. If non-zero, this value can be used together with rainDelayStart to define a time range during which the rain delay is active."/>
+      <c:attribute 
+         name="maxtransitions" 
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         description="Maximum number of schedule events this device can support. The schedule cannot allow the user to set more total events than this."/>
+      <c:attribute 
+         name="maxdailytransitions" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         description="Maximum number of schedule events per day this device can support."/>
+      <c:attribute 
+         name="minirrigationtime" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         optional="false" 
+         description="Minimum time one zone can be watering at a time."/>
+      <c:attribute 
+         name="maxirrigationtime" 
+         readwrite="r" 
+         type="int" 
+         min="0"
+         optional="false" 
+         description="Maximum time one zone can be watering at a time."/>
+      <c:attribute 
+         name="budget" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="200"
+         unit="percent"
+         optional="true" 
+         description="Default: 100. Setting this number from 10-90 (most devices only support 10% increments) reduces the water usage to that percentage. Setting this number from 110-200) increases water usage for dryer moments. Note: current Orbit devices support 'stacking' meaning if the increased schedule results in a subsequent start time to be delayed, this start time becomes 'stacked' and handled as soon as possible. If the UI supports showing the user what zone is running, supporting budget&gt;100 means the UI will need to compute this stacking. Alternative is to not allow this number to be over 100 (as Iris1 does)."/>
+      <c:attribute 
+         name="zonesinfault" 
+         readwrite="r" 
+         type="set&lt;int&gt;"
+         optional="false" 
+         description="Which zones are currently in fault (solenoid jammed, usually). 0 can represent a single pump, if each zone has a pump than pump and/or solenoid should be represented by zonenum."/>
+
+      <!-- Deprecated Atrributes -->
+      <c:attribute
+         name="rainDelay"
+         readwrite="rw"
+         type="int"
+         optional="false"
+         description="This attribute was deprecated in 1.8."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="WaterNowV2"
+         description="Starts watering the indicated zone for the duration specified.">
+        <c:return
+           description="True for success or false for a failure."
+           type="boolean"
+           name="successful"
+           optional="false"/>
+        <c:parameters>
+          <c:parameter name="zone" type="string" optional="false" description="The zone number to begin watering."></c:parameter>
+          <c:parameter name="duration" type="int" optional="false" description="How long, in minutes, to water the zone."></c:parameter>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="CancelV2"
+         description="Cancels any watering currently in progress.">
+        <c:return
+           description="True for success or false for a failure."
+           type="boolean"
+           name="successful"
+           optional="false"/>
+        <c:parameters>
+          <c:parameter name="zone" type="string" optional="false" description="The zone number to begin watering."></c:parameter>
+        </c:parameters>
+      </c:method>
+
+      <!-- Deprecated Methods -->
+      <c:method
+         name="WaterNow"
+         description="This method was deprecated in 1.8.">
+        <c:return
+           description="True for success or false for a failure."
+           type="boolean"
+           name="successful"
+           optional="false"/>
+        <c:parameters>
+          <c:parameter name="zonenum" type="int" optional="true" description="This parameter was deprecated in 1.8."></c:parameter>
+          <c:parameter name="duration" type="int" optional="false" description="How long, in minutes, to water the zone."></c:parameter>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="Cancel"
+         description="This method was deprecated in 1.8.">
+        <c:return
+           description="True for success or false for a failure."
+           type="boolean"
+           name="successful"
+           optional="false"/>
+        <c:parameters>
+          <c:parameter name="zonenum" type="int" optional="true" description="This parameter was deprecated in 1.8."></c:parameter>
+        </c:parameters>
+      </c:method>
+   </c:methods>
+   
+</c:capability>

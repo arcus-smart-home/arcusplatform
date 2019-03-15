@@ -1,0 +1,28 @@
+{{#section "subject"}}
+A Device Has Low Battery Level
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Your {{{deviceName}}}'s battery level at {{{_place.name}}} is low. Change your batteries as soon as possible. 
+
+To find great deals on these batteries and others, visit {{{_redirectBaseUrl}}}/e_lowbattery to shop and explore.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>Your {{deviceName}}'s battery level at {{_place.name}} is low. Change your batteries as soon as possible.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

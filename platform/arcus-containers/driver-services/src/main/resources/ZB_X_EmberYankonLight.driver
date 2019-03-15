@@ -1,0 +1,545 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Yankon Smart Bulb, for development only
+ * 
+ * FACTORY RESET(TBD)
+ *  - At any time while the light is on, turn the light OFF-ON quickly 8 times.
+ *    Each repetition, make sure to let the light come back on but do not let the light stay on 
+ *    for more than 1 second.
+ *  - When performed correctly, the light will start to flash indicating that it is resetting
+ *    back to a factory condition.
+ * 
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBSilabsBR30"
+description		"Development Driver for the Yankon Smart Bulb"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Light"
+productId		"3e1751"
+vendor 			"Yankon"	//TBD Utilitech?
+model 			"TBD"
+
+matcher			'ZIGB:manufacturer': 0x1002, 'ZIGB:vendor': 'Silabs_Reference', 'ZIGB:model': 'BR30'
+
+capabilities	DevicePower, Dimmer, Switch, Light, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+DevicePower.source 		DevicePower.SOURCE_LINE
+DevicePower.linecapable	true
+DevicePower.backupbatterycapable false
+
+// Manufacturer ID:       TBD
+//
+// 1 End Point (0x01)
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters		0000,0003,0004,0005,0006,0008,0702,0B05
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x0300     ZLL     
+//   0x0B05     (2821) Diagnostics
+// OUT Clusters		0019
+//   0x0019     OTA Upgrade
+
+
+def onOffCluster = Zigbee.endpoint((byte)1).OnOff
+def levelCluster = Zigbee.endpoint((byte)1).Level
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+@Field static final String DEVICE_NAME = 'Yankon Smart Bulb'
+
+def final int DFLT_BRIGHTNESS			= 100
+def final short DFLT_TRANS_SECS         = 1				// default transition seconds to use when brightness attribute is set, since there is no transition time attribute
+
+def final long READBACK_DELAY_MSEC      = 1000		    // delay before reading
+
+// constants used if setting level reporting interval
+def final short PROFILE_HA				= 0x0104
+
+def final short CLUSTER_ON_OFF          = 0x0006
+def final short CLUSTER_LEVEL_CTRL      = 0x0008
+def final short CLUSTER_METERING        = 0x0702        // (1794) Simple Metering
+def final short CLUSTER_DIAGNOSTICS     = 0x0B05        // (2821) Diagnostics Cluster
+
+def final byte CMD_CNFG_RPT             = 0x06          // General Command Frame - Configure Reporting
+def final byte CMD_WRT_ATTR             = 0x02          // General Command Frame - Write Attributes
+
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes
+def final short IDENT_PERIOD_SECS           = 30        // number of seconds for device to Identify itself when Identify method is called
+
+def final String CURRENT_NAME = "Yankon Smart Bulb"
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "${CURRENT_NAME} added"
+	
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	// when device pairs, it should be ON and at level 100, so default to those
+	
+	Switch.state			Switch.STATE_ON
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Dimmer.brightness                DFLT_BRIGHTNESS
+	Light.colormode                  Light.COLORMODE_NORMAL
+
+	// Bind all of the command clusters on the enpoints we need
+	Zigbee.bindEndpoints(
+		onOffCluster.bindServerCluster(),
+		levelCluster.bindServerCluster(),
+		diagCluster.bindServerCluster() )		// Zigbee.endpoint((byte)1).bindServerCluster(CLUSTER_METERING)
+}
+
+
+onConnected {
+	log.debug "${CURRENT_NAME} connected."
+
+	// read current OnOff attributes
+	onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+
+	// read current Level attributes
+	levelCluster.zclReadAttributes( 
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_ON_LEVEL )
+
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+
+	// configure reporting of OnOff cluster OnOff attribute
+	byte[] rptOnOffCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x0000) OnOff
+		0x00, 0x00,
+		// Attr Data Type (0x10) Boolean
+		0x10,
+		// Min Interval (0x000F) 1 secs
+		0x01, 0x00,
+		// Max Interval (0x0078) 120 secs (at least once every 2 minutes)
+		0x78, 0x00 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_ON_OFF,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptOnOffCnfgBytes )
+
+	// configure reporting of Level Control cluster Current Level attribute
+	byte[] rptLvlCnfgBytes = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x0000) Current Level
+		0x00, 0x00,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x0002) 2 secs
+		0x02, 0x00,
+		// Max Interval (0x0078) 120 secs (at least once every 2 minutes)
+		0x78, 0x00,
+		// Reportable Change (0x01)
+		0x01 ]
+	Zigbee.send(
+		"cluster" : CLUSTER_LEVEL_CTRL,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 1,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : rptLvlCnfgBytes )
+
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+//	byte[] rptDiagCnfgBytes = [
+//		// Dir (0x00)
+//		0x00,
+//		// Attr Id (0x011C) Last Message LQI
+//		0x1C, 0x01,
+//		// Attr Data Type (0x20) Unsigned 8-Bit Int
+//		0x20,
+//		// Min Interval (0x003C) 60 secs
+//		0x3C, 0x00,
+//		// Max Interval (0x0078) 120 secs
+//		0x78, 0x00,
+//		// Reportable Change (0x01)
+//		0x01 ]
+//	Zigbee.send(
+//		"cluster" : CLUSTER_DIAGNOSTICS,
+//		"command" : CMD_CNFG_RPT,
+//		"profile" : PROFILE_HA,
+//		"endpoint" : 1,
+//		"clusterspecific" : false,
+//		"defaultresponse" : true,
+//		"data" : rptDiagCnfgBytes )
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "${CURRENT_NAME} disconnected."
+}
+
+
+onRemoved {
+	log.debug "${CURRENT_NAME} removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Switch capability attrbutes (only 'state' attribute can be written/set)
+setAttributes('swit') {
+	log.debug "Driver received 'swit' setAttributes message " + message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				if (attribute.value == 'ON') {
+					onOffCluster.on()
+				} else { 
+					onOffCluster.off()
+				}
+
+				// read current OnOff attributes
+				onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+			
+				// read back the level (delay this a bit so default ramping is completed first)
+				Scheduler.scheduleIn 'DeferredReadLevel', READBACK_DELAY_MSEC
+				break
+
+			default:
+				log.error "unrecognized attribute: " + attribute
+				break
+		}
+	}
+	sendResponse 'swit:SetAttributesResponse', [:]
+}
+
+onEvent('DeferredReadLevel') {
+	log.debug 'Perform deferred ReadAttributes for levelCluster'
+	// read current Level attributes
+	levelCluster.zclReadAttributes( 
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_REMAINING_TIME,
+		levelCluster.ATTR_ON_OFF_TRANSITION_TIME,
+		levelCluster.ATTR_ON_LEVEL )
+}
+
+
+
+void handleRampToBrightness(Object onOffClstr, Object lvlClstr, byte level, short seconds) {
+	if (100 < level) { level = 100 }		// make sure level is 0 - 100
+	if (0 > level) { level = 0 }
+	def short transitionTime = seconds * 10
+	if (0 > transitionTime) { transitionTime = 0 }
+	double dLevel = level * 254 / 100
+	short actualLevel = dLevel.intValue()	//convert from percentage to actual zigbee level value 0 - 254
+		
+	log.debug "levelCluster.moveToLevel[level, transitionTime] = [${actualLevel}, ${transitionTime}]"
+	lvlClstr.moveToLevel( (byte)actualLevel, transitionTime )
+	  
+	// read current OnOff attributes
+	onOffClstr.zclReadAttributes( onOffClstr.ATTR_ONOFF )
+
+	// read back the level (delay this so ramping is completed first)
+	Scheduler.scheduleIn 'DeferredReadLevel', (transitionTime * 100) + 500		// transition time is in tenths of seconds, delay is in mSec
+}
+
+// called to set the Dimmer capability attributes (only brightness can be written/set)
+setAttributes('dim') { 
+	log.debug "Driver received 'dim' setAttributes message: " + message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Dimmer.brightness:
+				int level = attribute.value
+				if (100 < level) { level = 100 }		// make sure level is 0 - 100
+				if (0 > level) { level = 0 }
+				if (0 != level) {
+					handleRampToBrightness(onOffCluster, levelCluster, (byte)level, DFLT_TRANS_SECS)
+				} else {		// if set to zero, turn off bulb
+					onOffCluster.off()
+				}
+				break
+			default:
+				log.error "Unrecognized attribute: " + attribute
+				break
+		}
+	} 
+	sendResponse 'dim:SetAttributesResponse', [:]
+}
+
+
+// method defined in the Dimmer capability
+onDimmer.RampBrightness {
+	log.debug "Driver received onDimmer.RampBrightness message: " + message
+	// read the brightness and seconds parameters for the method
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+	
+	log.debug "Parameter Values (brightness,seconds): " + targetBrightness + ", " + targetSeconds
+	handleRampToBrightness(onOffCluster, levelCluster, (byte)targetBrightness, (short)targetSeconds)
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOnOffMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[cluster.ATTR_ONOFF]
+	log.debug "OnOff: " + onoff
+	
+	if (onoff != null) {
+		def prevState = Switch.state.get()
+		Switch.state onoff ? Switch.STATE_ON : Switch.STATE_OFF
+		// if state changed, capture timestamp
+		if (Switch.state.get() != prevState) {
+			Switch.statechanged new Date()
+		}
+		// when bulb is off, set brightness attribute to 0
+		if (!onoff) {
+			int brightness = 0
+			Dimmer.brightness brightness
+		}
+	}
+}
+
+// called when device responds to an OnOff Read Attributes
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+	log.debug "Driver received OnOff Attributes Response: " + message
+	handleOnOffMsg(onOffCluster, message)
+}
+
+// called when device asynchronously sends an OnOff Report Attributes
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+	log.debug "Driver received OnOff Attributes Report: " + message
+	handleOnOffMsg(onOffCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleLevelMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def currLevel = attributes[cluster.ATTR_CURRENT_LEVEL]
+	def remainTime = attributes[cluster.ATTR_REMAINING_TIME]
+	def transTime = attributes[cluster.ATTR_ON_OFF_TRANSITION_TIME]
+	def onLevel = attributes[cluster.ATTR_ON_LEVEL]
+	log.debug "handleLevelMsg - Current Level:${currLevel}, On Level:${onLevel}, Transition Time:${transTime}, Remaining Time:${remainTime}"
+	int rampingtime, brightness, rampingtarget
+
+	// set Dimmer Brightness attribute to Current Level
+	if ((null != currLevel) && ('INVALID' != currLevel.toString())) {
+		brightness = currLevel & 0xff
+		if ((0 <= brightness) && (254 >= brightness)) {
+			brightness = Math.round(brightness * 100.0 / 254.0)
+			Dimmer.brightness brightness
+		} else {
+			log.warn "Invalid Brightness Level Ignored:" + brightness
+			//Scheduler.scheduleIn 'DeferredReadLevel', READBACK_DELAY_MSEC
+		} 
+	} else if ('INVALID' == currLevel.toString()) {		// bulb reports invalid value '0' when turned on locally to 100% with button on bulb
+		brightness = 100
+		Dimmer.brightness brightness
+	}
+	
+	// set Dimmer Ramping Time attribute to Remaining Time
+	if ((null != remainTime) && ('INVALID' != remainTime.toString())) {
+		double remainingDbl =  remainTime
+		remainingDbl /= 10	// ZigBee reamining time is reported in 10ths of seconds, Dimmer ramping time is in seconds
+		rampingtime = remainingDbl.intValue()
+		Dimmer.rampingtime rampingtime
+	}
+	
+	// set Dimmer Ramping Target attribute to ON Level (Attribute currently not supported by device)
+	if ((null != onLevel) && ('INVALID' != onLevel.toString())) {
+		rampingtarget = new Double(onLevel).intValue()
+//		Dimmer.rampingtarget rampingtarget
+	}
+	log.debug "handleLevelMsg - Dimmer[brightness, rampingtime, rampingtarget]=[${brightness}, ${rampingtime}, ${rampingtarget}]"
+}
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.debug "Driver received Level Attributes Response: " + message
+	handleLevelMsg(levelCluster, message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.debug "Driver received Level Attributes Report: " + message
+	handleLevelMsg(levelCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify: " + message
+	// ask the device to identify itself for 3 minutes
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.debug "RSSI: " + rssi + ", LQI: " + lqi
+	
+	if ((rssi != null) && ('INVALID' != rssi.toString())) {
+		processed = true
+	}
+	if ((lqi != null) && ('INVALID' != lqi.toString())) {
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		double signal = (lqi * 100.0) / 255.0
+		int sigLvl = Math.round(signal)
+		log.debug "LQI: " + lqi + ", (percent:" + sigLvl + ")"
+		DeviceConnection.signal sigLvl
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.debug "Driver received Diagnostics Attributes Response: " + message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.debug "Driver received Diagnostics Attributes Report: " + message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.debug "Driver received zigbee ZCL message: " + message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	log.debug "Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+
+	// if Diagnostic cluster reported LQI and not previously handled (exception parsing attribute) manually parse the value here
+	if ((CLUSTER_DIAGNOSTICS == clusterId) && (3 < data.length)) {
+		if ((0x1C == data[0]) && (0x01 == data[1]) && (0x20 == data[2])) {		// LQI Attribute (0x011C) as unsigned 8-bit value (0x20)
+			int lqi = data[3]				// 0-255
+			if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+			double signal = (lqi * 100.0) / 255.0
+			int sigLvl = Math.round(signal)
+			log.debug "LQI: " + lqi + ", (percent:" + sigLvl + ")"
+			DeviceConnection.signal sigLvl
+		}
+	}
+
+}
+  
+
+
+
+

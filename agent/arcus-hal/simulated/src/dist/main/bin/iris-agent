@@ -1,0 +1,19 @@
+#!/bin/sh
+
+DIRNAME=$(dirname "$0")
+INSTALL_PATH=$(readlink -f "${DIRNAME}/..")
+
+CP=
+for jar in $(ls "${INSTALL_PATH}/libs"/*); do
+   if [ -z "${CP}" ]; then
+      CP="${jar}"
+   else
+      CP="${CP}:${jar}"
+   fi 
+done
+
+
+JAVA="/usr/bin/java"
+JAVA_OPTS="-Xmx16m -Xms16m"
+
+exec ${JAVA} ${JAVA_OPTS} ${JAVA_DBG_OPTS} -cp "${CP}" com.iris.agent.IrisAgent ${INSTALL_PATH}/conf

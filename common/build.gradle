@@ -1,0 +1,148 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+buildscript {
+   repositories {
+      if ("${use_maven_local}" == "true") {
+         mavenLocal()
+      }
+
+       mavenCentral()
+       jcenter()
+   }
+
+   apply from: file("${rootDir}/gradle/buildscript.gradle"), to: buildscript
+}
+
+repositories {
+   if ("${use_maven_local}".toString() == "true") {
+      mavenLocal()
+   }
+
+    mavenCentral()
+    jcenter()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Define properties that can be accessed by all of the subprojects
+////////////////////////////////////////////////////////////////////////////////
+
+// version parts
+def version_props = new Properties();
+version_props.load(file("version.properties").newReader())
+
+ext.version_major = version_props.major
+ext.version_minor = version_props.minor
+ext.version_patch = version_props.patch
+ext.version_qualifier = version_props.qualifier
+
+version = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"
+println "Building ${project.name} v${version}"
+
+// full version numbers
+ext.buildVersion = version
+ext.commonVersion = version
+
+apply from: file("${rootDir}/gradle/release.gradle")
+
+allprojects {
+   version = rootProject.version
+}
+
+subprojects {
+   apply from: file("${rootDir}/gradle/subproject.gradle")
+
+   group = 'com.iris'
+   version = rootProject.version
+   sourceCompatibility = '1.7'
+   targetCompatibility = '1.7'
+
+   // Shared manifest for all jar files
+   ext.sharedManifest = manifest {
+      attributes(
+         'Implementation-Title': project.name,
+         'Implementation-Version': project.version
+      )
+   }
+   
+    task sourcesJar(type: Jar, dependsOn: classes) {
+      classifier = 'sources'
+      from sourceSets.main.allSource
+    }
+
+    artifacts {
+      archives sourcesJar
+    }
+
+    dependencies {
+        // all sub-project support using eclipse annotations
+        compile libraries.eclipse_annotation
+
+        // all sub-projects use SLF4J for logging
+        compile libraries.slf4jApi
+
+        // all sub-projects use dropwizard for metrics
+        compile libraries.metrics_core
+
+        // all sub-projects use junit for unit testing
+        testCompile libraries.junit
+        
+        // all sub-projects use logback during tests
+        testCompile libraries.logback
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            cacheDynamicVersionsFor 60, 'minutes'
+            cacheChangingModulesFor 60, 'minutes'
+            force 'org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0'
+            force 'com.google.inject.extensions:guice-multibindings:4.0-beta5'
+            force 'com.netflix.archaius:archaius-core:0.6.5'
+            force 'com.fasterxml.jackson.core:jackson-core:2.5.1'
+            force 'com.fasterxml.jackson.core:jackson-databind:2.5.1'
+            force 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+        }
+    }
+
+    // FIXME should this move into the dependencies.gradle ?
+    configurations {   
+        all*.exclude group: 'commons-logging', module: 'commons-logging'
+        // exclude older version of cglib included by guice
+        all*.exclude group: 'org.sonatype.sisu.inject', module: 'cglib'
+        all*.exclude group: 'com.google.inject.extensions', module: 'guice-grapher'
+        all*.exclude group: 'asm'
+        all*.exclude group: 'com.google.code.findbugs', module: 'annotations'
+        all*.exclude group: 'org.apache.xbean', module: 'xbean-bundleutils'
+        all*.exclude group: 'org.apache.maven.scm'
+        all*.exclude group: 'org.apache.commons', module: 'commons-io'
+        all*.exclude group: 'com.codahale.metrics', module: 'metrics-core'
+        all*.exclude group: 'com.yammer.metrics', module: 'metrics-core'
+        all*.exclude group: 'log4j', module:'log4j'
+        all*.exclude group: 'com.iris', module:'arcus-test'
+        all*.exclude group: 'com.iris', module:'arcus-log'
+        all*.exclude group: 'com.iris', module:'arcus-lib'
+    }
+
+    tasks.withType(Tar) {
+        compression = Compression.GZIP
+        extension = "tar.gz"
+    }
+
+    jar.manifest = sharedManifest
+    jar {
+      entryCompression = ZipEntryCompression.STORED
+    }
+}
+

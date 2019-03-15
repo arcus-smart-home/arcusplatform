@@ -1,0 +1,112 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver         "IPCDBlackboxSwitch"
+description    "Driver for emulated IPCD Switch"
+version        "1.0"
+protocol       "IPCD"
+deviceTypeHint "Switch"
+vendor         "BlackBox"
+model          "Switch1"
+
+matcher        'IPCD:vendor' : 'BlackBox', 'IPCD:model' : 'Switch1'
+
+capabilities   DevicePower, Switch
+
+
+DevicePower.source                 DevicePower.SOURCE_LINE
+DevicePower.linecapable            true
+DevicePower.backupbatterycapable   false
+
+///////////////// Constants ////////////////////////
+def final ATTR_SWITCH = "bb.switch"
+def final VALUE_CHANGES = "valueChanges"
+
+///////////////// Driver Lifecycle ////////////////
+
+onAdded {
+   log.debug "IPCD Blackbox Switch1 Device Added."
+   
+   DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   
+   Switch.state                     Switch.STATE_OFF
+   Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "IPCD Blackbox Switch1 Device Connected."
+   
+   Ipcd.Commands.getParameterValues("txnid", [ATTR_SWITCH])
+}
+
+onDisconnected {
+   log.debug "IPCD Blackbox Switch1 Device Disconnected."
+}
+
+onRemoved {
+   Ipcd.Commands.factoryReset()
+   log.debug "IPCD Blackbox Switch1 Device Removed."
+}
+
+/////////////// Capability Attribute Closures ///////////////////
+
+setAttributes('swit') {
+   log.debug "IPCD Blackbox Switch1 driver received 'swit' set Attribute message " + message
+   def attributes = message.attributes
+   for (attribute in attributes) {
+      switch(attribute.key) {
+         case Switch.state:
+            if (attribute.value == 'ON') {
+               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "on" ])
+            } else { 
+               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "off" ])
+            }
+         break;
+
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+///////////////// Protocol Messages ///////////////////////////
+
+onIpcdMessage.event {
+   log.debug("Got event from IPCD Device " + message)
+   def eventMap = message.mapify()
+   if (eventMap.containsKey(VALUE_CHANGES)) {
+      def valueChanges = eventMap[VALUE_CHANGES]
+      for (valueChange in valueChanges) {
+         if (valueChange["parameter"] == ATTR_SWITCH) {
+            def prevState = Switch.state.get()
+            Switch.state( valueChange["value"] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+            if (Switch.state.get() != prevState) {
+               Switch.statechanged( new Date())
+            }
+         }
+      }
+   }
+}
+
+onIpcdMessage.response.getParameterValues("success") {
+   log.debug("Got Response from IPCD Device " + message)
+   def response = message.mapify()["response"]
+   log.debug("Response contents from IPCD Device " + response)
+   if (response.containsKey(ATTR_SWITCH)) {
+      Switch.state( response[ATTR_SWITCH] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+   }
+}
+
+

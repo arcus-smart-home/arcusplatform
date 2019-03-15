@@ -1,0 +1,18 @@
+# The following file is formatted as JSON in three fields matching the ProMonitoringMetaData bean
+# Field 1 String area - The calling Area	
+# Field 2 List<java.lang.String> phoneNumbers - The list of all the current phone numbers that might be presented to an end user for a given area.
+# Field 3 List<java.lang.String> areaCodes - The list of all the current area codes that are used in a given area.
+# Two exceptions to the areaCodes fields:
+# 1. GLOBAL, for areas not covered in the current list
+# 2. IRIS, Future use for all IRIS based UCC calls
+# Author: Trip, Terry Trippany
+#
+[{"area":"Austin","phoneNumbers":["512-225-9602"],"areaCodes":["512","737"]},
+{"area":"Dallas","phoneNumbers":["469-713-5602"],"areaCodes":["214","469","682","817","972"]},
+{"area":"San Antonio","phoneNumbers":["210-491-5300"],"areaCodes":["210","830"]},
+{"area":"New Mexico","phoneNumbers":["505-212-9200"],"areaCodes":["505","575"]},
+{"area":"Houston","phoneNumbers":["281-210-3702"],"areaCodes":["281","346","713","832"]},
+{"area":"Wichita Falls","phoneNumbers":["940-432-3335"],"areaCodes":["940"]},
+{"area":"Atlanta","phoneNumbers":["678-932-8370"],"areaCodes":["404","470","678","706","770"]},
+{"area":"LD from San Antonio","phoneNumbers":["800-299-9900"],"areaCodes":["GLOBAL"]},
+{"area":"Iris Only Number ","phoneNumbers":["844-571-6006"],"areaCodes":["IRIS"]}]

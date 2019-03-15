@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CarbonMonoxide"
+   namespace="co"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a carbon monoxide detector.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="co" 
+         readwrite="r" 
+         type="enum" 
+         values="SAFE,DETECTED"
+         optional="false" 
+         description="Reflects the state of the carbon monoxide presence. When 'DETECTED' the sensor has detected CO, when 'SAFE' no CO has been detected."/>
+      <c:attribute 
+         name="eol" 
+         readwrite="r" 
+         type="enum" 
+         values="OK,EOL"
+         optional="true" 
+         description="Reflects the state of the carbon monoxide sensor itself. When 'OK' the sensor is operational, when 'EOL' the sensor has reached its 'end-of-life' and should be replaced."/>
+      <c:attribute 
+         name="cochanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last co change"/>         
+      <c:attribute 
+         name="coppm" 
+         readwrite="r" 
+         type="long" 
+         optional="true" 
+         description="Measured value of the Carbon Monoxide in the room in parts per million"/>         
+   </c:attributes>
+   
+</c:capability>

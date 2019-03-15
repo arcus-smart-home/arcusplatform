@@ -1,0 +1,9 @@
+{{#file . "com/iris/client/model/{{name}}Model.java"}}
+package com.iris.client.model;
+
+import static com.iris.client.capability.{{name}}.*;
+
+public interface {{name}}Model extends com.iris.client.model.Model, com.iris.client.capability.{{name}} {
+   
+}
+{{/file}}

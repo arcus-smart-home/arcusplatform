@@ -1,0 +1,202 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Dimmer switch
+ */
+driver			"MOCK_DimmerSwitch"
+description		"Driver for the Mockitron Dimmer with a Switch"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Dimmer"
+productId		"6c56c8"
+vendor 			"Mockitron"
+model 			"DimmerSwitch"
+
+matcher        'MOCK:Capability' : 'DimmerSwitch'
+matcher        'MOCK:ProductId'  : '6c56c8'
+
+capabilities	DevicePower, Dimmer, Switch, Indicator, DeviceMock
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mockitron Dimmer Switch started."
+	Device.name 'Mock Dimmer Switch'
+	
+	// remove once oculus/platform issue resolved.
+	DeviceConnection.signal	66
+
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Dimmer.brightness		33
+	Dimmer.rampingtarget	66
+	Dimmer.rampingtime		5
+	
+	Switch.state			Switch.STATE_ON
+	Switch.statechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Indicator.enabled			true
+	Indicator.enableSupported	false
+	Indicator.indicator         Indicator.INDICATOR_OFF
+	Indicator.inverted          false
+}
+ 
+onConnected {
+	log.debug "Mockitron Dimmer Switch connected."
+	
+}
+
+onDisconnected {
+	log.debug "Mockitron Dimmer Switch disconnected."
+	
+}
+
+onRemoved {
+	log.debug "Mockitron Dimmer Switch removed."
+}
+
+// ########### capability support ##################
+
+void updateIndicator() {
+	boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
+	if (Switch.STATE_OFF == Switch.state.get()) {
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+	} else {
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+	}
+}
+
+setAttributes() {
+   def prevSwitch = Switch.state.get()
+   
+   def int level = -1
+   boolean switchSet = false
+   
+   def attribs = message.attributes
+   for(attribute in attribs) {
+	   switch(attribute.key) {
+		  case Dimmer.brightness:
+			  level = attribute.value
+			  if (level < 0) level = 0
+			  if (level > 100) level = 100
+			  log.debug "Set Brightness to: $level"
+			  break
+			  
+		  case Switch.state:
+		      Switch.state attribute.value
+			  switchSet = true
+			  break
+			  
+		  case Indicator.inverted:
+		      Indicator.inverted attribute.value
+		      break
+
+		  case Device.name:
+		      Device.name attribute.value
+		      break
+
+		  default:
+			  break
+		  }
+	  }
+   
+   // if level has been set
+   if (-1 != level) {
+	   // if level is 0
+	   if (0 == level) {
+			throw new Exception("Invalid brightness level: 0");
+	   } else {
+		   Dimmer.brightness level
+		   if (!switchSet)
+		       Switch.state Switch.STATE_ON
+	   }
+   }
+   if (Switch.state.get() != prevSwitch) { 
+      Switch.statechanged new Date()
+   }
+   updateIndicator()
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  if (message.attributes.attrs['swit:state']) {
+    Switch.statechanged new Date()
+  }
+  updateIndicator()
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onDimmer.RampBrightness {
+	log.debug "MOCK Dimmer Switch received onDimmer.RampBrightness message: " + message
+
+	// TODO: This is clearly wrong. Arguments are defined as ints, why are they coming in as strings, and double values as well?
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+
+	log.debug "Dimmer Brightness: " + targetBrightness + "," + targetSeconds
+	
+	Dimmer.rampingtarget targetBrightness
+	Dimmer.rampingtime targetSeconds
+}
+
+onDimmer.IncrementBrightness {
+   log.debug "MOCK Dimmer Switch driver received onDimmer.IncrementBrightness message: " + message
+   int newBrightness = new Double(message.attributes['amount']).intValue() + Dimmer.brightness.get();
+   if(newBrightness > 100) {
+      newBrightness = 100
+   }
+   if(newBrightness > 0) {
+      Switch.state Switch.STATE_ON
+   }
+   Dimmer.brightness newBrightness
+   updateIndicator()
+   sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+onDimmer.DecrementBrightness {
+   log.debug "MOCK Dimmer Switch driver received onDimmer.DecrementBrightness message: " + message
+   int newBrightness = Dimmer.brightness.get() - new Double(message.attributes['amount']).intValue()
+   if(newBrightness > 0) {
+      Dimmer.brightness newBrightness
+      Switch.state Switch.STATE_ON
+   } else {
+      Switch.state Switch.STATE_OFF
+   }
+   updateIndicator()
+   sendResponse 'dim:DecrementBrightnessResponse', [:]
+}
+
+

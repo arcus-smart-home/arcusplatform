@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Garage Door Obstruction
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}} has reported an obstruction.  Open and close the door manually to resolve.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}} has reported an obstruction.  Open and close the door manually to resolve.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

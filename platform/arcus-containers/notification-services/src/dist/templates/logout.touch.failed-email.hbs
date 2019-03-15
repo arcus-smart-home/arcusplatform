@@ -1,0 +1,40 @@
+{{#section "subject"}}
+Invalid Identification Scan
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+There have been multiple failed attempts to login into Iris using your biometric information -- 
+i.e. fingerprint or face identification -- on the following device:
+
+{{{osType}}} {{{osVersion}}}
+Device Type: {{{deviceVendor}}} {{{deviceModel}}}
+    
+For security reasons, you will need to login using your Email and Password. 
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>There have been multiple failed attempts to login into Iris using your biometric information -- i.e. fingerprint or face identification -- on the following device:</p>
+	<p/>
+	<p>{{osType}} {{osVersion}}</p>
+    <p>Device Type: {{deviceVendor}} {{deviceModel}}</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+<tr><td class="innerpadding borderbottom" style="border-bottom-width: 1px; border-bottom-color: #f2eeed; border-bottom-style: solid; padding: 30px;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr><td class="bodycopy" style="color: #153643; font-family: 'AvenirNextRegular', sans-serif; font-size: 16px; line-height: 22px;">
+For security reasons, you will need to login using your Email and Password.
+<p></p></td></tr></table></td></tr>
+	{{/partial}}
+		
+{{> layout-html-email}}
+{{/section}}

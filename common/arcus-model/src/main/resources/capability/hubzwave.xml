@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubZwave"
+   namespace="hubzwave"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="hardware"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="hardware version of the chip"/>
+      <c:attribute 
+         name="firmware"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Current firmware version loaded on the chip."/>
+      <c:attribute 
+         name="protocol"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Version of the ZDK protocol used."/>
+      <c:attribute 
+         name="homeId"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Home Id of the Z-wave controller."/>
+      <c:attribute 
+         name="numDevices" 
+         readwrite="r" 
+         type="int" 
+         optional="false" 
+         description="Number of devices currently paired to the z-wave chip."/>
+      <c:attribute 
+         name="isSecondary" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="If this is a secondary controller."/>
+      <c:attribute 
+         name="isOnOtherNetwork" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="If this is on another network."/>
+      <c:attribute 
+         name="isSUC" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="If this is a SUC."/>
+      <c:attribute 
+         name="state" 
+         readwrite="r" 
+         type="enum" 
+         values="INIT,NORMAL,PAIRING,UNPAIRING"
+         optional="false" 
+         description="Current state of the network."/>
+      <c:attribute 
+         name="uptime"
+         readwrite="r"
+         type="long"
+         unit="milliseconds" 
+         optional="false" 
+         description="The amount of time since the last Z-Wave chip reset"/>
+      <c:attribute 
+         name="healInProgress"
+         readwrite="r"
+         type="boolean"
+         optional="false" 
+         description="True if the Z-Wave controller is in the process of healing the network."/>
+      <c:attribute 
+         name="healLastStart"
+         readwrite="r"
+         type="timestamp"
+         optional="false" 
+         description="Timestamp for the last time a Z-Wave network heal was started."/>
+      <c:attribute 
+         name="healLastFinish"
+         readwrite="r"
+         type="timestamp"
+         optional="false" 
+         description="Timestamp for the last time a Z-Wave network heal was finished."/>
+      <c:attribute 
+         name="healFinishReason"
+         readwrite="r"
+         type="enum"
+         values="SUCCESS,CANCEL,TERMINATED"
+         optional="false" 
+         description="An indication of the reason the last Z-Wave network heal was finished."/>
+      <c:attribute 
+         name="healTotal"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The total number of nodes that an in-progress Z-Wave network heal is optimizing."/>
+      <c:attribute 
+         name="healCompleted"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The number of nodes that the Z-Wave network heal has completed optimizing."/>
+      <c:attribute 
+         name="healSuccessful"
+         readwrite="r"
+         type="int"
+         optional="false" 
+         description="The number of nodes that the Z-Wave network heal has successfully optimized."/>
+      <c:attribute 
+         name="healBlockingControl"
+         readwrite="r"
+         type="boolean"
+         optional="false" 
+         description="True if the Z-Wave network heal process is currently blocking control of Z-Wave devices."/>
+      <c:attribute 
+         name="healEstimatedFinish"
+         readwrite="r"
+         type="timestamp"
+         optional="false" 
+         description="The estimated time that the heal will finish."/>
+      <c:attribute 
+         name="healPercent"
+         readwrite="r"
+         type="double"
+         optional="false" 
+         description="The percentage complete of the Z-Wave network heal."/>
+      <c:attribute 
+         name="healNextScheduled"
+         readwrite="r"
+         type="timestamp"
+         optional="false" 
+         description="The next scheduled execution for a network heal (Java epoch mean no scheduled heal)."/>
+      <c:attribute 
+         name="healRecommended"
+         readwrite="rw"
+         type="boolean"
+         optional="false" 
+         description="True if a heal should be run on the network to restore proper operation."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="FactoryReset"
+         description="Clears out the ZWave controller, effectively unpairing all devices.  Will also change the zwave chip's home id.">
+      </c:method> 
+
+   	<c:method
+         name="Reset"
+         description="Perform a reset of the Z-Wave chip">
+         <c:parameters>
+            <c:parameter 
+               name="type"
+               type="enum"
+               values="SOFT,HARD"
+               description="The type of reset to be performed"
+               optional="true"/>
+            <c:return 
+               name="status" 
+               type="boolean" 
+               description="True if the reset was initiated, false otherwise." 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="ForcePrimary"
+         description="Forces the Z-Wave chip into the primary controller role.">
+      </c:method> 
+
+      <c:method
+         name="ForceSecondary"
+         description="Forces the Z-Wave chip into the secondary controller role.">
+      </c:method> 
+
+   	<c:method
+         name="NetworkInformation"
+         description="Get information about the current state of the network.">
+         <c:parameters>
+            <c:return 
+               name="metrics" 
+               type="object" 
+               description="The current metrics per node." 
+               optional="false"/>
+            <c:return 
+               name="neighbors" 
+               type="object" 
+               description="The current neighbors per node." 
+               optional="false"/>
+            <c:return 
+               name="routing" 
+               type="object" 
+               description="The current routing table per node." 
+               optional="false"/>
+            <c:return 
+               name="route" 
+               type="object" 
+               description="The current route used by the controller per node." 
+               optional="false"/>
+            <c:return 
+               name="zombies" 
+               type="object" 
+               description="A list of zombie node ids on the chip." 
+               optional="false"/>
+            <c:return 
+               name="graph" 
+               type="string" 
+               description="A gzipped and base64 encoded network graph" 
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="Heal"
+         description="Performs a network wide heal of the Z-Wave network. WARNING: This interferes with normal operation of the Z-Wave controller for the duration of the healing process.">
+         <c:parameters>
+            <c:parameter 
+               name="block"
+               type="boolean"
+               description="True if the network optimization process to block control of Z-Wave devices."
+               optional="true"/>
+            <c:parameter 
+               name="time"
+               type="timestamp"
+               description="The time at which the network wide heal should be run (null or java epoch mean immediately)"
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="CancelHeal"
+         description="Cancels any Z-Wave network heal that might be in progress.">
+      </c:method> 
+
+      <c:method
+         name="RemoveZombie"
+         description="Attempts to remove a zombie node from the Z-Wave chip's node list.">
+         <c:parameters>
+            <c:parameter 
+               name="node"
+               type="int"
+               description="The node id of the node to remove. This node must be zombie."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="Associate"
+         description="Attempts to associate with a node using the given groups.">
+         <c:parameters>
+            <c:parameter 
+               name="node"
+               type="int"
+               description="The node id of the node to associate with."
+               optional="false"/>
+            <c:parameter 
+               name="groups"
+               type="set&lt;int&gt;"
+               description="The set of groups to associate with."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="AssignReturnRoutes"
+         description="Attempts to re-assign return routes to a node.">
+         <c:parameters>
+            <c:parameter 
+               name="node"
+               type="int"
+               description="The node id of the node to associate with."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+   </c:methods>
+   
+   <c:events>
+      <c:event
+         name="HealComplete"
+         description="Indicates that the requested Z-Wave network heal operation has completed.">
+      </c:event> 
+   </c:events>
+   
+</c:capability>

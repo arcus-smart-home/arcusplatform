@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="BridgeChild"
+   namespace="bridgechild"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a child device created via a bridge.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="parentAddress"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The parent device's protocol address."/>
+      
+      <c:attribute
+         name="bridgeSpecificId"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="The id assigned to this child device by its parent bridge device."/>
+         
+    </c:attributes>
+
+</c:capability>

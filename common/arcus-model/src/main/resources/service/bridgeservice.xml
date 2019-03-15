@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="BridgeService"
+           namespace="bridgesvc"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Bridge Service for the mgt of bridge devices
+   </s:description>
+   
+   <s:methods>
+         <s:method
+         name="RegisterDevice"
+         description="Assigns a place to the device with the specified id provided the device is online." >
+         <s:parameter name="attrs" type="map&lt;string&gt;" optional="false" description="Identifying attributes of the device." />
+         <s:return
+            name="alreadyAddedAtPlace"
+            type="boolean"
+            optional="true"
+            description="Whether or not the bridge device has already been added the requested place.  If true, callers may assume that no base:Added event will be issued for the device.  False or unspecified (previous behavior) implies that the client should expect a base:Added event."
+         />
+      </s:method>
+      
+      <s:method 
+         name="RemoveDevice"
+         description="Removes the device with the specified id.">
+         
+         <s:parameter name="id" type="string" optional="false" description="The identifier for the device."/>
+         <s:parameter name="accountId" type="string" optional="true" description="The account id of the device"/>
+         <s:parameter name="placeId" type="string" optional="true" description="The place id of the device"/>
+      </s:method>
+   </s:methods>
+   
+</s:service>

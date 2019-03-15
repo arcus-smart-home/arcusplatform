@@ -1,0 +1,82 @@
+ext.buildTime = new Date ()
+def writeVersion(major, minor, patch, qualifier) {
+   def versionFile = file("version.properties")
+   def text = versionFile.text
+
+   text = text.replace("major=${version_major}", "major=${major}")
+   text = text.replace("minor=${version_minor}", "minor=${minor}")
+   text = text.replace("patch=${version_patch}", "patch=${patch}")
+   text = text.replace("qualifier=${version_qualifier}", "qualifier=${qualifier}")
+
+   versionFile.write(text)
+
+   def version = "${major}.${minor}.${patch}${qualifier}"
+   repo.add(patterns: ["version.properties"])
+   def commit = repo.commit(message: "Updating build version to ${version}")
+
+   println "Committed version update to ${version}: ${commit.abbreviatedId}"
+   // TODO should I update the current versions? can't really change version mid-build...
+}
+
+def push(tags) {
+   if(is_build_server) {
+      println "Pushing changes..."
+      repo.push(remote: 'mainline', tags: tags ? true : false)
+   }
+   else {
+      System.err.println "Not on the build server, changes won't be pushed automatically"
+   }
+}
+
+task branchRelease {
+   group "Release"
+
+   doLast {
+      def oldBranch = repo.branch.current.fullName
+      def newBranch = "release-${version_major}.${version_minor}"
+
+      // create a branch at the current point
+      println "Creating branch ${newBranch} at version ${version_major}.${version_minor}.${version_patch}..."
+      repo.checkout(branch: newBranch as String, startPoint: oldBranch, createBranch: true)
+      writeVersion(version_major, version_minor, version_patch, "")
+      push()
+
+      // back to master
+      println "Updating ${oldBranch} to version ${version_major}.${Integer.parseInt(version_minor)+1}.${version_patch}${version_qualifier}..."
+      repo.checkout(branch: oldBranch)
+      writeVersion(version_major, Integer.parseInt(version_minor)+1, version_patch, version_qualifier)
+      push()
+   }
+}
+
+task tagRelease {
+   group "Release"
+
+   doLast {
+      def branch = repo.branch.current.fullName
+      if(!branch.contains("release-")) {
+         println "${branch} is not a release branch, won't tag release..."
+         return
+      }
+
+      def version = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"
+      println("Tagging release as ${version}...")
+      repo.tag.add(name: "v${version}", message: "Release v${version}", force: true)
+      push(true)
+
+      println("Bumping version...")
+      // update for next build
+      writeVersion(version_major, version_minor, Integer.parseInt(version_patch)+1, version_qualifier)
+      push()
+   }
+}
+
+task install(overwrite: true) {
+   group "Build"
+   description "Installs a release into the build directory."
+}
+
+task release() {
+   group "Build"
+   description "Builds all releases."
+}

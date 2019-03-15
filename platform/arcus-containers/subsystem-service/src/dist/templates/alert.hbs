@@ -1,0 +1,7 @@
+{
+    "type": "alert",
+    "key": "{{{key}}}",
+    "severity": "{{{severity}}}",
+    {{!-- The key is the alert type.  The following line loads in a specific alert template partial.  See smarthomealert.xml for a list of alert types. --}}
+    {{> (lookup . 'key') }}
+}

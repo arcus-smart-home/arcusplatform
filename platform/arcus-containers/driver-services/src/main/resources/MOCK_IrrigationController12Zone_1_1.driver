@@ -1,0 +1,290 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for an Irrigation Controller with 12 Zones
+ */
+import groovy.transform.Field
+
+
+driver			"MOCK_IrrigationController12Zone"
+description		"Mock Driver for an Irrigation Controller with 12 Zones"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Irrigation"
+vendor 			"Mockitron"
+model 			"IrrigationController"
+productId		"02a3f9"
+
+matcher         'MOCK:Capability' : 'IrrigationController12Zone'
+// no product id, hence no product matcher
+// FIXME consider setting this to be the Orbit 12 zone irrigation monstrosity
+
+capabilities	DevicePower, IrrigationController, DeviceMock, IrrigationSchedulable
+
+@Field def final String ZONE_PREFIX 		= 'z'
+def final ZONE_NAMES						= ['Veggie Garden','Herb Garden','Tea Garden','Fruit Garden','Flower Garden','Rose Garden','Terrace Garden','Roof Garden','Front Yard','Back Yard','East Yard','West Yard']
+def final ZONE_COLORS						= [IrrigationZone.ZONECOLOR_LIGHTRED,IrrigationZone.ZONECOLOR_DARKRED,IrrigationZone.ZONECOLOR_ORANGE,IrrigationZone.ZONECOLOR_YELLOW,IrrigationZone.ZONECOLOR_LIGHTGREEN,IrrigationZone.ZONECOLOR_DARKGREEN,IrrigationZone.ZONECOLOR_LIGHTBLUE,IrrigationZone.ZONECOLOR_DARKBLUE,IrrigationZone.ZONECOLOR_VIOLET,IrrigationZone.ZONECOLOR_WHITE,IrrigationZone.ZONECOLOR_GREY,IrrigationZone.ZONECOLOR_BLACK]
+def final int NUMBER_OF_ZONES				= 12 		// 12 zones, 1 based index
+def final int MSEC_PER_MINUTE               = 6000		// for testing, make each minute only 6 seconds long
+def ZONES_IN_FAULT 							= [] as Set
+
+// declare named instances of IrrigationZone capability
+1.upto(NUMBER_OF_ZONES,{
+	instance ZONE_PREFIX+it, IrrigationZone
+})
+
+
+importCapability 'mock/MOCK_IrrigationSchedulable'
+
+onAdded {
+	log.debug "Mock Irrigation Controller with 12 Zones device started."
+
+	Device.name        							'Mock IrrigationController12Zone'
+
+	DeviceConnection.signal						79
+	
+	DevicePower.source 							DevicePower.SOURCE_LINE
+	DevicePower.linecapable						true
+	DevicePower.backupbatterycapable			false
+	DevicePower.sourcechanged                   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	IrrigationController.numZones				12
+	IrrigationController.maxtransitions			32
+	IrrigationController.maxdailytransitions	8
+	IrrigationController.maxirrigationtime		20
+	IrrigationController.controllerState		IrrigationController.CONTROLLERSTATE_NOT_WATERING
+   
+	IrrigationController.budget					100
+	IrrigationController.zonesinfault			ZONES_IN_FAULT
+   IrrigationController.rainDelayDuration    (-1)
+
+	1.upto(NUMBER_OF_ZONES,{
+		def zoneInstance = ZONE_PREFIX+it
+		IrrigationZone.zonenum."$zoneInstance" 					it
+		IrrigationZone.wateringDuration."$zoneInstance" 	0
+		IrrigationZone.zoneState."$zoneInstance"				IrrigationZone.ZONESTATE_NOT_WATERING
+		IrrigationZone.zonename."$zoneInstance" 				ZONE_NAMES[it-1]
+		IrrigationZone.zonecolor."$zoneInstance" 				ZONE_COLORS[it-1]
+	})
+	
+	vars.'cancelIndex'										= 0
+}
+ 
+onConnected {
+	log.debug "Mock Irrigation Controller with 12 Zones device connected."
+}
+
+onDisconnected {
+	log.debug "Mock Irrigation Controller with 12 Zones device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Irrigation Controller with 12 Zones device removed."
+}
+
+setAttributes('irr') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'irr':" + attrs
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case IrrigationZone.zonename : 
+				def instance = attribute.key.split(':')[2]				// assumes attributes are namespace:attributeName:instanceName
+				IrrigationZone.zonename."$instance"  attribute.value
+				break;
+			case IrrigationZone.zonecolor :				
+				def instance = attribute.key.split(':')[2]
+				IrrigationZone.zonecolor."$instance"  attribute.value
+				break;
+			case IrrigationZone.defaultDuration :				
+				def instance = attribute.key.split(':')[2]
+				IrrigationZone.defaultDuration."$instance"  attribute.value
+				break;	
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+onIrrigationController.WaterNowV2 {
+	log.debug "Mock Irrigation Controller received onIrrigationController.WaterNowV2: " + message
+	
+	String zoneStr = message.attributes['zone']
+	int duration = message.attributes['duration']
+
+	// only one zone can be watering at a time
+	if (null != vars.'zone' && zoneStr != vars.'zone') {
+		cancelWaterNow()
+	}
+
+	vars.'zone' = zoneStr													// currently watering zone, null if no zone watering at the moment
+	vars.'cancelIndex' = ++vars.'cancelIndex'									// continuously increasing watering "session" index
+	
+	def data = ['zone':zoneStr, 'cancelIndex':vars.'cancelIndex']
+	
+	// schedule a session end event for this particular zone and watering session index
+	Scheduler.scheduleIn 'CancelWaterNow', data, (duration * MSEC_PER_MINUTE)	// duration in minutes
+
+	def zoneInstance = zoneStr
+	IrrigationZone.wateringDuration."$zoneInstance" duration
+	IrrigationZone.zoneState."$zoneInstance" IrrigationZone.ZONESTATE_WATERING
+   IrrigationZone.wateringStart."$zoneInstance" new Date()
+	IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+	
+	sendResponse 'irrigationcontroller.WaterNowResponse', ['result':true]
+}
+
+onIrrigationController.WaterNow {
+   log.debug "Mock Irrigation Controller received onIrrigationController.WaterNow: " + message
+   
+   int zone= message.attributes['zonenum']
+   def zoneStr = "z" + zone;
+   int duration = message.attributes['duration']
+
+   // only one zone can be watering at a time
+   if (null != vars.'zone' && zone != vars.'zone') {
+      cancelWaterNow()
+   }
+
+   vars.'zone' = zoneStr                                       // currently watering zone, null if no zone watering at the moment
+   vars.'cancelIndex' = ++vars.'cancelIndex'                         // continuously increasing watering "session" index
+   
+   def data = ['zone':zoneStr, 'cancelIndex':vars.'cancelIndex']
+   
+   // schedule a session end event for this particular zone and watering session index
+   Scheduler.scheduleIn 'CancelWaterNow', data, (duration * MSEC_PER_MINUTE)  // duration in minutes
+
+   def zoneInstance = zoneStr
+   IrrigationZone.wateringDuration."$zoneInstance" duration
+   IrrigationZone.zoneState."$zoneInstance" IrrigationZone.ZONESTATE_WATERING
+   IrrigationZone.wateringStart."$zoneInstance" new Date()
+   IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+   
+   sendResponse 'irrigationcontroller.WaterNowResponse', ['result':true]
+}
+
+// cancel whichever zone is watering, if any, no matter what its zone number or the current watering session index
+boolean cancelWaterNow() {
+	if (null != vars.'zone') {
+		return cancelWaterNow(vars.'zone', vars.'cancelIndex')
+	}
+}
+
+// cancel watering of the specified zone number, whatever the current watering session index is
+boolean cancelWaterNow(String zone) {
+	return cancelWaterNow(zone, vars.'cancelIndex')
+}
+
+// cancel the zone, but only if specified watering session is active
+boolean cancelWaterNow(String zone, int cancelIndex) {
+	log.debug "zone: " + zone+ " var.zone:" + vars.'zone'
+	if (zone== vars.'zone' && cancelIndex == vars.'cancelIndex') {
+		vars.'zone' = null
+		def zoneInstance = zone
+		IrrigationZone.wateringDuration."$zoneInstance" 0
+		IrrigationZone.zoneState."$zoneInstance" IrrigationZone.ZONESTATE_NOT_WATERING
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_NOT_WATERING
+		return true
+	}
+	return false
+}
+
+onIrrigationController.Cancel {
+	log.debug "Mock Irrigation Controller received onIrrigationController.Cancel: " + message
+	int zonenum = message.attributes['zonenum']
+	boolean result = cancelWaterNow("z" + zonenum)
+	sendResponse 'irrigationcontroller:CancelResponse', ['result':result]
+}
+
+onIrrigationController.CancelV2 {
+   log.debug "Mock Irrigation Controller received onIrrigationController.CancelV2: " + message
+   String zone = message.attributes['zone']
+   boolean result = cancelWaterNow(zone)
+   sendResponse 'irrigationcontroller:CancelResponse', ['result':result]
+}
+
+onEvent('CancelWaterNow') {
+	log.debug "Mock Irrigation Controller CancelWaterNow event handler"
+	
+	// cancel the watering, but only if still original watering session from when originally scheduled
+	cancelWaterNow(message.data.zone, message.data.cancelIndex)
+}
+
+
+setAttributes('irrcont') {
+	def attrs = message.attributes;
+	log.debug "setAttributes for 'irrcont':" + attrs
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case IrrigationController.rainDelay :
+				rainDelay((int)attribute.value)
+				break;
+			case IrrigationController.budget :
+				IrrigationController.budget  attribute.value
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+}
+
+void cancelRainDelay() {
+	rainDelay(0)
+}
+
+void rainDelay(int delay) {
+	if (0 < delay) {	
+		cancelWaterNow() // assuming RainDelay cancels WaterNow
+		
+		vars.'rainDelayEnabled' = true
+		IrrigationController.rainDelayDuration  delay
+      IrrigationController.rainDelayStart new Date()
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_RAIN_DELAY
+	
+		Scheduler.scheduleIn 'CancelRainDelay', (delay * MSEC_PER_MINUTE)
+	}
+	else if (0 >= delay && vars.'rainDelayEnabled') {
+		vars.'rainDelayEnabled' = false
+		IrrigationController.rainDelayStart  0
+		IrrigationController.controllerState IrrigationController.CONTROLLERSTATE_WATERING
+	}
+}
+
+onEvent('CancelRainDelay') {
+	log.debug "Mock Irrigation Controller CancelRainDelay event handler"
+	cancelRainDelay()
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

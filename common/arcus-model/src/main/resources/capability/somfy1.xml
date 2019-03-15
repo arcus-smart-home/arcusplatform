@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Somfy1"
+   namespace="somfy1"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Somfy V1 Blind or Shade.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="mode" 
+         readwrite="rw" 
+         type="enum"
+         values="SHADE,BLIND"
+         optional="false" 
+         description="The user has to set the type of device (Blinds or Shade) they have to generate the proper UI. Defaults to SHADE."/>
+      <c:attribute 
+         name="reversed" 
+         readwrite="rw" 
+         type="enum"
+         values="NORMAL,REVERSED" 
+         optional="false" 
+         description="The user may need to reverse the shade motor direction if wiring is reversed. Defaults to NORMAL."/>
+   </c:attributes>
+   
+</c:capability>

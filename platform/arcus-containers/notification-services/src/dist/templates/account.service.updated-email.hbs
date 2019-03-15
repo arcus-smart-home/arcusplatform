@@ -1,0 +1,28 @@
+{{#section "subject"}}
+Your Iris Service Has Been Updated
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{_person.firstName}},
+
+The service level or add-ons of your Iris subscription have
+been updated for the {{{_place.name}}} location. If you requested the
+change, please ignore this email. If you did not request any 
+changes be made, then your account may have been compromised.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	The service level or add-ons of your Iris subscription have been updated for the {{_place.name}} location. If you requested the change, please ignore this email. If you did not request any changes be made, then your account may have been compromised.
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

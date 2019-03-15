@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Hub"
+   namespace="hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="id"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Driver-owned globally unique identifier for the hub"/>
+      <c:attribute 
+         name="account"
+         readwrite="r"
+         type="uuid" 
+         optional="false" 
+         description="Driver-owned account associated with the hub"/>
+      <c:attribute 
+         name="place" 
+         readwrite="r" 
+         type="uuid" 
+         optional="false" 
+         description="Driver-owned place where the device is currently located"/>
+      <c:attribute
+         name="name"
+         readwrite="rw"
+         type="string"
+         optional="false" 
+         description="Human readable name for the hub"/>
+      <c:attribute 
+         name="image"
+         readwrite="rw"
+         type="uuid"
+         optional="true" 
+         description="Media URL to image that represents the hub"/>
+      <c:attribute
+         name="vendor"
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Vendor name"/>
+      <c:attribute 
+         name="model" 
+         readwrite="r" 
+         type="string" 
+         optional="true" 
+         description="Model name"/>
+      <c:attribute
+          name="state"
+          type="enum"
+          values="NORMAL,PAIRING,UNPAIRING,DOWN"
+          readwrite="r"
+          optional="true"
+          description="State of the hub" />
+      <c:attribute
+          name="registrationState"
+          type="enum"
+          values="REGISTERED,UNREGISTERED,ORPHANED"
+          readwrite="r"
+          optional="false"
+          description="The registration state of the hub"/>
+      <c:attribute
+          name="time"
+          type="long"
+          readwrite="r"
+          optional="false"
+          transient="true"
+          description="The current time on the hub. Milliseconds since Jan 1, 1970 (UTC)." />
+      <c:attribute
+          name="tz"
+          type="string"
+          readwrite="rw"
+          optional="true"
+          description="The timezone for the hub." />
+   </c:attributes>
+   
+   <c:methods>
+   
+      <c:method
+         name="PairingRequest"
+         description="Lists all devices associated with this account">
+         <c:parameters>
+            <c:parameter 
+               name="actionType"
+               type="enum"
+               values="START_PAIRING,STOP_PAIRING"
+               description="Whether pairing should start or stop"
+               optional="false"/>
+            <c:parameter 
+               name="timeout"
+               type="long"
+               description="The amount of time in milliseconds for which the place will be able to add devices"
+               optional="false"/>
+           <c:parameter
+               name="productPairingMode"
+               type="string"
+               description="If there is a special pairing mode required for this pairing attempt as indicated by the pairingMode attribute of the product in the product catalog such as ZBCLEAR for clear text pairing in Zigbee needed for AlertMe devices"
+               optional="true"/>
+           </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="UnpairingRequest"
+         description="Lists all devices associated with this account">
+         <c:parameters>
+            <c:parameter 
+               name="actionType"
+               type="enum"
+               values="START_UNPAIRING,STOP_UNPAIRING"
+               description="Whether pairing should start or stop"
+               optional="false"/>
+            <c:parameter 
+               name="timeout"
+               type="long"
+               description="The amount of time in milliseconds for which the place will be able to add devices."
+               optional="false"/>
+            <c:parameter 
+               name="protocol"
+               type="string"
+               description="The namespace of the protocol of the device expected to be removed. By default no device is expected to be removed."
+               optional="true"/>
+            <c:parameter 
+               name="protocolId"
+               type="string"
+               description="The protocolId of the device expected to be removed. By default no device is expected to be removed."
+               optional="true"/>
+            <c:parameter 
+               name="force"
+               type="boolean"
+               description="True if the expected device is to be forcefully unpaired. Defaults to false."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+     
+      <c:method
+         name="ListHubs"
+         description="Lists all hubs associated with this account">
+         <c:return
+            name="hubs"
+            type="list&lt;Hub&gt;"
+            description="The list of hubs associated with this account"/>
+      </c:method>
+
+      <c:method
+         name="ResetLogLevels"
+         description="Resets all log levels to their normal values.">
+      </c:method> 
+
+      <c:method
+         name="SetLogLevel"
+         description="Sets the log level of for the specified scope, or the root log level if no scope is specified.">
+         <c:parameters>
+            <c:parameter 
+               name="level"
+               type="enum"
+               values="TRACE,DEBUG,INFO,WARN,ERROR"
+               description="The log level to set the scope to use"
+               optional="false"/>
+            <c:parameter 
+               name="scope"
+               type="enum"
+               values="ROOT,AGENT,ZIGBEE,ZWAVE,BLE,SERCOMM"
+               description="The logging scope affected by the log level, ROOT if none is specified."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="GetLogs"
+         description="Gets recent logs from the hub.">
+         <c:parameters>
+            <c:return
+               name="logs"
+               type="string"
+               description="Recent log statements from the hub, gzip compressed, and base 64 encoded."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="StreamLogs"
+         description="Starts streaming logs to the platform for the specified amount of time.">
+         <c:parameters>
+            <c:parameter
+               name="duration"
+               type="long"
+               description="The amount of time to stream logs in milliseconds."
+               optional="false"/>
+            <c:parameter
+               name="severity"
+               type="enum"
+               values="TRACE,DEBUG,INFO,WARN,ERROR"
+               description="The log severity and higher that should be streamed."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="GetConfig"
+         description="Gets all key/value pairs describing the hub's configuration.">
+         <c:parameters>
+            <c:parameter 
+               name="defaults"
+               type="boolean"
+               description="A flag indicating if default values should be reported."
+               optional="true"/>
+            <c:parameter 
+               name="matching"
+               type="string"
+               description="A regular expression used to select keys to include in the response."
+               optional="true"/>
+            <c:return
+               name="config"
+               type="map&lt;string&gt;"
+               description="Key/value pairs for the hub configuration."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="SetConfig"
+         description="Gets all key/value pairs describing the hub's configuration.">
+         <c:parameters>
+            <c:parameter 
+               name="config"
+               type="map&lt;string&gt;"
+               description="Key/value pairs to set in the hub configuration."
+               optional="false"/>
+            <c:return
+               name="failed"
+               type="map&lt;string&gt;"
+               description="Key/value that could not be set."
+               optional="false"/>
+         </c:parameters>
+      </c:method> 
+      
+      <c:method
+          name="Delete"
+          description="Remove/Deactivate the hub.">
+      </c:method>
+   
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="HubConnected" 
+         description="Sent when a hub comes online.  This may be very specific to the given protocol and require client interpretation.">
+         <!-- <c:parameter 
+            name="attributes" 
+            type="map&lt;object&gt;" 
+            description="Required attributes: devadv:osver, devadv:agentver.  Sent when a hub comes online.  This may be very specific to the given protocol and require client interpretation."/> -->
+      </c:event>
+      <c:event 
+         name="HubDisconnected" 
+         description="Sent when a hub goes offline.  This may be very specific to the given protocol and require client interpretation." />
+      <c:event 
+      	 name="DeviceFound"
+      	 description="Indicates that a device has been found during the pairing process." >
+      	 	<c:parameter
+      	 		name="protocolAddress"
+      	 		type="string"
+      	 		description="The protocol address of the device found during pairing."
+      	 	/>
+      	 	<c:parameter
+      	 	   name="phase"
+      	 	   type="enum"
+      	 	   values="JOINING,JOIN,CONNECT,IDENTIFY,PREPARE,CONFIGURE,FAILED,PAIRED"
+      	 	   description="The phase of the pairing process to enter when the device is found."
+      	 	/>
+      </c:event>
+   </c:events>
+   
+</c:capability>

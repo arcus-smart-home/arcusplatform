@@ -1,0 +1,23 @@
+{{#section "subject"}}
+{{{_scene}}} has run
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Scene {{{_scene}}} has run at {{{_place.name}}}.
+
+{{/section}}
+{{#section "html-body"}}
+	{{#partial "greeting" }}
+	{{/partial}}
+
+	{{#partial "message" }}
+	Scene {{_scene}} has run at {{_place.name}}.
+	{{/partial}}
+
+{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<firmwares xmlns="http://arcus.com/firmware_1.0.0" >
+
+   <metadata version="2016-02-08T00:00:00" publisher="Human"/>
+   
+   <firmware min="2.0.0.024" max="2.0.0.999" target="hubOS_2.0.1.045" />
+   <!-- currently leaving minimum to connect at 038, but new hubs should get 045 -->
+   <firmware min="2.0.1.003" max="2.0.1.038" target="hubOS_2.0.1.045" />
+   
+</firmwares>

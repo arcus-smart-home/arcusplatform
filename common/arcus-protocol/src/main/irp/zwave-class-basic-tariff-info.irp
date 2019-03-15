@@ -1,0 +1,21 @@
+
+message zwave.BasicTariffInfo.BasicTariffInfoGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.BasicTariffInfo.BasicTariffInfoReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_TOTAL_NO_IMPORT_RATES_MASK = 0x0F;
+    const u8 PROPERTIES1_TOTAL_NO_IMPORT_RATES_SHIFT = 0;
+    const u8 PROPERTIES1_DUAL = 0x80;
+    const u8 PROPERTIES2_E1_CURRENT_RATE_IN_USE_MASK = 0x0F;
+    const u8 PROPERTIES2_E1_CURRENT_RATE_IN_USE_SHIFT = 0;
+    const u8 PROPERTIES3_E2_CURRENT_RATE_IN_USE_MASK = 0x0F;
+    const u8 PROPERTIES3_E2_CURRENT_RATE_IN_USE_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+    u32 e1RateConsumptionRegister;
+    u8 e1TimeForNextRateHours;
+    u8 e1TimeForNextRateMinutes;
+    u8 e1TimeForNextRateSeconds;
+    u8 properties3;
+    u32 e2RateConsumptionRegister;
+}

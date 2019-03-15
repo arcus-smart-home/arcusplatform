@@ -1,0 +1,55 @@
+{{#file . "com/iris/protocol/ipcd/message/serialize/IpcdSerDe.java"}}
+package com.iris.protocol.ipcd.message.serialize;
+
+import java.io.Reader;
+import java.util.Date;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import com.iris.protocol.ipcd.message.DateTypeAdapter;
+import com.iris.protocol.ipcd.message.IpcdMessage;
+import com.iris.protocol.ipcd.message.IpcdMessageParser;
+import com.iris.protocol.ipcd.message.model.MessageType;
+{{#commands}}import com.iris.protocol.ipcd.message.model.{{capitalize name}}Command;
+{{/commands}}
+
+public class IpcdSerDe {
+	private final Gson gson;
+	private final IpcdMessageParser parser;
+	
+	public IpcdSerDe() {
+		GsonBuilder builder = new GsonBuilder().disableHtmlEscaping();
+		
+		builder.registerTypeAdapter(Date.class, new DateTypeAdapter());
+		{{#commands}}
+		builder.registerTypeAdapter({{capitalize name}}Command.class, new {{capitalize name}}CommandAdapter());
+		{{/commands}}
+		gson = builder.create();
+		parser = new IpcdMessageParser(gson,
+			{{#messages}}new {{capitalize name}}ParserAdapter(){{#unless @last}},{{/unless}}
+			{{/messages}}
+		);
+	}
+	
+	public MessageType discoverMessageType(Reader json) {
+	   return parser.discoverMessageType(json);
+	}
+	
+	public IpcdMessage parse(Reader json) {
+	   return parser.parseIpcdMessage(json);
+	}
+	
+	public String toJson(IpcdMessage message) {
+		return gson.toJson(message);
+	}
+	
+	public <T> T fromJson(Reader json, Class<T> classOfT) {
+		return gson.fromJson(json, classOfT);
+	}
+	
+	public <T> T fromJson(String json, Class<T> classOfT) {
+		return gson.fromJson(json, classOfT);
+	}
+}
+{{/file}}

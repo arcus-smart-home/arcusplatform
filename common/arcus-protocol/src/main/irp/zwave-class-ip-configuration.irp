@@ -1,0 +1,32 @@
+
+message zwave.IpConfiguration.IpConfigurationGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.IpConfiguration.IpConfigurationReleaseV1<id="0x04", group="V1"> {
+}
+
+message zwave.IpConfiguration.IpConfigurationRenewV1<id="0x05", group="V1"> {
+}
+
+message zwave.IpConfiguration.IpConfigurationReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_AUTO_DNS = 0x01;
+    const u8 PROPERTIES1_AUTO_IP = 0x02;
+    u8 properties1;
+    u32 ipAddress;
+    u32 subnetMask;
+    u32 gateway;
+    u32 dns1;
+    u32 dns2;
+    u32 leasetime;
+}
+
+message zwave.IpConfiguration.IpConfigurationSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_AUTO_DNS = 0x01;
+    const u8 PROPERTIES1_AUTO_IP = 0x02;
+    u8 properties1;
+    u32 ipAddress;
+    u32 subnetMask;
+    u32 gateway;
+    u32 dns1;
+    u32 dns2;
+}

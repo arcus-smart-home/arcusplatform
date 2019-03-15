@@ -1,0 +1,151 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-Wave Leviton DZPD3 Plug-in Dimmer Module
+ * 
+ * 
+ */
+ 
+driver			"ZWLevitonDZPD3PlugInDimmerDriver"
+description		"Driver for a Z-Wave Leviton DZPD3 Plug-in Dimmer Module"
+version			"1.0"
+protocol        "ZWAV"
+deviceTypeHint	"Dimmer"
+productId		"34d7ed"
+vendor 			"Leviton"
+model 			"DZPD3"
+
+matcher			'ZWAV:Manufacturer': 0x001D, 'ZWAV:ProductType': 0x1902, 'ZWAV:ProductId': 0x0334
+
+capabilities	DevicePower, Switch, Dimmer
+
+importCapability 'zwave/GenericZWaveDim'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Command Classes:
+//		0x26   (38) Switch_Multilevel
+//		0x27   (39) Switch_All
+//      0x2B   (43) Scene Activation
+//      0x2C   (89) Scene Actuator Conf
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//      0x77  (119) Node Naming
+//		0x86 (-122) Version
+//		0x91 (-111) Manufacturer Proprietary
+
+
+//DevicePower attributes are assumed
+DevicePower.battery 				   0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+final int POLLING_INTERVAL_SEC    = 120         // every 120 seconds
+final int OFFLINE_TIMEOUT_SECS    = 600         // 10 minutes
+
+final long DEFERRED_READ_DELAY_MSEC = 2000
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "Device added with Attributes {}", message.attributes
+
+	// set default attribute values
+	DevicePower.sourcechanged     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Switch.inverted                     false
+
+	// Default the brightness to 100 so it has some value. The device does not report a level if it is OFF.
+	Dimmer.brightness 100
+
+	// NOTE: We try to turn device on here, but it does not actually go on, however by doing this we get the device to report
+	// its correct state when we read it, otherwise it does not always appear to report the correct state until after it has been
+	// set On or Off at least once.
+	Switch.state Switch.STATE_ON
+}
+
+onConnected {
+	log.debug "Device connected"
+
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+onDisconnected {
+	log.debug "Device disconnected"
+}
+
+onRemoved {
+	log.debug "Device removed"
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+	GenericZWaveDim.handleSetAttributes(this, DEVICE_NAME, message)
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.inverted:
+				log.warn "Attempted to set Switch.inverted attribute on device that does not support it"
+				break
+			default:
+				break
+		}
+	}
+}
+
+onDimmer.RampBrightness {
+	GenericZWaveDim.handleRampBrightness(this, DEVICE_NAME, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZWaveDim.handleIncrementBrightness(this, DEVICE_NAME, message)
+}
+
+onDimmer.DecrementBrightness {
+	GenericZWaveDim.handleDecrementBrightness(this, DEVICE_NAME, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+ 	GenericZWaveDim.handleMultilevelReport(this, DEVICE_NAME, message)
+}
+
+onZWaveNodeInfo {
+	log.debug "Device reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage {
+    log.debug "Device received unhandled ZWave message {}", message
+    return false;
+}
+
+

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GET https://:subdomain.recurly.com/v2/accounts/:account_code/invoices -->
+<invoices type="array">
+  <invoice href="https://your-subdomain.recurly.com/v2/invoices/e3f0a9e084a2468480d00ee61b090d4d">
+    <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+    <subscription href="https://your-subdomain.recurly.com/v2/subscriptions/17caaca1716f33572edc8146e0aaefde"/>
+    <uuid>421f7b7d414e4c6792938e7c49d552e9</uuid>
+    <state>open</state>
+    <invoice_number type="integer">1005</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number nil="nil"></vat_number>
+    <subtotal_in_cents type="integer">1200</subtotal_in_cents>
+    <tax_in_cents type="integer">0</tax_in_cents>
+    <total_in_cents type="integer">1200</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2011-08-25T12:00:00Z</created_at>
+    <closed_at nil="nil"></closed_at>
+    <tax_type>usst</tax_type>
+	<tax_region>CA</tax_region>
+    <tax_rate type="float">0</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <address>
+      <address1>123 Street Drive</address1>
+      <address2></address2>
+      <city>Mooresville</city>
+      <state>NC</state>
+      <zip>28677</zip>
+      <country>US</country>
+      <phone>7047584000</phone>
+    </address>
+    <redemption href="https://your-subdomain.recurly.com/v2/invoices/e3f0a9e084a2468480d00ee61b090d4d/redemption"/>
+    <line_items type="array">
+        <!-- Need to verify if the adjustment tag below ends in / such as below (and has a /adjustment tag as well) -->
+        <!-- <adjustment href="https://your-subdomain.recurly.com/v2/adjustments/05a4bbdeda2a47348185270021e6087b"/> -->
+      <adjustment href="https://your-subdomain.recurly.com/v2/adjustments/05a4bbdeda2a47348185270021e6087b">
+        <!-- Detail. -->
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+    </transactions>
+  </invoice>
+  <invoice href="https://your-subdomain.recurly.com/v2/invoices/e3f0a9e084a2468480d00ee61b090d4d">
+    <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+    <subscription href="https://your-subdomain.recurly.com/v2/subscriptions/17caaca1716f33572edc8146e0aaefde"/>
+    <uuid>421f7b7d414e4c6792938e7c49d552e9</uuid>
+    <state>open</state>
+    <invoice_number type="integer">1005</invoice_number>
+    <po_number nil="nil"></po_number>
+    <vat_number nil="nil"></vat_number>
+    <subtotal_in_cents type="integer">1200</subtotal_in_cents>
+    <tax_in_cents type="integer">0</tax_in_cents>
+    <total_in_cents type="integer">1200</total_in_cents>
+    <currency>USD</currency>
+    <created_at type="datetime">2011-08-25T12:00:00Z</created_at>
+    <closed_at nil="nil"></closed_at>
+    <tax_type>usst</tax_type>
+	<tax_region>CA</tax_region>
+    <tax_rate type="float">0</tax_rate>
+    <net_terms type="integer">0</net_terms>
+    <collection_method>automatic</collection_method>
+    <address>
+      <address1>123 Street Drive</address1>
+      <address2></address2>
+      <city>Mooresville</city>
+      <state>NC</state>
+      <zip>28677</zip>
+      <country>US</country>
+      <phone>7047584000</phone>
+    </address>
+    <redemption href="https://your-subdomain.recurly.com/v2/invoices/e3f0a9e084a2468480d00ee61b090d4d/redemption"/>
+    <line_items type="array">
+        <!-- Need to verify if the adjustment tag below ends in / such as below (and has a /adjustment tag as well) -->
+        <!-- <adjustment href="https://your-subdomain.recurly.com/v2/adjustments/05a4bbdeda2a47348185270021e6087b"/> -->
+      <adjustment href="https://your-subdomain.recurly.com/v2/adjustments/05a4bbdeda2a47348185270021e6087b">
+        <!-- Detail. -->
+      </adjustment>
+    </line_items>
+    <transactions type="array">
+    </transactions>
+  </invoice>
+  <!-- Continued... -->
+</invoices>

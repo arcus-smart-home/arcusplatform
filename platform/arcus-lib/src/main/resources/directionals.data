@@ -1,0 +1,9 @@
+code,name
+N,North
+E,East
+S,South
+W,West
+NE,Northeast
+SE,Southeast
+NW,Northwest
+SW,Southwest

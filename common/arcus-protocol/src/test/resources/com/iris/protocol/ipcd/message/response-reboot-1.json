@@ -1,0 +1,16 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "Reboot"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+  }
+}

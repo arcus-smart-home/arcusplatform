@@ -1,0 +1,18 @@
+{
+  "device" : {
+    "vendor" : "BlackBox",
+    "model" : "Multisensor2",
+    "sn" : "00049B3C7A05",
+    "ipcdver" :"1.0"
+  },
+  "request" : {
+      "command" : "GetReportConfiguration"
+  },
+  "status" : {
+    "result": "success"
+  },
+  "response" : {
+    "interval" : 900,
+    "parameters" : ["ms2.temperature", "ms2.humidity", "ms2.luminosity"]
+  }
+}

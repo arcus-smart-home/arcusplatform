@@ -1,0 +1,31 @@
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationGetV1<id="0x02", group="V1"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationGroupingsGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationGroupingsReportV1<id="0x06", group="V1"> {
+    u8 supportedGroupings;
+}
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationRemoveV1<id="0x04", group="V1"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+    // marker contained in previous field
+}
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationReportV1<id="0x03", group="V1"> {
+    u8 groupingIdentifier;
+    u8 maxNodesSupported;
+    u8 reportsToFollow;
+    u8[] nodeId;
+    // marker contained in previous field
+}
+
+message zwave.MultiInstanceAssociation.MultiInstanceAssociationSetV1<id="0x01", group="V1"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+    // marker contained in previous field
+}

@@ -1,0 +1,5 @@
+{
+  "command" : "SetReportConfiguration",
+  "interval" : 1800,
+  "parameters" : ["ms2.temperature", "ms2.humidity"]
+}

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="SameCode"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+    Represents a SameCode that is used by the National Weather Service (NWS)
+    to identify weather stations.
+    </t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="code"
+			type="string"
+			description="The stringified version of numerical code with leading zeroes"
+			/>
+		<t:attribute
+			name="county"
+			type="string"
+			description="The geographical county as represented in U.S. Postal Codes"
+			/>
+		<t:attribute
+			name="state"
+			type="string"
+			description="The full state or territory name"
+			/>
+		<t:attribute
+			name="stateCode"
+			type="string"
+			description="The 2 or 3 character abbreviation that represents a state"
+			/>
+	</t:attributes>
+ </t:type>

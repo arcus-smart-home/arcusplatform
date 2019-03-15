@@ -1,0 +1,23 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Home Automation Library Messages
+////////////////////////////////////////////////////////////////////////////////
+irpheader {
+import com.iris.protocol.zigbee.alertme.General.AmeString;
+import static com.iris.protocol.zigbee.alertme.Constants.*;
+}
+
+include "ame-const.irp";
+include "ame-struct.irp";
+include "ame-join.irp";
+include "ame-general.irp";
+include "ame-appupgrade.irp";
+include "ame-attr.irp";
+include "ame-button.irp";
+include "ame-keyfob.irp";
+include "ame-keypad.irp";
+include "ame-pendant.irp";
+include "ame-powercontrol.irp";
+include "ame-powermonitor.irp";
+include "ame-rangeext.irp";
+include "ame-tamper.irp";
+include "ame-upgrade.irp";

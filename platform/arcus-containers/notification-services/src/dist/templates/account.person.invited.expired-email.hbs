@@ -1,0 +1,27 @@
+{{#section "subject"}}
+{{{inviteeFirstName}}} {{{inviteeLastName}}}'s Invitation Expired
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{_person.firstName}}, 
+
+{{{inviteeFirstName}}} {{{inviteeLastName}}}'s invitation to {{{_place.name}}} has expired. A new invitation code is required to give {{{inviteeFirstName}}} access. Please log in to the app to re-invite them.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{inviteeFirstName}} {{inviteeLastName}}'s invitation to {{_place.name}} has expired. A new invitation code is required to give {{inviteeFirstName}} access. Please log in to the app to re-invite them.<br/>
+	
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

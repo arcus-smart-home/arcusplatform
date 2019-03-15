@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WaterHeater"
+   namespace="waterheater"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a water heater.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="heatingstate" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="Indicates if system is currently heating water through an element."
+         />
+      <c:attribute 
+         name="maxsetpoint" 
+         readwrite="r" 
+         type="double" 
+         unit="C"
+         optional="true" 
+         description="This is the maximum temperature as set on the device. It can be changed on the device and it will report that here."/>
+      <c:attribute 
+         name="setpoint" 
+         readwrite="rw" 
+         type="double" 
+         unit="C"
+         optional="false" 
+         description="This is the user-defined setpoint of desired hotwater. The setting cannot be above the (max) setpoint set on the hardware."/>
+      <c:attribute 
+         name="hotwaterlevel" 
+         readwrite="r" 
+         type="enum"
+         values="LOW,MEDIUM,HIGH"
+         optional="false"
+         description="How much hot water is available."/>
+   </c:attributes>
+   
+</c:capability>

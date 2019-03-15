@@ -1,0 +1,28 @@
+{{#file . "com/iris/messages/service/{{name}}.java"}}
+package com.iris.messages.service;
+
+import com.iris.messages.address.Address;
+
+public class {{name}} {
+   public static final String NAMESPACE = "{{namespace}}";
+   public static final String NAME = "{{name}}";
+   public static final Address ADDRESS = Address.platformService(NAMESPACE);
+
+   {{#methods}}
+   /** {{description}} */
+{{> platform/Request}}
+{{> platform/Response}}
+   {{/methods}}
+
+   {{#errorEventExceptions}}
+{{> platform/ErrorEventException}}   
+   {{/errorEventExceptions}} 
+   
+   {{#events}}
+{{> platform/Event}}
+   {{/events}}
+
+   // not instantiable
+   protected {{name}}() { }
+}
+{{/file}}

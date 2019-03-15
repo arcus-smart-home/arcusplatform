@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="PairingSubsystem"
+   namespace="subpairing"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Utility for walking a user through the pairing process.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="pairingMode"
+         type="enum"
+         values="IDLE, HUB, CLOUD, OAUTH, HUB_UNPAIRING"
+         readwrite="r"
+         optional="false"
+         description="The current pairing state of the associated place. Note that unlike subplacemonitor:pairingState this represents the state the system is attempting to enforce, not the current state of the hub." />
+      <c:attribute
+         name="pairingModeChanged"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the pairing mode changed." />
+      <c:attribute
+         name="pairingDevices"
+         type="list&lt;string&gt;"
+         readwrite="r"
+         optional="true"
+         description="The addresses of any new devices discovered.  These will persist until the device state is (1) PAIRED and (2) Dismiss or DismissAll is invoked." />
+      <c:attribute
+         name="searchProductAddress"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The Address of the product that the end user is currently trying to pair.  This will be cleared / replaced when the device is successfully paired or the system leaves pairing mode." />
+      <c:attribute
+         name="searchDeviceFound"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Whether or not a device has been found during the most recent search flow.  When this is set to true searchIdle will be set to false and searchIdleTimeout will be cleared." />
+      <c:attribute
+         name="searchIdle"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Indicates a new device has not been found within the searchIdleTimeout and the user should be prompted for help." />
+      <c:attribute
+         name="searchIdleTimeout"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The time that the current search operation will set searchIdle to true." />
+      <c:attribute
+         name="searchTimeout"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The time that the system will stop searching for devices unless an additional 'Search' operation is invoked." />
+      <c:attribute
+         name="productPairingMode"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The pairingMode attribute from the product element of the product catalog. This value is sent to the hub to let the hub know if it needs to do anything special for the device selected to be paired such as ZBCLEAR to indicate clear text pairing for AlertMe Zigbee devices." 
+      	 />
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="ListPairingDevices" 
+         description="Gets all the PairingDevices from the pairingDevices attribute.">
+         <c:return
+            name="devices"
+            type="list&lt;PairingDevice&gt;"
+            optional="false"
+            description="The full object model for the pairingDevices."
+            />
+      </c:method>
+      <c:method 
+         name="StartPairing" 
+         description="Attempts to pair the requested type of device. If the requested product is a hub connected device then the hub will enter pairing mode with the appropriate radios listening. If the requested product is not a hub connected device then the hub will not be put in pairing mode.">
+         <c:parameter
+            name="productAddress"
+            type="string"
+            optional="true"
+            description="(default: '') If specified this indicates the type of device being paired.  This will be used to determine the pairing steps that should be returned as well as the radios to turn on for the hub."
+            />
+         <c:parameter
+            name="mock"
+            type="boolean"
+            optional="true"
+            description="(default: false) If set to true the system will attempt to create a mock device for pairing purposes, this is not supported by all product addresses and is intended for debugging.  When set to true the hub will never be put in pairing mode."
+            />
+         <c:return
+            name="steps"
+            type="list&lt;PairingStep&gt;"
+            optional="false"
+            description="The pairing steps for pairing the given type of device."
+            />
+         <c:return
+            name="mode"
+            type="enum"
+            values="HUB,CLOUD,OAUTH"
+            optional="false"
+            description="The pairing mode."
+            />
+         <c:return
+            name="video"
+            type="string"
+            optional="true"
+            description="The URL of a pairing video if one exists."
+            />
+         <c:return
+            name="form"
+            type="list&lt;PairingInput&gt;"
+            optional="true"
+            description="Additional form data required for CLOUD pairing."
+            />
+         <c:return
+            name="oauthUrl"
+            type="string"
+            optional="true"
+            description="The URL to launch an embedded browser to in order to continue pairing."
+            />
+         <c:return
+            name="oauthStyle"
+            type="string"
+            optional="true"
+            description="Additional information about the OAuth partner.  Current supported values are HONEYWELL &amp; NEST.  Any implementation MUST ensure that new values will not break rendering."
+            />
+         <c:errors>
+            <c:error code="hub.missing" description="If the requested product requires a hub, or generic pairing is requested and there is no hub associated with the place, this error will be returned." />
+            <c:error code="hub.offline" description="If the requested product requires a hub, or generic pairing is requested and the hub is currently offline, this error will be returned." />
+            <c:error code="request.param.invalid" description="If the productAddress can't be found or mock=true and no mock exists for the given product." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Search"
+         description="
+Attempts to pair the requested device.
+This will also start / reset the IdlePairing timer.
+If the requested product is a hub connected device then the hub will enter pairing mode with the appropriate radios listening.
+If the requested product is a cloud connected device then the system will enter pairing mode for the given device.
+If the requested product is an OAuth connected device, an error will be returned. If no productId is specified this will turn all hub radios into pairing mode and search for all types of devices.
+         ">
+         <c:parameter
+            name="productAddress"
+            type="string"
+            optional="true"
+            description="(default: '') The address of the product catalog entry for the device being paired."
+            />
+         <c:parameter
+            name="form"
+            type="map&lt;string&gt;"
+            optional="true"
+            description="(default: {}) Any input parameters gathered from the user."
+            />
+         <c:return
+            name="mode"
+            type="enum"
+            values="HUB,CLOUD,OAUTH"
+            optional="false"
+            description="The pairing mode."
+            />
+         <c:errors>
+            <c:error code="request.invalid" description="If search is requested for an OAuth flow device." />
+            <c:error code="request.param.invalid" description="If the form is missing any input fields or those fields fail validation." />
+            <c:error code="hub.missing" description="If the requested product requires a hub, or generic pairing is requested and there is no hub associated with the place, this error will be returned." />
+            <c:error code="hub.offline" description="If the requested product requires a hub, or generic pairing is requested and the hub is currently offline, this error will be returned." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="ListHelpSteps"
+         description="Retrieves the help steps for the product currently being search for, or steps specific to the active pairing protocols.">
+         <c:return
+            name="steps"
+            type="list&lt;PairingHelpStep&gt;"
+            optional="false"
+            description="The pairing steps for pairing the given type of device."
+            />
+         <c:errors>
+            <c:error code="request.state.invalid" description="If the pairing state is IDLE or HUB_UNPAIRING." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="DismissAll"
+         description="
+Dismisses all devices from pairingDevices that are in the PAIRED state.
+This should be invoked when cancelling / exiting pairing.
+This will take the hub out of pairing mode.
+This will take the hub out of unpairing mode.
+"
+         >
+         <c:return
+            name="actions"
+            type="list&lt;PostPairingAction&gt;"
+            optional="false"
+            description="Any screens / actions the user must be displayed after pairing is complete."
+            />
+      </c:method>
+      <c:method
+         name="StopSearching"
+         description="This clears all timeouts, takes the place/hub out of pairing or unpairing mode, and takes the state back to IDLE."
+         >
+      </c:method>
+      <c:method
+         name="FactoryReset"
+         description="
+Retrieves the factory reset steps for the product currently being search for, or steps specific to the active pairing protocols.
+This will take the hub out of pairing mode.
+         ">
+         <c:return
+            name="steps"
+            type="list&lt;PairingStep&gt;"
+            optional="false"
+            description="The factory reset steps for the given type of device."
+            />
+         <c:return
+            name="video"
+            type="string"
+            optional="true"
+            description="The URL for a removal video."
+            />
+         <c:errors>
+            <c:error code="request.state.invalid" description="If the system is attempting to pair a device that does not support orphan remove." />
+            <c:error code="hub.missing" description="If the requested product requires a hub, or generic pairing is requested and there is no hub associated with the place, this error will be returned." />
+            <c:error code="hub.offline" description="If the requested product requires a hub, or generic pairing is requested and the hub is currently offline, this error will be returned." />
+         </c:errors>
+      </c:method>
+      
+      <c:method
+         name="GetKitInformation"
+         description="Gets the information about a kit.  This is a pair of product id, and the protocoladdress of that device.  Protocol address can be used to determine the state of the kitted device.">
+         <c:return
+            name="kitInfo"
+            type="list&lt;KitDeviceId&gt;"
+            optional="false"
+            description="A list of the product.id and protocolAddress pairs."/>
+         <c:errors>
+            <c:error code="hub.missing" description="If the hub is not part of a kit this error will be returned." />
+         </c:errors>
+      </c:method>
+      
+   </c:methods>
+   
+   <c:events>
+      <c:event
+         name="PairingIdleTimeout"
+         description="Indicates that it is taking longer to pair the device than it should be.  This is done in order to provide remediation steps to any listeners."/>
+      <c:event
+         name="PairingTimeout"
+         description="Emitted when the system stops searching due to a timeout rather than an explicit user action, like Customize or DismissAll."/>
+      <c:event
+         name="PairingFailed"
+         description="Emitted when the pairing failed during search.">
+         <c:parameter
+            name="code"
+            type="string"
+            description="pairing error code."
+            optional="true"
+            />
+         <c:parameter
+            name="description"
+            type="string"
+            description="A detailed description of the pairing error."
+            optional="true"
+            />
+      </c:event>  
+   </c:events>
+</c:capability>

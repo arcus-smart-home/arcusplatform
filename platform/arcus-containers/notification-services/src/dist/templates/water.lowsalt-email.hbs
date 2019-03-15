@@ -1,0 +1,28 @@
+{{#section "subject"}}
+Low Salt
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+{{{deviceName}}} at {{{_place.name}}} is low on salt.  Order more by visiting go to {{{_redirectBaseUrl}}}/e_lowsalt.     
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>{{{deviceName}}} at {{{_place.name}}} is low on salt.  Order more by visiting <a href="{{_redirectBaseUrl}}/e_lowsalt">click here</a>. </p>
+    <p/>	
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

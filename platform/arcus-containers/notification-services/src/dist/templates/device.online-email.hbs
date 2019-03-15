@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Device Reconnected
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}} {{{deviceType}}} at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place, {{{_place.name}}}, has reconnected.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>{{deviceName}} at {{_owner.firstName}} {{_owner.lastName}}'s place, {{_place.name}}, has reconnected.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

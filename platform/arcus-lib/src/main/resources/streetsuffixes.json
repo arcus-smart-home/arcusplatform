@@ -1,0 +1,1749 @@
+/**
+ * Changed the following duplicated codes, in order for ResourceUspsDataService.StreetSuffixesManager.streetSuffixesByCode
+ * map to have unique keys:
+ * 
+ *    PARK -> PARKS
+ *    PKWY -> PKWYS
+ *    SPUR -> SPURS
+ *    WALK -> WALKS
+ */
+[
+   {
+      "code": "ALY",
+      "name": "ALLEY",
+      "variants": [
+         "ALLEE",
+         "ALLEY",
+         "ALLY",
+         "ALY"
+      ]
+   },
+   {
+      "code": "ANX",
+      "name": "ANEX",
+      "variants": [
+         "ANEX",
+         "ANNEX",
+         "ANNX",
+         "ANX"
+      ]
+   },
+   {
+      "code": "ARC",
+      "name": "ARCADE",
+      "variants": [
+         "ARC",
+         "ARCADE"
+      ]
+   },
+   {
+      "code": "AVE",
+      "name": "AVENUE",
+      "variants": [
+         "AV",
+         "AVE",
+         "AVEN",
+         "AVENU",
+         "AVENUE",
+         "AVN",
+         "AVNUE"
+      ]
+   },
+   {
+      "code": "BYU",
+      "name": "BAYOU",
+      "variants": [
+         "BAYOO",
+         "BAYOU"
+      ]
+   },
+   {
+      "code": "BCH",
+      "name": "BEACH",
+      "variants": [
+         "BCH",
+         "BEACH"
+      ]
+   },
+   {
+      "code": "BND",
+      "name": "BEND",
+      "variants": [
+         "BEND",
+         "BND"
+      ]
+   },
+   {
+      "code": "BLF",
+      "name": "BLUFF",
+      "variants": [
+         "BLF",
+         "BLUF",
+         "BLUFF"
+      ]
+   },
+   {
+      "code": "BLFS",
+      "name": "BLUFFS",
+      "variants": [
+         "BLUFFS"
+      ]
+   },
+   {
+      "code": "BTM",
+      "name": "BOTTOM",
+      "variants": [
+         "BOT",
+         "BTM",
+         "BOTTM",
+         "BOTTOM"
+      ]
+   },
+   {
+      "code": "BLVD",
+      "name": "BOULEVARD",
+      "variants": [
+         "BLVD",
+         "BOUL",
+         "BOULEVARD",
+         "BOULV"
+      ]
+   },
+   {
+      "code": "BR",
+      "name": "BRANCH",
+      "variants": [
+         "BR",
+         "BRNCH",
+         "BRANCH"
+      ]
+   },
+   {
+      "code": "BRG",
+      "name": "BRIDGE",
+      "variants": [
+         "BRDGE",
+         "BRG",
+         "BRIDGE"
+      ]
+   },
+   {
+      "code": "BRK",
+      "name": "BROOK",
+      "variants": [
+         "BRK",
+         "BROOK"
+      ]
+   },
+   {
+      "code": "BRKS",
+      "name": "BROOKS",
+      "variants": [
+         "BROOKS"
+      ]
+   },
+   {
+      "code": "BG",
+      "name": "BURG",
+      "variants": [
+         "BURG"
+      ]
+   },
+   {
+      "code": "BGS",
+      "name": "BURGS",
+      "variants": [
+         "BURGS"
+      ]
+   },
+   {
+      "code": "BYP",
+      "name": "BYPASS",
+      "variants": [
+         "BYP",
+         "BYPA",
+         "BYPAS",
+         "BYPASS",
+         "BYPS"
+      ]
+   },
+   {
+      "code": "CP",
+      "name": "CAMP",
+      "variants": [
+         "CAMP",
+         "CP",
+         "CMP"
+      ]
+   },
+   {
+      "code": "CYN",
+      "name": "CANYON",
+      "variants": [
+         "CANYN",
+         "CANYON",
+         "CNYN"
+      ]
+   },
+   {
+      "code": "CPE",
+      "name": "CAPE",
+      "variants": [
+         "CAPE",
+         "CPE"
+      ]
+   },
+   {
+      "code": "CSWY",
+      "name": "CAUSEWAY",
+      "variants": [
+         "CAUSEWAY",
+         "CAUSWA",
+         "CSWY"
+      ]
+   },
+   {
+      "code": "CTR",
+      "name": "CENTER",
+      "variants": [
+         "CEN",
+         "CENT",
+         "CENTER",
+         "CENTR",
+         "CENTRE",
+         "CNTER",
+         "CNTR",
+         "CTR"
+      ]
+   },
+   {
+      "code": "CTRS",
+      "name": "CENTERS",
+      "variants": [
+         "CENTERS"
+      ]
+   },
+   {
+      "code": "CIR",
+      "name": "CIRCLE",
+      "variants": [
+         "CIR",
+         "CIRC",
+         "CIRCL",
+         "CIRCLE",
+         "CRCL",
+         "CRCLE"
+      ]
+   },
+   {
+      "code": "CIRS",
+      "name": "CIRCLES",
+      "variants": [
+         "CIRCLES"
+      ]
+   },
+   {
+      "code": "CLF",
+      "name": "CLIFF",
+      "variants": [
+         "CLF",
+         "CLIFF"
+      ]
+   },
+   {
+      "code": "CLFS",
+      "name": "CLIFFS",
+      "variants": [
+         "CLFS",
+         "CLIFFS"
+      ]
+   },
+   {
+      "code": "CLB",
+      "name": "CLUB",
+      "variants": [
+         "CLB",
+         "CLUB"
+      ]
+   },
+   {
+      "code": "CMN",
+      "name": "COMMON",
+      "variants": [
+         "COMMON"
+      ]
+   },
+   {
+      "code": "CMNS",
+      "name": "COMMONS",
+      "variants": [
+         "COMMONS"
+      ]
+   },
+   {
+      "code": "COR",
+      "name": "CORNER",
+      "variants": [
+         "COR",
+         "CORNER"
+      ]
+   },
+   {
+      "code": "CORS",
+      "name": "CORNERS",
+      "variants": [
+         "CORNERS",
+         "CORS"
+      ]
+   },
+   {
+      "code": "CRSE",
+      "name": "COURSE",
+      "variants": [
+         "COURSE",
+         "CRSE"
+      ]
+   },
+   {
+      "code": "CT",
+      "name": "COURT",
+      "variants": [
+         "COURT",
+         "CT"
+      ]
+   },
+   {
+      "code": "CTS",
+      "name": "COURTS",
+      "variants": [
+         "COURTS",
+         "CTS"
+      ]
+   },
+   {
+      "code": "CV",
+      "name": "COVE",
+      "variants": [
+         "COVE",
+         "CV"
+      ]
+   },
+   {
+      "code": "CVS",
+      "name": "COVES",
+      "variants": [
+         "COVES"
+      ]
+   },
+   {
+      "code": "CRK",
+      "name": "CREEK",
+      "variants": [
+         "CREEK",
+         "CRK"
+      ]
+   },
+   {
+      "code": "CRES",
+      "name": "CRESCENT",
+      "variants": [
+         "CRESCENT",
+         "CRES",
+         "CRSENT",
+         "CRSNT"
+      ]
+   },
+   {
+      "code": "CRST",
+      "name": "CREST",
+      "variants": [
+         "CREST"
+      ]
+   },
+   {
+      "code": "XING",
+      "name": "CROSSING",
+      "variants": [
+         "CROSSING",
+         "CRSSNG",
+         "XING"
+      ]
+   },
+   {
+      "code": "XRD",
+      "name": "CROSSROAD",
+      "variants": [
+         "CROSSROAD"
+      ]
+   },
+   {
+      "code": "XRDS",
+      "name": "CROSSROADS",
+      "variants": [
+         "CROSSROADS"
+      ]
+   },
+   {
+      "code": "CURV",
+      "name": "CURVE",
+      "variants": [
+         "CURVE"
+      ]
+   },
+   {
+      "code": "DL",
+      "name": "DALE",
+      "variants": [
+         "DALE",
+         "DL"
+      ]
+   },
+   {
+      "code": "DM",
+      "name": "DAM",
+      "variants": [
+         "DAM",
+         "DM"
+      ]
+   },
+   {
+      "code": "DV",
+      "name": "DIVIDE",
+      "variants": [
+         "DIV",
+         "DIVIDE",
+         "DV",
+         "DVD"
+      ]
+   },
+   {
+      "code": "DR",
+      "name": "DRIVE",
+      "variants": [
+         "DR",
+         "DRIV",
+         "DRIVE",
+         "DRV"
+      ]
+   },
+   {
+      "code": "DRS",
+      "name": "DRIVES",
+      "variants": [
+         "DRIVES"
+      ]
+   },
+   {
+      "code": "EST",
+      "name": "ESTATE",
+      "variants": [
+         "EST",
+         "ESTATE"
+      ]
+   },
+   {
+      "code": "ESTS",
+      "name": "ESTATES",
+      "variants": [
+         "ESTATES",
+         "ESTS"
+      ]
+   },
+   {
+      "code": "EXPY",
+      "name": "EXPRESSWAY",
+      "variants": [
+         "EXP",
+         "EXPR",
+         "EXPRESS",
+         "EXPRESSWAY",
+         "EXPW",
+         "EXPY"
+      ]
+   },
+   {
+      "code": "EXT",
+      "name": "EXTENSION",
+      "variants": [
+         "EXT",
+         "EXTENSION",
+         "EXTN",
+         "EXTNSN"
+      ]
+   },
+   {
+      "code": "EXTS",
+      "name": "EXTENSIONS",
+      "variants": [
+         "EXTS"
+      ]
+   },
+   {
+      "code": "FALL",
+      "name": "FALL",
+      "variants": [
+         "FALL"
+      ]
+   },
+   {
+      "code": "FLS",
+      "name": "FALLS",
+      "variants": [
+         "FALLS",
+         "FLS"
+      ]
+   },
+   {
+      "code": "FRY",
+      "name": "FERRY",
+      "variants": [
+         "FERRY",
+         "FRRY",
+         "FRY"
+      ]
+   },
+   {
+      "code": "FLD",
+      "name": "FIELD",
+      "variants": [
+         "FIELD",
+         "FLD"
+      ]
+   },
+   {
+      "code": "FLDS",
+      "name": "FIELDS",
+      "variants": [
+         "FIELDS",
+         "FLDS"
+      ]
+   },
+   {
+      "code": "FLT",
+      "name": "FLAT",
+      "variants": [
+         "FLAT",
+         "FLT"
+      ]
+   },
+   {
+      "code": "FLTS",
+      "name": "FLATS",
+      "variants": [
+         "FLATS",
+         "FLTS"
+      ]
+   },
+   {
+      "code": "FRD",
+      "name": "FORD",
+      "variants": [
+         "FORD",
+         "FRD"
+      ]
+   },
+   {
+      "code": "FRDS",
+      "name": "FORDS",
+      "variants": [
+         "FORDS"
+      ]
+   },
+   {
+      "code": "FRST",
+      "name": "FOREST",
+      "variants": [
+         "FOREST",
+         "FORESTS",
+         "FRST"
+      ]
+   },
+   {
+      "code": "FRG",
+      "name": "FORGE",
+      "variants": [
+         "FORG",
+         "FORGE",
+         "FRG"
+      ]
+   },
+   {
+      "code": "FRGS",
+      "name": "FORGES",
+      "variants": [
+         "FORGES"
+      ]
+   },
+   {
+      "code": "FRK",
+      "name": "FORK",
+      "variants": [
+         "FORK",
+         "FRK"
+      ]
+   },
+   {
+      "code": "FRKS",
+      "name": "FORKS",
+      "variants": [
+         "FORKS",
+         "FRKS"
+      ]
+   },
+   {
+      "code": "FT",
+      "name": "FORT",
+      "variants": [
+         "FORT",
+         "FRT",
+         "FT"
+      ]
+   },
+   {
+      "code": "FWY",
+      "name": "FREEWAY",
+      "variants": [
+         "FREEWAY",
+         "FREEWY",
+         "FRWAY",
+         "FRWY",
+         "FWY"
+      ]
+   },
+   {
+      "code": "GDN",
+      "name": "GARDEN",
+      "variants": [
+         "GARDEN",
+         "GARDN",
+         "GRDEN",
+         "GRDN"
+      ]
+   },
+   {
+      "code": "GDNS",
+      "name": "GARDENS",
+      "variants": [
+         "GARDENS",
+         "GDNS",
+         "GRDNS"
+      ]
+   },
+   {
+      "code": "GTWY",
+      "name": "GATEWAY",
+      "variants": [
+         "GATEWAY",
+         "GATEWY",
+         "GATWAY",
+         "GTWAY",
+         "GTWY"
+      ]
+   },
+   {
+      "code": "GLN",
+      "name": "GLEN",
+      "variants": [
+         "GLEN",
+         "GLN"
+      ]
+   },
+   {
+      "code": "GLNS",
+      "name": "GLENS",
+      "variants": [
+         "GLENS"
+      ]
+   },
+   {
+      "code": "GRN",
+      "name": "GREEN",
+      "variants": [
+         "GREEN",
+         "GRN"
+      ]
+   },
+   {
+      "code": "GRNS",
+      "name": "GREENS",
+      "variants": [
+         "GREENS"
+      ]
+   },
+   {
+      "code": "GRV",
+      "name": "GROVE",
+      "variants": [
+         "GROV",
+         "GROVE",
+         "GRV"
+      ]
+   },
+   {
+      "code": "GRVS",
+      "name": "GROVES",
+      "variants": [
+         "GROVES"
+      ]
+   },
+   {
+      "code": "HBR",
+      "name": "HARBOR",
+      "variants": [
+         "HARB",
+         "HARBOR",
+         "HARBR",
+         "HBR",
+         "HRBOR"
+      ]
+   },
+   {
+      "code": "HBRS",
+      "name": "HARBORS",
+      "variants": [
+         "HARBORS"
+      ]
+   },
+   {
+      "code": "HVN",
+      "name": "HAVEN",
+      "variants": [
+         "HAVEN",
+         "HVN"
+      ]
+   },
+   {
+      "code": "HTS",
+      "name": "HEIGHTS",
+      "variants": [
+         "HT",
+         "HTS"
+      ]
+   },
+   {
+      "code": "HWY",
+      "name": "HIGHWAY",
+      "variants": [
+         "HIGHWAY",
+         "HIGHWY",
+         "HIWAY",
+         "HIWY",
+         "HWAY",
+         "HWY"
+      ]
+   },
+   {
+      "code": "HL",
+      "name": "HILL",
+      "variants": [
+         "HILL",
+         "HL"
+      ]
+   },
+   {
+      "code": "HLS",
+      "name": "HILLS",
+      "variants": [
+         "HILLS",
+         "HLS"
+      ]
+   },
+   {
+      "code": "HOLW",
+      "name": "HOLLOW",
+      "variants": [
+         "HLLW",
+         "HOLLOW",
+         "HOLLOWS",
+         "HOLW",
+         "HOLWS"
+      ]
+   },
+   {
+      "code": "INLT",
+      "name": "INLET",
+      "variants": [
+         "INLT"
+      ]
+   },
+   {
+      "code": "IS",
+      "name": "ISLAND",
+      "variants": [
+         "IS",
+         "ISLAND",
+         "ISLND"
+      ]
+   },
+   {
+      "code": "ISS",
+      "name": "ISLANDS",
+      "variants": [
+         "ISLANDS",
+         "ISLNDS",
+         "ISS"
+      ]
+   },
+   {
+      "code": "ISLE",
+      "name": "ISLE",
+      "variants": [
+         "ISLE",
+         "ISLES"
+      ]
+   },
+   {
+      "code": "JCT",
+      "name": "JUNCTION",
+      "variants": [
+         "JCT",
+         "JCTION",
+         "JCTN",
+         "JUNCTION",
+         "JUNCTN",
+         "JUNCTON"
+      ]
+   },
+   {
+      "code": "JCTS",
+      "name": "JUNCTIONS",
+      "variants": [
+         "JCTNS",
+         "JCTS",
+         "JUNCTIONS"
+      ]
+   },
+   {
+      "code": "KY",
+      "name": "KEY",
+      "variants": [
+         "KEY",
+         "KY"
+      ]
+   },
+   {
+      "code": "KYS",
+      "name": "KEYS",
+      "variants": [
+         "KEYS",
+         "KYS"
+      ]
+   },
+   {
+      "code": "KNL",
+      "name": "KNOLL",
+      "variants": [
+         "KNL",
+         "KNOL",
+         "KNOLL"
+      ]
+   },
+   {
+      "code": "KNLS",
+      "name": "KNOLLS",
+      "variants": [
+         "KNLS",
+         "KNOLLS"
+      ]
+   },
+   {
+      "code": "LK",
+      "name": "LAKE",
+      "variants": [
+         "LK",
+         "LAKE"
+      ]
+   },
+   {
+      "code": "LKS",
+      "name": "LAKES",
+      "variants": [
+         "LKS",
+         "LAKES"
+      ]
+   },
+   {
+      "code": "LAND",
+      "name": "LAND",
+      "variants": [
+         "LAND"
+      ]
+   },
+   {
+      "code": "LNDG",
+      "name": "LANDING",
+      "variants": [
+         "LANDING",
+         "LNDG",
+         "LNDNG"
+      ]
+   },
+   {
+      "code": "LN",
+      "name": "LANE",
+      "variants": [
+         "LANE",
+         "LN"
+      ]
+   },
+   {
+      "code": "LGT",
+      "name": "LIGHT",
+      "variants": [
+         "LGT",
+         "LIGHT"
+      ]
+   },
+   {
+      "code": "LGTS",
+      "name": "LIGHTS",
+      "variants": [
+         "LIGHTS"
+      ]
+   },
+   {
+      "code": "LF",
+      "name": "LOAF",
+      "variants": [
+         "LF",
+         "LOAF"
+      ]
+   },
+   {
+      "code": "LCK",
+      "name": "LOCK",
+      "variants": [
+         "LCK",
+         "LOCK"
+      ]
+   },
+   {
+      "code": "LCKS",
+      "name": "LOCKS",
+      "variants": [
+         "LCKS",
+         "LOCKS"
+      ]
+   },
+   {
+      "code": "LDG",
+      "name": "LODGE",
+      "variants": [
+         "LDG",
+         "LDGE",
+         "LODG",
+         "LODGE"
+      ]
+   },
+   {
+      "code": "LOOP",
+      "name": "LOOP",
+      "variants": [
+         "LOOP",
+         "LOOPS"
+      ]
+   },
+   {
+      "code": "MALL",
+      "name": "MALL",
+      "variants": [
+         "MALL"
+      ]
+   },
+   {
+      "code": "MNR",
+      "name": "MANOR",
+      "variants": [
+         "MNR",
+         "MANOR"
+      ]
+   },
+   {
+      "code": "MNRS",
+      "name": "MANORS",
+      "variants": [
+         "MANORS",
+         "MNRS"
+      ]
+   },
+   {
+      "code": "MDW",
+      "name": "MEADOW",
+      "variants": [
+         "MEADOW"
+      ]
+   },
+   {
+      "code": "MDWS",
+      "name": "MEADOWS",
+      "variants": [
+         "MDW",
+         "MDWS",
+         "MEADOWS",
+         "MEDOWS"
+      ]
+   },
+   {
+      "code": "MEWS",
+      "name": "MEWS",
+      "variants": [
+         "MEWS"
+      ]
+   },
+   {
+      "code": "ML",
+      "name": "MILL",
+      "variants": [
+         "MILL"
+      ]
+   },
+   {
+      "code": "MLS",
+      "name": "MILLS",
+      "variants": [
+         "MILLS"
+      ]
+   },
+   {
+      "code": "MSN",
+      "name": "MISSION",
+      "variants": [
+         "MISSN",
+         "MSSN"
+      ]
+   },
+   {
+      "code": "MTWY",
+      "name": "MOTORWAY",
+      "variants": [
+         "MOTORWAY"
+      ]
+   },
+   {
+      "code": "MT",
+      "name": "MOUNT",
+      "variants": [
+         "MNT",
+         "MT",
+         "MOUNT"
+      ]
+   },
+   {
+      "code": "MTN",
+      "name": "MOUNTAIN",
+      "variants": [
+         "MNTAIN",
+         "MNTN",
+         "MOUNTAIN",
+         "MOUNTIN",
+         "MTIN",
+         "MTN"
+      ]
+   },
+   {
+      "code": "MTNS",
+      "name": "MOUNTAINS",
+      "variants": [
+         "MNTNS",
+         "MOUNTAINS"
+      ]
+   },
+   {
+      "code": "NCK",
+      "name": "NECK",
+      "variants": [
+         "NCK",
+         "NECK"
+      ]
+   },
+   {
+      "code": "ORCH",
+      "name": "ORCHARD",
+      "variants": [
+         "ORCH",
+         "ORCHARD",
+         "ORCHRD"
+      ]
+   },
+   {
+      "code": "OVAL",
+      "name": "OVAL",
+      "variants": [
+         "OVAL",
+         "OVL"
+      ]
+   },
+   {
+      "code": "OPAS",
+      "name": "OVERPASS",
+      "variants": [
+         "OVERPASS"
+      ]
+   },
+   {
+      "code": "PARK",
+      "name": "PARK",
+      "variants": [
+         "PARK",
+         "PRK"
+      ]
+   },
+   {
+      "code": "PARKS",
+      "name": "PARKS",
+      "variants": [
+         "PARKS"
+      ]
+   },
+   {
+      "code": "PKWY",
+      "name": "PARKWAY",
+      "variants": [
+         "PARKWAY",
+         "PARKWY",
+         "PKWAY",
+         "PKWY",
+         "PKY"
+      ]
+   },
+   {
+      "code": "PKWYS",
+      "name": "PARKWAYS",
+      "variants": [
+         "PARKWAYS",
+         "PKWYS"
+      ]
+   },
+   {
+      "code": "PASS",
+      "name": "PASS",
+      "variants": [
+         "PASS"
+      ]
+   },
+   {
+      "code": "PSGE",
+      "name": "PASSAGE",
+      "variants": [
+         "PASSAGE"
+      ]
+   },
+   {
+      "code": "PATH",
+      "name": "PATH",
+      "variants": [
+         "PATH",
+         "PATHS"
+      ]
+   },
+   {
+      "code": "PIKE",
+      "name": "PIKE",
+      "variants": [
+         "PIKE",
+         "PIKES"
+      ]
+   },
+   {
+      "code": "PNE",
+      "name": "PINE",
+      "variants": [
+         "PINE"
+      ]
+   },
+   {
+      "code": "PNES",
+      "name": "PINES",
+      "variants": [
+         "PINES",
+         "PNES"
+      ]
+   },
+   {
+      "code": "PL",
+      "name": "PLACE",
+      "variants": [
+         "PL"
+      ]
+   },
+   {
+      "code": "PLN",
+      "name": "PLAIN",
+      "variants": [
+         "PLAIN",
+         "PLN"
+      ]
+   },
+   {
+      "code": "PLNS",
+      "name": "PLAINS",
+      "variants": [
+         "PLAINS",
+         "PLNS"
+      ]
+   },
+   {
+      "code": "PLZ",
+      "name": "PLAZA",
+      "variants": [
+         "PLAZA",
+         "PLZ",
+         "PLZA"
+      ]
+   },
+   {
+      "code": "PT",
+      "name": "POINT",
+      "variants": [
+         "POINT",
+         "PT"
+      ]
+   },
+   {
+      "code": "PTS",
+      "name": "POINTS",
+      "variants": [
+         "POINTS",
+         "PTS"
+      ]
+   },
+   {
+      "code": "PRT",
+      "name": "PORT",
+      "variants": [
+         "PORT",
+         "PRT"
+      ]
+   },
+   {
+      "code": "PRTS",
+      "name": "PORTS",
+      "variants": [
+         "PORTS",
+         "PRTS"
+      ]
+   },
+   {
+      "code": "PR",
+      "name": "PRAIRIE",
+      "variants": [
+         "PR",
+         "PRAIRIE",
+         "PRR"
+      ]
+   },
+   {
+      "code": "RADL",
+      "name": "RADIAL",
+      "variants": [
+         "RAD",
+         "RADIAL",
+         "RADIEL",
+         "RADL"
+      ]
+   },
+   {
+      "code": "RAMP",
+      "name": "RAMP",
+      "variants": [
+         "RAMP"
+      ]
+   },
+   {
+      "code": "RNCH",
+      "name": "RANCH",
+      "variants": [
+         "RANCH",
+         "RANCHES",
+         "RNCH",
+         "RNCHS"
+      ]
+   },
+   {
+      "code": "RPD",
+      "name": "RAPID",
+      "variants": [
+         "RAPID",
+         "RPD"
+      ]
+   },
+   {
+      "code": "RPDS",
+      "name": "RAPIDS",
+      "variants": [
+         "RAPIDS",
+         "RPDS"
+      ]
+   },
+   {
+      "code": "RST",
+      "name": "REST",
+      "variants": [
+         "REST",
+         "RST"
+      ]
+   },
+   {
+      "code": "RDG",
+      "name": "RIDGE",
+      "variants": [
+         "RDG",
+         "RDGE",
+         "RIDGE"
+      ]
+   },
+   {
+      "code": "RDGS",
+      "name": "RIDGES",
+      "variants": [
+         "RDGS",
+         "RIDGES"
+      ]
+   },
+   {
+      "code": "RIV",
+      "name": "RIVER",
+      "variants": [
+         "RIV",
+         "RIVER",
+         "RVR",
+         "RIVR"
+      ]
+   },
+   {
+      "code": "RD",
+      "name": "ROAD",
+      "variants": [
+         "RD",
+         "ROAD"
+      ]
+   },
+   {
+      "code": "RDS",
+      "name": "ROADS",
+      "variants": [
+         "ROADS",
+         "RDS"
+      ]
+   },
+   {
+      "code": "RTE",
+      "name": "ROUTE",
+      "variants": [
+         "ROUTE"
+      ]
+   },
+   {
+      "code": "ROW",
+      "name": "ROW",
+      "variants": [
+         "ROW"
+      ]
+   },
+   {
+      "code": "RUE",
+      "name": "RUE",
+      "variants": [
+         "RUE"
+      ]
+   },
+   {
+      "code": "RUN",
+      "name": "RUN",
+      "variants": [
+         "RUN"
+      ]
+   },
+   {
+      "code": "SHL",
+      "name": "SHOAL",
+      "variants": [
+         "SHL",
+         "SHOAL"
+      ]
+   },
+   {
+      "code": "SHLS",
+      "name": "SHOALS",
+      "variants": [
+         "SHLS",
+         "SHOALS"
+      ]
+   },
+   {
+      "code": "SHR",
+      "name": "SHORE",
+      "variants": [
+         "SHOAR",
+         "SHORE",
+         "SHR"
+      ]
+   },
+   {
+      "code": "SHRS",
+      "name": "SHORES",
+      "variants": [
+         "SHOARS",
+         "SHORES",
+         "SHRS"
+      ]
+   },
+   {
+      "code": "SKWY",
+      "name": "SKYWAY",
+      "variants": [
+         "SKYWAY"
+      ]
+   },
+   {
+      "code": "SPG",
+      "name": "SPRING",
+      "variants": [
+         "SPG",
+         "SPNG",
+         "SPRING",
+         "SPRNG"
+      ]
+   },
+   {
+      "code": "SPGS",
+      "name": "SPRINGS",
+      "variants": [
+         "SPGS",
+         "SPNGS",
+         "SPRINGS",
+         "SPRNGS"
+      ]
+   },
+   {
+      "code": "SPUR",
+      "name": "SPUR",
+      "variants": [
+         "SPUR"
+      ]
+   },
+   {
+      "code": "SPURS",
+      "name": "SPURS",
+      "variants": [
+         "SPURS"
+      ]
+   },
+   {
+      "code": "SQ",
+      "name": "SQUARE",
+      "variants": [
+         "SQ",
+         "SQR",
+         "SQRE",
+         "SQU",
+         "SQUARE"
+      ]
+   },
+   {
+      "code": "SQS",
+      "name": "SQUARES",
+      "variants": [
+         "SQRS",
+         "SQUARES"
+      ]
+   },
+   {
+      "code": "STA",
+      "name": "STATION",
+      "variants": [
+         "STA",
+         "STATION",
+         "STATN",
+         "STN"
+      ]
+   },
+   {
+      "code": "STRA",
+      "name": "STRAVENUE",
+      "variants": [
+         "STRA",
+         "STRAV",
+         "STRAVEN",
+         "STRAVENUE",
+         "STRAVN",
+         "STRVN",
+         "STRVNUE"
+      ]
+   },
+   {
+      "code": "STRM",
+      "name": "STREAM",
+      "variants": [
+         "STREAM",
+         "STREME",
+         "STRM"
+      ]
+   },
+   {
+      "code": "ST",
+      "name": "STREET",
+      "variants": [
+         "STREET",
+         "STRT",
+         "ST",
+         "STR"
+      ]
+   },
+   {
+      "code": "STS",
+      "name": "STREETS",
+      "variants": [
+         "STREETS"
+      ]
+   },
+   {
+      "code": "SMT",
+      "name": "SUMMIT",
+      "variants": [
+         "SMT",
+         "SUMIT",
+         "SUMITT",
+         "SUMMIT"
+      ]
+   },
+   {
+      "code": "TER",
+      "name": "TERRACE",
+      "variants": [
+         "TER",
+         "TERR",
+         "TERRACE"
+      ]
+   },
+   {
+      "code": "TRWY",
+      "name": "THROUGHWAY",
+      "variants": [
+         "THROUGHWAY"
+      ]
+   },
+   {
+      "code": "TRCE",
+      "name": "TRACE",
+      "variants": [
+         "TRACE",
+         "TRACES",
+         "TRCE"
+      ]
+   },
+   {
+      "code": "TRAK",
+      "name": "TRACK",
+      "variants": [
+         "TRACK",
+         "TRACKS",
+         "TRAK",
+         "TRK",
+         "TRKS"
+      ]
+   },
+   {
+      "code": "TRFY",
+      "name": "TRAFFICWAY",
+      "variants": [
+         "TRAFFICWAY"
+      ]
+   },
+   {
+      "code": "TRL",
+      "name": "TRAIL",
+      "variants": [
+         "TRAIL",
+         "TRAILS",
+         "TRL",
+         "TRLS"
+      ]
+   },
+   {
+      "code": "TRLR",
+      "name": "TRAILER",
+      "variants": [
+         "TRAILER",
+         "TRLR",
+         "TRLRS"
+      ]
+   },
+   {
+      "code": "TUNL",
+      "name": "TUNNEL",
+      "variants": [
+         "TUNEL",
+         "TUNL",
+         "TUNLS",
+         "TUNNEL",
+         "TUNNELS",
+         "TUNNL"
+      ]
+   },
+   {
+      "code": "TPKE",
+      "name": "TURNPIKE",
+      "variants": [
+         "TRNPK",
+         "TURNPIKE",
+         "TURNPK"
+      ]
+   },
+   {
+      "code": "UPAS",
+      "name": "UNDERPASS",
+      "variants": [
+         "UNDERPASS"
+      ]
+   },
+   {
+      "code": "UN",
+      "name": "UNION",
+      "variants": [
+         "UN",
+         "UNION"
+      ]
+   },
+   {
+      "code": "UNS",
+      "name": "UNIONS",
+      "variants": [
+         "UNIONS"
+      ]
+   },
+   {
+      "code": "VLY",
+      "name": "VALLEY",
+      "variants": [
+         "VALLEY",
+         "VALLY",
+         "VLLY",
+         "VLY"
+      ]
+   },
+   {
+      "code": "VLYS",
+      "name": "VALLEYS",
+      "variants": [
+         "VALLEYS",
+         "VLYS"
+      ]
+   },
+   {
+      "code": "VIA",
+      "name": "VIADUCT",
+      "variants": [
+         "VDCT",
+         "VIA",
+         "VIADCT",
+         "VIADUCT"
+      ]
+   },
+   {
+      "code": "VW",
+      "name": "VIEW",
+      "variants": [
+         "VIEW",
+         "VW"
+      ]
+   },
+   {
+      "code": "VWS",
+      "name": "VIEWS",
+      "variants": [
+         "VIEWS",
+         "VWS"
+      ]
+   },
+   {
+      "code": "VLG",
+      "name": "VILLAGE",
+      "variants": [
+         "VILL",
+         "VILLAG",
+         "VILLAGE",
+         "VILLG",
+         "VILLIAGE",
+         "VLG"
+      ]
+   },
+   {
+      "code": "VLGS",
+      "name": "VILLAGES",
+      "variants": [
+         "VILLAGES",
+         "VLGS"
+      ]
+   },
+   {
+      "code": "VL",
+      "name": "VILLE",
+      "variants": [
+         "VILLE",
+         "VL"
+      ]
+   },
+   {
+      "code": "VIS",
+      "name": "VISTA",
+      "variants": [
+         "VIS",
+         "VIST",
+         "VISTA",
+         "VST",
+         "VSTA"
+      ]
+   },
+   {
+      "code": "WALK",
+      "name": "WALK",
+      "variants": [
+         "WALK"
+      ]
+   },
+   {
+      "code": "WALKS",
+      "name": "WALKS",
+      "variants": [
+         "WALKS"
+      ]
+   },
+   {
+      "code": "WALL",
+      "name": "WALL",
+      "variants": [
+         "WALL"
+      ]
+   },
+   {
+      "code": "WAY",
+      "name": "WAY",
+      "variants": [
+         "WY",
+         "WAY"
+      ]
+   },
+   {
+      "code": "WAYS",
+      "name": "WAYS",
+      "variants": [
+         "WAYS"
+      ]
+   },
+   {
+      "code": "WL",
+      "name": "WELL",
+      "variants": [
+         "WELL"
+      ]
+   },
+   {
+      "code": "WLS",
+      "name": "WELLS",
+      "variants": [
+         "WELLS",
+         "WLS"
+      ]
+   }
+]

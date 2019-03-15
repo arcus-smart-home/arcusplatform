@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="KitDeviceId"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+   <t:description>ProductId and Protocol Address for a device in a kit</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="productId"
+         type="string"
+         description="Product identifier for the actual device based on the entry in the product catalog."
+         optional="false"/>
+      <t:attribute 
+         name="protocolAddress"
+         type="string"
+         description="Protocol address for where messages can be sent to the device directly."
+         optional="false"/>
+   </t:attributes>
+</t:type>

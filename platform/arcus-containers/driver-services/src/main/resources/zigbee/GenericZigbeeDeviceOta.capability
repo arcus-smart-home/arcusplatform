@@ -1,0 +1,307 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+////////////////////////////////////////////////////////////////////////////////
+// Default implementation of DeviceOta for Zigbee Devices:
+//
+// Required DeviceOta capability delegation:
+//
+// Required onEvent delegation:
+//    onEvent('DeviceOtaDeferredRead') {
+//       GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,name,otaEndpoint)
+//    }
+//
+//    onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+//       GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,name)
+//    }
+////////////////////////////////////////////////////////////////////////////////
+
+capability		DeviceOta
+description		"Implementation of DeviceOta for Zigbee devices"
+version			"1.0"
+
+////////////////////////////////////////////////////////////////////////////////
+// Configuration parameters
+////////////////////////////////////////////////////////////////////////////////
+
+@Field static final long OTA_DELAY_READ_MSEC = 120000   		      // delay 2 minutes before attempting to re-read OTA file version, if not set
+@Field static final int OTA_MAX_ATTEMPTS = 10
+
+@Field static final long OTA_BLOCK_RQST_TIMEOUT_MSEC = 20L * 60L * 1000L // 20 minute timeout for OTA Block Requests
+@Field static final long OTA_BLOCK_RQST_INTERVAL_MSEC = 1 * 60L * 1000L		// check timeout every 60 seconds
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Lifecycle
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded { 
+	DeviceOta.status      DeviceOta.STATUS_IDLE
+	DeviceOta.retryCount       0		// retry count should be NULL until first failure, when it is set to 0, then incremented after any successive failures and reset to null on success
+	DeviceOta.lastAttempt      null		// lastAttempt should be NULL unless a failed attempt occurs
+   DeviceOta.progressPercent  0   // Set this to 0.
+   DeviceOta.lastFailReason   "" 
+}
+
+onConnected {
+	vars.OTA_COUNTER = 0
+	Scheduler.scheduleIn 'DeviceOtaDeferredRead', OTA_DELAY_READ_MSEC
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+static void setCurrentOtaVersion(ctx,name,version,allowZero) {
+   if ((null == version) || ('INVALID' == version.toString())) {
+      return
+   }
+
+   if (version == 0 && !allowZero) {
+      ctx.log.debug "{} ignoring invalid firmware version: {}", name, version
+      return
+   }
+
+   def String verStr = Integer.toHexString(version as int)
+	ctx.DeviceOta.currentVersion verStr
+}
+
+static void doHandleOtaReadAttributesResponse(ctx,name,cluster,message) {
+   doHandleOtaReadAttributesResponse(ctx,name,cluster,message,true)
+}
+
+static void doHandleOtaReadAttributesResponse(ctx,name,cluster,message,allowZero) {
+	ctx.log.debug "{} received ota attributes response: {}", name, message
+	def zclMsg = ctx.Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+
+	try {
+		def attributes = ctx.Zigbee.Message.decodeZclAttributes(message)
+		def version = attributes[cluster.ATTR_CURRENT_FILE_VERSION]
+		ctx.log.debug "{} current file version: {}", name, version
+		setCurrentOtaVersion(ctx,name,version,allowZero)
+	} catch (Exception e) {
+		ctx.log.error "{} failed to parse ota read attributes response:", name, e
+		if ((null != data) && (7 < data.length)) {
+			// Current File Version Attribute (0x0002), successfully read (0x00) as unsigned 32-bit integer (0x23)
+			if ((0x02 == data[0]) && (0x00 == data[1]) && (0x00 == data[2]) && (0x23 == data[3])) {
+				def buff = java.nio.ByteBuffer.wrap(data, 4, 4)
+				buff.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+
+				def int ver = buff.getInt()
+				ctx.log.debug "{} current file version: " + ver
+		      setCurrentOtaVersion(ctx,name,ver,allowZero)
+			}
+		}
+	}
+
+   // if current version matches target version, make sure status is "COMPLETED"
+	if (ctx.DeviceOta.currentVersion.get() == ctx.DeviceOta.targetVersion.get()) {
+      ctx.DeviceOta.status ctx.DeviceOta.STATUS_COMPLETED
+	}
+}
+
+static void doHandleQueryNextImageRequest(ctx,name,message) {
+   doHandleQueryNextImageRequest(ctx,name,message,true)
+}
+
+static void doHandleQueryNextImageRequest(ctx,name,message,allowZero) {
+	def rqst = ctx.Zigbee.Message.decodeZcl(message)
+	short manufacturerCode = rqst.getManufacturerCode()
+	short imageType = rqst.getImageType()
+	int fileVersion = rqst.getFileVersion()
+	ctx.log.debug "{} query next image request: mfr={}, type={}, ver={}", name, manufacturerCode, imageType, fileVersion
+	
+	setCurrentOtaVersion(ctx,name,fileVersion,allowZero)
+	if (ctx.DeviceOta.currentVersion.get() == ctx.DeviceOta.targetVersion.get()) {
+		ctx.DeviceOta.status ctx.DeviceOta.STATUS_COMPLETED
+	}
+}
+
+static void doHandleImageBlockRequest(ctx,name,message) {
+	ctx.log.trace "{} received image block request: {}", name, message
+	
+	def rqst = ctx.Zigbee.Message.decodeZcl(message)
+	int fileVersion = rqst.getFileVersion()
+	int fileOffset = rqst.getFileOffset()
+	ctx.log.debug "{} image block request: ver={}, offset={}", name, fileVersion, fileOffset
+
+	ctx.vars.'lastOtaFragmentRqstTime' = (new Date()).getTime()
+	if (ctx.DeviceOta.STATUS_FAILED != ctx.DeviceOta.status.get() && ctx.DeviceOta.STATUS_INPROGRESS != ctx.DeviceOta.status.get()) {
+		ctx.DeviceOta.targetVersion Integer.toHexString(fileVersion)
+		ctx.DeviceOta.status ctx.DeviceOta.STATUS_INPROGRESS
+		ctx.Scheduler.scheduleIn 'DeviceOtaCheckFragmentRequestTimeout', OTA_BLOCK_RQST_INTERVAL_MSEC
+	}
+}
+
+static void doHandleImagePageRequest(ctx,name,message) {
+	ctx.log.trace "{} received image page request: {}", name, message
+
+	def rqst = ctx.Zigbee.Message.decodeZcl(message)
+	int fileVersion = rqst.getFileVersion()
+	int fileOffset = rqst.getFileOffset()
+	ctx.log.debug "{} image page request: ver={}, offset={}", name, fileVersion, fileOffset
+
+	ctx.vars.'lastOtaFragmentRqstTime' = (new Date()).getTime()
+	if (ctx.DeviceOta.STATUS_FAILED != ctx.DeviceOta.status.get() && ctx.DeviceOta.STATUS_INPROGRESS != ctx.DeviceOta.status.get()) {
+		ctx.DeviceOta.targetVersion Integer.toHexString(fileVersion)
+		ctx.DeviceOta.status ctx.DeviceOta.STATUS_INPROGRESS
+		ctx.Scheduler.scheduleIn 'DeviceOtaCheckFragmentRequestTimeout', OTA_BLOCK_RQST_INTERVAL_MSEC
+	}
+}
+
+static void doHandleUpgradeEndRequest(ctx,name,message) {
+   doHandleUpgradeEndRequest(ctx,name,message,true)
+}
+
+static void doHandleUpgradeEndRequest(ctx,name,message,allowZero) {
+	ctx.log.debug "{} received upgrade end request: {}", name, message
+	
+	def rqst = ctx.Zigbee.Message.decodeZcl(message)
+	byte status = rqst.getStatus()
+	short manufacturerCode = rqst.getManufacturerCode()
+	short imageType = rqst.getImageType()
+	int fileVersion = rqst.getFileVersion()
+	ctx.log.debug "{} upgrade end request: status={}, mfr={}, type={}, ver={}", name, status, manufacturerCode, imageType, fileVersion
+	
+	if (0 == status) {
+		ctx.DeviceOta.status ctx.DeviceOta.STATUS_COMPLETED
+		ctx.DeviceOta.retryCount 0
+		ctx.DeviceOta.lastAttempt null
+
+		setCurrentOtaVersion(ctx,name,fileVersion,allowZero)
+	} else if (ctx.DeviceOta.STATUS_FAILED != ctx.DeviceOta.status.get()) {
+	  ctx.DeviceOta.status ctx.DeviceOta.STATUS_FAILED
+	  ctx.DeviceOta.lastAttempt (new Date())
+	  ctx.DeviceOta.retryCount ((null == ctx.DeviceOta.retryCount.get()) ? 0 : ctx.DeviceOta.retryCount.get() + 1)
+     ctx.DeviceOta.lastFailReason "aborted by device"
+     ctx.DeviceOta.progressPercent  0
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+static void doProcessDeviceOtaDeferredRead(ctx,name,endpoint) {
+	if (null != ctx.DeviceOta.currentVersion.get()) {
+	   return
+	}
+
+	endpoint.send(
+		(byte) 0x06,      // msg flags: bit 0 (cluster specific) = 0, bit 1 (from server) = 1, bit 2 (disable dflt response) = 1
+		(short) 0x0019,   // cluster ID: OTA
+		(byte) 0x00,      // message ID: Read Attributes Cmd
+		(byte[])[0x02, 0x00]      // byte array containing little-endian representation of 2-byte attribute values to read
+   )
+		
+	// schedule another read in case the one we just sent does not return a response, or returns 'invalid'
+	// (if it does return a valid value this future read won't be sent)
+	if (OTA_MAX_ATTEMPTS > ctx.vars.OTA_COUNTER) {
+		ctx.Scheduler.scheduleIn 'DeviceOtaDeferredRead', OTA_DELAY_READ_MSEC
+		ctx.vars.OTA_COUNTER++
+	}
+}
+
+static void doProcessDeviceOtaCheckFragmentRequestTimeout(ctx,name) {
+	def lastRqstTime = ctx.vars.'lastOtaFragmentRqstTime'
+	if (ctx.DeviceOta.STATUS_INPROGRESS != ctx.DeviceOta.status.get() || lastRqstTime == null) {
+	   return
+	}
+
+	def mSecSinceLastRqst = (new Date()).getTime() - lastRqstTime
+	if (mSecSinceLastRqst <= OTA_BLOCK_RQST_TIMEOUT_MSEC) {
+		// device still asking for blocks, so reschedule another check
+		ctx.Scheduler.scheduleIn 'DeviceOtaCheckFragmentRequestTimeout', OTA_BLOCK_RQST_INTERVAL_MSEC
+		return;
+   }
+
+   // device seems to have stop requesting blocks, timeout the OTA as FAILED
+	if (ctx.DeviceOta.STATUS_FAILED != ctx.DeviceOta.status.get()) {
+	  ctx.DeviceOta.status ctx.DeviceOta.STATUS_FAILED
+	  ctx.DeviceOta.retryCount ((null == ctx.DeviceOta.retryCount.get()) ? 0 : ctx.DeviceOta.retryCount.get() + 1)
+	  ctx.DeviceOta.lastAttempt (new Date())
+     ctx.DeviceOta.lastFailReason "timeout"
+     ctx.DeviceOta.progressPercent  0
+	}
+}
+
+
+onFirmwareUpdate {
+   log.warn "onFirmwareUpdate update request " + message
+   def attrs = message.attributes
+
+	DeviceOta.status           DeviceOta.STATUS_IDLE
+   DeviceOta.lastFailReason   ""
+   DeviceOta.lastAttempt      null
+   DeviceOta.progressPercent  0
+
+   Zigbee.updateFirmware attrs["url"], attrs["priority"]
+   sendResponse "devota:FirmwareUpdateResponse", ["status":"OK"]
+}
+
+onFirmwareUpdateCancel {
+   log.warn "onFirmwareUpdateCancel request " + message
+
+
+	if (DeviceOta.STATUS_FAILED != DeviceOta.status.get()) {
+     DeviceOta.status           DeviceOta.STATUS_FAILED
+     DeviceOta.lastFailReason   "cancel requested"
+     DeviceOta.lastAttempt      new Date()
+     DeviceOta.progressPercent  0
+     DeviceOta.retryCount       ((null == DeviceOta.retryCount.get()) ? 0 : DeviceOta.retryCount.get() + 1)
+   }
+
+   Zigbee.updateFirmwareCancel()
+   sendResponse "devota:FirmwareUpdateCancelResponse", ["status":"OK"]
+}
+
+onControl('devota:FirmwareUpdateProgress') {
+   log.debug "Firmware update progress {}", message
+   handleFirmwareUpdateProgress(message)
+}
+
+void handleFirmwareUpdateProgress(message) {
+   log.debug "Firmware update progress {}", message
+   
+   def attributes = message.attributes;
+   
+   DeviceOta.progressPercent  attributes["otaProgress"]
+   DeviceOta.targetVersion    attributes["fileVersion"]
+   if (attributes["status"] == DeviceOta.STATUS_FAILED && DeviceOta.STATUS_FAILED != DeviceOta.status.get()) {
+      DeviceOta.retryCount      ((null == DeviceOta.retryCount.get()) ? 0 : DeviceOta.retryCount.get() + 1)
+      DeviceOta.status          DeviceOta.STATUS_FAILED
+      DeviceOta.lastFailReason  attributes["reason"]
+      DeviceOta.lastAttempt     new Date()
+      DeviceOta.progressPercent 0
+   }
+
+   if (attributes["status"] == "COMPLETE") {
+      DeviceOta.status            DeviceOta.STATUS_COMPLETED
+      DeviceOta.currentVersion    attributes["fileVersion"]
+      DeviceOta.retryCount        0
+   }
+
+	if (DeviceOta.STATUS_FAILED != DeviceOta.status.get() && attributes["status"] == "INPROGRESS") {
+	   vars.'lastOtaFragmentRqstTime' = (new Date()).getTime()
+	   if (DeviceOta.STATUS_INPROGRESS != DeviceOta.status.get()) {
+		   Scheduler.scheduleIn 'DeviceOtaCheckFragmentRequestTimeout', OTA_BLOCK_RQST_INTERVAL_MSEC
+	   }
+
+      DeviceOta.status         DeviceOta.STATUS_INPROGRESS
+   }
+}
+

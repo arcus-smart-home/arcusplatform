@@ -1,0 +1,20 @@
+{{#file . "com/iris/driver/groovy/ipcd/bindings/MessageTypeClosures.java"}}
+package com.iris.driver.groovy.ipcd.bindings;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.iris.driver.groovy.binding.EnvironmentBinding;
+
+import groovy.lang.Closure;
+
+public class MessageTypeClosures {
+	public static Map<String, Closure<Object>> buildMessageTypeClosures(EnvironmentBinding binding) {
+		Map<String, Closure<Object>> map = new HashMap<>();
+		{{#messages}}map.put("{{toLowerCase name}}", new {{capitalize name}}MessageTypeClosure(binding));
+		{{/messages}}
+		return Collections.unmodifiableMap(map);
+	}
+}
+{{/file}}

@@ -1,0 +1,24 @@
+{{#file . "generated/{{name}}.h"}}
+
+#import <Foundation/Foundation.h>
+#import "ClientEvent.h"
+#import "ClientRequest.h"
+
+@class PMKPromise;
+
+@interface {{name}} : NSObject
++ (NSString *)name;
++ (NSString *)address;
+
+{{#methods}}
+{{#if parameters}}
+/** {{description}} */
++ (PMKPromise *) {{uncapitalize name}}{{#parameters}}{{#if @first}}W{{else}} w{{/if}}ith{{capitalize name}}:({{objCTypeOfParam type}}){{name}}{{/parameters}};
+{{else}}
+/** {{description}} */
++ (PMKPromise *) {{uncapitalize name}};
+{{/if}}
+{{/methods}}
+
+@end
+{{/file}}

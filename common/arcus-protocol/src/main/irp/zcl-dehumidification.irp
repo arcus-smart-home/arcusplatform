@@ -1,0 +1,27 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 6.5 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Dehumidification {
+   const u16 CLUSTER_ID = 0x0203;
+
+   const u16 ATTR_RELATIVE_HUMIDITY = 0x0000;
+   const u16 ATTR_DEHUMIDIFICATION_COOLING = 0x0001;
+
+   const u16 ATTR_DEHUMIDIFICATION_SETPOINT = 0x0010;
+   const u16 ATTR_RELATIVE_HUMIDITY_MODE = 0x0011;
+   const u16 ATTR_DEHUMIDIFICATION_LOCKOUT = 0x0012;
+   const u16 ATTR_DEHUMIDIFICATION_HYSTERESIS = 0x0013;
+   const u16 ATTR_DEHUMIDIFICATION_MAX_COOL = 0x0014;
+   const u16 ATTR_RELATIVE_HUMIDITY_DISPLAY = 0x0015;
+
+   const u8 RELATIVE_HUMIDITY_MODE_LOCAL = 0x00;
+   const u8 RELATIVE_HUMIDITY_MODE_NETWORK = 0x01;
+
+   const u8 DEHUMIDIFICATION_LOCKOUT_NOT_ALLOWED = 0x00;
+   const u8 DEHUMIDIFICATION_LOCKOUT_ALLOWED = 0x01;
+
+   const u8 RELATIVE_HUMIDITY_NOT_DISPLAYED = 0x00;
+   const u8 RELATIVE_HUMIDITY_DISPLAYED = 0x01;
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="HistoryLog"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents a single entry in a history log</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="timestamp"
+			type="timestamp"
+			description="The time at which the event ocurred"
+			/>
+		<t:attribute
+			name="subjectAddress"
+			type="string"
+			description="The address of the subject to use for looking up images or more detailed information"
+			/>
+		<t:attribute
+			name="subjectName"
+			type="string"
+			description="The name of the subject"
+			/>
+		<t:attribute
+			name="shortMessage"
+			type="string"
+			description="The short message for the log entry"
+			/>
+		<t:attribute
+			name="longMessage"
+			type="string"
+			description="The long message for the log entry"
+			/>
+		<t:attribute
+			name="key"
+			type="string"
+			description="The key for this message"
+			/>
+	</t:attributes>
+ </t:type>

@@ -1,0 +1,563 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the CentraLite Smoke Alarm Listener. 
+ * This device listens for alarm from smoke detector.
+ * For more information, visit http://www.safeawake.com/
+ * 
+ * FACTORY RESET
+ *  - Press and hold the test button
+ *  - Power the device. 
+ *  - Release the test button
+ *  - The LED should come to a blinking blue.
+ *  
+ * RE-PAIR
+ *  - Remove the device.
+ *  - The device LED will be back to blue, but not pairing.
+ *  - Press the test button to start pairing
+ *  
+ * INITIAL PAIRING
+ *  - The device pair on powered 
+ *    
+ * IDENTIFY
+ *  - Performing an Identify operation turns the LED on and cycles the color  (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async, per wiki page specs; https://eyeris.atlassian.net/wiki/display/I2D/Device+Reporting+Settings
+ * 
+ * ISSUES/NOTES
+ * 
+ * This device is LINE powered and comes with a non-standard rechargeable battery.
+ * The power cluster does not report battery voltages. 
+ * Cluster 0x0001  Power cluster support the following attributes.
+ * 	- 0x0000 main voltage, 0x0010 mains alarm mask, 0x0031 battery size , 0x0033 battery quantity
+ * 
+ * There is a small button under the battery cover. This is a tamper button.
+ * Press it to disable tamper flag from IAS Zone.
+ * 
+ * This device pairs, when powered and the LED is blinking blue
+ * 
+ * 02/11/16 - Update driver to only try setting IAS CIE Address a maximum of 100 times with progressive back-off, and to stop
+ *            if receiving "Request Denied" and simply verify address written matches Hub's.
+ *
+ */
+import groovy.transform.Field
+import com.iris.protocol.zigbee.ZclData
+
+
+driver			"ZBCentraLiteSmokeListener"
+description		"Driver for the CentraLite Smoke Alarm Listener"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Smoke/CO"
+productId		"cde0da"
+vendor 			"Iris"
+model 			"4257020-S"
+
+matcher			'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '4257020-S'
+capabilities	DevicePower, Identify, DeviceOta, Alert, Smoke, Test
+
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable true
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+// Manufacturer ID:       0xC2DF
+// Manufacturer:          CentraLite
+// Model:                 4257020-S
+//
+// 2 End Points
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0500     IAS Zone
+//   0x0B05     Diagnostics
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+
+def pwrCluster   = Zigbee.endpoint((byte)1).Power
+def identCluster = Zigbee.endpoint((byte)1).Identify
+def zoneCluster  = Zigbee.endpoint((byte)1).IasZone
+def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+// constants used if setting battery reporting interval
+@Field static final String DEVICE_NAME = 'CentraLite Smoke Alarm Listener'
+@Field def final short PROFILE_HA           = 0x0104
+
+@Field def final short CLUSTER_PWR_CNFG     = 0x0001
+@Field def final short CLUSTER_DIAGNOSTICS  = 0x0B05
+
+@Field def final CMD_WRT_ATTR               = 0x02      // General Command Frame - Write Attributes
+@Field def final CMD_WRT_ATTR_RSP           = 0x04      // General Command Frame - Write Attributes Response
+@Field def final CMD_CNFG_RPT               = 0x06      // General Command Frame - Configure Reporting
+@Field def final CMD_CNFG_RPT_RSP           = 0x07      // General Command Frame - Configure Reporting Response
+@Field def final short ATTR_BATTERY_PERCENTAGE	= 33
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS              = 600       // 10 minutes 
+
+def final short IDENT_PERIOD_SECS           = 180       // number of seconds (0-600) for device to Identify itself (Flash LED) when Identify method is called
+@Field def final long WRITE_IAS_CIE_DELAY   = 5000
+@Field def final long ZONE_ENROLL_DELAY     = 5000
+@Field def final long MAX_IAS_CIE_WRITES    = 100	    // Maximum attempts to try and write the IAS CIE Address
+@Field def final long MAX_ZONE_ENROLLS      = 100	    // Maximum attempts to try and enroll the device in a Zone
+
+@Field def final long CNFG_RETRY_DELAY_MSEC = 10000     // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field def final int MAX_CNFG_ATTEMPTS      = 10        // maximumn number of attempts to make trying to configure reporting
+@Field def final String CNFG_PWR_RPT        = 'CnfgPwrRpt'
+@Field def final String CNFG_DIAG_RPT       = 'CnfgDiagRpt'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "CentraLite Smoke Listener device added."
+
+	// set default attribute values
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Smoke.smoke                      Smoke.SMOKE_SAFE
+	Smoke.smokechanged               ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	// Bind all of the command clusters on the enpoints we need
+	Zigbee.bindEndpoints(
+		pwrCluster.bindServerCluster(),
+		zoneCluster.bindServerCluster(),
+		diagCluster.bindServerCluster() )
+
+	// initialize flags to track successfully configuring the device
+	vars.'writeIasCieCnt' = 0
+	vars.'zoneEnrollCnt' = 0
+	
+	// write the IAS CIE Address now (it can only be written successfully to the device once, until the device is factory reset, so only needed in onAdded and not in onConnected)
+	zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+	// and schedule a follow up write in case first write fails
+	Scheduler.scheduleIn 'doWriteIasCie', WRITE_IAS_CIE_DELAY
+}
+
+
+onConnected {
+	log.debug "CentraLite Smoke Listener device connected."
+
+	// write the IAS CIE Address now
+	zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+	// and schedule a followup write in case first write fails
+	Scheduler.scheduleIn 'doWriteIasCie', WRITE_IAS_CIE_DELAY
+
+	// read Power supported attributes
+	pwrCluster.zclReadAttributes(
+		pwrCluster.ATTR_MAINS_VOLTAGE,
+		pwrCluster.ATTR_MAINS_ALARM_MASK,
+		pwrCluster.ATTR_BATTERY_SIZE,
+		pwrCluster.ATTR_BATTERY_QUANTITY,
+		ATTR_BATTERY_PERCENTAGE
+		)
+	
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+	// read current IAS Zone attributes after setting Address (to get current state and trigger async Enroll Response)
+	zoneCluster.zclReadAttributes(
+		zoneCluster.ATTR_ZONE_STATE,
+		zoneCluster.ATTR_ZONE_TYPE,
+		zoneCluster.ATTR_ZONE_STATUS,
+		zoneCluster.ATTR_IAS_CIE_ADDRESS )
+	
+	// configure reporting of PowerConfig cluster BatteryVoltage
+	vars.CNFG_PWR_RPT = 0
+	Scheduler.defer CNFG_PWR_RPT
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "CentraLite Smoke Listener device disconnected."
+}
+
+
+onRemoved {
+	log.debug "CentraLite Smoke Listener device removed."
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('doWriteIasCie') {
+	if ((0 <= vars.'writeIasCieCnt') && (MAX_IAS_CIE_WRITES > vars.'writeIasCieCnt')) {
+		vars.'writeIasCieCnt'++
+		log.debug "Write IAS CIE Address attempt:{}", vars.'writeIasCieCnt'
+		zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+		// schedule to write again in case this write fails
+		Scheduler.scheduleIn 'doWriteIasCie', (WRITE_IAS_CIE_DELAY * vars.'writeIasCieCnt')
+	}
+}
+
+onEvent('doZoneEnroll') {
+	if ((0 <= vars.'zoneEnrollCnt') && (MAX_ZONE_ENROLLS > vars.'zoneEnrollCnt')) {
+		vars.'zoneEnrollCnt'++
+		log.debug "Zone Enrollment attempt:{}", vars.'zoneEnrollCnt'
+		zoneCluster.zoneEnrollResponse((byte)0x00, (byte)0xFF)
+		// schedule to send again in case this enrollment fails
+		Scheduler.scheduleIn 'doZoneEnroll', (ZONE_ENROLL_DELAY * vars.'zoneEnrollCnt')
+	}
+}
+
+onEvent(CNFG_PWR_RPT) {
+	if ((0 <= vars.CNFG_PWR_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PWR_RPT)) {
+		log.debug "{}:{}", CNFG_PWR_RPT, vars.CNFG_PWR_RPT
+		// configure reporting of Power Config cluster Battery Voltage attribute
+		byte[] rptPwrCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0021) Battery Percentage Remain
+			0x21, 0x00,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x003C) 60 secs
+			0x3C, 0x00,
+			// Max Interval (0x0078) 120 secs
+			0x78, 0x00,
+			// Reportable Change 
+			0x05 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_PWR_CNFG,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptPwrCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_PWR_RPT++
+		Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PWR_RPT)
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def battPercentageRemaining = attributes[ATTR_BATTERY_PERCENTAGE]
+	
+	if(battPercentageRemaining < 0) {
+		battPercentageRemaining = ( 256 + battPercentageRemaining ) / 2
+	} else {
+		battPercentageRemaining = battPercentageRemaining / 2
+	}
+	log.debug "CentraLite Smoke Listener battPercentageRemaining:{}", battPercentageRemaining
+	DevicePower.battery battPercentageRemaining
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.debug "CentraLite Smoke Listener driver received Power Attributes Response:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.debug "CentraLite Smoke Listener driver received Power Attributes Report:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the IAS Zone Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// shared code for processing the zone status attribute
+void processZoneStatus(Object cluster, int zoneStatus) {
+	// For test button 	- 288 (0x120)
+	// For normal 		- 32  (0x020)
+	def prevState = Alert.state.get()		// save previous Contact state
+	def prevSmoke = Smoke.smoke.get()
+	
+	if ( zoneStatus & cluster.ZONE_STATUS_ALARM1 ) {
+		log.debug "Alarm1 Set (Fire Detected)"
+		Alert.state Alert.STATE_ALERTING
+		Smoke.smoke Smoke.SMOKE_DETECTED
+	} else {
+		log.debug "Alarm1 Clear (Fire Not Detected)"
+		Alert.state Alert.STATE_QUIET
+		Smoke.smoke Smoke.SMOKE_SAFE
+	}
+	
+	if (zoneStatus & cluster.ZONE_STATUS_TEST) {
+		Test.lastTestTime new Date()
+	}
+	
+	if (Smoke.smoke.get() != prevSmoke) {
+		Smoke.smokechanged new Date()
+	}
+	
+	
+}
+
+// shared code for handling a Zone ReadAttributesResponse, or asynchronous ReportAttributes
+void handleZoneMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def zoneState = attributes[cluster.ATTR_ZONE_STATE]
+	def zoneType = attributes[cluster.ATTR_ZONE_TYPE]
+	def zoneStatus = attributes[cluster.ATTR_ZONE_STATUS]
+	def iasCieAddr = attributes[cluster.ATTR_IAS_CIE_ADDRESS]
+	log.debug "ZoneState:{}, ZoneType:{}, ZoneStatus:{}, IAS CIE Addr:{}", zoneState, zoneType, zoneStatus, iasCieAddr
+	processZoneStatus cluster, zoneStatus
+	verifyCIEAddr cluster, iasCieAddr
+}
+
+// sends a ZoneEnrollResponse, either asychronously or in response to a ZoneEnrollRequest
+void sendZoneEnrollment(Object cluster) {
+	def byte enrollResponseCode = 0x00	// success
+	def byte zoneId = 0xFF
+	cluster.zoneEnrollResponse( enrollResponseCode, zoneId )
+}
+
+void verifyCIEAddr(Object cluster, addr) {
+	log.debug "Reported IAS CIE Address is:{}", addr
+	def hubAddr = Zigbee.Data.encodeIeee(Zigbee.Hub.eui64).dataValue
+	log.debug "Hub IEEE Address is:{}", hubAddr
+
+	if ((null == addr) || ('INVALID' == addr.toString()) || (8 != addr.size())) {
+		log.warn "IAS CIE Address not set."
+	} else {
+		if (addr != hubAddr) {
+			log.error "IAS CIE Address not set to hub address."
+		} else {
+			log.debug "IAS CIE Address is set to hub address."
+		}
+	}
+}
+
+// called when device responds to a IAS Zone Read Attributes
+onZigbeeMessage.Zcl.iaszone.zclreadattributesresponse() {
+	log.debug "Driver received IAS Zone Attributes Response:{}", message
+	handleZoneMsg(zoneCluster, message)
+	// any time we get a response to reading the IAS Zone attributes, also asynchronously send a ZoneEnrollResponse
+	sendZoneEnrollment zoneCluster
+}
+
+// called in response to IAS Zone Write Attributes
+onZigbeeMessage.Zcl.iaszone.zclwriteattributesresponse() {
+	log.debug "Driver received IAS Zone write attributes response:{}", message
+
+	def zclMsg = Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+	if ((null != data) && (1 <= data.size())) {
+		if (0x00 == data[0]) {
+			log.debug "IAS Zone Write Attributes Success"
+			vars.'writeIasCieCnt' = -1		// set to -1 once successfully written
+			// now try sending ZoneEnrollment
+			Scheduler.defer 'doZoneEnroll'
+		} else if (0x70 == data[0]) {			// REQUEST_DENIED
+			log.warn "IAS Zone Write Attributes REQUEST DENIED"
+			// read the address to make sure it is correct
+			zoneCluster.zclReadAttributes(
+				zoneCluster.ATTR_ZONE_STATE,
+				zoneCluster.ATTR_ZONE_TYPE,
+				zoneCluster.ATTR_ZONE_STATUS,
+				zoneCluster.ATTR_IAS_CIE_ADDRESS )
+	
+			vars.'writeIasCieCnt' = -1		// set to -1 because won't succeed until device is factory reset
+		} else {
+			log.warn "IAS Zone Write Attributes FAILED!!!"
+		}
+	}
+}
+
+// called when device asynchronously sends a IAS Zone Report Attributes
+onZigbeeMessage.Zcl.iaszone.zclreportattributes() {
+	log.debug "Driver received IAS Zone Attributes Report:{}", message
+	handleZoneMsg(zoneCluster, message)
+}
+
+// called when the device wants to enroll a zone
+onZigbeeMessage.Zcl.iaszone.zoneenrollrequest() {
+	log.debug "Driver received IAS Zone ZoneEnrollRequest:{}", message
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+	def rqst = Zigbee.Message.decodeZcl(message)
+	int zoneType = rqst.getZoneType()
+	int mfgCode = rqst.getManufacturerCode()
+	log.debug "ZoneType:{} (should be 21 (0x15)), MfgCode:{}", zoneType, mfgCode
+	// send a ZoneEnrollResponse
+	sendZoneEnrollment zoneCluster
+}
+
+
+// called when zone status changes
+onZigbeeMessage.Zcl.iaszone.zonestatuschangenotification() {
+	log.debug "Driver received IAS Zone ZoneStatusChangeNotification:{}", message
+
+	// we received a Zone Status Change, so mark Zone Enrollment as done
+	vars.'zoneEnrollCnt' = -1
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+	def notification = Zigbee.Message.decodeZcl(message)
+
+	int zoneStatus = notification.getZoneStatus()
+	int extStatus = notification.getExtendedStatus()
+	log.debug "ZoneStatus:{}, ExtendedStatus:{}", zoneStatus, extStatus
+	processZoneStatus zoneCluster, zoneStatus
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.trace "RSSI:{}, LQI:{}", rssi, lqi
+
+	if (lqi != null) {
+		if ('INVALID' == lqi.toString()) lqi = 255	// helper parses 255 value as 'INVALID', but it just means 100%
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		int sigPct = Math.round( (lqi * 100.0) / 255.0)
+		log.trace "LQI:{}, (percent:{})", lqi, sigPct
+		DeviceConnection.signal sigPct
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "Driver received Diagnostics Attributes Response:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "Driver received Diagnostics Attributes Report:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify:{}", message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	if ((PROFILE_HA == profile) && (CLUSTER_PWR_CNFG == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Power reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_PWR_RPT = -1
+		} else {
+			log.warn "Power reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+	
+	// if Config Reporting Response for Diagnostics cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_DIAGNOSTICS == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Diagnostics reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_DIAG_RPT = -1
+		} else {
+			log.warn "Diagnostics reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+   log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+

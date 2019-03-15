@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Camera"
+   namespace="camera"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Camera indication on a device.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="privacy" 
+         readwrite="r"
+         type="boolean"
+         optional="true"
+         description="When true, camera's privacy function is enabled"/>
+         
+      <c:attribute 
+         name="resolutionssupported" 
+         readwrite="r" 
+         type="list&lt;string&gt;"
+         optional="true"
+         description="List of resolutions supported by the camera e.g. 160x120, 320x240, 640x480, 1280x960 "/>   
+
+      <c:attribute 
+         name="resolution" 
+         readwrite="rw" 
+         type="string"
+         optional="true"
+         description="Current resolution of the camera. Must appear in resolutionssupported list."/>
+         
+      <c:attribute 
+         name="bitratetype" 
+         readwrite="rw" 
+         type="enum"
+         values="cbr,vbr"
+         optional="true"
+         description="Constant bit rate or variable bit rate"/>    
+         
+      <c:attribute 
+         name="bitratessupported" 
+         readwrite="r" 
+         type="list&lt;string&gt;"
+         optional="true"
+         description="List of bitrates supported by the camera e.g. 32K, 64K, 96K, 128K, 256K, 384K, 512K, 768K, 1024K, 1280K, 2048K"/>   
+     
+      <c:attribute 
+         name="bitrate" 
+         readwrite="rw" 
+         type="string"
+         optional="true"
+         description="Only valid when bitrate type is cbr. Must appear in bitratessupported list."/>         
+
+      <c:attribute 
+         name="qualitiessupported" 
+         readwrite="r" 
+         type="list&lt;string&gt;"
+         optional="true"
+         description="List of quality levels supported by the camera e.g Very Low, Low, Normal, High, Very High"/>    
+
+      <c:attribute 
+         name="quality" 
+         readwrite="rw" 
+         type="string"
+         optional="true"
+         description="Current quality of the camera. Must appear in qualitiessupported list."/>    
+      
+      <c:attribute 
+         name="minframerate" 
+         readwrite="r" 
+         type="int"
+         optional="true"
+         description="Minimum framerate supported."/>
+ 
+       <c:attribute 
+         name="maxframerate" 
+         readwrite="r" 
+         type="int"
+         optional="true"
+         description="Maximum framerate supported."/>
+       
+       <c:attribute 
+         name="framerate" 
+         readwrite="rw" 
+         type="int"
+         optional="true"
+         description="Current framerate of the camera. Must be minframerate &lt;= framerate &lt;= maxframerate"/>
+
+      <c:attribute
+         name="flip"
+         readwrite="rw"
+         type="boolean"
+         optional="true"
+         description="When true, camera's image is flipped vertically"/>
+
+      <c:attribute
+         name="mirror"
+         readwrite="rw"
+         type="boolean"
+         optional="true"
+         description="When true, camera's image is mirrored horizontally"/>
+
+      <c:attribute
+         name="irLedSupportedModes"
+         readwrite="r"
+         type="set&lt;string&gt;"
+         optional="true"
+         description="What camera IR LED modes are supported?"/>
+
+      <c:attribute
+         name="irLedMode"
+         readwrite="rw"
+         type="enum"
+         values="ON,OFF,AUTO"
+         optional="true"
+         description="Reflects the mode of IR LED on the camera."/>
+
+      <c:attribute
+         name="irLedLuminance"
+         readwrite="rw"
+         type="int"
+         min="1"
+         max="5"
+         optional="true"
+         description="Reflects the current IR LED luminance, on a scale of 1 to 5."/>
+   </c:attributes>
+
+   <c:methods>
+   
+      <c:method
+         name="StartStreaming"
+         description="Informs the camera to start streaming to some destination">
+         
+         <c:parameter name="url" type="string" description="The url to stream to" optional="false"/>
+         <c:parameter name="username" type="string" description="The username to authenticate with" optional="false"/>
+         <c:parameter name="password" type="string" description="The password to authenticate with" optional="false"/>
+         <c:parameter name="maxDuration" type="int" description="The maximum time in seconds to stream" optional="false"/>
+         <c:parameter name="stream" type="boolean" description="True if a live stream is being started, false otherwise.  This is for drivers where the streaming method is different from the live streaming method.  Drivers that treat these the same may ignore this attributes.  If not provided assume false." optional="true"/>
+      </c:method>
+   
+   </c:methods>
+</c:capability>

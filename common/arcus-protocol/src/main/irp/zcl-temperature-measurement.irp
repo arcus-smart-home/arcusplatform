@@ -1,0 +1,13 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 4.4 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.TemperatureMeasurement {
+   const u16 CLUSTER_ID = 0x0402;
+
+   const u16 ATTR_MEASURED_VALUE = 0x0000;
+   const u16 ATTR_MIN_MEASURED_VALUE = 0x0001;
+   const u16 ATTR_MAX_MEASURED_VALUE = 0x0002;
+   const u16 ATTR_TOLERANCE = 0x0003;
+}

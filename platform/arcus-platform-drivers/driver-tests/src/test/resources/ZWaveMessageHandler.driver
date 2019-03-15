@@ -1,0 +1,51 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver "ZWaveMessageHandler"
+version "1.0"
+vendor "Iris"
+model  "TestCase"
+deviceTypeHint "test"
+
+matcher protocol: 'ZWAV'
+
+// constants (I don't know if this is a legal command class value or not)
+byte IRIS_SWITCH_COMMAND_CLASS=0xEF
+byte IRIS_SET_COMMAND=1
+byte IRIS_GET_COMMAND=2
+byte IRIS_REPORT_COMMAND=3
+byte IRIS_SWITCH_OFF=0
+byte IRIS_SWITCH_ON=1
+
+onZWaveMessage(IRIS_SWITCH_COMMAND_CLASS, IRIS_REPORT_COMMAND) {
+	vars.match = "binary_exact_match"
+}
+ 
+onZWaveMessage(IRIS_SWITCH_COMMAND_CLASS) {
+ 	vars.match = "binary_command_class"
+}
+ 
+onZWaveMessage("switch_binary", "set") {
+	vars.match = "string_exact_match"
+}
+ 
+onZWaveMessage "switch_binary", {
+ 	vars.match = "string_command_class"
+}
+ 
+onZWaveMessage {
+ 	vars.match = "protocol"
+}
+

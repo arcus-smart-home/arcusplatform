@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="Population"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Population</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="name"
+			type="enum"
+			values="general,qa,beta"
+			description="Population Name."
+			/>
+		<t:attribute
+			name="description"
+			type="string"
+			description="Population Description."
+    		/>
+   		<t:attribute
+   			name="isDefault"
+   			type="boolean"
+   			description="Indicates that this population is the default population."
+   			/>
+   		<t:attribute
+			name="minHubV2Version"
+			type="string"
+			description="Minimum hub v2 version for the population."
+    		/> 		
+   		<t:attribute
+			name="minHubV3Version"
+			type="string"
+			description="Minimum hub v3 version for the population."
+    		/> 		
+	</t:attributes>
+ </t:type>

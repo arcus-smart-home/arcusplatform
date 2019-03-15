@@ -1,0 +1,4 @@
+
+message zwave.PrepaymentEncapsulation.CmdEncapsulationV1<id="0x01", group="V1"> {
+    u8[] data;
+}

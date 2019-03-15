@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="ActionSelector"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an input type for an action</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="type"
+			type="enum"
+			values="BOOLEAN, LIST, GROUP, DURATION, RANGE, PERCENT, THERMOSTAT, TEMPERATURE"
+			description="The type of selector, this guides the type of value."
+			/>
+		<t:attribute
+			name="name"
+			type="string"
+			description="The name of the selector to display to the user."
+			/>
+		<t:attribute
+			name="value"
+			type="any"
+			description="The available values to show, mapped as follows:
+    BOOLEAN - Not set
+    LIST - List&lt;Tuple&lt;String,String&gt;&gt;, a list of [ value, label ] tuples.
+    GROUP - List&lt;Tuple&lt;String,List&lt;ActionSelector&gt;&gt;, a list of label and selector tuples.  The selectors associated with each grouping are the additional or sub-selectors that should be used when the target is added to that group.  For example a dimmer would have a PERCENT selector in the ON group, but no selectors in the OFF group.
+    RANGE - Not set
+    PERCENT - Not set
+    THERMOSTAT - Not set
+    TEMPERATURE - A numeric value
+    		"
+			/>
+		<t:attribute
+			name="unit"
+			type="enum"
+			values="SEC,MIN,HOUR,C,F"
+			description="Currently used by the DURATION, RANGE and TEMPERATURE selectors to specify SEC, MIN, HOUR, C or F"
+			/>
+		<t:attribute
+			name="min"
+			type="int"
+			description="The minimum value that can be set, only applicable to DURATION, RANGE, TEMPERATURE and PERCENT selectors right now."
+			/>
+		<t:attribute
+			name="max"
+			type="int"
+			description="The maximum value that can be set, only applicable to DURATION, RANGE, TEMPERATURE and PERCENT selectors right now."
+			/>
+		<t:attribute
+			name="step"
+			type="int"
+			description="A recommended delta between values when generating a range."
+			/>
+	</t:attributes>
+ </t:type>

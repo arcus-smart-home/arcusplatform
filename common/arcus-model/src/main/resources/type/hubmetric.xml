@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="HubMetric"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+   <t:description>Represents the samples of a metric in the long term metric store inside the hub.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="name"
+         type="string"
+         description="The name of the metric"
+         optional="false"/>
+      <t:attribute
+         name="samples"
+         type="list&lt;double&gt;"
+         description="The list of metric samples"
+         optional="true"/>
+   </t:attributes>
+</t:type>

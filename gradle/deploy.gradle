@@ -1,0 +1,96 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ext.agentDistributionVersion = "iris-agent-hub-v2-${version_major}.${version_minor}.${version_patch}${version_prerelease}"
+println "agent dist version: ${agentDistributionVersion}"
+
+   repositories {
+      if ("${use_maven_local}" == "true") {
+         mavenLocal()
+      }
+
+      mavenCentral()
+      jcenter()
+   }
+
+configurations { sshAntTask }
+dependencies { sshAntTask 'org.apache.ant:ant-jsch:1.9.2' }
+
+task deploy() {
+  doLast {
+    ext.hubip=findProperty('hub')
+    ext.password=findProperty('pw')
+
+    ext.clearMsg="clearing out old agent on ${hubip}"
+    ext.clearCmd="killall irisagentd; killall java; sleep 2; cd /data;rm -rf agent;mkdir agent;chown agent agent"
+
+	ext.uploadMsg="uploading to ${hubip}"
+	ext.uploadFrom="arcus-hal/hub-v2/build/distribution/${agentDistributionVersion}.tar.gz"
+	
+	ext.unpackMsg="unzipping to ${hubip}, rebooting..."
+	ext.unpackCmd="cd /data/agent;tar -zxf /tmp/${agentDistributionVersion}.tar.gz;cd /data;chown -R agent agent; /usr/bin/hub_restart 5"
+
+
+	// Using the hubid and password assume key is not installed, using ANT
+	if (ext.password != null ) {
+		ant.taskdef(
+		    name: 'scp',
+		    classname: 'org.apache.tools.ant.taskdefs.optional.ssh.Scp',
+		    classpath: configurations.sshAntTask.asPath)
+		ant.taskdef(
+		    name: 'ssh',
+		    classname: 'org.apache.tools.ant.taskdefs.optional.ssh.SSHExec',
+		    classpath: configurations.sshAntTask.asPath)
+	    println uploadMsg
+	    ant.scp (file:uploadFrom,
+	           todir:"root:${password}@${hubip}:/tmp/",
+	           trust: true )
+	    println clearMsg
+	    ant.ssh (
+	  			host: "${hubip}",
+	  			username: "root",
+	  			password: "${password}",
+	  			trust: true,
+	  			command: clearCmd
+	          )
+	    println unpackMsg
+	    ant.ssh (
+	  			host: "${hubip}",
+	  			username: "root",
+	  			password: "${password}",
+	  			trust: true,
+	  			command: unpackCmd
+	          )
+	// No password found, assume understanding of ssh and scp, and that a key has been installed.
+	   } else {
+	    println uploadMsg
+	    exec {
+          executable 'scp'
+          args uploadFrom, "root@${hubip}:/tmp/${agentDistributionVersion}.tar.gz"
+	  }
+	    println clearMsg
+	    exec {
+	      executable 'ssh'
+	      args "root@${hubip}", clearCmd
+	    }
+	    println unpackMsg
+	    exec {
+	      executable 'ssh'
+	      args "root@${hubip}", unpackCmd
+	    }
+	  }
+	}
+}
+

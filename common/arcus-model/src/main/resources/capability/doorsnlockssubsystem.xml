@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DoorsNLocksSubsystem"
+   namespace="subdoorsnlocks"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Doors &amp; Locks Subsystem
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="lockDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of door locks defined at this place"/>
+      <c:attribute
+         name="motorizedDoorDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of motorized doors defined at this place"/>
+      <c:attribute
+         name="contactSensorDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of contact sensors defined at this place"/>
+      <c:attribute
+         name="petDoorDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of pet doors defined at this place"/>
+      <c:attribute
+         name="warnings"
+         type="map&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="A set of warnings about devices which have potential issues that could cause an alarm to be missed.  The key is the address of the device with a warning and the value is an I18N code with the description of the problem."/>
+      <c:attribute
+         name="unlockedLocks"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of door locks that are currently unlocked"/>
+      <c:attribute
+         name="offlineLocks"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of door locks that are currently offline"/>
+      <c:attribute
+            name="jammedLocks"
+            type="set&lt;String&gt;"
+            readwrite="r"
+            optional="false"
+            description="The addresses of door locks that are currently jammed"/>
+      <c:attribute
+         name="openMotorizedDoors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of motorized doors that are currently open"/>
+      <c:attribute
+         name="offlineMotorizedDoors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of motorized doors that are currently offline"/>
+      <c:attribute
+            name="obstructedMotorizedDoors"
+            type="set&lt;String&gt;"
+            readwrite="r"
+            optional="false"
+            description="The addresses of motorized doors that are currently obstructed"/>
+      <c:attribute
+         name="openContactSensors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addressees of currently open contact sensors"/>
+      <c:attribute
+         name="offlineContactSensors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of currently offline contact sensors"/>
+      <c:attribute
+         name="unlockedPetDoors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of currently locked pet doors"/>
+      <c:attribute
+         name="autoPetDoors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of pet doors in auto mode"/>
+      <c:attribute
+         name="offlinePetDoors"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of offline pet doors"/>
+      <c:attribute
+         name="allPeople"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of all people at the place that could be assigned to a lock (those with access and a pin)"/>
+      <c:attribute
+         name="authorizationByLock"
+         type="map&lt;set&lt;LockAuthorizationState&gt;&gt;"
+         readwrite="r"
+         optional="false"
+         description="A between a door lock and the people that currently have access to that lock"/>
+      <c:attribute
+         name="chimeConfig"
+         type="set&lt;DoorChimeConfig&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The set of all that could have a chiming enabled/disabled."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="AuthorizePeople"
+         description="Authorizes the given people on the lock.  Any people that previously existed on the lock not in this set will be deauthorized">
+         
+         <c:parameter name="device" type="String" description="The address of the door lock to disassociate/associate people with"/>
+         <c:parameter name="operations" type="list&lt;LockAuthorizationOperation&gt;" description="The set of people to assign to the door lock"/>
+         
+         <c:return name="changesPending" type="boolean" description="true if there are changes pending, false if no changes were required"/>
+         
+      </c:method>
+      
+      <c:method
+         name="SynchAuthorization"
+         description="Synchronizes the access on the device and the service, by clearing all pins and reassociating people that should have access">
+         
+         <c:parameter name="device" type="String" description="The address of the device to synchronize"/>
+         
+      </c:method>
+      
+   </c:methods>
+   
+   <c:events>
+      <c:event name="PersonAuthorized" description="Emitted from the subsystem when a person is authorized on a lock">
+      
+         <c:parameter name="person" type="string" description="address of the person authorized"/>
+         <c:parameter name="lock" type="string" description="address of the lock the person was authorized on"/>
+      
+      </c:event>
+      
+      <c:event name="PersonDeauthorized" description="Emitted from the subsystem when a person is deauthorized from a lock">
+      
+         <c:parameter name="person" type="string" description="address of the person deauthorized"/>
+         <c:parameter name="lock" type="string" description="address of the lock the person was deauthorized from"/>
+      
+      </c:event>
+      
+      <c:event name="LockJammed" description="Emitted when a door lock is jammed.">
+         <c:parameter name="lock" type="string" description="Address of the door lock that is jammed."/>
+      </c:event>
+      <c:event name="LockUnjammed" description="Emitted when a door lock is no longer jammed.">
+         <c:parameter name="lock" type="string" description="Address of the door lock that is no longer jammed."/>
+      </c:event>
+      <c:event name="MotorizedDoorObstructed" description="Emitted when a motorized door is obstructed.">
+         <c:parameter name="door" type="string" description="Address of the motorized door that is obstructed."/>
+      </c:event>
+      <c:event name="MotorizedDoorUnobstructed" description="Emitted when a motorized door is no longer obstructed.">
+         <c:parameter name="door" type="string" description="Address of the motorized door that is no longer obstructed."/>
+      </c:event>
+
+      
+   </c:events>
+
+</c:capability>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<firmwares xmlns="http://arcus.com/device-ota-firmware_1.0.0" >
+
+   <metadata version="2018-01-23T00:00:00" publisher="Mike Silverman"/>
+   <configDefaults retryIntervalMins="4" retryAttemptsMax="4"/>
+   
+   <firmware name="Hose Faucet Timer" productId="deda9d" populations="general,qa,beta" version="34002000" path="/orbit/ht8-111B-0000-34000200-HT8.zigbee" >
+      <from-versions>
+         <version type="exact" match="33002000" />
+         <version type="exact" match="272000" />
+         <version type="exact" match="262000" />
+      </from-versions>
+   </firmware>
+
+   <firmware name="12 Station Irrigation Timer" productId="02a3f9" populations="general,qa,beta" version="40002503" path="/orbit/wt15-111B-0001-40002503.zigbee" >
+         <from-versions>
+         <version type="exact" match="37002503" />
+         <version type="exact" match="33042503" />
+      </from-versions>
+   </firmware>
+    
+    <firmware name="OC821 SerComm" productId="242a43" populations="general,qa,beta" version="V1.0.06" path="/sercomm/DABFQA-309-1006.bin" >
+        <from-versions>
+            <version type="exact" match="V1.0.02" />
+            <version type="exact" match="V1.0.03" />
+            <version type="exact" match="V1.0.04" />
+        </from-versions>
+    </firmware>
+    <firmware name="OC830 SerComm" productId="5c3966" populations="general,qa,beta" version="V1.0.07" path="/sercomm/DBM3QA-110-1007.bin" >
+        <from-versions>
+            <version type="exact" match="V1.0.03" />
+            <version type="exact" match="V1.0.04" />
+            <version type="exact" match="V1.0.05" />
+            <version type="exact" match="V1.0.06" />
+        </from-versions>
+    </firmware>
+    <firmware name="RC8221 SerComm" productId="606501" populations="general,qa,beta" version="V1.0.08" path="/sercomm/DYWTQA-308-1008.bin" >
+        <from-versions>
+            <version type="exact" match="V1.0.03" />
+            <version type="exact" match="V1.0.04" />
+            <version type="exact" match="V1.0.06" />
+        </from-versions>
+    </firmware>
+
+
+
+
+    <firmware name="Waxman Water Sensor" productId="bb4c98" populations="general,qa,beta" version="34" path="/waxman/waxman_sensorv2_v52.ota" >
+        <from-versions>
+            <version type="regex" match=".*" />
+        </from-versions>
+    </firmware>
+
+   <firmware name="Mock" productId="bbf1c5" populations="general,qa,beta" version="V1.0.06" path="pass"/>
+   
+</firmwares>

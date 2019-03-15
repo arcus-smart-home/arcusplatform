@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  GET https://:subdomain.recurly.com/v2/accounts/:account/notes -->
+<notes type="array">
+  <note>
+    <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+    <message>This is my first note</message>
+    <created_at type="datetime">2013-05-14T18:52:50Z</created_at>
+  </note>
+  <note>
+    <account href="https://your-subdomain.recurly.com/v2/accounts/1"/>
+    <message>This is my second note</message>
+    <created_at type="datetime">2013-05-14T18:53:04Z</created_at>
+  </note>
+  <!-- Continued... -->
+</notes>

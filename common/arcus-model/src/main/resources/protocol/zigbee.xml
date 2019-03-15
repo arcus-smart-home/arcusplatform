@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Zigbee"
+   namespace="ZIGB"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   Zigbee Protocol
+   </p:description>
+
+   <p:attributes>
+      <p:attribute
+         name="eui64"
+         type="long"
+         description="The Zigbee EUI64 address" />
+      <p:attribute
+         name="nwk"
+         type="int"
+         description="The Zigbee NWK address" />
+      <p:attribute
+         name="maxits"
+         type="int"
+         description="The node descriptor maximum incoming transfer size" />
+      <p:attribute
+         name="maxots"
+         type="int"
+         description="The node descriptor maximum outgoing transfer size" />
+      <p:attribute
+         name="nflags"
+         type="int"
+         description="The node descriptor flags" />
+      <p:attribute
+         name="smask"
+         type="int"
+         description="The node descriptor server mask" />
+      <p:attribute
+         name="manufacturer"
+         type="int"
+         description="The node descriptor manufacturer code" />
+      <p:attribute
+         name="dcap"
+         type="int"
+         description="The node descriptor capability flags" />
+      <p:attribute
+         name="maxbuf"
+         type="int"
+         description="The node descriptor maximum buffer size" />
+      <p:attribute
+         name="mcap"
+         type="int"
+         description="The node descriptor MAC capability flags" />
+      <p:attribute
+         name="pdesc"
+         type="int"
+         description="The power descriptor flags" />
+      <p:attribute
+         name="vendor"
+         type="string"
+         description="The basic cluster manufacturer string" />
+      <p:attribute
+         name="model"
+         type="string"
+         description="The basic cluster model string" />
+      <p:attribute
+         name="profiles"
+         type="set&lt;Object&gt;"
+         description="The set of profiles each containing endpoints and clusters" />
+      <p:attribute
+         name="hub"
+         type="map&lt;Object&gt;"
+         description="A map of attributes for the hub that the device is connected to" />
+   </p:attributes>
+
+</p:protocol>

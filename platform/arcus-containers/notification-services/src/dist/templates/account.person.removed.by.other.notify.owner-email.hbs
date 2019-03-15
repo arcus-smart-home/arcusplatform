@@ -1,0 +1,30 @@
+{{#section "subject"}}
+{{{actorFirstName}}} has removed {{{removedFirstName}}}'s access to {{{_place.name}}}. 
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{actorFirstName}}} {{{actorLastName}}} has decided to remove {{{removedFirstName}}} {{{removedLastName}}}'s access to {{{_place.name}}}. 
+
+We recommend contacting this person to discuss why they removed the access. 
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	{{actorFirstName}} {{actorLastName}} has decided to remove {{removedFirstName}} {{removedLastName}}'s access to {{_place.name}}<br/><br/>
+	We recommend contacting this person to discuss why they removed the access.<br/>
+	{{/partial}}
+	
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,119 @@
+{{#file . "com/iris/client/bean/{{name}}.java"}}
+package com.iris.client.bean;
+
+import java.util.Map;
+
+public class {{name}} {
+   public static final String NAME = "{{name}}";
+   {{#attributes}}
+   /** {{description}} */
+   public static final String ATTR_{{toUpperCase name}} = "{{name}}";
+   {{#enumValues}}
+   public static final String {{toUpperCase name}}_{{toUpperCase .}} = "{{.}}";{{/enumValues}}
+   {{/attributes}}
+   {{#attributes}}
+   public static final com.iris.capability.definition.AttributeType TYPE_{{toUpperCase name}} = 
+   {{#if type.enum}}
+      com.iris.capability.definition.AttributeTypes.enumOf(
+         java.util.Arrays.<String>asList({{#enumValues}}"{{.}}"{{#unless @last}}, {{/unless}}{{/enumValues}})
+      );
+   {{else}}
+      com.iris.capability.definition.AttributeTypes.parse("{{{type.representation}}}");
+   {{/if}}
+   {{/attributes}}
+
+   {{#attributes}}
+   private {{{javaTypeOf type}}} _{{name}};;
+   {{/attributes}}
+
+   public {{name}}() {
+   }
+	
+   public {{name}}({{name}} copy) {
+   {{#attributes}}
+      _{{name}} = copy._{{name}};
+   {{/attributes}}
+   }
+	
+   public {{name}}(Map<String, Object> attributes) {
+   {{#attributes}}
+      _{{name}} = ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(attributes.get(ATTR_{{toUpperCase name}}));
+   {{/attributes}}
+   }
+
+   {{#attributes}}
+   public {{{javaTypeOf type}}} get{{capitalize name}}() { return _{{name}}; }
+   public {{../name}} set{{capitalize name}}({{{javaTypeOf type}}} value) { 
+      this._{{name}} = value; 
+      return this; 
+   }
+   {{/attributes}}
+
+   public Map<String, Object> toMap() {
+      Map<String, Object> map = new java.util.HashMap<String, Object>({{attributes.length}});
+      {{#attributes}}
+      map.put("{{name}}", _{{name}});
+      {{/attributes}}
+      return map;
+   }
+
+   @Override
+   public String toString() {
+      StringBuilder sb = new StringBuilder("{{name}} [");
+      {{#attributes}}
+      sb.append("{{name}}=").append(_{{name}}).append(",");
+      {{/attributes}}
+      sb.append("]");
+      return sb.toString();
+   }
+
+   @Override
+   public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      {{#attributes}}
+      result = prime * result + ((_{{name}} == null) ? 0 : _{{name}}.hashCode());
+      {{/attributes}}
+      return result;
+   }
+
+   @Override
+   public boolean equals(Object obj) {
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
+      {{name}} other = ({{name}}) obj;
+      {{#attributes}}
+      if (!java.util.Objects.equals(_{{name}}, other._{{name}})) {
+      	return false;
+      }
+      {{/attributes}}
+      return true;
+   }
+   
+{{> client/ObjectType}}   
+  public static final com.iris.capability.definition.TypeDefinition DEFINITION =
+      com.iris.capability.definition.Definitions
+         .typeBuilder()
+         .withName("{{name}}")
+         .withDescription("{{description}}")
+         .withVersion("{{version}}")
+         {{#attributes}}
+         .addAttribute(
+            com.iris.capability.definition.Definitions
+               .attributeBuilder()
+               .withName("{{name}}")
+               .withDescription("{{description}}")
+               .withType("{{{type.representation}}}")
+               {{#if writable}}.writable(){{/if}}
+               {{#if optional}}.optional(){{/if}}
+               {{#enumValues}}.addEnumValue("{{.}}")
+               {{/enumValues}}
+               .withMin("{{min}}")
+               .withMax("{{max}}")
+               .withUnit("{{unit}}")
+               .build()
+         ){{/attributes}}
+         .build();
+}
+{{/file}}

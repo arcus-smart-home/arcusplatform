@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WeatherSubsystem"
+   namespace="subweather"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Weather Subsystem
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="weatherRadios"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of weather radio devices in the place" />
+      <c:attribute
+         name="weatherAlert"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="READY,ALERT"
+         description="Indicates the whether any weather radios are currently alerting
+				    - READY - No weather radios are alerting
+				    - ALERT - One or more weather radios are alerting"/>
+      <c:attribute
+         name="alertingRadios"
+         readwrite="r"
+         type="map&lt;set&lt;string&gt;&gt;"
+         optional="false"
+         description="A map of NWS EAS event codes for the current alert to the devices that are reporting that alert"/>
+      <c:attribute
+         name="lastWeatherAlertTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time a weather alert was raised"/>
+   </c:attributes>
+   <c:methods>
+	   <c:method 
+	      name="SnoozeAllAlerts"
+	      description="Send a stopplaying request to each station that is playing a weather alert.">
+	   </c:method>
+   </c:methods>   
+</c:capability>

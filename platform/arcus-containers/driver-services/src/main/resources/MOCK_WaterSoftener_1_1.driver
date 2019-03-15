@@ -1,0 +1,167 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a water softener
+ */
+driver			"MOCK_WaterSoftener"
+description		"Driver for the Mockitron water softener"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"watersoftener"
+productId		"3981d9"
+vendor 			"Mockitron"
+model 			"Water Softener"
+
+matcher        'MOCK:Capability' : 'WaterSoftener'
+matcher        'MOCK:ProductId'  : '3981d9'
+
+capabilities   DevicePower, Flow, WaterSoftener, WaterHardness, EcowaterWaterSoftener, DeviceMock
+
+importCapability 'mock/MOCK_WiFi'
+importCapability 'mock/MOCK_WiFiScan'
+importCapability 'mock/MOCK_IpInfo'
+
+def final double mg_per_grain = 64.8
+def final double lt_per_gallon = 3.785412
+def final int CYCLE_LEN_MILLIS = 120000
+def final int ONE_MINUTE_MILLIS = 60000
+
+onAdded {
+	log.debug "Mockitron water softener device started."
+	
+	Device.name 'Mock Water Softener'
+	// remove eventually...
+	DeviceConnection.signal				34
+	
+	DevicePower.source 					DevicePower.SOURCE_LINE
+	DevicePower.linecapable				true
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	WaterHardness.hardness				6.3
+	
+	WaterSoftener.rechargeStatus		   WaterSoftener.RECHARGESTATUS_READY
+	WaterSoftener.currentSaltLevel      32
+	WaterSoftener.maxSaltLevel          60
+	WaterSoftener.saltLevelEnabled      true
+	WaterSoftener.rechargeStartTime     22
+	WaterSoftener.rechargeTimeRemaining	12
+	WaterSoftener.daysPoweredUp         53
+	WaterSoftener.totalRecharges        13
+
+	EcowaterWaterSoftener.continuousDuration         120
+	EcowaterWaterSoftener.continuousRate             0.3
+	EcowaterWaterSoftener.alertOnContinuousUse       true
+   EcowaterWaterSoftener.alertOnExcessiveUse        true
+
+	Flow.flow                           1.4
+}
+ 
+onConnected {
+	log.debug "Mockitron water softener device connected."
+	
+}
+
+onDisconnected {
+	log.debug "Mockitron water softener device disconnected."
+	
+}
+
+onRemoved {
+	log.debug "Mockitron water softener device removed."
+}
+
+// ########### capability support ##################
+setAttributes('watersoftener') {
+   attributes << message.attributes
+}
+
+setAttributes('waterhardness') {
+	attributes << message.attributes
+}
+
+setAttributes('ecowater') {
+	attributes << message.attributes
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:DisconnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+   def myAttributes = message.attributes.attrs;
+
+   log.debug "devmock:SetAttributes:" + myAttributes
+   attributes << myAttributes;
+
+   if( WaterSoftener.RECHARGESTATUS_RECHARGING == myAttributes[WaterSoftener.rechargeStatus.name] ) {
+      log.debug 'Water softener recharge flow executing.'
+      WaterSoftener.rechargeTimeRemaining ( CYCLE_LEN_MILLIS / ONE_MINUTE_MILLIS )
+      Scheduler.scheduleIn 'RechargeComplete', CYCLE_LEN_MILLIS
+      Scheduler.scheduleIn 'Recharging', ONE_MINUTE_MILLIS
+   }
+
+	sendResponse "devmock:SetAttributesResponse", [:]
+}
+
+onEvent('RechargeComplete') {
+	WaterSoftener.rechargeStatus WaterSoftener.RECHARGESTATUS_READY
+	WaterSoftener.rechargeTimeRemaining 0
+	// mock salt usage
+	salt = WaterSoftener.currentSaltLevel.get()
+	salt -= 2
+	WaterSoftener.currentSaltLevel salt
+	// update total recharges
+	recharges = WaterSoftener.totalRecharges.get()
+	recharges += 1
+	WaterSoftener.totalRecharges recharges
+	
+	log.debug "Mockitron water softener recharge complete"
+}
+
+onEvent('Recharging') {
+	timeRemaining = WaterSoftener.rechargeTimeRemaining.get()
+	timeRemaining -= 1
+	WaterSoftener.rechargeTimeRemaining timeRemaining
+	if( 1 < timeRemaining ) Scheduler.scheduleIn 'Recharging', ONE_MINUTE_MILLIS
+	
+	log.debug "Mockitron water softener recharging for " + timeRemaining + " more minutes."
+}
+
+onWaterSoftener.rechargeNow {
+	WaterSoftener.rechargeStatus  WaterSoftener.RECHARGESTATUS_RECHARGING
+	
+	if ( 0 == WaterSoftener.rechargeTimeRemaining.get()) {
+		WaterSoftener.rechargeTimeRemaining 12
+	}
+	
+	WaterSoftener.rechargeTimeRemaining ( CYCLE_LEN_MILLIS / ONE_MINUTE_MILLIS )
+	Scheduler.scheduleIn 'RechargeComplete', CYCLE_LEN_MILLIS
+	Scheduler.scheduleIn 'Recharging', ONE_MINUTE_MILLIS
+	
+	sendResponse "watersoftener:RechargeNowResponse", [:]
+}
+

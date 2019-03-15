@@ -1,0 +1,113 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco Plug-in Dimmer
+ *
+ */
+driver			"ZWJascoPlugInDimmerDriver"
+description		"Driver for a Z-Wave Jasco Plig-in Dimmer"
+version			"1.2"
+protocol		"ZWAV"
+deviceTypeHint	"Dimmer"
+productId		"b73f9a"
+vendor 			"GE"
+model 			"ZW3103"
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x5044, 'ZWAV:ProductId': 0x3031  // GE Jasco plugin dimmer
+
+capabilities	DevicePower, Dimmer, Switch
+
+importCapability 'zwave/JascoZWaveSwitchAll'
+importCapability 'zwave/GenericZWaveDim'
+importCapability 'zwave/GenericZWaveVersion'
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+final int  POLLING_INTERVAL_SEC = 71		// every 30 seconds, to match Iris 1
+final long DFLT_READBACK_DELAY = 5000		// 5 second delay before reading
+final int  OFFLINE_TIMEOUT_SECS = 1800 	    // 30min
+final long DEFERRED_READ_DELAY_MSEC = 5000  // wait 5 seconds after Node Info to read level
+final String CURRENT_NAME = 'Jasco Plugin Dimmer'
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	vars.'CURRENT_NAME' = CURRENT_NAME
+	log.debug "${CURRENT_NAME} added"
+
+	// set default attribute values
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Switch.state                        Switch.STATE_OFF
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	vars.'targetlevel' = -1
+}
+
+onConnected {
+	log.debug "${CURRENT_NAME} connected"
+
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveDim to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = DFLT_READBACK_DELAY		// used by GenericZWaveDim to determine delay between read retries (in mSec)
+
+	// get the current switch level
+	ZWave.switch_multilevel.get()
+
+	// These devices do not send a switch_multilevel.report when their level is changed locally,
+	// so periodically poll for the current switch level.  They do send a Node Info when the
+	// level is changed locally, but we also periodically poll in case we miss that message.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+onDisconnected {
+	log.debug "${CURRENT_NAME} disconnected"
+}
+
+onRemoved {
+	log.debug "${CURRENT_NAME} removed"
+}
+
+// ########### capability support ##################
+setAttributes(){
+	GenericZWaveDim.handleSetAttributes(this, CURRENT_NAME, message)
+}
+
+onDimmer.RampBrightness {
+	GenericZWaveDim.handleRampBrightness(this, CURRENT_NAME, message)
+}
+
+onDimmer.IncrementBrightness {
+	GenericZWaveDim.handleIncrementBrightness(this, CURRENT_NAME, message)
+}
+ 
+onDimmer.DecrementBrightness {
+	GenericZWaveDim.handleDecrementBrightness(this, CURRENT_NAME, message)
+}
+
+// ########### Protocol Message Handlers ##################
+onZWaveMessage.switch_multilevel.report {
+	GenericZWaveDim.handleMultilevelReport(this, CURRENT_NAME, message)
+}
+
+onZWaveNodeInfo {
+	log.debug "${CURRENT_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+

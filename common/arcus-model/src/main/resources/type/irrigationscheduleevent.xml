@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="IrrigationScheduleEvent"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Represents an irrigation schedule event, which is at the highest level simple a time that the
+      event occurs along with a set of zones and the duration at which they will be watered.
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="eventId"
+         type="string"
+         description="The platform generated id for this specific scheduling event for use in later updates or deletions"/>
+
+      <t:attribute
+         name="timeOfDay"
+         type="string"
+         description="The time of day at which the event starts.  This must be of the format HH:mm in the 24 hour clock."/>
+
+      <t:attribute
+         name="events"
+         type="list&lt;IrrigationTransitionEvent&gt;"
+         description="Each individual transition within this scheduling event, typically one per zone involved."/>
+         
+      <t:attribute
+         name="type"
+         type="enum"
+         values="INTERVAL,ODD,EVEN,WEEKLY"
+         description="The type of schedule this event is applicable to"/>
+      
+      <t:attribute
+         name="status"
+         type="enum"
+         values="UPDATING,APPLIED,FAILED"
+         description="
+The states this event may be in while applying each individual transition.
+UPDATING: At least one transition event is still in the process of being applied
+APPLIED:  All transition events have been successfully applied
+FAILED:   At least one transition could not be applied
+"
+         />
+
+   </t:attributes>
+
+</t:type>

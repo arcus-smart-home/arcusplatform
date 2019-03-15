@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="PairingDeviceService"
+           namespace="pairdev"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <!-- FIXME consider moving ListPairingDevices off of PairingSubsystem and into here -->
+   <s:description>
+   Allows PairingDeviceMocks to be added.
+   </s:description>
+
+   <s:methods>
+      <s:method 
+         name="CreateMock"
+         description="A request to create a mock pairing device.">
+
+         <s:parameter 
+            name="productAddress" 
+            type="string"
+            description="The product address for the type of mock to create."
+            optional="false"/>
+
+         <s:return
+            name="device"
+            type="PairingDevice" 
+            description="The PairingDevice that was created."
+            optional="false"/>
+
+      </s:method>
+   </s:methods>
+
+</s:service>

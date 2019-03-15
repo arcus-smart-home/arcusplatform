@@ -1,0 +1,214 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco 26933 In-Wall PIR Motion Activated Dimmer
+ * 
+ * http://products.z-wavealliance.org/products/2108
+ * http://products.z-wavealliance.org/products/2108/configs
+ * 
+ * 
+ * Command Classes:
+ *   0x26   (38) Switch_Multilevel
+ *   0x27   (39) Switch_All
+ *   0x2B   (43) Scene_Activation
+ *   0x2C   (44) Scene_Actuator_Conf
+ *   0x56   (86) CRC16 Encap
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x60   (96) Multi Channel
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) PowerLevel
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8E (-114) Multi Channel Association
+ *   0x98 (-104) Security
+ * 
+ * Security Command Classes:
+ *   0x59   (89) Association Group Info
+ *   0x60   (96) Multi Channel
+ *   0x71  (113) Alarm (Notification)
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8E (-114) Multi Channel Association
+ *   0xEF
+ */
+import groovy.transform.Field
+
+driver          "ZWJasco26933DimmerDriver"
+description     "Driver for a Jasco 26933 In-Wall PIR Motion Activated Dimmer"
+version         "2.10"
+protocol        "ZWAV"
+deviceTypeHint  "Dimmer"
+productId       "5c3e81"
+vendor          "GE"
+model           "ZW3008"
+
+matcher         'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x494D, 'ZWAV:ProductId': 0x3033    // GE
+matcher         'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x494D, 'ZWAV:ProductId': 0x3034    // Jasco
+
+
+capabilities    DevicePower, Switch, Dimmer, Motion
+
+importCapability 'zwave/GenericZWaveDim'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+final int POLLING_INTERVAL_SEC   = 3600        // every hour
+final int OFFLINE_TIMEOUT_SECS   = 12000       // 200 minutes (3 hours 20 minutes)
+
+// Config Parameters (http://products.z-wavealliance.org/products/2108/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_TIMEOUT_DURATION_PARAM_NO     = 1          // parameter number to configure Timeout Duration
+final byte CNFG_TIMEOUT_DURATION_SIZE                = 1          // size is 1 byte
+final byte CNFG_TIMEOUT_DURATION_VALUE               = 5          // 0(Test-5Seconds), 1,15,30(minutes, default=5), 255(disable timeout)
+
+@Field final byte CNFG_OPERATION_MODE_PARAM_NO       = 3          // parameter number to configure Operation Mode
+final byte CNFG_OPERATION_MODE_SIZE                  = 1          // size is 1 byte
+final byte CNFG_OPERATION_MODE_VALUE                 = 3          // 1=Manual, 2=Vacancy, 3=Occupancy(default)
+
+@Field final byte CNFG_MOTION_SENSOR_PARAM_NO        = 6          // parameter number to configure Motion Sensor
+final byte CNFG_MOTION_SENSOR_SIZE                   = 1          // size is 1 byte
+final byte CNFG_MOTION_SENSOR_VALUE                  = 1          // 0=Disabled, 1=Enabled(default)
+
+@Field final byte CNFG_MOTION_SENSITIVITY_PARAM_NO   = 13         // parameter number to configure Motion Sensitivity level
+final byte CNFG_MOTION_SENSITIVITY_SIZE              = 1          // size is 1 byte
+final byte CNFG_MOTION_SENSITIVITY_VALUE             = 2          // 1=High, 2=Medium(default), 3=Low
+
+@Field final byte CNFG_LIGHT_SENSING_PARAM_NO        = 14         // parameter number to configure Light Sensing
+final byte CNFG_LIGHT_SENSING_SIZE                   = 1          // size is 1 byte
+final byte CNFG_LIGHT_SENSING_VALUE                  = 1          // 0=Disabled(default), 1=Enabled
+
+@Field final byte CNFG_RESET_CYCLE_PARAM_NO          = 15         // parameter number to configure Reset Cycle
+final byte CNFG_RESET_CYCLE_SIZE                     = 1          // size is 1 byte
+final byte CNFG_RESET_CYCLE_VALUE                    = 2          // 0=Disabled, 1=10secs, 2=20secs(default), 3=30secs, 4=45secs, 5-109=15 second intervals starting at 60 seconds, 110=27 minutes 15 seconds
+
+// values to use bulk_set to factory defaults
+final byte CNFG_PARAM_OFFSET_MSB                     = 0
+final byte CNFG_PARAM_OFFSET_LSB                     = 13         // start at parameter offset 13
+final byte CNFG_PARAM_COUNT                          = 3          // configure parameters 13 thru 15
+final byte CNFG_PARAM_SIZE                           = 1          // parameter sizes are 1 byte
+
+
+
+DevicePower {
+    DevicePower.source DevicePower.SOURCE_LINE
+    DevicePower.linecapable true
+    DevicePower.backupbatterycapable false
+    bind DevicePower.sourcechanged to DevicePower.source
+}
+
+Motion {
+    Motion.motion Motion.MOTION_NONE
+    bind Motion.motionchanged to Motion.motion
+}
+
+Switch {
+   Switch.state Switch.STATE_OFF
+   bind Switch.statechanged to Switch.state
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onConnected {
+    ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+    
+    // make sure device is configured like we want
+    ZWave.configuration.set( CNFG_MOTION_SENSOR_PARAM_NO, CNFG_MOTION_SENSOR_SIZE, CNFG_MOTION_SENSOR_VALUE )
+    ZWave.configuration.set( CNFG_OPERATION_MODE_PARAM_NO, CNFG_OPERATION_MODE_SIZE, CNFG_OPERATION_MODE_VALUE )
+    ZWave.configuration.set( CNFG_TIMEOUT_DURATION_PARAM_NO, CNFG_TIMEOUT_DURATION_SIZE, CNFG_TIMEOUT_DURATION_VALUE )
+    
+    ZWave.configuration.bulk_set( CNFG_PARAM_OFFSET_MSB, CNFG_PARAM_OFFSET_LSB, CNFG_PARAM_COUNT, CNFG_PARAM_SIZE,
+        CNFG_MOTION_SENSITIVITY_VALUE,
+        CNFG_LIGHT_SENSING_VALUE,
+        CNFG_RESET_CYCLE_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support 
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes(){
+    GenericZWaveDim.handleSetAttributes(this, DEVICE_NAME, message)
+}
+
+onDimmer.RampBrightness {
+    GenericZWaveDim.handleRampBrightness(this, DEVICE_NAME, message)
+}
+
+onDimmer.IncrementBrightness {
+    GenericZWaveDim.handleIncrementBrightness(this, DEVICE_NAME, message)
+}
+ 
+onDimmer.DecrementBrightness {
+    GenericZWaveDim.handleDecrementBrightness(this, DEVICE_NAME, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_multilevel.report {
+     GenericZWaveDim.handleMultilevelReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    log.trace "Received Alarm/Notification Report"
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", alarmType, alarmLevel, event, notificationType, notificationStatus
+
+    // Motion == Alarm Type: 0, Alarm Level: 0, Notification Type: 7, Notification Status: -1
+    if ((0 == alarmType) && (0 == alarmLevel) && (7 == notificationType) && (-1 == notificationStatus)) {
+        if (8 == event) {
+            Motion.motion Motion.MOTION_DETECTED
+            log.trace "Motion: DETECTED"
+        }
+        if (0 == event) {
+            Motion.motion Motion.MOTION_NONE
+            log.trace "Motion: NONE"
+        }
+    }
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Received Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+

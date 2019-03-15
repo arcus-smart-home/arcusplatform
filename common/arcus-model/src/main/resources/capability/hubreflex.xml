@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubReflex"
+   namespace="hubrflx"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="numDrivers"
+         readwrite="r"
+         type="int" 
+         optional="false" 
+         description="The number of drivers present in the hub's current driver database."/>
+      <c:attribute 
+         name="dbHash"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="A hash value over the contents of the hub's current driver database."/>
+      <c:attribute 
+         name="numDevices"
+         readwrite="r"
+         type="int" 
+         optional="false" 
+         description="The number of devices on the hub that are running reflexes."/>
+      <c:attribute 
+         name="numPins"
+         readwrite="r"
+         type="int" 
+         optional="false" 
+         description="The number of user pins on the hub that are running reflexes."/>
+      <c:attribute 
+         name="versionSupported"
+         readwrite="r"
+         type="int" 
+         optional="false" 
+         description="The version of hub local reflexes currently supported by the hub."/>
+   </c:attributes>
+   
+   <c:methods>
+   </c:methods>
+
+   <c:events>
+     <c:event
+         name="SyncNeeded"
+         description="Event to indicate that the hub should sync devices with the platform.">
+     </c:event>
+   </c:events>
+</c:capability>

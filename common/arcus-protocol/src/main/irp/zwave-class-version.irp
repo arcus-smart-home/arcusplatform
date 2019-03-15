@@ -1,0 +1,42 @@
+
+message zwave.Version.VersionCommandClassGetV1<id="0x13", group="V1"> {
+    u8 requestedCommandClass;
+}
+
+message zwave.Version.VersionCommandClassReportV1<id="0x14", group="V1"> {
+    u8 requestedCommandClass;
+    u8 commandClassVersion;
+}
+
+message zwave.Version.VersionGetV1<id="0x11", group="V1"> {
+}
+
+message zwave.Version.VersionReportV1<id="0x12", group="V1"> {
+    u8 zWaveLibraryType;
+    u8 zWaveProtocolVersion;
+    u8 zWaveProtocolSubVersion;
+    u8 applicationVersion;
+    u8 applicationSubVersion;
+}
+
+message zwave.Version.VersionCommandClassGetV2<id="0x13", group="V2"> {
+    u8 requestedCommandClass;
+}
+
+message zwave.Version.VersionCommandClassReportV2<id="0x14", group="V2"> {
+    u8 requestedCommandClass;
+    u8 commandClassVersion;
+}
+
+message zwave.Version.VersionGetV2<id="0x11", group="V2"> {
+}
+
+message zwave.Version.VersionReportV2<id="0x12", group="V2"> {
+    u8 zWaveLibraryType;
+    u8 zWaveProtocolVersion;
+    u8 zWaveProtocolSubVersion;
+    u8 firmware0Version;
+    u8 firmware0SubVersion;
+    u8 hardwareVersion;
+    u8 numberOfFirmwareTargets;
+}

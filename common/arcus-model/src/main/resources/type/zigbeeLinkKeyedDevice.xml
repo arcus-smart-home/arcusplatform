@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="ZigbeeLinkKeyedDevice"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+   <t:description>A zigbee device that has a linked key.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="euid"
+         type="string"
+         description="ASCII Hex encoded EUID of the device in the kit."
+         optional="false"/>
+      <t:attribute 
+         name="installcode"
+         type="string"
+         description="ASCII Hex encodeed install code of the device in the kit."
+         optional="false"/>
+      <t:attribute 
+         name="type"
+         type="string"
+         description="Type of devices that this should pair as.  Currently this matches the driver name."
+         optional="false"/>
+   </t:attributes>
+</t:type>

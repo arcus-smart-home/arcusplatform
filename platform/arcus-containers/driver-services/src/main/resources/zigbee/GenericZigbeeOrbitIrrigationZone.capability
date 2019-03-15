@@ -1,0 +1,49 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability		IrrigationZone
+description		"Implementation of IrrigationZone for Orbit devices"
+version			"1.0"
+
+static void doHandleSetAttributes(ctx,name,message) {
+	def attrs = message.attributes;
+	ctx.log.debug "{} received irrigation zone set attributes: {}", name, attrs
+	
+	for(attribute in attrs) {
+		switch(attribute.key) {
+		case ctx.IrrigationZone.zonename :
+			def instance = attribute.key.split(':')[2]
+			ctx.IrrigationZone.zonename."${instance}" attribute.value
+			break;
+
+		case ctx.IrrigationZone.zonecolor :
+			def instance = attribute.key.split(':')[2]
+			ctx.IrrigationZone.zonecolor."${instance}" attribute.value
+			break;
+
+		case ctx.IrrigationZone.defaultDuration :
+			def instance = attribute.key.split(':')[2]
+			ctx.IrrigationZone.defaultDuration."${instance}" attribute.value
+			break;
+
+		default:
+			ctx.log.error "{} received set attributes for unrecognized attribute: {}", name, attribute
+			break;
+		}
+	}
+}
+

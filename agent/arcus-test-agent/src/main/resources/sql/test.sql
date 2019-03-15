@@ -1,0 +1,20 @@
+CREATE TABLE test (key TEXT PRIMARY KEY, value1 TEXT, value2 INTEGER, value3 REAL); 
+
+BEGIN;
+INSERT INTO test (key,value1,value2,value3) VALUES ("key1", "value1", 0, 1.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key2", "value2", 1, 2.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key3", "value3", 2, 3.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key4", "value4", 3, 4.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key5", "value5", 4, 5.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key6", "value6", 5, 6.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key7", "value7", 6, 7.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key8", "value8", 7, 8.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key9", "value9", 8, 9.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key10", "value10", 9, 10.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key11", "value11", 10, 11.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key12", "value12", 11, 12.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key13", "value13", 12, 13.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key14", "value14", 13, 14.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key15", "value15", 14, 15.0);
+INSERT INTO test (key,value1,value2,value3) VALUES ("key16", "value16", 15, 16.0);
+COMMIT;

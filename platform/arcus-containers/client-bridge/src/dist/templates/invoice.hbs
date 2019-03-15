@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <title>Invoice {{invoiceNumber}}</title>
+    <meta name="viewport" content="initial-scale=1.0, width=device-width"/>
+    <link type="text/css" rel="stylesheet" media="all" href="{{staticResourceBaseUrl}}/o/res_templates/invoice.css" />
+ </head>
+  <body>
+    <div id="invoice">
+      <div class="header">
+      <img _src="{{staticResourceBaseUrl}}/o/res_templates/iris_stacked_small.png" src="{{staticResourceBaseUrl}}/o/res_templates/iris.svg" alt="Iris by Lowe's" height="70" />
+         <span style="logo">SMART HOME + SECURITY</span>
+      </div>
+      <div class="invoice-content">
+        <section class="iris-info">
+          <h2></h2>
+          <address></address>
+        </section>
+        <section class="invoice-summary">
+          <p>
+            <span class="label">Billed On</span>
+            <strong>{{billDate}}</strong>
+         </p>
+          <p>
+            <span class="label">Due On</span>
+            <strong>{{dueDate}}</strong>
+         </p>
+          <p>
+            <span class="label">Terms</span>
+            <strong>On-Receipt</strong>
+          </p>
+          <p>
+            <span class="label">Invoice Number</span>
+            <strong>{{invoiceNumber}}</strong>
+         </p>
+       </section>
+        <section class="billee-info">
+            <p>Billed To:</p>
+            <h2>{{billee}}</h2>
+            <address>{{address1}} {{address2}}<br />
+            {{cityAndState}}<br />
+            {{country}}</address>
+         </section>
+        <div class="summary-box">
+            <div class="row">
+               <div class="status {{typeClass}}">{{type}}</div>
+               <div class="paid-date">On {{paidDate}}</div>
+            </div>
+            <div class="row">
+               <div class="amount">
+                  {{total}}
+                  <span class="currency">{{currency}}</span>
+               </div>
+            </div>
+         </div>
+
+        <div class="table-wrapper">
+          <table class="details" cellspacing="0">
+              <thead>
+                 <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    {{#if hasTax}}
+                    <th>Tax</th>
+                    {{/if}}
+                    <th>Subtotal</th>
+                 </tr>
+              </thead>
+              <tbody>
+              {{#adjustments}}
+                 <tr>
+                    <td>{{dateRange}}</td>
+                    <td>{{description}}</td>
+                    <td>{{quantity}}</td>
+                    <td>{{unitPrice}}</td>
+                    {{#if hasTax}}
+                    <td>{{tax}}</td>
+                    {{/if}}
+                    <td>{{subtotal}}</td>
+                 </tr>
+              {{/adjustments}}
+              </tbody>
+           </table>
+        </div>
+        <table class="totals" cellspacing="0">
+            <tbody>
+               <tr>
+                  <td>Subtotal</td>
+                  <td>{{subtotal}}</td>
+               </tr>
+               {{#if hasTax}}
+               <tr>
+                  <td>{{taxLabel}}</td>
+                  <td>{{tax}}</td>
+               </tr>
+               {{/if}}
+               <tr>
+                  <td>Total</td>
+                  <td>{{total}}</td>
+               </tr>
+               {{#if hasRefund}}
+               <tr>
+                  <td>Refund Amount</td>
+                  <td>{{total}}</td>
+               </tr>
+               {{#if hasAccountCredit}}
+               <tr>
+                  <td>Credit to Account</td>
+                  <td>{{accountCredit}}</td>
+               </tr>
+               {{/if}}
+               {{else}}
+               {{#if hasPayment}}
+               <tr>
+                  <td>Amount Paid</td>
+                  <td>{{amountPaid}}</td>
+               </tr>
+               {{else}}
+               <tr>
+               {{/if}}
+                 <td><strong>Amount Due</strong></td>
+                 <td><strong>{{amountDue}}</strong></td>
+               </tr>
+               {{/if}}
+            </tbody>
+         </table>
+       </div><!-- end invoice content -->
+       <div class="footer">
+       </div>
+    </div>
+   </body>
+</html>

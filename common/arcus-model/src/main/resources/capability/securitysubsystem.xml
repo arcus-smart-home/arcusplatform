@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="SecuritySubsystem"
+   namespace="subsecurity"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Security alarm subsystem.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="securityDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the security devices in the safety alarm subsystem.  This includes sensor devices (contact and motion), input devices (keypads), and output devices (sirens).
+Whether or not these devices actually participate in any alarm states depend on the alarm mode." />
+      <c:attribute
+         name="triggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices which are ready to be armed, this set is empty the the alarmState is not DISARMED.  This will only include sensors."/>
+      <c:attribute
+         name="readyDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices which are ready to be armed, this set is empty the the alarmState is not DISARMED.  This will only include sensors."/>
+      <c:attribute
+         name="armedDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices which may result in triggering an alarm.  This set is empty when the alarmState is DISARMED.
+Note that armedDevices / bypassedDevices / offlineDevices are disjoint, a value will only appear in one of these sets at a time.  Additionally when the alarm is not​ DISARMED the union of these sets should equals devices:{alarmMode}."/>
+      <c:attribute
+         name="bypassedDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices which are online and would normally be armed in the current mode but have been explicitly bypassed via ArmBypassed.  This set is empty when alarmState is DISARMED.
+Note that armedDevices / bypassedDevices / offlineDevices are disjoint, a value will only appear in one of these sets at a time.  Additionally when the alarm is not DISARMED the union of these sets should equals devices:{alarmMode}."/>
+      <c:attribute
+         name="offlineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Devices which would normally be armed in the current mode but have fallen offline.  This state takes precedent over bypassedDevices.
+Note that armedDevices / bypassedDevices / offlineDevices are disjoint, a value will only appear in one of these sets at a time.  Additionally when the alarm is not DISARMED the union of these sets should equals devices:{alarmMode}."/>
+      <c:attribute
+         name="keypads"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="Keypad devices"/>
+      <c:attribute
+         name="alarmState"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="DISARMED,ARMING,ARMED,ALERT,CLEARING,SOAKING"
+         description="Indicates the current state of the alarm:
+    DISARMED - The alarm is currently DISARMED.  Note that any devices in the triggered or warning state may prevent the alarm from going to fully armed.
+    ARMING - The alarm is in the process of arming, delaying giving users a chance to leave the house.
+    ARMED - Indicate the alarm is armed and any security device may trigger an alarm.  See armedDevices to determine which devices might trigger the alarm.
+    ALERT - The alarm is 'going off'.  Any sirens are triggered, the call tree is activated, etc.
+    CLEARING - The alarm has been acknowledged and the system is waiting for all devices to no longer be triggered at which point it will return to DISARMED
+    SOAKING - An armed secuirty device has triggered the alarm and the system is waiting for the alarm to be disarmed." />
+      <c:attribute
+         name="alarmMode"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="OFF,ON,PARTIAL"
+         description="If the alarmState is 'DISARMED' this will be OFF.  Otherwise it will be id of the alarmMode which is currently active."/>
+      <c:attribute
+         name="lastAlertTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was fired."/>
+      <c:attribute
+         name="lastAlertCause"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The reason the alarm was fired."/>
+      <c:attribute
+         name="currentAlertTriggers"
+         type="map&lt;Timestamp&gt;"
+         readwrite="r"
+         optional="false"
+         description="A map of address to timestamp of when a device was triggered during an alert.  This map will not be populated until the alarm enters the alert state.
+Note this will only include the first time a device was triggered during an alert.  For more detailed information see the history log."/>
+		<c:attribute
+         name="currentAlertCause"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="ALARM,PANIC,NONE"
+         description="The reason the current alert was raised"/>
+      <c:attribute
+         name="lastAlertTriggers"
+         type="map&lt;Timestamp&gt;"
+         readwrite="r"
+         optional="false"
+         description="A map of address to timestamp of when a device was triggered during an alert.  This map will not be populated until the alarm enters the soak state.
+Note this will only include the first time a device was triggered during an alert.  For more detailed information see the history log."/>
+      <c:attribute
+         name="lastAcknowledgement"
+         type="enum"
+         readwrite="r"
+         optional="false"
+         values="NEVER,PENDING,ACKNOWLEDGED,FAILED"
+         description="The current state of acknowledgement:
+    PENDING - Iris is attempting to notify the user that an alarm has been triggered
+    ACKNOWLEDGED - One of the persons from the call tree has acknowledged the alarm
+    FAILED - No one acknowledged the alarm but no one was available to acknowledged it."/>
+      <c:attribute
+         name="lastAcknowledgementTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was acknowledged."/>
+      <c:attribute
+         name="lastAcknowledgedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that acknowledge the alarm when lastAcknowledgement is ACKNOWLEDGED.  Otherwise this field will be empty."/>
+      <c:attribute
+         name="lastArmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was armed."/>
+      <c:attribute
+         name="lastArmedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that armed the alarm, if available.  If it can't be determined this will be empty."/>
+      <c:attribute
+         name="lastDisarmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The last time the alarm was disarmed."/>
+      <c:attribute
+         name="lastDisarmedBy"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The actor that disarmed the alarm, if available.  If it can't be determined this will be empty."/>
+      <c:attribute
+         name="callTreeEnabled"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="Set to true if the account is PREMIUM, indicating the callTree will be used for alerts.
+Set to false if the account is BASIC, indicating that only the account owner will be notified."/>
+      <c:attribute
+         name="callTree"
+         type="list&lt;CallTreeEntry&gt;"
+         readwrite="rw"
+         optional="false"
+         description="The list of people who should be notified when the alarm goes into alert mode.  This is marked as a list to maintain ordering, but each entry may only appear once.
+Note that all addresses must be persons associated with this place."/>
+     <c:attribute
+         name="keypadArmBypassedTimeOutSec"
+         type="int"
+         readwrite="rw"
+         optional="false"
+         description="The number of seconds the subsystem will allow for a second keypad ON push to armbypassed the system."/>
+     <c:attribute
+         name="blacklistedSecurityDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of all the devices that are blacklisted, and therefore not considered as security devices." />    
+   </c:attributes>
+   
+   <c:methods>
+      <c:method 
+         name="Panic" 
+         description="Immediately puts the alarm into ALERT mode and record the lastAlertCause as PANIC.  If it is in ALERT this will have no affect.  If it is in any other state this will return an error.The cause will be recorded as the lastAlertCause.">
+         <c:parameter 
+            name="silent" 
+            type="boolean"
+            optional="false" 
+            />
+      </c:method>
+      <c:method
+         name="Arm"
+         description="Attempts to arm the alarm into the requested mode, if successful it will return the delay until the alarm is armed.  If this call is repeated with the alarm is in the process of arming with the same mode, it will return the remaining seconds until the alarm is armed (making retries safe).  If this call is invoked with a new mode while the alarm is arming an error will be returned.  If this call is invoked while the alarm is arming with bypassed devices it will return an error.
+If the alarm is in any state other than 'DISARMED' this will return an error.
+If any devices associated with the alarm mode are triggered, this will return an error with code 'TriggeredDevices'.">
+         <c:parameter
+            name="mode"
+            type="string"
+            optional="false"
+            />
+         <c:return
+         	name="delaySec"
+         	type="int"
+         	/>
+      </c:method>
+      <c:method
+         name="ArmBypassed"
+         description="Attempts to arm the alarm into the request mode, bypassing any triggered devices.  If successful it will return the delay until the alarm is armed.  If this call is repeated with the alarm is in the process of arming with the same mode, it will return the remaining seconds until the alarm is armed (making retries safe).  If this call is invoked with a new mode while the alarm is arming an error will be returned.
+If the alarm is in any state other than 'DISARMED' this will return an error.
+If all devices in the requested mode are faulted, this will return an error.">
+         <c:parameter
+            name="mode"
+            type="string"
+            optional="false"
+            />
+         <c:return
+         	name="delaySec"
+         	type="int"
+         	/>
+      </c:method>
+      <c:method
+         name="Acknowledge"
+         description="This call acknowledges the alarm and indicates the given user is taking responsibility for dealing with it.  This will stop call tree processing but not stop the alerts.">
+      </c:method>
+      <c:method
+         name="Disarm"
+         description="Requests that the alarm be returned to the disarmed state.  If the alarm is currently in Alert then this will acknowledge the alarm (if it was not previously acknowledged) and transition to CLEARING.">
+      </c:method>
+   </c:methods>
+	<c:events>
+      <c:event
+         name="Armed"
+         description="Fired when the alarmState from ARMING to ARMED.  This event is not re-sent when the system goes from SOAKING to ARMED.">
+         <c:parameters>
+            <c:parameter
+               name="alarmMode"
+               type="enum"
+               values="ON,PARTIAL"
+               description="The mode the alarm is armed into."
+               optional="false" />
+            <c:parameter
+               name="bypassedDevices"
+               type="set&lt;String&gt;"
+               description="Devices which are online and would normally be armed in the current mode but have been explicitly bypassed via ArmBypassed."
+               optional="false" />
+            <c:parameter
+               name="participatingDevices"
+               type="set&lt;String&gt;"
+               description="Devices which are actively being be used to trigger an alarm."
+               optional="false" />
+            <c:parameter
+               name="method"
+               type="enum"
+               values="CLIENT,DEVICE,RULE"
+               description="Indicates whether it was armed from a client (iOS, Android, etc), from a device (generally a keypad) or a rule."
+               optional="false" />
+            <c:parameter
+               name="by"
+               type="string"
+               description="The address of the client / device that was used to arm the alarm. Note that while the actor header will always contain a PERSON address, this should contain the address of the keypad or client that was used to arm the alarm."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="Alert"
+         description="Fired when alarmState switches from ARMED to ALERTING.">
+         <c:parameters>
+            <c:parameter
+               name="cause"
+               type="string"
+               description="The same as lastAlertCause."
+               optional="false" />
+            <c:parameter
+               name="triggers"
+               type="map&lt;timestamp&gt;"
+               description="True if the alarm was force armed."
+               optional="false" />
+            <c:parameter
+               name="method"
+               type="enum"
+               values="PANIC,DEVICE"
+               description="Whether this was caused by a panic rule / kepad / etc or by a device being tripped."
+               optional="false" />
+            <c:parameter
+               name="by"
+               type="string"
+               description="The address of the thing that tripped the alarm."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+      <c:event
+         name="Disarmed"
+         description="Fired when alarmState switches to DISARMED.">
+         <c:parameters>
+            <c:parameter
+               name="method"
+               type="enum"
+               values="CLIENT,DEVICE,RULE"
+               description="Indicates whether it was armed from a client (iOS, Android, etc) or from a device (generally a keypad)."
+               optional="false" />
+            <c:parameter
+               name="by"
+               type="string"
+               description="The address of the client / device that was used to disarm the alarm. Note that while the actor header will always contain a PERSON address, this should contain the address of the keypad or client that was used to disarm the alarm."
+               optional="false" />
+         </c:parameters>
+      </c:event>
+   </c:events>
+</c:capability>

@@ -1,0 +1,33 @@
+{{#section "subject"}}
+Water Leak Alarm Triggered
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+A Water Leak at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}) was detected by {{{deviceName}}} ({{{deviceType}}}).
+
+If you experienced water related damage to your property and need assistance go to {{{_redirectBaseUrl}}}/e_wateralert.
+
+{{{_place.name}}}
+{{{_place.streetAddress1}}}
+{{{_place.city}}}, {{{_place.state}}}, {{{_place.zipCode}}}
+
+{{/section}}
+
+{{#section "html-body"}}
+{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	A Water Leak at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) was detected by {{deviceName}} ({{deviceType}}).<br/><br/>
+	If you experienced water related damage to your property and need assistance, <a href="{{_redirectBaseUrl}}/e_wateralert">click here</a>.<br/><br/>
+	{{_place.name}}<br/>
+	{{_place.streetAddress1}}<br/>
+	{{_place.city}}, {{_place.state}}, {{_place.zipCode}}<br/>
+	{{/partial}}
+
+{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

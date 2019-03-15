@@ -1,0 +1,540 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+
+description		"Default implementation for the ZWave Dimmer capability"
+version			"1.0"
+capability       Dimmer
+capability		 Switch
+
+@Field final String DEFAULT_NAME     = 'Unknown Dimmer Device'
+
+@Field static final byte RAMP_TIME	= 0x02
+
+@Field static final byte SWITCH_ON = 0xff
+@Field static final byte SWITCH_OFF = 0x00
+@Field static final byte SWITCH_NOTSET = 0x02
+
+@Field static final byte RAMP_INSTANTLY	= 0x00
+
+@Field static final int MAX_LEVEL_DELTA = 2             // max difference between 'target' and 'actual' level at which we consider them the same (within rounding)
+
+@Field static final int MAX_RAMP_SECS = 7620            // maximum ramp is 127 minutes (7620 seconds) per Z-Wave spec.
+
+@Field static final String EVENT_DEFERRED_READ_LEVEL = 'DeferredSwitchReadLevel'
+@Field static final String EVENT_DO_READ_LEVEL = 'DoSwitchReadLevel'
+
+@Field static final String READ_LEVEL_COUNTER = 'readcnt'
+
+
+
+onConnected {
+	ZWave.switch_multilevel.get()
+}
+
+
+// Note: this method must handle if both Dimmer.brightness and Switch.state are set in the same message.
+//
+// Dimmer Test Cases:
+//	1.	Changing the brightness while the device is OFF will turn the device ON.
+//	2.	Setting an ON device to OFF and a brightness at the same time will turn the device OFF and set the brightness as the default to use if the device is turned back ON.
+//	3.	Setting the brightness of a device that was just turned OFF but has not yet reported back that it is OFF should be treated
+//		the same as test case 1, and result in the device then being turned back ON at the brightness that was set.
+//	4.	Setting an OFF device to a lower brightness and turning it ON at the same time should try to not “flash” the device (it should not
+//		turn the device on to the previous higher brightness first and then set the brightness, but instead turn the device on to the new brightness)
+//  5.  Setting the brightness to 0 will be ignored.
+//
+// Z-Wave Edge Cases
+//	1.	Setting the brightness to 100 will send 99 (max allowed for Z-Wave) to device, but sets the Dimmer.brightness to 100.
+//		Basically 99 and 100 have the same meaning for Z-Wave devices.
+//	2.	Setting the brightness to 0 will be ignored.
+//	3.	Setting the device to ON and brightness to 0 turns the device ON at the last used brightness (setting brightness to 0 is ignored).
+//
+// Resulting Expected Behavior:
+// - Apps should not set the Dimmer.brightness to zero.
+//
+// - Setting just the Dimmer.brightness to 1-100 will adjust the brightness to that value and turn the device ON, whatever state it was previously in.
+// - Setting just the Dimmer.brightness to 0 will be ignored (Apps should not be doing this).
+// - Setting just the Switch.state to OFF, will turn the device off and leave the brightness setting at whatever brightness it was previously.
+// - Setting just the Switch.state to ON, will turn the device on at the current Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100).
+// - Setting the Switch.state to OFF and Dimmer.brightness to 1-100 will turn the device OFF and set the driver brightness to the specified brightness so that value is used as the default when turned back ON.
+// - Setting the Switch.state to OFF and Dimmer.brightness to 0 will turn the device off and leave the brightness setting at whatever value it was previously.
+// - Setting the Switch.state to ON and Dimmer.brightness to 1-100 will set the device to the specified brightness first and then turn the device ON (after a short delay), to try and prevent the device from "flashing" on bright and then lowering to the new brightness if the new brightness is lower than the previous brightness.
+// - Setting the Switch.state to ON and Dimmer.brightness to 0 will turn the device on at the previous Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100).
+/// 
+// RampBrightness Method
+// - If the "RampBrightness" method is called with a "brightness" value of 1-100, the device will be turned ON and the brightness set to the specified value.
+// - If the "RampBrightness" method is called with a "brightness" value of 0, the device will simply be turned OFF and the brightness left at its previous value.
+//
+static handleSetAttributes(ctx, name, message) {
+	handleSetAttributes(ctx, message)
+}
+
+static handleSetAttributes(ctx, message) {
+	ctx.log.debug "Generic received setAttributes message: {} ", message
+	
+	int level = -1
+	byte onoff = SWITCH_NOTSET
+	
+	def attributes = ctx.message.attributes
+
+	for(attribute in attributes) {
+		switch(attribute.key) {
+		case ctx.Dimmer.brightness:
+			level = normalizeBrightness(ctx, attribute.value)
+			break
+			
+		case ctx.Switch.state:
+			onoff = attribute.value == ctx.Switch.STATE_ON ? SWITCH_ON : SWITCH_OFF
+			break
+
+		case ctx.Device.name:
+			ctx.Device.name attribute.value
+			break
+
+		default:
+			break
+		}   
+	}
+	
+	// apps should not be sending dim:brightness=0, but if they do, log it so we can track it down
+	if (0 == level) {
+		ctx.log.warn "Generic ignored invalid attribute setting: brightness=0"
+	}
+
+	if (SWITCH_OFF == onoff) {
+		ctx.log.trace "Set device to OFF"
+		setWaitingOnClientOffResponse( ctx, true )
+		setTargetState( ctx, ctx.Switch.STATE_OFF )
+		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+		if (0 < level) {
+			// if dim:brightness was included, remember that as the last level
+			ctx.log.trace "Adjust driver brightness setting of OFF device to restore to: {}", level
+			ctx.Dimmer.brightness level
+			setTargetLevel( ctx, level )
+		}
+	} else if (SWITCH_ON == onoff) {
+		if (0 < level) {
+			ctx.log.trace "Set device to ON at brightness: {}", level
+			setTargetLevel( ctx, level )
+			setTargetState( ctx, ctx.Switch.STATE_ON )
+			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+		} else {
+			// recieved a swit:state=ON, but no dim:brightness setting, so force device to last used 'target' level
+			setTargetState( ctx, ctx.Switch.STATE_ON )
+			level = getTargetLevel( ctx )
+			if (0 == level) {		// if by some chance 0, reset to default of 100
+				level = 100
+				setTargetLevel( ctx, level )
+			}
+			ctx.log.trace "Set device to ON at previous brightness: {}", level
+			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+		}
+	} else {
+		// if only level was set turn device ON to that level, if it is not 0
+		if (0 < level) {
+			ctx.log.trace "Forcing device to ON, at brightness: {}", level
+			setTargetLevel( ctx, level )
+			setTargetState( ctx, ctx.Switch.STATE_ON )
+			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+		}
+	}
+
+	// if level or onoff were set, readback level from device
+	if ((0 < level) || (SWITCH_NOTSET != onoff)) {
+		// read back the level after a short delay
+		// Note that we will keep re-reading until the target level is reached, or a maximum number of retries occurs, but we
+		// delay here for at least a short while to account for the time the device takes to physically adjust the level
+		scheduleDefaultDeferredReadLevel( ctx )
+	} 
+}
+
+
+static void setDeviceLevel (ctx, level, duration) {
+	int dvcLevel = level
+	
+	// Z-Wave only supports levels 1 - 99, and 0 = off
+	if (100 <= level) dvcLevel = 99
+	
+	ctx.ZWave.switch_multilevel.set((byte)dvcLevel, duration)
+}
+
+static int normalizeBrightness (ctx, name, targetBrightness) {
+	return normalizeBrightness(ctx, targetBrightness)
+}
+
+static int normalizeBrightness (ctx, targetBrightness) {
+	// limit brightness from 0 to 100
+	if (100 < targetBrightness) {
+		ctx.log.info "Generic limiting requested Brightness of {} to max allowed of 100", targetBrightness
+		targetBrightness = 100
+	}
+	if (0 > targetBrightness) {
+		ctx.log.info "Generic limiting requested Brightness of {} to min allowed of 0", targetBrightness
+		targetBrightness = 0
+	}
+	return targetBrightness
+}
+
+static void handleRampBrightness (ctx, name, message) {
+	handleRampBrightness (ctx, message)
+}
+
+static void handleRampBrightness (ctx, message) {
+	ctx.log.debug "Generic received onDimmer.RampBrightness message: {}", message
+
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+
+	ctx.log.debug "Generic - Dimmer Brightness: {},{}", targetBrightness, targetSeconds
+	
+	targetBrightness = normalizeBrightness(ctx, targetBrightness)
+	long readbackDelay = ctx.vars.'DFLT_READBACK_DELAY' ?: 1000		// use 1000 mSec if no default value set by parent driver in vars
+	if (0 < targetBrightness) {
+		setTargetLevel( ctx, targetBrightness )
+		setTargetState( ctx, ctx.Switch.STATE_ON )
+
+		// ZWave doesn't support ramp duration greater than 7620 seconds (127 minutes).
+		if (MAX_RAMP_SECS < targetSeconds) {
+			ctx.log.info "Generic - Limiting requested Ramp Time of {} to max allowed of {} seconds", targetSeconds, MAX_RAMP_SECS
+			targetSeconds = MAX_RAMP_SECS
+		}
+		if (0 > targetSeconds) {
+			ctx.log.info "Generic - Limiting requested Ramp Time of {} to min allowed of 0 seconds", targetSeconds
+			targetSeconds = 0
+		}
+		
+		byte duration = (byte)targetSeconds
+		readbackDelay = (targetSeconds + 1) * 1000		// scheduler works in mSec
+		if (127 >= targetSeconds) {
+			// if seconds is 127 or less, send that value
+			ctx.log.trace "Generic - duration in seconds: {}", duration
+		} else {
+			// over 127 seconds, we can only use minute resolution so send a number of minutes, and set high order bit
+			int targetMinutes = (targetSeconds + 30) / 60
+			duration = (byte)targetMinutes
+			readbackDelay = ((duration * 60) + 1) * 1000 	// scheduler works in mSec
+			ctx.log.trace "Generic - duration in minutes: {}", duration
+			duration = duration | 0x80
+			ctx.log.trace "Generic - duration param: {}", duration
+		}
+	
+		// Send message to device to ramp brightness
+		setDeviceLevel(ctx, (byte)targetBrightness, duration )
+	} else {
+		ctx.log.debug "Set device to OFF"
+		setWaitingOnClientOffResponse( ctx, true )
+		setTargetState( ctx, ctx.Switch.STATE_OFF )
+		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+	}
+	
+	// do a delayed read back of the level
+	resetReadLevelCnt( ctx )
+	ctx.Scheduler.scheduleIn EVENT_DEFERRED_READ_LEVEL, readbackDelay
+
+	// send a response so event processing completes and next event can be handled
+	ctx.sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+static void handleIncrementBrightness (ctx, name, message) {
+	handleIncrementBrightness(ctx, message)
+}
+
+static void handleIncrementBrightness (ctx, message) {
+   ctx.log.debug "Generic received onDimmer.IncrementBrightness message: {}", message
+   
+   // get the current level
+   def currentLevel = getTargetLevel( ctx )
+   if( 0 > currentLevel ) currentLevel = 0
+   int newBrightness = new Double(message.attributes['amount']).intValue() + currentLevel;
+   
+   setTargetState( ctx, ctx.Switch.STATE_ON )
+   updateBrightness(ctx,newBrightness)
+   
+   ctx.sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+static void handleDecrementBrightness (ctx, name, message) {
+	handleDecrementBrightness (ctx, message)
+}
+
+static void handleDecrementBrightness (ctx, message) {
+   ctx.log.debug "Generic handle decrement brightness message: {}", message
+   
+   // get the current level
+   def currentLevel = getTargetLevel( ctx )
+   if( 0 > currentLevel ) currentLevel = 0
+   int newBrightness = currentLevel - new Double(message.attributes['amount']).intValue();
+   
+   // for alexa integration.  If device is on and new level <= 0 turn the device OFF but leave level at last known value
+   if ( 0 >= newBrightness ) {
+	   setTargetState( ctx, ctx.Switch.STATE_OFF )
+	   ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+	   setWaitingOnClientOffResponse( ctx, true )
+	   scheduleDefaultDeferredReadLevel( ctx )
+   } else {
+	   updateBrightness(ctx,newBrightness)
+   }
+ 
+   ctx.sendResponse 'dim:DecrementBrightnessResponse', [:]
+}
+
+static void updateBrightness(ctx,name,newBrightness) {
+	updateBrightness(ctx, newBrightness)
+}
+
+static void updateBrightness(ctx,newBrightness) {
+	ctx.log.debug "Generic updateBrightness - Level: {}", newBrightness
+	
+	if( 1 > newBrightness ) newBrightness = 1
+	if( 99 < newBrightness ) newBrightness = 99
+	
+	// always set the new target level
+	setTargetLevel( ctx, newBrightness )
+	
+	ctx.log.debug "Generic decrementing the brightness of a dimmable device to: {}", newBrightness
+	setDeviceLevel(ctx, (byte)newBrightness, RAMP_TIME)
+	scheduleDefaultDeferredReadLevel( ctx )
+}
+
+onEvent(EVENT_DEFERRED_READ_LEVEL) {
+	int cnt = shouldReadLevelAgain(this)
+	if (0 < cnt) {
+		ZWave.switch_multilevel.get()
+		// defer progressively longer as retry count increases
+		Scheduler.scheduleIn EVENT_DEFERRED_READ_LEVEL, cnt * 1000
+	}
+}
+
+onEvent(EVENT_DO_READ_LEVEL) {
+	ZWave.switch_multilevel.get()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave Binary Switch Report
+////////////////////////////////////////////////////////////////////////////////
+
+static void handleMultilevelReport(ctx, name, message) {
+	handleMultilevelReport(ctx, message)
+}
+
+static void handleMultilevelReport(ctx, message){
+	ctx.log.debug "Generic received multilevel switch report: {}", message
+
+	/* Value from report message will be:
+	 *   + 0 to indicate off
+	 *   + 1..99 to indicate on, and brightness level
+	 *	 + 100..254 reserved, ignore
+	 *	 + 255 - on at 100%, deprecated. */
+	int brightness = new Double(message.command.get('value')).intValue()
+	updateDeviceAttributes (ctx, brightness)
+}
+
+
+// utility method to set capability attributes based on device brightness level
+static void updateDeviceAttributes (ctx, name, brightnessLevel) {
+	updateDeviceAttributes (ctx, brightnessLevel)
+}
+
+static void updateDeviceAttributes (ctx, brightnessLevel) {
+	ctx.log.debug "Generic reported Brightness Level: {}, targetLevel: {}, targetState: {}, readCnt: {}", brightnessLevel, ctx.vars.'targetlevel', ctx.vars.'targetstate',  getReadLevelCnt(ctx)
+	def prevState = ctx.Switch.state.get()
+
+	// Level 0 indicates that switch is off, but doesn't affect dim:brightness attribute
+	if (brightnessLevel == 0) {
+		ctx.Switch.state ctx.Switch.STATE_OFF
+		// if we are expecting it to report OFF, then we are done
+		if( ctx.Switch.STATE_OFF == getTargetState( ctx ) ) {
+			// no longer need a readback
+			clearReadLevelCnt( ctx )
+		} else {
+			// if we are waiting for a response that is not OFF, log that for debuging purposes
+			if( waitingForReadLevel( ctx ) ) {
+				ctx.log.debug "Dimmer reported OFF, but we are waiting for it to go ON"
+		    } else {
+				// we were not waiting for a response, and device reported state as OFF, so make that the new target
+				setTargetState( ctx, ctx.Switch.STATE_OFF )
+		    }
+		}
+	}
+
+	// Deprecated case, level 255 means switch on at 100% brightness
+	else if (brightnessLevel == 255) {
+		ctx.Switch.state ctx.Switch.STATE_ON
+		setTargetState( ctx, ctx.Switch.STATE_ON )
+		ctx.Dimmer.brightness 100
+		// no longer doing a readback after a switch_multilevel.set request
+		clearReadLevelCnt( ctx )
+	}
+
+	// Normal case, level indicates dim percentage
+	else if (brightnessLevel >= 1 && brightnessLevel <= 100 && !waitingOnClientOffResponse( ctx ) ) {
+		int targetLevel = getTargetLevel( ctx ) // default to 100 if never set
+		
+		// if a target level has not been set, or not reading back level after doing a set
+		if ((-1 == targetLevel) || (!waitingForReadLevel( ctx ) )) {
+			// treat Z-Wave max of 99 as 100%
+			if (99 == brightnessLevel) brightnessLevel = 100
+			ctx.Dimmer.brightness brightnessLevel
+			// level is greater than zero, so switch is ON
+			ctx.Switch.state ctx.Switch.STATE_ON
+			setTargetState( ctx, ctx.Switch.STATE_ON )
+			setTargetLevel( ctx, brightnessLevel )
+		} else {	// target level has been set and we are waiting for a response
+			// check if difference between actual brightness level reported and our target level for the device is within limits
+			if (Math.abs(targetLevel-brightnessLevel) <= MAX_LEVEL_DELTA) {
+				// consider the level to be where we want it
+				brightnessLevel = targetLevel
+				ctx.Dimmer.brightness brightnessLevel
+				// level is greater than zero, so switch must be ON
+				ctx.Switch.state ctx.Switch.STATE_ON
+				// no longer doing a readback after a switch_multilevel.set request
+				clearReadLevelCnt( ctx )
+			}
+		}
+	}
+	
+	// are we waiting for a response from the client turning the dimmer off?
+	else if ( waitingOnClientOffResponse( ctx ) ) {
+		ctx.Switch.state ctx.Switch.STATE_OFF
+	}
+
+	// All other values are reserved and should be ignored by receiver
+	else {
+		ctx.log.debug "Ignoring invalid brightness level {}", brightnessLevel
+	}
+
+	// if state changed, capture timestamp
+	if (ctx.Switch.state.get() != prevState) {
+		ctx.Switch.statechanged new Date()
+	}
+	
+	// we've gotten a response from the device so reset the waiting on client off response flag if set
+	setWaitingOnClientOffResponse( ctx, false )
+	
+	ctx.log.debug "Generic current targetLevel: {}, targetState: {}, readCnt: {}", ctx.vars.'targetlevel', ctx.vars.'targetstate', getReadLevelCnt(ctx)
+}
+
+static void setWaitingOnClientOffResponse( ctx, boolean waiting ) {
+	ctx.vars.'waitingOnClientOff' = waiting
+}
+
+static boolean waitingOnClientOffResponse( ctx ) {
+	if( null == ctx.vars.'waitingOnClientOff' ) return false
+	return ctx.vars.'waitingOnClientOff'
+}
+
+static void setTargetState( ctx, state ) {
+	
+	switch( state ) {
+		case ctx.Switch.STATE_ON:
+			ctx.vars.'targetstate' = ctx.Switch.STATE_ON
+			break
+		case ctx.Switch.STATE_OFF:
+			ctx.vars.'targetstate' = ctx.Switch.STATE_OFF
+			break
+		default:
+			ctx.vars.'targetstate' = null
+			break
+	}
+}
+
+static String getTargetState( ctx ) {
+	if( null == ctx.vars.'targetstate' )
+	{
+		def state =  ctx.Switch.state.get()
+		if( null == state ) return ctx.Switch.STATE_ON
+		 return state
+	}
+	return ctx.vars.'targetstate'
+}
+
+static void setTargetLevel( ctx, int level ) {
+	if( ( 0 >= level ) || ( 100 < level ) )
+		ctx.vars.'targetlevel' = 100
+	else
+		ctx.vars.'targetlevel' = level
+}
+
+static int getTargetLevel( ctx ) {
+	if( null == ctx.vars.'targetlevel' ) {
+		def level = ctx.Dimmer.brightness.get()
+		if( null == level ) return 100
+		return level
+	}
+	return ctx.vars.'targetlevel'
+}
+
+
+static void scheduleDefaultDeferredReadLevel( ctx ) {
+	resetReadLevelCnt( ctx )
+	long readbackDelay = ctx.vars.'DFLT_READBACK_DELAY' ?: 1000		// use 1000 mSec if no value set by parent driver
+	ctx.Scheduler.scheduleIn EVENT_DEFERRED_READ_LEVEL, readbackDelay
+}
+
+// used to do a delayed basic multi-level read, without retries, etc. 
+// (usually in response to seeing a Node Info or Hail message, just to check for changes made locally at the device)
+static void scheduleDeferredReadLevel(ctx, delayMilliSecs) {
+	ctx.Scheduler.scheduleIn EVENT_DO_READ_LEVEL, delayMilliSecs
+}
+
+static int getReadLevelCnt(ctx) {
+	if (null == ctx.vars[READ_LEVEL_COUNTER])
+		ctx.vars[READ_LEVEL_COUNTER] = -1
+	return ctx.vars[READ_LEVEL_COUNTER]
+}
+
+static int incReadLevelCnt(ctx) {
+	int readCnt = getReadLevelCnt(ctx)
+	ctx.vars[READ_LEVEL_COUNTER] = ++readCnt
+	return readCnt
+}
+
+// reset Read Level counter to start readback loop
+static void resetReadLevelCnt(ctx) {
+	if (0 != getReadLevelCnt(ctx))
+		ctx.Scheduler.cancel EVENT_DEFERRED_READ_LEVEL
+	ctx.vars[READ_LEVEL_COUNTER] = 0
+}
+
+// check if we are still waiting to readback a level because a command was recently sent
+// NOTE: returns false if counter has been cleared (-1) so not expecting any response
+static boolean waitingForReadLevel(ctx) {
+	return ((0 <= getReadLevelCnt(ctx)) && !readLevelDone(ctx))
+}
+
+// check if readback loop has reached end
+static boolean readLevelDone(ctx) {
+	int maxReadCnt = ctx.vars.'MAX_READBACKS' ?: 10		// default readback limit to 10 if not set by parent driver
+	return (getReadLevelCnt(ctx) >= maxReadCnt)
+}
+
+// clear Read Level counter because we are no longer trying to read back level
+static void clearReadLevelCnt(ctx) {
+	if (0 <= getReadLevelCnt(ctx))
+		ctx.Scheduler.cancel EVENT_DEFERRED_READ_LEVEL
+	ctx.vars[READ_LEVEL_COUNTER] = -1
+}
+
+// call to determine if another Level readback request should be sent (0=NO)
+static int shouldReadLevelAgain(ctx) {
+	if (waitingForReadLevel(ctx)) {
+		return incReadLevelCnt(ctx)
+	}
+	return 0
+}
+

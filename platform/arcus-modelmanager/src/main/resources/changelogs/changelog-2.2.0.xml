@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.0.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   <cl:changeset identifier="suspendAlarmSubsystem" author="tweidlin">
+      <cl:description>Removes alarm subsystems as part of rollback</cl:description>
+      <cl:tracking>ITWO-0</cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.RemoveAlarmSubsystem"/>
+   </cl:changeset>
+   
+	<cl:changeset author="rob" identifier="alarmIncidentTable">
+		<cl:description>Adds the alarm incident table and tracker event user-defined type</cl:description>
+		<cl:tracking>ITWO-9050</cl:tracking>
+		<cl:cql>
+			<cl:update>
+				create table alarmincident (
+				placeid uuid,
+				incidentid timeuuid,
+				endTime  timestamp,
+				active boolean,
+				monitoringState text,
+				alert text,
+				additionalAlerts set&lt;text&gt;,
+				cancelledBy text,
+				activeAlerts set&lt;timeuuid&gt;,
+				tracker list&lt;text&gt;,
+				primary key (placeid, incidentid)
+				) with clustering order by (incidentid DESC)
+			</cl:update>
+			<cl:rollback>
+				drop table alarmincident
+			</cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+
+	<cl:changeset author="tweidling" identifier="addAlertStateToAlarmIncident">
+		<cl:description>Adds the alarm incident table and tracker event user-defined type</cl:description>
+		<cl:tracking>ITWO-8610</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident ADD alertState varchar</cl:update>
+			<cl:rollback>ALTER TABLE alarmincident DROP alertState </cl:rollback>
+		</cl:cql>
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident ADD prealertEndTime timestamp</cl:update>
+			<cl:rollback>ALTER TABLE alarmincident DROP prealertEndTime</cl:rollback>						
+		</cl:cql>			
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident DROP active</cl:update>
+			<cl:rollback>ALTER TABLE alarmincident ADD active boolean</cl:rollback>						
+		</cl:cql>			
+	</cl:changeset>
+	<cl:changeset author="trip" identifier="addMockIncidentToAlarmIncident">
+		<cl:description>Adds the mock alarm incident flag to the alarm incident table</cl:description>			
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident ADD mockIncident boolean</cl:update>
+			<cl:rollback>ALTER TABLE alarmincident DROP mockIncident</cl:rollback>							
+		</cl:cql>			
+	</cl:changeset>		
+	<cl:changeset author="dpatrow" identifier="addMonitoredToAlarmIncident">
+		<cl:description>Adds a monitored flag to alarmincident table</cl:description>
+		<cl:tracking>ITWO-9761</cl:tracking>				
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident ADD monitored boolean </cl:update>
+			<cl:rollback>ALTER TABLE alarmincident DROP monitored</cl:rollback>						
+		</cl:cql>			
+	</cl:changeset>
+
+	<cl:changeset author="rob" identifier="addGoogleAuthorizationFlag">
+		<cl:description>Adds a flag on a place to identify it has having been enabled for Google Home.</cl:description>
+		<cl:tracking>TODO</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE place ADD googlehome boolean</cl:update>
+			<cl:rollback>ALTER TABLE place DROP googlehome</cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+	
+	<cl:changeset author="dpatrow" identifier="addConfirmedToAlarmIncident">
+		<cl:description>Adds a confired flag to alarmincident.</cl:description>
+		<cl:tracking>ITWO-10561</cl:tracking>
+		<cl:cql>
+			<cl:update>ALTER TABLE alarmincident ADD confirmed boolean</cl:update>
+			<cl:rollback>ALTER TABLE alarmincident DROP confirmed </cl:rollback>
+		</cl:cql>
+	</cl:changeset>
+</cl:changelog>

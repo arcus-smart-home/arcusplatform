@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="CellBackupSubsystem"
+   namespace="cellbackup"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Cell Backup Subsystem
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="status"
+         type="enum"
+         values="READY,ACTIVE,NOTREADY,ERRORED"
+         readwrite="r"
+         optional="false"
+         description="
+READY:  Will work: Modem is plugged in, healthy, connected, and add on subscription exists for place
+ACTIVE:  Is working: Hub is actively connected to hub bridge via cellular
+NOTREADY:  Will not work (user recoverable) : check notReadyState to see if they need a modem or a subscription
+ERRORED:  Will not work (requires contact center) : check erroredState for more information
+"/>         
+
+      <c:attribute
+         name="errorState"
+         type="enum"
+         values="NONE,NOSIM,NOTPROVISIONED,DISABLED,BANNED,OTHER"
+         readwrite="r"
+         optional="false"
+         description="
+NONE:  No error
+NOSIM:  Modem is plugged in but does not have a SIM
+NOTPROVISIONED:  Modem is plugged in but SIM is/was not properly provisioned
+DISABLED:
+BANNED:
+OTHER:  Modem is pluggin in and has a provisioned SIM but for some reason it cannot connect (hub4g:connectionStatus will have a vendor specific code as to why)
+"/>
+
+      <c:attribute
+         name="notReadyState"
+         type="enum"
+         values="NEEDSSUB,NEEDSMODEM,BOTH"
+         readwrite="r"
+         optional="false"
+         description="
+NEEDSSUB:  Modem is plugged in, healthy, and connected, but no add on subscription for place exists
+NEEDSMODEM:  Add on subscription for place exists, but no modem plugged in
+BOTH:  Needs both modem and subscription
+"/>
+
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="Ban"
+         description="Sets status = ERRORED, errorState = BANNED so that the hub bridge will not auth this hub if it connects via cellular.">
+      </c:method>
+      
+      <c:method
+         name="Unban"
+         description="Resets status to best-choice [READY, ACTIVE, NOTREADY] and sets errorState to NONE">
+      </c:method>
+   </c:methods>
+   
+   <c:events>
+   
+      <c:event name="CellAccessBanned" description="Event emitted from the subsystem to the hub-bridges to boot the hub if it is currently connected by cell backup"/>
+      <c:event name="CellAccessUnbanned" description="Event emitted from the subsystem to the hub-bridges to boot the hub if it is currently connected by cell backup"/>
+   
+   </c:events>
+
+</c:capability>

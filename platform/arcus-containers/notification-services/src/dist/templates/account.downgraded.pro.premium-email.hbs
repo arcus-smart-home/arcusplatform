@@ -1,0 +1,31 @@
+{{#section "subject"}}
+Your Iris Service Has Been Downgraded to Premium
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+You have successfully updated your service plan to Premium at {{{_place.name}}}. 
+
+This note means that in the event of a Security, Smoke, CO, or Panic alarm, 
+the Monitoring Station will not call you and emergency responders will not be dispatched. 
+If you've paired a cellular modem, subscribe to the Backup Cellular add-on plan in the 
+next 80 days to keep your modem active.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>You have successfully updated your service plan to Premium at {{{_place.name}}}.</p>
+	<p>This note means that in the event of a Security, Smoke, CO, or Panic alarm, the Monitoring Station will not call you and emergency responders will not be dispatched. If you've paired a cellular modem, subscribe to the Backup Cellular add-on plan in the next 80 days to keep your modem active.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

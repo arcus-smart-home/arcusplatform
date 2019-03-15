@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubWiFi"
+   namespace="hubwifi"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+  <c:description>
+      Model of Hub WiFi information.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="wifiEnabled"
+         readwrite="rw"
+         type="boolean"
+         optional="true"
+         description="When true, wireless interface is enabled."/>
+      <c:attribute
+         name="wifiState"
+         readwrite="r"
+         type="enum"
+         values="CONNECTED,DISCONNECTED"
+         optional="false"
+         description="Indicates whether or not this device has a WiFi connection to an access point."/>
+      <c:attribute
+         name="wifiSsid"
+         readwrite="r"
+         type="string"
+         optional="false"
+         description="SSID of base station connected to."/>
+      <c:attribute
+         name="wifiBssid"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="BSSID of base station connected to."/>
+      <c:attribute
+         name="wifiSecurity"
+         readwrite="r"
+         type="enum"
+         values="NONE,WEP,WPA_PSK,WPA2_PSK,WPA_ENTERPRISE,WPA2_ENTERPRISE"
+         optional="true"
+         description="Security of connection."/>
+      <c:attribute
+         name="wifiChannel"
+         readwrite="r"
+         type="int"
+         optional="true"
+         description="Channel in use."/>
+      <c:attribute
+         name="wifiNoise"
+         readwrite="r"
+         type="int"
+         unit="dBm"
+         optional="true"
+         description="Noise level in dBm"/>
+      <c:attribute
+         name="wifiRssi"
+         readwrite="r"
+         type="int"
+         unit="dB"
+         optional="true"
+         description="Received signal stength indicator in dB."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="WiFiConnect"
+         description="Attempts to connect to the access point with the given properties.">
+        <c:parameters>
+          <c:parameter name="ssid" type="string" optional="false" description="SSID of base station connected to."></c:parameter>
+          <c:parameter name="bssid" type="string" optional="true" description="BSSID of base station connected to."></c:parameter>
+          <c:parameter name="security" type="string" optional="false" description="Security of connection."></c:parameter>
+          <c:parameter name="key" type="string" optional="true" description="Security key."></c:parameter>
+          <c:return
+              name="status"
+              type="enum"
+              values="CONNECTING,REFUSED,INVALID_SSID,INVALID_SECURITY,INVALID_KEY"
+               description="A status indicating status of the wireless connect"
+              optional="false"/>
+          <c:return
+              name="message"
+              type="string"
+              description="An informative message about the status"
+              optional="true"/>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="WiFiDisconnect"
+         description="Disconnects from current access point. USE WITH CAUTION.">
+        <c:parameters>
+         <c:return
+             name="status"
+             type="enum"
+             values="OK,REFUSED"
+             description="A status indicating status of the wireless connect"
+            optional="false"/>
+         <c:return
+             name="message"
+             type="string"
+             description="An informative message about the status"
+             optional="true"/>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="WiFiStartScan"
+         description="Starts a wifi scan that will end after timeout seconds unless endWifiScan() is called. Periodically, while WiFi scan is active, WiFiScanResults events will be generated.">
+        <c:parameters>
+          <c:parameter name="timeout" type="int" optional="false" description="The number of seconds to scan unless endWifiScan() is called."></c:parameter>
+        </c:parameters>
+      </c:method>
+      <c:method
+         name="WiFiEndScan"
+         description="Ends any active WiFiScan. If no scan is active, this is a no-op.">
+      </c:method>
+   </c:methods>
+
+   <c:events>
+      <c:event
+         name="WiFiScanResults"
+         description="Drivers should return a complete list of all BSSIDs found during the lifetime of the scan, not just those BSSIDs which are newly observed at the time of event generation.">
+         <c:parameters>
+            <c:parameter
+               name="scanResults"
+               type="list&lt;map&gt;"
+               description="Results of wifi scan"
+               optional="false"/>
+            <c:parameter
+               name="message"
+               type="string"
+               description="Error message, if any"
+               optional="true"/>
+         </c:parameters>
+         <!--
+          Body contains a list of ScanResult structures as follows:
+
+					scanResults {
+						ssid: string, // human readable string
+						bssid: string, // as MAC address
+						mode: string, // [Ad-hoc, Infrastructure]
+						security: list<string>, // valid elements [None, WEP, WPA-PSK, WPA2-PSK, WPA-Enterprise, WPA2-Enterprise]
+						wepauth: string, // only valid when security contains WEP, valid elements [Unknown, OpenSystem, SharedKey]
+						encryption: string, // valid elements [None, WEP, TKIP, AES, AES+TKIP]
+						channel: int, // wireless channel number
+						signal: int, // normalized RSSI [0..100]
+						wps: string // [Yes, No, PBC, PIN-Code]
+				  }
+         -->
+      </c:event>
+      <c:event
+         name="WiFiConnectResult"
+         description="This event will be returned once testing of the wireless connect attempt completes or times out.">
+         <c:parameters>
+            <c:parameter
+	       name="status"
+               type="enum"
+               values="OK,BAD_PASSWD,NO_ADDR,NO_INTERNET"
+               description="A status indicating status of the wireless connect attempt"
+               optional="false"/>
+            <c:parameter
+               name="message"
+               type="string"
+               description="Error message, if any"
+               optional="true"/>
+         </c:parameters>
+      </c:event>
+   </c:events>
+
+</c:capability>

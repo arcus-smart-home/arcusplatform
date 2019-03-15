@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<firmwares xmlns="http://arcus.com/firmware_1.0.0" >
+
+   <metadata version="2017-12-05T00:00:00" publisher="Human"/>
+   
+   <firmware min="2.0.0.024" max="2.0.2.016" target="IH200/hubOS_2.2.0.008" population="general, qa, beta"/>
+   
+   <!-- FIXME: Set correct v3 versions here, once we finalize them -->
+   <firmware min="3.0.0.001" max="3.0.1.018" target="IH30x/hubOSv3_3.0.1.025" population="general, qa, beta"/>
+   
+</firmwares>

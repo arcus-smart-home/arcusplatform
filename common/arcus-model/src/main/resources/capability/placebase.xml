@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Place"
+   namespace="place"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a place
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="account"
+         readwrite="r"
+         type="uuid"
+         optional="false"
+         description="Platform-owned globally unique identifier for the account owning the place"/>
+         
+      <c:attribute
+         name="population"
+         readwrite="r"
+         type="string"
+         optional="true"
+         description="Indicates the population name this place belongs to. If not specified, the general population will be assumed"/>
+   
+      <c:attribute
+         name="name"
+         readwrite="rw"
+         type="string"
+         optional="false"
+         description="The name of the place"/>
+      
+      <c:attribute
+         name="state"
+         readwrite="rw"
+         type="string"
+         optional="false"
+         description="The state of the place"/>
+         
+      <c:attribute
+         name="streetAddress1"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="First part of the street address"/>
+      
+      <c:attribute
+         name="streetAddress2"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Second part of the street address"/>
+      
+      <c:attribute
+         name="city"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="The city"/>
+      
+      <c:attribute
+         name="stateProv"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="The state or province"/>
+      
+      <c:attribute
+         name="zipCode"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="The zip code"/>
+         
+      <c:attribute
+         name="zipPlus4"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Extended zip +4 digits"/>
+         
+      <c:attribute
+         name="tzId"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="System assigned timezone identifier"/>
+      
+      <c:attribute
+         name="tzName"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Timezone as Alaska, Atlantic, Central, Eastern, Hawaii, Mountain, None, Pacific, Samoa, UTC+10, UTC+11, UTC+12, UTC+9, valid only for US addresses"/>
+      
+      <c:attribute
+         name="tzOffset"
+         readwrite="rw"
+         type="double"
+         optional="true"
+         description="Timezone hour offset from UTC [-9, -4, -6, -5, -10, -7, 0, -8, -11, 10, 11, 12, 9], valid only for US addresses"/>
+      
+      <c:attribute
+         name="tzUsesDST"
+         readwrite="rw"
+         type="boolean"
+         optional="true"
+         description="True if timezone uses daylight savings time, false otherwise"/>
+         
+      <c:attribute
+         name="country"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="The country"/>
+         
+      <c:attribute
+         name="addrValidated"
+         readwrite="rw"
+         type="boolean"
+         optional="false"
+         description="True if address is US address and passed USPS address validation"/>
+
+      <c:attribute
+         name="addrType"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Address type according to address validation service [F=firm (best), G=general (held at local post office), H=high-rise (contains apartment no.), P=PO box, R=rural route, S=street (addr only matched to valid range of house numbers on street), blank (invalid)]"/>
+         
+      <c:attribute
+         name="addrZipType"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Zip code type [Unique, Military, POBox, Standard]"/>
+
+      <c:attribute
+         name="addrLatitude"
+         readwrite="rw"
+         type="double"
+         optional="true"
+         description="Approximate latitude of address (averaged over zipcode)"/>
+
+      <c:attribute
+         name="addrLongitude"
+         readwrite="rw"
+         type="double"
+         optional="true"
+         description="Approximate longitude of address (averaged over zipcode)"/>
+
+      <c:attribute
+         name="addrGeoPrecision"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="Precision of address lat,long [Unknown, None, Zip5, Zip6, Zip7, Zip8, Zip9]"/>
+ 
+      <c:attribute
+         name="addrRDI"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="USPS Residential Delivery Indicatory for address [Residential, Commercial, Unknown]"/>
+
+      <c:attribute
+         name="addrCounty"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="County name"/>
+
+      <c:attribute
+         name="addrCountyFIPS"
+         readwrite="rw"
+         type="string"
+         optional="true"
+         description="5 digit FIPS code as 2 digit FIPS and 3 digit county code"/>
+                 
+      <c:attribute
+      	 name="lastServiceLevelChange"
+      	 readwrite="r"
+      	 type="timestamp"
+      	 optional="false"
+      	 description="Date of last change to the service level at this place"/>
+                 
+      <c:attribute
+         name="serviceLevel"
+         readwrite="r"
+         type="enum"
+         values="BASIC,PREMIUM,PREMIUM_FREE,PREMIUM_PROMON,PREMIUM_PROMON_FREE,PREMIUM_ANNUAL,PREMIUM_PROMON_ANNUAL"
+         optional="false"
+         description="Platform-owned service level at this place"/>
+         
+      <c:attribute
+         name="serviceAddons"
+         readwrite="r"
+         type="set&lt;string&gt;"
+         optional="true"
+         description="Platform-owned set of service addons subscribed to at this place"/>
+         
+      <c:attribute
+      	 name="created"
+      	 readwrite="r"
+      	 type="timestamp"
+      	 optional="true"
+      	 description="Date of creation of the place."/>
+
+      <c:attribute
+      	 name="modified"
+      	 readwrite="r"
+      	 type="timestamp"
+      	 optional="true"
+      	 description="Last time that the place was modified."/>
+      <!-- TODO:  centerPoint, boundary:  how do we want to represent these? -->
+      
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="ListDevices"
+         description="Lists all devices associated with this place">
+         <c:return
+            name="devices"
+            type="list&lt;Device&gt;"
+            description="The list of devices associated with this place"/>
+      </c:method>
+      
+      <c:method
+         name="GetHub"
+         description="Retrieves the object representing the hub at this place or null if the place has no hub">
+         <c:return
+            name="hub"
+            type="Hub"
+            description="The hub associated with this place or null if no hub has been registered at this location"/>
+      </c:method>
+      
+      <c:method
+         name="StartAddingDevices"
+         description="Prepares this location to have devices added (paired) any devices added during this time will emit the device added event">
+         <c:parameters>
+            <c:parameter 
+               name="time"
+               type="long"
+               description="The amount of time in milliseconds for which the place will be able to add devices"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+      
+      <c:method
+         name="StopAddingDevices"
+         description="Cleans up anything enabled into the home for having devices added (paired)"/>
+      
+      <c:method
+         name="RegisterHub"
+         description="Registered a hub at this place.  At some point later the HubAddedEvent will be posted">
+         <c:parameters>
+            <c:parameter
+               name="hubId"
+               type="string"
+               description="The hub ID in the format AAA-NNNN"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+          name="AddPerson"
+          description="Add a new person with permissions to this place.">
+		<c:parameters>
+             <c:parameter 
+                name="person"
+                type="Person"
+                description="The person you would like to create with person to this place."
+                optional="false"/>
+             <c:parameter 
+                name="password"
+                type="string"
+                description="The login password for this person."
+                optional="true"/>
+          </c:parameters>
+          <c:return
+            name="newPerson"
+            type="string"
+            description="The address of the person added." />
+      </c:method>
+
+      <c:method
+          name="ListPersons"
+          description="The list of persons who have access to this place.">
+         <c:return
+            name="persons"
+            type="list&lt;Person&gt;"
+            description="The list of persons who have access to this place." />
+      </c:method>
+      
+      <c:method
+         name="ListPersonsWithAccess"
+         description="The list of persons who have access to this place plus their role">
+         
+         <c:return
+            name="persons"
+            type="list&lt;PersonAccessDescriptor&gt;"
+            description="The list of people with their role at this place"/>
+      </c:method>
+      
+      <c:method
+          name="ListDashboardEntries"
+          description="Returns a list of the high-importance history log entries associated with this place">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this place" />
+      </c:method>
+      
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this place">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this place" />
+      </c:method>
+      
+      <c:method
+          name="Delete"
+          description="Remove the place and any associated entities.">
+      </c:method>
+      
+      <c:method
+         name="CreateInvitation"
+         description="Creates an invitation for the user">
+         
+         <c:parameters>
+            <c:parameter
+               name="firstName"
+               type="string"
+               description="The first name of the invitee"
+               optional="false"/>
+            
+            <c:parameter
+               name="lastName"
+               type="string"
+               description="The last name of the invitee"
+               optional="false"/>
+            
+            <c:parameter
+               name="email"
+               type="string"
+               description="The email address where the invitee can be reached"
+               optional="false"/>
+            
+            <c:parameter
+               name="relationship"
+               type="string"
+               description="The relationship of the invitee to the invitor.  If not provided, defaults to other"
+               optional="true"/>
+         </c:parameters>
+         
+         <c:return
+            name="invitation"
+            type="Invitation"
+            description="The default invitation"/>
+         
+      </c:method>
+      
+      <c:method
+         name="SendInvitation"
+         description="Sends the given invitation">
+         
+         <c:parameters>
+            <c:parameter
+               name="invitation"
+               type="Invitation"
+               description="The invitation"
+               optional="false"/>
+         </c:parameters>
+         
+      </c:method>
+      
+      <c:method
+         name="PendingInvitations"
+         description="Lists all pending invitations for the place">
+         
+         <c:return
+            name="invitations"
+            type="list&lt;Invitation&gt;"
+            description="The list of all pending invitations sent for this place"
+            optional="false"/>
+      </c:method>
+      
+      <c:method
+         name="CancelInvitation"
+         description="Cancels and deletes an invitation">
+         
+         <c:parameters>
+            <c:parameter
+               name="code"
+               type="string"
+               description="The code to cancel"
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+            name="UpdateAddress"
+            description="Updates the current place's address if it is changed and potentially other third-party systems.  The address is optional and if not specified will use the address of the current place."
+      >
+         <c:parameters>
+            <c:parameter
+                  name="streetAddress"
+                  type="StreetAddress"
+                  optional="true"
+                  description="If specified the place address will be updated to use this given address."
+            />
+         </c:parameters>
+         <c:errors>
+            <c:error code="address.invalid" description="The address does not pass validation as one recognized by UCC." />
+            <c:error code="address.unavailable" description="The address is not in an area where professionally monitoring is currently available." />
+            <c:error code="address.unsupported" description="If residential is not set to true." />
+         </c:errors>
+      </c:method>
+      
+      <c:method
+         name="RegisterHubV2"
+         description="This attempts to register the addressed place with the given hub.  This call will not succeed until the hub is (1) online and (2) above the minimum firmware version.  At that point the call is idempotent, so may be safely retried.">
+         <c:parameters>
+            <c:parameter
+               name="hubId"
+               type="string"
+               description="The ID of the hub to pair"
+               optional="false"/>
+         </c:parameters>
+         <c:return
+            name="state"
+            type="enum"
+         	values="ONLINE,OFFLINE,DOWNLOADING,APPLYING,REGISTERED"
+            description="The current state of the hub" />
+          <c:return
+            name="progress"
+            type="int"
+            description="An integer from 0 to 100 indicating the progress for the current state." />
+          <c:return
+            name="hub"
+            type="Hub"
+            description="The full hub model, only reported if state == REGISTERED" />
+          <c:errors>
+            <c:error code="error.register.alreadyregistered" description="If the hub is registered to someone else." />
+            <c:error code="error.register.activehub" description="The place already has a hub associated with it." />
+            <c:error code="error.register.orphanedhub" description="The hub is associated with a place that has been deleted." />
+            <c:error code="error.fwupgrade.failed" description="There was a failure while attempting to apply the firmware upgrade." />          
+         </c:errors>
+      </c:method>
+
+   </c:methods>
+   
+   <c:events>
+  
+      <!-- TODO:  other events -->
+      
+   </c:events>
+   
+</c:capability>

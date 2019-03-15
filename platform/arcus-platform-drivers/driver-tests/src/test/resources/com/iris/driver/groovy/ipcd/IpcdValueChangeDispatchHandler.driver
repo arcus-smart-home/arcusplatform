@@ -1,0 +1,49 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver "IpcdMessageHandler"
+version "1.0"
+vendor "Iris"
+model "TestCase"
+deviceTypeHint "test"
+
+matcher protocol: 'IPCD'
+
+onIpcdMessage( "event" ) {
+   vars.event = "Event Landed"
+   Ipcd.dispatch(message)
+}
+
+onIpcdValueChange( "bb.switch" ) {
+   vars.switch_param = message.getParameter()
+   vars.switch_value = message.getValue()
+   vars.switch_rule = message.getThresholdRule()
+   vars.switch_rule_value = message.getThresholdValue()
+}
+
+onIpcdValueChange( "bb.color" ) {
+   vars.color_param = message.getParameter()
+   vars.color_value = message.getValue()
+   vars.color_rule = message.getThresholdRule()
+   vars.color_rule_value = message.getThresholdValue()
+}
+
+onIpcdValueChange( "bb.level" ) {
+   vars.level_param = message.getParameter()
+   vars.level_value = message.getValue()
+   vars.level_rule = message.getThresholdRule()
+   vars.level_rule_value = message.getThresholdValue()
+}
+

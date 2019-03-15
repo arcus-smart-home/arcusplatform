@@ -1,0 +1,58 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.6 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Groups {
+   const u16 CLUSTER_ID = 0x0004;
+
+   const u16 ATTR_NAME_SUPPORT = 0x0000;
+}
+
+message zcl.Groups.AddGroup<id="0x00",group="client"> {
+   u16 groupId;
+   u8[] groupName;
+}
+
+message zcl.Groups.ViewGroup<id="0x01",group="client"> {
+   u16 groupId;
+}
+
+message zcl.Groups.GetGroupMembership<id="0x02",group="client"> {
+   u8 groupCount;
+   u16[groupCount] groupList;
+}
+
+message zcl.Groups.RemoveGroup<id="0x03",group="client"> {
+   u16 groupId;
+}
+
+message zcl.Groups.RemoveAllGroups<id="0x04",group="client"> {
+}
+
+message zcl.Groups.AddGroupIfIdentifying<id="0x05",group="client"> {
+   u16 groupId;
+   u8[] groupName;
+}
+
+message zcl.Groups.AddGroupResponse<id="0x00",group="server"> {
+   u8 status;
+   u16 groupId;
+}
+
+message zcl.Groups.ViewGroupResponse<id="0x01",group="server"> {
+   u8 status;
+   u16 groupId;
+   u8[] groupName;
+}
+
+message zcl.Groups.GetGroupMembershipResponse<id="0x02",group="server"> {
+   u8 capacity;
+   u8 groupCount;
+   u16[groupCount] groupList;
+}
+
+message zcl.Groups.RemoveGroupResponse<id="0x03",group="server"> {
+   u8 status;
+   u16 groupId;
+}

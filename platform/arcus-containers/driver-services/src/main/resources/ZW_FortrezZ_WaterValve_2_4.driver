@@ -1,0 +1,183 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for FortrezZ Water Valve
+ *
+ * Pairing
+ *    Apply power to the valve, the light will blink
+ * Unpairing
+ *	- Press the Program button one time the valve will start periodically blinking 3 or 4 times
+ * Factory Reset
+ *  - Press and hold button for 10+ seconds
+ *
+ */
+import groovy.transform.Field
+
+driver           "ZWFortrezZWaterValveDriver"
+description      "Driver for FortrezZ Water Valve"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Water Valve"      
+productId        "c7ad32"
+vendor           "FortrezZ"
+model          "WV-01"
+
+matcher          'ZWAV:Manufacturer': 0x0084, 'ZWAV:ProductType': 0x0213 //FortrezZ
+matcher          'ZWAV:Manufacturer': 0x0084, 'ZWAV:ProductType': 0x0243 //FortrezZ
+
+capabilities     DevicePower, Valve
+importCapability 'zwave/GenericZWaveVersion'
+
+// Command Classes:
+//      0x20   (32) Basic
+//      0x25   (37) Switch Binary
+//      0x27   (39) Switch All
+//      0x73  (115) Power Level
+//      0x85 (-123) Association
+//      0x86 (-122) Version
+//					Configuration
+//					Alarm
+//					Application Status
+
+// set default values for capability attributes
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+Valve.valvestate                 Valve.VALVESTATE_OPEN
+
+final String DEVICE_NAME           = "FortrezZ Water Valve"
+final int    POLLING_INTERVAL_SEC  = 900
+final int    OFFLINE_TIMEOUT_SECS  = 3600       
+
+@Field final byte   VALVE_OPEN     = 0x00	// Yes, this really is 0 Open, 255 Closed.  Both in documentation and real life.
+@Field final byte   VALVE_CLOSED   = 0xFF
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+	DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Valve.valvestatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+	log.debug "{} connected", DEVICE_NAME
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// read the current state
+	ZWave.switch_binary.get()
+	
+	// setup periodic polling for current state
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Valve Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('valv') {
+	log.debug "{} driver received 'valv' setAttributes message: {}", DEVICE_NAME, message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Valve.valvestate:
+				if (attribute.value == Valve.VALVESTATE_OPEN) {
+					Valve.valvestate Valve.VALVESTATE_OPENING
+					ZWave.switch_binary.set VALVE_OPEN
+				} else if (attribute.value == Valve.VALVESTATE_CLOSED) {
+					Valve.valvestate Valve.VALVESTATE_CLOSING
+					ZWave.switch_binary.set VALVE_CLOSED
+				} else {
+					log.info "{} attempt to set to unexpected valve state: {}", DEVICE_NAME, attribute.value
+				}
+				break
+
+			default:
+				log.info "{} received unrecognized attribute: {}", DEVICE_NAME, attribute
+				break
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	log.debug "{} driver received binary switch report: {}", DEVICE_NAME, message
+	handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.report {
+	log.debug "{} driver received basic report: {}", DEVICE_NAME, message
+	handleStateMsg message.command.get('value')
+}
+
+onZWaveNodeInfo {
+	log.debug "{} reported Node Info: {}, {}, {}, {}, {}", DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()	
+}
+
+onZWaveMessage.application_status.busy {
+	log.debug "{} reported Busy", DEVICE_NAME
+	// when device reports that it is busy, try again later
+	Scheduler.scheduleIn 'DelayedRead', READ_DELAY_MSEC
+}
+
+onZWaveMessage {
+	log.debug "{} driver received unhandled ZWave message {}", DEVICE_NAME, message
+	return false;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Support methods
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+	def prevState = Valve.valvestate.get()
+
+	if (VALVE_CLOSED == currentState) {
+		log.debug "{} reported CLOSED"
+		Valve.valvestate Valve.VALVESTATE_CLOSED
+	} else if (VALVE_OPEN == currentState) {
+		log.debug "{} reported OPEN"
+		Valve.valvestate Valve.VALVESTATE_OPEN
+	} else {
+		log.info "{} reported unexpected state:{}, previous state was: {}", DEVICE_NAME, currentState, prevState
+	}
+
+	// if state changed, capture timestamp
+	if (Valve.valvestate.get() != prevState) {
+		Date dateChanged = new Date()
+		Valve.valvestatechanged dateChanged
+	}
+}
+

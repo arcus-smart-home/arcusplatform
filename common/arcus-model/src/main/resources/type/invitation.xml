@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="Invitation"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents an invitation for a place</t:description>
+
+    <t:attributes>
+      <t:attribute
+         name="code"
+         type="string"
+         description="The platform-generated code for the invitation"/>
+      <t:attribute
+         name="placeId"
+         type="string"
+         description="The platform-owned identifier for the place"/>
+      <t:attribute
+         name="placeName"
+         type="string"
+         description="The name of the place"/>
+      <t:attribute
+         name="streetAddress1"
+         type="string"
+         description="First part of the street address"/>
+      <t:attribute
+         name="streetAddress2"
+         type="string"
+         description="Second part of the street address"/>
+      <t:attribute
+         name="city"
+         type="string"
+         description="The city"/>
+      <t:attribute
+         name="stateProv"
+         type="string"
+         description="The state"/>
+      <t:attribute
+         name="zipCode"
+         type="string"
+         description="The zip code"/>
+      <t:attribute
+         name="inviteeId"
+         type="string"
+         description="The platform-owned identifier for the invitee person if known"/>
+      <t:attribute
+         name="inviteeEmail"
+         type="string"
+         description="The email address of the invitee"/>
+      <t:attribute
+         name="inviteeFirstName"
+         type="string"
+         description="The first name of the invitee"/>
+      <t:attribute
+         name="inviteeLastName"
+         type="string"
+         description="The last name of the invitee"/>
+      <t:attribute
+         name="invitorId"
+         type="string"
+         description="The platform-owned identifier for the invitor person"/>
+      <t:attribute
+         name="invitorFirstName"
+         type="string"
+         description="The first name of the invitor"/>
+      <t:attribute
+         name="invitorLastName"
+         type="string"
+         description="The last name of the invitor"/>
+      <t:attribute
+         name="placeOwnerId"
+         type="string"
+         description="The platform-owned identifier for the owner of the place, which may be different from the invitor"/>
+      <t:attribute
+         name="placeOwnerFirstName"
+         type="string"
+         description="The first name of the place's owner"/>
+      <t:attribute
+         name="placeOwnerLastName"
+         type="string"
+         description="The last name of the place's owner"/>
+      <t:attribute
+         name="created"
+         type="timestamp"
+         description="The timestamp that the invitation was created"/>
+      <t:attribute
+         name="accepted"
+         type="timestamp"
+         description="The timestamp that the invitation was accepted"/>
+      <t:attribute
+         name="rejected"
+         type="timestamp"
+         description="The timestamp that the invitation was rejected"/>
+      <t:attribute
+         name="rejectReason"
+         type="string"
+         description="Reason the person rejected the invite"/>
+      <t:attribute
+         name="relationship"
+         type="string"
+         description="The relationship to the invitee"/>
+      <t:attribute
+         name="invitationText"
+         type="string"
+         description="The content of the email"/>
+      <t:attribute
+         name="personalizedGreeting"
+         type="string"
+         description="End user provided content"/>
+   </t:attributes> 
+</t:type>

@@ -1,0 +1,28 @@
+{{#section "subject"}}
+Excessive Water Use
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+
+{{{deviceName}}} has detected water use in excess of your daily average at {{{_place.name}}}.     
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>{{deviceName}} has detected water use in excess of your daily average at {{_place.name}}. </p>
+    <p/>	
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,54 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver "ZigbeeMessageHandler"
+version "1.0"
+vendor "Iris"
+model  "TestCase"
+deviceTypeHint "test"
+
+matcher protocol: 'ZIGB'
+
+onZigbeeMessage.Zcl.fan.zclreadattributesresponse() {
+   def zclMessage = Zigbee.Message.toZcl(message);
+   
+   vars.clusterId = zclMessage.getClusterId();
+   vars.endpoint = zclMessage.getEndpoint();
+   vars.flags = zclMessage.getFlags();
+   vars.profileId = zclMessage.getProfileId();
+   vars.messageId = zclMessage.getZclMessageId();
+   
+   def readAttributesResponse = Zigbee.Message.decodeZcl(zclMessage)
+   
+   System.out.println("Attributes: " + readAttributesResponse.getAttributes());
+   
+   def records = readAttributesResponse.getAttributes();
+   
+   vars.numRecords = records.length;
+   
+   vars.attribId0 = records[0].getAttributeIdentifier();
+   vars.attribValue0 = records[0].getAttributeData().getDataValue();
+   vars.attribId1 = records[1].getAttributeIdentifier();
+   vars.attribValue1 = records[1].getAttributeData().getDataValue();
+}
+
+onZigbeeMessage.Zdp.discovery.zdpNwkAddrRsp() {
+   def nwkAddrRsp = Zigbee.Message.decodeZdp(message);
+   
+   vars.ieee = nwkAddrRsp.getIeeeAddr();
+   vars.nwk = nwkAddrRsp.getNwkAddr();
+   vars.status = nwkAddrRsp.getStatus();
+}
+

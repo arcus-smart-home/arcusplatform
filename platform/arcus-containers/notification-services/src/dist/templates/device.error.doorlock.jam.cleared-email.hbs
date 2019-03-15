@@ -1,0 +1,26 @@
+{{#section "subject"}}
+Door Lock Jam Cleared
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+{{{deviceName}}} is no longer jammed.  It is {{{enum lockState LOCKED="locked" UNLOCKED="unlocked" LOCKING="locking" UNLOCKING="unlocking"}}}.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+		<p>{{deviceName}} is no longer jammed.  It is {{enum lockState LOCKED="locked" UNLOCKED="unlocked" LOCKING="locking" UNLOCKING="unlocking"}}.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

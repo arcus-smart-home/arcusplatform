@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+   name="PairingInput"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>A form parameter required to complete pairing.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="type"
+         type="enum"
+         values="TEXT,HIDDEN"
+         description="The type of input, currently only TEXT and HIDDEN are supported."/>
+      <t:attribute
+         name="name"
+         type="string"
+         description="The name of this input, used as the key when submitting a Search request."/>
+      <t:attribute
+         name="label"
+         type="string"
+         description="The label to display to the user when rendering the form."/>
+      <t:attribute
+         name="value"
+         type="string"
+         description="If specified this is the default value for the form, or in the case of HIDDEN this value should be submitted as the value to the Search command."
+         />
+      <t:attribute
+         name="minlen"
+         type="int"
+         description="Minimum length of the input value."
+         />
+       <t:attribute
+         name="maxlen"
+         type="int"
+         description="Maximum length of the input value."
+         />
+       <t:attribute
+         name="required"
+         type="boolean"
+         description="Whether the input value is required."
+         />  
+       
+   </t:attributes>
+ </t:type>

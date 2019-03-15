@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="TimeZone"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>
+    Represents a TimeZone that may be assigned to a place.
+    When assigning a TimeZone to a place the following mapping should be used:
+      - TimeZone#name -> Place#tzName
+      - TimeZone#offset -> Place#tzOffset
+      - TimeZone#usesDST -> Place#tzUsesDST
+    </t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="id"
+			type="string"
+			description="The ID of the timezone"
+			/>
+		<t:attribute
+			name="name"
+			type="string"
+			description="The display name of the timezone"
+			/>
+		<t:attribute
+			name="offset"
+			type="double"
+			description="Timezone offset from UTC in hours [-9, -4, -6, -5, -10, -7, 0, -8, -11, 10, 11, 12, 9]."
+			/>
+		<t:attribute
+			name="usesDST"
+			type="boolean"
+			description="True if timezone uses daylight savings time, false otherwise"
+			/>
+	</t:attributes>
+ </t:type>

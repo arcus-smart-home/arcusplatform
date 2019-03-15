@@ -1,0 +1,45 @@
+{{#section "subject"}}
+Your Arcus Service Has Been Downgraded to Basic
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+Your most recent payment was declined. The credit card information you entered 
+has failed to process. Your Arcus service has been downgraded to the Basic Service.
+
+This note means that in the event of a Security, Smoke, CO, or Panic alarm, the 
+Monitoring Station will not call you and emergency responders will not be dispatched. 
+If you've paired a cellular modem, subscribe to the Backup Cellular add-on plan in the 
+next 80 days to keep your modem active.  
+
+Upgrade your service plan at {{{_redirectBaseUrl}}}/e_prodowngrade.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>Your most recent payment was declined. The credit card information you entered has failed to 
+	process. Your Arcus service has been downgraded to the Basic Service.
+	</p>
+	<p>
+	This note means that in the event of a Security, Smoke, CO, or Panic alarm, the Monitoring 
+	Station will not call you and emergency responders will not be dispatched. 
+	If you've paired a cellular modem, subscribe to the Backup Cellular add-on plan in the next 80 
+	days to keep your modem active. 
+	</p>
+	<p>
+	<a href="{{_redirectBaseUrl}}/e_prodowngrade">Upgrade Service Plan</a>
+	</p>
+	<p>	
+	{{/partial}}
+	
+{{#partial "extra" }}
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

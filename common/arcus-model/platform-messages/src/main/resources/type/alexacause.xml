@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaCause"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the cause of a change in Alexa V3</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="type"
+         type="enum"
+         values="APP_INTERACTION,PHYSICAL_INTERACTION,PERIODIC_POLL,RULE_TRIGGER,VOICE_INTERACTION"
+         description="The cause attribute is used to describe the cause of a property value change when you send a ChangeReport event"
+         optional="false"
+      />
+   </t:attributes>
+
+</t:type>

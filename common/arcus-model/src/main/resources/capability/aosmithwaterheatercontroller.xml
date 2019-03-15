@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="AOSmithWaterHeaterController"
+   namespace="aosmithwaterheatercontroller"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of an AO Smith water heater controller.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="updaterate"
+         readwrite="rw"
+         type="int"
+         optional="false"
+         description="The rate in seconds of how often the water heater polls the platform."
+         />
+      <c:attribute
+         name="units"
+         readwrite="rw"
+         type="enum"
+         values="C,F"
+         description="The display unit of the temperation."
+         />
+      <c:attribute 
+         name="controlmode" 
+         readwrite="rw"
+         type="enum"
+         values="STANDARD,VACATION,ENERGY_SMART"
+         optional="false" 
+         description="This is the mode setting of the device, not whether or not it is actually heating the water at the moment."
+         />
+      <c:attribute
+         name="leakdetect"
+         readwrite="rw"
+         type="enum"
+         values="DISABLED,ENABLED,NOTDETECTED"
+         optional="true"
+         description="Enable or disable leak detection. Or report that no sensor is present and force to disabled."
+         />
+      <c:attribute
+         name="leak"
+         readwrite="r"
+         type="enum"
+         values="NONE,DETECTED,UNPLUGGED,ERROR"
+         optional="true"
+         description="Water conductivity detected on probes."
+         />
+      <c:attribute 
+         name="gridenabled" 
+         readwrite="r"
+         type="boolean"
+         optional="false" 
+         description="This device was originally destined for utilities, so if the grid is controlling your device, it means you are responding to commands over Wifi."
+         />
+      <c:attribute
+         name="dryfire"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="Detects that a dry-fire condition was present"
+         />
+      <c:attribute
+         name="elementfail"
+         readwrite="r"
+         type="enum"
+         values="NONE,UPPER,LOWER,UPPER_LOWER"
+         optional="false"
+         description="Status of upper and lower elements"
+         />
+      <c:attribute
+         name="tanksensorfail"
+         readwrite="r"
+         type="enum"
+         values="NONE,UPPER,LOWER,UPPER_LOWER"
+         optional="false"
+         description="Status of uppwer and lower temperature sensors."
+         />
+      <c:attribute
+         name="ecoerror"
+         readwrite="r"
+         type="boolean"
+         optional="false"
+         description="Mechanical tank over temperature sensor."
+         />
+      <c:attribute
+         name="masterdispfail"
+         readwrite="r"
+         type="enum"
+         values="NONE,MASTER,DISPLAY"
+         description="Master (ET) and Display (ESM) self-test status" />
+      <c:attribute 
+         name="errors" 
+         readwrite="r" 
+         type="map&lt;string&gt;"
+         optional="false" 
+         description="Contains a map of device error codes to verbose, user-friendly definitions."/>
+       <c:attribute 
+         name="modelnumber" 
+         readwrite="rw" 
+         type="string"
+         optional="true" 
+         description="Model number as recorded on the heater's label "/>
+       <c:attribute 
+         name="serialnumber" 
+         readwrite="rw" 
+         type="string"
+         optional="true" 
+         description="Serial number as recorded on the heater's label "/> 
+         
+   </c:attributes>
+   
+</c:capability>

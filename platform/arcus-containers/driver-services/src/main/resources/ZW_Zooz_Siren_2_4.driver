@@ -1,0 +1,318 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for Zooz Indoor Siren
+ * 
+ * FACTORY RESET
+ *  - Remove the back cover by twisting it CLOCKWISE.
+ *  - Press and hold the CONNECT button for 10 - 15 seconds, until the LED lights up and then release it.
+ * 
+ * PAIRING / UNPAIRING
+ *  - Place the hub in Inclusion / Exclusion mode
+ *  - Remove the back cover by twisting it CLOCKWISE.
+ *  - Press the CONNECT button 3 times quickly.
+ *  - The LED RING will flash five times indicating exclusion/disconnection.
+ * 
+ * Indicator.set command can be used to activate 1 of 10 chimes, but the siren will report that it is ALERTING while doing so.
+ * 
+ * Command Classes:
+ *   0x25   (37) Switch_Binary
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x80 (-128) Battery
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ * 
+ * Use the Binary Switch command class to trigger the main siren.
+ *  
+ * Use the Indicator Set command to trigger one of ten different secondary
+ *   chime notifications (indicator.set accepts values from 01~0A.), but note that
+ *   Siren will report that it is "ALERTING" while the chime is being played.
+ * 
+ */
+import groovy.transform.Field
+
+driver           "ZWZoozSirenDriver"
+description      "Driver for Zooz Indoor Siren"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Siren"
+productId        "8815dd"
+vendor           "Zooz"
+model            "ZSE33"
+
+matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0088
+
+capabilities     DevicePower, Alert, Identify
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+Alert.state                      Alert.STATE_QUIET
+
+
+final int POLLING_INTERVAL_SEC  = 3600       // every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400      // 190 minutes
+final int BATTERY_POLLING_SEC   = 86400      // Ask for battery level every 24 hours
+
+@Field final byte SWITCH_ON  = 0xff
+@Field final byte SWITCH_OFF = 0x00
+
+// alarm types
+final byte LOW_BATTERY   = 0x01
+final byte POWER_APPLIED = 0x02
+
+@Field final long IDENT_PERIOD_DELAY_MSEC =  10000    //  10 seconds for device to Identify itself when Identify method is called
+@Field final String EVENT_IDENTIFY_DONE = "EventIdentDone"
+
+
+// Config Parameters (http://products.z-wavealliance.org/products/2175/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_ALERT_VOL_PARAM_NO            = 1          // parameter number to configure Alert volume
+final byte CNFG_ALERT_VOL_SIZE                       = 1          // size is 1 byte
+final byte CNFG_ALERT_VOL_VALUE                      = 3          // 1=Low, 2=Medium, 3=High (default)
+
+@Field final byte CNFG_ALERT_LEN_PARAM_NO            = 2          // parameter number to configure Alert length
+final byte CNFG_ALERT_LEN_SIZE                       = 1          // size is 1 byte
+final byte CNFG_ALERT_LEN_VALUE                      = 3          // 1=30 (default) Sec, 2=60 Sec, 3=5 Min, 0xFF=None
+                                                                  // NOTE: We never configure the Alert Length to 0xFF because it would not 
+                                                                  //       shut off if the connection was lost.
+
+@Field final byte CNFG_CHIME_LEN_PARAM_NO            = 3          // parameter number to configure Chime (secondary alert) length
+final byte CNFG_CHIME_LEN_SIZE                       = 1          // size is 1 byte
+final byte CNFG_CHIME_LEN_VALUE                      = 1          // 0=Do Not Stop, 1-0xFE=Number Minutes (default=1), 0xFF=Do Not Play
+
+@Field final byte CNFG_CHIME_VOL_PARAM_NO            = 4          // parameter number to configure Chime (secondary alert) volume
+final byte CNFG_CHIME_VOL_SIZE                       = 1          // size is 1 byte
+final byte CNFG_CHIME_VOL_VALUE                      = 1          // 1=Low(factory reset default), 2=Medium(documented default), 3=High
+
+@Field final byte CNFG_ALERT_SND_PARAM_NO            = 5          // parameter number to configure Alert Sound
+final byte CNFG_ALERT_SND_SIZE                       = 1          // size is 1 byte
+final byte CNFG_ALERT_SND_VALUE                      = 7          // 1-10 Tone Index number
+
+@Field final byte CNFG_CHIME_SND_PARAM_NO            = 6          // parameter number to configure Chime (secondary alert) Sound
+final byte CNFG_CHIME_SND_SIZE                       = 1          // size is 1 byte
+final byte CNFG_CHIME_SND_VALUE                      = 4          // 1-10 Tone Index number(factory default=4)
+
+@Field final byte CNFG_ALERT_OR_TONE_PARAM_NO        = 7          // parameter number to configure if Primary Alert plays default sound or Tone index (see param 5)
+final byte CNFG_ALERT_OR_TONE_SIZE                   = 1          // size is 1 byte
+final byte CNFG_ALERT_OR_TONE_VALUE                  = 1          // 1=Play Alert Sound (default), 2=Play Tone Index sound
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onConnected {
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	ZWave.switch_binary.get()
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+	
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+	ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+
+	// configure device
+	ZWave.configuration.set( CNFG_ALERT_VOL_PARAM_NO, CNFG_ALERT_VOL_SIZE, CNFG_ALERT_VOL_VALUE )
+	ZWave.configuration.set( CNFG_ALERT_LEN_PARAM_NO, CNFG_ALERT_LEN_SIZE, CNFG_ALERT_LEN_VALUE )
+	ZWave.configuration.set( CNFG_CHIME_LEN_PARAM_NO, CNFG_CHIME_LEN_SIZE, CNFG_CHIME_LEN_VALUE )
+	ZWave.configuration.set( CNFG_CHIME_VOL_PARAM_NO, CNFG_CHIME_VOL_SIZE, CNFG_CHIME_VOL_VALUE )
+	ZWave.configuration.set( CNFG_CHIME_SND_PARAM_NO, CNFG_CHIME_SND_SIZE, CNFG_CHIME_SND_VALUE )
+	ZWave.configuration.set( CNFG_ALERT_OR_TONE_PARAM_NO, CNFG_ALERT_OR_TONE_SIZE, CNFG_ALERT_OR_TONE_VALUE )
+	ZWave.configuration.set( CNFG_ALERT_SND_PARAM_NO, CNFG_ALERT_SND_SIZE, CNFG_ALERT_SND_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Event handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent( EVENT_IDENTIFY_DONE ) {
+	log.trace 'Perform Event - Identify Done'
+	ZWave.switch_binary.set(SWITCH_OFF)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Alert Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('alert') {
+	def attributes = message.attributes
+	log.debug "setAttributes 'alert': {}", attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+
+			// When the Alert.state is set, send a Binary Switch command to the Siren 
+			// to activate/deactivate it to match the attribute value, and then wait for the
+			// siren to report the switch state before actually setting the attribute value.
+			case Alert.state:
+				if (Alert.STATE_ALERTING == attribute.value) {
+					requestSirenOn()
+				} else {
+					requestSirenOff()
+				}
+				break
+				
+			default:
+				log.info "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.trace "onIdentify.Identify"
+	byte chimeIdx = getChimeIdx()
+	ZWave.indicator.set( chimeIdx )
+	Scheduler.scheduleIn EVENT_IDENTIFY_DONE, IDENT_PERIOD_DELAY_MSEC
+	sendResponse 'ident:IdentifyResponse', [:]
+}
+
+// The Siren supports playing an indexed 'chime' tone (1-10), so for the Identify operation
+// we currently cycle through each of those chime tones (allowing us to demonstrate what
+// tones are available if we want to support the 'chime' feature in the future).
+byte getChimeIdx() {
+	if (null == vars['ChimeIdx']) {
+		vars['ChimeIdx'] = 0
+	}
+	vars['ChimeIdx']++
+	if (10 < vars['ChimeIdx']) {
+		vars['ChimeIdx'] = 1
+	}
+	return vars['ChimeIdx']
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	def currState = message.command.get('value')
+	log.debug "Binary Switch Report: {}", currState
+	
+	def prevState = Alert.state.get()
+	
+	if (SWITCH_ON == currState) {
+		Alert.state Alert.STATE_ALERTING
+		if (Alert.STATE_ALERTING != prevState) {
+			Alert.lastAlertTime new Date()
+		}
+	} else if (SWITCH_OFF == currState) {	// SWITCH_OFF
+		Alert.state Alert.STATE_QUIET
+	} else {
+		log.warn "Unexpected State value reported [expected 0(OFF) or -1(ON)]: {}", currState
+	}
+}
+
+onZWaveMessage.alarm.report {
+	def alarmType = message.command.get('alarmtype')
+	def alarmLevel = message.command.get('alarmlevel')
+	log.trace "Alarm, type: {}, level: {}", alarmType, alarmLevel
+	
+	switch( alarmType ) {
+		
+		case LOW_BATTERY:
+			// This device's documentation says a low battery alarm will have an alarm level of 255
+			// however in all cases it sends an alarm level of 1.  So to solve the issue of users
+			// getting low battery notifications that are not real we'll ask for the battery level
+			// and notify based on the actual battery level returned.
+			ZWave.battery.get()
+			log.trace "Repoorted low battery alarm. Asking for the battery level and notifying based on actual battery level reported."
+			break
+		
+		case POWER_APPLIED:
+			log.info "Power Applied."
+			// ask for the battery level so we can update it if new batteries are installed
+			ZWave.battery.get()
+			break
+		
+		default:
+			log.trace "Unknown alarm type: {}", alarmType
+			break
+	}
+}
+
+onZWaveMessage.configuration.report {
+	log.trace "Config Report: {}", message
+	byte[] bytes = message.command.recvBytes
+	int param = message.command.get('param') & 0xFF
+	int byteCnt = message.command.get('level') & 0xFF
+	long val1 = message.command.get('val1') & 0xFF
+	if (2 == byteCnt) {
+		long val2 = message.command.get('val2') & 0xFF
+		val1 = (val1*256) + val2
+	} else if (4 == byteCnt) {
+		long val2 = message.command.get('val2') & 0xFF
+		long val3 = message.command.get('val3') & 0xFF
+		long val4 = message.command.get('val4') & 0xFF
+		val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+	}
+	log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.battery.report {
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+
+onZWaveMessage.zwaveplus_info.report {
+	def zwVer = message.command.get('zwaveversion')
+	def roleType = message.command.get('roletype')
+	def nodeType = message.command.get('nodetype')
+	log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "Device Reset Locally Notification"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility methods
+////////////////////////////////////////////////////////////////////////////////
+
+void requestSirenOn() {
+	ZWave.switch_binary.set( SWITCH_ON )
+	// get the current switch state from the device (to verify the setting was made)
+	ZWave.switch_binary.get()
+}
+
+void requestSirenOff() {
+	ZWave.switch_binary.set( SWITCH_OFF )
+	// get the current switch state from the device (to verify the setting was made)
+	ZWave.switch_binary.get()
+}
+
+

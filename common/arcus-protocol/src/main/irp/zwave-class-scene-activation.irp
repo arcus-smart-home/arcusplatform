@@ -1,0 +1,7 @@
+
+message zwave.SceneActivation.SceneActivationSetV1<id="0x01", group="V1"> {
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    const u8 DIMMING_DURATION_CONFIGURED_DIMMING_DURATION = 0xFF;
+    u8 sceneId;
+    u8 dimmingDuration;
+}

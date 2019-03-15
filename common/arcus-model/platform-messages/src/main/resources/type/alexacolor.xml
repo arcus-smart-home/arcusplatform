@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="AlexaColor"
+   version="1.0"
+   xmlns:t="http://www.iris.com/schema/type/1.0.0"
+>
+
+   <t:description>Represents the color state object used by Alexa V3</t:description>
+
+   <t:attributes>
+      <t:attribute name="hue" type="double" description="Indicates the hue attribute of the color. A double that ranges from 0.0 to 360.0, inclusive." optional="false"/>
+      <t:attribute name="saturation" type="double" description="Indicates the saturation attribute of the color. A double that ranges from 0.0 to 1.0, inclusive." optional="false"/>
+      <t:attribute name="brightness" type="double" description="Indicates the brightness attribute of the color. A double that ranges from 0.0 to 1.0, inclusive." optional="false"/>
+   </t:attributes>
+
+</t:type>

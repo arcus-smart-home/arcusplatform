@@ -1,0 +1,280 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco In-Wall Switch
+ *
+ */
+driver			"ZWJascoInWallSwitchDriver"
+description		"Driver for a Z-Wave Jasco In-Wall Switch"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+productId		"671eee"
+vendor 			"GE"
+model 			"ZW4001,ZW4005"
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x5257, 'ZWAV:ProductId': 0x3533
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4952, 'ZWAV:ProductId': 0x3032		// tested with device provided for dev (boxed)
+
+capabilities	DevicePower, Switch, Indicator
+
+importCapability 'zwave/JascoZWaveSwitchAll'
+importCapability 'zwave/GenericZWaveVersion'
+
+// Device Type:
+//		Switch Binary
+//
+// Command Classes:
+//		0x20   (32) Basic
+//		0x25   (37) Switch_Binary
+//		0x27   (39) Switch_All
+//		0x70  (112) Configuration
+//		0x72  (114) Manufacturer_Specific
+//		0x73  (115) PowerLevel
+//		0x77  (119) Node_Naming
+//		0x86 (-122) Version
+
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+
+final int  POLLING_INTERVAL_SEC = 120		// every 2 minutes, to match Iris 1
+
+final byte SWITCH_ON		= 0xff
+final byte SWITCH_OFF		= 0x00
+
+
+// config definitions/constants
+// ----------------------------
+final byte CNFG_LED_PARAM_NO      = 0x03		// parameter number for 'LED' setting, used to switch when LED is On and Off
+final byte CNFG_LED_SIZE          = 0x01		// size of 'LED' parameter field, in bytes
+final byte CNFG_LED_NORMAL        = 0x00		// LED 'ON' when outlet is 'OFF' (default)
+final byte CNFG_LED_INVERSE       = 0x01		// LED 'ON' when outlet is 'ON'
+
+final byte CNFG_TOGGLE_PARAM_NO   = 0x04		// parameter number for 'Toggle' setting, used to invert operation if installed upside down
+final byte CNFG_TOGGLE_SIZE       = 0x01		// size of 'Toggle' pafinal ter field, in bytes
+final byte CNFG_TOGGLE_NORMAL     = 0x00		// Top/Up is 'ON' (default)
+final byte CNFG_TOGGLE_INVERT     = 0x01		// Top/Up is 'OFF'
+
+final byte CNFG_RESET_PARAM_NO    = 0x00		// parameter number to reset configuration to factory default
+final byte CNFG_RESET_SIZE        = 0x81		// size field (actually flags indicating: 0x80 = reset, 0x01 = ignore values, use factory settings
+final byte CNFG_RESET_VALUE       = 0x00        // Not used by device
+
+// NOTE: No documentation on what parameters 1 and 2 are used for.
+
+final int OFFLINE_TIMEOUT_SECS    = 600 		// 10 minutes, may subject to change
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Jasco In-Wall Switch added"
+
+	// set default attribute values
+	DevicePower.source                  DevicePower.SOURCE_LINE
+	DevicePower.linecapable             true
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	Switch.state                        Switch.STATE_OFF
+	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Switch.inverted                     false
+
+	Indicator.enabled                   true
+	Indicator.enableSupported           false		// user cannot change the Indicator.enabled attribute for this device
+	Indicator.indicator                 Indicator.INDICATOR_ON
+	Indicator.inverted                  false
+
+	// reset the device configuration to factory defaults
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+
+onConnected {
+	log.debug "Jasco In-Wall Switch connected"
+
+	// get the current switch state
+	ZWave.switch_binary.get()
+
+	// These devices do not send a switch_binary.report when their state is changed locally,
+	// so periodically poll for the current switch state.  They do send a Node Info when the
+	// state is switched locally, but we also periodically poll in case we miss that message.
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	// get configuration settings
+	ZWave.configuration.get(CNFG_LED_PARAM_NO)
+	ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+onDisconnected {
+	log.debug "Jasco In-Wall Switch disconnected"
+}
+
+
+onRemoved {
+	log.debug "Jasco In-Wall Switch removed"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Switch Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+	log.debug "Jasco In-Wall Switch received swit:SetAttributes {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Switch.state:
+				// set the device to the desired state
+				ZWave.switch_binary.set(attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF)
+				// get the current switch state from the device (to verify the setting was made)
+				ZWave.switch_binary.get()
+				break
+
+			case Switch.inverted:
+				// set the Switch Orientation configuration
+				ZWave.configuration.set(CNFG_TOGGLE_PARAM_NO, CNFG_TOGGLE_SIZE, attribute.value ? CNFG_TOGGLE_INVERT : CNFG_TOGGLE_NORMAL)
+				// get the current Switch Orientation configuration from the device (to verify the config was set)
+				ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
+				break
+
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Indicator Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('indicator') {
+	log.debug "Jasco In-Wall Switch received indicator:SetAttributes {}", message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Indicator.inverted:
+				// set the LED configuration
+				ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+				// get the current LED configuration from the device (to verify the config was set)
+				ZWave.configuration.get(CNFG_LED_PARAM_NO)
+				break
+
+			case Indicator.enabled:
+				// The indicator cannot be enabled/disabled, only inverted
+				log.warn "Switch does not support enable/disable of Indicator"
+				return false
+				break
+
+			default:
+				log.error "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+	sendResponse 'indicator:SetAttributesResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Message Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	log.debug "Received binary switch report from Jasco In-Wall Switch: {}", message
+	def prevState = Switch.state.get()
+
+	boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
+	if (SWITCH_ON == message.command.get('value')) {
+		// set/save the state attribute of the switch
+		Switch.state Switch.STATE_ON
+		// update the indicator attribute to match (or inverse of) the state attribute
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+	} else {
+		// set/save the state attribute of the switch
+		Switch.state Switch.STATE_OFF
+		// update the indicator attribute to match (or inverse of) the state attribute
+		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+	}
+
+	// if state changed, capture timestamp
+	if (Switch.state.get() != prevState) {
+		Switch.statechanged new Date()
+	}
+}
+
+
+onZWaveMessage.configuration.report {
+	log.debug "Received configuration report for Jasco In-Wall Switch: {}", message
+	byte param = message.command.get('param')
+	byte level = message.command.get('level')
+	byte val1 = message.command.get('val1')
+	log.debug "param: {}, level: {}, val1: {}", param, level, val1
+
+	if (CNFG_LED_PARAM_NO == param) {
+		log.debug "LED Inverted: {}", val1
+		if (0 == val1) {
+			// set/save the inverted attribute of the LED indicator
+			Indicator.inverted false
+			// update the indicator attribute to match (or inverse of) the current state attribute
+			Indicator.indicator ((Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+		} else {
+			// set/save the inverted attribute of the LED indicator
+			Indicator.inverted true
+			// update the indicator attribute to match (or inverse of) the current state attribute
+			Indicator.indicator ((Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+		}
+	}
+
+	if (CNFG_TOGGLE_PARAM_NO == param) {
+		log.debug "Toggle Switch Inverted: {}", val1
+		// set/save the inverted attribute of the switch
+		Switch.inverted ((0 == val1) ? false : true)
+	}
+}
+
+
+// These devices send a Node Info message everytime the switch state changes
+// locally, so we use that to trigger a read of the current state so we stay
+// in synch with the actual device state.
+
+onZWaveNodeInfo {
+	log.debug "Jasco In-Wall Switch reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	// All values are bytes.
+//	vars.status = message.getStatus()
+//	vars.nodeid = message.getNodeId()
+//	vars.basic = message.getBasic()
+//	vars.generic = message.getGeneric()
+//	vars.specific = message.getSpecific()
+
+	// these devices report a Node Info everytime their state is changed locally,
+	// so do a Binary Switch Get to get the current state
+	ZWave.switch_binary.get()
+ }
+

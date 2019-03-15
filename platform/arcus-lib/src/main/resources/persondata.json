@@ -1,0 +1,17 @@
+[
+   {
+      "id" : "08300b50-c109-4528-a705-2510a53bcbe7",
+      "created" : 1420741425043,
+      "modified" : 1420741425043,
+      "tags" : [],
+      "accountId": "c24b0e18-3394-4f81-b762-274ba3605ccc",
+      "firstName": "Hu",
+      "lastName": "Man",
+      "termsAgreed": 1420741425043,
+      "privacyPolicyAgreed": 1420741425043,
+      "consentOffersPromotions": 1420741425043,
+      "consentStatement": 1420741425043,
+      "email": "x@example.com",
+      "mobileNumber": "5555555555"
+   }
+]

@@ -1,0 +1,8 @@
+
+message zwave.BasicWindowCovering.BasicWindowCoveringStartLevelChangeV1<id="0x01", group="V1"> {
+    const u8 LEVEL_OPEN_CLOSE = 0x40;
+    u8 level;
+}
+
+message zwave.BasicWindowCovering.BasicWindowCoveringStopLevelChangeV1<id="0x02", group="V1"> {
+}

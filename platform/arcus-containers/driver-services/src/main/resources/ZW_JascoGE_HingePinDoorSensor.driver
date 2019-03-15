@@ -1,0 +1,215 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Jasco Hinge Pin Door Sensor
+ * this driver was created early in development to destinguish between
+ * a GE and Jasco Hinge sensor, we don't do that for any other part and 
+ * decided not to here either.  It cannot be deleted because there are 
+ * some Beta parts in the field.  Driver will be modified to not match 
+ * anything again, and can be deleted once there are no instances 
+ * remaining.
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZWJascoGEHingePinDoorSensorDriver"
+description		"Driver for a JascoGE Hinge Pin Door Sensor"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Contact"
+productId		"bea612"
+vendor 			"GE"
+model 			"32563"
+// Population defined so no new instances created
+populations     []
+
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4953, 'ZWAV:ProductId': 0x3032
+
+
+capabilities	DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave battery handling
+importCapability 'zwave/GenericZWaveContact'		// use generic ZWave Contact handling
+
+
+// Command Classes:
+//		0x20   (32) Basic
+//		0x30   (48) Sensor_Binary
+//		0x70  (112) Configuration
+//		0x71  (113) Alarm (Notification)
+//		0x72  (114) Manufacturer_Specific
+//		0x80 (-128) Battery
+//      0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+// this is a door by default
+Contact.usehint	Contact.USEHINT_DOOR
+
+def final String DEVICE_NAME        = "Jasco Hinge Pin Door Sensor"
+def final int POLLING_INTERVAL_SEC  = 3600		// every 60 minutes
+def final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+
+def final int BATTERY_POLLING_INTERVAL_SEC = 86400   // Ask for battery level every 24 hours
+
+@Field def byte CONTACT_OPEN     = 0xFF
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+  
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes
+
+	// Note: Generic capability files set the capability attributes to defaults during onAdded
+}
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected"
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set Association to Group 1, Node 1
+	ZWave.association.set( 1, 1);
+
+	// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+	
+	// Note: Generic ZWave Contact capability file reads current state during onConnected
+
+	// setup polling for the current state
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+	
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+
+	// setup polling for battery level
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+}
+
+onDisconnected {
+	log.debug "${DEVICE_NAME} disconnected"
+}
+
+onRemoved {
+	log.debug "${DEVICE_NAME} removed"
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+	def prevState = Contact.contact.get()
+	if (-1 == currentState ) {
+		Contact.contact Contact.CONTACT_OPENED
+		log.trace "Contact: OPENED"
+	} else if (0 == currentState ) {
+		Contact.contact Contact.CONTACT_CLOSED
+		log.trace "Contact: CLOSED"
+	}
+	// if previous state is not the same as newly reported state, record timestamp of change
+	if (Contact.contact.get() != prevState) {
+		def now = new Date()
+		Contact.contactchanged now
+	}
+}
+
+/**
+ * Basic.Set message sent if device is operating in communications mode 2
+ */
+onZWaveMessage.basic.set {
+	log.debug "${DEVICE_NAME} received Basic Set: {}", message
+	// Basic Set sends the current state in the 'value' attribute
+	def byte[] bytes = message.command.recvBytes
+	byte currentState = bytes[0]
+	log.debug "State: $currentState"
+	// pass value set to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Basic.Report message is sent in response to any Basic.Get messages we send or if
+ * device is operating in communications mode 3
+ */
+onZWaveMessage.basic.report {
+	log.debug "${DEVICE_NAME} received Basic Report: {}", message
+	// Basic Report sends the current state in the 'value' attribute
+	byte currentState = message.command.get( 'value' )
+	// pass basic value reported to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Currently device does not send this message, but we include handling just in case, since
+ * the device supports the Command Class.
+ */
+onZWaveMessage.sensor_binary.report {
+	log.debug "${DEVICE_NAME} received Sensor Binary Report: {}", message
+	// Binary Sensor Report sends the current state in the 'value' attribute
+	byte currentState = message.command.get( 'value' )
+	// pass binary sensor value reported to generic Contact State handler
+	GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+/**
+ * Alarm(Notification).Report message sent if device is operating in communications mode 1 (default)
+ */
+onZWaveMessage.alarm.report {
+	log.debug "${DEVICE_NAME} sent Alarm/Notification Report"
+	def alarmType =  message.command.get('alarmtype')
+	def alarmLevel =  message.command.get('alarmlevel')
+	def notificationStatus =  message.command.get('notificationstatus')
+	def notificationType =  message.command.get('notificationtype')
+	def event =  message.command.get('event')
+	def byte[] bytes = message.command.recvBytes
+	log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: ${bytes}", alarmType, alarmLevel, event, notificationType, notificationStatus
+	
+	// Closed:  Alarm Type: 0, Alarm Level: 0, Event: 22, Notification Type: 6, Notification Status: -1
+	// Open:    Alarm Type: 0, Alarm Level: 0, Event: 23, Notification Type: 6, Notification Status: -1
+	if ((0 == alarmType) && (0 == alarmLevel) && (6 == notificationType) && (-1 == notificationStatus)) {
+		byte currentState = (22 == event) ? 0xFF : 0x00
+		// pass state based on event reported to generic Contact State handler
+		GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+	}
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+	log.info "${DEVICE_NAME} sent Wakeup Notification"
+	ZWave.basic.get()
+}
+
+onZWaveMessage {
+    log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
+    return false;
+}
+
+

@@ -1,0 +1,831 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-wave First Alert Smoke CO Detector
+ */
+
+import groovy.transform.Field                               // needed when running Unit Tests
+import static java.util.concurrent.TimeUnit.*               // needed when running Unit Tests
+import static com.iris.protocol.zwave.Alarm.AlarmReportV2   //note: driver is for AlarmV1 protocol
+uses 'zwave.GenericZWaveBattery'                            // use generic ZWave Battery handling
+
+////////////////////////////////////////////////////////////////////////////////
+// DRIVER SETUP
+////////////////////////////////////////////////////////////////////////////////
+
+driver         'ZWJardenSmokeAndCarbonMonoxideDetectorDriver'
+description    'Driver for a Z-Wave Jarden (First Alert) Smoke and CO Detector'
+version        '2.3'
+protocol       'ZWAV'
+deviceTypeHint 'Smoke/CO'
+productId      '1d33c1'
+vendor         'First Alert'   // manufactured by: Jarden Safety and Security
+model          'ZCOMBO'
+
+matcher        'ZWAV:Manufacturer': 0x0138, 'ZWAV:ProductType': 0x0001, 'ZWAV:ProductId': 0x0002
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// CONSTANTS
+////////////////////////////////////////////////////////////////////////////////
+@Field final byte TEST_ALARM           = 0x0C
+@Field final byte HEARTBEAT_ALARM      = 0x0D
+@Field final byte CO_EOL_ALARM         = 0x0E      // CO Sensor End-of-life
+
+@Field final byte CNFG_SEND_TWICE_PARAM_NO  = 0x01    // parameter number for 'Send Alarms Twice' setting
+@Field final byte CNFG_SEND_TWICE_SIZE      = 0x01    // size of parameter field, in bytes
+@Field final byte CNFG_SEND_TWICE_DISABLED  = 0x00    // send alarms to Association Group only once
+@Field final byte CNFG_SEND_TWICE_ENABLED   = 0x01    // send alarms to Association Group twice
+
+@Field final String DEVICE_NAME = "First Alert Smoke and CO Alarm"
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// CAPABILITIES
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Smoke {
+   Smoke.smoke Smoke.SMOKE_SAFE
+   bind smokechanged to Smoke.smoke
+}
+
+CarbonMonoxide {
+   CarbonMonoxide.co CarbonMonoxide.CO_SAFE
+   CarbonMonoxide.eol CarbonMonoxide.EOL_OK
+   bind cochanged to CarbonMonoxide.co
+}
+
+Test {
+}
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// PLATFORM LIFECYCLE
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "{} added", DEVICE_NAME
+
+   Test.lastTestTime       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "{} connected", DEVICE_NAME
+}
+
+onDisconnected {
+   log.debug "{} disconnected", DEVICE_NAME
+}
+
+
+onRemoved {
+   log.debug "{} removed", DEVICE_NAME
+}
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// REFLEX CONFIGURATION
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+
+   offlineTimeout 210, MINUTES
+
+   // when device connects ask for the current state of alarms
+   // and battery.
+   // wds - using 0x99 on notification type since it's not defined on AlarmGetV2 so the device doesn't get the wrong idea.
+   // technically, these parameters shouldn't be there, but due to some compromises and device peculiarities,
+   // it will stay in this version, hence the work around.
+   poll reflex {
+      on connected
+      send configuration.set, param:CNFG_SEND_TWICE_PARAM_NO, size:CNFG_SEND_TWICE_SIZE, val1: CNFG_SEND_TWICE_DISABLED, val2: 0x00, val3: 0x00, val4:0x00
+      send alarm.get, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, notificationtype: 0x99, event: 0x99
+      send alarm.get, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, notificationtype: 0x99, event: 0x99
+      send alarm.get, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SYSTEM, notificationtype: 0x99, event: 0x99
+      send alarm.get, alarmtype: TEST_ALARM, notificationtype: 0x99, event: 0x99
+      send alarm.get, alarmtype: CO_EOL_ALARM, notificationtype: 0x99, event: 0x99
+      send battery.get
+   }
+
+
+   //**********************************************************************************
+   //SMOKE REFLEXES
+   //**********************************************************************************
+   match reflex {
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: AlarmReportV2.ZWAVE_ALARM_STATUS_ON
+      set Smoke.smoke, Smoke.SMOKE_DETECTED
+   }
+
+   match reflex {
+      // The device sends a smoke alert with level off when smoke has cleared after an alarm was previously reported
+      // or if the user manually pressed the silence button.
+      on alarm.report, alarmtype:AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel:AlarmReportV2.ZWAVE_ALARM_STATUS_OFF
+      set Smoke.smoke, Smoke.SMOKE_SAFE
+   }
+
+   // ITWO-6721 / ITWO-6698: this is probably a reception error of safe or detected
+   // If it was safe, device is probably back asleep.
+   // This asks for a re-read in that case.
+   match reflex {
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x01
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x02
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x03
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x04
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x05
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x06
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x07
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x08
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x09
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x0F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x10
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x11
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x12
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x13
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x14
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x15
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x16
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x17
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x18
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x19
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x1F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x20
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x21
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x22
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x23
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x24
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x25
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x26
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x27
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x28
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x29
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x2F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x30
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x31
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x32
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x33
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x34
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x35
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x36
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x37
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x38
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x39
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x3F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x40
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x41
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x42
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x43
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x44
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x45
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x46
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x47
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x48
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x49
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x4F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x50
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x51
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x52
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x53
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x54
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x55
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x56
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x57
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x58
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x59
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x5F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x60
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x61
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x62
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x63
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x64
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x65
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x66
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x67
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x68
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x69
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x6F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x70
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x71
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x72
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x73
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x74
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x75
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x76
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x77
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x78
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x79
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x7F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x80
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x81
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x82
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x83
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x84
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x85
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x86
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x87
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x88
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x89
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x8F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x90
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x91
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x92
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x93
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x94
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x95
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x96
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x97
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x98
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x99
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0x9F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xA9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xAF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xB9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xBF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xC9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xCF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xD9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xDF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xE9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xEA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xEB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xEC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xED
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xEE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xEF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xF9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xFA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xFB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xFC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xFD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, alarmlevel: 0xFE
+      delay {
+         after 2, SECONDS
+         send alarm.get, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE, notificationtype: 0x99, event: 0x99
+      }
+   }
+
+   //**********************************************************************************
+   //CO REFLEXES
+   //**********************************************************************************
+   match reflex {
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: AlarmReportV2.ZWAVE_ALARM_STATUS_ON
+      set CarbonMonoxide.co, CarbonMonoxide.CO_DETECTED
+   }
+
+   match reflex {
+      on alarm.report, alarmtype:AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel:AlarmReportV2.ZWAVE_ALARM_STATUS_OFF
+      set CarbonMonoxide.co, CarbonMonoxide.CO_SAFE
+   }
+
+   // ITWO-6721 / ITWO-6698: this is probably a reception error of safe or detected
+   // If it was safe, device is probably back asleep.
+   // This asks for a re-read in that case.
+   match reflex {
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x01
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x02
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x03
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x04
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x05
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x06
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x07
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x08
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x09
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x0F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x10
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x11
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x12
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x13
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x14
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x15
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x16
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x17
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x18
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x19
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x1F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x20
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x21
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x22
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x23
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x24
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x25
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x26
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x27
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x28
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x29
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x2F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x30
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x31
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x32
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x33
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x34
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x35
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x36
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x37
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x38
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x39
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x3F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x40
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x41
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x42
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x43
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x44
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x45
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x46
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x47
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x48
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x49
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x4F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x50
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x51
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x52
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x53
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x54
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x55
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x56
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x57
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x58
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x59
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x5F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x60
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x61
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x62
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x63
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x64
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x65
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x66
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x67
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x68
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x69
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x6F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x70
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x71
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x72
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x73
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x74
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x75
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x76
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x77
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x78
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x79
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x7F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x80
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x81
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x82
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x83
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x84
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x85
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x86
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x87
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x88
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x89
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x8F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x90
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x91
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x92
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x93
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x94
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x95
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x96
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x97
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x98
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x99
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9A
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9B
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9C
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9D
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9E
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0x9F
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xA9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xAF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xB9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xBF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xC9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xCF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xD9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xDF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xE9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xEA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xEB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xEC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xED
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xEE
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xEF
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF0
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF1
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF2
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF3
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF4
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF5
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF6
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF7
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF8
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xF9
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xFA
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xFB
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xFC
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xFD
+      on alarm.report, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, alarmlevel: 0xFE
+      delay {
+         after 2, SECONDS
+         send alarm.get, alarmtype: AlarmReportV2.ZWAVE_ALARM_TYPE_CO, notificationtype: 0x99, event: 0x99
+      }
+   }
+
+   //**********************************************************************************
+   //Smoke and CO REFLEXES
+   //**********************************************************************************
+
+   match reflex {
+      // The device sends a heartbeat message when batteries are inserted (even if smoke is present) and once per hour
+      // iff there is no smoke present. If there is still smoke present after the batteries are inserted then the
+      // device will send another smoke alert 5 seconds after the heartbeat.
+      on alarm.report, alarmtype: 0x0D
+      set Smoke.smoke, Smoke.SMOKE_SAFE
+      set CarbonMonoxide.co, CarbonMonoxide.CO_SAFE
+   }
+
+   match reflex {
+      // The device sends a test alarm when the user performs the testing procedure, but only if smoke
+      // is not currently detected (otherwise the button functions as a silence button and a smoke alarm
+      // with level clear will be sent instead).
+      on alarm.report, alarmtype: 0x0C
+      set Smoke.smoke, Smoke.SMOKE_SAFE
+      set CarbonMonoxide.co, CarbonMonoxide.CO_SAFE
+      forward
+   }
+
+   //**********************************************************************************
+   //CO EOL REFLEXES
+   //**********************************************************************************
+   match reflex {
+      on alarm.report, alarmtype: CO_EOL_ALARM, alarmlevel: AlarmReportV2.ZWAVE_ALARM_STATUS_ON
+      set CarbonMonoxide.eol, CarbonMonoxide.EOL_EOL
+   }
+
+   match reflex {
+      on alarm.report, alarmtype: CO_EOL_ALARM, alarmlevel: AlarmReportV2.ZWAVE_ALARM_STATUS_OFF
+      set CarbonMonoxide.eol, CarbonMonoxide.EOL_OK
+   }
+}
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  PLATFORM EVENT HANDLING
+////////////////////////////////////////////////////////////////////////////////
+onZWaveMessage.alarm.report {
+
+   def testtype = message.command.get('alarmtype')
+   if (null == testtype) {
+      log.debug "{} received alarm report with missing alarm type", DEVICE_NAME
+      return false
+   }
+   def testlevel = message.command.get('alarmlevel')
+   if (null == testlevel) {
+      log.debug "{} received alarm report with missing alarm level", DEVICE_NAME
+      return false
+   }
+
+   byte curType =  message.command.get('alarmtype')
+   byte curLevel = message.command.get('alarmlevel')
+   log.debug "{} reported Alarm, type: {}, level: {}", DEVICE_NAME, curType, curLevel
+
+   switch( curType ) {
+      case AlarmReportV2.ZWAVE_ALARM_TYPE_SYSTEM:
+         log.info "{} reported a MALFUNCTION alarm {}.", DEVICE_NAME, curLevel
+            switch (curLevel) {
+               case AlarmReportV2.ZWAVE_ALARM_STATUS_ON:
+                  log.warn "{} reports MALFUNCTION alarm present", DEVICE_NAME
+                  break
+               case AlarmReportV2.ZWAVE_ALARM_STATUS_OFF:
+                  log.info "{} MALFUNCTION alarm cleared.", DEVICE_NAME
+                  break
+               default:
+                  log.warn "{} reports MALFUNCTION of unknown level: {}", DEVICE_NAME, curLevel
+                  break
+            }
+         break
+
+      case TEST_ALARM:
+         if (0 != curLevel) {
+            log.info "{} reported a TEST initiated alarm.", DEVICE_NAME
+            Test.lastTestTime now()
+         } else {
+            log.info "{} reported a TEST cleared.", DEVICE_NAME
+         }
+         break
+
+      case AlarmReportV2.ZWAVE_ALARM_TYPE_SMOKE:
+         // This will be matched by reflexes and should never execute
+         log.info "{} reported a SMOKE alarm, level:", DEVICE_NAME, curLevel
+         int curSmoke = curLevel & 0xFF
+
+         switch ( curSmoke ) {
+            case AlarmReportV2.ZWAVE_ALARM_STATUS_ON:
+               break
+            case AlarmReportV2.ZWAVE_ALARM_STATUS_OFF:
+               break
+            default:
+               log.warn "{} sent unexpected smoke detected level: {}", DEVICE_NAME, curSmoke
+               break
+         }
+         break
+
+      case AlarmReportV2.ZWAVE_ALARM_TYPE_CO:
+         // This will be matched by reflexes and should never execute
+         log.info "{} reported a CO alarm, level:", DEVICE_NAME, curLevel
+         int curCo = curLevel & 0xFF
+         switch ( curCo ) {
+            case DETECTED:
+               break
+            case SAFE:
+               break
+            default:
+               log.warn "{} sent unexpected smoke detected level: {}", DEVICE_NAME, curCo
+               break
+         }
+         break
+
+      case HEARTBEAT_ALARM:
+         // This will be matched by reflexes and should never execute
+         log.trace "{} reported a HEARTBEAT alarm.", DEVICE_NAME // ITWO-6697
+         break
+
+      case CO_EOL_ALARM:
+         log.warn "{} reported a CO Sensor End-Of-Life alarm.", DEVICE_NAME
+         break
+
+      default:
+         log.warn "{} sent unknown alarm type: {}", DEVICE_NAME, curType
+         return false
+   }
+}
+
+onZWaveMessage.battery.report {
+   // pass message to generic ZWave Battery Report handler
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+////////////////////////////////////////////////////////////////////////////////
+

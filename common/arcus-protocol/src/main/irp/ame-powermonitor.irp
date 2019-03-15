@@ -1,0 +1,109 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Power Monitor Cluster
+//    From "Implementing the AlertMe Power Control & Power Monitor Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.PowerMonitor {
+   const u16 CLUSTER_ID = 0x00EF;
+}
+
+message alertme.PowerMonitor.SetSpontaneousReportingParamters<id="0x00"> {
+   const u8 MODE_RELATIVE_CHANGE = 0x00;
+   const u8 MODE_ABSOLUTE_CHANGE = 0x01;
+
+   const u16 MAX_CHANGE_DONT_REPORT = 0x00;
+
+   u8 mode;
+   u16 maxChange;
+   u16 minChange;
+   u16 guardTime;
+}
+
+message alertme.PowerMonitor.RequestReport<id="0x03"> {
+}
+
+message alertme.PowerMonitor.SetRegularReportingParameters<id="0x04"> {
+   const u8 CHANNEL_TOTAL_ENERGY = 0x00;
+   const u8 CHANNEL_INSTANT_POWER = 0x01;
+   const u8 CHANNEL_STATUS = 0x02;
+   const u8 CHANNEL_BATCHED_POWER = 0x03;
+
+   const u16 REPORT_RATE_DONT_REPORT = 0;
+   const u16 SAMPLE_RATE_DONT_REPORT = 0;
+
+   u8 channel;
+   u16 reportRate;
+   u16 sampleRate;
+}
+
+message alertme.PowerMonitor.SetScaleFactors<id="0x05"> {
+   u16 fpM;
+   u16 fpC;
+}
+
+message alertme.PowerMonitor.GetScaleFactors<id="0x06"> {
+}
+
+message alertme.PowerMonitor.StatusReport<id="0x80"> {
+   // AlertMe Documentation: not implemented
+}
+
+message alertme.PowerMonitor.InstantaneousPowerReport<id="0x81"> {
+   u16 watts;
+}
+
+message alertme.PowerMonitor.TotalEnergyReport<id="0x82"> {
+   const u8 BITFIELD_FIRST_REPORT = 0x01;
+
+   u32 jouleCount;
+   u32 secsTimer;
+   u8 bitfield;
+}
+
+message alertme.PowerMonitor.ScaleFactorReport<id="0x83"> {
+   u16 fpM;
+   u16 fpC;
+}
+
+message alertme.PowerMonitor.BatchedPowerReport<id="0x84"> {
+   const u32 MAX_BATCHED_POWER_SIZE = 32;
+
+   u32 secsTimer;
+   u16[32] powerReadings;
+}
+
+message alertme.PowerMonitor.BatchedEnergyReport<id="0x85"> {
+   // AlertMe Documentation: not implemented
+}
+
+message alertme.PowerMonitor.MergedPowerAndTotalEnergyReport<id="0x86"> {
+   const u8 BITFIELD_FIRST_REPORT = 0x01;
+
+   u16 instantaneousPower; 
+   u32 jouleCount;
+   u32 secsTimer;
+   u8 bitfield;
+}
+
+message alertme.PowerMonitor.MergedBatchedPowerAndTotalEnergyReport<id="0x87"> {
+   const u8 BITFIELD_FIRST_REPORT = 0x01;
+   const u32 MAX_BATCHED_POWER_SIZE = 32;
+
+   u32 secsTimer;
+   u16[32] powerReadings;
+   u32 jouleCount;
+   u32 energySecsTimer;
+   u8 bitfield;
+}
+
+message alertme.PowerMonitor.GeneratedPowerReport<id="0x88"> {
+   u16 watts;
+}
+
+message alertme.PowerMonitor.TotalGeneratedEnergyReport<id="0x89"> {
+   const u8 BITFIELD_FIRST_REPORT = 0x01;
+
+   u32 jouleCount;
+   u32 secsTimer;
+   u8 bitfield;
+}

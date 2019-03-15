@@ -1,0 +1,185 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Keypad implementation for devices that need to know alarm state, but cannot control
+ */
+ 
+ import groovy.transform.Field
+ 
+capability		KeyPad
+description		"Read only ZigBee Keypad to monitor Alarm State"
+version			"1.0"
+
+@Field def iasWdCluster = Zigbee.endpoint((byte)1).IasWd
+@Field def short DEFAULT_WARNING_TIME  =  120  //two minutes in seconds
+@Field def final String TAG = "AlarmMonitor"
+
+setAttributes('keypad') {
+	
+    log.debug "${TAG} - setAttributes:KeyPad - message " + message
+    def attributes = message.attributes
+
+	def state = KeyPad.alarmState.get()
+	def mode = KeyPad.alarmMode.get()
+	def sound = KeyPad.alarmSounder.get()
+
+    for(attribute in attributes) {
+      switch(attribute.key) {
+      case KeyPad.alarmState:
+         KeyPad.alarmState attribute.value
+         state = attribute.value
+         break;
+
+      case KeyPad.alarmMode:
+         KeyPad.alarmMode attribute.value
+         mode = attribute.value
+         break;
+
+      case KeyPad.alarmSounder:
+         KeyPad.alarmSounder attribute.value
+         sound = attribute.value
+         break;
+
+      default:
+         break;
+      }
+    }
+
+/*	def statusCode = getStatusCode(state,mode)
+	def alarmCode = getAlarmCode(state,mode)
+	def silentCode = getSilentCode(sound) */
+	def timeLeft = getTimeRemaining(now(), vars.'delayEnd')
+
+   //We want soaking to run the beeping until changed to another state.
+   if("SOAKING".equals(state)){
+      timeLeft = (byte)-1
+   }
+
+    if (vars.'sendArmResponse' != null) {
+        ace.armResponse(getArmResponseCode(state,mode))
+
+        Scheduler.cancel 'armResponseTimeout'
+        vars.'sendArmResponse' = null
+    }
+	
+	log.debug "Alarm Status changed to " + state + ", " + mode
+//	sendPanelStatusChangeWithRetry(statusCode, timeLeft, silentCode, alarmCode)
+    setAlarmStatus(state, mode)
+}
+onKeyPad.BeginArming {
+	log.debug "${TAG} - onKeyPad.BeginArming - message" + message
+ 
+	int delay = message.attributes['delayInS'] as int
+	if (delay < 0 || delay > 255) {
+	   throw new Exception("invalid exit delay: must be >= 0 and <= 255");
+	}
+
+	KeyPad.alarmState "ARMING"
+   KeyPad.alarmMode "ON"
+	vars.'delayEnd' = new Date(now().time + delay * 1000);
+
+	def state = KeyPad.alarmState.get()
+	def mode = KeyPad.alarmMode.get()
+	def sound = KeyPad.alarmSounder.get()
+
+/*	def statusCode = getStatusCode(state,mode)
+	def alarmCode = getAlarmCode(state,mode)
+	def silentCode = getSilentCode(sound)
+
+   log.debug "begin arming - issued panel status change - code:$statusCode time:$delay silentCode:$silentCode alarmCode:$alarmCode"
+   sendPanelStatusChangeWithRetry(statusCode, (byte)delay, silentCode, alarmCode)
+*/
+	sendResponse 'keypad:BeginArmingResponse', [:]
+
+    setAlarmStatus(state, mode)
+}
+
+//Two helper functions copied straight from Centralite code TODO use common code
+byte getTimeRemaining(Date nowDate, Date endDate) {
+   return (byte)getTimeRemaining(nowDate, endDate, 255000) / 1000
+}
+
+long getTimeRemaining(Date nowDate, Date endDate, long max) {
+   if (nowDate == null || endDate == null) {
+      return 0
+   }
+
+   long now = nowDate.time
+   long end = endDate.time
+
+   if (end <= now) {
+      return 0
+   }
+
+   long left = (end - now)
+   if (left > max) {
+      log.debug "${TAG} - over zigbee 8bit value limit returning max of {}",max
+      return max
+   }
+
+   log.debug "${TAG} - {} seconds remaining in arming mode", left
+   return left
+}
+
+void setAlarmStatus( state,  mode){
+
+def final byte WARNING_MODE_STOP = 0
+def final byte WARNING_MODE_BURGLAR = 0x10
+def final byte WARNING_MODE_SOAKING = 0xA0
+def final byte WARNING_MODE_PANIC = 0x40
+def final byte WARNING_MODE_NO_STROBE =0
+def final byte SQUAWK_MODE_ARMED = 0x10
+def final byte SQUAWK_MODE_DISARMED = 0x20
+
+		switch (state + "-" + mode) {
+			case "DISARMED-ON":      			// Disarmed
+			case "DISARMED-PARTIAL": 
+   			case "DISARMED-OFF":     
+   				log.debug "Alarm Disarmed"
+  				iasWdCluster.startWarning(WARNING_MODE_STOP, DEFAULT_WARNING_TIME, WARNING_MODE_NO_STROBE, WARNING_MODE_NO_STROBE)
+  				iasWdCluster.squawk(SQUAWK_MODE_DISARMED)
+   				log.debug "Alarm Disarmed"
+   				break
+		   	case "ALERTING-ON":     
+			case "ALERTING-PARTIAL":
+  				iasWdCluster.startWarning(WARNING_MODE_BURGLAR, DEFAULT_WARNING_TIME, WARNING_MODE_NO_STROBE, WARNING_MODE_NO_STROBE) 
+				log.debug "Alerting"
+				break
+			case "ARMING-ON": 
+			case "ARMING-PARTIAL":
+				log.debug "Arming - No Message"
+				break
+			case "ARMED-ON":    
+			case "ARMED-PARTIAL":
+  				iasWdCluster.squawk(SQUAWK_MODE_ARMED)
+				log.debug "Armed"
+				break
+		   	case "SOAKING-ON":
+   			case "SOAKING-PARTIAL":
+  				iasWdCluster.startWarning(WARNING_MODE_SOAKING, DEFAULT_WARNING_TIME, WARNING_MODE_NO_STROBE, WARNING_MODE_NO_STROBE)    			 
+   				log.debug "Soaking"
+   				break
+   			case "ALERTING-OFF":  //CES Hack for Panic, will trigger intruder if Panic pressed with alarm armed
+  				iasWdCluster.startWarning(WARNING_MODE_PANIC, DEFAULT_WARNING_TIME, WARNING_MODE_NO_STROBE, WARNING_MODE_NO_STROBE)    			 
+   				log.debug "PANIC Alarm Hack for CES"
+   				break   			
+			default: 
+				log.warn "${TAG} - unknown getStatusCode alarm state ${state} - ${mode}";
+				//set unknown state back to last known state
+
+		}	
+}
+

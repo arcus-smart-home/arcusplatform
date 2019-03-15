@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Halo"
+   namespace="halo"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Information to support Halo devices.
+   </c:description>
+   
+   <c:attributes>
+     <c:attribute 
+         name="devicestate" 
+         readwrite="r"
+         type="enum"
+         values="SAFE, WEATHER, SMOKE, CO, PRE_SMOKE, EOL, LOW_BATTERY, VERY_LOW_BATTERY, FAILED_BATTERY"
+         optional="false"
+         description="Current state of Halo device."
+         />
+     <c:attribute 
+         name="hushstatus" 
+         readwrite="r"
+         type="enum"
+         values="SUCCESS,TIMEOUT,READY,DISABLED"
+         optional="false"
+         description="Current status of Hush process."
+         />
+      <c:attribute 
+         name="room" 
+         readwrite="rw"
+         type="enum"
+         values="NONE,BASEMENT,BEDROOM,DEN,DINING_ROOM,DOWNSTAIRS,ENTRYWAY,FAMILY_ROOM,GAME_ROOM,GUEST_BEDROOM,HALLWAY,KIDS_BEDROOM,LIVING_ROOM,MASTER_BEDROOM,OFFICE,STUDY,UPSTAIRS,WORKOUT_ROOM"
+         optional="false" 
+         description="This is the room type description for the location of the Halo device, which can be read out in an alert."
+         />
+      <c:attribute
+         name="roomNames"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="false"
+         description="Mapping of halo:room enum keys to human readable room names supported by this device"
+         />
+      <c:attribute 
+         name="remotetestresult" 
+         readwrite="r"
+         type="enum"
+         values="SUCCESS,FAIL_ION_SENSOR,FAIL_PHOTO_SENSOR,FAIL_CO_SENSOR,FAIL_TEMP_SENSOR,FAIL_WEATHER_RADIO,FAIL_OTHER"
+         optional="false"
+         description="Response code from remote test of the halo test feature."
+         />
+      <c:attribute 
+         name="haloalertstate" 
+         readwrite="rw"
+         type="enum"
+         values="QUIET,INTRUDER,PANIC,WATER,SMOKE,CO,CARE,ALERTING_GENERIC"
+         optional="false"
+         description="State of the Iris system, as transmited to Halo to be indicated to the user through lights and sound."
+         />
+   </c:attributes>
+
+   <c:methods>
+      <c:method 
+         name="StartHush"
+         description="Start a new hush process (assumes device is in pre-alert state).">
+         <c:parameters>
+            <c:return
+               name="hushstarted"
+               type="boolean"
+               description="Was the halo in a proper state to start hush: smoke per-alert or smoke alert (but not denied due to >4% UL requirement)."
+               optional="false"/>
+         </c:parameters>        
+      </c:method>
+
+        <c:method 
+         name="SendHush"
+         description="Send when user says Halo is flashing a particular color.">
+         <c:parameters>
+         <c:parameter 
+       	    name="color" 
+      	    type="enum"
+            values="RED,BLUE,GREEN"
+       	    description="Color the user says is being currently displayed by Halo in the Hush process."
+            optional="false"/>
+         </c:parameters>
+        </c:method>
+        <c:method 
+         name="CancelHush"
+         description="Cancel out of current hush process.">
+        </c:method>
+
+        <c:method 
+         name="StartTest"
+         description="Run test cycle on the Halo. Should be moved to some generic capability.">
+        </c:method>
+</c:methods>
+
+</c:capability>

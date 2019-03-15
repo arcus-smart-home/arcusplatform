@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  To Create: POST https://:subdomain.recurly.com/v2/accounts/:account_code/billing_info -->
+<!--  To Update: PUT https://:subdomain.recurly.com/v2/accounts/:account_code/billing_info -->
+<billing_info>
+  <first_name>Verena</first_name>
+  <last_name>Example</last_name>
+  <address1>123 Main St.</address1>
+  <address2 nil="nil"></address2>
+  <city>San Francisco</city>
+  <state>CA</state>
+  <zip>94105</zip>
+  <country>US</country>
+  <number>4111-1111-1111-1111</number>
+  <verification_value>123</verification_value>
+  <month>11</month>
+  <year>2015</year>
+</billing_info>

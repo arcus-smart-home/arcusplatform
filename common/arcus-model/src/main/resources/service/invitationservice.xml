@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="InvitationService"
+           namespace="invite"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Static services related to invitations
+   </s:description>
+   
+   <s:methods>
+
+   <s:method 
+      name="GetInvitation"
+      description="Finds an invitation by its code and invitee email"
+      isRESTful="true">
+         
+      <s:parameter 
+         name="code"
+         type="string"
+         description="The invitation code"
+         optional="false"/>
+         
+      <s:parameter 
+         name="inviteeEmail"
+         type="string"
+         description="The email address the invite was sent too"
+         optional="false"/>
+         
+      <s:return
+         name="invitation"
+         type="Invitation"
+         description="The invitation"
+         optional="false"/>
+         
+   </s:method>
+   
+   <s:method
+         name="AcceptInvitationCreateLogin"
+         description="Creates a new person/login and associates them with the place from the invitation"
+         isRESTful="true">
+         
+         <s:parameter 
+            name="person"
+            type="Person"
+            description="The person you would like to create with person to this place."
+            optional="false"/>
+         <s:parameter 
+            name="password"
+            type="string"
+            description="The login password for this person."
+            optional="false"/>
+         <s:parameter
+            name="code"
+            type="string"
+            description="The invitation code"
+            optional="false"/>
+         <s:parameter
+            name="inviteeEmail"
+            type="string"
+            description="The email the invitation was sent to, which does nto have to be same as the email the login is created with."
+            optional="false"/>
+         
+         <s:return
+            name="person"
+            type="Person"
+            description="The instance of the PersonModel created for the person"
+            optional="false"/>
+            
+      </s:method>
+
+   </s:methods>
+
+</s:service>

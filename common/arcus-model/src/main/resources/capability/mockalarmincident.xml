@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+      name="MockAlarmIncident"
+      namespace="incidentmock"
+      enhances="AlarmIncident"
+      version="1.0"
+      xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of a mock alarm incident
+   </c:description>
+
+   <c:attributes>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+          name="Contacted"
+          description="Throws an error if the current incidentState is not alertState: ALERT or alertState: CANCELLING.
+          Adds the history entry for contacting a person.  If no person is specified the person issuing the call will be used.">
+          <c:parameters>
+	         <c:parameter
+	            name="person"
+	            type="String"
+	            description="The address of the person to contact"/>
+          </c:parameters>
+      </c:method>
+
+      <c:method
+          name="DispatchCancelled"
+          description="Throws an error if the current incidentState is not alertState: ALERT or alertState: CANCELLING.
+          Sets the monitoringState to CANCELLED and the alertState to COMPLETE.  Also creates the appropriate history entries.  
+          If no person is specified the person issuing the call will be used.">
+          <c:parameters>
+	         <c:parameter
+	            name="person"
+	            type="String"
+	            description="The address of the person to contact"/>
+          </c:parameters>
+      </c:method>
+      
+      <c:method
+          name="DispatchAccepted"
+          description="Throws an error if the current incidentState is not alertState: ALERT or alertState: CANCELLING.
+          Sets the monitoringState to DISPATCHED and creates the appropriate history entries.  
+          If the alertState is CANCELLING it should be changed to COMPLETE.">
+          <c:parameters>
+            <c:parameter
+                name="authority"
+                type="enum"
+                values="FIRE,POLICE"
+                description="The authority for the incident incident." />
+          </c:parameters>
+      </c:method>
+      
+      <c:method
+          name="DispatchRefused"
+          description="Throws an error if the current incidentState is not alertState: ALERT or alertState: CANCELLING.
+          Sets the monitoringState to DISPATCHED and creates the appropriate history entries.
+          If the alertState is CANCELLING it should be changed to COMPLETE.">
+          <c:parameters>
+            <c:parameter
+                name="authority"
+                type="enum"
+                values="FIRE,POLICE"
+                description="The authority for the incident incident." />
+          </c:parameters>
+      </c:method>                           
+   </c:methods>
+   
+   <c:events>
+   </c:events>   
+
+</c:capability>

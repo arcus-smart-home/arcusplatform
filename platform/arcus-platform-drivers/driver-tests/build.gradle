@@ -1,0 +1,109 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply from: file("${rootDir}/gradle/subproject.gradle")
+apply from: file("${rootDir}/gradle/groovy.gradle")
+
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+
+sourceSets.main.java.srcDirs = []
+sourceSets.main.groovy.srcDirs += ["src/main/java"]
+//sourceSets.test.groovy.srcDirs += ["src/test/java"]
+
+configurations {
+	cucumberRuntime {
+		extendsFrom testRuntime
+	}
+}
+
+dependencies {
+	compile project (':common:arcus-drivers:drivers-common')
+	compile project (':common:arcus-drivers:groovy-bindings')
+	compile project (':common:arcus-protocol')
+
+	compile project(':platform:arcus-containers:driver-services')
+	compile project(':platform:arcus-lib')
+	compile project(':platform:arcus-test')
+	compile project(':common:arcus-common')
+	
+	compile libraries.cucumber
+	compile libraries.groovy
+}
+
+test {
+	exclude '**/*.feature'
+}
+
+
+task cucumber(type: JavaExec) {
+	def cmdLineTags = ""
+	if(project.hasProperty("tags")){
+		cmdLineTags="$tags"
+	}
+
+	def reportsDir = ""
+	if(project.hasProperty("reports")){
+		reportsDir="$reports"
+	}
+	else {
+		reportsDir = buildDir
+	}
+	
+	//allow assertions to work in java files
+	jvmArgs += ["-ea"]
+
+	def cukeArgs = [
+			'--glue',
+			'src/test/java/com/iris/driver/unit/',
+	]
+	
+	def plugins = [
+		"html:$reportsDir/test-results/cucumber",
+		"json:$reportsDir/test-results/cucumber.json",
+		"junit:$reportsDir/test-results/cucumber.xml"
+	]
+	plugins << 'pretty';
+	plugins.each { cukeArgs << '--plugin' << it }
+
+	if(cmdLineTags){
+		cmdLineTags.tokenize("+").each {
+			cukeArgs << "--tags"
+			cukeArgs << it
+		}
+	} else {
+		cukeArgs << '--tags'
+		cukeArgs << "~@Ignore"
+	}
+	if(project.hasProperty('features') && !features.isEmpty()) {
+		features.tokenize(",").each {
+			cukeArgs << "src/cucumber/resources/com/iris/driver/unit/$it"
+		}
+	}
+	else {
+		cukeArgs << 'src/cucumber/resources/com/iris/driver/unit/zw'
+		cukeArgs << 'src/cucumber/resources/com/iris/driver/unit/zb'
+		cukeArgs << 'src/cucumber/resources/com/iris/driver/unit/ipcd'
+	}
+	//println cukeArgs
+	//println allJvmArgs
+	main = "cucumber.api.cli.Main"
+	classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+	args = cukeArgs
+}
+

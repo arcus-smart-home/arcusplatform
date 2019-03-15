@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="WeeklySchedule"
+   namespace="schedweek"
+   enhances="Schedule"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   A schedule that has a set of commands that should be run at different times of day
+   each day of the week.
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute
+         name="mon"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Mondays"/>
+
+      <c:attribute
+         name="tue"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Tuesdays"/>
+
+      <c:attribute
+         name="wed"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Wednesdays"/>
+
+      <c:attribute
+         name="thu"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Thursdays"/>
+
+      <c:attribute
+         name="fri"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Fridays"/>
+
+      <c:attribute
+         name="sat"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Saturdays"/>
+
+      <c:attribute
+         name="sun"
+         readwrite="r"
+         type="list&lt;TimeOfDayCommand&gt;"
+         optional="true"
+         description="The commands that are scheduled to run on Sundays"/>
+         
+   </c:attributes>
+   
+   <c:methods>
+   	<c:method name="ScheduleWeeklyCommand" description="
+Adds or modifies a scheduled weekly event running at the given time on the requested days.
+Note that if an event with the same messageType, attributes and time of day exists this call will modify that event.
+   	">
+      <c:parameter 
+      	name="days" 
+      	type="set&lt;string&gt;"
+      	values="MON,TUE,WED,THU,FRI,SAT,SUN" 
+      	description="The days of the week that this command should be run on.  There must be at least one day in this set." 
+      	optional="false"/>
+      <c:parameter 
+      	name="time" 
+      	type="string"
+      	description="The time of day formatted as HH:MM:SS using a 24-hour clock, in place-local time (see Place#TimeZone), that the command should be sent.  This may not be set if mode is SUNRISE or SUNSET, this must be set of mode is ABSOLUTE or unspecified." 
+      	optional="true"/>
+      <c:parameter
+        name="mode"
+        type="enum"
+        values="ABSOLUTE,SUNRISE,SUNSET"
+        description="What mode this command is scheduled in:
+    ABSOLUTE - The time reported in time will be used.
+    SUNRISE - The command will execute at local sunrise + offsetMin.  The time reported in the time field will be the calculated run time for today.
+    SUNSET - The command will execute at local sunset + offsetMin. The time reported in the time field will be the calculated run time for today."
+        optional="true"/>
+      <c:parameter
+         name="offsetMinutes"
+         type="int"
+         description="This will always be 0 if the mode is set to ABSOLUTE.  If mode is set to SUNRISE or SUNSET this will be the offset / delta from sunrise or sunset that the event should run at.  A negative number means the event should happen before sunrise/sunset, a postive means after."
+      	 optional="true"/>
+      <c:parameter 
+      	name="messageType" 
+      	type="string"
+      	description="Default: base:SetAttributes. Type of message to be sent." 
+      	optional="true"/>
+      <c:parameter 
+      	name="attributes" 
+      	type="map&lt;any&gt;"
+      	description="The attributes to send with the request." 
+      	optional="false"/>
+      <c:return 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command that was created or modified."/>
+   	</c:method>
+   	<c:method name="UpdateWeeklyCommand" description="Updates schedule for an existing scheduled command.">
+      <c:parameter 
+      	name="commandId" 
+      	type="string" 
+      	description="The id of the command to update. Only the specified fields will be changed." 
+      	optional="false"/>
+      <c:parameter 
+      	name="days" 
+      	type="set&lt;string&gt;"
+      	values="MON,TUE,WED,THU,FRI,SAT,SUN" 
+      	description="If specified it will update the schedule to only run on the requested days." 
+      	optional="true"/>
+      <c:parameter
+        name="mode"
+        type="enum"
+        values="ABSOLUTE,SUNRISE,SUNSET"
+        description="What mode this command is scheduled in:
+    ABSOLUTE - The time reported in time will be used.
+    SUNRISE - The command will execute at local sunrise + offsetMin.  The time reported in the time field will be the calculated run time for today.
+    SUNSET - The command will execute at local sunset + offsetMin. The time reported in the time field will be the calculated run time for today."
+        optional="true"/>
+      <c:parameter
+         name="offsetMinutes"
+         type="int"
+         description="This will always be 0 if the mode is set to ABSOLUTE.  If mode is set to SUNRISE or SUNSET this will be the offset / delta from sunrise or sunset that the event should run at.  A negative number means the event should happen before sunrise/sunset, a postive means after."
+      	 optional="true"/>
+      <c:parameter 
+      	name="time" 
+      	type="string"
+      	description="If specified it will update the time of each instance of this event." 
+      	optional="true"/>
+      <c:parameter 
+      	name="messageType" 
+      	type="string"
+      	description="Default: base:SetAttributes. Type of message to be sent." 
+      	optional="true"/>
+      <c:parameter 
+      	name="attributes" 
+      	type="map&lt;any&gt;"
+      	description="If specified it will update the attributes to be included in the message." 
+      	optional="true"/>
+   	</c:method>
+   </c:methods>
+
+   <c:events>
+   </c:events>
+   
+</c:capability>

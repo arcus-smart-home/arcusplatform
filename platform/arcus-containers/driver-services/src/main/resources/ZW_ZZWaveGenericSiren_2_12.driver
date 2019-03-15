@@ -1,0 +1,187 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Generic ZWaveSiren
+ *
+ * NOTE: Driver does NOT use reflexes even though sirens are typically part of the Security Subsystem,
+ *       because we do not have devices to certify with an guarantee operation.
+ * 
+ */
+import groovy.transform.Field
+import com.iris.protocol.zwave.ZWaveGenericDevices;
+import com.iris.protocol.zwave.ZWaveSwitchBinarySpecificDevices;
+
+uses 'zwave.GenericZWaveVersion'
+uses 'zwave.GenericZWaveBattery'
+
+
+driver           "ZZWaveGenericSiren"
+description      "Driver for a Generic ZWave Siren"
+version          "2.12"
+protocol         "ZWAV"
+deviceTypeHint   "Siren"
+productId        "45e9c6"
+vendor           "Z-Wave"
+model            "Siren"
+
+
+matcher          'ZWAV:Generic':ZWaveGenericDevices.GENERIC_TYPE_SWITCH_BINARY, 'ZWAV:Specific':ZWaveSwitchBinarySpecificDevices.SPECIFIC_TYPE_SIREN  // 0x10, 0x05
+
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    bind sourcechanged to source
+}
+
+Alert {
+    state Alert.STATE_QUIET
+}
+
+
+
+final int POLLING_INTERVAL_SEC  = 3600       // every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400      // 190 minutes
+final int BATTERY_POLLING_SEC   = 86400      // Ask for battery level every 24 hours
+
+@Field final byte SWITCH_ON  = 0xff
+@Field final byte SWITCH_OFF = 0x00
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "Attributes: {}", message.attributes
+}
+
+onConnected {
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+	
+	ZWave.switch_binary.get()
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+	
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+	ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Alert Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('alert') {
+	def attributes = message.attributes
+	log.debug "setAttributes 'alert': {}", attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+
+			// When the Alert.state is set, send a Binary Switch command to the Siren
+			// to activate/deactivate it to match the attribute value, and then wait for the
+			// siren to report the switch state before actually setting the attribute value.
+			case Alert.state:
+				if (Alert.STATE_ALERTING == attribute.value) {
+					requestSirenOn()
+				} else {
+					requestSirenOff()
+				}
+				break
+				
+			default:
+				log.info "Unrecognized attribute: {}", attribute
+				break
+		}
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+	def currState = message.command.get('value')
+	log.debug "Binary Switch Report: {}", currState
+	
+	def prevState = Alert.state.get()
+	
+	if (SWITCH_ON == currState) {
+		Alert.state Alert.STATE_ALERTING
+		if (Alert.STATE_ALERTING != prevState) {
+			Alert.lastAlertTime new Date()
+		}
+	} else if (SWITCH_OFF == currState) {	// SWITCH_OFF
+		Alert.state Alert.STATE_QUIET
+	} else {
+		log.warn "Unexpected State value reported [expected 0(OFF) or -1(ON)]: {}", currState
+	}
+}
+
+
+onZWaveMessage.battery.report {
+	// OK, if it is reporting battery levels, mark the power source as Battery
+	if (DevicePower.source.get() != DevicePower.SOURCE_BATTERY) {
+		DevicePower.source DevicePower.SOURCE_BATTERY
+	}
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+
+onZWaveMessage.zwaveplus_info.report {
+	def zwVer = message.command.get('zwaveversion')
+	def roleType = message.command.get('roletype')
+	def nodeType = message.command.get('nodetype')
+	log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+	log.info "Device Reset Locally Notification"
+}
+ 
+onZWaveMessage.hail.hail {
+    log.trace "Device sent a Hail"
+	// if it sends us a Hail, lets read its state, just to be safe
+    ZWave.switch_binary.get()
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+	// if it sends us a Node Info, lets read its state, just to be safe
+    ZWave.switch_binary.get()
+}
+
+onZWaveMessage {
+    log.debug "received unhandled ZWave message {}", message
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Utility methods
+////////////////////////////////////////////////////////////////////////////////
+
+void requestSirenOn() {
+	ZWave.switch_binary.set( SWITCH_ON )
+	// get the current switch state from the device (to verify the setting was made)
+	ZWave.switch_binary.get()
+}
+
+void requestSirenOff() {
+	ZWave.switch_binary.set( SWITCH_OFF )
+	// get the current switch state from the device (to verify the setting was made)
+	ZWave.switch_binary.get()
+}
+

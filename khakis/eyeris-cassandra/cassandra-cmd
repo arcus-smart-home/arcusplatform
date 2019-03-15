@@ -1,0 +1,209 @@
+#!/bin/bash
+
+################################################################################
+# Apache Cassandra startup script configuration.
+################################################################################
+
+if [[ -z "${CASSANDRA_DATA_DIRS}" ]]; then 
+    CASSANDRA_DATA_DIRS="/data/cassandra/store"
+fi
+CASSANDRA_COMMIT_DIR="/data/cassandra/commit"
+
+################################################################################
+# Docker entry point.
+################################################################################
+
+cassandra_docker_entry() {
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    local CMDNAME=$(basename $1)
+    if [ "${CMDNAME}" == "${SCRIPTNAME}" ]; then
+        cassandra_init
+    fi
+
+    exec $@
+}
+
+
+################################################################################
+# Initializes the Apache Cassandra server.
+################################################################################
+
+cassandra_init() {
+    # Get the current broker ID. If the ID is zero then this server is not setup.
+    local CNM=$(cat ${CASSANDRA_HOME}/conf/cassandra.yaml  |grep cluster_name |grep "Test Cluster")
+    if [ -z "${CNM}" ]; then
+        return
+    fi
+
+    echo "Initializing Apache Cassandra Server..."
+
+   local CID=$(cat /data/clusterid 2>/dev/null)
+   [ -z "${CID}" ] && CID="eyeris_prod"
+
+   local SEEDS="${CASSANDRA_SEEDS}"
+   [ -z "${SEEDS}" ] && SEEDS=$(dig +nocomments +noauthority +noadditional +nostats cassandra.eyeris |grep -v '^;' |grep . |awk '{print $5}')
+   [ -z "${SEEDS}" ] && SEEDS="127.0.0.1"
+
+    SDS=""
+    for s in ${SEEDS}; do
+       [ -n "${SDS}" ] && SDS="${SDS},"
+       SDS="${SDS}${s}"
+    done
+
+    if [[ -z "${CASSANDRA_DC}" ]]; then 
+        CASSANDRA_DC="dc1"
+    fi
+
+    sed -i "s/^\s*dc=dc1$/dc=${CASSANDRA_DC}/" $CASSANDRA_HOME/conf/cassandra-rackdc.properties
+
+    if [[ -z "${CASSANDRA_RACK}" ]]; then 
+        CASSANDRA_RACK="rack1"
+    fi
+
+    sed -i "s/^\s*rack=rack1$/rack=${CASSANDRA_RACK}/" $CASSANDRA_HOME/conf/cassandra-rackdc.properties
+
+    if [[ -z "${TOPOLOGY}" ]]; then
+        echo "# Cassandra Node IP=Data Center:Rack" > $CASSANDRA_HOME/conf/cassandra-topology.properties
+
+        for s in ${TOPOLOGY}; do
+            [ -n "${SDS}" ] && SDS="${SDS},"
+            SDS="${SDS}${s}"
+        done
+
+        echo "# default for unknown nodes" >> $CASSANDRA_HOME/conf/cassandra-topology.properties
+        echo "default=DC1:lostrack1" >> $CASSANDRA_HOME/conf/cassandra-topology.properties
+    fi
+
+    # Set some configuration parameters
+    sed -i "s/^\s*cluster_name\s*:.*$/cluster_name: '${CID}'/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*listen_address\s*:.*$/#listen_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
+    sed -i "s/^\s*#\s*listen_interface\s*:.*$/listen_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*rpc_address\s*:.*$/#rpc_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
+    sed -i "s/^\s*#\s*rpc_interface\s*:.*$/rpc_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*rpc_server_type\s*:.*$/rpc_server_type: hsha/" $CASSANDRA_HOME/conf/cassandra.yaml
+    sed -i "s/^\s*#\s*rpc_min_threads\s*:.*$/rpc_min_threads: 16/" $CASSANDRA_HOME/conf/cassandra.yaml
+    sed -i "s/^\s*#\s*rpc_max_threads\s*:.*$/rpc_max_threads: 64/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*cross_node_timeout\s*:.*$/cross_node_timeout: true/" $CASSANDRA_HOME/conf/cassandra.yaml
+   
+    sed -i "s/^# streaming_socket_timeout_in_ms:\s.*$/streaming_socket_timeout_in_ms: 172800000/"  $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*-\s*seeds\s*:.*$/            - seeds: \"${SDS}\"/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    sed -i "s/^\s*start_rpc: false$/start_rpc: true/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    if [[ -z "${CASSANDRA_ENDPOINT_SNITCH}" ]]; then
+        CASSANDRA_ENDPOINT_SNITCH="SimpleSnitch"
+    fi
+
+    sed -i "s/^\s*endpoint_snitch: SimpleSnitch$/endpoint_snitch: ${CASSANDRA_ENDPOINT_SNITCH}/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    if [[ -n "${CASSANDRA_CONCURRENT_COMPACTORS}" ]]; then
+        sed -i "s/^#concurrent_compactors: 1.*$/concurrent_compactors: ${CASSANDRA_CONCURRENT_COMPACTORS}/" $CASSANDRA_HOME/conf/cassandra.yaml
+    fi
+
+    if [[ -n "${CASSANDRA_HEAPSIZE}" ]]; then
+      if [[ -z "${CASSANDRA_NEWSIZE}" ]]; then
+         CASSANDRA_NEWSIZE=$(($CASSANDRA_HEAPSIZE / 4))
+      fi
+
+      sed -i "s/^#MAX_HEAP_SIZE\s*=.*$/MAX_HEAP_SIZE=\"${CASSANDRA_HEAPSIZE}m\"/" $CASSANDRA_HOME/conf/cassandra-env.sh
+      sed -i "s/^#HEAP_NEWSIZE\s*=.*$/HEAP_NEWSIZE=\"${CASSANDRA_NEWSIZE}m\"/" $CASSANDRA_HOME/conf/cassandra-env.sh
+    fi
+
+    # Setup the data directories
+    echo "data_file_directories:" >>${CASSANDRA_HOME}/conf/cassandra.yaml
+    for datadir in ${CASSANDRA_DATA_DIRS}; do
+        mkdir -p "${datadir}"
+        echo "    - ${datadir}" >>${CASSANDRA_HOME}/conf/cassandra.yaml
+    done
+
+    echo "commitlog_directory: ${CASSANDRA_COMMIT_DIR}" >>${CASSANDRA_HOME}/conf/cassandra.yaml
+
+    if [[ -n "${CASSANDRA_SINGLE_NODE}" ]]; then
+       echo "Setting up Apache Cassandra Server in Single Node Mode..."
+      sed -i "s/^\s*num_tokens\s*:.*$/num_tokens: 1/" $CASSANDRA_HOME/conf/cassandra.yaml
+       echo "JVM_OPTS=\"\$JVM_OPTS -Dcassandra.initial_token=0\"" >> $CASSANDRA_HOME/conf/cassandra-env.sh
+       echo "JVM_OPTS=\"\$JVM_OPTS -Dcassandra.skip_wait_for_gossip_to_settle=0\"" >> $CASSANDRA_HOME/conf/cassandra-env.sh
+    fi
+}
+
+################################################################################
+# Provisiong the Cassandra server
+################################################################################
+
+cassandra_setup() {
+    /usr/bin/cassandra-provision $@
+}
+
+################################################################################
+# Starts the Apache Cassandra server.
+################################################################################
+
+cassandra_start() {
+    if [ -z "${EYERIS_CASSANDRA_INIT}" ] && [ -z "${CASSANDRA_SINGLE_NODE}" ]; then
+        echo "Starting Apache Cassandra Server..."
+        exec "${CASSANDRA_HOME}/bin/cassandra" "-f"
+     else
+        echo "Initializing fresh Apache Cassandra Server..."
+        exec "${CASSANDRA_HOME}/bin/cassandra" "-f" "-Dcassandra.auto_bootstrap=false"
+    fi
+}
+
+################################################################################
+# Script entry point.
+################################################################################
+
+SCRIPT="$0"
+SCRIPTNAME=$(basename "${SCRIPT}")
+
+# Perform some quick sanity checks
+if [ -z "${CASSANDRA_HOME}" ]; then
+    echo "CASSANDRA_HOME is not set" >&2
+    exit 1
+fi
+
+if [ ! -d "${CASSANDRA_HOME}" ]; then
+    echo "$CASSANDRA_HOME is not a directory" >&2
+    exit 1
+fi
+
+# Process the requested command
+case $1 in
+    start)
+        shift
+        cassandra_start $@
+        ;;
+
+    init)
+        shift
+        cassandra_init $@
+        ;;
+    
+    setup)
+    	shift
+    	cassandra_setup $@
+    	;;
+
+    entry)
+        shift
+        cassandra_docker_entry $@
+        ;;
+
+    help)
+        echo "Usage: $0 <start|init>"
+        exit 0
+        ;;
+
+    *)
+        echo "Unknown command: $1"
+        echo "Usage: $0 <start|init>"
+        exit 1
+        ;;
+esac

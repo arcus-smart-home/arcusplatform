@@ -1,0 +1,22 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.4 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.DeviceTemperature {
+   const u16 CLUSTER_ID = 0x0002;
+
+   const u16 ATTR_CURRENT_TEMPERATURE = 0x0000;
+   const u16 ATTR_MIN_TEMPERATURE_EXPERIENCED = 0x0001;
+   const u16 ATTR_MAX_TEMPERATURE_EXPERIENCED = 0x0002;
+   const u16 ATTR_OVER_TEMP_TOTAL_DWELL = 0x0003;
+
+   const u16 ATTR_DEVICE_TEMP_ALARM_MASK = 0x0010;
+   const u16 ATTR_LOW_TEMP_THRESHOLD = 0x0011;
+   const u16 ATTR_HIGH_TEMP_THRESHOLD = 0x0012;
+   const u16 ATTR_LOW_TEMP_DWELL_TRIP_POINT = 0x0013;
+   const u16 ATTR_HIGH_TEMP_DWELL_TRIP_POINT = 0x0014;
+
+   const u16 ALARM_MASK_TOO_LOW = 0x01;
+   const u16 ALARM_MASK_TOO_HIGH = 0x02;
+}

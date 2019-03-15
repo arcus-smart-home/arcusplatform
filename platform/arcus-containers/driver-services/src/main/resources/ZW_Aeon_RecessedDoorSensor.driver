@@ -1,0 +1,265 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Aeon Labs Recessed Door Sensor
+ * (JDH)
+ *
+ * TODOs:
+ *  - Battery.get request does not appear to be sent by hub (not sure if this is an issue because the device is secure or not)
+ * 
+ * ISSUES/NOTES:
+ *  - http://www.pepper1.net/zwavedb/device/833
+ * 
+ * FACTORY RESET: Press and hold the "Action" button for 20 seconds and then release it.
+ *
+ * PAIR:          Press the "Action" button once while hub in in "pairing" mode.
+ * UNPAIR:        Press the "Action" button once while hub in in "unpairing" mode.
+ * 
+ */
+import groovy.transform.Field
+
+driver          "ZWAeonRecessedDoorSensorDriver"
+description     "Driver for a Aeon Labs Recessed Door Sensor"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Contact"
+productId       "ff10bb"
+vendor          "AEOTEC"
+model           "ZW089-A"
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as
+// a negative number (similar to codes greater than 0x7FFF)
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x0059
+matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x0059
+
+capabilities    DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'		// use generic ZWave Battery handling
+
+// Basic Device Class:    BASIC_TYPE_ROUTING_SLAVE
+// Generic Device class:  GENERIC_TYPE_SENSOR_NOTIFICATION
+// Specific Device Class: SPECIFIC_TYPE_NOTIFICATION_SENSOR
+//
+// Command Classes:
+//		0x20   (32) Basic
+//		0x30   (48) Sensor_Binary
+//      0x59   (89) Association Group Info
+//      0x5A   (90) Device Reset Locally
+//		0x5E   (94) Z-Wave+ Info
+//		0x70  (112) Configuration
+//		0x71  (113) Alarm (Notification v3)
+//		0x72  (114) Manufacturer_Specific
+//      0x73  (115) Power Level
+//      0x7A  (122) Firmware Update Meta Data
+//		0x80 (-128) Battery
+//      0x82 (-126) Hail
+//      0x84 (-124) Wake_Up
+//		0x85 (-123) Association
+//		0x86 (-122) Version
+//      0x98 (-104) Security
+
+
+
+// set DevicePower
+// ---------------
+DevicePower.source 		         DevicePower.SOURCE_BATTERY
+DevicePower.linecapable	         false
+DevicePower.backupbatterycapable false
+
+
+def final int OFFLINE_TIMEOUT_SECS   = 21600               // 360 minutes
+def final int CONTACT_POLLING_INTERVAL_SEC = 150     // Ask for current contact state every 2.5 minutes
+def final int BATTERY_POLLING_INTERVAL_SEC = 21600   // Ask for battery level every 6 hours
+def final int READ_BATTERY_INTERVAL_MSEC = 60000     // Try to read battery once a minute until read
+
+def final String DEVICE_NAME = "Aeon Recessed Door Sensor"
+
+@Field def byte CONTACT_OPEN     = 0xFF
+
+
+// Config Parameters  (see http://www.pepper1.net/zwavedb/device/410)
+// ------------------------------------------------------------------
+@Field def byte CNFG_VAL_SENT_PARAM_NO             = 0x01       //   (1) set value the Sensor Binary Report will send when the sensor is open/closed. (0(default): Open=0xFF, Closed0x00; 1: Open=0x00, Closed=0xFF)
+def byte CNFG_VAL_SENT_SIZE                        = 0x01
+def byte CNFG_VAL_SENT_VALUE                       = 0x00		//   (0) send 0xFF when sensor is OPEN
+
+@Field def byte CNFG_LOW_BATTERY_PARAM_NO          = 0x65       // (101) Enable/disable low battery checking, when the current voltage is less than the warning voltage, it will send the Battery Low Warning Report. (0=Disable(default), 1=Enable).
+def byte CNFG_LOW_BATTERY_SIZE                     = 0x01
+def byte CNFG_LOW_BATTERY_VALUE                    = 0x01		//   (1) Enable Low Battery checking
+
+@Field def byte CNFG_LOW_BATT_INT_PARAM_NO         = 0x6F       // (111) set the Interval time of low battery checking (0~0x7FFFFFFF seconds). Must be multiple of 4 minutes.
+def byte CNFG_LOW_BATT_INT_SIZE                    = 0x04
+def byte CNFG_LOW_BATT_INT_VALUE_B0                = 0x60		// (21600) 6 hours
+def byte CNFG_LOW_BATT_INT_VALUE_B1                = 0x54
+def byte CNFG_LOW_BATT_INT_VALUE_B2                = 0x00
+def byte CNFG_LOW_BATT_INT_VALUE_B3                = 0x00
+
+@Field def byte CNFG_CMD_SENT_PARAM_NO             = 0x79       // (121) set which command will be sent to the associated nodes when the magnet switch is triggered
+def byte CNFG_CMD_SENT_SIZE                        = 0x04
+def byte CNFG_CMD_SENT_VALUE                       = 0x10		//  (16) send Sensor Binary command when state changes
+
+@Field def byte CNFG_LOCK_PARAM_NO                 = 0xFC       // (252) parameter number for Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+@Field def byte CNFG_DVC_TAG_PARAM_NO              = 0xFE       // (254) parameter number for Device Tag, size 2 bytes, pairing and/or reset will not change the value
+
+@Field def byte CNFG_RESET_PARAM_NO                = 0xFF       // (255) parameter number to reset configuration to factory default
+def byte CNFG_RESET_SIZE                           = 0x01
+def byte CNFG_RESET_VALUE                          = 0x01
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+	
+	// set default attribute values
+	Contact.contact                     Contact.CONTACT_OPENED		// must be opened to push 'Action' button to pair device
+	Contact.contactchanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	Contact.usehint                     Contact.USEHINT_DOOR
+
+	// reset the device configuration to factory defaults (should also reset cumulative power reading)
+	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+}
+
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+	
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// read the current state
+	ZWave.basic.get()
+	ZWave.poll(CONTACT_POLLING_INTERVAL_SEC, ZWave.basic.get)
+	
+	// get the level of the battery 0 - 100%
+	ZWave.battery.get()
+	ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+	
+	// read the configuration settings, if needed
+	// readConfigSettings()
+
+	// set Association to Group 1, Node 1 (supports upto 5 nodes)
+	ZWave.association.set( 1, 1, 0, 0, 0);
+	ZWave.association.set( 2, 1, 0, 0, 0);
+	
+	// Make sure Configuration is Unlocked to allow changes
+	ZWave.configuration.set(CNFG_LOCK_PARAM_NO, (byte)0x01, (byte)0x00)
+
+	// configure Command Sent when contact sensor changes state
+	ZWave.configuration.set(CNFG_CMD_SENT_PARAM_NO, CNFG_CMD_SENT_SIZE,
+		(byte)0x00, (byte)0x00, (byte)0x00, CNFG_CMD_SENT_VALUE)
+	
+	// configure Value Sent when contact sensor is Open
+	ZWave.configuration.set(CNFG_VAL_SENT_PARAM_NO, CNFG_VAL_SENT_SIZE, CNFG_VAL_SENT_VALUE)
+
+	// Enable Low Battery checking
+	ZWave.configuration.set(CNFG_LOW_BATTERY_PARAM_NO, CNFG_LOW_BATTERY_SIZE, CNFG_LOW_BATTERY_VALUE)
+
+	// configure Low Battery Check Interval
+	ZWave.configuration.set(CNFG_LOW_BATT_INT_PARAM_NO, CNFG_LOW_BATT_INT_SIZE,
+		CNFG_LOW_BATT_INT_VALUE_B3, CNFG_LOW_BATT_INT_VALUE_B2, CNFG_LOW_BATT_INT_VALUE_B1, CNFG_LOW_BATT_INT_VALUE_B0)
+
+	// read the configuration settings, if needed
+	// readConfigSettings()
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+
+void readConfigSettings() {
+	ZWave.configuration.get( CNFG_LOCK_PARAM_NO )
+	ZWave.configuration.get( CNFG_CMD_SENT_PARAM_NO )
+	ZWave.configuration.get( CNFG_VAL_SENT_PARAM_NO )
+	ZWave.configuration.get( CNFG_LOW_BATTERY_PARAM_NO )
+	ZWave.configuration.get( CNFG_LOW_BATT_INT_PARAM_NO )
+	ZWave.configuration.get( CNFG_DVC_TAG_PARAM_NO )
+}
+
+onZWaveMessage.configuration.report {
+	log.debug "Config Report: {}", message
+	byte[] bytes = message.command.recvBytes
+	def param = message.command.get('param')
+	def level = message.command.get('level')
+	def val1 = message.command.get('val1')
+	log.debug "Param: {}, Level: {}, Val1: {}", param, level, val1
+}
+
+void handleStateMsg(Object currentState) {
+	def prevContact = Contact.contact.get()		// save previous Contact state
+	Contact.contact (message.command.get('sensorvalue') == CONTACT_OPEN ? Contact.CONTACT_OPENED : Contact.CONTACT_CLOSED)
+	// if contact state changed, capture timestamp
+	if (Contact.contact.get() != prevContact) {
+		Contact.contactchanged new Date()
+	}
+}
+
+onZWaveMessage.switch_binary.report {
+	log.debug "Received Sensor Binary report {}", message
+	handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.report {
+	log.debug "Received Basic Report: {}", message
+	handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.set {
+	log.debug "Received Basic Set: {}", message
+	def byte[] bytes = message.command.recvBytes
+	log.debug "State: {}", bytes[0] 
+	def prevContact = Contact.contact.get()		// save previous Contact state
+	Contact.contact (bytes[0] == CONTACT_OPEN ? Contact.CONTACT_OPENED : Contact.CONTACT_CLOSED)
+	// if contact state changed, capture timestamp
+	if (Contact.contact.get() != prevContact) {
+		Contact.contactchanged new Date()
+	}
+}
+
+onZWaveMessage.battery.report {
+	// pass message to generic ZWave Battery Report handler
+	GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+	log.debug "Device sent Alarm/Notification Report"
+	def alarmType =  message.command.get('alarmtype')
+	def alarmLevel =  message.command.get('alarmlevel')
+	def notificationStatus =  message.command.get('notificationstatus')
+	def notificationType =  message.command.get('notificationtype')
+	def event =  message.command.get('event')
+	def byte[] bytes = message.command.recvBytes
+	log.debug "Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}", alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+}
+
+
+onZWaveNodeInfo {
+	log.debug "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+
+}
+
+

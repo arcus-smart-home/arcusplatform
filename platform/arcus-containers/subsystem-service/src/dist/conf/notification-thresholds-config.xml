@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<notificationThresholdsConfig xmlns="http://arcus.com/notification-thresholds_1.0.0">
+
+   <metadata version="2018-08-20T00:00:00" publisher="Dan Ignat" />
+
+   <configDefaults
+      hubOfflineTimeoutSec="1800" deviceOfflineTimeoutSec="36000"
+      deviceBatteryFull="100"     deviceBatteryFullClear="95"
+      deviceBatteryLow="30"       deviceBatteryLowClear="45"
+      deviceBatteryVeryLow="20"   deviceBatteryVeryLowClear="30"
+      deviceBatteryCritical="5"   deviceBatteryCriticalClear="20"
+      deviceBatteryDead="1"       deviceBatteryDeadClear="5" />
+
+   <deviceOverride productId="c3c055" batteryLow="15" />
+
+   <deviceOverride productId="60e426" batteryLowClear="70" />
+
+   <deviceOverride productId="4ff66a" batteryLowClear="70" />
+
+   <deviceOverride productId="486390" batteryLowClear="70" />
+
+   <deviceOverride productId="2c982d" batteryLowClear="70" />
+
+   <deviceOverride productId="bca135" batteryLowClear="70" />
+
+</notificationThresholdsConfig>

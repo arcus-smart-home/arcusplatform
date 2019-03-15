@@ -1,0 +1,92 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe General Cluster
+//    From "Implementing the AlertMe Join & General Clusters"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.AMGeneral {
+   const u16 CLUSTER_ID = 0x00F0;
+}
+
+message alertme.AMGeneral.StopPolling<id="0xFD"> {
+}
+
+message alertme.AMGeneral.Lifesign<id="0xFB"> {
+   const u8 LIFESIGN_HAS_VOLTAGE = 0x01;
+   const u8 LIFESIGN_HAS_TEMPERATURE = 0x02;
+   const u8 LIFESIGN_HAS_SWITCH_STATUS = 0x04;
+   const u8 LIFESIGN_HAS_LQI = 0x08;
+   const u8 LIFESIGN_HAS_RSSI = 0x10;
+
+   const u8 SWITCH_MASK_TAMPER_BUTTON = 0x02;
+   const u8 SWITCH_MASK_MAIN_SENSOR = 0x01;
+
+   const u8 SWITCH_STATE_TAMPER_BUTTON = 0x02;
+   const u8 SWITCH_STATE_MAIN_SENSOR = 0x01;
+
+   u8 statusFlags;
+   u32 msTimer;
+   u16 psuVoltage;
+   u16 temperature;
+   i8 rssi;
+   u8 lqi;
+   u8 switchMask;
+   u8 switchState;
+}
+
+message alertme.AMGeneral.ModeChange<id="0xFA"> {
+   const u8 MODE_NORMAL = 0x00;
+   const u8 MODE_RANGE_TEST = 0x01;
+   const u8 MODE_TEST = 0x02;
+   const u8 MODE_SEEKING = 0x03;
+   const u8 MODE_IDLE = 0x04;
+   const u8 MODE_QUIESCENT = 0x05;
+
+   const u8 FLAG_CLEAR_HNF = 0x01;
+   const u8 FLAG_SET_HNF = 0x01;
+
+   u8 mode;
+   u8 flags;
+}
+
+message alertme.AMGeneral.SetRtc<id="0x00"> {
+   u16 year;
+   u8 month;
+   u8 dayOfMonth;
+   u8 dayOfWeek;
+   u8 hours;
+   u8 minutes;
+   u8 seconds;
+   i8 timezone;
+   i8 daylightSaving;
+}
+
+message alertme.AMGeneral.GetRtc<id="0x80"> {
+}
+
+message alertme.AMGeneral.FaultReport<id="0x01"> {
+   const u16 FAULT_NOFAULT = 0;
+   const u16 FAULT_EMBER_STACK_STARTUP = 1;
+   const u16 FAULT_WRONG_HARDWARE = 2;
+   const u16 FAULT_WRONG_HARDWARE_REVISION = 3;
+   const u16 FAULT_TOKEN_AREA_INVALID = 4;
+   const u16 FAULT_NO_BOOTLOADER = 5;
+   const u16 FAULT_NO_SERIAL_OUTPUT = 6;
+   const u16 FAULT_EMBER_MFGLIB_STARTUP = 7;
+   const u16 FAULT_FLASH_FAILED = 8;
+   const u16 FAULT_MCP23008_FAILED = 9;
+   const u16 FAULT_VERY_LOW_BATTERY = 10;
+   const u16 FAULT_FAILED_TO_FORM_NETWORK = 11;
+   const u16 FAULT_CHILD_DEVICE_LOST = 12;
+
+   u16 manufId;
+   u16 modelId;
+   u16 faultId;
+}
+
+message alertme.AMGeneral.AMGeneralCommand<id="0x02"> {
+   u8[] string;
+}
+
+message alertme.AMGeneral.StdOut<id="0x82"> {
+   u8[] string;
+}

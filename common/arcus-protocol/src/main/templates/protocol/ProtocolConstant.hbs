@@ -1,0 +1,40 @@
+{{#file . "com/iris/protocol/constants/{{name}}Constants.java"}}
+package com.iris.protocol.constants;
+
+public interface {{name}}Constants {
+   public static final String NAME = "{{name}}";
+   public static final String NAMESPACE = "{{namespace}}";
+   
+   {{#attributes}}
+   /** {{description}} */
+   public static final String ATTR_{{toUpperCase name}} = "{{namespace}}:{{name}}";
+   {{#if type = 'enum'}}{{#enumValues}}
+   public static final String {{toConstantName name}}_{{toConstantName .}} = "{{.}}";
+   {{/enumValues}}{{/if}}
+   {{/attributes}}
+   
+   public static final com.iris.capability.definition.ProtocolDefinition DEFINITION =
+      com.iris.capability.definition.Definitions
+         .protocolBuilder()
+         .withName("{{name}}")
+         .withNamespace("{{namespace}}")
+         .withDescription("{{description}}")
+         .withVersion("{{version}}")
+         {{#attributes}}
+         .addAttribute(
+            com.iris.capability.definition.Definitions
+               .attributeBuilder()
+               .withName("{{namespace}}:{{name}}")
+               .withDescription("{{description}}")
+               .withType("{{{type.representation}}}")
+               {{#enumValues}}.addEnumValue("{{.}}")
+               {{/enumValues}}
+               .withMin("{{min}}")
+               .withMax("{{max}}")
+               .withUnit("{{unit}}")
+               .build()
+         ){{/attributes}}
+         .build();
+   
+}
+{{/file}}

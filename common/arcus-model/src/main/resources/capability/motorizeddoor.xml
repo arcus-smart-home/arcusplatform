@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="MotorizedDoor"
+   namespace="motdoor"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a motorized door, like a Garage Door with an opener.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="doorstate" 
+         readwrite="rw" 
+         type="enum"
+         values="CLOSED,CLOSING,OBSTRUCTION,OPENING,OPEN"
+         optional="false"
+         description="Current door state, and if written, desired door state."/>
+	<c:attribute 
+         name="doorlevel" 
+         readwrite="rw" 
+         type="int" 
+         min="0"
+         max="100"
+         unit="percent"
+         optional="true" 
+         description="% open. 0 is closed, 100 is open.  Some doors do support reporting what level they are currently at, and some support a requested door level to leave a garage door at partial open."/>
+	<c:attribute 
+         name="doorstatechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last doorstate change"/>         
+	</c:attributes>         
+</c:capability>

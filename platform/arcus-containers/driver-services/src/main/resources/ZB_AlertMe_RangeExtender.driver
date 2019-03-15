@@ -1,0 +1,129 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Range Extender
+ */
+
+driver			"ZB_AlertMe_RangeExtender"
+description		"Driver for the AlertMe Range Extender"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"rangeextender"
+productId		"ef9306"
+vendor 			"Iris"
+model 			"RPT00140004"
+
+matcher			'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'RepeaterPlug'
+
+capabilities	DevicePower, Identify
+
+DevicePower.backupbatterycapable 	false
+DevicePower.linecapable          	true
+DevicePower.source               	DevicePower.SOURCE_LINE
+
+
+// 2 End Points
+//
+// End Point:   0x02
+// Profile ID:  0xC216
+// IN Clusters
+//   0x00F0     General Cluster
+//   0x00F3     Button Cluster
+//
+// End Point:   0xF0
+// Profile ID:  0xC216
+// IN Clusters
+//   0x0B7E     Application Upgrade
+//   0x0B7F		Application Upgrade (proxy cluster id)
+
+
+def final OFFLINE_TIMEOUT_SECS = 600            // 10 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Life-cycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "AlertMe Range Extender device added."
+
+	DevicePower.backupbatterycapable 	false
+	DevicePower.linecapable          	true
+	DevicePower.source               	DevicePower.SOURCE_LINE
+}
+
+onConnected {
+	log.debug "AlertMe Range Extender device connected."
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected { log.debug "AlertMe Range Extender device disconnected." }
+
+onRemoved { log.debug "AlertMe Range Extender device removed." }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Button capability
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Alertme.button.pressed() { log.debug "button pressed" }
+
+onZigbeeMessage.Alertme.button.released() { log.debug "button released" }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Attribute capability
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Alertme.attribute() {
+	log.debug "AlertMe Range Extender received attribute command:{}", message
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Generic Zigbee ZCL handler
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	def zclMsg = Zigbee.Message.toZcl(message)
+	def clusterId = zclMsg.getClusterId()
+	def messageId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def profile = zclMsg.getProfileId()
+	def flags = zclMsg.getFlags()
+	def payloadLen = zclMsg.getLength()
+	byte[] data = zclMsg.getPayload()
+
+	// Cluster 0xF0, CmdId 0xFB, Heartbeat
+	if ((240 == clusterId) && (251 == messageId)) {
+		log.trace "AlertMe Range Extender received heartbeat"
+
+		if (0 != (0x08 & data[0])) {		// bit 3 set in first byte, so LQI reported
+			int lqi = data[10]
+			if (0 > lqi) {
+				lqi = 256 + lqi
+			}
+			double signal = (lqi * 100.0) / 255.0
+			log.trace "LQI {} (percent:{})", lqi, signal
+			DeviceConnection.signal ((int)signal)
+		}
+		return
+	}
+
+	log.debug "Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:" + data, profile, clusterId, messageId, endpoint, flags, payloadLen
+}
+

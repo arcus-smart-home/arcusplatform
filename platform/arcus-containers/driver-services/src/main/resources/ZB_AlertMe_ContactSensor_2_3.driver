@@ -1,0 +1,213 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the AlertMe Contact Sensor
+ *  
+ *    05/05/17 - Version 2.3 for Reflexes.
+ *
+ * DEVICE RESET:
+ *    Insert battery and then press button inside device 5 times within the first 10 seconds.
+ *
+ * OFFLINE TIMEOUT:
+ *    10 minutes
+ * 
+ * CHECK-IN INTERVAL:
+ *    These devices send a Lifesign command approximately every 120 seconds (two minutes).
+ *
+ * ISSUES/NOTES
+ *  - If device is paired with Contact CLOSED, first opening of contact is NOT reported by the device, but all
+ *    subsequent openings and closings are reported.
+ *  - Hello Response is parsed to extract App Version, Hardware Version, etc.
+ *  - Apparently we do not have to write the IAS CIE ADDRESS to this device for the IAS Zone Cluster.
+ *  - We send a Stop Polling (0xFD) message after each Lifesign message received, to lengthen time between 
+ *    Lifesign messages to 2 minutes.
+ *  - Currently we do not do anything with TAMPER information, other than log it at TRACE level.
+ *  
+ *
+ * End Point:   0x02
+ * Profile ID:  0xC216
+ * IN Clusters
+ *   0x00F0     General Cluster
+ *   0x00F1     LED (not used)
+ *   0x00F2     Tamper Cluster
+ *   0x0500     IAS Zone
+ *
+ * End Point:   0xF0
+ * Profile ID:  0xC216
+ * IN Clusters
+ *   0x0B7D     Upgrade Cluster
+ */
+
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+import static com.iris.protocol.zigbee.alertme.AMGeneral.ModeChange.*
+import static com.iris.protocol.zigbee.zcl.IasZone.ZoneEnrollResponse.*
+
+
+uses "generic.GenericContact"
+
+
+driver          "ZBAlertMeContactSensor"
+description     "Driver for the AlertMe Contact Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Contact"
+productId       "4ff66a"
+vendor          "Iris"
+model           "ContactSensor"
+
+
+matcher         'ZIGB:vendor': 'AlertMe.com', 'ZIGB:model': 'Contact Sensor Device'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_UNKNOWN
+    bind contactchanged to Contact.contact
+}
+ 
+Temperature {
+    temperature null
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    
+    offlineTimeout 10, MINUTES
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Hub Local Lifecycle
+    /////////////////////////////////////////////////////////////////////////////
+
+    poll reflex {
+        on added
+        bind endpoint: 2, profile: 0xC216, cluster: Zcl.IasZone.CLUSTER_ID, server: true
+        send alertme.amgeneral.modeChange, mode: MODE_NORMAL, flags: FLAG_SET_HNF
+    }
+
+    poll reflex {
+        on connected
+        send alertme.join.helloRequest
+        send alertme.amgeneral.stopPolling
+    }
+    
+    
+    /////////////////////////////////////////////////////////////////////////////
+    // Process AlertMe Lifesign and IAS Zone Status messages locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+   
+    match reflex {
+        on amlifesign, endpoint: 2, profile: 0xC216
+        amlifesign battery, minimumVolts:2.1, nominalVolts:3.0
+        amlifesign signal
+        amlifesign temperature
+        send alertme.amgeneral.stopPolling
+    }
+
+    match reflex {
+        // NOTE: AlertMe device uses endpoint 2, and profile 0xC216 (not default HA of 0x0104)
+        on iaszone, endpoint: 2, profile: 0xC216, set: ["alarm1"]
+        on amlifesign, endpoint: 2, profile: 0xC216, set: ["sensor"]
+        set Contact.contact, Contact.CONTACT_OPENED
+    }
+
+    match reflex {
+        // NOTE: AlertMe device uses endpoint 2, and profile 0xC216 (not default HA of 0x0104)
+        on iaszone, endpoint: 2, profile: 0xC216, clear: ["alarm1"]
+        on amlifesign, endpoint: 2, profile: 0xC216, clear: ["sensor"]
+        set Contact.contact, Contact.CONTACT_CLOSED
+    }
+
+    match reflex {
+        // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+        // NOTE: AlertMe device uses endpoint 2, and profile 0xC216 (not default HA of 0x0104)
+        on iaszone, endpoint: 2, profile: 0xC216, set: ["battery"]
+        emit DevicePower.battery, 0
+    }
+
+    
+    /////////////////////////////////////////////////////////////////////////////
+    // Respond to IAS Zone Enroll Request locally on the hub.
+    /////////////////////////////////////////////////////////////////////////////
+
+    match reflex {
+        // NOTE: AlertMe device uses endpoint 2, and profile 0xC216 (not default HA of 0x0104)
+        on zcl.iaszone.zoneEnrollRequest, endpoint: 2, profile: 0xC216
+        send zcl.iaszone.zoneEnrollResponse, zoneId: 0xFF, enrollResponseCode: REPONSE_CODE_SUCCESS
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default ZCL protocol message handler
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def messageId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    def payloadLen = zclMsg.getLength()
+    byte[] data = zclMsg.getPayload()
+
+    // Cluster 0x00F2 is Tamper Cluster
+    if (242 == clusterId) {
+        if (messageId == 0) {
+            log.trace "Sensor Tamper: DETECTED (cover removed)"
+        }
+        if (messageId == 1) {
+            log.trace "Sensor Tamper: NONE"
+        }
+        return
+    }
+
+    // Join Cluster 0xF6, Hello Response 0xFE
+    if ((246 == clusterId) && (254 == messageId)) {
+        log.trace "Sensor received Hello Response"
+        if (18 <= payloadLen) {        // should be 63 bytes, but we are only looking at first 18
+            int nodeId = ((data[1] * 256) + data[0]) & 0xFFFF
+            int mfgId = ((data[11] * 256) + data[10]) & 0xFFFF
+            int dvcType = (data[13] * 256) + data[12]
+            byte appRel = data[14]
+            double appVer = new Double(data[15] >> 4) + (new Double(data[15] & 0x0F) / 10)
+            double hwVer = new Double(data[17]) + (new Double(data[16]) / 10)
+            log.debug "NodeId:0x{}, MfgId:0x{}, DvcType:{}, App Release:{}, App Ver:{}, HW Ver:{}", 
+                Integer.toHexString(nodeId).toUpperCase(), Integer.toHexString(mfgId).toUpperCase(), dvcType, appRel, appVer, hwVer
+            DeviceAdvanced.firmwareVersion appVer + ".0." + appRel
+        }
+        return
+    }
+    
+    log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}", 
+            profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2.4.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   
+   <cl:changeset identifier="videoMetadataTable" author="tweidlin">
+      <cl:description>Add table for recording metadata</cl:description>
+      <cl:tracking>ITWO-12177</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE recording_metadata (
+            recordingid timeuuid,
+            field text,
+            value text,
+            PRIMARY KEY ((recordingid), field) 
+         )
+         WITH COMPACT STORAGE
+         AND CLUSTERING ORDER BY (field ASC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS recording_metadata</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoPlaceIndexTable" author="tweidlin">
+      <cl:description>Add table for counts of recordings keyed by place and timebucket</cl:description>
+      <cl:tracking>ITWO-12177</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE place_recording_index (
+            placeid uuid,
+            field text,
+            value text,
+            recordingid timeuuid,
+            size bigint,
+            PRIMARY KEY ((placeid, field), value, recordingid) 
+         )
+         WITH CLUSTERING ORDER BY (value DESC, recordingid DESC);
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS place_recording_index</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="videoPlaceQuotaTable" author="tweidlin">
+      <cl:description>Add table for tracking total bytes stored by a user</cl:description>
+      <cl:tracking>ITWO-12177</cl:tracking>
+      <cl:cql>
+         <cl:update>
+         CREATE TABLE place_quota (
+            placeid uuid,
+            bytesused bigint,
+            PRIMARY KEY (placeid) 
+         )
+         </cl:update>
+         <cl:rollback>DROP TABLE IF EXISTS place_quota</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>
+

@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://arcus.com/prodcat_1.0.0"
+           xmlns:tns="http://arcus.com/prodcat_1.0.0" elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Arcus Product Catalog schema
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:element name="prodcat">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="tns:metadataType" minOccurs="0"/>
+        <xs:element name="brands" type="tns:brandsType"/>
+        <xs:element name="categories" type="tns:categoriesMetadataType"/>
+        <xs:element name="products" type="tns:productsType"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="metadataType">
+    <xs:attribute name="version" type="xs:dateTime"/>
+    <xs:attribute name="publisher" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="brandsType">
+    <xs:sequence>
+      <xs:element name="brand" type="tns:brandType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="brandType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="description" type="xs:string"/>
+    <xs:attribute name="image" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="categoriesMetadataType">
+    <xs:sequence>
+      <xs:element name="category" type="tns:categoryMetadataType" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="categoryMetadataType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="image" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="productsType">
+    <xs:sequence>
+      <xs:element name="product" type="tns:productType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="productType">
+    <xs:sequence>
+      <xs:element name="categories" type="tns:categoriesType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="pair" type="tns:stepsType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="removal" type="tns:stepsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="reset" type="tns:stepsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="reconnect" type="tns:stepsType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="populations" type="tns:populationsType" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="shortname" type="xs:string"/>
+    <xs:attribute name="description" type="xs:string"/>
+    <xs:attribute name="manufacturer" type="xs:string"/>
+    <xs:attribute name="vendor" type="tns:vendorType"/>
+    <xs:attribute name="adddevimg" type="xs:string"/>
+    <xs:attribute name="cert" type="tns:certType"/>
+    <xs:attribute name="canbrowse" type="xs:boolean"/>
+    <xs:attribute name="cansearch" type="xs:boolean"/>
+    <xs:attribute name="helpurl" type="xs:string"/>
+    <xs:attribute name="pairvideourl" type="xs:string"/>
+    <xs:attribute name="batteryprimsize" type="tns:batterysizeType"/>
+    <xs:attribute name="batteryprimnum" type="xs:int"/>
+    <xs:attribute name="batterybacksize" type="tns:batterysizeType"/>
+    <xs:attribute name="batterybacknum" type="xs:int"/>
+    <xs:attribute name="keywords" type="xs:string"/>
+    <xs:attribute name="ota" type="tns:otaType"/>
+    <xs:attribute name="protofamily" type="tns:protofamilyType"/>
+    <xs:attribute name="protospec" type="xs:string"/>
+    <xs:attribute name="added" type="xs:dateTime"/>
+    <xs:attribute name="hubrequired" type="xs:boolean"/>
+    <xs:attribute name="lastchanged" type="xs:dateTime"/>
+    <xs:attribute name="minappversion" type="xs:string"/>
+    <xs:attribute name="devrequired" type="xs:string"/>
+    <xs:attribute name="pairingIdleTimeoutMs" type="xs:int"/>
+    <xs:attribute name="pairingTimeoutMs" type="xs:int"/>
+    <xs:attribute name="screen" type="tns:screenType"/>
+    <xs:attribute name="appRequired" type="xs:boolean"/>
+    <xs:attribute name="canDiscover" type="xs:boolean"/>
+    <xs:attribute name="installManualUrl" type="xs:string"/>
+    <xs:attribute name="pairingMode" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="categoriesType">
+    <xs:sequence>
+      <xs:element name="category" type="tns:categoryType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="categoryType">
+    <xs:attribute name="name" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="populationsType">
+    <xs:sequence>
+      <xs:element name="population" type="tns:populationType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="populationType">
+    <xs:attribute name="name" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="stepsType">
+    <xs:sequence>
+      <xs:element name="step0" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="step1" type="tns:stepType" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="step2" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="step3" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="step4" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="step5" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+      <xs:element name="step6" type="tns:stepType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="supported" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:complexType name="stepType">
+    <xs:sequence>
+      <xs:element name="input" type="tns:inputType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="app" type="tns:appType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="type" type="tns:steptypeType"/>
+    <xs:attribute name="img" type="xs:string"/>
+    <xs:attribute name="text" type="xs:string"/>
+    <xs:attribute name="subtext" type="xs:string"/>
+    <xs:attribute name="target" type="xs:string"/>
+    <xs:attribute name="message" type="xs:string"/>
+    <xs:attribute name="showInstallManual" type="xs:boolean" />
+  </xs:complexType>
+
+  <xs:complexType name="inputType">
+    <xs:attribute name="type" type="tns:inputtypeType"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="label" type="xs:string"/>
+    <xs:attribute name="value" type="xs:string"/>
+    <xs:attribute name="minlen" type="xs:integer"/>
+    <xs:attribute name="maxlen" type="xs:integer"/>
+    <xs:attribute name="required" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:simpleType name="populationnameType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="general"/>
+      <xs:enumeration value="beta"/>
+      <xs:enumeration value="qa"/>
+      <xs:enumeration value="alpha"/>
+      <xs:enumeration value="gamma"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="appType">
+    <xs:attribute name="platform" type="tns:platformType"/>
+    <xs:attribute name="appUrl" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:simpleType name="inputtypeType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="hidden"/>
+      <xs:enumeration value="text"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="platformType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="android"/>
+      <xs:enumeration value="ios"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="steptypeType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="input"/>
+      <xs:enumeration value="external_app"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="certType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="workswith"/>
+      <xs:enumeration value="compatiblewith"/>
+      <xs:enumeration value="none"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="batterysizeType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value=""/>
+      <xs:enumeration value="9V"/>
+      <xs:enumeration value="AAAA"/>
+      <xs:enumeration value="AAA"/>
+      <xs:enumeration value="AA"/>
+      <xs:enumeration value="C"/>
+      <xs:enumeration value="D"/>
+      <xs:enumeration value="CR123"/>
+      <xs:enumeration value="CR2"/>
+      <xs:enumeration value="CR2032"/>
+      <xs:enumeration value="CR2450"/>
+      <xs:enumeration value="CR2430"/>
+      <xs:enumeration value="CR14250"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="otaType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Yes"/>
+      <xs:enumeration value="No"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="screenType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Switch"/>
+      <xs:enumeration value="Dimmer"/>
+      <xs:enumeration value="Fan Control"/>
+      <xs:enumeration value="Motion"/>
+      <xs:enumeration value="Water Leak"/>
+      <xs:enumeration value="Light"/>
+      <xs:enumeration value="Contact"/>
+      <xs:enumeration value="Keypad"/>
+      <xs:enumeration value="Smoke/CO"/>
+      <xs:enumeration value="Halo"/>
+      <xs:enumeration value="Thermostat"/>
+      <xs:enumeration value="TCCThermostat"/>
+      <xs:enumeration value="NestThermostat"/>
+      <xs:enumeration value="Lock"/>
+      <xs:enumeration value="Button"/>
+      <xs:enumeration value="Keyfob"/>
+      <xs:enumeration value="Pendant"/>
+      <xs:enumeration value="Camera"/>
+      <xs:enumeration value="Irrigation"/>
+      <xs:enumeration value="Garage Door"/>
+      <xs:enumeration value="Garage Door Control"/>
+      <xs:enumeration value="Glass Break"/>
+      <xs:enumeration value="Water Valve"/>
+      <xs:enumeration value="Tilt"/>
+      <xs:enumeration value="Siren"/>
+      <xs:enumeration value="Vent"/>
+      <xs:enumeration value="Water Heater"/>
+      <xs:enumeration value="Water Softener"/>
+      <xs:enumeration value="Accessory"/>
+      <xs:enumeration value="Genie Aladdin Controller"/>
+      <xs:enumeration value="Pet Door"/>
+      <xs:enumeration value="SomfyV1Bridge"/>
+      <xs:enumeration value="SomfyV1Blind"/>
+      <xs:enumeration value="Shade"/>
+      <xs:enumeration value="Hub"/>
+      <xs:enumeration value="Electricity Meter"/>
+      <xs:enumeration value="SpaceHeater"/>
+      <xs:enumeration value="GoogleAssistant"/>
+      <xs:enumeration value="Alexa"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="vendorType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="GE"/>
+      <xs:enumeration value="Utilitech"/>
+      <xs:enumeration value="Everspring"/>
+      <xs:enumeration value="Iris"/>
+      <xs:enumeration value="Halo Smart Labs"/>
+      <xs:enumeration value="First Alert"/>
+      <xs:enumeration value="Honeywell"/>
+      <xs:enumeration value="GoControl"/>
+      <xs:enumeration value="Nest"/>
+      <xs:enumeration value="Schlage"/>
+      <xs:enumeration value="Kwikset"/>
+      <xs:enumeration value="Gatehouse"/>
+      <xs:enumeration value="Sylvania"/>
+      <xs:enumeration value="Radio Thermostat Company of America"/>
+      <xs:enumeration value="Orbit"/>
+      <xs:enumeration value="Z-Wave"/>
+      <xs:enumeration value="LeakSmart"/>
+      <xs:enumeration value="NYCE"/>
+      <xs:enumeration value="Keen Home"/>
+      <xs:enumeration value="Yale"/>
+      <xs:enumeration value="EnergySmart"/>
+      <xs:enumeration value="Whirlpool"/>
+      <xs:enumeration value="Verizon"/>
+      <xs:enumeration value="Genie"/>
+      <xs:enumeration value="PetSafe"/>
+      <xs:enumeration value="Somfy"/>
+      <xs:enumeration value="Springs Window Fashions"/>
+      <xs:enumeration value="Aeotec by Aeon Labs"/>
+      <xs:enumeration value="Cree"/>
+      <xs:enumeration value="Philips"/>
+      <xs:enumeration value="OSRAM"/>
+      <xs:enumeration value="SmartThings"/>
+      <xs:enumeration value="Bosch"/>
+      <xs:enumeration value="Sengled"/>
+      <xs:enumeration value="Nanoleaf"/>
+      <xs:enumeration value="Zooz"/>
+      <xs:enumeration value="Dome"/>
+      <xs:enumeration value="Ecolink"/>
+      <xs:enumeration value="Leviton"/>
+      <xs:enumeration value="Linear"/>
+      <xs:enumeration value="FortrezZ"/>
+      <xs:enumeration value="HomePro"/>
+      <xs:enumeration value="Duraflame"/>
+      <xs:enumeration value="Sensative"/>
+      <xs:enumeration value="OSO Technologies"/>
+      <xs:enumeration value="Google"/>
+      <xs:enumeration value="Amazon"/>
+      <xs:enumeration value="Lux"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="protofamilyType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Z-Wave"/>
+      <xs:enumeration value="ZigBee"/>
+      <xs:enumeration value="IPCD"/>
+      <xs:enumeration value="Cloud-to-cloud"/>
+      <xs:enumeration value="IP"/>
+      <xs:enumeration value="USB"/>
+      <xs:enumeration value="Proprietary"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="pairingmodeType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="BRIDGED_DEVICE"/>
+      <xs:enumeration value="OAUTH"/>
+      <xs:enumeration value="EXTERNAL_APP"/>
+      <xs:enumeration value="IPCD"/>
+      <xs:enumeration value="WIFI"/>
+      <xs:enumeration value="ZBCLEAR"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

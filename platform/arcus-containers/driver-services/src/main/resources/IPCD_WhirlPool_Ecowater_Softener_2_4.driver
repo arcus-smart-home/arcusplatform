@@ -1,0 +1,375 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+driver         "IPCDEcoWaterSoftener"
+description    "Driver for WhirlPool EcoWater Water Softener"
+version        "2.4"
+protocol       "IPCD"
+productId	   "3981d9"
+deviceTypeHint "WaterSoftener"
+vendor         "Whirlpool"
+model          "WHESCS5"
+
+matcher        'IPCD:vendor' : 'EcoWater', 'IPCD:model' : 'WHESCS5'
+
+capabilities   DevicePower, 'WaterSoftener', 'WaterHardness', 'Flow', 'WiFi', DeviceOta, 'ecowater'
+
+///////////////// Constants ////////////////////////
+// -- Constant names --//
+@Field def final DEV_NAME = "IPCD WhirlPool EcoWater"
+@Field def final DEV_TYPE = "water softener"
+
+// -- IPCD Constants --//
+def final VALUE_CHANGES = "valueChanges"
+
+// -- Parameters of the water softener --//
+//--Water Softener
+@Field def final ATTR_REGEN_STATUS = "ecw.regen_status";
+@Field def final REGEN_STATUS_READY  = "Ready"
+@Field def final REGEN_STATUS_RECHARGING = "Recharging"
+@Field def final REGEN_STATUS_SCHEDULED = "RechargeScheduled"
+
+@Field def final ATTR_REGEN_TIME_REMAINING = "ecw.regen_time_remaining"
+
+@Field def final ATTR_SALT_LEVEL = "ecw.salt_level"
+@Field def final MAX_SALT_LEVEL = 8
+@Field def final SALT_LEVEL = [ "L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "OFF" ];
+
+@Field def final ATTR_HARDNESS = "ecw.hardness"
+
+@Field def final ATTR_RECHARGE_TIME = "ecw.recharge_time"
+@Field def final ATTR_ON_TIME = "ecw.on_time"
+@Field def final ATTR_RECHARGES = "ecw.recharges"
+@Field def final ATTR_USED_TODAY = "ecw.used_today"
+@Field def final ATTR_USED_AVERAGE = "ecw.used_average"
+@Field def final ATTR_SOFT_WATER_AVAILABLE = "ecw.soft_water_available"
+@Field def final ATTR_FLOW_RATE = "ecw.flow_rate"
+
+@Field def final ATTR_EFFICIENCY = "ecw.efficiency"
+@Field def final EFFICIENCY_ON = 0
+@Field def final EFFICIENCY_OFF = 1
+
+@Field def final ATTR_ERROR_CODE = "ecw.error"
+@Field def final ATTR_WATER_ALERT = "ecw.water_alert"
+@Field def final ATTR_ALERT_DURATION = "ecw.alert_durr"
+@Field def final ATTR_ALERT_FLOW = "ecw.alert_flow"
+@Field def final ATTR_USE_ALERT = "ecw.use_alert"
+@Field def final ATTR_RESIN_ALERT = "ecw.resin"
+
+//-- Time
+@Field def final ATTR_ZONE_INFO = "time.zone_info"
+
+//-- WIFI
+@Field def final ATTR_NETWORK_NAME ="wifi.SSID"
+@Field def final ATTR_SIGNAL_STRENGTH = "wifi.RSSI"
+@Field def final ATTR_WIFI_LEAVE = "wifi.leave"
+
+//-- Firmware
+@Field def final ATTR_UNIT_FIRMWARE = "fw.package"
+@Field def final ATTR_FIRMWARE_UPGRADE_STATUS = "fw.status"
+@Field def final FIRMWARE_STATUS_REQUESTED = "Upgrade Requested"
+@Field def final FIRMWARE_STATUS_IN_PROGRESS = "Upgrade In Progress"
+@Field def final FIRMWARE_STATUS_FAILED_FILE_DOWNLOAD = "Failed - File Download Error"
+@Field def final FIRMWARE_STATUS_FAILED_FILE_DECODE = "Failed - File Decode Error"
+@Field def final FIRMWARE_STATUS_FAILED_USER_SETTINGS = "Failed - User Settings Migration Error"
+@Field def final FIRMWARE_STATUS_COMPLETE = "Upgrade Complete"
+
+@Field def final ATTR_FIRMWARE_ERROR = "fw.error"
+@Field def final ATTR_FIRMWARE_TARGET = "fw.target"
+
+@Field def final ONE_FLOAT_PATTERN = ~/^1(\.0*)?$/
+
+///////////////// Initialization //////////////////
+DevicePower.source                 DevicePower.SOURCE_LINE
+DevicePower.linecapable            true
+DevicePower.backupbatterycapable   false
+
+WaterHardness.hardness				0.0
+
+WaterSoftener.rechargeStatus		WaterSoftener.RECHARGESTATUS_READY
+WaterSoftener.currentSaltLevel		0
+WaterSoftener.maxSaltLevel			MAX_SALT_LEVEL
+WaterSoftener.saltLevelEnabled		true
+WaterSoftener.rechargeStartTime		0
+WaterSoftener.rechargeTimeRemaining	0
+WaterSoftener.daysPoweredUp			0
+WaterSoftener.totalRecharges		0
+
+EcowaterWaterSoftener.continuousDuration         0
+EcowaterWaterSoftener.continuousRate             0
+EcowaterWaterSoftener.alertOnContinuousUse       false
+EcowaterWaterSoftener.alertOnExcessiveUse        false
+
+
+Flow.flow                           0.0
+
+// Wifi Useful
+WiFi.ssid							"Home"
+WiFi.rssi							"0"
+
+// Wifi Not as useful
+WiFi.enabled						true
+WiFi.state							WiFi.STATE_CONNECTED
+WiFi.bssid							"Unknown"
+WiFi.security						"NONE"
+WiFi.channel						"0"
+WiFi.noise							"0"
+
+///////////////// Driver Lifecycle ////////////////
+
+onAdded {
+   log.debug DEV_NAME + " " + DEV_TYPE + " added."
+
+   DevicePower.sourcechanged          ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+	getAll();
+}
+
+onConnected {
+   log.debug DEV_NAME + " Connected."
+	if (DeviceOta.status == DeviceOta.STATUS_INPROGRESS ) {
+		DeviceOta.status 	DeviceOta.STATUS_IDLE
+	}
+	getAll();	
+}
+
+void getAll() {
+   log.debug DEV_NAME + " Getting all parameters."
+
+   Ipcd.Commands.getParameterValues(); // Blank to get all attributes.
+   Ipcd.Commands.getParameterValues("getAll",[ATTR_REGEN_STATUS,ATTR_SALT_LEVEL,ATTR_HARDNESS,ATTR_RECHARGE_TIME,ATTR_ON_TIME,ATTR_RECHARGES,ATTR_USED_TODAY,ATTR_USED_AVERAGE,ATTR_SOFT_WATER_AVAILABLE,ATTR_FLOW_RATE,ATTR_EFFICIENCY,ATTR_ERROR_CODE,ATTR_WATER_ALERT,ATTR_ALERT_DURATION,ATTR_ALERT_FLOW,ATTR_USE_ALERT,ATTR_RESIN_ALERT,ATTR_ZONE_INFO,ATTR_NETWORK_NAME,ATTR_SIGNAL_STRENGTH,ATTR_WIFI_LEAVE,ATTR_UNIT_FIRMWARE,ATTR_FIRMWARE_UPGRADE_STATUS]); // Blank to get all attributes.
+}
+
+onDisconnected {
+   log.debug DEV_NAME + " Disconnected."
+}
+
+onRemoved {
+   log.debug DEV_NAME + " Removed."
+   Ipcd.Commands.factoryReset()
+}
+
+/////////////// Capability Attribute Closures ///////////////////
+
+setAttributes('watersoftener') {
+   log.debug DEV_NAME + "received 'watersoftener' set Attribute message " + message
+   def attributes = message.attributes
+   for (attribute in attributes) {
+      switch(attribute.key) {
+		   case WaterSoftener.saltLevelEnabled:
+				break;
+		   case WaterSoftener.rechargeStartTime:
+			    Ipcd.Commands.setParameterValues( "startTime", [ (ATTR_RECHARGE_TIME) : attribute.value.toString() ] )
+		  		break;
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+setAttributes('ecowater') {
+   log.debug DEV_NAME + "received 'ecowater' set Attribute message " + message
+   def attributes = message.attributes
+   for (attribute in attributes) {
+      switch(attribute.key) {
+		   case EcowaterWaterSoftener.continuousDuration:
+            Ipcd.Commands.setParameterValues( "continuousDuration", [ (ATTR_ALERT_DURATION) : attribute.value.toString() ] )
+				break;
+		   case EcowaterWaterSoftener.continuousRate:
+            Ipcd.Commands.setParameterValues( "continuousRate", [ (ATTR_ALERT_FLOW) : attribute.value.toString() ] )
+		  		break;
+		   case EcowaterWaterSoftener.alertOnContinuousUse:
+            EcowaterWaterSoftener.alertOnContinuousUse (attribute.value)
+		  		break;
+		   case EcowaterWaterSoftener.alertOnExcessiveUse :
+            EcowaterWaterSoftener.alertOnExcessiveUse (attribute.value)
+		  		break;
+         default:
+            log.error "unrecognized attribute: " + attribute
+      }
+   }
+}
+
+
+///////////////// Protocol Messages ///////////////////////////
+onIpcdMessage.event {
+   def eventMap = message.mapify()
+   log.debug("Got event from IPCD Device " + eventMap)
+   if (eventMap.containsKey(VALUE_CHANGES)) {
+      def valueChanges = eventMap[VALUE_CHANGES]
+      for (valueChange in valueChanges) {
+      	update(valueChange["parameter"], valueChange["value"] )
+      }
+   }
+}
+
+onIpcdMessage.response.getParameterValues("success") {
+   log.debug("Got Response from IPCD Device " + message)
+   def response = message.mapify()["response"]
+   log.debug("Response contents from IPCD Device " + response)
+
+   for (value in response) {
+      update(value.key, value.value)
+   }
+}
+
+onControl('IPCDDeviceOTAInit') {
+	DeviceOta.status 					DeviceOta.STATUS_INPROGRESS
+}
+
+Boolean toBooleanFromValue(value) {
+
+	if (! value) {
+		log.debug("value {} is null, empty or false", value)
+		return false
+	}
+
+	String sVal = value.toString()
+
+	if (sVal ==~ ONE_FLOAT_PATTERN) {
+		log.debug("value {} matches 1.x pattern and is true.", value)
+		return true
+	}
+
+	Boolean bVal = sVal.toBoolean()
+	log.debug("value {} is equivalent to {}", value, bVal)
+	return bVal
+}
+
+
+void update(parameter, value) {
+   //log.debug("Updating {} to value {}", parameter, value )
+
+	   if (parameter == ATTR_REGEN_STATUS ) {
+	   			log.debug ("Updating regen status to {}", value )
+		      if ( value == REGEN_STATUS_READY ) {
+		   	      WaterSoftener.rechargeStatus ( WaterSoftener.RECHARGESTATUS_READY )
+				}
+		      else if ( value == REGEN_STATUS_RECHARGING ) {
+		   	      WaterSoftener.rechargeStatus ( WaterSoftener.RECHARGESTATUS_RECHARGING )
+				}
+		      else if ( value == REGEN_STATUS_SCHEDULED ) {
+		   	      WaterSoftener.rechargeStatus ( WaterSoftener.RECHARGESTATUS_RECHARGE_SCHEDULED )
+				}
+	   }
+	   else if ( parameter == ATTR_REGEN_TIME_REMAINING ) {
+	   		minutes = Double.parseDouble(value.toString()) / 60;
+	   		WaterSoftener.rechargeTimeRemaining ( minutes )
+	   	}
+	  else if ( parameter == ATTR_SALT_LEVEL ) {
+			if (value == "OFF") {
+				WaterSoftener.currentSaltLevel ( 0 )
+			} else if ( value == "L1") {
+		        WaterSoftener.currentSaltLevel ( 1 ) 
+			}else if ( value == "L2") {
+		        WaterSoftener.currentSaltLevel ( 2 ) 
+			}else if ( value == "L3") {
+		        WaterSoftener.currentSaltLevel ( 3 ) 
+			}else if ( value == "L4") {
+		        WaterSoftener.currentSaltLevel ( 4 ) 
+			}else if ( value == "L5") {
+		        WaterSoftener.currentSaltLevel ( 5 ) 
+			}else if ( value == "L6") {
+		        WaterSoftener.currentSaltLevel ( 6 ) 
+			}else if ( value == "L7") {
+		        WaterSoftener.currentSaltLevel ( 7 ) 
+			}else if ( value == "L8") {
+		        WaterSoftener.currentSaltLevel ( 8 ) 
+			} else {
+				log.error("Invalid salt level:  ", value );
+			}
+		}	  
+		else if ( parameter == ATTR_HARDNESS ) {
+	        WaterHardness.hardness ( value )
+		}
+	   else if ( parameter == ATTR_RECHARGE_TIME) {
+	        WaterSoftener.rechargeStartTime ( value )
+		}
+	   else if ( parameter == ATTR_ON_TIME) {
+	        WaterSoftener.daysPoweredUp ( value )
+		}
+	   else if ( parameter == ATTR_RECHARGES) {
+	        WaterSoftener.totalRecharges ( value )
+		}
+	   else if ( parameter == ATTR_USED_TODAY) {
+		}
+	   else if ( parameter == ATTR_USED_AVERAGE) {
+		}
+	   else if ( parameter == ATTR_SOFT_WATER_AVAILABLE) {
+		}
+	   else if ( parameter == ATTR_FLOW_RATE) {
+	   		Flow.flow ( value )
+		}
+	   else if ( parameter == ATTR_EFFICIENCY) {
+		}
+	   else if ( parameter == ATTR_ERROR_CODE) {
+	   	    log.debug("Error" + value)
+		}
+	   else if ( parameter == ATTR_WATER_ALERT ) {
+	   	EcowaterWaterSoftener.continuousUse ( toBooleanFromValue(value) )
+	   }
+	   else if ( parameter == ATTR_ALERT_DURATION) {
+	   	EcowaterWaterSoftener.continuousDuration ( value )
+		}
+	   else if ( parameter == ATTR_ALERT_FLOW) {
+	   	EcowaterWaterSoftener.continuousRate ( value )
+		}
+	   else if ( parameter == ATTR_USE_ALERT) {
+	   	EcowaterWaterSoftener.excessiveUse ( toBooleanFromValue(value) )
+		}
+	   else if ( parameter == ATTR_RESIN_ALERT) {
+		}
+	   else if ( parameter == ATTR_ZONE_INFO) {
+		}
+	   else if ( parameter == ATTR_NETWORK_NAME) {
+			WiFi.ssid ( value )
+		}
+	   else if ( parameter == ATTR_SIGNAL_STRENGTH) {
+			WiFi.rssi ( value )
+		}
+      else if ( parameter == ATTR_WIFI_LEAVE) {
+		}
+	   else if ( parameter == ATTR_UNIT_FIRMWARE) {
+	  		deviceOta.currentVersion ( value )
+		}
+	   else if ( parameter == ATTR_FIRMWARE_UPGRADE_STATUS) {
+			switch (value) {
+				case FIRMWARE_STATUS_IN_PROGRESS:
+					deviceOta.status ( deviceOta.status.INPROGRESS )
+					break;
+				case FIRMWARE_STATUS_COMPLETE:
+					deviceOta.status ( deviceOta.status.COMPLETE )
+					break;
+				case FIRMWARE_STATUS_FAILED_FILE_DOWNLOAD:
+				case FIRMWARE_STATUS_FAILED_FILE_DECODE:
+				case FIRMWARE_STATUS_FAILED_USER_SETTINGS:
+					devcieOta.status ( deviceOta.status.FAILED )
+					break;
+				}
+		}
+}
+
+onWaterSoftener.rechargeNow() {
+	log.debug( "Recharging {} Now", DEV_NAME )
+		
+	Ipcd.Commands.setParameterValues("recharge", [ (ATTR_REGEN_STATUS) : REGEN_STATUS_RECHARGING ] );
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'watersoftener:rechargeNowResponse', [:]
+}
+
+

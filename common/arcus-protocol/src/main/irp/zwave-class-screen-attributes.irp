@@ -1,0 +1,26 @@
+
+message zwave.ScreenAttributes.ScreenAttributesGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.ScreenAttributes.ScreenAttributesReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_LINES_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_LINES_SHIFT = 0;
+    u8 properties1;
+    u8 numberOfCharactersPerLine;
+    u8 sizeOfLineBuffer;
+    u8 numericalPresentationOfACharacter;
+}
+
+message zwave.ScreenAttributes.ScreenAttributesGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.ScreenAttributes.ScreenAttributesReportV2<id="0x03", group="V2"> {
+    const u8 PROPERTIES1_NUMBER_OF_LINES_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_LINES_SHIFT = 0;
+    const u8 PROPERTIES1_ESCAPE_SEQUENCE = 0x20;
+    u8 properties1;
+    u8 numberOfCharactersPerLine;
+    u8 sizeOfLineBuffer;
+    u8 numericalPresentationOfACharacter;
+    u8 screenTimeout;
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="SceneService"
+           namespace="scene"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for the scene service, which covers global operations such as listing scenes or scene templates for places.
+   </s:description>
+   
+   <s:methods>
+   
+   <s:method name="ListScenes" description="Lists all scenes defined for a given place">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="scenes" type="list&lt;Scene&gt;" description="The scenes"/>
+   </s:method>
+   
+   <s:method name="ListSceneTemplates" description="Lists all the scene templates available for a given place">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="sceneTemplates" type="list&lt;SceneTemplate&gt;" description="The scene templates"/>
+   </s:method>
+      
+   </s:methods>
+   
+   <!-- TODO events --> 
+
+</s:service>

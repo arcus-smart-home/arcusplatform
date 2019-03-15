@@ -1,0 +1,49 @@
+////////////////////////////////////////////////////////////////////////////////
+// AlertMe Key Pad Attributes
+//    From "KeyPad ZigBee Protocol"
+////////////////////////////////////////////////////////////////////////////////
+
+constants alertme.KeyPad {
+   const u8 DEVICE_TYPE = 0x1C;
+
+   const u8 ATTR_STATE = 0x20;
+   const u8 ATTR_PIN = 0x21;
+   const u8 ATTR_ACTION_KEY_PRESS = 0x22;
+   const u8 ATTR_ACTION_KEY_RELEASE = 0x23;
+   const u8 ATTR_HUB_POLL_RATE = 0x24;
+   const u8 ATTR_SOUNDS_MASK = 0x25;
+   const u8 ATTR_SOUND_ID = 0x26;
+   const u8 ATTR_CUSTOM_SOUND = 0x27;
+   const u8 ATTR_UNSUCCESSFUL_STATE_CHANGE = 0x27;
+
+   const u8 KEYPAD_STATE_UNKNOWN = 0x00;
+   const u8 KEYPAD_STATE_HOME = 0x01;
+   const u8 KEYPAD_STATE_ARMED = 0x02;
+   const u8 KEYPAD_STATE_NIGHT = 0x03;
+   const u8 KEYPAD_STATE_PANIC = 0x04;
+   const u8 KEYPAD_STATE_ARMING = 0x05;
+   const u8 KEYPAD_STATE_ALARMING = 0x06;
+   const u8 KEYPAD_STATE_NIGHT_ARMING = 0x07;
+   const u8 KEYPAD_STATE_NIGHT_ALARMING = 0x08;
+
+   const u8 KEYPAD_STATE_LOCKED_MASK = 0x80;
+
+   const u8 ACTION_KEY_POUND = 0x23; // '#'
+   const u8 ACTION_KEY_HOME = 0x48; // 'H'
+   const u8 ACTION_KEY_AWAY = 0x41; // 'A'
+   const u8 ACTION_KEY_NIGHT = 0x4E; // 'N'
+   const u8 ACTION_KEY_PANIC = 0x50; // 'P'
+
+   const u8 SOUND_CUSTOM = 0x00;
+   const u8 SOUND_KEYCLICK = 0x01;
+   const u8 SOUND_LOSTHUB = 0x02;
+   const u8 SOUND_ARMING = 0x03;
+   const u8 SOUND_ARMED = 0x04;
+   const u8 SOUND_HOME = 0x05;
+   const u8 SOUND_NIGHT = 0x06;
+   const u8 SOUND_ALARM = 0x07;
+   const u8 SOUND_PANIC = 0x08;
+   const u8 SOUND_BADPIN = 0x09;
+   const u8 SOUND_OPENDOOR = 0x0A;
+   const u8 SOUND_LOCKED = 0x0B;
+}

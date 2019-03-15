@@ -1,0 +1,133 @@
+<behaviorCatalog>
+   <behavior>
+      <id>1</id>
+      <name>No Activity Detected</name>
+      <description>Use contact and motion sensors to trigger an alarm if no activity occurs at times when you normally expect movement.</description>
+      <type>INACTIVITY</type>
+      <deviceSelectorQuery>(base:caps contains 'mot' OR base:caps contains 'cont') AND !(base:caps contains 'keypad')</deviceSelectorQuery>
+      <timeWindowSupport>REQUIRED</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that will trigger a Care Alarm when no activity is detected.</option>
+      <option
+         name="timeWindows"
+         label="Days &amp; Times To Monitor">Choose when you want to monitor for lack of activity.</option>
+      <option
+         name="duration"
+         label="No Activity For..."
+         unit="MINUTES"
+         values="30,60,120,180,240,300">Trigger the alarm when no activity is detected for a period of time.</option>
+   </behavior>
+   <behavior>
+      <id>2</id>
+      <name>Door Opened Unexpectedly</name>
+      <description>Place contact sensors on entry doors to trigger an alarm if loved ones open a door at times you wouldn't expect.</description>
+      <type>OPEN</type>
+      <deviceSelectorQuery>base:caps contains 'cont'</deviceSelectorQuery>
+      <timeWindowSupport>REQUIRED</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Doors">Choose the devices that will trigger a Care Alarm when they are opened.</option>
+      <option
+         name="timeWindows"
+         label="Days &amp; Times To Monitor">Choose when you want to monitor for opened doors.</option>         
+   </behavior>
+   <behavior>
+      <id>3</id>
+      <name>Door Left Open</name>
+      <description>Trigger an alarm if loved ones leave a door open for a period of time.</description>
+      <type>OPEN</type>
+      <deviceSelectorQuery>base:caps contains 'cont'</deviceSelectorQuery>
+      <timeWindowSupport>REQUIRED</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that will trigger a Care Alarm when they are left open.</option>
+      <option
+         name="timeWindows"
+         label="Days &amp; Times To Monitor">Choose when you want to monitor for a door left open.</option>
+      <option
+         name="duration"
+         label="Left Open For..."
+         unit="MINUTES"
+         values="30,60,120,180,240,300">Choose the amount of time that a door left open will trigger an alarm.</option>
+   </behavior>
+   <behavior>
+      <id>4</id>
+      <name>Medicine Cabinet Reminder</name>
+      <description>Place contact sensors on the medicine cabinet to feel more confident that loved ones have taken their medicine.</description>
+      <type>INACTIVITY</type>
+      <deviceSelectorQuery>base:caps contains 'cont'</deviceSelectorQuery>
+      <timeWindowSupport>NONE</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that will trigger a Care Alarm when they are not opened.</option>
+      <option
+         name="duration"
+         label="Not Opened For..."
+         unit="DAYS"
+         values="1,2,3,4,5">Choose the amount of time that a cabinet is not opened before triggering an alarm.</option>
+   </behavior>
+   <behavior>
+      <id>5</id>
+      <name>Eating Reminder</name>
+      <description>Place contact sensors on the refrigerator and kitchen cabinets to know if loved ones have not eaten.</description>
+      <type>INACTIVITY</type>
+      <deviceSelectorQuery>base:caps contains 'cont'</deviceSelectorQuery>
+      <timeWindowSupport>NONE</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that will trigger a Care Alarm when they are not opened.</option>
+      <option
+         name="duration"
+         label="Not Opened For..."
+         unit="DAYS"
+         values="1,2,3">Choose the amount of time that a device is not opened before triggering the alarm.</option>
+   </behavior>
+   <behavior>
+      <id>6</id>
+      <name>Curfew</name>
+      <description>Trigger a Care Alarm when a loved one is not home by a certain time.</description>
+      <type>PRESENCE</type>
+      <deviceSelectorQuery>base:caps contains 'pres'</deviceSelectorQuery>
+      <timeWindowSupport>REQUIRED</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that will trigger a Care Alarm when they are not home.</option>
+      <option
+         name="timeWindows"
+         label="Curfew Time"
+         unit="NODURATION">Choose what time you want to check to see if a loved one is home.</option>         
+   </behavior>
+   <behavior>
+      <id>7</id>
+      <name>Monitor Memory Habits</name>
+      <description>Trigger a Care Alarm when a contact sensor is opened more than normal on a daily basis.</description>
+      <type>OPEN_COUNT</type>
+      <deviceSelectorQuery>base:caps contains 'cont'</deviceSelectorQuery>
+      <timeWindowSupport>NONE</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices and maximum number of times they are opened daily before triggering the alarm.</option>
+   </behavior>
+   <behavior>
+      <id>8</id>
+      <name>Monitor Home Temperature</name>
+      <description>Trigger a Care Alarm when the home is too hot or too cold.</description>
+      <type>TEMPERATURE</type>
+      <deviceSelectorQuery>base:caps contains 'temp' AND !(base:caps contains 'vent' OR base:caps contains 'keypad')</deviceSelectorQuery>
+      <timeWindowSupport>NONE</timeWindowSupport>
+      <option
+         name="devices"
+         label="Participating Devices">Choose the devices that you want to monitor temperature.</option>
+      <option
+         name="highTemp"
+         label="Choose a high temperature"
+         unit="fahrenheit"
+         values="20-105"></option>
+      <option
+         name="lowTemp"
+         label="Choose a low temperature"
+         unit="fahrenheit"
+         values="20-105"></option>
+   </behavior>
+</behaviorCatalog>

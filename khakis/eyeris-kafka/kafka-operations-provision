@@ -1,0 +1,63 @@
+#!/bin/bash
+
+KAFKA_REPLICATION=${KAFKAOPS_REPLICATION:-2}
+
+if [ -e /etc/install/.eyeris-kafka-opsprov ]; then
+   if [ "$1" == "-f" ]; then
+      echo "Kafka appears to already be provisioned, re-running since '-f' was specified"
+   else
+      echo "Kafka appears to already be provisioned, exiting..."
+      exit 0
+   fi
+fi
+
+check_kafka() {
+   # cqlsh will return an error code if it can't connect to cassandra
+   "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --list
+}
+
+# wait for kafka to come online
+check_kafka
+ONLINE=$?
+if [ $ONLINE != 0 ]; then
+   echo "Waiting for Kafka to come online..."
+   RETRIES=10
+   until [ $ONLINE == 0 ] || [ $RETRIES == 0 ]; do
+      sleep 10
+      RETRIES=$RETRIES-1
+      check_kafka
+      ONLINE=$?
+      echo "."
+   done
+fi
+if [ $ONLINE != 0 ]; then
+   echo "Timed out waiting for Kafka to come online..."
+   exit -1
+else
+   echo "Kafka is online"
+fi
+
+echo "127.0.0.1	kafkaops.eyeris" >> /etc/hosts
+
+export KAFKA_HEAP_OPTS="-Xmx4m -Xms4m"
+export KAFKA_JVM_PERFORMANCE_OPTS="-client -Djava.awt.headless=true"
+
+RESULT=0
+echo "Creating Kafka Provisions Topics..."
+
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "irisLog" & PID0=$!
+"${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "metrics" & PID1=$!
+
+wait $PID0; RESULT=$(($RESULT | $?))
+wait $PID1; RESULT=$(($RESULT | $?))
+
+echo "DONE!"
+if [ $RESULT == 0 ]; then
+   echo "Kafka topics successfully provisioned!"
+    mkdir -p /etc/install
+    touch /etc/install/.eyeris-kafka-opsprov
+else
+   echo "ERROR Provisioning Kafka topics, see log for more details"
+fi
+
+exit $RESULT

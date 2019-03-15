@@ -1,0 +1,33 @@
+{{#section "subject"}}
+Your Hub Has Switched to Cellular Backup
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+The hub at {{{_place.name}}} has lost broadband connectivity and switched to cellular backup.
+This may be because the ethernet cable has been unplugged or power at the place has been lost.
+
+We recommend checking the Iris hub and restoring broadband connection as soon as possible to
+maintain service.  You will receive an email when the hub is reconnected.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The hub at {{{_place.name}}} has lost broadband connectivity and switched to cellular backup.</p>
+	<p>This may be because the ethernet cable has been unplugged or power at the place has been lost.</p>
+	<p/>
+	<p>We recommend checking the Iris hub and restoring broadband connection as soon as possible to maintain service. You will receive an email when the hub is reconnected.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

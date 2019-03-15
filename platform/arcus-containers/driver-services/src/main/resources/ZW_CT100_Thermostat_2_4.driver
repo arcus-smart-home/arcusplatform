@@ -1,0 +1,218 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an RTCoA CT100 Thermostat
+ *
+ */
+driver           "ZWRTCoACT100Thermostat"
+description      "Driver for a CT100 Radio Thermostat thermostat"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Thermostat"
+productId        "a36ea1"
+vendor           "Uncertified"
+model            "CT100"
+
+matcher          'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25601, 'ZWAV:ProductId': 263 //0x98, 0x6401, 0x0107
+matcher          'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25601, 'ZWAV:ProductId': 263 //0x98, 0x6401, 0x0107
+matcher          'ZWAV:Manufacturer': -104, 'ZWAV:ProductType': 25601 //0x98, 0x6401
+matcher          'ZWAV:Manufacturer': 0x98, 'ZWAV:ProductType': 25601 //0x98, 0x6401
+
+capabilities     DevicePower, Temperature, RelativeHumidity, Thermostat, Clock, Indicator
+
+importCapability 'zwave/GenericZWaveThermostat'
+importCapability 'zwave/GenericZWaveCTxThermostat'
+importCapability 'zwave/GenericZWaveBattery'
+
+
+// Generic Device Class:    GENERIC_TYPE_THERMOSTAT
+// Specific Device Class:   SPECIFIC_TYPE_THERMOSTAT_GENERAL_V2
+// Command Classes:
+//   0x20    (32)   COMMAND_CLASS_BASIC
+//   0x81    (129)  COMMAND_CLASS_CLOCK
+//   0x87    (135)  COMMAND_CLASS_INDICATOR
+//   0x72    (114)  COMMAND_CLASS_MANUFACTURER_SPECIFIC
+//   0x31    (49)   COMMAND_CLASS_SENSOR_MULTILEVEL
+//   0x40    (64)   COMMAND_CLASS_THERMOSTAT_MODE
+//   0x42    (66)   COMMAND_CLASS_THERMOSTAT_OPERATING_STATE
+//   0x44    (68)   COMMAND_CLASS_THERMOSTAT_FAN_MODE
+//   0x45    (69)   COMMAND_CLASS_THERMOSTAT_FAN_STATE
+//   0x43    (67)   COMMAND_CLASS_THERMOSTAT_SETPOINT
+//   0x86    (134)  COMMAND_CLASS_VERSION
+//   0x70    (112)  COMMAND_CLASS_CONFIGURATION
+//   0x80    (-128) COMMAND_CLASS_BATTERY
+//   0x85    (-123) COMMAND_CLASS_ASSOCIATION
+//   0x60    (96)   COMMAND_CLASS_MULTI_CHANNEL
+
+DevicePower.linecapable           true
+DevicePower.backupbatterycapable  true
+DevicePower.battery               0
+
+Indicator.enabled          true
+Indicator.enableSupported  false
+
+final double DEF_MIN_SP =  1.67
+final double DEF_MAX_SP = 35.0
+final double MIN_SP_SEPARATION = 1.67
+
+def final thermConstantMap = [name:'RTCoA CT100', maxHeatSetPoint:DEF_MAX_SP, minHeatSetPoint:DEF_MIN_SP, maxCoolSetPoint:DEF_MAX_SP, minCoolSetPoint:DEF_MIN_SP, minSetPointSeparationC:MIN_SP_SEPARATION]
+
+def final thermModes = ["OFF", "AUTO", "COOL", "HEAT"]
+
+Thermostat.maxfanspeed         1
+Thermostat.autofanspeed        1
+Thermostat.minsetpoint         DEF_MIN_SP
+Thermostat.maxsetpoint         DEF_MAX_SP
+Thermostat.setpointseparation  MIN_SP_SEPARATION
+Thermostat.supportedmodes      thermModes
+Thermostat.supportsAuto        true
+
+
+onConnected {
+    ZWave.setOfflineTimeout(GenericZWaveCTxThermostat.OFFLINE_TIMEOUT_SEC)
+
+    // 1.3 - Indicators
+    // Indicators.
+    // Just getting the status.  We can do whatever we want with them
+    ZWave.indicator.get();
+    // set association to retrieve unsolicited humidity report
+    ZWave.multi_channel.encapsulate( 0x00, 0x02, 0x85, 0x01, 0x01 , 0x01)
+
+    // 1.5 - Sensors
+    ZWave.sensor_multilevel.get()        // Get the temperature
+
+    // 1.6 - Thermostat Mode
+    ZWave.thermostat_mode.get()
+
+    // 1.7 - Thermostat State
+    ZWave.thermostat_operating_state.get()
+
+    // 1.8 - Thermostat Fan Mode
+    ZWave.thermostat_fan_mode.get()
+
+    // 1.9 - Thermostat Fan State
+    ZWave.thermostat_fan_state.get()
+
+    // 1.10 - Thermostat Set Point
+    ZWave.thermostat_setpoint.get(GenericZWaveCTxThermostat.SETPOINT_COOL);
+    ZWave.thermostat_setpoint.get(GenericZWaveCTxThermostat.SETPOINT_HEAT);
+
+    // get the device power setting line/battery
+    ZWave.configuration.get( 0x04 )
+
+    // 1.12
+    ZWave.battery.get()                    // Get the state of the battery 0 - 100
+
+    ZWave.poll(GenericZWaveCTxThermostat.BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+    ZWave.poll(GenericZWaveCTxThermostat.LEVEL_POLLING_INTERVAL_SEC, ZWave.sensor_multilevel.get)
+    ZWave.poll(GenericZWaveCTxThermostat.LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_mode.get)
+    ZWave.poll(GenericZWaveCTxThermostat.LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_fan_mode.get)
+    ZWave.poll(GenericZWaveCTxThermostat.LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': GenericZWaveCTxThermostat.SETPOINT_COOL])
+    ZWave.poll(GenericZWaveCTxThermostat.LEVEL_POLLING_INTERVAL_SEC, ZWave.thermostat_setpoint.get, ['type': GenericZWaveCTxThermostat.SETPOINT_HEAT])
+
+    // schedule an event to get the device state since these seem to get
+    // missed a lot when done here in onConnected
+    Scheduler.scheduleIn 'SetupDevice', GenericZWaveCTxThermostat.SETUP_DELAY_MILLIS
+}
+
+setAttributes('therm') {
+    GenericZWaveCTxThermostat.doSetThermAttributes(this, thermConstantMap, message)
+}
+
+onZWaveMessage.configuration.report {
+    GenericZWaveCTxThermostat.handleConfigurationReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.indicator.report {
+    GenericZWaveCTxThermostat.handleIndicatorReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.multi_channel.end_point_report {
+    log.trace  "{} multi_channel.end_point_report called...", DEVICE_NAME
+}
+
+onZWaveMessage.multi_channel.end_point_find_report {
+    log.trace "{} multi_channel.end_point_find_report called...", DEVICE_NAME
+}
+
+onZWaveMessage.multi_channel.instance_cmd_encap {
+    log.trace "{} multi_channel.instance_cmd_encap called...", DEVICE_NAME
+    GenericZWaveCTxThermostat.handleMultiChannelInstanceCmdEncap(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.multi_channel.encapsulate {
+    log.debug "{} multi_channel.encapsulate called...", DEVICE_NAME
+    GenericZWaveCTxThermostat.handleMultiChannelInstanceCmdEncap(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.sensor_multilevel.report {
+    GenericZWaveCTxThermostat.handleMultiLevelSensorReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.thermostat_mode.report {
+    GenericZWaveCTxThermostat.handleModeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.thermostat_operating_state.report {
+    GenericZWaveCTxThermostat.handleOperatingStateReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.thermostat_operating_state.logging_report {
+    log.trace "{} driver handle thermostat operating state logging report...", DEVICE_NAME
+}
+
+onZWaveMessage.thermostat_fan_mode.report {
+    GenericZWaveCTxThermostat.handleFanModeReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.thermostat_fan_state.report {
+    GenericZWaveCTxThermostat.handleFanStateReport(this,DEVICE_NAME,message)
+}
+
+onZWaveMessage.thermostat_setpoint.report {
+    GenericZWaveCTxThermostat.handleSetPointReport(this,thermConstantMap,message)
+}
+
+onZWaveMessage.clock.report {
+    log.trace "{} driver handle clock report...", DEVICE_NAME
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onThermostat.SetIdealTemperature {
+    GenericZWaveThermostat.setIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+  
+onThermostat.IncrementIdealTemperature {
+    GenericZWaveThermostat.incrementIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+  
+onThermostat.DecrementIdealTemperature {
+    GenericZWaveThermostat.decrementIdealTemperature(this, DEVICE_NAME, message, thermConstantMap)
+}
+
+onEvent(GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT) {
+	ZWave.thermostat_setpoint.get(SETPOINT_HEAT);
+}
+
+onEvent(GenericZWaveThermostat.EVENT_GET_COOL_SETPOINT) {
+	ZWave.thermostat_setpoint.get(SETPOINT_COOL);
+}
+
+ 
+

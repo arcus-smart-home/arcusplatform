@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<errors>
+  <transaction_error>
+    <error_code>fraud_security_code</error_code>
+    <error_category>fraud</error_category>
+    <merchant_message>The payment gateway declined the transaction because the security code (CVV) did not match.</merchant_message>
+    <customer_message>The security code you entered does not match. Please update the CVV and try again.</customer_message>
+  </transaction_error>
+  <error field="transaction.account.billing_info.verification_value" symbol="declined_bad">did not match</error>
+  <transaction href="https://your-subdomain.recurly.com/v2/transactions/3d1c6aa86e3d447eb0f3b4a6e3e074d9" type="credit_card">
+    <uuid>3d1c6aa86e3d447eb0f3b4a6e3e074d9</uuid>
+    <action>purchase</action>
+    <amount_in_cents type="integer">4900</amount_in_cents>
+    <tax_in_cents type="integer">0</tax_in_cents>
+    <currency>USD</currency>
+    <status>declined</status>
+    <reference nil="nil"></reference>
+    <test type="boolean">true</test>
+    <voidable type="boolean">false</voidable>
+    <refundable type="boolean">false</refundable>
+    <transaction_error>
+      <error_code>fraud_security_code</error_code>
+      <error_category>fraud</error_category>
+      <merchant_message>The payment gateway declined the transaction because the security code (CVV) did not match.</merchant_message>
+      <customer_message>The security code you entered does not match. Please update the CVV and try again.</customer_message>
+    </transaction_error>
+    <cvv_result code="N">No Match</cvv_result>
+    <avs_result code="D">Street address and postal code match.</avs_result>
+    <avs_result_street>Y</avs_result_street>
+    <avs_result_postal>Y</avs_result_postal>
+    <created_at type="datetime">2011-10-17T17:24:53-07:00</created_at>
+    <details>
+      <account>
+        <account_code>1</account_code>
+        <first_name nil="nil"></first_name>
+        <last_name nil="nil"></last_name>
+        <company nil="nil"></company>
+        <email>verena@example.com</email>
+        <billing_info type="credit_card">
+          <first_name nil="nil"></first_name>
+          <last_name nil="nil"></last_name>
+          <address1 nil="nil"></address1>
+          <address2 nil="nil"></address2>
+          <city nil="nil"></city>
+          <state nil="nil"></state>
+          <zip nil="nil"></zip>
+          <country nil="nil"></country>
+          <phone nil="nil"></phone>
+          <vat_number nil="nil"></vat_number>
+          <card_type>Visa</card_type>
+          <year type="integer">2015</year>
+          <month type="integer">11</month>
+          <first_six>400000</first_six>
+          <last_four>0101</last_four>
+        </billing_info>
+      </account>
+    </details>
+  </transaction>
+</errors>

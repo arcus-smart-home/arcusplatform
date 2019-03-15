@@ -1,0 +1,264 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+capability		Dimmer
+capability		Switch
+description		"Default implementation for the Zigbee Dimable Light capability"
+version			"1.0"
+
+@Field
+static final long DFLT_READBACK_DELAY      = 3000
+@Field
+static final short DFLT_TRANS_SECS         = 1
+
+onAdded {
+	String name = vars.'CURRENT_NAME' ?: "Generic Zigbee Dimmable Bulb"
+	log.debug "${name} generic dimmer added..."
+
+	// right now we don't have a target level
+	vars.'targetlevel' = -1
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////  
+
+static void doSetSwitAttribute(ctx, name, onOffCluster, message) {
+	
+	ctx.log.debug "{} lightbulb driver received 'swit' setAttributes message: {}", name, message
+	
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Switch.state:
+				if (attribute.value == 'ON') {
+					onOffCluster.on()
+				} else {
+					onOffCluster.off()
+				}
+
+				// read current OnOff attributes
+				onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+				break
+
+			default:
+				ctx.log.warn "{} unrecognized attribute: {}", name, attribute
+				break
+		}
+	}
+}
+
+static void doSetDimAttribute(ctx, name, levelCluster, onOffCluster, message) {
+	
+	ctx.log.debug "{} lightbulb driver received 'dim' setAttributes message: {}", name, message
+
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Dimmer.brightness:
+				int level = attribute.value
+				level = normalizeBrightness(ctx, name, level, onOffCluster)
+				ctx.log.debug "{} Parameter Values (brightness,seconds): {}, {} ", name, level, DFLT_TRANS_SECS
+				handleRampToBrightness(ctx, name, levelCluster,  (byte)level, DFLT_TRANS_SECS)
+				break
+			default:
+				ctx.log.warn "{} Unrecognized attribute: {}", name, attribute
+				break
+		}
+	}
+}
+
+
+static int normalizeBrightness (ctx, name, targetBrightness, onOffCluster) {
+	// limit brightness from 1 to 100
+	if (100 < targetBrightness) {
+		targetBrightness = 100
+	}
+	
+	if ( 1 > targetBrightness) {
+		if( null == onOffCluster ) {
+			// this is here to support alexa integration inc/dec brightness.  if dec brightness gets to 0 we don't want
+			// to turn the bulb off  otherwise inc brightness won't work.
+			targetBrightness = 1
+		} else {
+			targetBrightness = 100 // brightness 0 is needed to drive certain behavior
+			onOffCluster.off()
+			// read current OnOff attributes
+			onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+		}
+	}
+	return targetBrightness
+}
+
+/**
+ * This method is the execution of Zigbee commands to process the ramp brightness
+ */
+static void handleRampToBrightness(ctx, name, lvlClstr, byte level, short seconds) {
+	def short transitionTime = seconds * 10
+	if (0 > transitionTime) { transitionTime = 0 }
+	
+	double dLevel = level * 254 / 100
+	short actualLevel = dLevel.intValue()	//convert from percentage to actual zigbee level value 0 - 254
+
+	ctx.vars.'targetlevel' = actualLevel
+		
+	ctx.log.debug "{} levelCluster.moveToLevel[level, transitionTime] = [{}, {}]", name, actualLevel, transitionTime
+	lvlClstr.moveToLevel( (byte)actualLevel, transitionTime )
+}
+
+/**
+ * This method is used by the driver to implement the onDimmer.RampBrightness
+ */
+static void doRampBrightness(ctx, name, levelCluster, onOffCluster, message)
+{
+	ctx.log.trace "${name} driver received onDimmer.RampBrightness message: {}", message
+	// read the brightness and seconds parameters for the method
+	int targetBrightness = new Double(message.attributes['brightness']).intValue()
+	int targetSeconds = new Double(message.attributes['seconds']).intValue()
+	
+	ctx.log.trace "Parameter Values (brightness,seconds):{}, {}", targetBrightness, targetSeconds
+
+	targetBrightness = normalizeBrightness(ctx, name, targetBrightness, onOffCluster)
+	handleRampToBrightness(ctx, name, levelCluster, (byte)targetBrightness, (short)targetSeconds)
+		
+	ctx.sendResponse 'dim:RampBrightnessResponse', [:]
+}
+
+static void doIncrementBrightness(ctx, name, levelCluster, onOffCluster, message) {
+	ctx.log.debug "${name} received onDimmer.IncrementBrightness message: {}", message
+	
+	// get the current level, will be 0 if not set
+	int currentLevel = ctx.Dimmer.brightness ? ctx.Dimmer.brightness.get() : 0
+	def currentState = ctx.Switch.state.get()
+	
+	// get the new desired leve
+	int newBrightness = new Double(message.attributes['amount']).intValue() + currentLevel;
+	newBrightness = normalizeBrightness(ctx, name, newBrightness, null)
+	
+	// for alexa integration.  If device is off and new level > 0 turn the device ON
+	if(( 0 < newBrightness ) && ( ctx.Switch.STATE_OFF == currentState )) {
+		onOffCluster.on()
+		// read current OnOff attributes
+		onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+	}
+
+	ctx.log.debug "${name} incrementing brightness to: [{}]", newBrightness
+	handleRampToBrightness(ctx, name, levelCluster, (byte)newBrightness,  (short)2)
+	
+	ctx.sendResponse 'dim:IncrementBrightnessResponse', [:]
+}
+
+static void doDecrementBrightness(ctx, name, levelCluster, onOffCluster, message) {
+	ctx.log.debug "${name} received onDimmer.DecrementBrightness message: {}", message
+	
+	// get the current level, will be 0 if not set
+	int currentLevel = ctx.Dimmer.brightness ? ctx.Dimmer.brightness.get() : 0
+	def currentState = ctx.Switch.state.get()
+	
+	// get the new desired leve
+	int newBrightness = currentLevel - new Double(message.attributes['amount']).intValue();
+	
+	// for alexa integration.  If device is on and new level <= 0 turn the device OFF and leave level at current value
+	if(( 0 >= newBrightness ) && ( ctx.Switch.STATE_ON == currentState )) {
+		onOffCluster.off()
+		// read current OnOff attributes
+		onOffCluster.zclReadAttributes( onOffCluster.ATTR_ONOFF )
+	}
+	else {
+		newBrightness = normalizeBrightness(ctx, name, newBrightness, null)
+	
+		ctx.log.debug "${name} decrementing brightness to: [{}]", newBrightness
+		handleRampToBrightness(ctx, name, levelCluster, (byte)newBrightness,  (short)2)
+	}
+	
+	ctx.sendResponse 'dim:DecrementBrightnessResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+static void handleOnOffMsg(ctx, name, cluster, msg) {
+	ctx.log.trace "${name} driver received OnOff Attributes Response: {}", msg
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def onoff = attributes[cluster.ATTR_ONOFF]
+	ctx.log.trace "OnOff: {}", onoff
+	
+	if (onoff != null) {
+		def prevState = ctx.Switch.state.get()
+		ctx.Switch.state onoff ? ctx.Switch.STATE_ON : ctx.Switch.STATE_OFF
+		// if state changed, capture timestamp
+		if (ctx.Switch.state.get() != prevState) {
+			ctx.Switch.statechanged new Date()
+		}
+	}
+}
+
+static void handleLevelMsg(ctx, name, cluster, followsLevelSpec, msg) {
+	ctx.log.trace "${name} driver received level Attributes Report: {}", msg
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def currLevel = attributes[cluster.ATTR_CURRENT_LEVEL]
+	def remainTime = attributes[cluster.ATTR_REMAINING_TIME]
+	def transTime = attributes[cluster.ATTR_ON_OFF_TRANSITION_TIME]
+	def onLevel = attributes[cluster.ATTR_ON_LEVEL]
+	ctx.log.trace "handleLevelMsg - Current Level:${currLevel}, On Level:${onLevel}, Transition Time:${transTime}, Remaining Time:${remainTime}"
+	int rampingtime, brightness, rampingtarget
+	
+	// set Dimmer Brightness attribute to Current Level
+	if (null != currLevel && ('INVALID' != currLevel.toString())) {
+		brightness = currLevel & 0xff
+		ctx.log.trace "brightness ${brightness}"
+		if ((0 <= brightness) && (254 >= brightness)) {		// occasionally see strange values like -57 when first powered up
+			brightness = Math.round(brightness * 100.0 / 254.0)
+			ctx.log.trace "Level set to:{}", brightness
+			if (0 < brightness) {
+				ctx.Dimmer.brightness brightness
+			}
+		} else {
+			ctx.log.warn "Invalid Brightness Level Ignored:{}", brightness
+		}
+	}else if ('INVALID' == currLevel.toString()  && !followsLevelSpec) {		// i.e. bulb reports invalid value '0xFF' when at 100%
+		brightness = 100
+		ctx.Dimmer.brightness brightness
+	}
+	
+	// set Dimmer Ramping Time attribute to Remaining Time
+	if (null != remainTime) {
+		double remainingDbl =  remainTime
+		remainingDbl /= 10	// ZigBee reamining time is reported in 10ths of seconds, Dimmer ramping time is in seconds
+		rampingtime = remainingDbl.intValue()
+		ctx.Dimmer.rampingtime rampingtime
+	}
+	
+	ctx.log.trace "handleLevelMsg - Dimmer[brightness, rampingtime, rampingtarget]=[${brightness}, ${rampingtime}, 'Not supported']"
+}
+
+
+/////////////////////////////////////////////////
+///  Event Handlers
+/////////////////////////////////////////////////
+static void doProcessReadLevel(ctx, name, levelCluster){
+	ctx.log.trace ' ${name} performed deferred ReadAttributes for levelCluster'
+	// read current Level attributes
+	levelCluster.zclReadAttributes( 
+		levelCluster.ATTR_CURRENT_LEVEL,
+		levelCluster.ATTR_REMAINING_TIME,
+		levelCluster.ATTR_ON_OFF_TRANSITION_TIME,
+		levelCluster.ATTR_ON_LEVEL )
+}
+
+
+

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="AlertLog"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+    <t:description>Represents a single entry in an alert_log table</t:description>
+    <t:attributes>
+		<t:attribute
+			name="alertType"
+			type="string"
+			description="alert type such as Security, Smoke, CO, Water, Care"
+			/>
+		<t:attribute
+			name="hourOfDay"
+			type="timestamp"
+			description="The hour of day the alert occurred"
+			/>
+		<t:attribute
+			name="alertTime"
+			type="timestamp"
+			description="The timestamp when the alert was triggerred"
+			/>
+		<t:attribute
+			name="placeId"
+			type="uuid"
+			description="The UUID of the place where the alert was triggerred"
+			/>				
+	</t:attributes>
+ </t:type>

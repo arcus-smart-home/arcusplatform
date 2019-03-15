@@ -1,0 +1,7 @@
+
+message zwave.Crc16Encap.Crc16EncapV1<id="0x01", group="V1"> {
+    u8 commandClass;
+    u8 command;
+    u8[] data;
+    // checksum contained in previous field
+}

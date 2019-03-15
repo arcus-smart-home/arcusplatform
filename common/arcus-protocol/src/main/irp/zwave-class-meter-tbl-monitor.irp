@@ -1,0 +1,240 @@
+
+message zwave.MeterTblMonitor.MeterTblStatusReportV1<id="0x0B", group="V1"> {
+    u8 reportsToFollow;
+    u8[3] currentOperatingStatus;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusDateGetV1<id="0x0A", group="V1"> {
+    u8 maximumReports;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8 stopSecondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusDepthGetV1<id="0x09", group="V1"> {
+    u8 statusEventLogDepth;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusSupportedGetV1<id="0x07", group="V1"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusSupportedReportV1<id="0x08", group="V1"> {
+    u8[3] supportedOperatingStatus;
+    u8 statusEventLogDepth;
+}
+
+message zwave.MeterTblMonitor.MeterTblCurrentDataGetV1<id="0x0C", group="V1"> {
+    u8[3] datasetRequested;
+}
+
+message zwave.MeterTblMonitor.MeterTblCurrentDataReportV1<id="0x0D", group="V1"> {
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 0;
+    u8 reportsToFollow;
+    u8 properties1;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblHistoricalDataGetV1<id="0x0E", group="V1"> {
+    u8 maximumReports;
+    u8[3] historicalDatasetRequested;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8 stopSecondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblHistoricalDataReportV1<id="0x0F", group="V1"> {
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 0;
+    u8 reportsToFollow;
+    u8 properties1;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblReportV1<id="0x06", group="V1"> {
+    const u8 PROPERTIES1_METER_TYPE_MASK = 0x3F;
+    const u8 PROPERTIES1_METER_TYPE_SHIFT = 0;
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0xC0;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 6;
+    const u8 PROPERTIES2_PAY_METER_MASK = 0x0F;
+    const u8 PROPERTIES2_PAY_METER_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+    u8[3] datasetSupported;
+    u8[3] datasetHistorySupported;
+    u8[3] dataHistorySupported;
+}
+
+message zwave.MeterTblMonitor.MeterTblTableCapabilityGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTableIdGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTableIdReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_SHIFT = 0;
+    u8 properties1;
+    u8[] meterIdCharacter;
+}
+
+message zwave.MeterTblMonitor.MeterTblTablePointAdmNoGetV1<id="0x01", group="V1"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTablePointAdmNoReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_SHIFT = 0;
+    u8 properties1;
+    u8[] meterPointAdmNumberCharacter;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusReportV2<id="0x0B", group="V2"> {
+    u8 reportsToFollow;
+    u8[3] currentOperatingStatus;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusDateGetV2<id="0x0A", group="V2"> {
+    u8 maximumReports;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8 stopSecondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusDepthGetV2<id="0x09", group="V2"> {
+    u8 statusEventLogDepth;
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusSupportedGetV2<id="0x07", group="V2"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblStatusSupportedReportV2<id="0x08", group="V2"> {
+    u8[3] supportedOperatingStatus;
+    u8 statusEventLogDepth;
+}
+
+message zwave.MeterTblMonitor.MeterTblCurrentDataGetV2<id="0x0C", group="V2"> {
+    u8[3] datasetRequested;
+}
+
+message zwave.MeterTblMonitor.MeterTblCurrentDataReportV2<id="0x0D", group="V2"> {
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 0;
+    const u8 PROPERTIES1_OPERATING_STATUS_INDICATION = 0x80;
+    u8 reportsToFollow;
+    u8 properties1;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblHistoricalDataGetV2<id="0x0E", group="V2"> {
+    u8 maximumReports;
+    u8[3] historicalDatasetRequested;
+    u16 startYear;
+    u8 startMonth;
+    u8 startDay;
+    u8 startHourLocalTime;
+    u8 startMinuteLocalTime;
+    u8 startSecondLocalTime;
+    u16 stopYear;
+    u8 stopMonth;
+    u8 stopDay;
+    u8 stopHourLocalTime;
+    u8 stopMinuteLocalTime;
+    u8 stopSecondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblHistoricalDataReportV2<id="0x0F", group="V2"> {
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0x03;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 0;
+    const u8 PROPERTIES1_OPERATING_STATUS_INDICATION = 0x80;
+    u8 reportsToFollow;
+    u8 properties1;
+    u8[3] dataset;
+    u16 year;
+    u8 month;
+    u8 day;
+    u8 hourLocalTime;
+    u8 minuteLocalTime;
+    u8 secondLocalTime;
+}
+
+message zwave.MeterTblMonitor.MeterTblReportV2<id="0x06", group="V2"> {
+    const u8 PROPERTIES1_METER_TYPE_MASK = 0x3F;
+    const u8 PROPERTIES1_METER_TYPE_SHIFT = 0;
+    const u8 PROPERTIES1_RATE_TYPE_MASK = 0xC0;
+    const u8 PROPERTIES1_RATE_TYPE_SHIFT = 6;
+    const u8 PROPERTIES2_PAY_METER_MASK = 0x0F;
+    const u8 PROPERTIES2_PAY_METER_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+    u8[3] datasetSupported;
+    u8[3] datasetHistorySupported;
+    u8[3] dataHistorySupported;
+}
+
+message zwave.MeterTblMonitor.MeterTblTableCapabilityGetV2<id="0x05", group="V2"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTableIdGetV2<id="0x03", group="V2"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTableIdReportV2<id="0x04", group="V2"> {
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_SHIFT = 0;
+    u8 properties1;
+    u8[] meterIdCharacter;
+}
+
+message zwave.MeterTblMonitor.MeterTblTablePointAdmNoGetV2<id="0x01", group="V2"> {
+}
+
+message zwave.MeterTblMonitor.MeterTblTablePointAdmNoReportV2<id="0x02", group="V2"> {
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_MASK = 0x1F;
+    const u8 PROPERTIES1_NUMBER_OF_CHARACTERS_SHIFT = 0;
+    u8 properties1;
+    u8[] meterPointAdmNumberCharacter;
+}

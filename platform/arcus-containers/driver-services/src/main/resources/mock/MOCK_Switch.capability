@@ -1,0 +1,77 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * To Use this Mock Switch, set ON_OFF_DELAY_MSEC (switch delay in msec) and 
+ * CURRENT_NAME (device name) during onConnect or onAdd in your driver logic
+ */
+
+
+capability		Switch
+description		"Mock implementation for the switch capability"
+version			"1.0"
+
+Switch.state			Switch.STATE_OFF
+
+def final long ON_OFF_DELAY_MSEC = 500		// simulate On/Off latency delay
+def final String DEFAULT_NAME = 'Unkown Device'		
+
+setAttributes('swit') {
+	def attrs = message.attributes;
+	long delay = vars.'ON_OFF_DELAY_MSEC'?:ON_OFF_DELAY_MSEC
+	String name = vars.'CURRENT_NAME'?:DEFAULT_NAME
+	
+	for(attribute in attrs) {
+		switch(attribute.key) {
+			case Switch.state:
+				switch(attribute.value) {
+					case Switch.STATE_ON:
+						log.debug "Request ${name} SWITCH ON with delay of ${delay} msec"
+						// do a delayed setting of the Bulb to ON
+						Scheduler.scheduleIn 'MockSwitchOn', delay
+						break
+					case Switch.STATE_OFF:
+						log.debug "Request ${name} SWITCH OFF with delay of ${delay} msec"
+						// do a delayed setting of the state to Closed
+						Scheduler.scheduleIn 'MockSwitchOff', delay
+						break
+					default:
+						log.error "Unrecognized valve state: " + attribute.value
+						break
+				}
+				break
+			default:
+				log.error "Unrecognized Switch attribute: " + attribute
+				break
+		}
+	}
+}
+
+onEvent('MockSwitchOn') {
+	if (Switch.state.get() != Switch.STATE_ON) {
+		Switch.statechanged new Date()
+	}
+	Switch.state Switch.STATE_ON
+	log.debug "${vars.'CURRENT_NAME'?:DEFAULT_NAME} SWITCH ON"
+}
+
+onEvent('MockSwitchOff') {
+	if (Switch.state.get() != Switch.STATE_OFF) {
+		Switch.statechanged new Date()
+	}
+	Switch.state Switch.STATE_OFF
+	log.debug "${vars.'CURRENT_NAME'?:DEFAULT_NAME} SWITCH OFF"
+}
+

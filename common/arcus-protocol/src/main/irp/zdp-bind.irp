@@ -1,0 +1,165 @@
+constants zdp.Bind {
+   const u16 ZDP_END_DEVICE_BIND_REQ = 0x0020;
+   const u16 ZDP_BIND_REQ = 0x0021;
+   const u16 ZDP_UNBIND_REQ = 0x0022;
+   const u16 ZDP_BIND_REGISTER_REQ = 0x0023;
+   const u16 ZDP_REPLACE_DEVICE_REQ = 0x0024;
+   const u16 ZDP_STORE_BKUP_BIND_ENTRY_REQ = 0x0025;
+   const u16 ZDP_REMOVE_BKUP_BIND_ENTRY_REQ = 0x0026;
+   const u16 ZDP_BACKUP_BIND_TABLE_REQ = 0x0027;
+   const u16 ZDP_RECOVER_BIND_TABLE_REQ = 0x0028;
+   const u16 ZDP_BACKUP_SOURCE_BIND_REQ = 0x0029;
+   const u16 ZDP_RECOVER_SOURCE_BIND_REQ = 0x002A;
+
+   const u16 ZDP_END_DEVICE_BIND_RSP = 0x8020;
+   const u16 ZDP_BIND_RSP = 0x8021;
+   const u16 ZDP_UNBIND_RSP = 0x8022;
+   const u16 ZDP_BIND_REGISTER_RSP = 0x8023;
+   const u16 ZDP_REPLACE_DEVICE_RSP = 0x8024;
+   const u16 ZDP_STORE_BKUP_BIND_ENTRY_RSP = 0x8025;
+   const u16 ZDP_REMOVE_BKUP_BIND_ENTRY_RSP = 0x8026;
+   const u16 ZDP_BACKUP_BIND_TABLE_RSP = 0x8027;
+   const u16 ZDP_RECOVER_BIND_TABLE_RSP = 0x8028;
+   const u16 ZDP_BACKUP_SOURCE_BIND_RSP = 0x8029;
+   const u16 ZDP_RECOVER_SOURCE_BIND_RSP = 0x802A;
+}
+
+message zdp.Bind.ZdpEndDeviceBindReq<id="0x0020"> {
+   u16 bindingTarget;
+   u64 srcIeeeAddr;
+   u8 srcEndpoint;
+   u16 profileId;
+   u8 numInClusters;
+   u16[numInClusters] inClusters;
+   u8 numOutClusters;
+   u16[numOutClusters] outClusters;
+}
+
+message zdp.Bind.ZdpEndDeviceBindRsp<id="0x8020"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpBindReq<id="0x0021"> {
+   u64 srcAddr;
+   u8 srcEndpoint;
+   u16 clusterId;
+   u8 dstAddrMode;
+   u16 groupAddr when (dstAddrMode == ZDP_ADDR_MODE_GROUP);
+   u64 dstAddr when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+   u8 dstEndpoint when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+}
+
+message zdp.Bind.ZdpBindRsp<id="0x8021"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpUnbindReq<id="0x0022"> {
+   u64 srcAddr;
+   u8 srcEndpoint;
+   u16 clusterId;
+   u8 dstAddrMode;
+   u16 groupAddr when (dstAddrMode == ZDP_ADDR_MODE_GROUP);
+   u64 dstAddr when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+   u8 dstEndpoint when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+}
+
+message zdp.Bind.ZdpUnbindRsp<id="0x8022"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpBindRegisterReq<id="0x0023"> {
+   u64 nodeAddr;
+}
+
+message zdp.Bind.ZdpBindRegisterRsp<id="0x8023"> {
+   u8 status;
+   u16 bindingTableEntries;
+   u16 bindingTableCount;
+   ZdpBindingTableRecord[bindingTableCount] bindingTable;
+}
+
+message zdp.Bind.ZdpReplaceDeviceReq<id="0x0024"> {
+   u64 oldAddr;
+   u8 oldEndpoint;
+   u64 newAddr;
+   u8 newEndpoint;
+}
+
+message zdp.Bind.ZdpReplaceDeviceRsp<id="0x8024"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpStoreBkupBindEntryReq<id="0x0025"> {
+   u64 srcAddr;
+   u8 srcEndpoint;
+   u16 clusterId;
+   u8 dstAddrMode;
+   u16 groupAddr when (dstAddrMode == ZDP_ADDR_MODE_GROUP);
+   u64 dstAddr when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+   u8 dstEndpoint when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+}
+
+message zdp.Bind.ZdpStoreBkupBindEntryRsp<id="0x8025"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpRemoveBkupBindEntryReq<id="0x0026"> {
+   u64 srcAddr;
+   u8 srcEndpoint;
+   u16 clusterId;
+   u8 dstAddrMode;
+   u16 groupAddr when (dstAddrMode == ZDP_ADDR_MODE_GROUP);
+   u64 dstAddr when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+   u8 dstEndpoint when (dstAddrMode == ZDP_ADDR_MODE_EXTENDED);
+}
+
+message zdp.Bind.ZdpRemoveBkupBindEntryRsp<id="0x8026"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpBackupBindTableReq<id="0x0027"> {
+   u16 bindingTableEntries;
+   u16 startIndex;
+   u16 bindingTableCount;
+   ZdpBindingTableRecord[bindingTableCount] bindingTable;
+}
+
+message zdp.Bind.ZdpBackupBindTableRsp<id="0x8027"> {
+   u8 status;
+   u16 entryCount;
+}
+
+message zdp.Bind.ZdpRecoverBindTableReq<id="0x0028"> {
+   u16 startIndex;
+}
+
+message zdp.Bind.ZdpRecoverBindTableRsp<id="0x8028"> {
+   u8 status;
+   u16 bindingTableEntries;
+   u16 startIndex;
+   u16 bindingTableCount;
+   ZdpBindingTableRecord[bindingTableCount] bindingTable;
+}
+
+message zdp.Bind.ZdpBackupSourceBindReq<id="0x0029"> {
+   u16 sourceTableEntries;
+   u16 startIndex;
+   u16 sourceTableCount;
+   u64[sourceTableCount] sourceTable;
+}
+
+message zdp.Bind.ZdpBackupSourceBindRsp<id="0x8029"> {
+   u8 status;
+}
+
+message zdp.Bind.ZdpRecoverSourceBindReq<id="0x002A"> {
+   u16 startIndex;
+}
+
+message zdp.Bind.ZdpRecoverSourceBindRsp<id="0x802A"> {
+   u8 status;
+   u16 sourceTableEntries;
+   u16 startIndex;
+   u16 sourceTableCount;
+   u64[sourceTableCount] sourceTable;
+}

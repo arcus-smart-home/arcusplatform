@@ -1,0 +1,37 @@
+
+message zwave.AssociationGrpInfo.AssociationGroupNameGetV1<id="0x01", group="V1"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.AssociationGrpInfo.AssociationGroupNameReportV1<id="0x02", group="V1"> {
+    u8 groupingIdentifier;
+    u8 lengthOfName;
+    u8[] name;
+}
+
+message zwave.AssociationGrpInfo.AssociationGroupInfoGetV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_LIST_MODE = 0x40;
+    const u8 PROPERTIES1_REFRESH_CACHE = 0x80;
+    u8 properties1;
+    u8 groupingIdentifier;
+}
+
+message zwave.AssociationGrpInfo.AssociationGroupInfoReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_GROUP_COUNT_MASK = 0x3F;
+    const u8 PROPERTIES1_GROUP_COUNT_SHIFT = 0;
+    const u8 PROPERTIES1_DYNAMIC_INFO = 0x40;
+    const u8 PROPERTIES1_LIST_MODE = 0x80;
+    u8 properties1;
+}
+
+message zwave.AssociationGrpInfo.AssociationGroupCommandListGetV1<id="0x05", group="V1"> {
+    const u8 PROPERTIES1_ALLOW_CACHE = 0x80;
+    u8 properties1;
+    u8 groupingIdentifier;
+}
+
+message zwave.AssociationGrpInfo.AssociationGroupCommandListReportV1<id="0x06", group="V1"> {
+    u8 groupingIdentifier;
+    u8 listLength;
+    u8[] command;
+}

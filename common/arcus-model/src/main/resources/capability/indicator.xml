@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Indicator"
+   namespace="indicator"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+This capability is used by devices that have an indicator on them, like switches with an LED.  Often devices which have the Indicator capability will also have the Identify capability and blink the LED or something of that nature to identify the device.  Some devices allow the indicator to be disabled independent of the state of the device.  Often this is to remove unwanted light sources, when this is supported the   
+	</c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="indicator" 
+         readwrite="r" 
+         type="enum" 
+         values="ON,OFF,DISABLED"
+         optional="false" 
+         description="Reflects the state of the indicator on the device.  ON means the indicator is currently active, OFF means the indicators is inactive, and DISABLED means the indicator has been disabled."
+         />
+      <c:attribute 
+         name="enabled" 
+         readwrite="rw" 
+         type="boolean" 
+         optional="true" 
+         description="Allows the indicator to be enabled or disabled.  Not all devices will support this attribute."
+         />
+      <c:attribute 
+         name="enableSupported" 
+         readwrite="r" 
+         type="boolean" 
+         optional="false" 
+         description="Indicates whether or not the enabled attribute is supported."
+         />
+      <c:attribute 
+         name="inverted" 
+         readwrite="rw" 
+         type="boolean" 
+         optional="true" 
+         description="Indicates whether operation of the indicator should be inverted, if supported by the device. For example, turn indicator OFF when switch is ON, etc."
+         />
+   </c:attributes>
+</c:capability>

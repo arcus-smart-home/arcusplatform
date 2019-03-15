@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Switch"
+   namespace="swit"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a switch.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="state" 
+         readwrite="rw" 
+         type="enum"
+         values="ON,OFF"
+         optional="false"
+         description="Reflects the state of the switch. Also used to set the state of the switch."/>
+      <c:attribute 
+         name="inverted"
+         readwrite="rw"
+         type="boolean"
+         optional="true"
+         description="Indicates whether operation of the physical switch toggle should be inverted, if supported."/>
+		<c:attribute 
+         name="statechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last state change"/>
+   </c:attributes>
+
+   <c:methods>
+   </c:methods>
+</c:capability>

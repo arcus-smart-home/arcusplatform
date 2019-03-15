@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DeviceOta"
+   namespace="devota"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   <c:description>
+   Capabilities for devices that support over the air firmware updates.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="currentVersion"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Version of the currently installed firmware."/>
+      <c:attribute 
+         name="targetVersion"
+         readwrite="r"
+         type="string" 
+         optional="true" 
+         description="Version of the target firmware."/>
+      <c:attribute 
+         name="status"
+         readwrite="r"
+         type="enum" 
+         values="IDLE,INPROGRESS,COMPLETED,FAILED"
+         optional="true" 
+         description="Status of the current firmware update process."/>
+      <c:attribute 
+         name="retryCount"
+         readwrite="r"
+         type="int" 
+         optional="true" 
+         description="Current firmware update retry count."/>
+      <c:attribute 
+         name="lastAttempt" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="true" 
+         description="UTC date time of last retry attempt."/>         
+      <c:attribute 
+         name="progressPercent"
+         readwrite="r"
+         type="double" 
+         optional="true" 
+         description="Progress of the current firmware download."/>
+      <c:attribute 
+         name="lastFailReason"
+         readwrite="r"
+         type="string" 
+         optional="true" 
+         description="Reason for failure of the OTA (offline, timeout, refused, etc.)."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="FirmwareUpdate"
+         description="Requests that the hub update its firmware">
+         <c:parameters>
+            <c:parameter 
+               name="url"
+               type="string"
+               description="The URL of the firmware."
+               optional="false"/>
+            <c:parameter 
+               name="priority"
+               type="enum"
+               values="NORMAL,URGENT"
+               description="The priority of the firmware update. Updates at NORMAL priority may be refused in some senarios."
+               optional="true"/>
+            <c:parameter
+               name="md5"
+               type="string"
+               description="An MD5 of the firmware if devices require it for validation of the download."
+               optional="true"/>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED,FAILED"
+               description="The status code result for the firmware update request."
+               optional="false"/>
+            <c:return
+               name="message"
+               type="string"
+               description="An informative message about the returned status code."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+
+      <c:method
+         name="FirmwareUpdateCancel"
+         description="Requests that the hub cancel an existing firmware update">
+         <c:parameters>
+            <c:return
+               name="status"
+               type="enum"
+               values="OK,REFUSED,FAILED"
+               description="The status code result for the firmware update cancel request."
+               optional="false"/>
+            <c:return
+               name="message"
+               type="string"
+               description="An informative message about the returned status code."
+               optional="true"/>
+         </c:parameters>
+      </c:method> 
+   </c:methods>
+   
+   <c:events>
+      <c:event 
+         name="FirmwareUpdateProgress" 
+         description="Sent when a device has been removed for any reason. This may be very specific to the given protocol and require client interpretation.">
+         <c:parameters>
+            <c:parameter 
+               name="dlProgress"
+               type="double"
+               description="The percentage of the firmware that has been downloaded."
+               optional="false"/>
+            <c:parameter 
+               name="otaProgress"
+               type="double"
+               description="The percentage of the firmware that has been delivered to the device."
+               optional="false"/>
+            <c:parameter 
+               name="status"
+               type="enum"
+               values="INPROGRESS,COMPLETE,FAILED"
+               description="The current status of the OTA firmware update. Will transition to COMPLETE or FAILED on termination of the OTA process."
+               optional="true"/>
+            <c:parameter 
+               name="reason"
+               type="string"
+               description="A message indicating the failure reason"
+               optional="true"/>
+            <c:parameter 
+               name="fileVersion"
+               type="string"
+               description="Name of the file version used for OTA"
+               optional="true"/>
+         </c:parameters>
+      </c:event>
+   </c:events>
+</c:capability>

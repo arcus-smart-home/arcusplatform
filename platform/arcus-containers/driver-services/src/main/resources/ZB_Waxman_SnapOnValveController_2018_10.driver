@@ -1,0 +1,518 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Waxman LeakSmart Snap-on Valve Controller
+ *
+ * FACTORY RESET:
+ *  - Press and hold the center "SYNC" button for 10-15 seconds, then let go. This resets the controller to factory setting.
+ *
+ * NOTES:
+ *  - Device reports that it supports the Temperature Measurement cluster, but the manufacturer does not currently include
+ *    any temperature measurement chips so any values reported are invalid.
+ *
+ *
+ * IN Clusters
+ *   0x0000     Basic
+ *   0x0001     Power Configuration
+ *   0x0003     Identify
+ *   0x0004     Groups
+ *   0x0005     Scenes
+ *   0x0006     On/Off
+ *   0x0020     Poll Control
+ *   0x0402     Temperature Measurement
+ *   0x0B02     Appliance Events and Alert
+ * OUT Clusters
+ *   0x0003     Identify
+ *   0x0019     OTA Upgrade
+ *   
+ */
+import groovy.transform.Field
+import static com.iris.protocol.zigbee.zcl.General.*;
+import static com.iris.protocol.zigbee.zcl.Constants.*;
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse.*
+
+
+driver           "ZBWaxmanSnapOnValveController"
+description      "Driver for the Waxman LeakSmart Snap-on Valve Controller"
+version          "2018.10"
+protocol         "ZIGB"
+deviceTypeHint   "Water Valve"
+productId        "91b231"
+vendor           "Leak Smart"
+model            "TBD"
+
+matcher          'ZIGB:manufacturer': 0x113B, 'ZIGB:vendor': 'WAXMAN', 'ZIGB:model': 'leakSMART Water Valve'
+
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Valve {
+    Valve.valvestate Valve.VALVESTATE_OPEN
+    bind valvestatechanged to Valve.valvestate
+}
+
+Identify {
+}
+
+
+@Field final byte DVC_ENDPOINT = 1
+@Field def dvcEndPoint = Zigbee.endpoint(DVC_ENDPOINT)
+
+def basicCluster = dvcEndPoint.Basic
+def pwrCluster   = dvcEndPoint.Power
+def identCluster = dvcEndPoint.Identify
+def onOffCluster = dvcEndPoint.OnOff
+def pollCluster  = dvcEndPoint.PollControl
+def otaCluster   = dvcEndPoint.Ota
+
+
+final short PROFILE_HA                  = 0x0104
+final short CLUSTER_BASIC_CNFG          = 0x0000
+final short CLUSTER_PWR_CNFG            = 0x0001
+final short CLUSTER_ON_OFF              = 0x0006
+final short CLUSTER_POLL_CONTROL        = 0x0020
+final short CLUSTER_APPLIANCE_ALERTS    = 0x0B02
+
+final byte  CMD_CNFG_RPT                = 0x06      // General Command Frame - Configure Reporting
+final byte  CMD_WRT_ATTR                = 0x02      // General Command Frame - Write Attributes
+final byte  CMD_GET_ALERTS              = 0x00
+
+final short IDENT_PERIOD_SECS           = 180       // number of seconds (0-600) for device to Identify itself when Identify method is called
+final int   OFFLINE_TIMEOUT_SECS        = 11100     // 185 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Level Configuration Required by the Driver
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+    configure {
+        bind name: "bind-onoff",
+            endpoint: 1,
+            cluster: Zcl.OnOff.CLUSTER_ID,
+            server: true
+
+        bind name: "bind-alerts",
+            endpoint: 1,
+            cluster: CLUSTER_APPLIANCE_ALERTS, 
+            server: true
+
+        bind name: "bind-powr",
+            endpoint: 1,
+            cluster: Zcl.Power.CLUSTER_ID, 
+            server: true
+
+        bind name: "bind-poll",
+            endpoint: 1,
+            cluster: Zcl.PollControl.CLUSTER_ID,
+            server: true
+
+        report name: "conf-onoff",
+            endpoint: 1,
+            cluster: Zcl.OnOff.CLUSTER_ID,
+            attr: Zcl.OnOff.ATTR_ONOFF,
+            type: Data.TYPE_BOOLEAN,
+            min: 1,
+            max: 3600
+
+        report name: "conf-batt",
+            endpoint: 1,
+            cluster: Zcl.Power.CLUSTER_ID,
+            attr: Zcl.Power.ATTR_BATTERY_VOLTAGE,
+            change: Data.encode8BitUnsigned(2),
+            min: 3600,
+            max: 43200
+
+        report name: "conf-powr",
+            endpoint: 1,
+            cluster: Zcl.Basic.CLUSTER_ID,
+            attr: Zcl.Basic.ATTR_POWER_SOURCE,
+            type: Data.TYPE_ENUM_8BIT,
+            min: 120,
+            max: 43200
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onConnected {
+    Zigbee.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+    // set long poll interval to 20 quarter seconds, and short poll interval to 2 quarter seconds
+    pollCluster.setLongPollInterval((int)20)
+    pollCluster.setShortPollInterval((short)2)
+
+    // read current valve state
+    vars.'obstructed' = false
+    onOffCluster.zclReadAttributes(onOffCluster.ATTR_ONOFF)
+
+    // read current Basic attributes (to determine power source, batteries, or mains)
+    basicCluster.zclReadAttributes(
+        basicCluster.ATTR_ZCL_VERSION,
+        basicCluster.ATTR_APPLICATION_VERSION,
+        basicCluster.ATTR_HARDWARE_VERSION,
+        basicCluster.ATTR_MODEL_IDENTIFIER,
+        basicCluster.ATTR_POWER_SOURCE)
+
+    // read current Power attributes
+    pwrCluster.zclReadAttributes(
+        pwrCluster.ATTR_BATTERY_VOLTAGE,
+        pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD)
+
+    // read current Poll Control attributes (if needed)
+    pollCluster.zclReadAttributes(
+        pollCluster.ATTR_CHECKIN_INTERVAL,
+        pollCluster.ATTR_LONG_POLL_INTERVAL,
+        pollCluster.ATTR_SHORT_POLL_INTERVAL,
+        pollCluster.ATTR_FAST_POLL_TIMEOUT)
+
+    // read current Alerts (no helper class)
+    byte[] getAlertsBytes = []
+    Zigbee.send("cluster" : CLUSTER_APPLIANCE_ALERTS, "command" : CMD_GET_ALERTS, "profile" : PROFILE_HA, "endpoint" : 1, "clusterspecific" : true, "defaultresponse" : false, "data" : getAlertsBytes)
+
+    // write Poll Control cluster Check-in Interval
+    byte[] wrtChkIntvlBytes = [
+        // Attr Id (0x0000) Check-in Interval
+        0x00, 0x00,
+        // Attr Data Type (0x23) Unsigned 32- bit integer
+        0x23,
+        // Attr Data (0x00003840) 14400 quarter-seconds, 1 hour
+        0x40, 0x38, 0x00, 0x00 ]
+    Zigbee.send(
+        "cluster" : CLUSTER_POLL_CONTROL,
+        "command" : CMD_WRT_ATTR,
+        "profile" : PROFILE_HA,
+        "endpoint" : 1,
+        "clusterspecific" : false,        // using general Write Attribute command
+        "defaultresponse" : true,
+        "data" : wrtChkIntvlBytes)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Valve Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Valve capability attributes (only 'state' attribute can be written/set)
+setAttributes('valv') {
+    log.trace "driver received 'valv' setAttributes message " + message
+    def attributes = message.attributes
+    for(attribute in attributes) {
+
+        log.debug "set attribute {}:{}", attribute.key, attribute.value
+        switch(attribute.key) {
+            case Valve.valvestate:
+                vars.'obstructed' = false
+                if (attribute.value == 'OPEN') {
+                    Valve.valvestate Valve.VALVESTATE_OPENING
+                    onOffCluster.on()
+                } else if (attribute.value == 'CLOSED') {
+                    Valve.valvestate Valve.VALVESTATE_CLOSING
+                    onOffCluster.off()
+                }
+                break
+
+            default:
+                log.error "unrecognized attribute: " + attribute
+                break
+        }
+    }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+    log.debug "driver received onIdentify.Identify"
+    // during Identify, green LED on Open button goes ON, and blue LED on Link/Connect button flashes twice a second
+    identCluster.identifyCmd(IDENT_PERIOD_SECS)
+    sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleOnOffMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def onoff = attributes[cluster.ATTR_ONOFF]
+    log.trace "OnOff: " + onoff
+    if (onoff != null) {
+        def prevState = Valve.valvestate.get()
+        if (onoff) {
+            Valve.valvestate Valve.VALVESTATE_OPEN
+            // only log state change to OPEN if previously not OPEN
+            if (prevState != Valve.VALVESTATE_OPEN) {
+                log.info "Valve State set to OPEN"
+            }
+        } else {
+            Valve.valvestate Valve.VALVESTATE_CLOSED
+            // only log state change to CLOSED if previously not CLOSED
+            if (prevState != Valve.VALVESTATE_CLOSED) {
+                log.info "Valve State set to CLOSED"
+            }
+        }
+    }
+}
+
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+    log.trace "received OnOff Attributes Response: " + message
+    if (false == vars.'obstructed') {
+        handleOnOffMsg(onOffCluster, message)
+    } else {
+        log.warn "Last oberation triggered Obstructed Alert, don't overwrite"
+    }
+}
+
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+    log.trace "received OnOff Attributes Report: " + message
+    handleOnOffMsg(onOffCluster, message)
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleBasicMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg);
+    def pwrSrc = attributes[cluster.ATTR_POWER_SOURCE]
+    def zclVers = attributes[cluster.ATTR_ZCL_VERSION]
+    def appVers = attributes[cluster.ATTR_APPLICATION_VERSION]
+    def hwVers = attributes[cluster.ATTR_HARDWARE_VERSION]
+    def mfgName = attributes[cluster.ATTR_MANUFACTURER_NAME]
+    def model = attributes[cluster.ATTR_MODEL_IDENTIFIER]
+    
+    log.trace "ZCL-Ver:" + zclVers + ", App-Ver:" + appVers + ", HW-Ver:" + hwVers + ", Mfg:" + mfgName + ", Model:" + model + ", PwrSrc:" + pwrSrc
+    // ZCL-Ver:1, App-Ver:1, HW-Ver:3, Mfg:null, Model:leakSMART Water Valve, PwrSrc:1 (line) or 3 (battery)
+
+    def prevSrc = DevicePower.source.get()
+    if (3 == pwrSrc) {
+        log.debug 'Device is battery powered'
+        DevicePower.source DevicePower.SOURCE_BATTERY
+    } else {
+        if (0 != pwrSrc) {    // if not Unknown
+            log.debug 'Device is Mains (or DC) powered'
+            DevicePower.source DevicePower.SOURCE_LINE
+        }
+    }
+}
+
+onZigbeeMessage.Zcl.basic.zclreadattributesresponse() {
+    log.trace "driver received Basic Attributes Response: " + message
+    handleBasicMsg(basicCluster, message)
+}
+
+onZigbeeMessage.Zcl.basic.zclreportattributes() {
+    log.trace "driver received Basic Attributes Report: " + message
+    handleBasicMsg(basicCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+    def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+    def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+    def fastPollTimeout = attributes[cluster.ATTR_FAST_POLL_TIMEOUT]
+    log.trace "CheckinInterval:" + checkin + ", LongPoll:" + longPoll + ", ShortPoll:" + shortPoll + ", FastPollTimeout:" + fastPollTimeout
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+    log.trace "driver received Poll Control Attributes Response: " + message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+    log.trace "driver received Poll Control Attributes Report: " + message
+    handlePollCrtlMsg(pollCluster, message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.checkin() {
+    log.trace "driver received Poll Control Checkin: " + message
+    // tell device to resume without short polling
+    pollCluster.checkInResponse((byte)0x00, (short)0x0000)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+    def attributes = Zigbee.Message.decodeZclAttributes(msg)
+    def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+    def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+    log.trace "BatteryVoltage:" + battVolt + ", Min Thrshld:" + battMinThreshold
+
+    // NOTE: Ignore Alarm Mask because Voltage Too Low (bit 0) appears to always be set
+
+    double minVolts = (null != battMinThreshold) ? (battMinThreshold / 10.0) : 4.1        // default to 4.1 volts
+    double nomVolts = 6.0    // 4 X 1.5V AA Batteries
+
+    if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+        // battery Voltage is reported in tenths of Volts
+        double volts = (battVolt / 10.0)
+        log.trace "Battery Volts:" + volts
+        // battery percentage = (100 / nominal - minimum) * (actual - minimum)
+        if (0 < (nomVolts - minVolts)) {    // prevent division by zero
+            double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+            battPercent = (100.0 < battPercent) ? 100.0 : battPercent        // limit maximum to 100%
+            battPercent = (0.0 > battPercent) ? 0.0 : battPercent            // limit minimum to 0%
+            int intBattPercent = battPercent
+            log.trace "Battery Percent:" + intBattPercent
+            DevicePower.battery intBattPercent
+        }
+    }
+}
+
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+    log.trace "driver received Power Attributes Response: " + message
+    handlePowerMsg(pwrCluster, message)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+    log.trace "driver received Power Attributes Report: " + message
+    handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+    GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+    GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+    GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+    GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+    GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+    GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+    def zclMsg = Zigbee.Message.toZcl(message)
+    def profile = zclMsg.getProfileId()
+    def clusterId = zclMsg.getClusterId()
+    def msgId = zclMsg.getZclMessageId()
+    def endpoint = zclMsg.getEndpoint()
+    def flags = zclMsg.getFlags()
+    byte[] data = zclMsg.getPayload()
+    
+    if (PROFILE_HA == profile) {
+        
+        if (CLUSTER_APPLIANCE_ALERTS == clusterId && data.length > 0) {
+            log.debug "Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+            if ((0 == msgId) || (1 == msgId)) {        // Get Alerts Response, or Alerts Notification
+                def byte dataByte = data[0]
+                if (0 == dataByte) {
+                    log.debug 'No Alert'
+                    // if there was previously an obstruction, and now no alert, read current valve state
+                    if (Valve.VALVESTATE_OBSTRUCTION == Valve.valvestate.get()) {
+                        onOffCluster.zclReadAttributes(onOffCluster.ATTR_ONOFF)
+                    }
+                } else {
+                    log.debug 'Valve Operation Failure Alert'
+                    vars.'obstructed' = true
+                    Valve.valvestate Valve.VALVESTATE_OBSTRUCTION
+                }
+            }
+            return
+        }
+
+        if (ZHA_CLUSTER_BASIC == clusterId && ZclConfigureReportingResponse.ID == msgId) {
+            logResponse(data, "Basic reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_POWER_CONFIGURATION == clusterId && ZclConfigureReportingResponse.ID == msgId) {
+            logResponse(data, "Power reporting configuration")
+            return
+        }
+
+        if (ZHA_CLUSTER_ON_OFF == clusterId && ZclConfigureReportingResponse.ID == msgId) {
+            logResponse(data, "On/Off reporting config")
+            return
+        }
+
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclWriteAttributesResponse.ID == msgId) {
+            logResponse(data, "Poll Control configuration")
+            return
+        }
+    
+        if (ZHA_CLUSTER_POLL_CONTROL == clusterId && ZclDefaultResponse.ID == msgId) {
+            log.trace "Poll Control default response"
+            return
+        }
+    }
+
+    log.debug "Profile:" + profile + ", ClusterId:" + clusterId + ", MsgId:" + msgId + ", EndPoint:" + endpoint + ", Flags:" + flags + ", Data:" + data
+}
+
+
+void logResponse(data, msgType) {
+    if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+        log.trace "{} was successful: {}", msgType, data
+    } else {
+        log.warn "{} FAILED: {}", msgType, data
+    }
+}
+
+

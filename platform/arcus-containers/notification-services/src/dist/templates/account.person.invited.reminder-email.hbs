@@ -1,0 +1,51 @@
+{{#section "subject"}}
+Don't Leave {{{inviterFirstName}}} {{{inviterLastName}}}  Hanging: Accept Your Invitation
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}}, 
+
+This is a reminder that {{{inviterFirstName}}} {{{inviterLastName}}} has invited you 
+to their smart home. Once you accept, you'll have access to the Iris-connected 
+products in {{{_owner.firstName}}}'s place.
+
+To accept your invitation: 
+1. Click here to download the Iris mobile app. 
+2. Enter the following invitation code on the initial screen: {{{inviteCode}}}
+3. Follow the on-screen instructions. 
+
+By accepting this invitation, you will have limited access to view and/or manage certain aspects of {{{inviterFirstName}}}'s Iris system.
+
+We recommend contacting {{{inviterFirstName}}} to discuss what action you should take in the event an alarm is triggered.  
+
+If you do not wish to participate, please contact {{{inviterFirstName}}} {{{inviterLastName}}}.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>This is a reminder that {{inviterFirstName}} {{inviterLastName}} has invited you to their smart home. Once you accept, you'll have access to the Iris-connected products in {{_owner.firstName}}'s place.</p>
+	<p/>
+	<p>To accept your invitation:</p>
+	<ol>
+	<li>Download the Iris by Lowe's app from the App Store&reg; or the Google Play Store&reg;.</li>
+	<li>Enter the following invitation code on the initial screen: <b>{{inviteCode}}</b></li>
+	<li>Follow the on-screen instructions.</li>
+	</ol>
+	<br/>
+	<p>By accepting this invitation, you will have limited access to view and/or manage certain aspects of {{inviterFirstName}}'s Iris system.</p>
+	<p/>
+	<p>If you do not wish to participate, please contact {{inviterFirstName}} {{inviterLastName}}.</p>
+	
+	{{/partial}}
+	{{#partial "extra" }}
+	
+	{{/partial}}
+	
+{{> layout-html-email}}
+{{/section}}

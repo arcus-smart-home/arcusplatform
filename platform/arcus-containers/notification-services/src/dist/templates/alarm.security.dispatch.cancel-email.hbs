@@ -1,0 +1,29 @@
+{{#section "subject"}}
+Security Alarm Update: Dispatch Cancellation Attempted
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{#partial "message" }}
+Hi {{{_person.firstName}}},
+
+An attempt to cancel the Police Dept. dispatch was sent to the monitoring station by a person on the Alarm Notification List. 
+
+{{/partial}}
+{{> layout-standard-plaintext-email}}
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{_person.firstName}},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>An attempt to cancel the Police Dept. dispatch was sent to the monitoring station by a person on the Alarm Notification List.  </p>
+	
+	{{/partial}}
+
+	{{#partial "extra" }}{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

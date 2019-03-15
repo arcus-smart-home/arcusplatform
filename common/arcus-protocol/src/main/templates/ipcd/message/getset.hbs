@@ -1,0 +1,8 @@
+   {{#if override}}@Override{{/if}}
+   public {{{type}}} {{toGetter name}} {
+      return {{name}};
+   }
+
+   public void set{{capitalize name}}({{{type}}} {{name}}) {
+      this.{{name}} = {{name}};
+   }

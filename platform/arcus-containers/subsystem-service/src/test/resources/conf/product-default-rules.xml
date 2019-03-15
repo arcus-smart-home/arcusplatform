@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<productDefaultRules>
+
+   <metadata version="2015-10-07T00:00:00" publisher="Louis Parks" />
+
+   <ruleSet productId="4fccbb" productName="Centralite KeyFob">
+      <rule template="smartfob-arm-on" name="Arm On with the Smart Fob">
+         <context name="smart fob" value="${base:address}" />
+         <context name="button" value="circle" />
+      </rule>
+   </ruleSet>
+
+</productDefaultRules>

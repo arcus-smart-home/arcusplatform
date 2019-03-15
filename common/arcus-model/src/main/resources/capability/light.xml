@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Light"
+   namespace="light"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of a Lighting source (bulb, LED strip, etc).
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="colormode" 
+         readwrite="rw" 
+         type="enum"
+         values="NORMAL,COLOR,COLORTEMP"
+         optional="false"
+         description="Reflects the current color mode of the light (or Normal for non-color devices)."/>
+   </c:attributes>
+
+</c:capability>

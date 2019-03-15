@@ -1,0 +1,14 @@
+   {{#.}}
+   /** {{description}} */
+   public static final String ATTR_{{toUpperCase name}} = "{{name}}";
+   {{#enumValues}}
+   public static final String {{toUpperCase name}}_{{toUpperCase .}} = "{{.}}";{{/enumValues}}
+   public static final com.iris.capability.definition.AttributeType TYPE_{{toUpperCase name}} = 
+   {{#if type.enum}}
+      com.iris.capability.definition.AttributeTypes.enumOf(
+         java.util.Arrays.<String>asList({{#enumValues}}"{{.}}"{{#unless @last}}, {{/unless}}{{/enumValues}})
+      );
+   {{else}}
+      com.iris.capability.definition.AttributeTypes.parse("{{{type.representation}}}");
+   {{/if}}
+   {{/.}}

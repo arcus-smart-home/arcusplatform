@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service
+   name="AlexaService"
+   namespace="alexa"
+   version="1.0"
+   xmlns:s="http://www.iris.com/schema/service/1.0.0"
+>
+           
+   <s:description>
+   Internal communication channel between the Alexa Bridge/Voice Service.
+   </s:description>
+
+   <s:methods>
+
+      <s:method
+         name="Discover"
+         description="Platform message issued by the Alexa Bridge when a discover request is issued."
+         internal="true"
+      >
+         <s:return
+            name="endpoints"
+            type="list&lt;AlexaEndpoint&gt;"
+            description="List of Supported devices structured to match the Alexa V3 model."
+         />
+      </s:method>
+
+      <s:method
+         name="Execute"
+         description="Platform message issued by the Alexa Bridge to execute a command against a device."
+         internal="true"
+      >
+         <s:parameter name="target" type="string" description="Address of the target device or scene." optional="false"/>
+         <s:parameter name="directive" type="string" description="Name of the directive to execute." optional="false"/>
+         <s:parameter name="arguments" type="Object" description="Arguments to the directive." optional="false"/>
+         <s:parameter name="correlationToken" type="string" description="The correlation token provided by Amazon." optional="false"/>
+         <s:parameter name="allowDeferred" type="boolean" description="True to allow a deferred response, false otherwise.  If not present assume false." optional="true"/>
+
+         <s:return name="properties" type="list&lt;AlexaPropertyReport&gt;" description="List of property reports to include in the context" optional="true"/>
+         <s:return name="payload" type="any" description="Object that will be serialized as the response payload" optional="true"/>
+         <s:return name="deferred" type="boolean" description="True if the response is deferred, false otherwise.  If not present assume false." optional="true"/>
+
+      </s:method>
+
+      <s:method
+         name="AcceptGrant"
+         description="Platform message issued by the Alexa Bridge to go through OAuth flow required for proactive reporting."
+         internal="true"
+      >
+         <s:parameter name="code" type="string" description="Single use short-lived token provided by Amazon to acquire tokens."/>
+      </s:method>
+
+  </s:methods>
+
+   <s:events>
+      <s:event name="AlexaError" description="Reponse signaled from Voice Service to the Alexa Bridge if the request resulted in an error">
+         <s:parameter name="type" type="string" description="Specific error message type" optional="false"/>
+         <s:parameter name="message" type="string" description="The description of the error" optional="false"/>
+         <s:parameter name="payload" type="map&lt;any&gt;" description="Additional attributes specific to the error message" optional="true"/>
+      </s:event>
+
+   </s:events>
+
+
+
+</s:service>
+

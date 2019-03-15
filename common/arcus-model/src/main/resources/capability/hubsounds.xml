@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubSounds"
+   namespace="hubsounds"
+   enhances="Hub"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+   		<c:attribute 
+         name="playing"
+         readwrite="r"
+         type="boolean" 
+         optional="false" 
+         description="Is the hub playing a sounds?"/>
+   		<c:attribute 
+         name="source"
+         readwrite="r"
+         type="string" 
+         optional="false" 
+         description="Source of the sounds being played.  File from URL or pre-programmed tone name"/>
+   </c:attributes>
+   
+   <c:methods>   
+      <c:method
+         name="PlayTone"
+         description="Causes the hub to play the chime sound.">
+         <c:parameters>
+            <c:parameter 
+               name="tone"
+               type="enum"
+               values="NO_SOUND,ARMED,ARMING,INTRUDER,LOW_BATTERY,PAIRED,SAFETY,UNPAIRED,SUCCESS_TRIPLE,SUCCESS_SINGLE,SUCCESS_REMOVAL,STARTUP,FAILED,SUCCESS_DISARM,SECURITY_ALARM,PANIC_ALARM,SMOKE_ALARM,CO_ALARM,WATER_LEAK_ALARM,CARE_ALARM,BUTTON_PRESS,DOUBLE_BUTTON_PRESS,SUCCESS_REBOOT,DOOR_CHIME_1,DOOR_CHIME_2,DOOR_CHIME_3,DOOR_CHIME_4,DOOR_CHIME_5,DOOR_CHIME_6,DOOR_CHIME_7,DOOR_CHIME_8,DOOR_CHIME_9,DOOR_CHIME_10,ETHERNET_INSERTED"
+               description="Prebuilt in sound to play from the hub."
+               optional="false"/>
+            <c:parameter 
+               name="durationSec"
+               type="int"
+               description="How long to play the tone."
+               optional="false"/>
+         </c:parameters>
+	   </c:method>
+      <c:method
+         name="Quiet"
+         description="Stop playing any sound." />
+    </c:methods>  
+   
+   <c:events>
+   </c:events>
+   
+</c:capability>

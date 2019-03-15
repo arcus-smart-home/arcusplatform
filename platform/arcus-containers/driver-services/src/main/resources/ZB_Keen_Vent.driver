@@ -1,0 +1,698 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for the Keen Vent
+ * 
+ * FACTORY RESET
+ *  - To reset device press button under the vent (duct-side, on battery compartment) five times. Will re-enter pairing mode right away.
+ *  
+ * IDENTIFY:
+ *  - Performing an Identify operation double-flashes the LED on the device light blue (instead of green) for 3 minutes (see IDENT_PERIOD_SECS).
+ * 
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * CHECK-IN INTERVAL:		Poll Control Check-In Interval not set, but Level is set to report at least every 2 minutes.
+ * 
+ * LEVEL REPORTING:
+ *  - At least every 2 minutes
+ *  - At most every 5 seconds, if state changes (NOTE: Device rejects 2 & 3 seconds as invalid)
+ *  - LEVEL state read each time device connects
+ *  
+ * TEMPERATURE REPORTING:
+ *  - At least every 30 minutes
+ *  - At most every 60 seconds, if level changes by 0.1 C or more
+ *  - Temperature is read each time device connects
+ * 
+ * PRESSURE REPORTING:
+ *  - At least every 30 minutes
+ *  - At most every 60 seconds, if value changes
+ *  - Pressure is read each time device connects
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours
+ *  - At most every hour, if level changes by 0.2 Volts or more (ignore 0.1 volt jitter)
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  - Device supports Diagnostics cluster, but values are currently not Read nor configured to be Reported.
+ * 
+ * ISSUES/NOTES
+ * 
+ * 11/10/15 - Updated driver to retry setting Reporting configurations upto 10 times, with progressive delay of 10 seconds times the attempt count,
+ *           until the configuration is successful (a Config Reporting Response with status of SUCCESS (0) is received).
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBKeenVent"
+description		"Driver for the Keen Vent"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"vent"
+productId		"dc328e"
+vendor 			"Keen"
+model 			"Controllable Vent"
+
+matcher			'ZIGB:manufacturer': 0x115B 	// the vent does not report a ZIGB:vendor or ZIGB:model to match on
+
+capabilities	DevicePower, Identify, Vent, Temperature, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+
+
+// set defaults for required attributes
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+
+// Manufacturer ID:       0x115B
+// Manufacturer:
+// Model:
+// Power Source:
+//
+// 1 End Point
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control
+//   0x0020     Poll
+//   0x0402     (1026)  Temperature
+//   0x0403     (1027)  Pressure
+//   0x0B05     (2821)  Diagnostics
+//   0xFC01     (64513) Vender specific
+// OUT Clusters
+//   0x0019     OTA Upgrade
+
+
+def identifyCluster				= Zigbee.endpoint((byte)1).Identify
+def pollCluster					= Zigbee.endpoint((byte)1).PollControl
+def diagnosticsCluster			= Zigbee.endpoint((byte)1).Diagnostics
+def otaCluster					= Zigbee.endpoint((byte)1).Ota
+@Field def powerCluster			= Zigbee.endpoint((byte)1).Power
+@Field def levelCluster			= Zigbee.endpoint((byte)1).Level
+@Field def temperatureCluster   = Zigbee.endpoint((byte)1).TemperatureMeasurement
+@Field def pressureCluster		= Zigbee.endpoint((byte)1).PressureMeasurement
+@Field def dvcEndPoint			= Zigbee.endpoint((byte)1)
+
+
+@Field static final String DEVICE_NAME = 'Keen Vent'
+
+@Field def final int OPEN                        = 254
+@Field def final byte OBSTRUCTION                = 255
+@Field def final double MIN_VOLTS 				 = 2.3
+@Field def final double NOM_VOLTS 				 = 3.0
+def final int LONG_POLL_QUARTER_SECONDS			 = 20			// 5 seconds (in quarter seconds)
+def final short SHORT_POLL_QUARTER_SECONDS       = 4			// 1 second (in quarter seconds)
+def final short IDENT_PERIOD_SECS                = 180			// number of seconds (0-600) for device to Identify itself when Identify method is called
+def final short RATE                             = 0
+
+@Field def final short PROFILE_HA                = 0x0104
+@Field def final short CLUSTER_PWR_CNFG          = 0x0001
+@Field def final short CLUSTER_LEVEL_CTRL        = 0x0008
+@Field def final short CLUSTER_TEMPERATURE       = 0x0402
+@Field def final short CLUSTER_PRESSURE          = 0x0403
+@Field def final short CLUSTER_DIAGNOSTICS       = 0x0B05
+@Field def final CMD_CNFG_RPT                    = 0x06         // General Command Frame - Configure Reporting
+@Field def final CMD_CNFG_RPT_RSP                = 0x07         // General Command Frame - Configure Reporting Response
+
+// operational constants
+def final OFFLINE_TIMEOUT_SECS                   = 600          // 10 minutes
+
+@Field def final long CNFG_RETRY_DELAY_MSEC      = 10000        // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field def final int MAX_CNFG_ATTEMPTS           = 10           // maximumn number of attempts to make trying to configure reporting
+@Field def final String CNFG_PWR_RPT             = 'CnfgPwrRpt'
+@Field def final String CNFG_LVL_RPT             = 'CnfgLvlRpt'
+@Field def final String CNFG_TEMP_RPT            = 'CnfgTempRpt'
+@Field def final String CNFG_PRESS_RPT           = 'CnfgPressRpt'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded { 
+	log.debug "Keen Vent added." 
+	
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+    Vent.ventstate                   Vent.VENTSTATE_OK
+
+	Zigbee.bindEndpoints(
+		powerCluster.bindServerCluster(),
+		temperatureCluster.bindServerCluster(),
+		pressureCluster.bindServerCluster(),
+		levelCluster.bindServerCluster(),
+		pollCluster.bindServerCluster() )
+}
+
+onConnected {
+	log.debug "Keen Vent connected."
+	
+	// set long poll interval to 20 quarter seconds, and short poll interval to 4 quarter seconds
+	log.trace "Setting Long Poll Interval to {} quarter seconds", LONG_POLL_QUARTER_SECONDS
+	pollCluster.setLongPollInterval(LONG_POLL_QUARTER_SECONDS)
+	pollCluster.setShortPollInterval(SHORT_POLL_QUARTER_SECONDS)
+
+	// read current Power attributes
+	log.trace "Read Power"
+	powerCluster.zclReadAttributes(powerCluster.ATTR_BATTERY_VOLTAGE)
+
+	// read current Poll Control attributes
+	log.trace "Read Polling"
+	pollCluster.zclReadAttributes(
+			pollCluster.ATTR_CHECKIN_INTERVAL,
+			pollCluster.ATTR_LONG_POLL_INTERVAL,
+			pollCluster.ATTR_SHORT_POLL_INTERVAL,
+			pollCluster.ATTR_FAST_POLL_TIMEOUT )
+
+	// read current Level attributes
+	log.trace "Read Level"
+	levelCluster.zclReadAttributes(levelCluster.ATTR_CURRENT_LEVEL)
+
+	// read current Temperature attributes
+	log.trace "Read Temperature"
+	temperatureCluster.zclReadAttributes(
+			temperatureCluster.ATTR_MEASURED_VALUE,
+			temperatureCluster.ATTR_MIN_MEASURED_VALUE,
+			temperatureCluster.ATTR_MAX_MEASURED_VALUE,
+			temperatureCluster.ATTR_TOLERANCE )
+
+	// read current Pressure attributes
+	log.trace "Read Pressure"
+	pressureCluster.zclReadAttributes(
+			pressureCluster.ATTR_MEASURED_VALUE,
+			pressureCluster.ATTR_MIN_MEASURED_VALUE,
+			pressureCluster.ATTR_MAX_MEASURED_VALUE,
+			pressureCluster.ATTR_TOLERANCE,
+			pressureCluster.ATTR_SCALED_VALUE,
+			pressureCluster.ATTR_MIN_SCALED_VALUE,
+			pressureCluster.ATTR_MAX_SCALED_VALUE,
+			pressureCluster.ATTR_SCALE )
+	
+	// configure reporting of PowerConfig cluster BatteryVoltage
+	vars.CNFG_PWR_RPT = 0
+	Scheduler.defer CNFG_PWR_RPT
+
+	// configure reporting of Level cluster Measured Value
+	vars.CNFG_LVL_RPT = 0
+	Scheduler.defer CNFG_LVL_RPT
+
+	// configure reporting of Temperature Measurement cluster Measured Value
+	vars.CNFG_TEMP_RPT = 0
+	Scheduler.defer CNFG_TEMP_RPT
+
+	// configure reporting of Pressure Measurement cluster Measured Value
+	vars.CNFG_PRESS_RPT = 0
+	Scheduler.defer CNFG_PRESS_RPT
+	
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected { log.debug "Keen Vent disconnected." }
+
+onRemoved { log.debug "Keen Vent removed." }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(CNFG_PWR_RPT) {
+	if ((0 <= vars.CNFG_PWR_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PWR_RPT)) {
+		log.debug "{}:{}", CNFG_PWR_RPT, vars.CNFG_PWR_RPT
+		// configure reporting of Level Control cluster Current Level attribute
+		byte[] rptPwrCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0020) Battery Voltage
+			0x20, 0x00,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0E10) 3600 secs (at most once per hour)
+			0x10, 0x0E,
+			// Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+			0xC0, 0xA8,
+			// Reportable Change (0x02) 0.2 volts (ignore jitter of +/- 0.1 volt)
+			0x02 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_PWR_CNFG,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptPwrCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_PWR_RPT++
+		Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PWR_RPT)
+	}
+}
+
+onEvent(CNFG_LVL_RPT) {
+	if ((0 <= vars.CNFG_LVL_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_LVL_RPT)) {
+		log.debug "{}:{}", CNFG_LVL_RPT, vars.CNFG_LVL_RPT
+		// configure reporting of Level Control cluster Current Level attribute
+		byte[] rptLvlCnfgBytes = [
+			0x00,       // Dir (0x00)
+			0x00, 0x00, // Attr Id (0x0000) Current Level
+			0x20,       // Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x05, 0x00, // Min Interval (0x0005) 5 secs		NOTE: 2 or 3 seconds are too short/invalid
+			0x78, 0x00, // Max Interval (0x0078) 120 secs
+			0x01 ]      // Reportable Change (0x01)
+		Zigbee.send(
+			"cluster" : CLUSTER_LEVEL_CTRL,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptLvlCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_LVL_RPT++
+		Scheduler.scheduleIn CNFG_LVL_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_LVL_RPT)
+	}
+}
+
+onEvent(CNFG_TEMP_RPT) {
+	if ((0 <= vars.CNFG_TEMP_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_TEMP_RPT)) {
+		log.debug "{}:{}", CNFG_TEMP_RPT, vars.CNFG_TEMP_RPT
+		// configure reporting of Temperature Measurement cluster Measured Value
+		byte[] rptTempCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0000) Measured Value
+			0x00, 0x00,
+			// Attr Data Type (0x29) Signed 16-Bit Int
+			0x29,
+			// Min Interval (0x003C) 60 seconds (at most once every 1 minute)
+			0x3C, 0x00,
+			// Max Interval (0x0708) 1800 seconds (at least once every 30 minutes)
+			0x08, 0x07,
+			// Reportable Change (0x000A) 10/100ths C
+			0x0A, 0x00 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_TEMPERATURE,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,		// using general Configure Report command
+			"defaultresponse" : true,
+			"data" : rptTempCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_TEMP_RPT++
+		Scheduler.scheduleIn CNFG_TEMP_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_TEMP_RPT)
+	}
+}
+
+onEvent(CNFG_PRESS_RPT) {
+	if ((0 <= vars.CNFG_PRESS_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PRESS_RPT)) {
+		log.debug "{}:{}", CNFG_PRESS_RPT, vars.CNFG_PRESS_RPT
+		// configure reporting of Pressure Measurement cluster Measured Value
+		byte[] rptPressCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0000) Measured Value
+			0x00, 0x00,
+			// Attr Data Type (0x29) Signed 16-Bit Int
+			0x29,
+			// Min Interval (0x003C) 60 seconds (at most once every 1 minute)
+			0x3C, 0x00,
+			// Max Interval (0x0708) 1800 seconds (at least once every 30 minutes)
+			0x08, 0x07,
+			// Reportable Change (0x0001)
+			0x01, 0x00 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_PRESSURE,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,		// using general Configure Report command
+			"defaultresponse" : true,
+			"data" : rptPressCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_PRESS_RPT++
+		Scheduler.scheduleIn CNFG_PRESS_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PRESS_RPT)
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// called to set the Vent capability attributes
+setAttributes('vent') {	
+	log.debug "Keen Vent driver received 'vent' setAttributes message {}", message
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case Vent.level:
+				log.trace "attribute value [{}]", attribute.value
+
+				int level = attribute.value
+				if (null != level && (level >= 0 && level <= 100)) {
+					level = level / 100 * OPEN
+
+					log.debug "levelCluster.moveToLevel({},{})", (byte)level, RATE
+					levelCluster.moveToLevel( (byte)level, RATE )					
+					levelCluster.zclReadAttributes(levelCluster.ATTR_CURRENT_LEVEL)
+				}
+				else {
+					log.debug "invalid level value:{}", level
+				}
+				break;
+
+			default:
+				log.error "unrecognized attribute:{}", attribute
+		}
+	}
+
+	sendResponse 'vent:SetAttributesResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Basic Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// ZCL-Ver [2] App-Ver [16] Stack-Ver [51] Mfg [] Model [] DateCode [] PwrSrc [3]
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+	log.debug "Keen Vent driver received onIdentify.Identify:{}", message
+	identifyCluster.identifyCmd(IDENT_PERIOD_SECS)	
+	
+	// TODO remove once onConnected is called appropriately, for now just way to reset the long poll after a power cycle (i.e. obstruction test)
+	log.debug "Setting Long Poll Interval to {} quarter seconds", LONG_POLL_QUARTER_SECONDS
+	pollCluster.setLongPollInterval(LONG_POLL_QUARTER_SECONDS)
+	
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+	def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+	def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+	def fastPollTimeout = attributes[cluster.ATTR_FAST_POLL_TIMEOUT]
+	log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+	log.trace "Keen Vent driver received Poll Control Attributes Response:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+	log.trace "Keen Vent driver received Poll Control Attributes Report:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Checkin
+onZigbeeMessage.Zcl.pollcontrol.checkin() {
+	log.trace "Keen Vent driver received Poll Control Checkin:{}", message
+	// tell device to resume without short polling
+	pollCluster.checkInResponse( (byte)0x00, (short)0x0000 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Level Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleLevelMsg(Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def currLevel = attributes[levelCluster.ATTR_CURRENT_LEVEL]
+	log.trace "current level:{}", currLevel
+	if (null != currLevel) {	
+		// The documentation stated that the ATTR_CURRENT_LEVEL is suppose to be 255.
+		// However, the ATTR_CURRENT_LEVEL was parse as INVALID. 
+		if (currLevel == OBSTRUCTION || currLevel.toString() == "INVALID") {
+			log.debug "setting vent state to OBSTRUCTION"
+			Vent.ventstate Vent.VENTSTATE_OBSTRUCTION
+		}
+		else {
+			currLevel &= 0xFF
+		
+			log.debug "setting vent state to OK"
+			Vent.ventstate Vent.VENTSTATE_OK
+	
+			int level = Math.round( currLevel / OPEN * 100.0 )
+	
+			log.debug "setting vent level to: " + level
+			Vent.level level
+		}
+	}
+}
+
+// called when device responds to a Level Read Attributes
+onZigbeeMessage.Zcl.level.zclreadattributesresponse() {
+	log.debug "Keen Vent driver received Level Attributes Response:{}", message
+	handleLevelMsg(message)
+}
+
+// called when device asynchronously sends a Level Report Attributes
+onZigbeeMessage.Zcl.level.zclreportattributes() {
+	log.debug "Keen Vent driver received Level Attributes Report:{}", message
+	handleLevelMsg(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def tempVal = attributes[temperatureCluster.ATTR_MEASURED_VALUE]		// measured in 100ths degree C
+	log.trace "Temp:{}", tempVal
+
+   if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+		double tempC = tempVal
+		tempC /= 100
+		log.trace "Set Temp:{}", tempC
+		Temperature.temperature tempC
+	}
+}
+
+// called when device responds to a Temperature Measurement Read Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+	log.trace "Keen Vent driver received Temperature Measurement Attributes Response:{}", message
+	handleTemperatureMeasurement(message)
+}
+
+// called when device asynchronously sends a Temperature Measurement Report Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+	log.trace "Keen Vent driver received Temperature Measurement Attributes Report:{}", message
+	handleTemperatureMeasurement(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Pressure Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePressureMeasurement(Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def pressureVal = attributes[pressureCluster.ATTR_MEASURED_VALUE]      // measured in 10ths kPa
+	def pressureMin = attributes[pressureCluster.ATTR_MIN_MEASURED_VALUE]
+	def pressureMax = attributes[pressureCluster.ATTR_MAX_MEASURED_VALUE]
+	def pressureTolerance = attributes[pressureCluster.ATTR_TOLERANCE]
+	def scaledValue = attributes[pressureCluster.ATTR_SCALED_VALUE]
+	def minScaledValue = attributes[pressureCluster.ATTR_MIN_SCALED_VALUE]
+	def maxScaledValue = attributes[pressureCluster.ATTR_MAX_SCALED_VALUE]
+	def scale = attributes[pressureCluster.ATTR_SCALE]
+
+	log.debug "Pressure:{}, Min:{}, Max:{}, Tolerance:{}, Scaled Value:{}, Min Scaled:{}, Max Scaled:{}, Scale:{}",
+			pressureVal, pressureMin, pressureMax, pressureTolerance, scaledValue, minScaledValue, maxScaledValue, scale
+
+	if (null != pressureVal) {
+		double pressure_kPa = pressureVal
+		pressure_kPa /= 10
+		log.debug "Set Pressure:{}", pressure_kPa
+		Vent.airpressure pressure_kPa
+	}
+}
+
+onZigbeeMessage.Zcl.pressuremeasurement.zclreadattributesresponse() {
+	log.debug "Keen Vent driver received Pressure Measurement Attributes Response:{}", message
+	handlePressureMeasurement(message)
+}
+
+onZigbeeMessage.Zcl.pressuremeasurement.zclreportattributes() {
+	log.debug "Keen Vent driver received Pressure Measurement Attributes Report:{}", message
+	handlePressureMeasurement(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def battVolt = attributes[powerCluster.ATTR_BATTERY_VOLTAGE]
+	log.trace "BatteryVoltage:{}", battVolt
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+		// battery Voltage is reported in tenths of Volts
+		double volts = (battVolt / 10.0)
+		log.trace "Battery Volts:{}", volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (NOM_VOLTS - MIN_VOLTS)) {	// prevent division by zero
+			double battPercent = (100.0 / (NOM_VOLTS - MIN_VOLTS) * (volts - MIN_VOLTS))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = battPercent
+			log.debug "Battery Percent:{}", intBattPercent
+			DevicePower.battery intBattPercent
+		}
+	}
+}
+
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.trace "Keen Vent driver received Power Attributes Response:{}", message
+	handlePowerMsg(message)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.trace "Keen Vent driver received Power Attributes Report:{}", message
+	handlePowerMsg(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Keen Vent driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	byte[] data = zclMsg.getPayload()
+	
+	// if Config Reporting Response for Power Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_PWR_CNFG == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Power reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_PWR_RPT = -1
+		} else {
+			log.warn "Power reporting config FAILED: ${data}"
+		}
+		return
+	}
+	
+	// if Config Reporting Response for Level cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_LEVEL_CTRL == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Level reporting config was successful"
+			// set flag to disable future attempts to configure Level reporting
+			vars.CNFG_LVL_RPT = -1
+		} else {
+			log.warn "Level reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Config Reporting Response for Temperature Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_TEMPERATURE == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Temperature reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_TEMP_RPT = -1
+		} else {
+			log.warn "Temperature reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Config Reporting Response for Pressure Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_PRESSURE == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Pressure reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_PRESS_RPT = -1
+		} else {
+			log.warn "Pressure reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+

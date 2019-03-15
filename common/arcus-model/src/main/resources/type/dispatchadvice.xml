@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="DispatchAdvice"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Dispatch advice for a professionally monitored system.</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="adults"
+			type="integer"
+			description="The number of adults that live in the residence."
+			/>
+		<t:attribute
+			name="children"
+			type="integer"
+			description="The number of children that live in the residence."
+			/>
+		<t:attribute
+			name="pets"
+			type="string"
+			description="The number of pets that live in the residence."
+			/>
+		<t:attribute
+			name="directions"
+			type="string"
+			description="Additional directions on how to get to the house."
+			/>
+		<t:attribute
+			name="gateCode"
+			type="string"
+			description="The access code if there is a gate or other pincode entry system."
+			/>
+		<t:attribute
+			name="instructions"
+			type="string"
+			description="Additional instructions for emergency dispatchers."
+			/>
+	</t:attributes>
+ </t:type>

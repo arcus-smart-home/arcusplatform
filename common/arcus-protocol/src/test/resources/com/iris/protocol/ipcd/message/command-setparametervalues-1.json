@@ -1,0 +1,7 @@
+{
+  "command" : "SetParameterValues",
+  "values" : {
+    "ms2.lightsensorenabled" : true,
+    "ms2.temperaturescale" : "celcius"
+  }
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:protocol
+   name="Mock"
+   namespace="MOCK"
+   version="1.0"
+   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   
+   <p:description>
+   Mock Protocol
+   </p:description>
+   
+   <p:attributes>
+      <p:attribute
+         name="Capability"
+         type="string"
+         description="The mocked capability." />
+      <p:attribute
+         name="ProductId"
+         type="string"
+         description="The product catalog id of the type of device being mocked." />
+   </p:attributes>
+   
+</p:protocol>

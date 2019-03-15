@@ -1,0 +1,76 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+capability		DevicePower
+description		"Implementation of DevicePower for the Zigbee DoorLocks"
+version			"1.0"
+
+static void handleDoorLockPowerMsg(ctx,name,cluster,msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+	def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+
+	double minVolts = (null != battMinThreshold) ? (battMinThreshold / 10.0) : 4.0		// default to 4.0 volts
+	double nomVolts = 6.2
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString())) {
+		double volts = battVolt / 10.0
+
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (nomVolts - minVolts)) {	// prevent division by zero
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+
+			int intBattPercent = battPercent
+			ctx.DevicePower.battery intBattPercent
+		}
+	}
+}
+
+// this handler handles the BatteryPercentRemaining has whole percent values, NOT AS SPEC'ed, but how the Yale YRD210 and YRD220/240 seem to report.
+static void handleDoorLockByPowerBatteryPercentage(ctx,name,cluster,msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	ctx.log.debug "Battery Percentage ${attributes}"
+	int intBattPercent = attributes[(short)0x0021] ?: 0
+	ctx.DevicePower.battery intBattPercent
+}
+
+// this handler properly handles the BatteryPercentRemaining when reported in halfPercents, as spec'ed, and how the Yale YRD216 and YRD226/246 report.
+static void handleDoorLockBatteryPercentRemaining(ctx,cluster,msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	ctx.log.trace "PowerAttributes: {}", attributes
+	byte halfPcnt = attributes[(short)0x0021]
+	if (null != halfPcnt && -1 != halfPcnt) {
+		int pcnt = (0 <= halfPcnt) ? halfPcnt/2 : (256+halfPcnt)/2
+		ctx.log.trace "BatteryRemainingPercent:{}, based on reported:{}", pcnt, halfPcnt
+		if (100 < pcnt) pcnt = 100
+		if (0 <= pcnt) {
+			ctx.DevicePower.battery pcnt
+		}
+	}
+}
+
+static void handleReportingConfigResponse(ctx,msg) {
+	def zclMsg = ctx.Zigbee.Message.toZcl(msg)
+	byte[] data = zclMsg.getPayload()
+	if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+		ctx.log.trace "Power Config Reporting response was SUCCESSFUL: {}", data
+	} else {
+		ctx.log.warn "Power Config Reporting response FAILED: {}", data
+	}
+}
+
+

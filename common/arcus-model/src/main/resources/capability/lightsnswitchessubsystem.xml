@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="LightsNSwitchesSubsystem"
+   namespace="sublightsnswitches"
+   enhances="Subsystem"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Lights &amp; Switches Subsystem
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="switchDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The set of switch devices in the place" />
+      <c:attribute
+         name="deviceGroups"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of LIGHTS device groups defined at this place" />
+      <c:attribute
+         name="onDeviceCounts"
+         readwrite="r"
+         type="map&lt;int&gt;"
+         optional="false"
+         description="A map of deviceTypeHint to count of devices that are currently on."/>
+   </c:attributes>
+   
+
+</c:capability>

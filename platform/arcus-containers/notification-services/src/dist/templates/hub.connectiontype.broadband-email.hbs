@@ -1,0 +1,27 @@
+{{#section "subject"}}
+Your Hub Has Returned to Broadband
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+The hub at {{{_place.name}}} has returned to broadband connectivity.
+
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>The hub at {{{_place.name}}} has returned to broadband connectivity.</p>
+	{{/partial}}
+	
+{{#partial "extra" }}
+
+{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

@@ -1,0 +1,908 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the CentraLite Motion Sensor
+ *
+ * FACTORY RESET
+ *  - Hold down the button (small button on side of device) while inserting the battery and release after
+ *    red LED lights up for a moment.  LED should flash blue when attempting to pair.
+ *
+ * IDENTIFY
+ *  - Performing an Identify operation turns the LED on and cycles the color for 3 minutes (see IDENT_PERIOD_SECS).
+ *
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ *
+ * CHECK-IN INTERVAL:		Every 2 minutes
+ *
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 12 hours
+ *  - At most every hour, if level changes by 0.2 Volts or more (ignore 0.1 volt jitter)
+ *
+ * TEMPERATURE REPORTING:
+ *  - At least every 30 minutes
+ *  - At most every 5 minutes, if level changes by 0.1 C or more
+ *
+ * DIAGNOSTICS REPORTING:
+ *  - LQI read each time device connects
+ *  - LQI not reported async, per wiki page specs; https://eyeris.atlassian.net/wiki/display/I2D/Device+Reporting+Settings
+ *
+ * ISSUES/NOTES:
+ *  - See CentraLite Notes at: http://centralite.readthedocs.org/en/latest/devices/sensors/motion.html
+ *
+ * 09/29/15 - Updated driver to keep trying to set IAS CIE Address (every 5 seconds) until successfull,
+ *            and then to send the Zone Enrollment Response (every 5 seconds) until a Zone Status Change is successfully reported
+ *
+ * 10/16/15 - Removed Reporting of LQI per Wiki page updates.
+ *
+ * 11/10/15 - Updated driver to retry setting Reporting configurations upto 10 times, with progressive delay of 10 seconds times the attempt count,
+ *            until the configuration is successful (a Config Reporting Response with status of SUCCESS (0) is received).
+ *
+ * 02/11/16 - Update driver to only try setting IAS CIE Address a maximum of 100 times with progressive back-off, and to stop
+ *            if receiving "Request Denied" and simply verify address written matches Hub's.
+ *
+ * 05/04/17 - Initial reflex motion detection support.
+ *
+ */
+
+import groovy.transform.Field                    // not needed to compile, but used in eclipse
+import static java.util.concurrent.TimeUnit.*    // needed when running Unit Tests
+
+driver          "ZBCentraLiteMotionSensor"
+description     "Driver for the CentraLite Motion Sensor"
+version         "2.3"
+protocol        "ZIGB"
+deviceTypeHint  "Motion"
+productId       "df44d5"
+vendor          "Iris"
+model           "MotionSensor"
+
+matcher         'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3327'      // this is what 'first article' devices send, but Manufacturer Code and model are incorrect
+matcher         'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3326'      // this is what 'second article' devices send, but Manufacturer Code is incorrect
+matcher         'ZIGB:manufacturer': 0xC2DF, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3326-L'
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3326'      // this is what should be sent if/when Manufacturer Code in Node Descriptor Response is fixed
+matcher         'ZIGB:manufacturer': 0x104E, 'ZIGB:vendor': 'CentraLite', 'ZIGB:model': '3326-L'
+
+
+uses "zigbee.GenericZigbeeDeviceOta"
+
+// Manufacturer ID:       0x104E
+// Manufacturer:          CentraLite
+// Model:                 3326-L
+// Power Sourec:          0x03
+//
+// 2 End Points
+//
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0020     Poll Control
+//   0x0402     Temperature Measurement
+//   0x0500     IAS Zone
+//   0x0B05     Diagnostics
+// OUT Clusters
+//   0x0019     OTA Upgrade
+//
+// Profile ID:  0xC2DF  ZigBee MSP
+// IN Clusters
+//   0x0000     Basic
+//   0x0001     Power Configuration
+//   0x0003     Identify
+//   0x0B05     Diagnostics
+//   0xFC46     Manufacturer Specific Occupancy Sensing		See: http://centralite.readthedocs.org/en/latest/devices/sensors/motion/occupancysensing.html
+// OUT Clusters
+//   0x0003     Identify
+
+
+@Field def pwrCluster   = Zigbee.endpoint((byte)1).Power
+@Field def identCluster = Zigbee.endpoint((byte)1).Identify
+@Field def zoneCluster  = Zigbee.endpoint((byte)1).IasZone
+@Field def pollCluster  = Zigbee.endpoint((byte)1).PollControl
+@Field def tempCluster  = Zigbee.endpoint((byte)1).TemperatureMeasurement
+@Field def diagCluster  = Zigbee.endpoint((byte)1).Diagnostics
+@Field def otaCluster   = Zigbee.endpoint((byte)1).Ota
+
+@Field def dvcEndPoint = Zigbee.endpoint((byte)1)
+
+
+// constants used if setting battery reporting interval
+@Field static final String DEVICE_NAME = 'CentraLite Motion Sensor'
+@Field final short PROFILE_HA           = 0x0104
+
+@Field final short CLUSTER_PWR_CNFG     = 0x0001
+@Field final short CLUSTER_POLL_CONTROL = 0x0020
+@Field final short CLUSTER_TEMPERATURE  = 0x0402
+@Field final short CLUSTER_DIAGNOSTICS  = 0x0B05
+
+@Field def final CMD_WRT_ATTR               = 0x02      // General Command Frame - Write Attributes
+@Field def final CMD_WRT_ATTR_RSP           = 0x04      // General Command Frame - Write Attributes Response
+@Field def final CMD_CNFG_RPT               = 0x06      // General Command Frame - Configure Reporting
+@Field def final CMD_CNFG_RPT_RSP           = 0x07      // General Command Frame - Configure Reporting Response
+@Field def final CMD_DFLT_RSP               = 0x0B      // General Command Frame - Default Response
+
+// operational constants
+@Field final int OFFLINE_TIMEOUT_SECS   = 600       // 10 minutes
+@Field final short IDENT_PERIOD_SECS    = 180       // number of seconds (0-600) for device to Identify itself (Flash LED) when Identify method is called
+@Field final long WRITE_IAS_CIE_DELAY   = 5000
+@Field final long ZONE_ENROLL_DELAY     = 5000
+@Field final long MAX_IAS_CIE_WRITES    = 100	    // Maximum attempts to try and write the IAS CIE Address
+@Field final long MAX_ZONE_ENROLLS      = 100	    // Maximum attempts to try and enroll the device in a Zone
+@Field final short MAX_STATUS_CHNG_DELAY = 120      // Maximum delay in Status Change Notifications processed, in quarter-seconds
+
+@Field final long CNFG_RETRY_DELAY_MSEC = 10000     // delay 10 x Attempt-Cnt seconds between retries to configure reporting
+@Field final int MAX_CNFG_ATTEMPTS      = 10        // maximum number of attempts to make trying to configure reporting
+@Field final String CNFG_PWR_RPT        = 'CnfgPwrRpt'
+@Field final String CNFG_TEMP_RPT       = 'CnfgTempRpt'
+@Field final String CNFG_POLL_CTRL      = 'CnfgPollCrtl'
+@Field final String CNFG_DIAG_RPT       = 'CnfgDiagRpt'
+@Field final String READ_PWR_ATTRIBS    = 'ReadPwrAttribs'
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver capability support - DevicePower, Motion, Temperature, DeviceOta, Identify
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   DevicePower.source DevicePower.SOURCE_BATTERY
+   DevicePower.linecapable false
+   DevicePower.backupbatterycapable false
+
+   bind DevicePower.sourcechanged to DevicePower.source
+}
+
+Motion {
+   Motion.motion Motion.MOTION_NONE
+
+   bind Motion.motionchanged to Motion.motion
+}
+
+Temperature {
+   Temperature.temperature null
+}
+
+Identify {
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Reflex support
+////////////////////////////////////////////////////////////////////////////////
+
+// Only handle motion detection for now!
+Zigbee {
+
+   match reflex {
+      on iaszone, endpoint: 1, set: ["alarm2"]
+      debug "MOTION DETECTED"
+      set Motion.motion, Motion.MOTION_DETECTED
+   }
+
+   match reflex {
+      on iaszone, endpoint: 1, clear: ["alarm2"]
+      debug "NO MOTION"
+      set Motion.motion, Motion.MOTION_NONE
+   }
+
+   match reflex {
+      // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+      on iaszone, set: ["battery"]
+      emit DevicePower.battery, 0
+   }
+
+   offlineTimeout OFFLINE_TIMEOUT_SECS, SECONDS
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+
+onAdded {
+	log.debug "CentraLite Motion Sensor device added."
+
+	// Bind all of the command clusters on the enpoints we need
+	//Zigbee.bindAll()
+	Zigbee.bindEndpoints(
+		pwrCluster.bindServerCluster(),
+		zoneCluster.bindServerCluster(),
+		pollCluster.bindServerCluster(),
+		tempCluster.bindServerCluster(),
+		diagCluster.bindServerCluster() )
+
+	// initialize flags to track successfully configuring the device
+	vars.'writeIasCieCnt' = 0
+	vars.'zoneEnrollCnt' = 0
+
+			// write the IAS CIE Address now (it can only be written successfully to the device once, until the device is factory reset, so only needed in onAdded and not in onConnected)
+	zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+	// and schedule a follow up write in case first write fails
+	Scheduler.scheduleIn 'doWriteIasCie', WRITE_IAS_CIE_DELAY
+}
+
+
+onConnected {
+	log.debug "CentraLite Motion Sensor device connected."
+
+	// set long poll interval to 24 quarter seconds, and short poll interval to 2 quarter seconds
+	// Note: min Long Poll interval seems to be 24, device responds to 20 with 'Invalid Value'
+	pollCluster.setLongPollInterval((int)24)
+	pollCluster.setShortPollInterval((short)2)
+
+	// read current Power attributes
+	vars.READ_PWR_ATTRIBS = 0
+	Scheduler.defer READ_PWR_ATTRIBS
+
+	// read current Temperature attributes
+	tempCluster.zclReadAttributes(
+		tempCluster.ATTR_MEASURED_VALUE )
+
+	// read Diagnostic attributes
+	diagCluster.zclReadAttributes(
+		diagCluster.ATTR_LAST_MESSAGE_LQI,
+		diagCluster.ATTR_LAST_MESSAGE_RSSI )
+
+	// read current IAS Zone attributes after setting Address (to get current state and trigger async Enroll Response)
+	zoneCluster.zclReadAttributes(
+		zoneCluster.ATTR_ZONE_STATE,
+		zoneCluster.ATTR_ZONE_TYPE,
+		zoneCluster.ATTR_ZONE_STATUS,
+		zoneCluster.ATTR_IAS_CIE_ADDRESS )
+
+	// read current Poll Control attributes (if needed)
+//	pollCluster.zclReadAttributes(
+//		pollCluster.ATTR_CHECKIN_INTERVAL,
+//		pollCluster.ATTR_LONG_POLL_INTERVAL,
+//		pollCluster.ATTR_SHORT_POLL_INTERVAL )
+
+	// configure reporting of PowerConfig cluster BatteryVoltage
+	vars.CNFG_PWR_RPT = 0
+	Scheduler.defer CNFG_PWR_RPT
+
+	// configure reporting of Temperature Measurement cluster Measured Value
+	vars.CNFG_TEMP_RPT = 0
+	Scheduler.defer CNFG_TEMP_RPT
+
+	// write Poll Control cluster Checkin Interval
+	vars.CNFG_POLL_CTRL = 0
+	Scheduler.defer CNFG_POLL_CTRL
+
+	// configure reporting of Diagnostics cluster Last Message LQI attribute
+	// 10/16/15 - Removed Reporting of LQI per Wiki page updates
+//	vars.CNFG_DIAG_RPT = 0
+//	Scheduler.defer CNFG_DIAG_RPT
+
+	// reset long poll interval to 24 quarter seconds, and short poll interval to 4 quarter seconds
+	pollCluster.setLongPollInterval((int)24)
+	pollCluster.setShortPollInterval((short)4)
+}
+
+
+onDisconnected {
+	log.debug "CentraLite Motion Sensor device disconnected."
+}
+
+
+onRemoved {
+	log.debug "CentraLite Motion Sensor device removed."
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('doWriteIasCie') {
+	if ((0 <= vars.'writeIasCieCnt') && (MAX_IAS_CIE_WRITES > vars.'writeIasCieCnt')) {
+		vars.'writeIasCieCnt'++
+		log.debug "Write IAS CIE Address attempt:{}", vars.'writeIasCieCnt'
+		zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+		// schedule to write again in case this write fails
+		Scheduler.scheduleIn 'doWriteIasCie',  (WRITE_IAS_CIE_DELAY * vars.'writeIasCieCnt')
+	}
+}
+
+onEvent('doZoneEnroll') {
+	if ((0 <= vars.'zoneEnrollCnt') && (MAX_ZONE_ENROLLS > vars.'zoneEnrollCnt')) {
+		vars.'zoneEnrollCnt'++
+		log.debug "Zone Enrollment attempt:{}", vars.'zoneEnrollCnt'
+		zoneCluster.zoneEnrollResponse((byte)0x00, (byte)0xFF)
+		// schedule to send again in case this enrollment fails
+		Scheduler.scheduleIn 'doZoneEnroll', (ZONE_ENROLL_DELAY * vars.'zoneEnrollCnt')
+	}
+}
+
+onEvent(CNFG_PWR_RPT) {
+	if ((0 <= vars.CNFG_PWR_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PWR_RPT)) {
+		log.debug "{}:{}", CNFG_PWR_RPT, vars.CNFG_PWR_RPT
+		// configure reporting of Power Config cluster Battery Voltage attribute
+		byte[] rptPwrCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0020) Battery Voltage
+			0x20, 0x00,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0E10) 3600 secs (at most once per hour)
+			0x10, 0x0E,
+			// Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+         0xC0, 0xA8,
+			// Reportable Change (0x02) 0.2 volts (ignore jitter of +/- 0.1 volt)
+			0x02 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_PWR_CNFG,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptPwrCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_PWR_RPT++
+		Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PWR_RPT)
+	}
+}
+
+onEvent(CNFG_TEMP_RPT) {
+	if ((0 <= vars.CNFG_TEMP_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_TEMP_RPT)) {
+		log.debug "{}:{}", CNFG_TEMP_RPT, vars.CNFG_TEMP_RPT
+		// configure reporting of Temperature Measurement cluster Measured Value
+		// NOTE: device appears to only measure temperature once every 60 seconds, so reporting any more frequently is a waste
+		byte[] rptTempCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x0000) Measured Value
+			0x00, 0x00,
+			// Attr Data Type (0x29) Signed 16-Bit Int
+			0x29,
+			// Min Interval (0x012C) 300 seconds (at most once every 5 minutes)
+			0x2C, 0x01,
+			// Max Interval (0x0708) 1800 seconds (at least once every 30 minutes)
+			0x08, 0x07,
+			// Reportable Change (0x000A) 10/100ths C
+			0x0A, 0x00 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_TEMPERATURE,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,		// using general Configure Report command
+			"defaultresponse" : true,
+			"data" : rptTempCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_TEMP_RPT++
+		Scheduler.scheduleIn CNFG_TEMP_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_TEMP_RPT)
+	}
+}
+
+onEvent(CNFG_POLL_CTRL) {
+	if ((0 <= vars.CNFG_POLL_CTRL) && (MAX_CNFG_ATTEMPTS > vars.CNFG_POLL_CTRL)) {
+		log.debug "{}:{}", CNFG_POLL_CTRL, vars.CNFG_POLL_CTRL
+		// write Poll Control cluster Checkin Interval
+		byte[] wrtChkIntvlBytes = [
+			// Attr Id (0x0000) Checkin Interval
+			0x00, 0x00,
+			// Attr Data Type (0x23) Unsigned 32- bit integer
+			0x23,
+			// Attr Data (0x000001E0) 480 quarter-seconds
+			0xE0, 0x01, 0x00, 0x00 ]
+		Zigbee.send(
+			"cluster" : CLUSTER_POLL_CONTROL,
+			"command" : CMD_WRT_ATTR,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,		// using general Write Attribute command
+			"defaultresponse" : true,
+			"data" : wrtChkIntvlBytes)
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_POLL_CTRL++
+		Scheduler.scheduleIn CNFG_POLL_CTRL, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_POLL_CTRL)
+	}
+}
+
+onEvent(CNFG_DIAG_RPT) {
+	if ((0 <= vars.CNFG_DIAG_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_DIAG_RPT)) {
+		log.debug "{}:{}", CNFG_DIAG_RPT, vars.CNFG_DIAG_RPT
+		// configure reporting of Diagnostics cluster Last Message LQI attribute
+		byte[] rptDiagCnfgBytes = [
+			// Dir (0x00)
+			0x00,
+			// Attr Id (0x011C) Last Message LQI
+			0x1C, 0x01,
+			// Attr Data Type (0x20) Unsigned 8-Bit Int
+			0x20,
+			// Min Interval (0x0E10) 3600 secs (at most once per hour)
+			0x10, 0x0E,
+			// Max Interval (0xA8C0) 43200 seconds (at least once every 12 hours)
+			0xC0, 0xA8,
+			// Reportable Change (0x0C) approximately 5% of 255
+			0x0C ]
+		Zigbee.send(
+			"cluster" : CLUSTER_DIAGNOSTICS,
+			"command" : CMD_CNFG_RPT,
+			"profile" : PROFILE_HA,
+			"endpoint" : 1,
+			"clusterspecific" : false,
+			"defaultresponse" : true,
+			"data" : rptDiagCnfgBytes )
+		// schedule a followup write, in case it is needed, '10 * Attempt Count' seconds from now
+		vars.CNFG_DIAG_RPT++
+		Scheduler.scheduleIn CNFG_DIAG_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_DIAG_RPT)
+	}
+}
+
+onEvent(READ_PWR_ATTRIBS) {
+	if (null == vars.battMinThreshold) {
+		if (vars.READ_PWR_ATTRIBS <= 10) {
+
+			vars.READ_PWR_ATTRIBS++
+			log.debug 'Attempting to read power attributes for {} time', vars.READ_PWR_ATTRIBS
+			pwrCluster.zclReadAttributes(
+					pwrCluster.ATTR_BATTERY_VOLTAGE,
+					pwrCluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD)
+
+			Scheduler.scheduleIn READ_PWR_ATTRIBS, (1000 * vars.READ_PWR_ATTRIBS)
+		} else {
+			log.debug 'Could not read power attribs. Using default values.'
+			vars.battMinThreshold = 2.4
+		}
+	}
+}
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def battVolt = attributes[cluster.ATTR_BATTERY_VOLTAGE]
+	def battMinThreshold = attributes[cluster.ATTR_BATTERY_VOLTAGE_MIN_THRESHOLD]
+	log.debug "BatteryVoltage:{}, Min Thrshld:{}", battVolt, battMinThreshold
+
+	if (null != battMinThreshold) {
+		vars.battMinThreshold = battMinThreshold / 10.0
+	} else if (null == vars.battMinThreshold) {
+		log.debug "Battery min threshold not set. Waiting for re-read."
+		if (null == vars.READ_PWR_ATTRIBS || 0 == vars.READ_PWR_ATTRIBS) {
+			//we missed the onconnected, so schedule a read now
+			Scheduler.defer READ_PWR_ATTRIBS
+		}
+		return
+	}
+
+	double minVolts = vars.battMinThreshold
+	double nomVolts = 3.0
+
+	if ((null != battVolt) && ('INVALID' != battVolt.toString()) && (0 != battVolt)) {
+		// battery Voltage is reported in tenths of Volts
+		double volts = (battVolt / 10.0)
+		log.trace "Battery Volts:{}", volts
+		// battery percentage = (100 / nominal - minimum) * ( actual - minumum )
+		if (0 < (nomVolts - minVolts)) {	// prevent division by zero
+			double battPercent = (100.0 / (nomVolts - minVolts) * (volts - minVolts))
+			battPercent =  (100.0 < battPercent) ? 100.0 : battPercent		// limit maximum to 100%
+			battPercent =  (0.0 > battPercent) ? 0.0 : battPercent			// limit minimum to 0%
+			int intBattPercent = battPercent
+			log.debug "Battery Percent:{}", intBattPercent
+			DevicePower.battery intBattPercent
+		}
+	}
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+	log.trace "Driver received Power Attributes Response:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+// called when device asynchronously sends a Power Report Attributes
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+	log.trace "Driver received Power Attributes Report:{}", message
+	handlePowerMsg(pwrCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def checkin = attributes[cluster.ATTR_CHECKIN_INTERVAL]
+	def longPoll = attributes[cluster.ATTR_LONG_POLL_INTERVAL]
+	def shortPoll = attributes[cluster.ATTR_SHORT_POLL_INTERVAL]
+	log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+// called when device responds to a Poll Control Read Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+	log.trace "Driver received Poll Control Attributes Response:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Report Attributes
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+	log.trace "Driver received Poll Control Attributes Report:{}", message
+	handlePollCrtlMsg(pollCluster, message)
+}
+
+// called when device asynchronously sends a Poll Control Checkin
+onZigbeeMessage.Zcl.pollcontrol.CheckIn() {
+	log.trace "Driver received Poll Control Checkin:{}", message
+	// tell device to resume without short polling
+	pollCluster.checkInResponse( (byte)0x00, (short)0x0000 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def tempVal = attributes[cluster.ATTR_MEASURED_VALUE]
+	// def tempMin = attributes[cluster.ATTR_MIN_MEASURED_VALUE]
+	// def tempMax = attributes[cluster.ATTR_MAX_MEASURED_VALUE]
+	// def tempTolerance = attributes[cluster.ATTR_TOLERANCE]
+	log.trace "Temp:{}", tempVal
+
+	if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+		// temperature is reported in 100ths degree C, so convert to C and save
+		double tempC = tempVal
+		tempC /= 100
+		log.trace "Set Temp:{}", tempC
+		Temperature.temperature tempC
+	}
+}
+
+
+// called when device responds to a Temperature Measurement Read Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+	log.trace "Driver received Temperature Measurement Attributes Response:{}", message
+	handleTemperatureMeasurement(tempCluster, message)
+}
+
+
+// called when device asynchronously sends a Temperature Measurement Report Attributes
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+	log.trace "Driver received Temperature Measurement Attributes Report:{}", message
+	handleTemperatureMeasurement(tempCluster, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the IAS Zone Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+// shared code for processing the zone status attribute
+void processZoneStatus(Object cluster, int zoneStatus, int delay) {
+	if ( zoneStatus & cluster.ZONE_STATUS_ALARM1 ) {
+		log.trace "Alarm1 Set"
+	} else {
+		log.trace "Alarm1 Clear"
+	}
+
+	if ( zoneStatus & cluster.ZONE_STATUS_TAMPER ) {
+		log.trace "Tampered"
+	} else {
+		log.trace "Not Tampered"
+	}
+
+	if ( zoneStatus & cluster.ZONE_STATUS_BATTERY ) {
+		log.debug "Low Battery"
+	} else {
+		log.trace "Battery OK"
+	}
+}
+
+// shared code for handling a Zone ReadAttributesResponse, or asynchronous ReportAttributes
+void handleZoneMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg);
+	def zoneState = attributes[cluster.ATTR_ZONE_STATE]
+	def zoneType = attributes[cluster.ATTR_ZONE_TYPE]
+	def zoneStatus = attributes[cluster.ATTR_ZONE_STATUS]
+	def iasCieAddr = attributes[cluster.ATTR_IAS_CIE_ADDRESS]
+	log.debug "ZoneState:{}, ZoneType:{}, ZoneStatus:{}, IAS CIE Addr:{}", zoneState, zoneType, zoneStatus, iasCieAddr
+	processZoneStatus cluster, zoneStatus, 0
+	verifyCIEAddr cluster, iasCieAddr
+}
+
+// sends a ZoneEnrollResponse, either asychronously or in response to a ZoneEnrollRequest
+void sendZoneEnrollment(Object cluster) {
+	def byte enrollResponseCode = 0x00	// success
+	def byte zoneId = 0xFF
+	cluster.zoneEnrollResponse( enrollResponseCode, zoneId )
+}
+
+void verifyCIEAddr(Object cluster, addr) {
+	log.debug "Reported IAS CIE Address is:{}", addr
+	def hubAddr = Zigbee.Data.encodeIeee(Zigbee.Hub.eui64).dataValue
+	log.debug "Hub IEEE Address is:{}", hubAddr
+
+	if ((null == addr) || ('INVALID' == addr.toString()) || (8 != addr.size())) {
+		log.warn "IAS CIE Address not set."
+	} else {
+		if (addr != hubAddr) {
+			log.error "IAS CIE Address not set to hub address."
+		} else {
+			log.debug "IAS CIE Address is set to hub address."
+		}
+	}
+}
+
+// called when device responds to a IAS Zone Read Attributes
+onZigbeeMessage.Zcl.iaszone.zclreadattributesresponse() {
+	log.debug "Driver received IAS Zone Attributes Response:{}", message
+	handleZoneMsg(zoneCluster, message)
+	// any time we get a response to reading the IAS Zone attributes, also asynchronously send a ZoneEnrollResponse
+	sendZoneEnrollment zoneCluster
+}
+
+// called in response to IAS Zone Write Attributes
+onZigbeeMessage.Zcl.iaszone.zclwriteattributesresponse() {
+	log.debug "Driver received IAS Zone write attributes response:{}", message
+
+	def zclMsg = Zigbee.Message.toZcl(message)
+	byte[] data = zclMsg.getPayload()
+	if ((null != data) && (1 <= data.size())) {
+		if (0x00 == data[0]) {
+			log.debug "IAS Zone Write Attributes Success"
+			vars.'writeIasCieCnt' = -1		// set to -1 once successfully written
+			// now try sending ZoneEnrollment
+			Scheduler.defer 'doZoneEnroll'
+		} else if (0x70 == data[0]) {			// REQUEST_DENIED
+			log.warn "IAS Zone Write Attributes REQUEST DENIED"
+			// read the address to make sure it is correct
+			zoneCluster.zclReadAttributes(
+				zoneCluster.ATTR_ZONE_STATE,
+				zoneCluster.ATTR_ZONE_TYPE,
+				zoneCluster.ATTR_ZONE_STATUS,
+				zoneCluster.ATTR_IAS_CIE_ADDRESS )
+
+			vars.'writeIasCieCnt' = -1		// set to -1 because won't succeed until device is factory reset
+		} else {
+			log.warn "IAS Zone Write Attributes FAILED!!!"
+		}
+	}
+}
+
+// called when device asynchronously sends a IAS Zone Report Attributes
+onZigbeeMessage.Zcl.iaszone.zclreportattributes() {
+	log.debug "Driver received IAS Zone Attributes Report:{}", message
+	handleZoneMsg(zoneCluster, message)
+}
+
+// called when the device wants to enroll a zone
+onZigbeeMessage.Zcl.iaszone.ZoneEnrollRequest() {
+	log.debug "Driver received IasZone ZoneEnrollRequest:{}", message
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+	def rqst = Zigbee.Message.decodeZcl(message)
+	int zoneType = rqst.getZoneType()
+	int mfgCode = rqst.getManufacturerCode()
+	log.debug "ZoneType:" + zoneType + ", MfgCode:" + mfgCode
+	// send a ZoneEnrollResponse
+	sendZoneEnrollment zoneCluster
+}
+
+
+// called when zone status changes
+onZigbeeMessage.Zcl.iaszone.ZoneStatusChangeNotification() {
+	log.trace "Driver received IasZone ZoneStatusChangeNotification:{}", message
+
+	// we received a Zone Status Change, so mark Zone Enrollment as done
+	vars.'zoneEnrollCnt' = -1
+	vars.'writeIasCieCnt' = -1
+
+	// get the message data bytes so we can look at 'delay', if any
+	byte[] data = Zigbee.Message.toZcl(message).getPayload()
+	//log.debug "Data [$data]"
+	def int delay = 0
+	if ((null != data) && (6 <= data.size())) {
+		delay = (int)((data[5] & 0xff) << 8) | (int)(data[4] & 0xff)
+	}
+
+	// see https://eyeris.atlassian.net/wiki/display/I2D/IasZone
+	def notification = Zigbee.Message.decodeZcl(message)
+	int zoneStatus = notification.getZoneStatus()
+	int extStatus = notification.getExtendedStatus()
+	log.trace "ZoneStatus:{}, ExtendedStatus:{}, Delay (1/4 secs):{}", zoneStatus, extStatus, delay
+	processZoneStatus zoneCluster, zoneStatus, delay
+	if (MAX_STATUS_CHNG_DELAY < delay) {
+		// read current IAS Zone attributes since we just received a significantly 'delayed' one
+		zoneCluster.zclReadAttributes(
+			zoneCluster.ATTR_ZONE_STATE,
+			zoneCluster.ATTR_ZONE_TYPE,
+			zoneCluster.ATTR_ZONE_STATUS,
+			zoneCluster.ATTR_IAS_CIE_ADDRESS )
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+boolean handleDiagnosticMsg(Object cluster, Object msg) {
+	def attributes = Zigbee.Message.decodeZclAttributes(msg)
+	def rssi = attributes[cluster.ATTR_LAST_MESSAGE_RSSI]
+	def lqi = attributes[cluster.ATTR_LAST_MESSAGE_LQI]
+	def boolean processed = false
+	log.trace "RSSI:{}, LQI:{}", rssi, lqi
+
+	if (lqi != null) {
+		if ('INVALID' == lqi.toString()) lqi = 255	// helper parses 255 value as 'INVALID', but it just means 100%
+		if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+		int sigPct = Math.round( (lqi * 100.0) / 255.0)
+		log.trace "LQI:{}, (percent:{})" + lqi, sigPct
+		DeviceConnection.signal sigPct
+		processed = true
+	}
+	return processed
+}
+
+// called when device responds to a Diagnostics Read Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+	log.trace "Driver received Diagnostics Attributes Response:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+// called when device asynchronously sends a Diagnostics Report Attributes
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+	log.trace "Driver received Diagnostics Attributes Report:{}", message
+	if (!handleDiagnosticMsg(diagCluster, message)) return false
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this,DEVICE_NAME,dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this,DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this,DEVICE_NAME,otaCluster,message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this,DEVICE_NAME,message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+// method defined in the Identify capability
+onIdentify.Identify {
+	log.debug "Driver received onIdentify.Identify:{}", message
+	// ask the device to identify itself for the defined interval
+	identCluster.identifyCmd( IDENT_PERIOD_SECS )
+
+	// send a response so event processing completes and next event can be handled
+	sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+
+	// if Config Reporting Response for Power Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_PWR_CNFG == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Power reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_PWR_RPT = -1
+		} else {
+			log.warn "Power reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Config Reporting Response for Temperature Config cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_TEMPERATURE == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Temperature reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_TEMP_RPT = -1
+		} else {
+			log.warn "Temperature reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Write Attribute Response for Poll Control cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_POLL_CONTROL == clusterId) && (CMD_WRT_ATTR_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Poll Control config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_POLL_CTRL = -1
+		} else {
+			log.warn "Poll Control config FAILED: ${data}"
+		}
+		return
+	}
+
+	// if Config Reporting Response for Diagnostics cluster,
+	if ((PROFILE_HA == profile) && (CLUSTER_DIAGNOSTICS == clusterId) && (CMD_CNFG_RPT_RSP == msgId) && (1 == endpoint)) {
+		if ((0 < data.length) && (0 == data[0])) {
+			log.debug "Diagnostics reporting config was successful"
+			// set flag to disable future attempts to configure reporting
+			vars.CNFG_DIAG_RPT = -1
+		} else {
+			log.warn "Diagnostics reporting config FAILED: ${data}"
+		}
+		return
+	}
+
+	if ((PROFILE_HA == profile) && (CLUSTER_POLL_CONTROL == clusterId) && (CMD_DFLT_RSP == msgId)) {
+		return
+	}
+
+	// check that IAS Zone Write Attributes response is success (no helper for this)
+	if ((PROFILE_HA == profile) && (0x0500 == clusterId) && (0x04 == msgId)) {
+		log.debug "IAS Zone Write Attributes Response:" + data
+		if ((null != data) && (1 <= data.size()) && (0x00 != data[0])) {
+			log.warn "IAS Zone Write Attributes FAILED!!!"
+		}
+		return
+	}
+
+	// if Diagnostic cluster reported LQI and not previously handled (exception parsing attribute) manually parse the value here
+	if ((PROFILE_HA == clusterId) && (3 < data.length)) {
+		if ((0x1C == data[0]) && (0x01 == data[1]) && (0x20 == data[2])) {		// LQI Attribute (0x011C) as unsigned 8-bit value (0x20)
+			int lqi = data[3]				// 0-255
+			if (0 > lqi) lqi = 256 + lqi	// convert signed value to unsigned
+			double signal = (lqi * 100.0) / 255.0
+			int sigLvl = Math.round(signal)
+			log.trace "LQI:{}, (percent:{})", lqi, sigLvl
+			DeviceConnection.signal sigLvl
+		}
+		return
+	}
+
+	log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
+

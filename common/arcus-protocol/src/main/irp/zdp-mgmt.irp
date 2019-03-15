@@ -1,0 +1,127 @@
+constants zdp.Mgmt {
+   const u16 ZDP_MGMT_NWK_DISC_REQ = 0x0030;
+   const u16 ZDP_MGMT_LQI_REQ = 0x0031;
+   const u16 ZDP_MGMT_RTG_REQ = 0x0032;
+   const u16 ZDP_MGMT_BIND_REQ = 0x0033;
+   const u16 ZDP_MGMT_LEAVE_REQ = 0x0034;
+   const u16 ZDP_MGMT_DIRECT_JOIN_REQ = 0x0035;
+   const u16 ZDP_MGMT_PERMIT_JOINING_REQ = 0x0036;
+   const u16 ZDP_MGMT_CACHE_REQ = 0x0037;
+   const u16 ZDP_MGMT_NWK_UPDATE_REQ = 0x0038;
+
+   const u16 ZDP_MGMT_NWK_DISC_RSP = 0x8030;
+   const u16 ZDP_MGMT_LQI_RSP = 0x8031;
+   const u16 ZDP_MGMT_RTG_RSP = 0x8032;
+   const u16 ZDP_MGMT_BIND_RSP = 0x8033;
+   const u16 ZDP_MGMT_LEAVE_RSP = 0x8034;
+   const u16 ZDP_MGMT_DIRECT_JOIN_RSP = 0x8035;
+   const u16 ZDP_MGMT_PERMIT_JOINING_RSP = 0x8036;
+   const u16 ZDP_MGMT_CACHE_RSP = 0x8037;
+   const u16 ZDP_MGMT_NWK_UPDATE_NOTIFY = 0x8038;
+}
+
+message zdp.Mgmt.ZdpMgmtNwkDiscReq<id="0x0030"> {
+   u32 scanChannels;
+   u8 scanDuration;
+   u8 startIndex;
+}
+
+message zdp.Mgmt.ZdpMgmtNwkDiscRsp<id="0x8030"> {
+   u8 status;
+   u8 networkCount;
+   u8 startIndex;
+   u8 networkListCount;
+   ZdpNetworkRecord[networkListCount] networkList;
+}
+
+message zdp.Mgmt.ZdpMgmtLqiReq<id="0x0031"> {
+   u16 startIndex;
+}
+
+message zdp.Mgmt.ZdpMgmtLqiRsp<id="0x8031"> {
+   u8 status;
+   u8 neighborTableEntries;
+   u8 startIndex;
+   u8 neighborTableCount;
+   ZdpNeighborRecord[neighborTableCount] neighborTable;
+}
+
+message zdp.Mgmt.ZdpMgmtRtgReq<id="0x0032"> {
+   u16 startIndex;
+}
+
+message zdp.Mgmt.ZdpMgmtRtgRsp<id="0x8032"> {
+   u8 status;
+   u8 routingTableEntries;
+   u8 startIndex;
+   u8 routingTableCount;
+   ZdpRoutingRecord[routingTableCount] routingTable;
+}
+
+message zdp.Mgmt.ZdpMgmtBindReq<id="0x0033"> {
+   u16 startIndex;
+}
+
+message zdp.Mgmt.ZdpMgmtBindRsp<id="0x8033"> {
+   u8 status;
+   u8 bindingTableEntries;
+   u8 startIndex;
+   u8 bindingTableCount;
+   ZdpBindingTableRecord[bindingTableCount] bindingTable;
+}
+
+message zdp.Mgmt.ZdpMgmtLeaveReq<id="0x0034"> {
+   u64 deviceAddr;
+   u8 leaveFlags;
+}
+
+message zdp.Mgmt.ZdpMgmtLeaveRsp<id="0x8034"> {
+   u8 status;
+}
+
+message zdp.Mgmt.ZdpMgmtDirectJoinReq<id="0x0035"> {
+   u64 deviceAddr;
+   u8 capabilities;
+}
+
+message zdp.Mgmt.ZdpMgmtDirectJoinRsp<id="0x8035"> {
+   u8 status;
+}
+
+message zdp.Mgmt.ZdpMgmtPermitJoiningReq<id="0x0036"> {
+   u8 permitDuration;
+   u8 tcSignificance;
+}
+
+message zdp.Mgmt.ZdpMgmtPermitJoiningRsp<id="0x8036"> {
+   u8 status;
+}
+
+message zdp.Mgmt.ZdpMgmtCacheReq<id="0x0037"> {
+   u16 startIndex;
+}
+
+message zdp.Mgmt.ZdpMgmtCacheRsp<id="0x8037"> {
+   u8 status;
+   u8 discCacheEntries;
+   u8 startIndex; 
+   u8 discCacheCount;
+   ZdpDiscCacheRecord[discCacheCount] discCache;
+}
+
+message zdp.Mgmt.ZdpMgmtNwkUpdateReq<id="0x0038"> {
+   u32 scanChannels;
+   u8 scanDuration;
+   u8 scanCount when (scanDuration >= 0x00 && scanDuration <= 0x05);
+   u8 nwkUpdateId when (scanDuration == (byte)0xFE || scanDuration == (byte)0xFF);
+   u16 nwkManagerAddr when (scanDuration == (byte)0xFF);
+}
+
+message zdp.Mgmt.ZdpMgmtNwkUpdateNotify<id="0x8038"> {
+   u8 status;
+   u32 scanedChannels;
+   u16 totalTransmissions;
+   u16 transmissionFailures;
+   u8 scannedChannelCount;
+   u8[scannedChannelCount] energyValues;
+}

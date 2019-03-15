@@ -1,0 +1,151 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 7.3 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.DoorLock {
+   const u16 CLUSTER_ID = 0x0101;
+
+   const u16 ATTR_LOCK_STATE = 0x0000;
+   const u16 ATTR_LOCK_TYPE = 0x0001;
+   const u16 ATTR_ACTUATOR_ENABLED = 0x0002;
+   const u16 ATTR_DOOR_STATE = 0x0003;
+   const u16 ATTR_DOOR_OPEN_EVENTS = 0x0004;
+   const u16 ATTR_DOOR_CLOSED_EVENTS = 0x0005;
+   const u16 ATTR_OPEN_PERIOD = 0x0006;
+
+   const u8 LOCK_STATE_NOT_FULLY_LOCKED = 0x00;
+   const u8 LOCK_STATE_LOCKED = 0x01;
+   const u8 LOCK_STATE_UNLOCKED = 0x02;
+   const u8 LOCK_STATE_UNKNOWN = 0xFF;
+
+   const u8 LOCK_TYPE_DEADBOLT = 0x00;
+   const u8 LOCK_TYPE_MAGNETIC = 0x01;
+   const u8 LOCK_TYPE_OTHER = 0x02;
+   const u8 LOCK_TYPE_UNKNOWN = 0xFF;
+
+   const u8 ACTUATOR_DISABLED = 0x00;
+   const u8 ACTUATOR_ENABLED = 0x01;
+
+   const u8 DOOR_STATE_OPEN = 0x00;
+   const u8 DOOR_STATE_CLOSED = 0x01;
+   const u8 DOOR_STATE_JAMMED = 0x02;
+   const u8 DOOR_STATE_FORCED_OPEN = 0x03;
+   const u8 DOOR_STATE_ERROR = 0x04;
+   const u8 DOOR_STATE_UNKNOWN = 0xFF;
+}
+
+message zcl.DoorLock.LockDoor<id="0x00",group="client"> {
+}
+
+message zcl.DoorLock.UnlockDoor<id="0x01",group="client"> {
+}
+
+message zcl.DoorLock.SetPinCode<id="0x05",group="client"> {
+	u16 userId;
+	u8 userStatus;
+	u8 userType;
+	u8 pinLength;
+    u8[pinLength] pin;
+}
+
+message zcl.DoorLock.GetPinCode<id="0x06",group="client"> {
+	u16 userId;
+}
+
+message zcl.DoorLock.ClearPinCode<id="0x07",group="client"> {
+	u16 userId;
+}
+
+message zcl.DoorLock.ClearAllPinCodes<id="0x08",group="client"> {
+}
+
+message zcl.DoorLock.LockDoorResponse<id="0x00",group="server"> {
+   u8 status;
+}
+
+message zcl.DoorLock.UnlockDoorResponse<id="0x01",group="server"> {
+   u8 status;
+}
+
+message zcl.DoorLock.SetPinCodeResponse<id="0x05",group="server"> {
+	const u8 STATUS_SUCCESS = 0x00;
+	const u8 STATUS_FAIL = 0x01;
+	const u8 STATUS_MEMORY_FULL = 0x02;
+	const u8 STATUS_DUPLICATE_CODE = 0x03;
+	
+	u8 status;
+}
+
+message zcl.DoorLock.GetPinCodeResponse<id="0x06",group="server"> {
+	u16 userId;
+	u8 userStatus;
+	u8 userType;
+	u8 pinLength;
+    u8[pinLength] pin;
+}
+
+message zcl.DoorLock.ClearPinCodeResponse<id="0x07",group="server"> {
+	u8 status;
+}
+
+message zcl.DoorLock.ClearAllPinCodesResponse<id="0x08",group="server"> {
+	u8 status;
+}
+
+message zcl.DoorLock.OperationEventNotification<id="0x20",group="server"> {
+	const u8 SOURCE_KEYPAD = 0x00;
+	const u8 SOURCE_RF = 0x01;
+	const u8 SOURCE_MANUAL = 0x02;
+	const u8 SOURCE_RFID = 0x03;
+	const u8 SOURCE_INTERMINATE = 0xFF;
+	
+	const u8 CODE_UNKNOWN = 0x00;
+	const u8 CODE_LOCK = 0x01;
+	const u8 CODE_UNLOCK = 0x02;	
+	const u8 CODE_LOCKFAILUREINVALIDPINORID = 0x03;
+	const u8 CODE_LOCKFAILUREINVALIDSCHEDULE = 0x04;
+	const u8 CODE_UNLOCKFAILUREINVALIDPINORID = 0x05;
+	const u8 CODE_UNLOCKFAILUREINVALIDSCHEDULE = 0x06;
+	const u8 CODE_ONETOUCHLOCK = 0x07;
+	const u8 CODE_KEYLOCK = 0x08;
+	const u8 CODE_KEYUNLOCK = 0x09;	
+	const u8 CODE_AUTOLOCK = 0x0A;
+	const u8 CODE_SCHEDULELOCK = 0x0B;
+	const u8 CODE_SCHEDULEUNLOCK = 0x0C;
+	const u8 CODE_MANUALLOCK = 0x0D;
+	const u8 CODE_MANUALUNLOCK = 0x0E;
+	const u8 CODE_NONACCESS = 0x0F;	
+	
+	
+	u8 source;
+	u8 code;
+	u16 userId;
+	u8 pin;
+	u32 localTime;
+	u8[] data;
+}
+
+
+message zcl.DoorLock.ProgrammingEventNotification<id="0x21",group="server"> {
+	const u8 SOURCE_KEYPAD = 0x00;
+	const u8 SOURCE_RF = 0x01;
+	const u8 SOURCE_MANUAL = 0x02;
+	const u8 SOURCE_RFID = 0x03;
+	const u8 SOURCE_INTERMINATE = 0xFF;
+	
+	const u8 CODE_UNKNOWN = 0x00;
+	const u8 CODE_MASTERCODECHANGE = 0x01;
+	const u8 CODE_PINCODEADDED = 0x02;	
+	const u8 CODE_PINCODEDELETED = 0x03;
+	const u8 CODE_PINCODECHANGED = 0x04;
+	const u8 CODE_RFIDCODEADDED = 0x05;
+	const u8 CODE_RFIDCODEDELETED = 0x06;
+
+	u8 source;
+	u8 code;
+	u16 userId;
+	u8 pin;
+	u32 localTime;
+	u8[] data;
+}

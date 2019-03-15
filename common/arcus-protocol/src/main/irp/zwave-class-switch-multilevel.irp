@@ -1,0 +1,99 @@
+
+message zwave.SwitchMultilevel.SwitchMultilevelGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelReportV1<id="0x03", group="V1"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelSetV1<id="0x01", group="V1"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStartLevelChangeV1<id="0x04", group="V1"> {
+    const u8 LEVEL_IGNORE_START_LEVEL = 0x20;
+    const u8 LEVEL_UP_DOWN = 0x40;
+    u8 level;
+    u8 startLevel;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStopLevelChangeV1<id="0x05", group="V1"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelGetV2<id="0x02", group="V2"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelReportV2<id="0x03", group="V2"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelSetV2<id="0x01", group="V2"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    const u8 DIMMING_DURATION_FACTORY_DEFAULT = 0xFF;
+    u8 val;
+    u8 dimmingDuration;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStartLevelChangeV2<id="0x04", group="V2"> {
+    const u8 PROPERTIES1_IGNORE_START_LEVEL = 0x20;
+    const u8 PROPERTIES1_UP_DOWN = 0x40;
+    u8 properties1;
+    u8 startLevel;
+    u8 dimmingDuration;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStopLevelChangeV2<id="0x05", group="V2"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelGetV3<id="0x02", group="V3"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelReportV3<id="0x03", group="V3"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    u8 val;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelSetV3<id="0x01", group="V3"> {
+    const u8 VALUE_OFF_DISABLE = 0x00;
+    const u8 VALUE_ON_ENABLE = 0xFF;
+    const u8 DIMMING_DURATION_INSTANTLY = 0x00;
+    const u8 DIMMING_DURATION_FACTORY_DEFAULT = 0xFF;
+    u8 val;
+    u8 dimmingDuration;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStartLevelChangeV3<id="0x04", group="V3"> {
+    const u8 PROPERTIES1_INC_DEC_MASK = 0x18;
+    const u8 PROPERTIES1_INC_DEC_SHIFT = 3;
+    const u8 PROPERTIES1_UP_DOWN_MASK = 0xC0;
+    const u8 PROPERTIES1_UP_DOWN_SHIFT = 6;
+    const u8 PROPERTIES1_IGNORE_START_LEVEL = 0x20;
+    u8 properties1;
+    u8 startLevel;
+    u8 dimmingDuration;
+    u8 stepSize;
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelStopLevelChangeV3<id="0x05", group="V3"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelSupportedGetV3<id="0x06", group="V3"> {
+}
+
+message zwave.SwitchMultilevel.SwitchMultilevelSupportedReportV3<id="0x07", group="V3"> {
+    const u8 PROPERTIES1_PRIMARY_SWITCH_TYPE_MASK = 0x1F;
+    const u8 PROPERTIES1_PRIMARY_SWITCH_TYPE_SHIFT = 0;
+    const u8 PROPERTIES2_SECONDARY_SWITCH_TYPE_MASK = 0x1F;
+    const u8 PROPERTIES2_SECONDARY_SWITCH_TYPE_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+}

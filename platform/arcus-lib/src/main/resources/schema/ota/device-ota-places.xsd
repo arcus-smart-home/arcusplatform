@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   targetNamespace="http://arcus.com/device-ota-places_1.0.0"
+   xmlns:tns="http://arcus.com/device-ota-places_1.0.0"
+   elementFormDefault="qualified">
+
+   <xs:annotation>
+      <xs:documentation xml:lang="en">
+         Iris Device OTA Places schema
+         Copyright 2016 Lowe's Companies, Inc. All rights reserved.
+      </xs:documentation>
+   </xs:annotation>
+   
+
+	<xs:element name="places">
+	  <xs:complexType>
+	   <xs:sequence>
+         <xs:element name="metadata" type="tns:metadataType" />
+		 <xs:element name="place" type="tns:place"
+		     minOccurs="0" maxOccurs="unbounded" /> 
+	   </xs:sequence>
+	  </xs:complexType>
+	</xs:element>
+
+   <xs:complexType name="metadataType">
+      <xs:attribute name="version" type="xs:dateTime" />
+      <xs:attribute name="publisher" type="xs:string" />
+   </xs:complexType>
+	
+	<xs:complexType name="place">
+		<xs:attribute name="id" type="xs:string"/>
+	</xs:complexType>
+</xs:schema>

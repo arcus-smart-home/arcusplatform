@@ -1,0 +1,93 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library on/off command frames
+//    From Section 3.7 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Scenes {
+   const u16 CLUSTER_ID = 0x0005;
+
+   const u16 ATTR_SCENE_COUNT = 0x0000;
+   const u16 ATTR_CURRENT_SCENE = 0x0001;
+   const u16 ATTR_CURRENT_GROUP = 0x0002;
+   const u16 ATTR_SCENE_VALID = 0x0003;
+   const u16 ATTR_NAME_SUPPORT = 0x0004;
+   const u16 ATTR_LAST_CONFIGURED_BY = 0x0005;
+}
+
+// TODO: this message does not currently support the
+//       extension field sets.
+message zcl.Scenes.AddScene<id="0x00",group="client"> {
+   u16 groupId;
+   u8 sceneId;
+   u16 transitionTime;
+   u8[] sceneName;
+}
+
+message zcl.Scenes.ViewScene<id="0x01",group="client"> {
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.RemoveScene<id="0x02",group="client"> {
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.RemoveAllScenes<id="0x03",group="client"> {
+   u16 groupId;
+}
+
+message zcl.Scenes.StoreScene<id="0x04",group="client"> {
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.RecallScene<id="0x05",group="client"> {
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.GetSceneMembership<id="0x06",group="client"> {
+   u16 groupId;
+}
+
+message zcl.Scenes.AddSceneResponse<id="0x00",group="server"> {
+   u8 status;
+   u16 groupId;
+   u8 sceneId;
+}
+
+// TODO: this message does not currently support the
+//       extension field sets.
+message zcl.Scenes.ViewSceneResponse<id="0x01",group="server"> {
+   u8 status;
+   u16 groupId;
+   u8 sceneId;
+   u16 transitionTime when (status == ZB_STATUS_SUCCESS);
+   u8[] sceneName when (status == ZB_STATUS_SUCCESS);
+}
+
+message zcl.Scenes.RemoveSceneResponse<id="0x02",group="server"> {
+   u8 status;
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.RemoveAllScenesResponse<id="0x03",group="server"> {
+   u8 status;
+   u16 groupId;
+}
+
+message zcl.Scenes.StoreSceneResponse<id="0x04",group="server"> {
+   u8 status;
+   u16 groupId;
+   u8 sceneId;
+}
+
+message zcl.Scenes.GetSceneMembershipResponse<id="0x06",group="server"> {
+   u8 status;
+   u8 capacity;
+   u16 groupId;
+   u8 sceneCount when (status == ZB_STATUS_SUCCESS);
+   u8[sceneCount] sceneList when (status == ZB_STATUS_SUCCESS);
+}

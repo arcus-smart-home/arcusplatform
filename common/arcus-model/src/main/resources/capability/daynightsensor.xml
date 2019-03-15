@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DayNightSensor"
+   namespace="daynight"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   		Model of a day night sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="mode" 
+         readwrite="r" 
+         type="enum" 
+         optional="false" 
+         values="day,night"
+         description="Indicates whether sensor believes it is day or night"/>
+      <c:attribute 
+         name="modechanged" 
+         readwrite="r" 
+         type="timestamp" 
+         optional="false" 
+         description="UTC date time of last mode change"/>
+      </c:attributes>
+      
+</c:capability>

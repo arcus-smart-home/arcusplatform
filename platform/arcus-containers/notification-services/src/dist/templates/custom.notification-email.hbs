@@ -1,0 +1,26 @@
+{{#section "sender-name"}}
+A message from Iris
+{{/section}}
+
+{{#section "subject"}}
+{{customMessage}}
+{{/section}}
+
+{{#section "plaintext-body"}}
+{{customMessage}}
+{{/section}}
+
+{{#section "html-body"}}
+
+{{#partial "content" }}
+Message:
+<p>
+{{customMessage}}
+</p>
+<p>
+	This notification is being sent to you as the result of Action triggered from a rule in your account.
+</p
+{{/partial}}
+{{> layout-simple-html-email}}
+
+{{/section}}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="SubsystemService"
+           namespace="subs"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for subsystems.
+   </s:description>
+   
+   <s:methods>
+   
+   <s:method name="ListSubsystems" description="Lists all subsystems available for a given place">
+      <s:parameter name="placeId" type="string" description="UUID of the place" optional="false"/>
+      <s:return name="subsystems" type="list&lt;Subsystem&gt;" description="The subsystems"/>
+   </s:method>
+   
+   <s:method name="Reload" description="Flushes and reloads all the subsystems at the active given place, intended for testing">
+   </s:method>
+
+   </s:methods>
+   
+</s:service>

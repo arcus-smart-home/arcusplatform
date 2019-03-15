@@ -1,0 +1,10 @@
+response-download-1.json
+response-factoryreset-1.json
+response-getdeviceinfo-1.json
+response-geteventconfiguration-1.json
+response-getparameterinfo-1.json
+response-getparametervalues-1.json
+response-getreportconfiguration-1.json
+response-seteventconfiguration-1.json
+response-setparametervalues-1.json
+response-setreportconfiguration-1.json

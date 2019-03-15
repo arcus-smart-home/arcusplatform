@@ -1,0 +1,358 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import com.iris.protocol.zwave.ZWaveEntryControlSpecificDevices
+import com.iris.protocol.zwave.ZWaveGenericDevices
+import groovy.transform.Field
+
+/**
+ * Driver for a Z-Wave Generic Garage Door Controller
+ *
+ */
+driver 'ZZWaveGarageDoorController'
+description 'Driver for a Generic Z-Wave Garage Door Controller'
+version '2.12'
+protocol 'ZWAV'
+deviceTypeHint 'Garage Door'
+productId 'a0529b'
+vendor 'Z-Wave'
+model 'GarageDoorControl'
+
+matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific': ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_DOOR
+matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific': ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_GATE
+matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific': ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_BARRIER_ADDON
+matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific': ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_BARRIER_CLOSE_ONLY
+matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Specific': ZWaveEntryControlSpecificDevices.SPECIFIC_TYPE_SECURE_BARRIER_OPEN_ONLY
+
+
+@Field final int TILT_BATTERY_OK = 100           // indicate OK Battery by setting Battery Level to 100%
+@Field final int TILT_BATTERY_LOW = 10           // indicate LOW Battery by setting Battery Level to 10%
+
+@Field final byte ALARM_TYPE_ACCESS = 0x06
+@Field final byte ALARM_TYPE_BURGLAR = 0x07
+
+// Barrier Operator States
+// Note: Barrier Operator States 0x01 - 0x63 (Barrier Stopped with position) are not supported by this device
+@Field final byte OP_STATE_CLOSED = (byte) 0x00
+@Field final byte OP_STATE_CLOSING = (byte) 0xFC
+@Field final byte OP_STATE_STOPPED = (byte) 0xFD
+@Field final byte OP_STATE_OPENING = (byte) 0xFE
+@Field final byte OP_STATE_OPEN = (byte) 0xFF
+
+@Field final String ERR_OBSTRUCTION_KEY = 'ERR_OBSTRUCTION'
+@Field final String ERR_OBSTRUCTION_VALUE = 'Garage door may be obstructed'
+
+@Field final long OPEN_CLOSE_DELAY_MSEC = 45000      // delay (mSec) for followup door state read
+@Field final int OFFLINE_TIMEOUT_SECS = 4200         // if no communications for 70 minutes, consider device offline
+@Field final int POLLING_INTERVAL_SEC = 1200         // poll for door state every 20 minutes (mainly just to make sure device is online)
+
+DevicePower {
+   source DevicePower.SOURCE_LINE
+   linecapable true
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+MotorizedDoor {
+   doorstate MotorizedDoor.DOORSTATE_CLOSED
+   bind doorstatechanged to doorstate
+}
+
+DeviceAdvanced {
+   errors [:]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   vars.obstructionCount = 0
+   vars.lastState = OP_STATE_CLOSED
+   
+   // Compliance apparently requires that we read the "Signaling Capabilities Supported",
+   // but does not appear to require us to use them
+   ZWave.barrier_operator.signal_supported_get()
+}
+
+onConnected {
+   // get the operational state
+   ZWave.barrier_operator.get()
+   ZWave.poll(POLLING_INTERVAL_SEC, ZWave.barrier_operator.get)
+
+   // assume battery in Tilt Sensor is good until device tells us otherwise
+   DevicePower.battery TILT_BATTERY_OK
+
+   ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MotorizedDoor Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('motdoor') {
+   log.debug 'SetAttributes: {}', message
+
+   def attributes = message.attributes
+   for (attribute in attributes) {
+      switch (attribute.key) {
+         case MotorizedDoor.doorstate:
+            if (DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+               log.info 'Cannot operate door until obstruction is cleared.'
+               return
+            }
+
+            if (attribute.value == 'OPEN') {
+               // ZWave.barrier_operator.set_open()
+               ZWave.barrier_operator.set(OP_STATE_OPEN)
+               // do a delayed reading of the door state
+               Scheduler.scheduleIn 'ReadDoorState', OPEN_CLOSE_DELAY_MSEC
+            } else if (attribute.value == 'CLOSED') {
+               // ZWave.barrier_operator.set_close()
+               ZWave.barrier_operator.set(OP_STATE_CLOSED)
+               // do a delayed reading of the door state
+               Scheduler.scheduleIn 'ReadDoorState', OPEN_CLOSE_DELAY_MSEC
+            } else {
+               log.error 'Attempt to set Garage Door to invalid door state: {}', attribute.value
+            }
+            break
+
+         default:
+            log.error 'Unrecognized attribute: {}', attribute.key
+            break
+      }
+   }
+}
+
+onEvent('ReadDoorState') {
+   log.debug 'ReadDoorState'
+   ZWave.barrier_operator.get()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.alarm.report {
+   log.debug 'Alarm Report'
+
+   def alarmType = message.command.get('alarmtype')
+   def alarmLevel = message.command.get('alarmlevel')
+   def notificationStatus = message.command.get('notificationstatus')
+   def notificationType = message.command.get('notificationtype')
+   def event = message.command.get('event')
+   byte[] bytes = message.command.recvBytes
+   log.debug 'Driver reported Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}', alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+   switch (notificationType) {
+
+      case ALARM_TYPE_ACCESS:      // Notification Type: 6
+         switch (event) {
+            case 0x00:
+               log.info 'Reported previous event cleared'
+               DevicePower.battery TILT_BATTERY_OK
+               DeviceAdvanced.errors.remove ERR_OBSTRUCTION_KEY
+               vars.obstructionCount = 0
+               ZWave.barrier_operator.get()
+               break
+            case 0x44:         // (68)
+               log.info 'Barrier Unable to Perform Required Operation Due to UL Requirements'
+               DeviceAdvanced.errors.put ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE
+               vars.obstructionCount = 2
+               MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OBSTRUCTION
+               break
+            case 0x45:         // (69)
+               log.info 'Cannot Operate Door until closed Locally'
+               DeviceAdvanced.errors.put ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE
+               vars.obstructionCount = 2
+               MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OBSTRUCTION
+               break
+            case 0x46:         // (70)
+               log.info 'Door Obstruction Detected'
+               vars.obstructionCount++
+               if (vars.obstructionCount >= 2) {
+                  MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OBSTRUCTION
+                  DeviceAdvanced.errors.put ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE
+               } else {
+                  ZWave.barrier_operator.get()
+               }
+               break
+            case 0x49:         // (73)
+               log.info 'Tilt Switch Not Detected'
+               break
+            case 0x4A:         // (74)
+               log.info 'Reported Tilt Sensor battery low'
+               DevicePower.battery TILT_BATTERY_LOW
+               break
+            default:
+               log.warn 'Unexpected Event: {}', event
+               break
+         }
+         break
+
+      case ALARM_TYPE_BURGLAR:   // Notification Type: 7
+         switch (event) {
+            case 0x03:
+               log.info 'Tilt Switch Cover Opened'
+               break
+            case 0x00:
+               log.info 'Tilt Switch Cover Closed'
+               break
+            default:
+               log.warn 'Unexpected Event: {}', event
+               break
+         }
+         break
+
+      case 0:      // clear
+         if (0 == event) {
+            log.info 'Reported previous event cleared'
+            DevicePower.battery TILT_BATTERY_OK
+            DeviceAdvanced.errors.remove ERR_OBSTRUCTION_KEY
+            vars.obstructionCount = 0
+            ZWave.barrier_operator.get()
+         }
+         break
+      default:
+         log.warn 'Sent unknown Notification type: {}', notificationType
+         break
+   }
+
+}
+
+
+onZWaveMessage.application_status.busy {
+   log.info 'Reported Application Busy'
+}
+
+
+onZWaveMessage.application_status.rejected {
+   log.info 'Reported Application Status: rejected'
+}
+
+
+onZWaveMessage.barrier_operator.report {
+   log.debug 'Reported barrier operator: {}', message
+
+   switch (message.command.get('barrierstate')) {
+      case OP_STATE_CLOSED:
+         log.info 'Reports door closed.'
+         if (vars.lastState != OP_STATE_CLOSED) {
+            log.debug 'GD state changed to closed. Clearing obstructions.'
+            DeviceAdvanced.errors.remove ERR_OBSTRUCTION_KEY
+            vars.obstructionCount = 0
+            vars.lastState = OP_STATE_CLOSED
+            MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSED
+         } else if (!DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+            MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSED
+         }
+         break
+
+      case OP_STATE_CLOSING:
+         log.info 'Reports door closing.'
+         MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSING
+         break
+
+      case OP_STATE_STOPPED:
+         log.info 'Reports door stopped, position unknown.'
+         break
+
+      case OP_STATE_OPENING:
+         log.info 'Reports door opening.'
+         MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPENING
+         break
+
+      case OP_STATE_OPEN:
+         log.info 'Reports door open.'
+         if (vars.lastState != OP_STATE_OPEN) {
+            log.debug 'GD state changed to open. Clearing obstructions.'
+            DeviceAdvanced.errors.remove ERR_OBSTRUCTION_KEY
+            vars.obstructionCount = 0
+            vars.lastState = OP_STATE_OPEN
+            MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPEN
+         } else if (!DeviceAdvanced.errors.get().containsKey(ERR_OBSTRUCTION_KEY)) {
+            MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPEN
+         }
+         break
+
+      default:
+         log.warn 'Reported unknown barrier operator state: {}', message.command.get('barrierstate')
+         break
+   }
+}
+
+onZWaveMessage.barrier_operator.signal_supported_report {
+   log.info 'Reported Signaling Capabilities Supported: {}', message
+   def type = message.command.get('bitmask1')
+   def state = message.command.get('bitmask2')
+   
+   // store the settings in context vars in case we ever want to use them,
+   // and so we can unit test that we are actually handling them if they are reported
+   
+   if (null != type && type & 0x01) {
+      log.info "Barrier Device has an Audible Notification subsystem (e.g. a Siren)"
+      vars.'SignalingSubsystemType' = "Audible"
+   }
+   if (null != type && type & 0x02) {
+      log.info "Barrier Device has an Visual Notification subsystem (e.g. a Flashing Light)"
+      vars.'SignalingSubsystemType' = "Visual"
+   }
+    
+   if (null != state && 0 == (state & 0xFF)) {
+      log.info "Barrier Device Subsystem is OFF"
+      vars.'SignalingSubsystemState' = "OFF"
+   }
+
+   if (null != state && 0xFF == (state & 0xFF)) {
+      log.info "Barrier Device Subsystem is ON"
+      vars.'SignalingSubsystemState' = "ON"
+   }
+}
+
+
+onZWaveMessage.barrier_operator.report_unknown_position_moving_to_close {
+   log.debug 'Reported: Unknown Position Moving To Close'
+   MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSING
+}
+
+onZWaveMessage.barrier_operator.report_unknown_position_stopped {
+   log.debug 'Reported: Unknown Position Stopped'
+   ZWave.barrier_operator.get()
+//   MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OBSTRUCTION
+//   DeviceAdvanced.errors.put ERR_OBSTRUCTION_KEY, ERR_OBSTRUCTION_VALUE
+}
+
+onZWaveMessage.barrier_operator.report_unknown_position_moving_to_open {
+   log.debug 'Reported: Unknown Position Moving To Open'
+   MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPENING
+}
+
+onZWaveMessage.zwaveplus_info.report {
+   def zwVer = message.command.get( 'zwaveversion' )
+   def roleType = message.command.get( 'roletype' )
+   def nodeType = message.command.get( 'nodetype' )
+   log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+   log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+   log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+

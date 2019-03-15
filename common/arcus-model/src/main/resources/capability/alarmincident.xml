@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+      name="AlarmIncident"
+      namespace="incident"
+      version="1.0"
+      xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+      Model of an alarm incident
+   </c:description>
+
+   <c:attributes>
+
+      <c:attribute
+            name="placeId"
+            type="string"
+            description="The place this incident occurred at"
+            optional="false"
+            readwrite="r"/>
+
+      <c:attribute
+            name="startTime"
+            readwrite="r"
+            type="timestamp"
+            optional="false"
+            description="Platform-owned start time of the incident"/>
+
+      <c:attribute
+            name="prealertEndtime"
+            readwrite="r"
+            type="timestamp"
+            optional="true"
+            description="The time that the prealert will complete."/>
+            
+      <c:attribute
+            name="endTime"
+            type="timestamp"
+            description="The time the incident ended, won't be set for the currently active incident"
+            optional="true"
+            readwrite="r"/>
+
+      <c:attribute
+            name="alertState"
+            readwrite="r"
+            type="enum"
+            values="PREALERT,ALERT,CANCELLING,COMPLETE"
+            optional="false"
+            description="The current alert state of the incident.  This may begin in PREALERT for a security alarm grace period, then go to ALERT, transition to CANCELLING when the user requests that it be cancelled, and finally to COMPLETE when it is no longer active."/>
+	  <c:attribute
+            name="confirmed"
+            type="boolean"
+            description="True if the incident has been confirmed"
+            optional="true"
+            readwrite="r"/>
+      <c:attribute
+            name="monitoringState"
+            readwrite="r"
+            type="enum"
+            values="NONE,PENDING,DISPATCHING,DISPATCHED,REFUSED,CANCELLED,FAILED"
+            optional="false"
+            description="An enum of the current monitoring state:
+NONE - If the alerts are not monitored
+PENDING - If the alert is monitored but we have not contacted the monitoring station yet
+DISPATCHING - If we have contacted the monitoring station but the authorities have not been contacted yet
+DISPATCHED - If the authorities have been contacted
+REFUSED - If the authorities have been contacted but refused the dispatch
+CANCELLED - If the alarm was cancelled before the authorities were contacted
+FAILED - If the signal to the monitoring station failed or the monitoring station did not clear the incident within a configured timeout."/>
+      <c:attribute
+            name="platformState"
+            readwrite="r"
+            type="enum"
+            values="PREALERT, ALERT, CANCELLING, COMPLETE"
+            optional="false"
+            description="An enum of the current platform's view of the incident state.  If hubState is not present, this will be the same as alertState."/>
+      <c:attribute
+            name="hubState"
+            readwrite="r"
+            type="enum"
+            values="PREALERT, ALERT, CANCELLING, COMPLETE"
+            optional="true"
+            description="An enum of the current hub's view of the incident state.  If there is only a platform alarm provider this will not be present."/>
+
+      <c:attribute
+            name="alert"
+            readwrite="r"
+            type="enum"
+            values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+            optional="false"
+            description="The primary alert type"/>
+
+      <c:attribute
+            name="additionalAlerts"
+            readwrite="r"
+            type="set&lt;string&gt;"
+            optional="false"
+            description="Additional alerts that were part of this incident"/>
+
+      <c:attribute
+            name="tracker"
+            readwrite="r"
+            type="list&lt;TrackerEvent&gt;"
+            optional="false"
+            description="A time series list of tracker events."/>
+
+      <c:attribute
+            name="cancelled"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="If this incident has been cancelled by the user.  It can't be completely cleared until the sensors have stopped reporting smoke/CO and any professional monitoring dispatch has completed."/>
+
+      <c:attribute
+            name="cancelledBy"
+            readwrite="r"
+            type="string"
+            optional="true"
+            description="The address of the person who cancelled the alarm.  This will only be set if:
+1 - the incident has cleared
+2 - it was &quot;actively&quot; silenced by a user, rather than passively closed by timeout or other event"/>
+
+	<c:attribute
+            name="monitored"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="The monitored flag that should be true if any of the active alarms are monitored or false if none are monitored"/>
+
+  </c:attributes>
+
+   <c:methods>
+      <c:method
+         name="Verify"
+         description="Escalates a PreAlert incident to Alerting immediately."
+         >
+         <c:errors>
+            <c:error code="security.inactiveIncident" description="If an attempt is made to escalate a completed incident." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Cancel"
+         description="Attempts to cancel the current alert, if one is active.  This will attempt to silence all alarms and stop the alert from going to the monitoring center if the alert is professionally monitored."
+         >
+            <c:return 
+               name="alarmState" 
+               type="enum"
+               values="CANCELLED,CLEARING" 
+               description="An enum value representing the current state of the alarm
+    CANCELLED - The alarm is fully silenced and cancelled, no further information is needed
+    CLEARING - The alarm is silenced but some devices may still be making noise" 
+               optional="false"/>
+            <c:return 
+               name="monitoringState" 
+               type="enum"
+               values="CANCELLED,DISPATCHING,DISPATCHED" 
+               description="An enum value representing the state of the professionally monitored alert
+    CANCELLED - The alarm is fully cancelled.
+    DISPATCHING - The alarm has been sent to UCC but they have not dispatched the authorities yet
+    DISPATCHED - The authorities were notified of this alarm" 
+               optional="false"/>
+            <c:return
+            	name="cleared"
+            	type="boolean"
+            	description="The cleared flag should be false if the SMOKE or CO alarms are still CLEARING (not READY) or the monitoringState is not NONE or CANCELLED."
+            	optional="false"/>
+			<c:return
+            	name="warningTitle"
+            	type="string"
+            	description="Warning title displayed on UI when the alarm is not cleared after cancel request."
+            	optional="true"/>
+            <c:return
+            	name="warningMessage"
+            	type="string"
+            	description="Warning message displayed on UI when the alarm is not cleared after cancel request."
+            	optional="true"/>
+      </c:method>
+      <c:method
+          name="ListHistoryEntries"
+          description="Returns a list of all the history log entries associated with this incident">
+		 <c:parameters>
+             <c:parameter 
+                name="limit"
+                type="int"
+                description="The maximum number of events to return (defaults to 10)"
+                optional="true"/>
+             <c:parameter 
+                name="token"
+                type="string"
+                description="The token from a previous query to use for retrieving the next set of results"
+                optional="true"/>
+         </c:parameters>
+         <c:return
+            name="nextToken"
+            type="string"
+            description="The token to use for getting the next page, if null there is no next page" />
+         <c:return
+            name="results"
+            type="list&lt;HistoryLog&gt;"
+            description="The entries associated with this place" />
+      </c:method>
+   </c:methods>
+
+   <!-- These are broken into individual alarm types in order to make it easier to track / count
+        the number of alarms by type
+     -->
+   <c:events>
+      <c:event
+         name="COAlert"
+         description="Fired when a carbon monoxide alarm is triggered">
+         <c:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with this alarm so far."
+            optional="false"
+            />
+      </c:event>
+      <c:event
+         name="PanicAlert"
+         description="Fired when a panic alarm is triggered">
+         <c:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with this alarm so far."
+            optional="false"
+            />
+      </c:event>
+      <c:event
+         name="SecurityAlert"
+         description="Fired when a security alarm is triggered">
+         <c:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with this alarm so far."
+            optional="false"
+            />
+      </c:event>
+      <c:event
+         name="SmokeAlert"
+         description="Fired when a smoke alarm is triggered">
+         <c:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with this alarm so far."
+            optional="false"
+            />
+      </c:event>
+      <c:event
+         name="WaterAlert"
+         description="Fired when a water alarm is triggered">
+         <c:parameter
+            name="triggers"
+            type="list&lt;IncidentTrigger&gt;"
+            description="The triggers associated with this alarm so far."
+            optional="false"
+            />
+      </c:event>
+      <c:event
+         name="HistoryAdded"
+         description="Fired when new history about an incident is added">
+         <c:parameter
+         	name="events"
+         	type="list&lt;HistoryLog&gt;"
+         	description="Newly added history log entries associated with the current incident"
+         	optional="false"
+         	/>
+      </c:event>
+      <c:event
+         name="Completed"
+         description="Fired when an incident has fully completed">
+      </c:event>
+   </c:events>
+
+</c:capability>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type 
+	name="LockAuthorizationOperation"
+    version="1.0"
+    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+    <t:description>Represents the lock authorization state between a person (with a pin) and a lock</t:description>
+
+    <t:attributes>
+		<t:attribute
+			name="person"
+			type="string"
+			description="The address of the person to contact"/>
+         
+		<t:attribute
+			name="operation"
+			type="enum"
+         values="AUTHORIZE,DEAUTHORIZE"
+			description="The operation to take on the lock for the given person
+AUTHORIZE:  Authorize the person on the lock if they aren't already
+DEAUTHORIZE:  Deauthorize the person on the lock if they aren't already"/>
+	</t:attributes> 
+</t:type>

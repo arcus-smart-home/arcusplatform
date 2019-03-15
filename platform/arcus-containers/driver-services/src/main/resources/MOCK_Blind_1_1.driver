@@ -1,0 +1,124 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a Blind device
+ * 
+ * Notes: 
+ * 
+ */
+driver			"MOCK_Blind"
+description		"Mock driver for a Blind device"
+version			"1.1"
+protocol		"MOCK"
+deviceTypeHint	"Blind"
+productId		"b726df"
+vendor 			"Mockitron"
+model 			"Somfy"
+
+matcher         'MOCK:Capability' : 'Blind'
+matcher         'MOCK:ProductId'  : 'b726df'
+
+capabilities	DevicePower, Shade, DeviceMock
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+	log.debug "Mock Blind device started."
+	Device.name 'Mock Blind'
+	
+	// set inital attribute values
+	DeviceConnection.signal	94
+
+	DevicePower.source 		            DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable	            true
+	DevicePower.battery                 15
+	DevicePower.backupbatterycapable    false
+	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Shade.supportsopen                  Shade.SUPPORTSOPEN_LEVEL
+	Shade.open                          0
+	Shade.supportstilt                  Shade.SUPPORTSTILT_LEVEL
+	Shade.tilt                          0
+	Shade.settingchanged                ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+
+onConnected {
+	log.debug "Mock Blind device connected."
+}
+
+onDisconnected {
+	log.debug "Mock Blind device disconnected."
+}
+
+onRemoved {
+	log.debug "Mock Blind device removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('shade') {
+	def attrs = message.attributes;
+	log.debug "Mock Blind :: setAttributes :: START $attrs"	
+	
+	def evaluate = { v -> 
+		if(v > 100) 
+			return 100
+		if(v < 0) 
+			return 0
+		return v
+	}	
+	
+	for(attribute in attrs) {
+		switch (attribute.key) {
+			case "shade:open" :
+				Shade.open evaluate((int)attribute.value)
+				Shade.settingchanged new Date()
+				break;
+			case "shade:tilt" :
+				Shade.tilt evaluate((int)attribute.value)
+				Shade.settingchanged new Date()
+				break;
+			default:
+				log.error "Unrecognized attribute: " + attribute
+		}
+	}
+	log.debug "Mock Blind :: setAttributes :: DONE "
+}
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+  log.debug "devmock:Connect"
+  connected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+
+onPlatform ("devmock:Disconnect") {
+  log.debug "devmock:Disconnect"
+  disconnected();
+  sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+  log.debug "devmock:SetAttributes:" + message.attributes.attrs
+  attributes << message.attributes.attrs;
+  sendResponse "devmock:SetAttributesResponse", [:]
+}
+

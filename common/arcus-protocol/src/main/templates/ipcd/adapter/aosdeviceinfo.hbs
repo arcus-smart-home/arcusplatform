@@ -1,0 +1,20 @@
+{{#file . "com/iris/protocol/ipcd/adapter/aosmith/AosDeviceInfoBuilder.java"}}
+package com.iris.protocol.ipcd.adapter.aosmith;
+
+import java.util.Arrays;
+import java.util.Map;
+
+import com.iris.protocol.ipcd.message.model.DeviceInfo;
+
+public class AosDeviceInfoBuilder {
+   public static DeviceInfo buildDeviceInfo(Map<String, String> params) {
+      DeviceInfo di = new DeviceInfo();
+      di.setFwver({{#if fwver.parameter}}params.get("{{fwver.value}}"){{else}}"{{fwver.value}}"{{/if}});
+      di.setConnection({{#if connection.parameter}}params.get("{{connection.value}}"){{else}}"{{connection.value}}"{{/if}});
+      di.setConnectUrl({{#if connectURL.parameter}}params.get("{{connectURL.value}}"){{else}}"{{{connectURL.value}}}"{{/if}});
+      di.setActions({{#if actions.parameter}}params.get("{{actions.value}}"){{else}}{{{actions.listBuilder}}}{{/if}});
+      di.setCommands({{#if commands.parameter}}params.get("{{commands.value}}"){{else}}{{{commands.listBuilder}}}{{/if}});
+      return di;
+   }
+}
+{{/file}}

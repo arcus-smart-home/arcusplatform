@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubPower"
+   namespace="hubpow"
+   version="1.0"
+   enhances="Hub"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="source"
+         readwrite="r"
+         type="enum"
+         values="MAINS,BATTERY" 
+         optional="false" 
+         description="Indicates where the power from the hub is coming from."/>
+      <c:attribute 
+         name="mainscpable"
+         readwrite="r"
+         type="boolean" 
+         optional="false" 
+         description="If the hub can be plugged in or not."/>
+      <c:attribute 
+         name="Battery" 
+         readwrite="r" 
+         type="int" 
+         optional="true" 
+         unit="percent"
+         description="Current battery remaining, in percent"/>
+   </c:attributes>
+   
+   <c:methods>   
+   </c:methods>
+   
+   <c:events>
+     <c:event
+         name="HubPowerSourceChanged"
+         description="Event to indicate the power source changed.">
+         <c:parameter
+             name="source"
+             type="enum"
+             values="MAINS,BATTERY"
+             description="Current power source."/>
+     </c:event>
+     <c:event
+         name="HubBatteryLow"
+         description="Event to indicate that the battery level is low.">
+         <c:parameter
+             name="batteryLevel"
+             type="int"
+             description="Current battery level, in percent"/>
+     </c:event>
+   </c:events>
+   
+</c:capability>

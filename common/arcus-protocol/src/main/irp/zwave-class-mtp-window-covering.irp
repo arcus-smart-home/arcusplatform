@@ -1,0 +1,15 @@
+
+message zwave.MtpWindowCovering.MoveToPositionGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.MtpWindowCovering.MoveToPositionReportV1<id="0x03", group="V1"> {
+    const u8 VALUE_CLOSE = 0x00;
+    const u8 VALUE_OPEN = 0xFF;
+    u8 val;
+}
+
+message zwave.MtpWindowCovering.MoveToPositionSetV1<id="0x01", group="V1"> {
+    const u8 VALUE_CLOSE = 0x00;
+    const u8 VALUE_OPEN = 0xFF;
+    u8 val;
+}

@@ -1,0 +1,63 @@
+
+message zwave.Association.AssociationGetV1<id="0x02", group="V1"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.Association.AssociationGroupingsGetV1<id="0x05", group="V1"> {
+}
+
+message zwave.Association.AssociationGroupingsReportV1<id="0x06", group="V1"> {
+    u8 supportedGroupings;
+}
+
+message zwave.Association.AssociationRemoveV1<id="0x04", group="V1"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+}
+
+message zwave.Association.AssociationReportV1<id="0x03", group="V1"> {
+    u8 groupingIdentifier;
+    u8 maxNodesSupported;
+    u8 reportsToFollow;
+    u8[] nodeid;
+}
+
+message zwave.Association.AssociationSetV1<id="0x01", group="V1"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+}
+
+message zwave.Association.AssociationGetV2<id="0x02", group="V2"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.Association.AssociationGroupingsGetV2<id="0x05", group="V2"> {
+}
+
+message zwave.Association.AssociationGroupingsReportV2<id="0x06", group="V2"> {
+    u8 supportedGroupings;
+}
+
+message zwave.Association.AssociationRemoveV2<id="0x04", group="V2"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+}
+
+message zwave.Association.AssociationReportV2<id="0x03", group="V2"> {
+    u8 groupingIdentifier;
+    u8 maxNodesSupported;
+    u8 reportsToFollow;
+    u8[] nodeid;
+}
+
+message zwave.Association.AssociationSetV2<id="0x01", group="V2"> {
+    u8 groupingIdentifier;
+    u8[] nodeId;
+}
+
+message zwave.Association.AssociationSpecificGroupGetV2<id="0x0B", group="V2"> {
+}
+
+message zwave.Association.AssociationSpecificGroupReportV2<id="0x0C", group="V2"> {
+    u8 group;
+}

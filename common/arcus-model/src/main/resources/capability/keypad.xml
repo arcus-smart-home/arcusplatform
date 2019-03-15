@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="KeyPad"
+   namespace="keypad"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Keypads handle a user entering a PIN and arming disarming an alarm system or entering a panic mode.  The keypad should also display the current state of the Security Alarm Subsystem in some manner, either through LEDs or sound alerts. 
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="alarmState" 
+         readwrite="rw" 
+         type="enum"
+         values="DISARMED,ARMED,ARMING,ALERTING,SOAKING"
+         optional="false"
+         description="
+         Current alarm state of the keypad.
+         Generally this should only be controlled via the specific methods (BeginArming, Armed, Disarmed, Soaking, Alerting).
+         However it may be set manually in case the keypad is no longer in sync with the security system.  In this case the
+         keypad should avoid making transition noises (such as the armed or disarmed beeps).  However if the state is
+         ARMING, SOAKING, or ALERTING and the associated sounds are enabled it should beep accordingly.
+         "/>
+      <c:attribute 
+         name="alarmMode" 
+         readwrite="rw" 
+         type="enum"
+         values="ON,PARTIAL,OFF"
+         optional="false"
+         description="
+         The current mode of the alarm.
+         Generally this should only be controlled via the specific methods (BeginArming, Armed, Disarmed, Soaking, Alerting).
+         However it may be set manually in case the keypad is no longer in sync with the security system.
+         "/>
+      <c:attribute 
+         name="alarmSounder" 
+         readwrite="rw" 
+         type="enum"
+         values="ON,OFF"
+         optional="false"
+         description="
+         DEPRECATED 
+         When set to ON enabledSounds should be set to [BUTTONS,DISARMED,ARMED,ARMING,SOAKING,ALERTING].
+         When set to OFF enabledSounds should be set to [].
+         If enabledSounds is set to a value other than [] this should be changed to ON.
+         If both alarmSounder and enabledSounds are set in the same request an error should be thrown.
+         "
+         />
+      <c:attribute 
+         name="enabledSounds" 
+         readwrite="rw" 
+         type="set&lt;enum&gt;"
+         optional="false"
+         values="BUTTONS,DISARMED,ARMED,ARMING,SOAKING,ALERTING"
+         description="
+         This contains the set of times when the keypad should play tones, the common combinations are:
+         Keypad Sounds On  / Normal Alarm  - [BUTTONS,DISARMED,ARMED,ARMING,SOAKING,ALERTING]
+         Keypad Sounds Off / Normal Alarm  - [ALERTING]
+         Keypad Sounds On  / Silent Alarm  - [BUTTONS,DISARMED,ARMED,ARMING]
+         Keypad Sounds Off / Silent Alarm  - []
+         
+         Each sound should be enabled if it is present in the set or disabled if it is not present:
+         BUTTONS - Button presses should beep
+         DISARMED - Play a tone when the keypad disarms
+         ARMING - Play an exit delay tone
+         ARMED - Play a tone when the keypad is armed
+         SOAKING - Play an entrance delay tone
+         ALERTING - Play an alert tone
+         "
+         />
+   </c:attributes>
+   
+   <c:methods>
+   	  <c:method
+         name="BeginArming"
+         description="
+         Tell the Keypad that the arming process has started (exit delay), if sounds are enabled this should beep for the specified period.
+         The delay should be used to allow the beep to speed up as the end of the time window is reached.
+         The driver should update alarmState to ARMING and alarmMode to match the requested alarmMode.
+         ">
+         <c:parameters>
+            <c:parameter 
+               name="delayInS"
+               type="int"
+               description="The exit delay in seconds"
+               optional="false"/>
+            <c:parameter
+               name="alarmMode"
+               type="enum"
+               values="ON,PARTIAL"
+               optional="false"
+               description="The mode the alarm should be armed into."
+               />
+         </c:parameters>
+      </c:method> 
+   	  <c:method
+         name="Armed"
+         description="
+         Tell the Keypad that it has been armed, if sounds are enabled it should beep the tone matching the given mode.
+         This should update alarmState to ARMED and alarmMode to match the requested alarmMode.
+         ">
+         <c:parameters>
+            <c:parameter
+               name="alarmMode"
+               type="enum"
+               values="ON,PARTIAL"
+               optional="false"
+               description="The mode the alarm is armed into."
+               />
+         </c:parameters>
+      </c:method> 
+   	  <c:method
+         name="Disarmed"
+         description="
+         Tell the Keypad that it has been armed, if sounds are enabled it should beep the tone matching the given mode.
+         This should update alarmState to ARMED and alarmMode to match the requested alarmMode.
+         ">
+         <c:parameters>
+         </c:parameters>
+      </c:method> 
+   	  <c:method
+         name="Soaking"
+         description="
+         Tell the Keypad that the alarm is preparing to go off (entrance delay), if sounds are enabled it should beep the tone matching the given mode.
+         The duration should be used to allow the beep to speed up as the end of the time window is reached.
+         This should update alarmState to SOAKING and alarmMode to match the requested alarmMode.
+         ">
+         <c:parameters>
+            <c:parameter
+               name="durationInS"
+               type="int"
+               optional="false"
+               description="The mode the alarm is armed into."
+               />
+            <c:parameter
+               name="alarmMode"
+               type="enum"
+               values="ON,PARTIAL"
+               optional="false"
+               description="The mode the alarm is armed into."
+               />
+         </c:parameters>
+      </c:method> 
+   	  <c:method
+         name="Alerting"
+         description="
+         Tell the Keypad that the alarm is currently alerting.
+         This should update alarmState to ALERTING and alarmMode to match the requested alarmMode.
+         ">
+         <c:parameters>
+            <c:parameter
+               name="alarmMode"
+               type="enum"
+               values="ON,PARTIAL,PANIC"
+               optional="false"
+               description="The mode the alarm is armed into."
+               />
+         </c:parameters>
+      </c:method> 
+   	<c:method
+         name="Chime"
+         description="Tell the Keypad to make a chime noise.">
+      </c:method> 
+      <c:method
+         name="ArmingUnavailable"
+         description="Tell the Keypad that the arming process cannot be started due to triggered devices">
+      </c:method>   
+
+   </c:methods>
+
+   <c:events>
+      <c:event 
+         name="ArmPressed" 
+         description="The arm button has been pressed on the keypad.">
+         <c:parameters>
+            <c:parameter 
+               name="mode"
+               type="enum"
+               values="ON,PARTIAL"
+               description="The type of arm button that has been pressed."
+               optional="false"/>
+            <c:parameter 
+               name="bypass"
+               type="boolean"
+               description="True if currently alarming devices should be bypassed."
+               optional="false"/>
+         </c:parameters>
+      </c:event>
+      <c:event 
+         name="DisarmPressed" 
+         description="The disarm button has been pressed on the keypad.">
+      </c:event>
+      <c:event 
+         name="PanicPressed" 
+         description="The panic button has been pressed on the keypad.">
+      </c:event>
+      <c:event 
+         name="InvalidPinEntered" 
+         description="User has typed in an invalid pin on the keypad, as verified by the Pin Management API.">
+      </c:event>
+	</c:events>
+</c:capability>

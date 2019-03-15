@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:capability name="RuleTemplate" namespace="ruletmpl"
+   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a rule template
+   </c:description>
+   
+   <c:attributes>
+   
+      <c:attribute name="keywords" readwrite="r" type="set&lt;string&gt;"
+                   optional="false" description="Set of keywords for the template"/>
+      <c:attribute name="added" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule template was added to the catalog"/>
+      <c:attribute name="lastModified" readwrite="r" type="timestamp"
+                   optional="false" description="Timestamp that the rule template was last modified"/>
+      <c:attribute name="template" readwrite="r" type="string"
+                   optional="false" description="The textual template"/>
+      <c:attribute name="satisfiable" readwrite="r" type="boolean"
+                   optional="false" description="True if the rule template is satisfiable for the specific place for which they have been loaded."/>
+      <c:attribute name="name" readwrite="r" type="string"
+                   optional="false" description="The name of the rule template"/>
+      <c:attribute name="description" readwrite="r" type="string"
+                   optional="true" description="A description of the rule template"/>
+      <c:attribute name="categories" readwrite="r" type="set&lt;string&gt;"
+                   optional="false" description="The set of categories that this rule template is part of"/>
+      <c:attribute name="premium" readwrite="r" type="boolean"
+                   optional="false" description="Indicates if the rule is available only for premium plans."/>
+      <c:attribute name="extra" readwrite="r" type="string"
+                   optional="true" description="Extra text associated with the rule."/>
+   </c:attributes>
+  
+   <c:methods>
+   <c:method
+      name="CreateRule"
+      description="Creates a rule instance from a given rule template">
+         <c:parameters>
+            <c:parameter
+               name="placeId"
+               type="string"
+               description="The platform-owned identifier for the place at which the rule is being created"
+               optional="false" />
+            <c:parameter
+               name="name"
+               type="string"
+               description="The name assigned to the rule"
+               optional="false" />
+            <c:parameter
+               name="description"
+               type="string"
+               description="The user provided description of the rule"
+               optional="true"/>
+            <c:parameter
+               name="context"
+               type="Object"
+               description="The context (user selections) for the rule" />
+         </c:parameters>
+         <c:return name="address" type="string" description="The address of the created rule" />
+      </c:method>
+      
+      <c:method name="Resolve" description="Resolves the parameters for the template at a given place">
+         <c:parameters>
+            <c:parameter name="placeId" type="string" description="The platform-owned identifier for the place at which to resovle the template parameters" optional="false"/>
+         </c:parameters>
+         <c:return name="selectors" type="map&lt;Object&gt;" description="The resolved selectors for the rule template"/>
+      </c:method>
+</c:methods>
+
+</c:capability>

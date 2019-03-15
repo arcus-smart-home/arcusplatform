@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<firmwares xmlns="http://arcus.com/device-ota-firmware_1.0.0" >
+
+   <metadata version="2015-10-05T00:00:00" publisher="Louis Parks"/>
+   <configDefaults retryIntervalMins="4" retryAttemptsMax="5"/>
+         
+   <firmware productId="product1" name="test" populations="general" version="1.1" path="mockitron/product1/1.1.bin"/>
+   <firmware productId="product1" populations="qa" version="1.1" path="mockitron/product1/1.1-qa.bin"/>
+   <firmware productId="product2" populations="beta,general" version="1.2" path="mockitron/product2/1.2.bin" retryIntervalMins="9" retryAttemptsMax="8"/>
+   <firmware productId="product3" populations="general" version="1.2" path="mockitron/product3/1.2.bin"/>
+	<firmware productId="product3" populations="beta" version="1.2" path="mockitron/product3/1.2-beta.bin"/>
+   
+   <firmware productId="product4" populations="general" version="1.2" path="mockitron/product4/1.2.bin">
+	  <from-versions>
+		<version type="exact" match="1.1" />
+	 </from-versions>
+   </firmware>
+
+   <firmware productId="product4" populations="general" version="1.1" path="mockitron/product4/1.1.bin">
+	  <from-versions>
+		<version type="exact" match="1.0" />
+	 </from-versions>
+   </firmware>
+
+   
+</firmwares>

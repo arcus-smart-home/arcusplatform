@@ -1,0 +1,39 @@
+
+message zwave.Prepayment.PrepaymentBalanceGetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_BALANCE_TYPE_MASK = 0xC0;
+    const u8 PROPERTIES1_BALANCE_TYPE_SHIFT = 6;
+    u8 properties1;
+}
+
+message zwave.Prepayment.PrepaymentBalanceReportV1<id="0x02", group="V1"> {
+    const u8 PROPERTIES1_METER_TYPE_MASK = 0x3F;
+    const u8 PROPERTIES1_METER_TYPE_SHIFT = 0;
+    const u8 PROPERTIES1_BALANCE_TYPE_MASK = 0xC0;
+    const u8 PROPERTIES1_BALANCE_TYPE_SHIFT = 6;
+    const u8 PROPERTIES2_SCALE_MASK = 0x1F;
+    const u8 PROPERTIES2_SCALE_SHIFT = 0;
+    const u8 PROPERTIES2_BALANCE_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES2_BALANCE_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES3_DEBT_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES3_DEBT_PRECISION_SHIFT = 5;
+    const u8 PROPERTIES4_EMER_CREDIT_PRECISION_MASK = 0xE0;
+    const u8 PROPERTIES4_EMER_CREDIT_PRECISION_SHIFT = 5;
+    u8 properties1;
+    u8 properties2;
+    u32 balanceValue;
+    u8 properties3;
+    u32 debt;
+    u8 properties4;
+    u32 emerCredit;
+    u8[3] currency;
+    u8 debtRecoveryPercentage;
+}
+
+message zwave.Prepayment.PrepaymentSupportedGetV1<id="0x03", group="V1"> {
+}
+
+message zwave.Prepayment.PrepaymentSupportedReportV1<id="0x04", group="V1"> {
+    const u8 PROPERTIES1_TYPES_SUPPORTED_MASK = 0x0F;
+    const u8 PROPERTIES1_TYPES_SUPPORTED_SHIFT = 0;
+    u8 properties1;
+}

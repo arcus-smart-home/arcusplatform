@@ -1,0 +1,113 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a HomePro Plug-in Outdoor Switch
+ *
+ */
+driver			"ZWHomeProOutdoorSwitchDriver"
+description		"Driver for HomePro Plug-in Outdoor Switch"
+version			"1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Switch"
+vendor 			"Uncertified"		// "HomePro"
+model 			"ZRP110"
+productId		"66a5a8"
+matcher			'ZWAV:Manufacturer': 0x0001, 'ZWAV:ProductType': 0x5250, 'ZWAV:ProductId': 0x3130
+
+capabilities	DevicePower, Switch
+
+importCapability 'zwave/GenericZWaveSwitch'
+
+// Generic Device Class:    GENERIC_TYPE_SWITCH_BINARY
+// Specific Device Class:   SPECIFIC_TYPE_POWER_SWITCH_BINARY
+// Command Classes:
+//      0x25	 (37)    COMMAND_CLASS_SWITCH_BINARY
+//      0x27	 (39)    COMMAND_CLASS_SWITCH_ALL
+//      0x75	 (117)   COMMAND_CLASS_PROTECTION
+//      0x73	 (115)   COMMAND_CLASS_POWERLEVEL
+//      0x86	 (134)   COMMAND_CLASS_VERSION
+//      0x72	 (114)   COMMAND_CLASS_MANUFACTURER_SPECIFIC
+
+
+
+// set DevicePower
+// ---------------
+//DevicePower attributes are assumed
+DevicePower.battery 			 0
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+def final String DEVICE_NAME        = "HomePro ZRP110"
+
+def final int POLLING_INTERVAL_SEC  = 120		// every 2 minutes
+def final int OFFLINE_TIMEOUT_SECS  = 600       // 10 minutes
+
+
+onAdded {
+	log.debug "${DEVICE_NAME} added"
+}
+
+
+onConnected {
+	log.debug "${DEVICE_NAME} connected"
+
+	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
+	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
+
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+	log.debug "${DEVICE_NAME} received Set Switch Attributes " + message
+	GenericZWaveSwitch.handleSwitchState(this,DEVICE_NAME,message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+ 	GenericZWaveSwitch.handleBinarySwitchReport(this,DEVICE_NAME,message)
+}
+
+onZWaveNodeInfo {
+	log.debug "${DEVICE_NAME} reported Node Info: " + message.getNodeId() + "," + message.getStatus() + "," + message.getBasic() + "," + message.getGeneric() + "," + message.getSpecific()
+	// devices report a Node Info every time their state is changed locally,
+	// so do a Binary Switch Get to get the current state (delay this so device does not report back "busy")
+	GenericZWaveSwitch.readSwitchState(this, DEVICE_NAME)
+	
+ }
+
+onZWaveMessage.application_status.busy {
+	log.debug "${DEVICE_NAME} reported Busy"
+	// when device reports that it is busy, do another Binary Switch Get, if we haven't done too many already
+	GenericZWaveSwitch.readSwitchStateAgain(this, DEVICE_NAME)
+}
+
+onZWaveMessage {
+    log.debug "${DEVICE_NAME} received unhandled ZWave message " + message
+    return false;
+}
+

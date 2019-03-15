@@ -1,0 +1,457 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import groovy.transform.Field
+
+capability		Color
+capability		ColorTemperature
+description		"Default implementation for the Zigbee Color and Color Temperature capability"
+version			"1.0"
+
+/*
+ * To override the default NORMAL color temperature of 2700K set a var in the main driver as follows:
+ * 
+ * 		vars.'NORMAL_DEFAULT_COLOR_TEMP' = 4500
+ * 
+ */
+
+@Field static final String KEY_ACTUAL_COLOR_TEMPERATURE	= "KEY_ACTUAL_COLOR_TEMPERATURE"
+@Field static final int DFLT_COLOR_TEMP               = 2700      //in Kelvin
+@Field static final int DFLT_MIN_COLOR_TEMP           = 2700      //in Kelvin
+@Field static final int DFLT_MAX_COLOR_TEMP           = 6500
+@Field static final short DFLT_CLR_TRANS_SECS         = 1         // default transition seconds to use when color attributes are set, since there is no transition time attribute
+@Field static final long DFLT_READBACK_DELAY          = 2000
+
+@Field static final byte DFLT_COLOR_HUE               = 120       // 0-360
+@Field static final byte DFLT_COLOR_SATURATION        = 100       // 1-100
+@Field static final byte HUE_MOVE_DIR                 = 0
+
+@Field static final short PROFILE_HA                  = 0x0104
+@Field static final short CLUSTER_COLOR_CTRL          = 0x0300
+@Field static final byte CMD_CNFG_RPT                 = 0x06
+
+@Field static final int SET_HUE_ONLY = 1
+@Field static final int SET_SAT_ONLY = 2
+@Field static final int SET_HUE_AND_SAT = 3
+
+//Constants to preserve color on power cycle
+@Field static final String KEY_LAST_HUE         = "KEY_LAST_HUE"
+@Field static final String KEY_LAST_SAT         = "KEY_LAST_SAT"
+@Field static final String KEY_LAST_MODE        = "KEY_LAST_MODE"
+
+onAdded {
+	vars.'wait4deferred' = false
+	
+	if (null == Light.colormode.get())  Light.colormode Light.COLORMODE_COLORTEMP
+	
+	if (null == ColorTemperature.colortemp.get())     ColorTemperature.colortemp    DFLT_COLOR_TEMP		
+	if (null == ColorTemperature.mincolortemp.get())  ColorTemperature.mincolortemp DFLT_MIN_COLOR_TEMP
+	if (null == ColorTemperature.maxcolortemp.get())  ColorTemperature.maxcolortemp DFLT_MAX_COLOR_TEMP
+	
+	if (null == Color.hue.get())         Color.hue        DFLT_COLOR_HUE
+	if (null == Color.saturation.get())  Color.saturation DFLT_COLOR_SATURATION
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Common Event Closures
+////////////////////////////////////////////////////////////////////////////////
+
+static void doRptCnfgHueSaturation(ctx) {
+	// configure reporting of Color Control cluster Hue attribute
+	byte[] payload = [
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x0000) Current Hue
+		0x00, 0x00,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x0002) 2 secs
+		0x02, 0x00,
+		// Max Interval (0x0E10) 3600 secs - 1hr
+		0x10, 0x0E,
+		// Reportable Change (0x01)
+		0x01
+		,
+		// Dir (0x00)
+		0x00,
+		// Attr Id (0x0001) Current Saturation
+		0x01, 0x00,
+		// Attr Data Type (0x20) Unsigned 8-Bit Int
+		0x20,
+		// Min Interval (0x0002) 2 secs
+		0x02, 0x00,
+		// Max Interval (0x0E10) 3600 secs - 1hr
+		0x10, 0x0E,
+		// Reportable Change (0x01)
+		0x01
+		]
+	ctx.Zigbee.send(
+		"cluster" : CLUSTER_COLOR_CTRL,
+		"command" : CMD_CNFG_RPT,
+		"profile" : PROFILE_HA,
+		"endpoint" : 3,
+		"clusterspecific" : false,
+		"defaultresponse" : true,
+		"data" : payload )
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////  
+
+static void doSetLightAttributes(ctx, name, colorCluster, message) {
+	def prevMode = ctx.Light.colormode.get()
+	
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Light.colormode:
+				def newMode = attribute.value
+				ctx.Light.colormode newMode
+				ctx.log.debug "{} - Set Light.colormode: {}", name, newMode
+				
+				if (ctx.Light.COLORMODE_COLOR == newMode && newMode != prevMode) {
+					doSetColorHueSaturationAttributes(ctx, colorCluster, SET_HUE_AND_SAT)
+				}
+				else if (ctx.Light.COLORMODE_COLORTEMP == newMode && newMode != prevMode) {
+					def short tempValue = getActualColorTemp(ctx)
+					setColorTempToValue(ctx, name, colorCluster, tempValue)
+				}
+				else if (ctx.Light.COLORMODE_NORMAL == newMode && newMode != prevMode) {
+					def dfltNormalVal = ctx.vars.'NORMAL_DEFAULT_COLOR_TEMP' ?: DFLT_COLOR_TEMP
+					def short tempValue = 1000000.0 / dfltNormalVal.shortValue()
+					ctx.log.debug "{} - Set to Normal Default Temperature: {}", name, dfltNormalVal
+					setColorTempToValue(ctx, name, colorCluster, tempValue)
+				}
+				
+				break
+
+			default:
+				break
+		}
+	}
+}
+
+static void doSetColorAttributes(ctx, name, colorCluster, message ) {
+	ctx.log.debug "{} hadle setAttributes color...", name
+	def int doColor = 0
+
+	// process set attribute for Color capability
+	def targetAttributes = message.attributes.findAll {
+		it.key == ctx.Color.hue.name ||
+		it.key == ctx.Color.saturation.name
+		}
+	if(targetAttributes) {
+		doColor = doGetColorHueSaturationAttributes(ctx, targetAttributes)
+	}
+
+	// if there was a change to the color settings, and the current colormode is COLOR or being changed to COLOR, set the color values on the device
+	if ( (0 < doColor) &&
+		 ((ctx.Light.COLORMODE_COLOR == ctx.Light.colormode.get()) || isSettingColorMode(ctx, message, ctx.Light.COLORMODE_COLOR)) ) {
+		doSetColorHueSaturationAttributes(ctx, colorCluster, doColor)
+	}
+}
+
+static void doSetColorTempAttributes(ctx, name, colorCluster, message) {
+	ctx.log.debug "{} hadle setAttributes colortemp...", name
+	def boolean doColorTemp = false
+		
+	// process set attribute for ColorTemperature
+	def targetAttributes = message.attributes.find {
+		it.key == ctx.ColorTemperature.colortemp.name
+		}
+	if(targetAttributes) {
+		doColorTemp = doGetColortempAttributes(ctx, targetAttributes)
+	}
+	
+	// if there was a change to the color temp setting, and the current colormode is COLORTEMP or being changed to COLORTEMP, set the color temp value on the device
+	if ( doColorTemp &&
+		 ((ctx.Light.COLORMODE_COLORTEMP == ctx.Light.colormode.get()) || isSettingColorMode(ctx, message, ctx.Light.COLORMODE_COLORTEMP)) ) {
+		setColorTempToValue(ctx, name, colorCluster, getActualColorTemp(ctx))
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Helper Methods
+//////////////////////////////////////////////////////////////////////////
+
+// check if the setAttributes message is changing the light:colormode to the specified 'toMode'
+static boolean isSettingColorMode(ctx, message, toMode) {
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		if ((attribute.key == ctx.Light.colormode) && (attribute.value == toMode)) {
+			return true
+		}
+	}
+	return false
+}
+
+static int doGetColorHueSaturationAttributes(ctx, attributes) {
+	ctx.log.debug "doGetColorHueSaturationAttributes"
+	// default vars to current Color levels
+	int hue = 0
+	int sat = 0
+	int hueSet = 0
+	int satSet = 0
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.Color.hue:
+				// convert 0-360 Hue range to 0-254 ZigBee Hue range (255 is reserved)
+				hue = Math.round( ((new Double(attribute.value)) / 360.0) * 254.0 )
+				hueSet = SET_HUE_ONLY
+				ctx.vars[KEY_LAST_HUE] = hue
+				break
+			case ctx.Color.saturation:
+				// convert 0-100 Saturation range to 0-254 ZigBee Saturation range (255 is reserved)
+				sat = Math.round( ((new Double(attribute.value)) / 100.0) * 254.0 )
+				satSet = SET_SAT_ONLY
+				ctx.vars[KEY_LAST_SAT] = sat
+				break
+			default:
+				break
+		}
+	}
+	return (hueSet + satSet)
+}
+
+static void doSetColorHueSaturationAttributes(ctx, colorCluster, valsSet) {
+	ctx.log.debug "doSetColorHueSaturationAttributes"
+	byte hue = getLastHue(ctx)	
+	byte sat = getLastSaturation(ctx)
+	
+	if (SET_HUE_AND_SAT == valsSet) {
+		colorCluster.moveToHueAndSaturation(hue, sat, DFLT_CLR_TRANS_SECS)
+		ctx.log.debug "moveToHueAndSaturation [Hue:{}, Saturation:{}, Seconds:{}]", hue, sat, DFLT_CLR_TRANS_SECS
+	} else if (SET_HUE_ONLY == valsSet) {
+		colorCluster.moveToHue(hue, HUE_MOVE_DIR, DFLT_CLR_TRANS_SECS)
+		ctx.log.debug "moveToHue [Hue:{}, Direction:{}, Seconds:{}]", hue, HUE_MOVE_DIR, DFLT_CLR_TRANS_SECS
+	} else if (SET_SAT_ONLY == valsSet) {
+		colorCluster.moveToSaturation(sat, DFLT_CLR_TRANS_SECS)
+		ctx.log.debug "moveToSaturation [Saturation:{}, Seconds:{}]", sat, DFLT_CLR_TRANS_SECS
+	}
+	if (0 < valsSet) {
+		// read back the level (delay this by a bit so default ramping is completed first)
+		ctx.Scheduler.scheduleIn 'DeferredReadColor', DFLT_READBACK_DELAY
+		ctx.vars.'wait4deferred' = true
+	}
+}
+
+static boolean doGetColortempAttributes(ctx, attributes) {
+	ctx.log.debug "doGetColortempAttributes"
+	// default vars to current Color levels
+	short temp = 0
+	double actualTemp = 0.0
+	boolean updateColor = false
+	for(attribute in attributes) {
+		switch(attribute.key) {
+			case ctx.ColorTemperature.colortemp:
+				int val = attribute.value
+				def min = ctx.ColorTemperature.mincolortemp.get()  //Don't know how this did not get set during onAdded, but it did not MFF
+				if (null == min){
+					ctx.ColorTemperature.mincolortemp 	DFLT_MIN_COLOR_TEMP
+					min = DFLT_MIN_COLOR_TEMP
+				}
+				def max = ctx.ColorTemperature.maxcolortemp.get()
+				if (null == max){
+					ctx.ColorTemperature.maxcolortemp 	DFLT_MAX_COLOR_TEMP
+					max = DFLT_MAX_COLOR_TEMP
+				}
+				if (max < val) { val = max }					// make sure level is within the max and min range
+				if (min > val) { val = min }
+				actualTemp = 1000000.0 / val
+				ctx.vars[KEY_ACTUAL_COLOR_TEMPERATURE] = actualTemp
+				updateColor = true
+				break
+			default:
+				break
+		}
+	}
+	return updateColor
+}
+
+static void setColorTempToValue(ctx, name, colorCluster, tempValue) {
+	ctx.log.debug "setColorTempToValue"
+	colorCluster.moveToColorTemperature(tempValue, DFLT_CLR_TRANS_SECS)
+	ctx.log.debug "{} moveToColorTemperature {}", name, tempValue
+	// read back the level (delay this by a few seconds so default ramping is completed first)
+	ctx.Scheduler.scheduleIn 'DeferredReadColor', DFLT_READBACK_DELAY
+	ctx.vars.'wait4deferred' = true
+}
+
+static void handleColorMsg(ctx, name, cluster, msg) {
+	def attributes = ctx.Zigbee.Message.decodeZclAttributes(msg)
+	def currHue = attributes[cluster.ATTR_CURRENT_HUE]
+	def currSat = attributes[cluster.ATTR_CURRENT_SATURATION]
+	def timeRemaining = attributes[cluster.ATTR_REMAINING_TIME]
+	def currX = attributes[cluster.ATTR_CURRENT_X]
+	def currY = attributes[cluster.ATTR_CURRENT_Y]
+	def driftComp = attributes[cluster.ATTR_DRIFT_COMPENSATION]
+	def driftCompText = attributes[cluster.ATTR_COMPENSATION_TEXT]
+	def colorTemp = attributes[cluster.ATTR_COLOR_TEMPERATURE]
+	def mode = attributes[cluster.ATTR_COLOR_MODE]
+	ctx.log.trace "Current Hue:${currHue}, Saturation:${currSat}, Time Remaining:${timeRemaining}, X:${currX}, Y:${currY}, Drift Comp:${driftComp},${driftCompText}, Color Temp:${colorTemp}, Mode:${mode}"
+	
+	// reset OSRAM devices send Hue null (TW) or 0 (RGBW), null Saturation, and null Time Remaining, when device has been Reset (usually due to power cycle)
+	if (((null == currHue) || (0 == currHue)) && (null == currSat) && (null == timeRemaining)) {
+		// bulb lost power and has just turned back on
+		ctx.log.info "Power restored to light"
+		
+		// if bulb was previously in COLOR mode
+		if (ctx.Light.COLORMODE_COLOR == ctx.Light.colormode.get()) {
+			// it has been reset so restore the bulb to it's previous Color setting:
+			doSetColorHueSaturationAttributes(ctx, cluster, SET_HUE_AND_SAT)
+			return
+		}
+		
+		// if bulb was previously in COLORTEMP mode
+		if (ctx.Light.COLORMODE_COLORTEMP == ctx.Light.colormode.get()) {
+			// it has been reset so restore the bulb to it's previous Color Temperature setting:
+			setColorTempToValue(ctx, name, cluster, getActualColorTemp(ctx))
+			return
+		}
+	}
+
+	// only process the reported color attributes if driver light.colormode is not set to "NORMAL"
+	if (ctx.Light.COLORMODE_NORMAL != ctx.Light.colormode.get()) {
+		if( !(ctx.vars.'wait4deferred' ?: false) ) {
+			ctx.log.debug "NOT waiting on a deferred read so process this color message..."
+			// set Color attributes to current levels
+			if ((null != currHue) && ('INVALID' != currHue.toString())) {
+				if (0 > currHue) currHue = 256 + currHue	// convert signed value to positive
+				// convert Zigbee 0-254 Hue value to Color Capability 0-360 value
+				def newHue = Math.round( currHue / 254.0 * 360.0 )
+				ctx.log.trace "Set Color.hue to:{}" , newHue
+				ctx.Color.hue newHue
+			}
+			if ((null != currSat) && ('INVALID' != currSat.toString())) {
+				if (0 > currSat) currSat = 256 + currSat	// convert signed value to positive
+				// convert Zigbee 0-254 Saturation value to Color Capability 0-100 value
+				def newSat = Math.round( currSat / 254.0 * 100.0 )
+				ctx.log.trace "Set Color.saturation to:{}" , newSat
+				ctx.Color.saturation newSat
+			}
+			
+			if ((null != colorTemp) && ('INVALID' != colorTemp.toString())) {
+				Double actualTemp = ctx.vars.KEY_ACTUAL_COLOR_TEMPERATURE ?: DFLT_COLOR_TEMP
+				double tempUsed = colorTemp
+				if(actualTemp != null && Math.abs(actualTemp.doubleValue()-colorTemp) < 1.0)
+				{
+					//Use the actual color temperature value saved in vars due to rounding issues.
+					tempUsed = actualTemp.doubleValue()
+				}
+				int temp = Math.round(1000000.0 / tempUsed).intValue()
+				ctx.log.trace "Set ColorTemperature.colortemp to:{}", temp
+				ctx.ColorTemperature.colortemp temp
+			}
+		
+			//Set Light.colormode
+			if ((null != mode) && ('INVALID' != mode.toString())) {
+				switch(mode){
+					case 0:
+						ctx.log.debug "{} setting Light.colormode = color", name
+						ctx.Light.colormode ctx.Light.COLORMODE_COLOR
+						break
+					case 1:
+						ctx.log.warn "{} Light in XY mode: setting Light.colormode = color", name
+						ctx.Light.colormode ctx.Light.COLORMODE_COLOR
+						break
+					case 2:
+						ctx.log.debug "{} setting light.colormode = colortemp", name
+						ctx.Light.colormode ctx.Light.COLORMODE_COLORTEMP
+						break
+					default:
+						ctx.log.warn "{} received reserved value of mode attribute, leaving Light.colormode unchanged", name
+				}
+			}
+		} else {
+			ctx.log.debug "Waiting on a deferred read so skip this message..."
+		}
+	}
+}
+
+static void handleDeferredReadColorEvent(ctx, colorCluster) {
+	ctx.log.debug 'Perform deferred ReadAttributes for colorCluster'
+	// read current Color attributes
+	colorCluster.zclReadAttributes(
+		colorCluster.ATTR_CURRENT_HUE,
+		colorCluster.ATTR_CURRENT_SATURATION,
+		colorCluster.ATTR_REMAINING_TIME,
+		colorCluster.ATTR_CURRENT_X,
+		colorCluster.ATTR_CURRENT_Y,
+		colorCluster.ATTR_DRIFT_COMPENSATION,
+		colorCluster.ATTR_COMPENSATION_TEXT,
+		colorCluster.ATTR_COLOR_TEMPERATURE,
+		colorCluster.ATTR_COLOR_MODE )
+	
+	ctx.vars.'wait4deferred' = false
+}
+
+static void restoreLastColor(ctx, name, colorCluster) {
+	ctx.log.trace "{} restoring last color", name
+	if(ctx.Light.COLORMODE_COLORTEMP == getLastColorMode(ctx)){
+		short temp = getActualColorTemp(ctx)
+		ctx.log.trace "{} moveToColorTemperature ${temp}", name
+		colorCluster.moveToColorTemperature(temp, DFLT_CLR_TRANS_SECS)
+	} else {
+		//assume COLOR MODE
+		byte hue = getLastHue(ctx)
+		byte sat = getLastSaturation(ctx)
+		ctx.log.trace "moveToHueAndSaturation [Hue:{}, Saturation:{}, Seconds:{}]", hue, sat, DFLT_CLR_TRANS_SECS
+		colorCluster.moveToHueAndSaturation(hue, sat, DFLT_CLR_TRANS_SECS)
+	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Helper Accessor methods
+////////////////////////////////////////////////////////////////////////////////
+
+static byte getLastSaturation(ctx) {
+	 if (null == ctx.vars[KEY_LAST_SAT]) {
+		 def sat = ctx.Color.saturation.get()
+		 if (null == sat) sat = DFLT_COLOR_SATURATION
+		 ctx.vars[KEY_LAST_SAT] = Math.round( ((new Double(sat)) / 100.0) * 254.0 )
+	 }
+	return ctx.vars[KEY_LAST_SAT]
+}
+
+static byte getLastHue(ctx) {
+	 if (null == ctx.vars[KEY_LAST_HUE]) {
+		 def hue = ctx.Color.hue.get()
+		 if (null == hue) hue = DFLT_COLOR_HUE
+		 ctx.vars[KEY_LAST_HUE] = Math.round( ((new Double(hue)) / 360.0) * 254.0 )
+	 }
+	return ctx.vars[KEY_LAST_HUE]
+}
+
+static short getActualColorTemp(ctx) {
+	if (null == ctx.vars[KEY_ACTUAL_COLOR_TEMPERATURE]) {
+		 def clrtmp = ctx.ColorTemperature.colortemp.get()
+		 if (null == clrtmp) clrtmp = ctx.vars.'NORMAL_DEFAULT_COLOR_TEMP' ?: DFLT_COLOR_TEMP
+		 short tempValue = 1000000.0 / clrtmp.shortValue()
+		 ctx.vars[KEY_ACTUAL_COLOR_TEMPERATURE] = tempValue
+	}
+	return Math.round(ctx.vars[KEY_ACTUAL_COLOR_TEMPERATURE]).shortValue()
+}
+
+static def getLastColorMode(ctx) {
+	if (null == ctx.vars[KEY_LAST_MODE]) {
+		def mode = ctx.Light.colormode.get() ?: ctx.Light.COLORMODE_COLORTEMP
+		ctx.vars[KEY_LAST_MODE] = mode
+	}
+	return ctx.vars[KEY_LAST_MODE]
+}
+

@@ -1,0 +1,173 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Samsung SmartThings Arrival/Presence Sensor (Key Fob), Gen 1 and 2
+ * 
+ * FACTORY RESET:
+ *  - Hold down the "connect" button (tamper switch) for 6 seconds until LED turns OFF
+ *  - Put hub in Pairing mode and press "connect" button once
+ *  
+ * OFFLINE TIMEOUT:			10 minutes (see OFFLINE_TIMEOUT_SECS)
+ * 
+ * CHECK-IN INTERVAL:		Device sends a Profile 0xFC01 Cluster 0xFC05 Command 0x01 Manufacturer Specific (0x110A) command 
+ *                          from/to Endpoint 2 on the hub every 20 seconds
+ * 
+ * BATTERY LEVEL REPORTING:
+ *  - No apparent support for reporting battery level.
+ * 
+ * DIAGNOSTICS REPORTING:
+ *  -  No apparent support for Diagnostics.
+ * 
+ * ISSUES/NOTES:
+ *  - SmartThings documentation:
+ *     - https://support.smartthings.com/hc/en-us/articles/205382134-Samsung-SmartThings-Arrival-Sensor
+ *     - https://support.smartthings.com/hc/en-us/articles/200903140-SmartSense-Presence-Sensor
+ *     - https://support.smartthings.com/hc/en-us/articles/200907400-How-to-change-the-battery-in-the-SmartSense-Presence-Sensor-and-Samsung-SmartThings-Arrival-Sensor
+ * 
+ */
+import groovy.transform.Field
+
+driver			"ZBSmartThingsArrivalSensor"
+description		"Driver for the Samsung SmartThings Arrival Sensor"
+version			"1.0"
+protocol		"ZIGB"
+deviceTypeHint	"Keyfob"
+productId		"87026d"
+vendor          "SmartThings"
+model 			"ST-PRS-V2"
+
+
+//matcher			'ZIGB:manufacturer': 4362, 'ZIGB:vendor': 'SmartThings', 'ZIGB:model': 'PGC410'
+//matcher			'ZIGB:manufacturer': 4362, 'ZIGB:vendor': 'SmartThings', 'ZIGB:model': 'PGC410EU'
+matcher			'ZIGB:manufacturer': 4362, 'ZIGB:vendor': 'SmartThings', 'ZIGB:model': ~/^PGC410.*/		// match PGC410, or PGC410EU, or any other suffix they decide to add
+
+capabilities	DevicePower, Presence
+
+importCapability 'generic/PresenceDeviceConnection'
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+
+// Manufacturer ID:       0x110A
+// Manufacturer:          SmartThings
+// Model:                 PGC410
+//
+// 2 End Points
+//
+// End Point 1
+// Profile ID:  0x0104  ZigBee HA
+// IN Clusters
+//   0x0000     Basic
+// OUT Clusters
+//   <none>
+//
+// End Point 2
+// Profile ID:  0xFC01
+// IN Clusters
+//   <none>
+// OUT Clusters
+//   <none>
+
+// constants
+def final OFFLINE_TIMEOUT_SECS          = 600       // 10 minutes
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	log.debug "SmartThings Arrival Sensor added."
+
+	// set default attribute values
+	DevicePower.source               DevicePower.SOURCE_BATTERY
+	DevicePower.linecapable          false
+	DevicePower.backupbatterycapable false
+	DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+	
+	Presence.presence                Presence.PRESENCE_PRESENT
+	Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+    Presence.usehint                 Presence.USEHINT_UNKNOWN
+    Presence.person                  'UNSET'
+
+	// Bind to the enpoints needed
+	Zigbee.bindAll()
+}
+
+
+onConnected {
+	log.debug "SmartThings Arrival Sensor connected."
+
+	// set recommended offline timeout interval
+	Zigbee.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+
+onDisconnected {
+	log.debug "SmartThings Arrival Sensor disconnected."
+}
+
+
+onRemoved {
+	log.debug "SmartThings Arrival Sensor removed."
+}
+
+setAttributes('pres') {
+   def attrs = message.attributes;
+   log.debug "setAttributes for 'pres'"
+   for(attribute in attrs) {
+      switch(attribute.key) {
+         case Presence.person:
+            Presence.person attribute.value
+            break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+         default:
+            log.error "Unrecognized attribute:{}", attribute
+      }
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+// default handler for ZCL messages, called if no other handlers handled the ZCL message
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+	log.trace "Driver received zigbee ZCL message:{}", message
+	def zclMsg = Zigbee.Message.toZcl(message)
+	// get Information about the message
+	def profile = zclMsg.getProfileId()
+	def clusterId = zclMsg.getClusterId()
+	def msgId = zclMsg.getZclMessageId()
+	def endpoint = zclMsg.getEndpoint()
+	def flags = zclMsg.getFlags()
+	// get the message data
+	byte[] data = zclMsg.getPayload()
+	
+	// Profile:64513, ClusterId:64517, MsgId:1, EndPoint:2, Flags:15, Data:[]
+	if ((0xFC01 == profile) && (0xFC05 == clusterId) && (1 == msgId) && (2 == endpoint)) {
+		log.trace "Driver received Heartbeat/Check-In from presense device, Flags:{}, Data:" + data, flags
+	} else {
+		log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+	}
+}
+
+

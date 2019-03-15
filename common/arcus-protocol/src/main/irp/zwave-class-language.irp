@@ -1,0 +1,13 @@
+
+message zwave.Language.LanguageGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.Language.LanguageReportV1<id="0x03", group="V1"> {
+    u8[3] language;
+    u16 country;
+}
+
+message zwave.Language.LanguageSetV1<id="0x01", group="V1"> {
+    u8[3] language;
+    u16 country;
+}

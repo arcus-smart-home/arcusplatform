@@ -1,0 +1,94 @@
+
+message zwave.TransportService.CommandFirstFragmentV1<id="0xC0", group="V1"> {
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1__MASK = 0x07;
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1__SHIFT = 0;
+    const u8 PROPERTIES2_SEQUENCE_NO_MASK = 0x0F;
+    const u8 PROPERTIES2_SEQUENCE_NO_SHIFT = 0;
+    u8 properties1;
+    u8 datagramSize2;
+    u8 properties2;
+    u8[] payload;
+    // checksum contained in previous field
+}
+
+message zwave.TransportService.CommandFragmentCompleteV1<id="0xE8", group="V1"> {
+    const u8 PROPERTIES2_SEQUENCE_NO_MASK = 0x0F;
+    const u8 PROPERTIES2_SEQUENCE_NO_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+}
+
+message zwave.TransportService.CommandFragmentRequestV1<id="0xC8", group="V1"> {
+    const u8 PROPERTIES2_SEQUENCE_NO_MASK = 0x0F;
+    const u8 PROPERTIES2_SEQUENCE_NO_SHIFT = 0;
+    u8 properties1;
+    u8 properties2;
+    u8 numberOfOffsets;
+}
+
+message zwave.TransportService.CommandFragmentWaitV1<id="0xF0", group="V1"> {
+    u8 properties1;
+    u8 pendingFragments;
+}
+
+message zwave.TransportService.CommandSubsequentFragmentV1<id="0xE0", group="V1"> {
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1_MASK = 0x07;
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1_SHIFT = 0;
+    const u8 PROPERTIES2_DATAGRAM_OFFSET_1_MASK = 0x07;
+    const u8 PROPERTIES2_DATAGRAM_OFFSET_1_SHIFT = 0;
+    const u8 PROPERTIES2_SEQUENCE_NO_MASK = 0x78;
+    const u8 PROPERTIES2_SEQUENCE_NO_SHIFT = 3;
+    u8 properties1;
+    u8 datagramSize2;
+    u8 properties2;
+    u8 datagramOffset2;
+    u8[] payload;
+    // checksum contained in previous field
+}
+
+message zwave.TransportService.CommandFirstFragmentV2<id="0xC0", group="V2"> {
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1__MASK = 0x07;
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1__SHIFT = 0;
+    const u8 PROPERTIES2_SESSION_ID_MASK = 0xF0;
+    const u8 PROPERTIES2_SESSION_ID_SHIFT = 4;
+    u8 properties1;
+    u8 datagramSize2;
+    u8 properties2;
+    u8[] payload;
+    // checksum contained in previous field
+}
+
+message zwave.TransportService.CommandFragmentCompleteV2<id="0xE8", group="V2"> {
+    const u8 PROPERTIES2_SESSION_ID_MASK = 0xF0;
+    const u8 PROPERTIES2_SESSION_ID_SHIFT = 4;
+    u8 properties1;
+    u8 properties2;
+}
+
+message zwave.TransportService.CommandFragmentRequestV2<id="0xC8", group="V2"> {
+    const u8 PROPERTIES2_SESSION_ID_MASK = 0xF0;
+    const u8 PROPERTIES2_SESSION_ID_SHIFT = 4;
+    u8 properties1;
+    u8 properties2;
+    u8 numberOfOffsets;
+}
+
+message zwave.TransportService.CommandFragmentWaitV2<id="0xF0", group="V2"> {
+    u8 properties1;
+    u8 pendingFragments;
+}
+
+message zwave.TransportService.CommandSubsequentFragmentV2<id="0xE0", group="V2"> {
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1_MASK = 0x07;
+    const u8 PROPERTIES1_DATAGRAM_SIZE_1_SHIFT = 0;
+    const u8 PROPERTIES2_DATAGRAM_OFFSET_1_MASK = 0x07;
+    const u8 PROPERTIES2_DATAGRAM_OFFSET_1_SHIFT = 0;
+    const u8 PROPERTIES2_SESSION_ID_MASK = 0xF0;
+    const u8 PROPERTIES2_SESSION_ID_SHIFT = 4;
+    u8 properties1;
+    u8 datagramSize2;
+    u8 properties2;
+    u8 datagramOffset2;
+    u8[] payload;
+    // checksum contained in previous field
+}

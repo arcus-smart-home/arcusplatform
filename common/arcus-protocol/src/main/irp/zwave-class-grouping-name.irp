@@ -1,0 +1,20 @@
+
+message zwave.GroupingName.GroupingNameGetV1<id="0x02", group="V1"> {
+    u8 groupingIdentifier;
+}
+
+message zwave.GroupingName.GroupingNameReportV1<id="0x03", group="V1"> {
+    const u8 PROPERTIES1_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 PROPERTIES1_CHAR_PRESENTATION_SHIFT = 0;
+    u8 groupingIdentifier;
+    u8 properties1;
+    u8[16] groupingName;
+}
+
+message zwave.GroupingName.GroupingNameSetV1<id="0x01", group="V1"> {
+    const u8 PROPERTIES1_CHAR_PRESENTATION_MASK = 0x07;
+    const u8 PROPERTIES1_CHAR_PRESENTATION_SHIFT = 0;
+    u8 groupingIdentifier;
+    u8 properties1;
+    u8[16] groupingName;
+}

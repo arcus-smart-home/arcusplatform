@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="HubAlarm"
+   namespace="hubalarm"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Hub alarm subsystem.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute
+         name="state"
+         type="enum"
+         values="SUSPENDED,ACTIVE"
+         readwrite="r"
+         optional="false"
+         description="The current state of the hub local alarm subsystem." />
+      <c:attribute
+         name="alarmState"
+         type="enum"
+         values="INACTIVE,READY,PREALERT,ALERTING,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The combined state of the alarm across all alerts." />
+      <c:attribute
+         name="securityMode"
+         type="enum"
+         values="INACTIVE,DISARMED,ON,PARTIAL"
+         readwrite="r"
+         optional="false"
+         description="The state of the security alarm." />
+      <c:attribute
+         name="securityArmTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The time at which the security system was or will be armed.  This will be cleared when the security system is disarmed." />
+
+      <c:attribute
+         name="lastArmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The last time the security alarm was armed." />
+      <c:attribute
+         name="lastArmedBy"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the last person to arm the security alarm, this may be empty if it was armed from a scene or a rule." />
+      <c:attribute
+         name="lastArmedFrom"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the keypad, rule, scene, or app the security alarm was armed from." />
+      <c:attribute
+         name="lastDisarmedTime"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="The last time at which the security system was disarmed." />
+      <c:attribute
+         name="lastDisarmedBy"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the last person to disarm the security alarm, this may be empty if it was disarmed from a scene or a rule." />
+      <c:attribute
+         name="lastDisarmedFrom"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="The address of the keypad, rule, scene, or app the security alarm was disarmed from." />
+      <c:attribute
+         name="activeAlerts"
+         type="list&lt;enum&gt;"
+         values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+         readwrite="r"
+         optional="false"
+         description="A priority ordered list of alerts that are currently active.  Note that the banner should always use the first element from this list, it is ordered."/>
+      <c:attribute
+         name="availableAlerts"
+         type="set&lt;enum&gt;"
+         values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+         readwrite="r"
+         optional="false"
+         description="The set of alarms which are supported by the devices paired at the current place."/>
+      <c:attribute
+         name="currentIncident"
+         type="string"
+         readwrite="r"
+         optional="false"
+         description="The currently incident, will be the empty string when there is no current incident."/>
+      <c:attribute
+         name="reconnectReport"
+         type="boolean"
+         description="True if the report issued by the hub is due to a reconnect."
+         optional="false"
+         readwrite="r"/>
+
+      <c:attribute
+         name="securityAlertState"
+         type="enum"
+         values="INACTIVE,PENDING_CLEAR,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="securityDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresss of all devices that could participate in the security alarm."/>
+      <c:attribute
+         name="securityExcludedDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are excluded from participating in this alarm." />
+      <c:attribute
+         name="securityActiveDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="securityCurrentActive"
+         type="set&lt;String&gt;"
+         description="The addresses of the devices that were initially active at arm time."
+         optional="false"
+         readwrite="r"/>
+      <c:attribute
+         name="securityOfflineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="securityTriggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="securityTriggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="securityPreAlertEndTime"
+         type="timestamp"
+         readwrite="r"
+         optional="false"
+         description="The time at which the prealert time for the current incident expires."/>
+      <c:attribute
+         name="securitySilent"
+         type="boolean"
+         readwrite="r"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+      <c:attribute
+         name="securityEntranceDelay"
+         type="int"
+         readwrite="r"
+         optional="false"
+         description="The amount of time an alarm device must be triggering for before the alarm is fired for the current arming cycle..&lt;br/&gt;&lt;b&gt;Default: 30&lt;/b&gt;"/>
+      <c:attribute
+         name="securitySensitivity"
+         type="int"
+         readwrite="r"
+         optional="false"
+         description="The number of alarm devices which must trigger before the alarm is fired for the current arming cycle.&lt;br/&gt;&lt;b&gt;Default: 1&lt;/b&gt;"/>
+
+      <c:attribute
+         name="panicAlertState"
+         type="enum"
+         values="INACTIVE,PENDING_CLEAR,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="panicActiveDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="panicOfflineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="panicTriggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="panicTriggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="panicSilent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+
+      <c:attribute
+         name="smokeAlertState"
+         type="enum"
+         values="INACTIVE,PENDING_CLEAR,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="smokeActiveDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="smokeOfflineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="smokeTriggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="smokeTriggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="smokeSilent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+
+      <c:attribute
+         name="coAlertState"
+         type="enum"
+         values="INACTIVE,PENDING_CLEAR,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="coActiveDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="coOfflineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="coTriggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="coTriggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="coSilent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+
+      <c:attribute
+         name="waterAlertState"
+         type="enum"
+         values="INACTIVE,PENDING_CLEAR,DISARMED,ARMING,READY,PREALERT,ALERT,CLEARING"
+         readwrite="r"
+         optional="false"
+         description="The current state of this alert." />
+      <c:attribute
+         name="waterActiveDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices that are participating in this alarm." />
+      <c:attribute
+         name="waterOfflineDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices would be active except they have fallen offline." />
+      <c:attribute
+         name="waterTriggeredDevices"
+         type="set&lt;String&gt;"
+         readwrite="r"
+         optional="false"
+         description="The addresses of the devices which are currently triggered." />
+      <c:attribute
+         name="waterTriggers"
+         type="list&lt;IncidentTrigger&gt;"
+         readwrite="r"
+         optional="false"
+         description="The triggers associated with the current alert." />
+      <c:attribute
+         name="waterSilent"
+         type="boolean"
+         readwrite="rw"
+         optional="false"
+         description="When true only notifications will be sent, alert devices / keypads will not sound."/>
+   </c:attributes>
+   
+   <c:methods>
+      <c:method
+         name="Activate"
+         description="Puts the hub local alarm into an 'active' state."
+         />
+      <c:method
+         name="Suspend"
+         description="Puts the subsystem into a 'suspended' state."
+         />
+      <c:method
+         name="Arm"
+         description="Attempts to arm the alarm into the requested mode, if successful it will return the delay until the alarm is armed.  If this call is repeated with the alarm is in the process of arming with the same mode, it will return the remaining seconds until the alarm is armed (making retries safe).  If this call is invoked with a new mode while the alarm is arming an error will be returned.  If this call is invoked while the alarm is arming with bypassed devices it will return an error.">
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ON,PARTIAL"
+            optional="false"
+            description="The mode the alarm is being armed in"
+         />
+         <c:parameter
+            name="bypassed"
+            type="boolean"
+            optional="false"
+            description="True if arming in bypass mode"
+         />
+         <c:parameter
+            name="entranceDelaySecs"
+            type="int"
+            optional="false"
+            description="The amount of time an alarm device must be triggering for before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 30&lt;/b&gt;"
+         />
+         <c:parameter
+            name="exitDelaySecs"
+            type="int"
+            optional="false"
+            description="The amount of time before the alarm is fully armed.&lt;br/&gt;&lt;b&gt;Default: 30&lt;/b&gt;"
+         />
+         <c:parameter
+            name="alarmSensitivityDeviceCount"
+            type="int"
+            optional="false"
+            description="The number of alarm devices which must trigger before the alarm is fired.&lt;br/&gt;&lt;b&gt;Default: 1&lt;/b&gt;"
+         />
+         <c:parameter
+            name="silent"
+            type="boolean"
+            optional="false"
+            description="Hub and keypad make sounds when arming.&lt;br/&gt;&lt;b&gt;Default: true&lt;/b&gt;"
+         />
+         <c:parameter
+            name="soundsEnabled"
+            type="boolean"
+            optional="false"
+            description="When true only notifications will be sent, alert devices will not be triggered."
+         />
+         <c:parameter
+            name="activeDevices"
+            type="set&lt;string&gt;"
+            optional="false"
+            description="The addresses of the devices that are participating in this alarm."
+         />
+         <c:parameter
+            name="armedBy"
+            type="string"
+            optional="false"
+            description="The person arming the security alarm or empty if being armed via keypad or a rule"
+         />
+         <c:parameter
+            name="armedFrom"
+            type="string"
+            optional="false"
+            description="The address of the keypad, rule, scene, or app the security alarm was armed from."
+         />
+         <c:return
+            name="securityArmTime"
+            type="timestamp"
+            description="The time at which the security system will be armed."
+         />
+         <c:errors>
+            <c:error code="security.insufficientDevices" description="If there are not enough devices for the given mode." />
+            <c:error code="security.triggeredDevices" description=" If there are devices currently tripped or offline that would otherwise participate.  In this case the error description will be a comma separated list of devices that need to be bypassed in order to arm." />
+            <c:error code="security.invalidState" description="If the alarm is armed into a different mode or is currently in INACTIVE, PREALERT or CLEARING state.  This means this call may be repeated while in ARMING or READY states." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="Disarm"
+         description="Attempts to disarm the security alarm.  This MAY also cancel any incidents in progress."
+      >
+         <c:parameter
+            name="disarmedBy"
+            type="string"
+            description="Address of the person that disarmed or cancelled the incident."
+         />
+         <c:parameter
+            name="disarmedFrom"
+            type="string"
+            description="The address of the keypad, rule, scene, or app the security alarm was disarmed from."
+         />
+      </c:method>
+      <c:method
+         name="Panic" 
+         description="Triggers the PANIC alarm."
+      >
+         <c:parameter
+            name="source"
+            type="string"
+            description="Address of the trigger source"
+         />
+         <c:parameter
+            name="event"
+            type="enum"
+            values="RULE,VERIFIED_ALARM"
+            description="Triggering Event"
+         />
+      </c:method>
+      <c:method
+         name="ClearIncident"
+         description="Issued by the platform when an incident has been fully canceled so the hub will clear out the current incident and related triggers."
+      />
+   </c:methods>
+   
+   <c:events>
+      <c:event name="Verified" description="Issued by alarm subsystem to the hub if a user verifies an alarm."/>
+
+      <c:event
+         name="PrealertTriggered"
+         description="Issued by the platform alarm provider when the alarm subsystem has gone into a prealert state, typically from a security alarm.  In other. words when subalarm:alarmState transitions to PREALERT.   The expectation here is that the hub would play whatever sounds and update the LEDs as necessary for the grace period."
+      >
+         <c:parameter
+            name="duration"
+            type="int"
+            description="This is an optional parameter to support V2 hub sounds by mimicking the duration provided by the hubsounds:PlayTone request.  Hub versions that do not require it may ignore."
+            optional="true"
+         />
+      </c:event>
+
+      <c:event
+         name="AlertTriggered"
+         description="Issued by the platform alarm provider when an alert has been detected.  In other words, when alarm:alertState:&lt;alertName&gt; transitions to ALERT.   The expectation here is that the hub would play whatever sounds and update the LEDs as necessary for whatever alert has been triggered."
+      >
+         <c:parameter
+            name="alertName"
+            type="enum"
+            values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+            description="This is the complete set of alert types that the alarm subsystem supports so WEATHER is included but not used."
+            optional="false"
+         />
+         <c:parameter
+            name="promon"
+            type="boolean"
+            description="True if professional monitoring is configured, false otherwise."
+            optional="false"
+         />
+      </c:event>
+
+      <c:event
+         name="AlertCancelled"
+         description="Issued by the platform alarm provider when an alert has been cancelled.  In other words, when alarm:alertState:&lt;alertName&gt; transitions to CLEARING.  The expectation here is that the hub would play whatever sounds and update the LEDs as necessary for whatever alert has been cancelled." >
+         <c:parameter
+               name="alertName"
+               type="enum"
+               values="SECURITY,PANIC,SMOKE,CO,WATER,CARE,WEATHER"
+               description="This is the complete set of alert types that the alarm subsystem supports so WEATHER is included but not used."
+               optional="false"
+         />
+      </c:event>
+
+      <c:event
+         name="SecurityArming"
+         description="Issued by the platform alarm provider when the alarm subsystem is being armed either via the app or a keypad.  In other words, when alarm:alertState:SECURITY transitions to ARMING.  The expectation here is that the hub would play whatever sounds and update the LEDs as necessary for the specified mode and the duration of the exit delay."
+      >
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ON,PARTIAL"
+            description="The mode that the end user is arming the security alarm in."
+            optional="false"
+         />
+         <c:parameter
+            name="duration"
+            type="int"
+            description="This is an optional parameter to support V2 hub sounds by mimicking the duration provided by the hubsounds:PlayTone request.  Hub versions that do not require it may ignore."
+            optional="true"
+         />
+      </c:event>
+
+      <c:event
+         name="SecurityArmed"
+         description="Issued by the platform alarm provider when the alarm subsystem completes arming.  In other words, when alarm:alertState:SECURITY transitions to READY."
+      >
+         <c:parameter
+            name="mode"
+            type="enum"
+            values="ON,PARTIAL"
+            description="The mode that the end user hard the security alarm in."
+            optional="false"
+         />
+      </c:event>
+
+      <c:event
+         name="SecurityDisarmed"
+         description="Issued by the platform alarm provider when the alarm subsystem completes disarming.  In other words, when alarm:alertState:SECURITY transitions to DISARMED.  The expectation here is that the hub would play whatever sounds and update the LEDs as necessary when the security alarm is disarmed."
+      />
+
+   </c:events>
+</c:capability>

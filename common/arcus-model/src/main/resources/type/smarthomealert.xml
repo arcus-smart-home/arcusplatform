@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+      name="SmartHomeAlert"
+      version="1.0"
+      xmlns:t="http://www.iris.com/schema/type/1.0.0">
+
+   <t:description>
+      Represents a smart home alert.
+   </t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="alertkey"
+         type="string"
+         description="Always the concatenation of the alerttype and subjectaddr:  &lt;alerttype&gt;:&lt;subjectaddr&gt;."
+      />
+      <t:attribute
+         name="alerttype"
+         type="enum"
+         values="place_hub_offline,place_4g_modem_needed,place_4g_service_suspended,place_4g_service_error,dev_err_garagedoor_obstruction,dev_warn_lock_jam,dev_err_offline_persistent,dev_err_offline,dev_err_offline_battery,dev_warn_battery_low"
+         description="Type of the alert as an enum.  When we add new alert types, the enum must be versioned.  The alerttype also represents the logical name of the template used to render the alert."
+      />
+      <t:attribute
+         name="severity"
+         type="enum"
+         values="block,critical,warn,low"
+         description="The severity of the alert"
+      />
+      <t:attribute
+         name="subjectaddr"
+         type="string"
+         description="Address of the object that is the subject of the alert.  For place level errors and warnings, this is the place address.  For device level errors and warnings, this is the device address"
+      />
+      <t:attribute
+         name="created"
+         type="timestamp"
+         description="When the alert was created"
+      />
+      <t:attribute
+         name="attributes"
+         type="map&lt;any&gt;"
+         description="A map of attribute name/value pairs.  The semantics of this are defined by the AlertGenerator with the given alertid."
+      />
+   </t:attributes>
+</t:type>

@@ -1,0 +1,111 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+include 'common:arcus-client'
+include 'common:arcus-common'
+include 'common:arcus-metrics'
+include 'common:arcus-protoc-runtime'
+include 'common:arcus-protoc'
+include 'common:arcus-protocol'
+include 'common:arcus-model'
+include 'common:arcus-model:capability-generator'
+include 'common:arcus-model:platform-client'
+include 'common:arcus-model:platform-messages'
+include 'common:arcus-model:model-query'
+include 'common:arcus-drivers:drivers-common'
+include 'common:arcus-drivers:groovy-bindings'
+include 'common:arcus-drivers:reflex-generator'
+include 'common:arcus-billing'
+include 'common:arcus-reflection'
+include 'common:protocol-generator'
+
+include 'platform:bridge-common'
+include 'platform:ipcd-common'
+include 'platform:arcus-alarm'
+include 'platform:arcus-alexa'
+include 'platform:arcus-google'
+include 'platform:arcus-info'
+include 'platform:arcus-lib'
+include 'platform:arcus-log'
+include 'platform:arcus-modelmanager'
+include 'platform:arcus-oauth'
+include 'platform:arcus-test'
+include 'platform:arcus-security'
+include 'platform:arcus-subscriptions'
+include 'platform:arcus-prodcat'
+include 'platform:arcus-video'
+include 'platform:arcus-voice-bridge'
+include 'platform:arcus-hubsession'
+include 'platform:arcus-rules'
+include 'platform:arcus-subsystems'
+include 'platform:arcus-khakis'
+include 'platform:arcus-lib:kafka-stream'
+include 'platform:arcus-containers:alarm-service'
+include 'platform:arcus-containers:alexa-bridge'
+include 'platform:arcus-containers:billing-callback-server'
+include 'platform:arcus-containers:client-bridge'
+include 'platform:arcus-containers:driver-services'
+include 'platform:arcus-containers:google-bridge'
+include 'platform:arcus-containers:history-service'
+include 'platform:arcus-containers:hub-bridge'
+include 'platform:arcus-containers:ipcd-bridge'
+include 'platform:arcus-containers:ivr-callback-server'
+include 'platform:arcus-containers:ivr-fallback-server'
+include 'platform:arcus-containers:notification-services'
+include 'platform:arcus-containers:platform-services'
+include 'platform:arcus-containers:rule-service'
+include 'platform:arcus-containers:scheduler-service'
+include 'platform:arcus-containers:subsystem-service'
+include 'platform:arcus-containers:metrics-server'
+include 'platform:arcus-containers:tag-service'
+include 'platform:arcus-containers:video-purge'
+include 'platform:arcus-containers:video-service'
+include 'platform:arcus-containers:video-recording-server'
+include 'platform:arcus-containers:video-streaming-server'
+include 'platform:arcus-containers:video-download-server'
+include 'platform:arcus-containers:video-preview-server'
+include 'platform:arcus-containers:video-preview-ul-server'
+include 'platform:arcus-containers:voice-service'
+include 'platform:arcus-platform-drivers:driver-tests'
+
+include 'agent:arcus-agent'
+include 'agent:arcus-gateway'
+include 'agent:arcus-hub-controller'
+include 'agent:arcus-os'
+include 'agent:arcus-router'
+include 'agent:arcus-system'
+include 'agent:arcus-reflex-controller'
+include 'agent:arcus-alarm-controller'
+include 'agent:arcus-spy-controller'
+include 'agent:arcus-zw-controller'
+
+include 'agent:arcus-hal:api'
+include 'agent:arcus-hal:common'
+include 'agent:arcus-hal:hub-v2'
+include 'agent:arcus-hal:simulated'
+
+include 'agent:arcus-test-agent'
+
+project(':agent:arcus-hal:api').name = 'arcus-hal-api'
+project(':agent:arcus-hal:common').name = 'arcus-hal-common'
+project(':agent:arcus-hal:hub-v2').name = 'arcus-hal-hub-v2'
+project(':agent:arcus-hal:simulated').name = 'arcus-hal-simulated'
+
+include 'tools:eye-kat'
+include 'tools:arcus-captools'
+include 'tools:oculus'
+
+include 'khakis'

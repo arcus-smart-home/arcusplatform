@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="PersonService"
+           namespace="person"
+           version="1.0"
+           xmlns:s="http://www.iris.com/schema/service/1.0.0">
+           
+   <s:description>
+   Entry points for global operations on the people.
+   </s:description>
+
+   <s:methods>
+      <s:method description="Requests the platform to generate a password reset token and notify the user"
+                internal="false"
+                isRESTful="true"
+                name="SendPasswordReset">
+   
+         <s:parameter name="email" type="string" description="The email address of the person" optional="false"/>
+         <s:parameter name="method" type="enum" values="email,ivr" description="The method by which the user will be notified of their reset token" optional="false"/>
+
+      </s:method>
+      
+      <s:method description="Resets the users password"
+                internal="false"
+                isRESTful="true"
+                name="ResetPassword">
+
+         <s:parameter name="email" type="string" description="The email address of the person" optional="false"/>
+         <s:parameter name="token" type="string" description="The token the user received via email or ivr" optional="false"/>
+         <s:parameter name="password" type="string" description="The new password" optional="false"/>
+
+         <s:errors>
+            <s:error code="person.not_found" description="The person does not exist" />
+            <s:error code="person.reset.failed" description="The password reset failed" />
+            <s:error code="person.reset.token_failed" description="The password reset failed due to the reset token not matching" />
+         </s:errors>
+
+      </s:method>
+
+      <s:method 
+      	name="ChangePassword" 
+      	description="Changes the password for the given person"
+      	isRESTful="true">
+         <s:parameter name="currentPassword" type="string"
+		    description="Users current password" optional="false" />
+         <s:parameter name="newPassword" type="string"
+		    description="Users new password" optional="false" />
+         <s:parameter name="emailAddress" type="string"
+            description="Users Email Address" optional="true" />				
+         <s:return description="Password change success indicator"
+		    type="boolean" name="success" option="false" />				
+      </s:method>
+
+   </s:methods>
+
+</s:service>

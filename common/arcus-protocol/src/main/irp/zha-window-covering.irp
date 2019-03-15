@@ -1,0 +1,74 @@
+constants zcl.WindowCovering {
+   const u16 CLUSTER_ID = 0x0102;
+
+   const u16 ATTR_COVERING_TYPE = 0x0000;
+   const u16 ATTR_LIMIT_LIFT = 0x0001;
+   const u16 ATTR_LIMIT_TILT = 0x0002;
+   const u16 ATTR_CURRENT_LIFT = 0x0003;
+   const u16 ATTR_CURRENT_TILT = 0x0004;
+   const u16 ATTR_NUMBER_LIFT = 0x0005;
+   const u16 ATTR_NUMBER_TILT = 0x0006;
+   const u16 ATTR_CONFIG_STATUS = 0x0007;
+   const u16 ATTR_CURRENT_LIFT_PERCENTAGE = 0x0008;
+   const u16 ATTR_CURRENT_TILT_PERCENTAGE = 0x0009;
+   const u16 ATTR_OPEN_LIMIT_LIFT = 0x0010;
+   const u16 ATTR_CLOSED_LIMIT_LIFT = 0x0011;
+   const u16 ATTR_OPEN_LIMIT_TILT = 0x0012;
+   const u16 ATTR_CLOSED_LIMIT_TILT = 0x0013;
+   const u16 ATTR_VELOCITY_LIFT = 0x0014;
+   const u16 ATTR_ACCELERATION_LIFT = 0x0015;
+   const u16 ATTR_DECELERATION_LIFT = 0x0016;
+   const u16 ATTR_MODE = 0x0017;
+   const u16 ATTR_SETPOINTS_LIFT = 0x0018;
+   const u16 ATTR_SETPOINTS_TILT = 0x0019;
+
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE = 0x00;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_2MOTOR = 0x01;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_EXTERIOR = 0x02;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_EXTERIOR_2MOTOR = 0x03;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_DRAPERY = 0x04;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_AWNING = 0x05;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_SHUTTER = 0x06;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_TILT_BLIND_TILT_ONLY = 0x07;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_TILT_BLIND_LIFT_AND_TILT = 0x08;
+   const u8 WINDOW_COVERING_TYPE_ROLLERSHADE_PROJECTOR_SCREEN = 0x09;
+
+   const u8 CONFIG_STATUS_OPERATIONAL = 0x01;
+   const u8 CONFIG_STATUS_ONLINE = 0x02;
+   const u8 CONFIG_STATUS_REVERSED = 0x04;
+   const u8 CONFIG_STATUS_LIFT_CONTROL_CLOSED_LOOP = 0x08;
+   const u8 CONFIG_STATUS_TILT_CONTROL_CLOSED_LOOP = 0x10;
+   const u8 CONFIG_STATUS_LIFT_ENCODER_CONTROLLED = 0x20;
+   const u8 CONFIG_STATUS_TILT_ENCODER_CONTROLLED = 0x40;
+
+   const u8 MODE_MOTOR_DIRECTION_REVERSED = 0x01;
+   const u8 MODE_CALIBRATION = 0x02;
+   const u8 MODE_MAINTENANCE = 0x04;
+   const u8 MODE_LEDS_DISPLAY_FEEDBACK = 0x08;
+}
+
+message zcl.WindowCovering.Open<id="0x00",group="client"> {
+   
+}
+
+message zcl.WindowCovering.Close<id="0x01",group="client"> {
+}
+
+message zcl.WindowCovering.Stop<id="0x02",group="client"> {
+}
+
+message zcl.WindowCovering.GoToLiftValue<id="0x004",group="client"> {
+   u16 liftValue;
+}
+
+message zcl.WindowCovering.GoToLiftPercentage<id="0x05",group="client"> {
+   u8 liftPercentage;
+}
+
+message zcl.WindowCovering.GoToTiltValue<id="0x07",group="client"> {
+   u16 tiltValue;
+}
+
+message zcl.WindowCovering.GoToTiltPercentage<id="0x08",group="client"> {
+   u8 tiltPercentage;
+}

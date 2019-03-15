@@ -1,0 +1,21 @@
+////////////////////////////////////////////////////////////////////////////////
+// Zigbee Cluster Library identify command frames
+//    From Section 3.5 of the ZCL specification
+////////////////////////////////////////////////////////////////////////////////
+
+constants zcl.Identify {
+   const u16 CLUSTER_ID = 0x0003;
+
+   const u16 ATTR_IDENTIFY_TIME = 0x0000;
+}
+
+message zcl.Identify.IdentifyCmd<id="0x00",group="client"> {
+   u16 identifyTime;
+}
+
+message zcl.Identify.IdentifyQuery<id="0x01",group="client"> {
+}
+
+message zcl.Identify.IdentifyQueryResponse<id="0x00",group="server"> {
+   u16 timeout;
+}

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ ! -z "${ZOOKEEPER}"  ]; then
+    exec ${KAFKA_HOME}/bin/kafka-console-producer.sh --broker-list "kafka.eyeris:9092" $@
+
+else
+     exec ${KAFKA_HOME}/bin/kafka-console-producer.sh --broker-list "kafkaops.eyeris:9092" $@
+fi
+
