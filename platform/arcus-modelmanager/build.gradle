@@ -23,7 +23,7 @@ applicationName = "modelmanager"
 distZip.enabled = false
 ext.dockerGroup = 'eyeris'
 
-def schemas = [ "platform", "video", "history", "support" ]
+def schemas = [ "platform", "video", "history" ]
 
 dependencies {
 
@@ -101,7 +101,7 @@ schemas.each() { target ->
    }
 }
 
-task run(overwrite: true, dependsOn: ['run-platform', 'run-support', 'run-history', 'run-video'])  {
+task run(overwrite: true, dependsOn: ['run-platform', 'run-history', 'run-video'])  {
     doLast{}
 }
 
