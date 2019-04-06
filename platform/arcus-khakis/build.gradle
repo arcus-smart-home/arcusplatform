@@ -30,7 +30,7 @@ task startPlatformContainers(type: Exec) {
     commandLine "bash", "${rootDir}/gradle/docker-scripts/start.sh"
 }
 
-task startPlatform(dependsOn: ['startPlatformContainers', ':arcus-modelmanager:run']) {
+task startPlatform(dependsOn: ['startPlatformContainers', ':platform:arcus-modelmanager:run']) {
 }
 
 

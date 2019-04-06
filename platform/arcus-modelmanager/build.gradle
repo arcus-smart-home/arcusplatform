@@ -57,7 +57,7 @@ distDocker {
 }
 
 task runDocker(type: Exec) {
-   dependsOn 'distDocker', ':arcus-khakis:startPlatform'
+   dependsOn 'distDocker', ':platform:arcus-khakis:startPlatform'
    def List<String> cLine = new ArrayList<String>()
    cLine.add('docker');
    cLine.add('run');
