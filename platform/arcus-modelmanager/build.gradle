@@ -23,7 +23,7 @@ applicationName = "modelmanager"
 distZip.enabled = false
 ext.dockerGroup = 'eyeris'
 
-def schemas = [ "platform", "video", "history", "support" ]
+def schemas = [ "platform", "video", "history" ]
 
 dependencies {
 
@@ -57,14 +57,14 @@ distDocker {
 }
 
 task runDocker(type: Exec) {
-   dependsOn 'distDocker', ':arcus-khakis:startPlatform'
+   dependsOn 'distDocker', ':platform:arcus-khakis:startPlatform'
    def List<String> cLine = new ArrayList<String>()
    cLine.add('docker');
    cLine.add('run');
-   cLine.add('--name="' + project.name + '"');
+   cLine.add('--name=' + project.name + '');
    cLine.add('--link=eyeris-cassandra:cassandra.eyeris');
    cLine.add('--rm');
-   cLine.add("${project.dockerGroup}/${project.name}:${project.version}");
+   cLine.add("${project.dockerGroup}/${project.applicationName}:${project.version}");
    
    commandLine cLine
 }
@@ -101,7 +101,7 @@ schemas.each() { target ->
    }
 }
 
-task run(overwrite: true, dependsOn: ['run-platform', 'run-support', 'run-history', 'run-video'])  {
+task run(overwrite: true, dependsOn: ['run-platform', 'run-history', 'run-video'])  {
     doLast{}
 }
 
