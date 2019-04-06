@@ -9,7 +9,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV ZOOKEEPER_VERSION 3.4.10
+ENV ZOOKEEPER_VERSION 3.4.14
 
 # Download and install the required version of Apache Zookeeper.
 RUN \
