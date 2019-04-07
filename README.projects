@@ -99,6 +99,7 @@ A set of tools that will be useful for others trying to develop against Arcus.
 * arcus-captools:  A set of tools that generate code bindings based on the Arcus capability and service descriptors (for ex. to generate swift or Objective-C bindings)
 * eye-kat:  A tool that allows streaming and monitoring a kafka bus
 * oculus:  Rough UI for interacting with the Arcus platform during development
+* hubdebug: Debugging keys for accessing Iris hubs
 
 == Others ==
 
