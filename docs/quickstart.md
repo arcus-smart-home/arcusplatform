@@ -62,6 +62,22 @@ You'll need to get at least the following services up to reach a usable system:
 
 If any of these aren't able to run and continue to run (e.g. uptime of over a minute), you'll need to troubleshoot further.
 
+### Configuration
+
+### Generating an AES key
+
+TODO
+
+#### Setup CORS for arcusweb
+
+CORS (Cross Origin Resource Sharing) relaxes the Same Origin Policy to allow cross-origin requests with special headers (e.g. as needed for WebSockets), and retrieval of files cross-origin. You should not set CORS to "\*", but rather set it to the sites that need to have access to the client-bridge, e.g. your webui
+
+This is enforced by platform/bridge-common/src/main/java/com/iris/netty/server/netty/IrisNettyCorsConfig.java
+
+Set "cors.origins" in ./platform/arcus-containers/client-bridge/src/dist/conf/client-bridge.properties
+
+
+
 ### Does it work?
 
 You can use oculus (`./gradlew :tools:oculus:run`) to login, assuming that client-bridge and the other critical services are running. From there you can setup your account and look around at the system.
