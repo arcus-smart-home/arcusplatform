@@ -23,4 +23,8 @@ Replacing the jar file on the hub:
 $ scp iris2-system-2.13.22.jar  root@172.16.1.121:/data/agent/libs
 ```
 
-Once complete, reboot the hub or restart the hub agent, and it should use the updated trust store.
+Once complete, reboot the hub or restart the hub agent, and it should use the updated trust store. Please note that if you factory reset the hub, the keystore will be blown away.
+
+### Unknowns
+
+I'm not sure how the platform actually authenticates the hub yet, since the certificate on the device doesn't directly relate to the hub id that the user claims.
