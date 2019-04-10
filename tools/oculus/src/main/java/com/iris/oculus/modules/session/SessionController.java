@@ -627,7 +627,7 @@ public class SessionController {
    @Nullable
    private OculusSession getLastSession() {
       List<OculusSession> info = listRecentSessions();
-      if(info.isEmpty()) {
+      if(info == null || info.isEmpty()) {
          return null;
       }
       return info.get(0);
