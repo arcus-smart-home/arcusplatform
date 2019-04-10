@@ -35,13 +35,15 @@ I believe only Java 1.8 works. I had luck with java-8-openjdk-amd64.
 
 ```
 $ cd # go to your home dir
-$ https://github.com/wl-net/arcusplatform.git
+$ git checkout https://github.com/wl-net/arcusplatform.git
 $ cd arcusplatform
 $ ./gradlew runDocker
 $ ./gradlew startService
 ```
 
-Other jobs can be listed with
+Any known issues are documented as GitHub issues on https://github.com/arcus-smart-home/arcusplatform/issues
+
+Other gradle jobs can be listed with
 
 ```
 $ ./gradlew jobs
@@ -66,7 +68,9 @@ If any of these aren't able to run and continue to run (e.g. uptime of over a mi
 
 ### Generating an AES key
 
-TODO
+Arcus expects AES keys to be in base64. the following command can be used to generate credentials:
+
+`openssl rand -base64 32`
 
 #### Setup CORS for arcusweb
 
