@@ -27,9 +27,11 @@ $ cat /etc/docker/daemon.json
 }
 ```
 
+Make sure you can run basic commands like `docker ps` before continuing.
+
 ### Java
 
-I believe only Java 1.8 works. I had luck with java-8-openjdk-amd64.
+I believe this is only used for gradle, so maybe the version doesn't matter too much. I had luck with `java-8-openjdk-amd64` in Ubuntu 18.04.
 
 ## General process
 
@@ -37,7 +39,7 @@ I believe only Java 1.8 works. I had luck with java-8-openjdk-amd64.
 $ cd # go to your home dir
 $ git checkout https://github.com/wl-net/arcusplatform.git
 $ cd arcusplatform
-$ ./gradlew runDocker
+$ ./gradlew :platform:arcus-khakis:startPlatform
 $ ./gradlew startService
 ```
 
@@ -88,7 +90,8 @@ You can use oculus (`./gradlew :tools:oculus:run`) to login, assuming that clien
 
 ### Pairing a hub
 
-This is more difficult than it sounds, because of mtls. You may need to disable TLS and hard code your hub into platform/arcus-hubsession/src/main/java/com/iris/hubcom/server/session/HubClient.java:30 in order to "authenticate" the hub.
+This is more difficult than it sounds, because of mtls. You need to get a certificate issued for your site and add the root ca for your certificate into the java keystore on the hub.
+Otherwise, you may need to disable TLS and hard code your hub into platform/arcus-hubsession/src/main/java/com/iris/hubcom/server/session/HubClient.java:30 in order to "authenticate" the hub. The latter of these approaches is obviously not recommended.
 
 ## Debugging
 
