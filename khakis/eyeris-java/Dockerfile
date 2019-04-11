@@ -22,5 +22,9 @@ WORKDIR /data
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 
+RUN \
+    groupadd -g 999 arcus && \
+    useradd -r -u 999 -g arcus arcus
+
 # Define default command.
 CMD ["bash"]
