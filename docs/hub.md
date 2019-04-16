@@ -134,3 +134,45 @@ class Main {
   }
 }
 ```
+
+## Firmware Update Log
+
+```
+/usr/bin/update -f 'file:///data/iris/data/tmp/hubOS.bin'
+Downloading file...done
+Firmware version is: v2.2.0.009
+Firmware model is: IH200
+Firmware customer is: ALL
+Decrypting firmware file...Done.
+
+Firmware image validation passed!
+Unpacking firmware update archive...
+Verifying file checksums...
+MLO-beaglebone: OK
+ble-firmware-hwflow.bin: OK
+ble-firmware.bin: OK
+core-image-minimal-iris-beaglebone.squashfs: OK
+u-boot-beaglebone.img: OK
+uImage-am335x-boneblack.dtb: OK
+uImage-beaglebone.bin: OK
+zigbee-firmware-hwflow.bin: OK
+zigbee-firmware.bin: OK
+zwave-firmware.bin: OK
+Mounting kernel partitions...
+Bootindex1 = 2
+Bootindex2 = 1
+Installing to second update partition.
+Installing u-boot files...
+Installing root filesystem...
+Verifying root filesystem...
+Zigbee radio hardware supports hardware flow control
+diff: can't stat '/data/firmware/zigbee-firmware-hwflow.bin': No such file or directory
+Installing Zigbee firmware...
+Running test image with CLI...
+Resetting Zigbee
+Waiting for receiver ping... done.
+Sending zigbee-firmware-hwflow.bin 
+  25 / 1137 [   2% ] chunks sent, file is 145536 bytesBLE radio hardware supports hardware flow control
+
+Firmware update was successful - please reboot to run latest firmware.
+```
