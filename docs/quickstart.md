@@ -37,7 +37,7 @@ I believe this is only used for gradle, so maybe the version doesn't matter too 
 
 ```
 $ cd # go to your home dir
-$ git checkout https://github.com/wl-net/arcusplatform.git
+$ git clone https://github.com/wl-net/arcusplatform.git
 $ cd arcusplatform
 $ ./gradlew :platform:arcus-khakis:startPlatform
 $ ./gradlew startService
