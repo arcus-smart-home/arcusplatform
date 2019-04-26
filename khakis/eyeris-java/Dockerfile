@@ -13,14 +13,14 @@ RUN \
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886 && \
 
     apt-get update && \
-    apt-get install -y oracle-java8-installer oracle-java8-unlimited-jce-policy \
-        procps less tcpdump vim && \
+    apt-get install -y openjdk-8-jdk-headless \
+        procps less tcpdump vim locales && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /var/cache/oracle-jdk8-installer
 
 # Setup the default locale to be UTF-8
 RUN \
-    dpkg-reconfigure locales && \
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales && \
     echo "en_US.UTF-8 UTF-8" >/etc/locale.gen && \
     locale-gen && \
     /usr/sbin/update-locale LANG=en_US.UTF-8
@@ -29,8 +29,6 @@ RUN \
 WORKDIR /data
 
 # Define commonly used JAVA_HOME variable
-ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
-ENV PATH $JAVA_HOME/bin:$PATH
 ENV LC_ALL en_US.UTF-8
 
 # Define default command.
