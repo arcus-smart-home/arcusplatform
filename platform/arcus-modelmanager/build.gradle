@@ -56,6 +56,20 @@ distDocker {
    defaultCommand(["-H", "/${project.applicationName}-${project.version}/", "-P", "dev", "-a"])
 }
 
+task tagDocker(type: Exec) {
+   dependsOn "distDocker"
+   def tag = project.dockerGroup + '/' + applicationName
+   def tagVersion = project.dockerVersion
+   def cloudProjectId = System.env['GCP_PROJECT_ID']
+   commandLine 'docker', 'tag', "${tag}:${project.dockerVersion}", "gcr.io/${cloudProjectId}/${tag}:${project.dockerVersion}"
+}
+
+task pushDocker(type: Exec) {
+   dependsOn "tagDocker"
+   def cloudProjectId = System.env['GCP_PROJECT_ID']
+   commandLine 'docker', 'push', "gcr.io/${cloudProjectId}/${project.dockerGroup}/${applicationName}:${project.dockerVersion}"
+}
+
 task runDocker(type: Exec) {
    dependsOn 'distDocker', ':platform:arcus-khakis:startPlatform'
    def List<String> cLine = new ArrayList<String>()
