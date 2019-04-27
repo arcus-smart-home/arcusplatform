@@ -28,31 +28,31 @@ import com.netflix.governator.configuration.ConfigurationProvider;
 
 public abstract class ModelManagerBaseCassandraModule extends BaseCassandraModule
 {
-	
-	public ModelManagerBaseCassandraModule(ConfigurationProvider config, String name){
-		super(config, name);
-	}
-	
-	@Provides @Singleton
-	public Profile getProfile() {
-		Profile profile = new Profile();
-      profile.setKeyspace(getKeyspace());
 
-      if(StringUtils.isNotBlank(getContactPoints())) {
-      	String[] nodeList = getContactPoints().split(",");
-      	profile.setNodes(Arrays.asList(nodeList));
-      }else{
-      	profile.setNodes(ImmutableList.<String>of());
-      }
-      
-      profile.setUsername(CassandraUtils.getUsername(getConfig(), getName()));
-      profile.setPassword(CassandraUtils.getPassword(getConfig(), getName()));
-      profile.setPort(getPort());      
-      profile.setConsistencyLevel(getConsistencyLevel());
-      return profile;
-	}
-	
-	
+    public ModelManagerBaseCassandraModule(ConfigurationProvider config, String name){
+        super(config, name);
+    }
+
+    @Provides @Singleton
+    public Profile getProfile() {
+        Profile profile = new Profile();
+        profile.setKeyspace(getKeyspace());
+
+        if(StringUtils.isNotBlank(getContactPoints())) {
+            String[] nodeList = getContactPoints().split(",");
+            profile.setNodes(Arrays.asList(nodeList));
+        }else{
+            profile.setNodes(ImmutableList.<String>of());
+        }
+
+        profile.setUsername(CassandraUtils.getUsername(getConfig(), getName()));
+        profile.setPassword(CassandraUtils.getPassword(getConfig(), getName()));
+        profile.setPort(getPort());
+        profile.setConsistencyLevel(getConsistencyLevel());
+        return profile;
+    }
+
+
 
 }
 
