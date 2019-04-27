@@ -31,7 +31,7 @@ Make sure you can run basic commands like `docker ps` before continuing.
 
 ### Java
 
-I believe this is only used for gradle, so maybe the version doesn't matter too much. I had luck with `java-8-openjdk-amd64` in Ubuntu 18.04.
+I believe this is only used for gradle, so maybe the version doesn't matter too much. I had luck with `openjdk-8-jdk-headless` in Ubuntu 18.04.
 
 ```
 java -version
