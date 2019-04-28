@@ -9,7 +9,7 @@ if [ -e /etc/install/.eyeris-cassandra ]; then
    fi
 fi
 
-KEYSPACE=dev
+KEYSPACE=${CASSANDRA_KEYSPACE:-dev}
 SUPPORT_KEYSPACE=support
 VIDEO_KEYSPACE=video
 HISTORY_KEYSPACE=history
