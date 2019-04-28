@@ -42,9 +42,6 @@ public class SessionInfo {
 	private final String nestLoginBaseUrl;
 	private final String nestClientId;
 	private final String lutronLoginBaseUrl;
-	private final String apptentiveApiKey;
-	private final String apptentiveAppKey;
-	private final String apptentiveAppSignature;
 	private final String webLaunchUrl;
 	private final String androidLaunchUrl;
 	
@@ -81,9 +78,6 @@ public class SessionInfo {
 		this.nestLoginBaseUrl = null;
 		this.nestClientId = null;
 		this.lutronLoginBaseUrl = null;
-		this.apptentiveApiKey = null;
-		this.apptentiveAppKey = null;
-		this.apptentiveAppSignature = null;
 		this.promonAdUrl = null;
 		this.redirectBaseUrl = null;
 		this.webLaunchUrl = null;
@@ -124,9 +118,6 @@ public class SessionInfo {
 		this.lutronLoginBaseUrl = (String) event.getAttribute("lutronLoginBaseUrl");
 		this.requiresPrivacyPolicyConsent = (Boolean)event.getAttribute("requiresPrivacyPolicyConsent");
 		this.requiresTermsAndConditionsConsent = (Boolean)event.getAttribute("requiresTermsAndConditionsConsent");
-		this.apptentiveApiKey = (String)event.getAttribute("apptentiveKey");
-		this.apptentiveAppKey = (String)event.getAttribute("apptentiveAppKey");
-		this.apptentiveAppSignature = (String)event.getAttribute("apptentiveAppSignature");
 		this.promonAdUrl = (String)event.getAttribute("promonAdUrl");
 		this.redirectBaseUrl = (String)event.getAttribute("redirectBaseUrl");
 		this.webLaunchUrl = (String)event.getAttribute("webLaunchUrl");
@@ -200,19 +191,6 @@ public class SessionInfo {
 	public final String getLutronLoginBaseUrl() {
 		return lutronLoginBaseUrl;
 	}
-	
-	public String getApptentiveApiKey() {
-		return apptentiveApiKey;
-	}
-	
-	public String getApptentiveAppKey() {
-		return apptentiveAppKey;
-	}
-
-
-	public String getApptentiveAppSignature() {
-		return apptentiveAppSignature;
-	}
 
 	public Boolean getRequiresTermsAndConditionsConsent() {
 		return requiresTermsAndConditionsConsent;
@@ -265,9 +243,6 @@ public class SessionInfo {
 				", nestLoginBaseUrl='" + nestLoginBaseUrl + '\'' +
 				", nestClientId='" + nestClientId + '\'' +
 				", lutronLoginBaseUrl='" + lutronLoginBaseUrl + '\'' +
-				", apptentiveApiKey='" + apptentiveApiKey + '\'' +
-				", apptentiveAppKey='" + apptentiveAppKey + '\'' +
-				", apptentiveAppSignature='" + apptentiveAppSignature + '\'' +
 				", webLaunchUrl='" + webLaunchUrl + '\'' +
 				", androidLaunchUrl='" + androidLaunchUrl + '\'' +
 				", requiresTermsAndConditionsConsent=" + requiresTermsAndConditionsConsent +
@@ -311,12 +286,6 @@ public class SessionInfo {
 		if (nestClientId != null ? !nestClientId.equals(that.nestClientId) : that.nestClientId != null) return false;
 		if (lutronLoginBaseUrl != null ? !lutronLoginBaseUrl.equals(that.lutronLoginBaseUrl) : that.lutronLoginBaseUrl != null)
 			return false;
-		if (apptentiveApiKey != null ? !apptentiveApiKey.equals(that.apptentiveApiKey) : that.apptentiveApiKey != null)
-			return false;
-		if (apptentiveAppKey != null ? !apptentiveAppKey.equals(that.apptentiveAppKey) : that.apptentiveAppKey != null)
-			return false;
-		if (apptentiveAppSignature != null ? !apptentiveAppSignature.equals(that.apptentiveAppSignature) : that.apptentiveAppSignature != null)
-			return false;
 		if (webLaunchUrl != null ? !webLaunchUrl.equals(that.webLaunchUrl) : that.webLaunchUrl != null) return false;
 		if (androidLaunchUrl != null ? !androidLaunchUrl.equals(that.androidLaunchUrl) : that.androidLaunchUrl != null)
 			return false;
@@ -347,9 +316,6 @@ public class SessionInfo {
 		result = 31 * result + (nestLoginBaseUrl != null ? nestLoginBaseUrl.hashCode() : 0);
 		result = 31 * result + (nestClientId != null ? nestClientId.hashCode() : 0);
 		result = 31 * result + (lutronLoginBaseUrl != null ? lutronLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (apptentiveApiKey != null ? apptentiveApiKey.hashCode() : 0);
-		result = 31 * result + (apptentiveAppKey != null ? apptentiveAppKey.hashCode() : 0);
-		result = 31 * result + (apptentiveAppSignature != null ? apptentiveAppSignature.hashCode() : 0);
 		result = 31 * result + (webLaunchUrl != null ? webLaunchUrl.hashCode() : 0);
 		result = 31 * result + (androidLaunchUrl != null ? androidLaunchUrl.hashCode() : 0);
 		result = 31 * result + (requiresTermsAndConditionsConsent != null ? requiresTermsAndConditionsConsent.hashCode() : 0);

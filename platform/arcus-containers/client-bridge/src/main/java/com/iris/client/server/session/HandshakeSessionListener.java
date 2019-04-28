@@ -90,31 +90,6 @@ public class HandshakeSessionListener implements SessionListener {
 	@Named(value = "privacyPolicy.version")
 	private String privacyPolicyVersionString;
 	
-	@Inject
-	@Named(value = "apptentivekey.ios")
-	private String iosApptentiveKey;
-	
-	@Inject
-	@Named(value = "apptentive.appkey.ios")
-	private String iosApptentiveAppKey;
-	
-	@Inject
-	@Named(value = "apptentive.appsignature.ios")
-	private String iosApptentiveAppSignature;
-	
-	
-	@Inject
-	@Named(value = "apptentivekey.android")
-	private String androidApptentiveKey;
-	
-	@Inject
-	@Named(value = "apptentive.appkey.android")
-	private String androidApptentiveAppKey;
-	
-	@Inject
-	@Named(value = "apptentive.appsignature.android")
-	private String androidApptentiveAppSignature;
-	
    @Inject
    @Named(value = "redirect.base.url")
    private String redirectBaseUrl;
@@ -176,16 +151,6 @@ public class HandshakeSessionListener implements SessionListener {
       else {
          entries.put("requiresTermsAndConditionsConsent", false);
          entries.put("requiresPrivacyPolicyConsent", false);
-      }
-      
-      if(Session.TYPE_IOS.equalsIgnoreCase(session.getClientType())) {
-    	  entries.put("apptentiveKey", String.valueOf(iosApptentiveKey));
-    	  entries.put("apptentiveAppKey", String.valueOf(iosApptentiveAppKey));
-    	  entries.put("apptentiveAppSignature", String.valueOf(iosApptentiveAppSignature));
-      }else{
-    	  entries.put("apptentiveKey", String.valueOf(androidApptentiveKey));
-    	  entries.put("apptentiveAppKey", String.valueOf(androidApptentiveAppKey));
-    	  entries.put("apptentiveAppSignature", String.valueOf(androidApptentiveAppSignature));
       }
       
       entries.put("redirectBaseUrl", redirectBaseUrl);
