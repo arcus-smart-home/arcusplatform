@@ -27,11 +27,11 @@ import com.iris.firmware.FirmwareURLBuilder;
 public class DeviceOTAFirmwareURLBuilder implements FirmwareURLBuilder<String> {
 
    @Inject(optional = true)
-   @Named("device-ota-firmware.download.scheme")
+   @Named("device.ota.firmware.download.scheme")
    private String firmwareDownloadScheme = "https";
 
    @Inject
-   @Named("device-ota-firmware.download.host")
+   @Named("device.ota.firmware.download.host")
    private String firmwareDownloadHost;
 
    @Override
