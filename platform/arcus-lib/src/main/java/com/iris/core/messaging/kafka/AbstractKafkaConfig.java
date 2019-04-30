@@ -117,7 +117,7 @@ public abstract class AbstractKafkaConfig {
    private String secondaryBootstrapServers = null;
 
    // shared global config
-   @Inject(optional = True) @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
+   @Inject(optional = true) @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
    private String bootstrapServers;
    @Consumer @Producer @Named("client.id")
    private String clientId;
