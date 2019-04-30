@@ -29,7 +29,7 @@ dependencies {
     compile project (':common:arcus-drivers:groovy-bindings')
     compile project(':common:arcus-model:platform-messages')
     compile project(':common:arcus-protocol')
-
+    compile project(':common:arcus-drivers:reflex-generator')
     testCompile project (':platform:arcus-test')
 
     reflexGeneratorRuntime project(':common:arcus-drivers:reflex-generator')
@@ -93,6 +93,7 @@ task cleanDriversReflexDB(type: Delete) {
 }
 
 task generateDriversReflexDB {
+    dependsOn ':common:arcus-drivers:reflex-generator:jar' // XXX: this seems wrong, why doesn't this get pulled in above?
     dependsOn cleanDriversReflexDB
 
     description 'Generate the current reflexdb for hub local processing'
