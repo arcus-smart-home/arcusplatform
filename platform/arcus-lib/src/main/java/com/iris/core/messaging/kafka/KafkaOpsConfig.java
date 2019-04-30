@@ -24,7 +24,10 @@ import com.netflix.governator.configuration.ConfigurationProvider;
 public class KafkaOpsConfig extends AbstractKafkaConfig {
    @Inject(optional = true) @Named("ops.kafka.topic.metrics") 
 	private String topicMetrics = "metrics";
-   
+
+   @Inject(optional = true) @Named("ops.bootstrap.servers")
+   private String bootstrapServers;
+
    @Inject
    public KafkaOpsConfig(ConfigurationProvider configProvider) {
       super(configProvider, "ops.");

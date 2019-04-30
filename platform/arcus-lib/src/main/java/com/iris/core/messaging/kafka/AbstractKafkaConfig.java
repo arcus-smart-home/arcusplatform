@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -116,7 +117,7 @@ public abstract class AbstractKafkaConfig {
    private String secondaryBootstrapServers = null;
 
    // shared global config
-   @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
+   @Inject(optional = True) @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
    private String bootstrapServers;
    @Consumer @Producer @Named("client.id")
    private String clientId;
