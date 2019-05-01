@@ -29,7 +29,6 @@ dependencies {
     compile project (':common:arcus-drivers:groovy-bindings')
     compile project(':common:arcus-model:platform-messages')
     compile project(':common:arcus-protocol')
-    compile project(':common:arcus-drivers:reflex-generator')
     testCompile project (':platform:arcus-test')
 
     reflexGeneratorRuntime project(':common:arcus-drivers:reflex-generator')
