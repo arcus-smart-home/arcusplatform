@@ -1,4 +1,4 @@
-# Quickstar
+# Quickstart
 
 ## Pre-reqs
 
@@ -31,7 +31,7 @@ Make sure you can run basic commands like `docker ps` before continuing.
 
 ### Java
 
-I believe this is only used for gradle, so maybe the version doesn't matter too much. I had luck with `openjdk-8-jdk-headless` in Ubuntu 18.04.
+I believe this is only used for gradle (e.g. building the jars, and running smallish things like modelmanager), so maybe the version doesn't matter too much. I had luck with `openjdk-8-jdk-headless` in Ubuntu 18.04.
 
 ```
 java -version
@@ -74,6 +74,8 @@ You'll need to get at least the following services up to reach a usable system:
 If any of these aren't able to run and continue to run (e.g. uptime of over a minute), you'll need to troubleshoot further.
 
 ### Configuration
+
+You can either set the configuration through environment variables (e.g. foo.bar= becomes FOO_BAR=), or directly in the properties files (discouraged). You will need to start the Docker container with the appropriate environment variables, ideally through some management software, like Kubernetes.
 
 ### Generating an AES key
 
