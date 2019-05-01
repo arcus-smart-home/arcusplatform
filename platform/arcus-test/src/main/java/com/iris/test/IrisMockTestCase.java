@@ -33,7 +33,7 @@ public class IrisMockTestCase extends IrisTestCase {
 
    static {
       System.setProperty("redirect.base.url", "http://fakeurl");
-      System.setProperty("device-ota-firmware.download.host", "http://fakeurl");
+      System.setProperty("device.ota.firmware.download.host", "http://fakeurl");
    }
 
    private MockModule mocks;
