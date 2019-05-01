@@ -50,6 +50,7 @@ import com.iris.platform.subsystem.cellbackup.CellBackupNotifications;
 import com.iris.platform.subsystem.cellbackup.CellBackupSubsystem;
 import com.iris.platform.subsystem.impl.CachingSubsystemRegistry;
 import com.iris.platform.subsystem.impl.PlatformSubsystemFactory;
+import com.iris.platform.subsystem.incident.AlarmIncidentServiceImpl;
 import com.iris.platform.subsystem.pairing.PairingSubsystem;
 import com.iris.platform.subsystem.placemonitor.PlaceMonitorHandler;
 import com.iris.platform.subsystem.placemonitor.PlaceMonitorNotifications;
@@ -162,5 +163,10 @@ public class SubsystemModule extends AbstractIrisModule {
    	return executorRef.get();
    }
 
+    @Provides @Named(AlarmIncidentServiceImpl.NAME_EXECUTOR_POOL)
+    public ExecutorService incidentServiceExecutor(SubsystemConfig config) {
+        this.config = config;
+        return executorRef.get();
+    }
 }
 
