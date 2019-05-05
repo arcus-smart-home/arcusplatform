@@ -15,7 +15,10 @@
  */
 package com.iris.bridge.server.ssl;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -56,9 +59,19 @@ public class BridgeServerTlsContextImpl implements BridgeServerTlsContext {
       }
 
       try {
-         KeyManagerFactory kmf = createKeyManagerFactory(serverConfig);
-         SslContextBuilder serverContext = SslContextBuilder.forServer(kmf)
-            .sslProvider(createSslProvider(serverConfig));
+         SslContextBuilder serverContext = null;
+
+         if (serverConfig.getTlsServerCertificateFilepath().length() != 0) {
+            logger.debug("assuming use of PEM formatted certificate/key instead of keystore");
+            serverContext = getSslContextFromPemFiles(
+                    serverConfig.getTlsServerCertificateFilepath(),
+                    serverConfig.getTlsServerPrivateKeyFilepath())
+                    .sslProvider(createSslProvider(serverConfig));
+         } else { // old default
+            KeyManagerFactory kmf = createKeyManagerFactory(serverConfig);
+            serverContext = SslContextBuilder.forServer(kmf)
+                    .sslProvider(createSslProvider(serverConfig));
+         }
 
          if (serverConfig.getTlsSessionCacheSize() > 0) {
             serverContext.sessionCacheSize(serverConfig.getTlsSessionCacheSize());
@@ -88,6 +101,36 @@ public class BridgeServerTlsContextImpl implements BridgeServerTlsContext {
          logger.error("Failed to initialize the server-size SSLContext", ex);
          throw new IllegalStateException("Failed to initialize the server-side SSLContext", ex);
       }
+   }
+
+   private InputStream getInputStreamFromFile(String filePath) {
+      InputStream fis = null;
+      try {
+         fis = BridgeServerTlsContext.class.getResourceAsStream("/" + filePath);
+         if (fis == null) throw new IllegalStateException("Keystore not Found");
+         return fis;
+      } catch (Exception e) {
+         logger.debug("Did not find file " + filePath + " on classpath");
+      }
+
+      try {
+         fis = new FileInputStream(filePath);
+      } catch (Exception e) {
+         logger.debug("Did not find file " + filePath + " as fully-qualified path on filesystem");
+      }
+
+      return fis;
+   }
+
+   private SslContextBuilder getSslContextFromPemFiles(String certificateFilepath, String privateKeyFilepath) {
+      InputStream tlsServerCertificate = getInputStreamFromFile(certificateFilepath);
+      InputStream tlsServerPrivateKey = getInputStreamFromFile(privateKeyFilepath);
+
+      if (tlsServerCertificate != null && tlsServerPrivateKey != null) {
+         return SslContextBuilder.forServer(tlsServerCertificate, tlsServerPrivateKey);
+      }
+
+      return null;
    }
 
    @Override
