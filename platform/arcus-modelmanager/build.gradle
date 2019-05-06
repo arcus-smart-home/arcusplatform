@@ -58,16 +58,18 @@ distDocker {
 
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
-   def tag = project.dockerGroup + '/' + applicationName
-   def tagVersion = project.dockerVersion
-   def cloudProjectId = System.env['GCP_PROJECT_ID']
-   commandLine 'docker', 'tag', "${tag}:${project.dockerVersion}", "gcr.io/${cloudProjectId}/${tag}:${project.dockerVersion}"
+   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
+   def src = project.dockerGroup + '/' + applicationName
+   def dst = project.dockerGroup + seperator + applicationName
+   def registryName = System.env['REGISTRY_NAME']
+   commandLine 'docker', 'tag', "${src}:${project.dockerVersion}", "${registryName}/${dst}:${project.dockerVersion}"
 }
 
 task pushDocker(type: Exec) {
    dependsOn "tagDocker"
-   def cloudProjectId = System.env['GCP_PROJECT_ID']
-   commandLine 'docker', 'push', "gcr.io/${cloudProjectId}/${project.dockerGroup}/${applicationName}:${project.dockerVersion}"
+   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
+   def registryName = System.env['REGISTRY_NAME']
+   commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
 }
 
 task runDocker(type: Exec) {
