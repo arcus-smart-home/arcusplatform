@@ -27,7 +27,7 @@ Once complete, reboot the hub or restart the hub agent, and it should use the up
 
 ### Unknowns
 
-I'm not sure how the platform actually authenticates the hub yet, since the certificate on the device doesn't directly relate to the hub id that the user claims.
+TBD
 
 ### Hub authentication
 
@@ -133,6 +133,23 @@ class Main {
     System.out.println(fromMac("<INSERT MAC>"));
   }
 }
+```
+
+## Iris Hub specific things
+
+There are several tty devices in /dev/ttyO\*. The mapping is as follows:
+
+ttyO0: console
+ttyO1: ZWave
+ttyO2: ZigBee
+ttyO3: ???
+
+```
+44e09000.serial: ttyO0 at MMIO 0x44e09000 (irq = 158, base_baud = 3000000) is a OMAP UART0
+console [ttyO0] enabled
+48022000.serial: ttyO1 at MMIO 0x48022000 (irq = 159, base_baud = 3000000) is a OMAP UART1
+48024000.serial: ttyO2 at MMIO 0x48024000 (irq = 160, base_baud = 3000000) is a OMAP UART2
+481a8000.serial: ttyO4 at MMIO 0x481a8000 (irq = 161, base_baud = 3000000) is a OMAP UART4
 ```
 
 ## Firmware Update Log
