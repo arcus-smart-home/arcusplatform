@@ -43,8 +43,12 @@ cassandra_init() {
    local CID=$(cat /data/clusterid 2>/dev/null)
    [ -z "${CID}" ] && CID="eyeris_prod"
 
+   if [[ -z "${CASSANDRA_HOST}" ]]; then
+        CASSANDRA_HOST="cassandra.eyeris" # for local docker
+   fi
+
    local SEEDS="${CASSANDRA_SEEDS}"
-   [ -z "${SEEDS}" ] && SEEDS=$(dig +nocomments +noauthority +noadditional +nostats cassandra.eyeris |grep -v '^;' |grep . |awk '{print $5}')
+   [ -z "${SEEDS}" ] && SEEDS=$(dig +nocomments +noauthority +noadditional +nostats $CASSANDRA_HOST |grep -v '^;' |grep . |awk '{print $5}')
    [ -z "${SEEDS}" ] && SEEDS="127.0.0.1"
 
     SDS=""
@@ -80,11 +84,20 @@ cassandra_init() {
     # Set some configuration parameters
     sed -i "s/^\s*cluster_name\s*:.*$/cluster_name: '${CID}'/" $CASSANDRA_HOME/conf/cassandra.yaml
 
-    sed -i "s/^\s*listen_address\s*:.*$/#listen_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
-    sed -i "s/^\s*#\s*listen_interface\s*:.*$/listen_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+    if [[ -n "${CASSANDRA_LISTEN_ADDRESS}" ]]; then
+        sed -i "s/^\s*listen_address\s*:.*$/listen_address: ${CASSANDRA_LISTEN_ADDRESS}/" $CASSANDRA_HOME/conf/cassandra.yaml
+	sed -i "s/^\s*rpc_address\s*:.*$/rpc_address: ${CASSANDRA_LISTEN_ADDRESS}/" $CASSANDRA_HOME/conf/cassandra.yaml
 
-    sed -i "s/^\s*rpc_address\s*:.*$/#rpc_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
-    sed -i "s/^\s*#\s*rpc_interface\s*:.*$/rpc_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+    else
+
+        # old behavior
+        sed -i "s/^\s*listen_address\s*:.*$/#listen_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
+        sed -i "s/^\s*#\s*listen_interface\s*:.*$/listen_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+        sed -i "s/^\s*rpc_address\s*:.*$/#rpc_address: localhost/" $CASSANDRA_HOME/conf/cassandra.yaml
+        sed -i "s/^\s*#\s*rpc_interface\s*:.*$/rpc_interface: eth0/" $CASSANDRA_HOME/conf/cassandra.yaml
+
+    fi
 
     sed -i "s/^\s*rpc_server_type\s*:.*$/rpc_server_type: hsha/" $CASSANDRA_HOME/conf/cassandra.yaml
     sed -i "s/^\s*#\s*rpc_min_threads\s*:.*$/rpc_min_threads: 16/" $CASSANDRA_HOME/conf/cassandra.yaml
