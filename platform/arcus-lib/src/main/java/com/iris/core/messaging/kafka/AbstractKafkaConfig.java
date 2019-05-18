@@ -40,6 +40,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.netflix.governator.configuration.ConfigurationKey;
 import com.netflix.governator.configuration.ConfigurationProvider;
@@ -116,7 +117,7 @@ public abstract class AbstractKafkaConfig {
    private String secondaryBootstrapServers = null;
 
    // shared global config
-   @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
+   @Inject(optional = true) @Named("bootstrap.servers") // not auto-populated because this is expanded on client creation
    private String bootstrapServers;
    @Consumer @Producer @Named("client.id")
    private String clientId;
