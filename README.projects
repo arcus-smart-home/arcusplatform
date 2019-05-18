@@ -85,7 +85,7 @@ This contains common code used within platform as well as all containers that ge
 * arcus-prodcat:  Common infrastructure used by several services for access to an exposure to the product catalog
 * arcus-rules:  Code used by the rule-service for representing rules and consuming the catalog of rules
 * arcus-security:  Common code used by bridges for authenticating and authorizing users
-* arcus-subsystems:  Code sued by the subsystem-service for executing several of the subsystems, such as irrigation
+* arcus-subsystems:  Code used by the subsystem-service for executing several of the subsystems, such as irrigation
 * arcus-test:  Common set of base test cases classes
 * arcus-video:  Common video infrastructure code such as database access used by all video services
 * arcus-voice-bridge:  Common infrastructure used by bridges that service a voice service, such as Alexa or Google
