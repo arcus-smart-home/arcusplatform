@@ -57,7 +57,7 @@ import com.iris.util.IrisUUID;
 import rx.Observable;
 
 public class AlertmeKeyPad extends AbstractZigbeeHubDriver {
-   private static final Logger log = LoggerFactory.getLogger(CentraLiteKeyPad.class);
+   private static final Logger log = LoggerFactory.getLogger(AlertmeKeyPad.class);
 
    private static final long PIN_VALIDITY_TIME = TimeUnit.SECONDS.toNanos(10);
    private static final long UPDATE_KEYPAD_STATE_DWELL_TIME = TimeUnit.SECONDS.toNanos(5);
