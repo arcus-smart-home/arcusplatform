@@ -66,6 +66,12 @@ public class BridgeServerConfig {
    @Inject(optional = true) @Named("tls.server.keystore.password")
    private String tlsServerKeystorePassword = "password";
 
+   @Inject(optional = true) @Named("tls.server.cert.filepath")
+   private String tlsServerCertificateFilepath = "";
+
+   @Inject(optional = true) @Named("tls.server.privatekey.filepath")
+   private String tlsServerPrivateKeyFilepath = "";
+
    @Inject(optional = true) @Named("tls.server.key.password")
    private String tlsServerKeyPassword = "keypass";
 
@@ -241,6 +247,10 @@ public class BridgeServerConfig {
    public void setTlsServerKeyPassword(String tlsServerKeyPassword) {
       this.tlsServerKeyPassword = tlsServerKeyPassword;
    }
+
+   public String getTlsServerCertificateFilepath() { return tlsServerCertificateFilepath;}
+
+   public String getTlsServerPrivateKeyFilepath() { return tlsServerPrivateKeyFilepath;}
 
    public boolean isTlsNeedClientAuth() {
       return tlsNeedClientAuth;
