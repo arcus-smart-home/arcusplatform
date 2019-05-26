@@ -103,7 +103,7 @@ v2 hubs:
 kz58!~Eb.RZ?+bqb
 
 v3 hubs:
-{[*f6gB5X($]R9
+zm{[*f6gB5X($]R9
 
 Most configuration data is stored in the /data directory, including the hub's local sqlite3 database at /data/iris/db/iris.db
 
