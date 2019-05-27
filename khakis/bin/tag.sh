@@ -20,7 +20,8 @@ docker_tag_for_registry() {
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
     local seperator=${REGISTRY_SEPERATOR:-/}
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
-    docker_tag "${DOCKER_TAG}" "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
+    local DOCKER_SRC=$(echo "${DOCKER_NAME}" |tr '-' "/")
+    docker_tag "${DOCKER_SRC}" "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
 }
 
 # Build the requested images

@@ -65,3 +65,27 @@ $ ./bin/connect.sh [command]
 ```
 
 If a command is not given then the script will start a bash shell by default.
+
+
+## Building Docker Containers
+
+```
+./gradlew :khakis:distDocker
+```
+
+## Pushing docker containers
+
+./khakis/bin/tag.sh and ./khakis/bin/push.sh accept two environment variables which change the path of the image to tag or push.
+
+REGISTRY_SEPERATOR controls the seperator between image names. e.g. eyeris/java or eyeris-java. In the case of Google Container Registry (gcr) this can be '/', but for DockerHub this will need to be '-'.
+
+REGISTRY_NAME specifies where to push the container to, e.g. gcr.io/YOURPROJECT or your DockerHub account name.
+`
+First tag:
+```
+REGISTRY_SEPERATOR='/' REGISTRY_NAME=gcr.io/arcus-238802 ./khakis/bin/tag.sh
+```
+then push:
+```
+REGISTRY_SEPERATOR='/' REGISTRY_NAME=gcr.io/arcus-238802 ./khakis/bin/push.sh
+```
