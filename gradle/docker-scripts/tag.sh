@@ -19,7 +19,8 @@ docker_tag_for_cloud() {
     local DOCKER_PATH="$1"
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' '/')
-    docker_tag "${DOCKER_TAG}" "gcr.io/${GCP_PROJECT_ID}/${DOCKER_TAG}:latest"
+    docker_tag "${DOCKER_TAG}" "${REGISTRY_NAME}/${DOCKER_NAME}:latest"
+
 }
 
 # Build the requested images
