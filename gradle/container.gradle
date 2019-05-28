@@ -88,6 +88,23 @@ distDocker {
    defaultCommand(['-c', irisConfig])
 }
 
+task tagDocker(type: Exec) {
+   dependsOn "distDocker"
+   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
+   def tag = project.dockerGroup + seperator + applicationName
+   def tagVersion = project.dockerVersion
+   def registryName = System.env['REGISTRY_NAME']
+   commandLine 'docker', 'tag', "${project.containerTag}:${project.dockerVersion}", "${registryName}/${tag}:${project.dockerVersion}"
+
+}
+
+task pushDocker(type: Exec) {
+   dependsOn "tagDocker"
+   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
+   def registryName = System.env['REGISTRY_NAME']
+   commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+}
+
 task rmiDocker(type: Exec) {
    group "Docker"
    dependsOn 'rmDocker'
