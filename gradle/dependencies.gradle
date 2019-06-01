@@ -28,7 +28,7 @@ ext.libraries << [
 
 
 // Cassandra
-		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:2.1.10.3:shaded") {
+		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.0.8:shaded") {
 			exclude group: "com.codahale.metrics" // interferes with platform dropwizard metrics
 			exclude group: "io.netty"
 		},
