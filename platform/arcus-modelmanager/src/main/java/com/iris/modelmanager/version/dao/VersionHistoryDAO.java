@@ -75,7 +75,7 @@ public class VersionHistoryDAO {
    private VersionHistory buildVersionHistory(Row row) {
       VersionHistory history = new VersionHistory();
       history.setStatus(Status.valueOf(row.getString("status")));
-      history.setTimestamp(row.getDate("timestamp"));
+      history.setTimestamp(row.getTimestamp("timestamp"));
       history.setUsername(row.getString("username"));
       history.setVersion(row.getString("version"));
       return history;

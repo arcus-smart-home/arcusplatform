@@ -91,9 +91,9 @@ public class ActionDaoImpl
       ActionDefinition ad = new ActionDefinition();
       ad.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
       ad.setSequenceId(row.getInt(Column.ID.columnName()));
-      ad.setCreated(row.getDate(Column.CREATED.columnName()));
-      ad.setModified(row.getDate(Column.MODIFIED.columnName()));
-      ad.setLastExecuted(row.getDate(ActionColumn.LAST_EXECUTED.columnName()));
+      ad.setCreated(row.getTimestamp(Column.CREATED.columnName()));
+      ad.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
+      ad.setLastExecuted(row.getTimestamp(ActionColumn.LAST_EXECUTED.columnName()));
       ad.setName(row.getString(Column.NAME.columnName()));
       ad.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       ad.setTags(row.getSet(Column.TAGS.columnName(), String.class));
@@ -112,8 +112,8 @@ public class ActionDaoImpl
       BoundStatement bs = upsert.bind();
       bs.setUUID(Column.PLACE_ID.columnName(), ad.getPlaceId());
       bs.setInt(Column.ID.columnName(), ad.getSequenceId());
-      bs.setDate(Column.CREATED.columnName(), ad.getCreated());
-      bs.setDate(Column.MODIFIED.columnName(), ad.getModified());
+      bs.setTimestamp(Column.CREATED.columnName(), ad.getCreated());
+      bs.setTimestamp(Column.MODIFIED.columnName(), ad.getModified());
       bs.setString(Column.NAME.columnName(), ad.getName());
       bs.setString(Column.DESCRIPTION.columnName(), ad.getDescription());
       bs.setSet(Column.TAGS.columnName(), ad.getTags());

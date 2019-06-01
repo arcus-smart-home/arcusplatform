@@ -222,9 +222,9 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
       ipcdDevice.setAccountId(row.getUUID(IpcdDeviceTable.Columns.ACCOUNT_ID));
       ipcdDevice.setPlaceId(row.getUUID(IpcdDeviceTable.Columns.PLACE_ID));
       ipcdDevice.setDriverAddress(row.getString(IpcdDeviceTable.Columns.DRIVER_ADDRESS));
-      ipcdDevice.setCreated(row.getDate(IpcdDeviceTable.Columns.CREATED));
-      ipcdDevice.setModified(row.getDate(IpcdDeviceTable.Columns.MODIFIED));
-      ipcdDevice.setLastConnected(row.getDate(IpcdDeviceTable.Columns.LAST_CONNECTED));
+      ipcdDevice.setCreated(row.getTimestamp(IpcdDeviceTable.Columns.CREATED));
+      ipcdDevice.setModified(row.getTimestamp(IpcdDeviceTable.Columns.MODIFIED));
+      ipcdDevice.setLastConnected(row.getTimestamp(IpcdDeviceTable.Columns.LAST_CONNECTED));
       ipcdDevice.setVendor(row.getString(IpcdDeviceTable.Columns.VENDOR));
       ipcdDevice.setModel(row.getString(IpcdDeviceTable.Columns.MODEL));
       ipcdDevice.setSn(row.getString(IpcdDeviceTable.Columns.SN));

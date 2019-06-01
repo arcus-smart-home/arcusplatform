@@ -238,8 +238,8 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
       PairingDevice entity = attributes.containsKey(PairingDeviceMockCapability.ATTR_TARGETPRODUCTADDRESS) ? new PairingDeviceMock(attributes) : new PairingDevice(attributes);
       entity.setId( row.getUUID(PairingDeviceTable.Column.placeId.name()), row.getInt(PairingDeviceTable.Column.sequenceId.name()) );
       entity.setProtocolAddress( (DeviceProtocolAddress) Address.fromString( row.getString(PairingDeviceTable.Column.protocolAddress.name()) ) );
-      entity.setModified( row.getDate(PairingDeviceTable.Column.modified.name()) );
-      entity.setCreated( row.getDate(PairingDeviceTable.Column.created.name()) );
+      entity.setModified( row.getTimestamp(PairingDeviceTable.Column.modified.name()) );
+      entity.setCreated( row.getTimestamp(PairingDeviceTable.Column.created.name()) );
       entity.setPopulation(populationCacheMgr.getPopulationByPlaceId(entity.getPlaceId()));
       return entity;
    }

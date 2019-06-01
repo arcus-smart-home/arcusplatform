@@ -49,6 +49,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TypeCodec;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -459,51 +460,51 @@ public final class VideoUtil {
 	/////////////////////////////////////////////////////////////////////////////
 
 	public static ByteBuffer toblob(String value) {
-		return DataType.text().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.varchar().serialize(value, ProtocolVersion.V3);
 	}
 
 	public static ByteBuffer toblob(UUID value) {
-		return DataType.uuid().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.uuid().serialize(value, ProtocolVersion.V3);
 	}
 
 	public static ByteBuffer toblob(int value) {
-		return DataType.cint().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.cint().serialize(value, ProtocolVersion.V3);
 	}
 
 	public static ByteBuffer toblob(long value) {
-		return DataType.bigint().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.bigint().serialize(value, ProtocolVersion.V3);
 	}
 	
 	public static ByteBuffer toblob(Date value) {
-		return DataType.timestamp().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.timestamp().serialize(value, ProtocolVersion.V3);
 	}
 
 	public static ByteBuffer toblob(double value) {
-		return DataType.cdouble().serialize(value, ProtocolVersion.V3);
+		return TypeCodec.cdouble().serialize(value, ProtocolVersion.V3);
 	}
 
 	public static String tostr(ByteBuffer value) {
-		return (String) DataType.text().deserialize(value, ProtocolVersion.V3);
+		return (String) TypeCodec.varchar().deserialize(value, ProtocolVersion.V3);
 	}
 
 	public static UUID touuid(ByteBuffer value) {
-		return (UUID) DataType.uuid().deserialize(value, ProtocolVersion.V3);
+		return (UUID) TypeCodec.uuid().deserialize(value, ProtocolVersion.V3);
 	}
 
 	public static int toint(ByteBuffer value) {
-		return (int) DataType.cint().deserialize(value, ProtocolVersion.V3);
+		return (int) TypeCodec.cint().deserialize(value, ProtocolVersion.V3);
 	}
 
 	public static long tolong(ByteBuffer value) {
-		return (long) DataType.bigint().deserialize(value, ProtocolVersion.V3);
+		return (long) TypeCodec.bigint().deserialize(value, ProtocolVersion.V3);
 	}
 
 	public static double todouble(ByteBuffer value) {
-		return (double) DataType.cdouble().deserialize(value, ProtocolVersion.V3);
+		return (double) TypeCodec.cdouble().deserialize(value, ProtocolVersion.V3);
 	}
 	
 	public static Date toDate(ByteBuffer value) {
-		return (Date) DataType.timestamp().deserialize(value, ProtocolVersion.V3);
+		return (Date) TypeCodec.timestamp().deserialize(value, ProtocolVersion.V3);
 	}
 
 	public static ByteBuffer toblob(Enum<?> e) {

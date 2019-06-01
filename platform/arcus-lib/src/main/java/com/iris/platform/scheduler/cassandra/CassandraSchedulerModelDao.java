@@ -387,8 +387,8 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
    protected ModelEntity toModel(Row row, boolean includeWeekdays) {
       Map<String, String> attributes = row.getMap(Columns.ATTRIBUTES, String.class, String.class);
       ModelEntity model = new ModelEntity( decode( attributes ) );
-      model.setCreated( row.getDate(Columns.CREATED) );
-      model.setModified( row.getDate(Columns.MODIFIED) );
+      model.setCreated( row.getTimestamp(Columns.CREATED) );
+      model.setModified( row.getTimestamp(Columns.MODIFIED) );
       if(!includeWeekdays && model.getInstances() != null) {
     	  //Remove WeeklyScheduleCapability instance data to reduce size of the model
     	  Map<String, Set<String>> instances = model.getInstances();

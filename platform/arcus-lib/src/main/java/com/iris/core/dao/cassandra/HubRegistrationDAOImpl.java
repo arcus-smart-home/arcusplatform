@@ -131,17 +131,17 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 
 	@Override
 	protected void populateEntity(Row row, HubRegistration entity) {
-		entity.setLastConnected(row.getDate(EntityColumns.LAST_CONNECTED));
+		entity.setLastConnected(row.getTimestamp(EntityColumns.LAST_CONNECTED));
 		if(!row.isNull(EntityColumns.STATE)) {
 			entity.setState(HubRegistration.RegistrationState.valueOf(row.getString(EntityColumns.STATE)));
 		}	      
-	    entity.setUpgradeRequestTime(row.getDate(EntityColumns.UPGRADE_REQUEST_TIME));
+	    entity.setUpgradeRequestTime(row.getTimestamp(EntityColumns.UPGRADE_REQUEST_TIME));
 	    entity.setFirmwareVersion(row.getString(EntityColumns.FIRMWARE_VERSION));
 	    entity.setTargetVersion(row.getString(EntityColumns.TARGET_VERSION));
 	    entity.setUpgradeErrorCode(row.getString(EntityColumns.UPGRADE_ERROR_CODE));
 	    entity.setUpgradeErrorMessage(row.getString(EntityColumns.UPGRADE_ERROR_MSG));
 	    entity.setDownloadProgress(row.getInt(EntityColumns.DOWNLOAD_PROGRESS));
-	    entity.setUpgradeErrorTime(row.getDate(EntityColumns.UPGRADE_ERROR_TIME));
+	    entity.setUpgradeErrorTime(row.getTimestamp(EntityColumns.UPGRADE_ERROR_TIME));
 	}
 
 

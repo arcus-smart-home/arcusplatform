@@ -39,7 +39,7 @@ public class UpdateAccountTrialEnd implements ExecutionCommand {
       BatchStatement batch = new BatchStatement();
       rows.forEach((r) -> {
          batch.add(new BoundStatement(stmt)
-         .setDate("trialEnd", new Date(r.getDate("created").getTime() + TRIAL_MS))
+         .setTimestamp("trialEnd", new Date(r.getTimestamp("created").getTime() + TRIAL_MS))
          .setUUID("id", r.getUUID("id")));
       });
       context.getSession().execute(batch);

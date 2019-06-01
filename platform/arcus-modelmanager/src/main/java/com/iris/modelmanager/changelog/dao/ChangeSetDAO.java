@@ -93,7 +93,7 @@ public class ChangeSetDAO {
       cs.setIdentifier(row.getString("identifier"));
       cs.setSource(row.getString("source"));
       cs.setStatus(Status.valueOf(row.getString("status")));
-      cs.setTimestamp(row.getDate("timestamp"));
+      cs.setTimestamp(row.getTimestamp("timestamp"));
       cs.setTracking(row.getString("tracking"));
       cs.setVersion(row.getString("version"));
       return cs;

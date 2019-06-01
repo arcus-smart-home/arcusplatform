@@ -79,13 +79,13 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       SceneDefinition sd = new SceneDefinition();
       sd.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
       sd.setSequenceId(row.getInt(Column.ID.columnName()));
-      sd.setCreated(row.getDate(Column.CREATED.columnName()));
-      sd.setModified(row.getDate(Column.MODIFIED.columnName()));
+      sd.setCreated(row.getTimestamp(Column.CREATED.columnName()));
+      sd.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
       sd.setName(row.getString(Column.NAME.columnName()));
       sd.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       sd.setTags(row.getSet(Column.TAGS.columnName(), String.class));
       sd.setLastFireState(row.getString(SceneColumn.LAST_FIRE_STATE.columnName()));
-      sd.setLastFireTime(row.getDate(SceneColumn.LAST_FIRE_TIME.columnName()));
+      sd.setLastFireTime(row.getTimestamp(SceneColumn.LAST_FIRE_TIME.columnName()));
       sd.setSatisfiable(row.getBool(SceneColumn.SATISFIABLE.columnName()));
       sd.setNotification(row.getBool(SceneColumn.NOTIFICATION.columnName()));
       sd.setTemplate(row.getString(SceneColumn.TEMPLATE.columnName()));
@@ -103,15 +103,15 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       BoundStatement bs = upsert.bind();
       bs.setUUID(Column.PLACE_ID.columnName(), sd.getPlaceId());
       bs.setInt(Column.ID.columnName(), sd.getSequenceId());
-      bs.setDate(Column.CREATED.columnName(), sd.getCreated());
-      bs.setDate(Column.MODIFIED.columnName(), sd.getModified());
+      bs.setTimestamp(Column.CREATED.columnName(), sd.getCreated());
+      bs.setTimestamp(Column.MODIFIED.columnName(), sd.getModified());
       bs.setString(Column.NAME.columnName(), sd.getName());
       bs.setString(Column.DESCRIPTION.columnName(), sd.getDescription());
       bs.setSet(Column.TAGS.columnName(), sd.getTags());
       bs.setString(SceneColumn.TEMPLATE.columnName(), sd.getTemplate());
       bs.setBool(SceneColumn.SATISFIABLE.columnName(), sd.isSatisfiable());
       bs.setBool(SceneColumn.NOTIFICATION.columnName(), sd.isNotification());
-      bs.setDate(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime());
+      bs.setTimestamp(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime());
       bs.setString(SceneColumn.LAST_FIRE_STATE.columnName(), sd.getLastFireState());
       bs.setBool(SceneColumn.ENABLED.columnName(),sd.isEnabled());
 

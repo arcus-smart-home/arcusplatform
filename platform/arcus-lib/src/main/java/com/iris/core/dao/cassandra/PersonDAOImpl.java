@@ -309,10 +309,10 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       entity.setAccountId(row.getUUID(PersonEntityColumns.ACCOUNT_ID));
       entity.setCurrLocation(row.getString(PersonEntityColumns.CURRENT_LOCATION));
       entity.setCurrLocationMethod(row.getString(PersonEntityColumns.CURRENT_LOCATION_METHOD));
-      entity.setCurrLocationTime(row.getDate(PersonEntityColumns.CURRENT_LOCATION_TIME));
+      entity.setCurrLocationTime(row.getTimestamp(PersonEntityColumns.CURRENT_LOCATION_TIME));
       entity.setCurrPlace(row.getUUID(PersonEntityColumns.CURRENT_PLACE));
       entity.setCurrPlaceMethod(row.getString(PersonEntityColumns.CURRENT_PLACE_METHOD));
-      entity.setEmailVerified(row.getDate(PersonEntityColumns.EMAIL_VERIFIED));
+      entity.setEmailVerified(row.getTimestamp(PersonEntityColumns.EMAIL_VERIFIED));
       entity.setMobileNotificationEndpoints(row.getList(PersonEntityColumns.MOBILE_NOTIFICATION_ENDPOINTS, String.class));
       String mobileNumberStr = row.getString(PersonEntityColumns.MOBILE_NUMBER);
       try {
@@ -325,7 +325,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       	//TODO - what do we with existing invalid phone numbers since we have not validated them until now?
       	entity.setMobileNumber(mobileNumberStr);
       }
-      entity.setMobileVerified(row.getDate(PersonEntityColumns.MOBILE_VERIFIED));
+      entity.setMobileVerified(row.getTimestamp(PersonEntityColumns.MOBILE_VERIFIED));
       entity.setFirstName(row.getString(PersonEntityColumns.FIRST_NAME));
       entity.setLastName(row.getString(PersonEntityColumns.LAST_NAME));
 
@@ -356,10 +356,10 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          }
       }
 
-      entity.setTermsAgreed(row.getDate(PersonEntityColumns.TERMS_AGREED));
-      entity.setPrivacyPolicyAgreed(row.getDate(PersonEntityColumns.PRIVACY_POLICY_AGREED));
-      entity.setConsentOffersPromotions(row.getDate(PersonEntityColumns.CONSENT_OFFERSPROMOTIONS));
-      entity.setConsentStatement(row.getDate(PersonEntityColumns.CONSENT_STATEMENT));
+      entity.setTermsAgreed(row.getTimestamp(PersonEntityColumns.TERMS_AGREED));
+      entity.setPrivacyPolicyAgreed(row.getTimestamp(PersonEntityColumns.PRIVACY_POLICY_AGREED));
+      entity.setConsentOffersPromotions(row.getTimestamp(PersonEntityColumns.CONSENT_OFFERSPROMOTIONS));
+      entity.setConsentStatement(row.getTimestamp(PersonEntityColumns.CONSENT_STATEMENT));
 
       Map<String,String> securityAnswers = row.getMap(PersonEntityColumns.SECURITY_ANSWERS, String.class, String.class);
       if(securityAnswers != null && !securityAnswers.isEmpty()) {
@@ -525,7 +525,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       login.setPasswordSalt(row.getString(LoginColumns.PASSWORD_SALT));
       login.setUserId(row.getUUID(LoginColumns.USERID));
       login.setUsername(username);
-      login.setLastPasswordChange(row.getDate(LoginColumns.LAST_PASS_CHANGE));
+      login.setLastPasswordChange(row.getTimestamp(LoginColumns.LAST_PASS_CHANGE));
       return login;
    }
 
@@ -708,7 +708,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       String password = row.getString(LoginColumns.PASSWORD);
       String password_salt = row.getString(LoginColumns.PASSWORD_SALT);
       UUID userId = row.getUUID(LoginColumns.USERID);
-      Date lastPassChange = row.getDate(LoginColumns.LAST_PASS_CHANGE);
+      Date lastPassChange = row.getTimestamp(LoginColumns.LAST_PASS_CHANGE);
       BoundStatement insert = new BoundStatement(insertLogin)
          .setString(LoginColumns.DOMAIN, newParsedEmail.getDomain())
          .setString(LoginColumns.USER_0_3, newParsedEmail.getUser_0_3())
@@ -718,7 +718,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          .setUUID(LoginColumns.USERID, userId)
          // changing the email invalidates the reset token
          .setString(LoginColumns.RESET_TOKEN, null)
-         .setDate(LoginColumns.LAST_PASS_CHANGE, lastPassChange);
+         .setTimestamp(LoginColumns.LAST_PASS_CHANGE, lastPassChange);
 
       Person copy = person.copy();
       copy.setModified(new Date());

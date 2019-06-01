@@ -213,8 +213,8 @@ public class CassandraScheduleDao implements ScheduleDao {
 
       BoundStatement statement = upsertCommand.bind();
       statement.setInt(ScheduledEventTable.Columns.PARTITION_ID, offset.getPartition().getId());
-      statement.setDate(ScheduledEventTable.Columns.TIME_BUCKET, offset.getOffset());
-      statement.setDate(ScheduledEventTable.Columns.SCHEDULED_TIME, scheduledTime);
+      statement.setTimestamp(ScheduledEventTable.Columns.TIME_BUCKET, offset.getOffset());
+      statement.setTimestamp(ScheduledEventTable.Columns.SCHEDULED_TIME, scheduledTime);
       statement.setUUID(ScheduledEventTable.Columns.PLACE_ID, placeId);
       statement.setString(ScheduledEventTable.Columns.SCHEDULER, schedulerAddress.getRepresentation());
 
@@ -269,7 +269,7 @@ public class CassandraScheduleDao implements ScheduleDao {
       PlatformPartition partition = partitioner.getPartitionById(row.getInt(SchedulerOffsetTable.Columns.PARTITION_ID));
       PartitionOffset offset = new PartitionOffset(
             partition,
-            row.getDate(SchedulerOffsetTable.Columns.LAST_EXECUTED_BUCKET),
+            row.getTimestamp(SchedulerOffsetTable.Columns.LAST_EXECUTED_BUCKET),
             windowSizeMs
       );
       return offset;
@@ -279,14 +279,14 @@ public class CassandraScheduleDao implements ScheduleDao {
       try {
          ScheduledCommand command = new ScheduledCommand();
          command.setPlaceId(row.getUUID(ScheduledEventTable.Columns.PLACE_ID));
-         command.setScheduledTime(row.getDate(ScheduledEventTable.Columns.SCHEDULED_TIME));
+         command.setScheduledTime(row.getTimestamp(ScheduledEventTable.Columns.SCHEDULED_TIME));
          command.setSchedulerAddress(Address.fromString(row.getString(ScheduledEventTable.Columns.SCHEDULER)));
-         command.setExpirationTime(row.getDate(ScheduledEventTable.Columns.EXPIRES_AT));
+         command.setExpirationTime(row.getTimestamp(ScheduledEventTable.Columns.EXPIRES_AT));
 
          PlatformPartition partition = partitioner.getPartitionById(row.getInt(SchedulerOffsetTable.Columns.PARTITION_ID));
          PartitionOffset offset = new PartitionOffset(
                partition,
-               row.getDate(ScheduledEventTable.Columns.TIME_BUCKET),
+               row.getTimestamp(ScheduledEventTable.Columns.TIME_BUCKET),
                windowSizeMs
          );
          command.setOffset(offset);

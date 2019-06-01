@@ -415,7 +415,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       setIf(DeviceCapability.ATTR_PRODUCTID, row.getString(DeviceEntityColumns.PRODUCTID), model);
 
       // device advanced attributes
-      setIf(DeviceAdvancedCapability.ATTR_ADDED, row.getDate(BaseEntityColumns.CREATED), model);
+      setIf(DeviceAdvancedCapability.ATTR_ADDED, row.getTimestamp(BaseEntityColumns.CREATED), model);
       setIf(DeviceAdvancedCapability.ATTR_DRIVERNAME, row.getString(DeviceEntityColumns.DRIVER_NAME), model);
 
       String version = row.getString(DeviceEntityColumns.DRIVER_VERSION2);
@@ -458,8 +458,8 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       }
 
       ModelEntity entity = new ModelEntity(attributes);
-      entity.setCreated(row.getDate(BaseEntityColumns.CREATED));
-      entity.setModified(row.getDate(BaseEntityColumns.MODIFIED));
+      entity.setCreated(row.getTimestamp(BaseEntityColumns.CREATED));
+      entity.setModified(row.getTimestamp(BaseEntityColumns.MODIFIED));
       return entity;
    }
 

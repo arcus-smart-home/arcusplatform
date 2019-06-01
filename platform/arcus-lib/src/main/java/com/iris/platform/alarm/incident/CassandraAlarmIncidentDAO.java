@@ -169,8 +169,8 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
       bound.setSet(Column.additionalalerts.name(), incident.getAdditionalAlerts().stream().map(AlertType::name).collect(Collectors.toSet()));
       bound.setString(Column.alert.name(), incident.getAlert().name());
       bound.setString(Column.cancelledby.name(), incident.getCancelledBy() == null ? null : incident.getCancelledBy().getRepresentation());
-      bound.setDate(Column.prealertendtime.name(), incident.getPrealertEndTime());
-      bound.setDate(Column.endtime.name(), incident.getEndTime());
+      bound.setTimestamp(Column.prealertendtime.name(), incident.getPrealertEndTime());
+      bound.setTimestamp(Column.endtime.name(), incident.getEndTime());
       bound.setString(Column.monitoringstate.name(), incident.getMonitoringState().name());
       bound.setList(Column.tracker.name(), incident.getTracker().stream().map((te) -> JSON.toJson(te.toMap())).collect(Collectors.toList()));
       bound.setBool(Column.mockincident.name(), incident.isMockIncident());
@@ -215,8 +215,8 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
             .withMonitoringState(AlarmIncident.MonitoringState.valueOf(r.getString(Column.monitoringstate.name())))
             .withId(r.getUUID(Column.incidentid.name()))
             .withAlertState(AlarmIncident.AlertState.valueOf(r.getString(Column.alertstate.name())))
-            .withPrealertEndTime(r.getDate(Column.prealertendtime.name()))
-            .withEndTime(r.getDate(Column.endtime.name()))
+            .withPrealertEndTime(r.getTimestamp(Column.prealertendtime.name()))
+            .withEndTime(r.getTimestamp(Column.endtime.name()))
             .withPlaceId(r.getUUID(Column.placeid.name()))
             .withMonitored(r.getBool(Column.monitored.name()))
             .withMockIncident(r.getBool(Column.mockincident.name()))

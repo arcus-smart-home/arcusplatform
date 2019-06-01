@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.time.ZoneId;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.ShiroException;
@@ -308,7 +309,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
 	private Session hydrateSession(UUID id, Row row) {
    	UUID rowId = row.getUUID(Columns.ID);
    	if (id.equals(rowId)) {
-   		Date start = row.getDate(Columns.START);
+   		Date start = row.getTimestamp(Columns.START);
    		// If this is null, then the row is a tombstone.
    		if (start != null) {
    			ByteBuffer buffer = row.getBytes(Columns.SERIALIZED);
@@ -320,8 +321,8 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    			}
    			else {
    				// New style session. Read the fields and create a session.
-   				Date stop = row.getDate(Columns.STOP);
-   				Date lastAccess = row.getDate(Columns.LAST_ACCESS);
+                Date stop = row.getTimestamp(Columns.STOP);
+                Date lastAccess = row.getTimestamp(Columns.LAST_ACCESS);
    				long timeout = row.getLong(Columns.TIMEOUT);
    				boolean expired = row.getBool(Columns.EXPIRED);
    				String host = row.getString(Columns.HOST);

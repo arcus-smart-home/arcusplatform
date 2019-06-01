@@ -248,8 +248,8 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
    protected ModelEntity toModel(Row row) {
       Map<String, String> attributes = row.getMap(Columns.ATTRIBUTES, String.class, String.class);
       ModelEntity model = new ModelEntity( decode( attributes ) );
-      model.setCreated( row.getDate(Columns.CREATED) );
-      model.setModified( row.getDate(Columns.MODIFIED) );
+      model.setCreated( row.getTimestamp(Columns.CREATED) );
+      model.setModified( row.getTimestamp(Columns.MODIFIED) );
       return model;
    }
 
