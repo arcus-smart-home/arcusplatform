@@ -37,8 +37,6 @@ else
    echo "Kafka is online"
 fi
 
-echo "127.0.0.1	kafkaops.eyeris" >> /etc/hosts
-
 export KAFKA_HEAP_OPTS="-Xmx4m -Xms4m"
 export KAFKA_JVM_PERFORMANCE_OPTS="-client -Djava.awt.headless=true"
 

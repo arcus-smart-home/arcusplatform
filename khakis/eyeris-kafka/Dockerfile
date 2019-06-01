@@ -19,7 +19,12 @@ RUN \
     wget https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -O /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     tar xfz /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt && \
     ln -s /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
-    rm /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz
+    rm /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+    chown -R arcus:arcus /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
+
+RUN \
+    /bin/bash -c '127.0.0.1	kafka.eyeris' && \
+    /bin/bash -c '127.0.0.1     kafkaops.eyeris'
 
 # Add Apache Kafka control script and debug utilities
 ADD kafka-cmd /usr/bin/kafka-cmd 
@@ -36,6 +41,8 @@ ENV KAFKA_HOME /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 
 # Expose the Apache Kafka port to the outside
 EXPOSE 9092
+
+USER arcus
 
 # Set the entry point as "kafka-cmd init"
 ENTRYPOINT ["/usr/bin/kafka-cmd", "entry"]
