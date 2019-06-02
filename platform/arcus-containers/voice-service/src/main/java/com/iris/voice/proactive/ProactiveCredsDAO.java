@@ -75,7 +75,7 @@ public class ProactiveCredsDAO {
          return rs.all().stream()
             .collect(Collectors.toMap(
                row -> row.getString(Columns.assistant.name()),
-               row -> new ProactiveCreds(row.getString(Columns.access.name()), row.getDate(Columns.accessExpiry.name()), row.getString(Columns.refresh.name()))
+               row -> new ProactiveCreds(row.getString(Columns.access.name()), row.getTimestamp(Columns.accessExpiry.name()), row.getString(Columns.refresh.name()))
                )
             );
       }
@@ -88,7 +88,7 @@ public class ProactiveCredsDAO {
          stmt.setString(Columns.assistant.name(), assistant);
          stmt.setString(Columns.access.name(), credentials.getAccess());
          if(credentials.getAccessExpiry() != null) {
-            stmt.setDate(Columns.accessExpiry.name(), credentials.getAccessExpiry());
+            stmt.setTimestamp(Columns.accessExpiry.name(), credentials.getAccessExpiry());
          } else {
             stmt.setToNull(Columns.accessExpiry.name());
          }

@@ -236,7 +236,7 @@ public class InvitationDAOImpl implements InvitationDAO {
             stmt.setUUID(Column.placeOwnerId.name(), UUID.fromString(invitation.getPlaceOwnerId()));
             stmt.setString(Column.placeOwnerFirstName.name(), invitation.getPlaceOwnerFirstName());
             stmt.setString(Column.placeOwnerLastName.name(), invitation.getPlaceOwnerLastName());
-            stmt.setDate(Column.created.name(), created);
+            stmt.setTimestamp(Column.created.name(), created);
             stmt.setDate(Column.accepted.name(), null);
             stmt.setDate(Column.rejected.name(), null);
             stmt.setString(Column.rejectReason.name(), invitation.getRejectReason());
@@ -282,7 +282,7 @@ public class InvitationDAOImpl implements InvitationDAO {
       try(Context timer = acceptTimer.time()) {
          BoundStatement stmt = new BoundStatement(acceptExistingPerson);
          stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setDate(Column.accepted.name(), new Date());
+         stmt.setTimestamp(Column.accepted.name(), new Date());
          session.execute(stmt);
       }
    }
@@ -296,7 +296,7 @@ public class InvitationDAOImpl implements InvitationDAO {
          BatchStatement batch = new BatchStatement();
          BoundStatement stmt = new BoundStatement(accept);
          stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setDate(Column.accepted.name(), new Date());
+         stmt.setTimestamp(Column.accepted.name(), new Date());
          stmt.setUUID(Column.inviteeId.name(), inviteeId);
          batch.add(stmt);
          batch.add(bindInsertPersonIdx(inviteeId, code));
@@ -311,7 +311,7 @@ public class InvitationDAOImpl implements InvitationDAO {
       try(Context timer = rejectTimer.time()) {
          BoundStatement stmt = new BoundStatement(reject);
          stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setDate(Column.rejected.name(), new Date());
+         stmt.setTimestamp(Column.rejected.name(), new Date());
          stmt.setString(Column.rejectReason.name(), reason);
          session.execute(stmt);
       }
@@ -335,7 +335,7 @@ public class InvitationDAOImpl implements InvitationDAO {
       try(Context timer = pendingForInviteeTimer.time()) {
          BoundStatement stmt = new BoundStatement(selectCodesForPerson);
          stmt.setUUID(Column.inviteeId.name(), inviteeId);
-         return listByIndex(stmt, (r) -> { return r.getDate(Column.accepted.name()) == null && r.getDate(Column.rejected.name()) == null; });
+         return listByIndex(stmt, (r) -> { return r.getTimestamp(Column.accepted.name()) == null && r.getTimestamp(Column.rejected.name()) == null; });
       }
    }
 
@@ -399,10 +399,10 @@ public class InvitationDAOImpl implements InvitationDAO {
          return null;
       }
       Invitation invitation = new Invitation();
-      invitation.setAccepted(r.getDate(Column.accepted.name()));
+      invitation.setAccepted(r.getTimestamp(Column.accepted.name()));
       invitation.setCity(r.getString(Column.city.name()));
       invitation.setCode(r.getString(Column.code.name()));
-      invitation.setCreated(r.getDate(Column.created.name()));
+      invitation.setCreated(r.getTimestamp(Column.created.name()));
       invitation.setInvitationText(r.getString(Column.invitationText.name()));
       invitation.setInviteeEmail(r.getString(Column.inviteeEmail.name()));
       invitation.setInviteeFirstName(r.getString(Column.inviteeFirstName.name()));
@@ -420,7 +420,7 @@ public class InvitationDAOImpl implements InvitationDAO {
       invitation.setPlaceOwnerFirstName(r.getString(Column.placeOwnerFirstName.name()));
       invitation.setPlaceOwnerId(r.getUUID(Column.placeOwnerId.name()).toString());
       invitation.setPlaceOwnerLastName(r.getString(Column.placeOwnerLastName.name()));
-      invitation.setRejected(r.getDate(Column.rejected.name()));
+      invitation.setRejected(r.getTimestamp(Column.rejected.name()));
       invitation.setRejectReason(r.getString(Column.rejectReason.name()));
       invitation.setRelationship(r.getString(Column.relationship.name()));
       invitation.setStateProv(r.getString(Column.stateProv.name()));

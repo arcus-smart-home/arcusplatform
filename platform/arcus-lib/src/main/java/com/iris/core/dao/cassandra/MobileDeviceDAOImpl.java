@@ -178,7 +178,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       return new BoundStatement(upsertStatement)
       .setUUID("personId", device.getPersonId())
       .setInt("deviceIndex", device.getDeviceIndex())
-      .setDate("associated", device.getAssociated())
+      .setTimestamp("associated", device.getAssociated())
       .setString("osType", device.getOsType())
       .setString("osVersion", device.getOsVersion())
       .setString("formFactor", device.getFormFactor())
@@ -190,7 +190,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       .setString("notificationToken", device.getNotificationToken())
       .setDouble("lastLatitude", device.getLastLatitude())
       .setDouble("lastLongitude", device.getLastLongitude())
-      .setDate("lastLocationTime", device.getLastLocationTime())
+      .setTimestamp("lastLocationTime", device.getLastLocationTime())
       .setString("name", device.getName())
       .setString("appVersion", device.getAppVersion());
    }
@@ -273,16 +273,16 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
 
    private MobileDevice createMobileDevice(Row row) {
       MobileDevice device = new MobileDevice();
-      device.setAssociated(row.getDate("associated"));
+      device.setAssociated(row.getTimestamp("associated"));
       device.setDeviceIdentifier(row.getString("deviceIdentifier"));
       device.setDeviceIndex(row.getInt("deviceIndex"));
       device.setDeviceModel(row.getString("deviceModel"));
       device.setDeviceVendor(row.getString("deviceVendor"));
       device.setFormFactor(row.getString("formFactor"));
       device.setLastLatitude(row.getDouble("lastLatitude"));
-      device.setLastLocationTime(row.getDate("lastLocationTime"));
+      device.setLastLocationTime(row.getTimestamp("lastLocationTime"));
       device.setLastLongitude(row.getDouble("lastLongitude"));
-      device.setLastLocationTime(row.getDate("lastLocationTime"));
+      device.setLastLocationTime(row.getTimestamp("lastLocationTime"));
       device.setNotificationToken(row.getString("notificationToken"));
       device.setOsType(row.getString("osType"));
       device.setOsVersion(row.getString("osVersion"));

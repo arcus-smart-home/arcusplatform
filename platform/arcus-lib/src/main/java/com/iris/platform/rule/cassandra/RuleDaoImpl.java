@@ -128,8 +128,8 @@ public class RuleDaoImpl
 
       definition.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
       definition.setSequenceId(row.getInt(Column.ID.columnName()));
-      definition.setCreated(row.getDate(Column.CREATED.columnName()));
-      definition.setModified(row.getDate(Column.MODIFIED.columnName()));
+      definition.setCreated(row.getTimestamp(Column.CREATED.columnName()));
+      definition.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
       definition.setName(row.getString(Column.NAME.columnName()));
       definition.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       definition.setTags(row.getSet(Column.TAGS.columnName(), String.class));
@@ -159,8 +159,8 @@ public class RuleDaoImpl
       BoundStatement bs = upsert.bind();
       bs.setUUID(Column.PLACE_ID.columnName(), definition.getPlaceId());
       bs.setInt(Column.ID.columnName(), definition.getSequenceId());
-      bs.setDate(Column.CREATED.columnName(), definition.getCreated());
-      bs.setDate(Column.MODIFIED.columnName(), definition.getModified());
+      bs.setTimestamp(Column.CREATED.columnName(), definition.getCreated());
+      bs.setTimestamp(Column.MODIFIED.columnName(), definition.getModified());
       bs.setString(Column.NAME.columnName(), definition.getName());
       bs.setString(Column.DESCRIPTION.columnName(), definition.getDescription());
       bs.setSet(Column.TAGS.columnName(), definition.getTags());
@@ -191,7 +191,7 @@ public class RuleDaoImpl
       bs.setUUID(Column.PLACE_ID.columnName(), id.getPrimaryId());
       bs.setInt(Column.ID.columnName(), id.getSecondaryId());
       bs.setString(RuleColumn.VARIABLES.columnName(), JSON.toJson(variables));
-      bs.setDate(Column.MODIFIED.columnName(),modified);
+      bs.setTimestamp(Column.MODIFIED.columnName(),modified);
       ResultSet rs = session.execute(bs);
       if(!rs.wasApplied()) {
          throw new IllegalStateException(String.format("Unable to update rule variables. Rule [%s] has been modified since read",id));

@@ -106,7 +106,7 @@ public class PlacePurgeRecordingTable extends VideoTable {
 		if(!row.isNull(COL_MODE)) {
 			mode = PurgeMode.valueOf(row.getString(COL_MODE));
 		}
-		return new PlacePurgeRecord(row.getUUID(COL_PLACEID), row.getDate(COL_DELETE_TIME), mode);
+		return new PlacePurgeRecord(row.getUUID(COL_PLACEID), row.getTimestamp(COL_DELETE_TIME), mode);
 		
 	}
 }

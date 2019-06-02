@@ -138,10 +138,21 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
    }
 
    protected boolean isKeyspacePresent(com.datastax.driver.core.Session systemSession) {
-      PreparedStatement ps = systemSession.prepare("select * from system.schema_keyspaces where keyspace_name = ?");
-      BoundStatement bs = new BoundStatement(ps);
-      bs.bind(keyspaceName);
-      ResultSet results = systemSession.execute(bs);
+      // cassandra 2.x
+      PreparedStatement ps1 = systemSession.prepare("select * from system.schema_keyspaces where keyspace_name = ?");
+      // cassandra 3.x
+      PreparedStatement ps2 = systemSession.prepare("select * from system_schema.keyspaces where keyspace_name = ?");
+      ResultSet results;
+
+      try {
+          BoundStatement bs = new BoundStatement(ps1);
+          bs.bind(keyspaceName);
+          results = systemSession.execute(bs);
+      } catch (InvalidQueryException e) { // handle cassandra 3.x
+         BoundStatement bs = new BoundStatement(ps2);
+         bs.bind(keyspaceName);
+         results = systemSession.execute(bs);
+      }
 
       for (Row row : results) {
          if (row.getString("keyspace_name").equals(keyspaceName)) {

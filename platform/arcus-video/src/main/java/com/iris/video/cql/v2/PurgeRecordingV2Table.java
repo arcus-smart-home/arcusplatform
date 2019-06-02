@@ -94,7 +94,7 @@ public class PurgeRecordingV2Table extends AbstractPurgeRecordingTable {
 			storageStr = storageStr.substring(0, storageStr.length()-2);
 			purgePreview = true;
 		}
-		return new PurgeRecord(row.getDate(COL_DELETETIME), row.getInt(COL_PARTITIONID), row.getUUID(COL_RECORDINGID), row.getUUID(COL_PLACEID), storageStr, true, purgePreview);
+		return new PurgeRecord(row.getTimestamp(COL_DELETETIME), row.getInt(COL_PARTITIONID), row.getUUID(COL_RECORDINGID), row.getUUID(COL_PLACEID), storageStr, true, purgePreview);
 	}
 
 	@Override

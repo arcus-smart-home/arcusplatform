@@ -416,8 +416,8 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 
    protected final void populateBaseEntity(Row row, T entity) {
       entity.setId(getIdFromRow(row));
-      Date created = row.getDate(BaseEntityColumns.CREATED);
-      Date modified = row.getDate(BaseEntityColumns.MODIFIED);
+      Date created = row.getTimestamp(BaseEntityColumns.CREATED);
+      Date modified = row.getTimestamp(BaseEntityColumns.MODIFIED);
       Set<String> tags = row.getSet(BaseEntityColumns.TAGS, String.class);
       if(created == null) {
       	logger.debug("Repairing entity [{}] from [{}] with null created date", entity.getId(), getClass());

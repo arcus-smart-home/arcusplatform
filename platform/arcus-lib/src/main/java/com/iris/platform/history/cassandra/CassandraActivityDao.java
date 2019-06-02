@@ -170,7 +170,7 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 	
 	protected ActivityEvent transform(Row row) {
 		ActivityEvent event = new ActivityEvent();
-		event.setTimestamp(row.getDate(Columns.TIME));
+		event.setTimestamp(row.getTimestamp(Columns.TIME));
 		event.setPlaceId(row.getUUID(Columns.PLACE_ID));
 		event.setActiveDevices(row.getSet(Columns.ACTIVE_DEVICES, String.class));
 		event.setInactiveDevices(row.getSet(Columns.DEACTIVATED_DEVICES, String.class));

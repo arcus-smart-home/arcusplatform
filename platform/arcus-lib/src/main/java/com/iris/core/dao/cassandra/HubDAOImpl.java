@@ -476,7 +476,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       Calendar dayHour = DateUtils.truncate(snapped, Calendar.HOUR);
       hubSimIdMap.forEach((h,s) -> {
          BoundStatement stmt = new BoundStatement(insertCellBackupTime);
-         stmt.setDate(CellBackupCol.dayhour.name(), dayHour.getTime());
+         stmt.setTimestamp(CellBackupCol.dayhour.name(), dayHour.getTime());
          stmt.setInt(CellBackupCol.minute.name(), snapped.get(Calendar.MINUTE));
          stmt.setString(CellBackupCol.hubid.name(), h);
          stmt.setString(CellBackupCol.simid.name(), s);
@@ -641,8 +641,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       Map<String, Object> attributes = toAttributes(r);
 
       ModelEntity entity = new ModelEntity(attributes);
-      entity.setCreated(r.getDate(BaseEntityColumns.CREATED));
-      entity.setModified(r.getDate(BaseEntityColumns.MODIFIED));
+      entity.setCreated(r.getTimestamp(BaseEntityColumns.CREATED));
+      entity.setModified(r.getTimestamp(BaseEntityColumns.MODIFIED));
       return entity;
    }
 

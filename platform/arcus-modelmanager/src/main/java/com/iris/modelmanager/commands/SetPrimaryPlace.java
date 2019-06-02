@@ -38,7 +38,7 @@ public class SetPrimaryPlace implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
 
       List<Row> rows = context.getSession().execute("SELECT id, accountid, created FROM place").all();
-      List<Row> ordered = rows.stream().sorted((r1, r2) -> r1.getDate("created").compareTo(r2.getDate("created"))).collect(Collectors.toList());
+      List<Row> ordered = rows.stream().sorted((r1, r2) -> r1.getTimestamp("created").compareTo(r2.getTimestamp("created"))).collect(Collectors.toList());
       Set<UUID> accountsSeen = new HashSet<>();
 
       BatchStatement batch = new BatchStatement();

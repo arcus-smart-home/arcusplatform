@@ -286,8 +286,8 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
 
    @Override
    protected void populateEntity(Row row, Place entity) {
-      entity.setCreated(row.getDate(BaseEntityColumns.CREATED));
-      entity.setModified(row.getDate(BaseEntityColumns.MODIFIED));
+      entity.setCreated(row.getTimestamp(BaseEntityColumns.CREATED));
+      entity.setModified(row.getTimestamp(BaseEntityColumns.MODIFIED));
       entity.setAccount(row.getUUID(PlaceEntityColumns.ACCOUNT_ID));
       entity.setName(row.getString(PlaceEntityColumns.NAME));
       entity.setState(row.getString(PlaceEntityColumns.STATE));
@@ -311,7 +311,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       entity.setAddrRDI(row.getString(PlaceEntityColumns.ADDR_RDI));
       entity.setAddrCounty(row.getString(PlaceEntityColumns.ADDR_COUNTY));
       entity.setAddrCountyFIPS(row.getString(PlaceEntityColumns.ADDR_COUNTY_FIPS));
-      entity.setLastServiceLevelChange(row.getDate(PlaceEntityColumns.LAST_SERVICE_LEVEL_CHANGE));
+      entity.setLastServiceLevelChange(row.getTimestamp(PlaceEntityColumns.LAST_SERVICE_LEVEL_CHANGE));
       String serviceLevel = row.getString(PlaceEntityColumns.SERVICE_LEVEL);
       if(serviceLevel != null) {
          entity.setServiceLevel(ServiceLevel.valueOf(serviceLevel));

@@ -265,11 +265,11 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
       record.setHost(row.getString(ClusterServiceTable.Columns.HOST));
       record.setService(row.getString(ClusterServiceTable.Columns.SERVICE));
       record.setMemberId(row.getInt(ClusterServiceTable.Columns.CLUSTER_ID));
-      Date registered = row.getDate(ClusterServiceTable.Columns.REGISTERED);
+      Date registered = row.getTimestamp(ClusterServiceTable.Columns.REGISTERED);
       if(registered != null) {
          record.setRegistered(registered.toInstant());
       }
-      Date heartbeat = row.getDate(ClusterServiceTable.Columns.HEARTBEAT);
+      Date heartbeat = row.getTimestamp(ClusterServiceTable.Columns.HEARTBEAT);
       if(heartbeat != null) {
          record.setLastHeartbeat(heartbeat.toInstant());
       }

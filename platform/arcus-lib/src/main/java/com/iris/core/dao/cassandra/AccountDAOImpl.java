@@ -182,7 +182,7 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
       }
       entity.setSubscriptionIDs(subIDs);
       entity.setOwner(row.getUUID(AccountEntityColumns.OWNER));
-      entity.setTrialEnd(row.getDate(AccountEntityColumns.TRIAL_END));
+      entity.setTrialEnd(row.getTimestamp(AccountEntityColumns.TRIAL_END));
    }
 
    @Override
