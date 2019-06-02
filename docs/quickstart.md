@@ -44,7 +44,7 @@ OpenJDK 64-Bit Server VM (build 25.191-b12, mixed mode)
 
 ```
 $ cd # go to your home dir
-$ git clone https://github.com/wl-net/arcusplatform.git
+$ git clone https://github.com/arcus-smart-home/arcusplatform.git
 $ cd arcusplatform
 $ ./gradlew :platform:arcus-khakis:startPlatform
 $ ./gradlew startService
@@ -101,6 +101,20 @@ You can use oculus (`./gradlew :tools:oculus:run`) to login, assuming that clien
 
 This is more difficult than it sounds, because of mtls. You need to get a certificate issued for your site and add the root ca for your certificate into the java keystore on the hub.
 Otherwise, you may need to disable TLS and hard code your hub into platform/arcus-hubsession/src/main/java/com/iris/hubcom/server/session/HubClient.java:30 in order to "authenticate" the hub. The latter of these approaches is obviously not recommended.
+
+If you decide to use LetsEncrypt as your CA, then you can easily replace the trust store on your device with the one in this jar file, which will trust LetEncrypt (both the DST and ISRG roots). Execute the following on your hub (a
+
+```
+# md5sum  /data/agent/libs/iris2-hub-controller-2.13.22.jar
+276ed29f2ff79eb99f6bab0072621f7b  /data/agent/libs/iris2-hub-controller-2.13.22.jar
+```
+If you see a different version, you will need to update your hub first. Instructions on how to do so are TBD.
+
+```
+# curl https://tools.arcus.wl-net.net/files/iris2-system-2.13.22.jar --output /data/agent/libs/iris2-system-2.13.22.jar 
+```
+
+Now follow the instructions in tools/hubdebug and set `IRIS_GATEWAY_URI` to your server. Assuming you did this correctly, your hub should start blinking a green light, instead of green & red lights.
 
 ## Debugging
 
