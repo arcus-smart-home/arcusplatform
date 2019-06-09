@@ -52,11 +52,11 @@ public class DirectMessageExecutor {
    private final RefuseConnectionException refuseConnection;
 
    private ExecutorService pool;
-   private final Map<String,DirectMessageHandler> handlers = new HashMap<>();
+   private final Map<String, DirectMessageHandler> handlers = new HashMap<>();
 
    @Inject
    public DirectMessageExecutor(Set<DirectMessageHandler> handlers) {
-      if(handlers != null) {
+      if (handlers != null) {
          handlers.forEach((h) -> this.handlers.put(h.supportsMessageType(), h));
       }
 
@@ -64,7 +64,7 @@ public class DirectMessageExecutor {
    }
 
    public boolean handle(final Session session, final PlatformMessage msg) {
-      if(handlers.containsKey(msg.getMessageType())) {
+      if (handlers.containsKey(msg.getMessageType())) {
          try {
             pool.execute(() -> {
                DirectMessageHandler handler = handlers.get(msg.getMessageType());
@@ -81,14 +81,14 @@ public class DirectMessageExecutor {
    @PostConstruct
    public void init() {
       pool = new ThreadPoolBuilder()
-         .withNameFormat("hub-directmsg-%d")
-         .withMetrics("hub.direct.message")
-         .withMaxPoolSize(poolSize)
-         .withCorePoolSize(poolSize)
-         .withPrestartCoreThreads(true)
-         .withDaemon(true)
-         .withMaxBacklog(poolQueueSize)
-         .build();
+            .withNameFormat("hub-directmsg-%d")
+            .withMetrics("hub.direct.message")
+            .withMaxPoolSize(poolSize)
+            .withCorePoolSize(poolSize)
+            .withPrestartCoreThreads(true)
+            .withDaemon(true)
+            .withMaxBacklog(poolQueueSize)
+            .build();
    }
 
    @PreDestroy
@@ -96,8 +96,7 @@ public class DirectMessageExecutor {
       try {
          pool.shutdownNow();
          pool.awaitTermination(30, TimeUnit.SECONDS);
-      }
-      catch(Exception e) {
+      } catch (Exception e) {
          logger.warn("Failed clean shutdown", e);
       }
    }

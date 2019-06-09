@@ -36,35 +36,34 @@ import com.iris.messages.MessageConstants;
 @Singleton
 public class ProtocolBusServiceImpl extends AbstractProtocolBusService {
    private static final Logger logger = LoggerFactory.getLogger(ProtocolBusServiceImpl.class);
-   private static final Set<AddressMatcher> ADDRESSES = 
+   private static final Set<AddressMatcher> ADDRESSES =
          AddressMatchers.hubNamespaces(MessageConstants.PROTOCOL);
-	
-	@Inject
-	public ProtocolBusServiceImpl(
-	      ProtocolMessageBus protocolBus, 
-			BridgeMetrics bridgeMetrics,
-			Set<ProtocolBusListener> listeners
-	) {
-		super(protocolBus, ADDRESSES, bridgeMetrics);
-		for(ProtocolBusListener listener: listeners) {
-		   addProtocolListener(listener);
-		}
-	}
-	
-	@Override
-	public void handleProtocolMessage(ProtocolMessage msg) {
-	   logger.trace("Handling Protocol Msg: {}", msg);
-	   bridgeMetrics.incProtocolMsgReceivedCounter();
-	   ClientToken ct = HubClientToken.fromAddress(msg.getDestination());
-	   if(ct != null) {
-   		for (ProtocolBusListener listener : listeners) {
-   			listener.onMessage(ct, msg);
-   		}
-	   }
-	   else {
-	      bridgeMetrics.incProtocolMsgDiscardedCounter();
-	   }
-	}
+
+   @Inject
+   public ProtocolBusServiceImpl(
+         ProtocolMessageBus protocolBus,
+         BridgeMetrics bridgeMetrics,
+         Set<ProtocolBusListener> listeners
+   ) {
+      super(protocolBus, ADDRESSES, bridgeMetrics);
+      for (ProtocolBusListener listener : listeners) {
+         addProtocolListener(listener);
+      }
+   }
+
+   @Override
+   public void handleProtocolMessage(ProtocolMessage msg) {
+      logger.trace("Handling Protocol Msg: {}", msg);
+      bridgeMetrics.incProtocolMsgReceivedCounter();
+      ClientToken ct = HubClientToken.fromAddress(msg.getDestination());
+      if (ct != null) {
+         for (ProtocolBusListener listener : listeners) {
+            listener.onMessage(ct, msg);
+         }
+      } else {
+         bridgeMetrics.incProtocolMsgDiscardedCounter();
+      }
+   }
 
 }
 

@@ -38,60 +38,60 @@ import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.util.MdcContext.MdcContextReference;
 
 public class HubPlatformBusListener implements PlatformBusListener {
-	private final static Logger logger = LoggerFactory.getLogger(HubPlatformBusListener.class);
+   private final static Logger logger = LoggerFactory.getLogger(HubPlatformBusListener.class);
 
-	private final static int BANNED_DISCONNECT_CODE = 4655;
+   private final static int BANNED_DISCONNECT_CODE = 4655;
 
-	private final HubMessageFilter filter;
-	private final SessionRegistry sessionRegistry;
-	private final Serializer<PlatformMessage> platformSerializer;
-	private final Serializer<HubMessage> hubSerializer;
+   private final HubMessageFilter filter;
+   private final SessionRegistry sessionRegistry;
+   private final Serializer<PlatformMessage> platformSerializer;
+   private final Serializer<HubMessage> hubSerializer;
 
-	@Inject
-	public HubPlatformBusListener(HubMessageFilter filter, SessionRegistry sessionRegistry) {
-	   this.filter = filter;
-	   this.sessionRegistry = sessionRegistry;
-	   this.platformSerializer = JSON.createSerializer(PlatformMessage.class);
-	   this.hubSerializer = JSON.createSerializer(HubMessage.class);
-	}
+   @Inject
+   public HubPlatformBusListener(HubMessageFilter filter, SessionRegistry sessionRegistry) {
+      this.filter = filter;
+      this.sessionRegistry = sessionRegistry;
+      this.platformSerializer = JSON.createSerializer(PlatformMessage.class);
+      this.hubSerializer = JSON.createSerializer(HubMessage.class);
+   }
 
-	@Override
-	public void onMessage(ClientToken ct, PlatformMessage msg) {
-		Session session = sessionRegistry.getSession(ct);
-		try(MdcContextReference ref = BridgeMdcUtil.captureAndInitializeContext(session, msg)) {
-   		// these are handled by the platform
-   		if(HubCapability.DeleteRequest.NAME.equals(msg.getMessageType())) {
-   		   return;
-   		}
-   
-   		if(session == null) {
-   	      // these are owned by another bridge or hub-service
-   		   return;
-   		}
-   
-   		switch(msg.getMessageType()) {
-   		case CellBackupSubsystemCapability.CellAccessBannedEvent.NAME:
-   		case CellBackupSubsystemCapability.CellAccessUnbannedEvent.NAME:
-   		   if(Objects.equals(HubNetworkCapability.TYPE_3G, ((HubSession) session).getConnectionType())) {
-   		      session.disconnect(BANNED_DISCONNECT_CODE);
-   		      session.destroy();
-   		   }
-   		   return;
-   		default:
-   		   /* no op */
-   		}
-   
-   		boolean accepted = filter.acceptFromPlatform((HubSession) session, msg);
-   		if(!accepted) {
-   		   // increment a counter;
-   		   return;
-   		}
-   
-   		byte[] payload = platformSerializer.serialize(msg);
-   		byte[] message = hubSerializer.serialize(HubMessage.createPlatform(payload));
-   		session.sendMessage(message);
-		}
-	}
+   @Override
+   public void onMessage(ClientToken ct, PlatformMessage msg) {
+      Session session = sessionRegistry.getSession(ct);
+      try (MdcContextReference ref = BridgeMdcUtil.captureAndInitializeContext(session, msg)) {
+         // these are handled by the platform
+         if (HubCapability.DeleteRequest.NAME.equals(msg.getMessageType())) {
+            return;
+         }
+
+         if (session == null) {
+            // these are owned by another bridge or hub-service
+            return;
+         }
+
+         switch (msg.getMessageType()) {
+            case CellBackupSubsystemCapability.CellAccessBannedEvent.NAME:
+            case CellBackupSubsystemCapability.CellAccessUnbannedEvent.NAME:
+               if (Objects.equals(HubNetworkCapability.TYPE_3G, ((HubSession) session).getConnectionType())) {
+                  session.disconnect(BANNED_DISCONNECT_CODE);
+                  session.destroy();
+               }
+               return;
+            default:
+               /* no op */
+         }
+
+         boolean accepted = filter.acceptFromPlatform((HubSession) session, msg);
+         if (!accepted) {
+            // increment a counter;
+            return;
+         }
+
+         byte[] payload = platformSerializer.serialize(msg);
+         byte[] message = hubSerializer.serialize(HubMessage.createPlatform(payload));
+         session.sendMessage(message);
+      }
+   }
 
 }
 

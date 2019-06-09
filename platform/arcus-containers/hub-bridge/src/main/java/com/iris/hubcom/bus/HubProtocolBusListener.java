@@ -34,43 +34,43 @@ import com.iris.protocol.ProtocolMessage;
 import com.iris.util.MdcContext.MdcContextReference;
 
 public class HubProtocolBusListener implements ProtocolBusListener {
-	private final static Logger logger = LoggerFactory.getLogger(HubProtocolBusListener.class);
-	private final ProtocolMessageBus protocolMessageBus;
-	private final HubMessageFilter filter;
-	private final SessionRegistry sessionRegistry;
+   private final static Logger logger = LoggerFactory.getLogger(HubProtocolBusListener.class);
+   private final ProtocolMessageBus protocolMessageBus;
+   private final HubMessageFilter filter;
+   private final SessionRegistry sessionRegistry;
    private final Serializer<ProtocolMessage> protocolSerializer;
    private final Serializer<HubMessage> hubSerializer;
 
-	@Inject
-	public HubProtocolBusListener(ProtocolMessageBus protocolMessageBus, HubMessageFilter filter, SessionRegistry sessionRegistry) {
-	   this.protocolMessageBus = protocolMessageBus;
-	   this.filter = filter;
-	   this.sessionRegistry = sessionRegistry;
+   @Inject
+   public HubProtocolBusListener(ProtocolMessageBus protocolMessageBus, HubMessageFilter filter, SessionRegistry sessionRegistry) {
+      this.protocolMessageBus = protocolMessageBus;
+      this.filter = filter;
+      this.sessionRegistry = sessionRegistry;
       this.protocolSerializer = JSON.createSerializer(ProtocolMessage.class);
       this.hubSerializer = JSON.createSerializer(HubMessage.class);
-	}
+   }
 
-	@Override
-	public void onMessage(ClientToken ct, ProtocolMessage msg) {
-		Session session = sessionRegistry.getSession(ct);
-      if(session == null) {
+   @Override
+   public void onMessage(ClientToken ct, ProtocolMessage msg) {
+      Session session = sessionRegistry.getSession(ct);
+      if (session == null) {
          // these are owned by another bridge or hub-service
          return;
       }
-	   
-      try(MdcContextReference ref = BridgeMdcUtil.captureAndInitializeContext(session, msg)) {
-   	   boolean accepted = filter.acceptFromProtocol((HubSession) session, msg);
-   	   if(!accepted) {
-   	      // TODO increment a counter
-   	      return;
-   	   }
-   	   
+
+      try (MdcContextReference ref = BridgeMdcUtil.captureAndInitializeContext(session, msg)) {
+         boolean accepted = filter.acceptFromProtocol((HubSession) session, msg);
+         if (!accepted) {
+            // TODO increment a counter
+            return;
+         }
+
          byte[] payload = protocolSerializer.serialize(msg);
          byte[] message = hubSerializer.serialize(HubMessage.createProtocol(payload));
          session.sendMessage(message);
       }
 
-	}
+   }
 
 }
 
