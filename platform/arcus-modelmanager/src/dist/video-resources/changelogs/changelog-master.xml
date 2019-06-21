@@ -9,4 +9,5 @@
   <cl:import file="video-2.13.0.xml"/>
   <cl:import file="video-2018.7.0.xml"/>
   <cl:import file="video-2018.9.0.xml"/>
+  <cl:import file="video-2019.6.0.xml"/>
 </cl:changelog>
