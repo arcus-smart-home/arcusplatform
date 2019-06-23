@@ -6,7 +6,7 @@ USER root
 # Initial system configuration
 RUN \
     apt-get update && \
-    apt-get install -y wget && \
+    apt-get install -y wget runit && \
     useradd -M -U -r -s /bin/false kafka && \
     rm -rf /var/lib/apt/lists/*
 
@@ -23,8 +23,8 @@ RUN \
     chown -R arcus:arcus /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 
 RUN \
-    /bin/bash -c '127.0.0.1	kafka.eyeris' && \
-    /bin/bash -c '127.0.0.1     kafkaops.eyeris'
+    /bin/bash -c 'echo "127.0.0.1	kafka.eyeris" > /etc/hosts' && \
+    /bin/bash -c 'echo "127.0.0.1     kafkaops.eyeris" > /etc/hosts'
 
 # Add Apache Kafka control script and debug utilities
 ADD kafka-cmd /usr/bin/kafka-cmd 
