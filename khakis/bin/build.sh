@@ -13,6 +13,7 @@ if [ -z "${IMAGES}" ]; then
     IMAGES="${IMAGES} eyeris-zookeeper"
     IMAGES="${IMAGES} eyeris-kafka"
     IMAGES="${IMAGES} eyeris-cassandra"
+    IMAGES="${IMAGES} eyeris-kairosdb"
 fi
 
 # Build the requested images
