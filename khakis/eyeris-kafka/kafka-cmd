@@ -78,6 +78,9 @@ kafka_init() {
         echo "log.message.format.version=0.10.0.1" >> $KAFKA_HOME/config/server.properties
     fi 
 
+    if [[ -n ${KAFKA_LOG_SEGMENT_BYTES} ]] ; then
+        echo "log.segment.bytes=${KAFKA_LOG_SEGMENT_BYTES}" >> $KAFKA_HOME/config/server.properties
+    fi
 
     if [[ -n ${KAFKA_AUTO_CREATE_TOPICS_ENABLE} ]] ; then
         echo "auto.create.topics.enable=${KAFKA_AUTO_CREATE_TOPICS_ENABLE}" >> $KAFKA_HOME/config/server.properties
