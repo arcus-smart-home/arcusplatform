@@ -35,38 +35,37 @@ import com.iris.messages.MessageConstants;
 
 @Singleton
 public class PlatformBusServiceImpl extends AbstractPlatformBusService {
-	private static final Logger logger = LoggerFactory.getLogger(PlatformBusServiceImpl.class);
-	
-	private static final Set<AddressMatcher> ADDRESSES = 
-	      AddressMatchers.hubNamespaces(
-	            MessageConstants.BROADCAST, MessageConstants.SERVICE, 
-	            MessageConstants.DRIVER, MessageConstants.HUB
-         );
-	
-	@Inject
-	public PlatformBusServiceImpl(PlatformMessageBus platformBus, BridgeMetrics bridgeMetrics, Set<PlatformBusListener> listeners) {
-	   super(platformBus, bridgeMetrics, ADDRESSES);
-	   for(PlatformBusListener listener: listeners) {
-	      addPlatformListener(listener);
-	   }
-	}
+   private static final Logger logger = LoggerFactory.getLogger(PlatformBusServiceImpl.class);
 
-	@Override
-	public void handlePlatformMessage(PlatformMessage msg) {
-	   logger.trace("Handling Platform Msg: {}", msg);
-	   bridgeMetrics.incPlatformMsgReceivedCounter();
-	   
-	   ClientToken ct = HubClientToken.fromAddress(msg.getDestination());
-	   if(ct != null) {
-   		for (PlatformBusListener listener : listeners) {
-   			listener.onMessage(ct, msg);
-   		}
-	   }
-	   else {
-	      logger.trace("Ignoring non-hub message [{}]", msg);
-	      bridgeMetrics.incPlatformMsgDiscardedCounter();
-	   }
-	}
+   private static final Set<AddressMatcher> ADDRESSES =
+         AddressMatchers.hubNamespaces(
+               MessageConstants.BROADCAST, MessageConstants.SERVICE,
+               MessageConstants.DRIVER, MessageConstants.HUB
+         );
+
+   @Inject
+   public PlatformBusServiceImpl(PlatformMessageBus platformBus, BridgeMetrics bridgeMetrics, Set<PlatformBusListener> listeners) {
+      super(platformBus, bridgeMetrics, ADDRESSES);
+      for (PlatformBusListener listener : listeners) {
+         addPlatformListener(listener);
+      }
+   }
+
+   @Override
+   public void handlePlatformMessage(PlatformMessage msg) {
+      logger.trace("Handling Platform Msg: {}", msg);
+      bridgeMetrics.incPlatformMsgReceivedCounter();
+
+      ClientToken ct = HubClientToken.fromAddress(msg.getDestination());
+      if (ct != null) {
+         for (PlatformBusListener listener : listeners) {
+            listener.onMessage(ct, msg);
+         }
+      } else {
+         logger.trace("Ignoring non-hub message [{}]", msg);
+         bridgeMetrics.incPlatformMsgDiscardedCounter();
+      }
+   }
 
 }
 

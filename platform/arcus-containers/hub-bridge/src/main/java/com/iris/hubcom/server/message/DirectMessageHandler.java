@@ -56,7 +56,7 @@ public abstract class DirectMessageHandler {
    public abstract String supportsMessageType();
 
    public void handle(Session session, PlatformMessage msg) {
-      if(!supportsMessageType().equals(msg.getMessageType())) {
+      if (!supportsMessageType().equals(msg.getMessageType())) {
          return;
       }
       doHandle(session, msg);
@@ -73,14 +73,14 @@ public abstract class DirectMessageHandler {
    }
 
    private void authorized(Session session, Address hubAddress, String placeId, String correlationId) {
-   	if(!placeId.equals(session.getActivePlace())) {
-   		SessionUtil.setPlace(placeId, session);
-   	}
+      if (!placeId.equals(session.getActivePlace())) {
+         SessionUtil.setPlace(placeId, session);
+      }
       updateSessionState(session, State.AUTHORIZED);
       updateUnauthorizedReason(session, null);
 
       sendToHub(session, PlatformMessage.buildMessage(
-            MessageBody.buildMessage(MessageConstants.MSG_HUB_AUTHORIZED_EVENT, Collections.<String,Object>emptyMap()),
+            MessageBody.buildMessage(MessageConstants.MSG_HUB_AUTHORIZED_EVENT, Collections.<String, Object>emptyMap()),
             Address.platformService(PlatformConstants.SERVICE_HUB),
             hubAddress)
             .withPlaceId(placeId)
@@ -91,7 +91,7 @@ public abstract class DirectMessageHandler {
    protected void sendToHub(Session session, PlatformMessage msg) {
       byte[] payload = platformMessageSerializer.serialize(msg);
       byte[] message = hubMessageSerializer.serialize(HubMessage.createPlatform(payload));
-      if(session.getChannel().isActive()) {
+      if (session.getChannel().isActive()) {
          session.sendMessage(message);
       } else {
          log.warn("discarding message {} disconnected session {}", msg, session.getClientToken());
@@ -104,22 +104,22 @@ public abstract class DirectMessageHandler {
 
    protected void updateSessionState(Session session, State newState) {
       HubSession hubSession = (HubSession) session;
-      if(hubSession.getUnauthReason() == UnauthorizedReason.UNAUTHENTICATED) {
+      if (hubSession.getUnauthReason() == UnauthorizedReason.UNAUTHENTICATED) {
          throw new IllegalStateException("Can't change the state of an unauthenticated hub");
       }
-      if(session.getChannel().isOpen()) {
+      if (session.getChannel().isOpen()) {
          hubSession.setState(newState);
       }
    }
 
    protected void updateUnauthorizedReason(Session session, UnauthorizedReason reason) {
-      if(session.getChannel().isOpen()) {
+      if (session.getChannel().isOpen()) {
          ((HubSession) session).setUnauthReason(reason);
       }
    }
-   
+
    protected PlacePopulationCacheManager getPlacePopulationCacheManager() {
-   	return populationCacheMgr;
+      return populationCacheMgr;
    }
 }
 
