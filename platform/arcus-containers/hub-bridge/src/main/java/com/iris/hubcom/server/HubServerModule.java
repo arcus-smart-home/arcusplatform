@@ -83,121 +83,127 @@ import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 
-@Modules(include = { 
-		HubRegistrationModule.class,
-		PlacePopulationCacheModule.class,
-		PairingDeviceDaoModule.class
+@Modules(include = {
+        HubRegistrationModule.class,
+        PlacePopulationCacheModule.class,
+        PairingDeviceDaoModule.class
 })
 public class HubServerModule extends AbstractIrisModule {
-   private static final Logger log = LoggerFactory.getLogger(HubServerModule.class);
-   private boolean clientAuthRequired;
-   
-   @Inject
-   public HubServerModule(BridgeServerConfig config, BridgeConfigModule bridge, HubAuthModule noauth, HubSessionModule sessions) {
-      this.clientAuthRequired = config.isTlsNeedClientAuth();
-   }
+    private static final Logger log = LoggerFactory.getLogger(HubServerModule.class);
+    private boolean clientAuthRequired;
 
-	@Override
-	protected void configure() {
-		bind(TrustConfig.class);
+    @Inject
+    public HubServerModule(BridgeServerConfig config, BridgeConfigModule bridge, HubAuthModule noauth, HubSessionModule sessions) {
+        this.clientAuthRequired = config.isTlsNeedClientAuth();
+    }
 
-		bind(HubMessageFilter.class).to(DefaultHubMessageFilterImpl.class);
+    @Override
+    protected void configure() {
+        bind(TrustConfig.class);
 
-		bind(BridgeServerTlsContext.class).to(BridgeServerTlsContextImpl.class);
-      bind(BridgeServerTrustManagerFactory.class).to(HubTrustManagerFactoryImpl.class);
-		bind(PlatformBusService.class).to(PlatformBusServiceImpl.class).asEagerSingleton();
-		bind(ProtocolBusService.class).to(ProtocolBusServiceImpl.class).asEagerSingleton();
-		bindSetOf(PlatformBusListener.class)
-		   .addBinding()
-		   .to(HubPlatformBusListener.class);
-		
-      bindSetOf(ProtocolBusListener.class)
-         .addBinding()
-   		.to(HubProtocolBusListener.class);      
-      
-		bind(new TypeLiteral<DeviceMessageHandler<ByteBuf>>(){}).to(HubMessageHandler.class);
+        bind(HubMessageFilter.class).to(DefaultHubMessageFilterImpl.class);
 
-		Multibinder<DirectMessageHandler> directHandlers = bindSetOf(DirectMessageHandler.class);
-		directHandlers.addBinding().to(HubConnectedHandler.class);
-		directHandlers.addBinding().to(HubRegisteredResponseHandler.class);
-		directHandlers.addBinding().to(HubFirmwareUpgradeProcessEventHandler.class);
-		directHandlers.addBinding().to(HubFirmwareUpdateResponseHandler.class);
-		
+        bind(BridgeServerTlsContext.class).to(BridgeServerTlsContextImpl.class);
+        bind(BridgeServerTrustManagerFactory.class).to(HubTrustManagerFactoryImpl.class);
+        bind(PlatformBusService.class).to(PlatformBusServiceImpl.class).asEagerSingleton();
+        bind(ProtocolBusService.class).to(ProtocolBusServiceImpl.class).asEagerSingleton();
+        bindSetOf(PlatformBusListener.class)
+                .addBinding()
+                .to(HubPlatformBusListener.class);
 
-		bind(new TypeLiteral<ChannelInitializer<SocketChannel>>(){}).to(Bridge10ChannelInitializer.class);
-		bind(ChannelInboundHandler.class).toProvider(Binary10WebSocketServerHandlerProvider.class);
+        bindSetOf(ProtocolBusListener.class)
+                .addBinding()
+                .to(HubProtocolBusListener.class);
 
-		bind(RequestMatcher.class).annotatedWith(Names.named("WebSocketUpgradeMatcher")).to(WebSocketUpgradeMatcher.class);
-      bind(RequestAuthorizer.class).annotatedWith(Names.named("SessionAuthorizer")).to(AlwaysAllow.class);
+        bind(new TypeLiteral<DeviceMessageHandler<ByteBuf>>() {
+        }).to(HubMessageHandler.class);
 
-      // No Session Listeners
-      Multibinder<SessionListener> slBindings = Multibinder.newSetBinder(binder(), SessionListener.class);
+        Multibinder<DirectMessageHandler> directHandlers = bindSetOf(DirectMessageHandler.class);
+        directHandlers.addBinding().to(HubConnectedHandler.class);
+        directHandlers.addBinding().to(HubRegisteredResponseHandler.class);
+        directHandlers.addBinding().to(HubFirmwareUpgradeProcessEventHandler.class);
+        directHandlers.addBinding().to(HubFirmwareUpdateResponseHandler.class);
 
-      // Bind Http Handlers
-      Multibinder<RequestHandler> rhBindings = Multibinder.newSetBinder(binder(), RequestHandler.class);
-      if(clientAuthRequired) {
-         rhBindings.addBinding().to(RootRedirect.class);
-         rhBindings.addBinding().to(IndexPage.class);
-      }
-      else {
-         rhBindings.addBinding().to(RootRemoteRedirect.class);
-      }
-      rhBindings.addBinding().to(CheckPage.class);
 
-	}
+        bind(new TypeLiteral<ChannelInitializer<SocketChannel>>() {
+        }).to(Bridge10ChannelInitializer.class);
+        bind(ChannelInboundHandler.class).toProvider(Binary10WebSocketServerHandlerProvider.class);
 
-   @Provides @Named(DefaultHubMessageFilterImpl.ADMIN_ADDRESS_PROP) @Singleton
-   public Predicate<Address> getHubAdminAddresses(@Named("hub.bridge.admin.addresses") String adminAddresses) {
-      return AddressMatchers.fromCsvString(adminAddresses);
-   }
+        bind(RequestMatcher.class).annotatedWith(Names.named("WebSocketUpgradeMatcher")).to(WebSocketUpgradeMatcher.class);
+        bind(RequestAuthorizer.class).annotatedWith(Names.named("SessionAuthorizer")).to(AlwaysAllow.class);
 
-   @Provides @Named(DefaultHubMessageFilterImpl.ADMIN_ONLY_MESSAGES_PROP) @Singleton
-   public Predicate<String> getHubAdminOnlyMessages(@Named("hub.bridge.admin.only.messages") String adminOnlyMessages) {
-      List<Predicate<String>> components = new ArrayList<>();
-         
-      for (String msg : Splitter.on(',').omitEmptyStrings().trimResults().split(adminOnlyMessages)) {
-         List<String> parts = Splitter.on(':').splitToList(msg);
-         switch (parts.size()) {
-         case 2:
-            if (parts.get(1).isEmpty() || "*".equals(parts.get(1))) {
-               final String capMatch = parts.get(0) + ":";
-               log.warn("adding all commands to admin only list: {}", parts.get(0));
-               components.add(new Predicate<String>() {
-                  @Override
-                  public boolean apply(String msgType) {
-                     return msgType != null && msgType.startsWith(capMatch);
-                  }
-               });
-            } else {
-               log.warn("adding command to admin only list: {}", msg);
-               components.add(Predicates.equalTo(msg));
+        // No Session Listeners
+        Multibinder<SessionListener> slBindings = Multibinder.newSetBinder(binder(), SessionListener.class);
+
+        // Bind Http Handlers
+        Multibinder<RequestHandler> rhBindings = Multibinder.newSetBinder(binder(), RequestHandler.class);
+        if (clientAuthRequired) {
+            rhBindings.addBinding().to(RootRedirect.class);
+            rhBindings.addBinding().to(IndexPage.class);
+        } else {
+            rhBindings.addBinding().to(RootRemoteRedirect.class);
+        }
+        rhBindings.addBinding().to(CheckPage.class);
+
+    }
+
+    @Provides
+    @Named(DefaultHubMessageFilterImpl.ADMIN_ADDRESS_PROP)
+    @Singleton
+    public Predicate<Address> getHubAdminAddresses(@Named("hub.bridge.admin.addresses") String adminAddresses) {
+        return AddressMatchers.fromCsvString(adminAddresses);
+    }
+
+    @Provides
+    @Named(DefaultHubMessageFilterImpl.ADMIN_ONLY_MESSAGES_PROP)
+    @Singleton
+    public Predicate<String> getHubAdminOnlyMessages(@Named("hub.bridge.admin.only.messages") String adminOnlyMessages) {
+        List<Predicate<String>> components = new ArrayList<>();
+
+        for (String msg : Splitter.on(',').omitEmptyStrings().trimResults().split(adminOnlyMessages)) {
+            List<String> parts = Splitter.on(':').splitToList(msg);
+            switch (parts.size()) {
+                case 2:
+                    if (parts.get(1).isEmpty() || "*".equals(parts.get(1))) {
+                        final String capMatch = parts.get(0) + ":";
+                        log.warn("adding all commands to admin only list: {}", parts.get(0));
+                        components.add(new Predicate<String>() {
+                            @Override
+                            public boolean apply(String msgType) {
+                                return msgType != null && msgType.startsWith(capMatch);
+                            }
+                        });
+                    } else {
+                        log.warn("adding command to admin only list: {}", msg);
+                        components.add(Predicates.equalTo(msg));
+                    }
+                    break;
+
+                default:
+                    log.warn("adding non-conforming command to admin only list: {}", msg);
+                    components.add(Predicates.equalTo(msg));
+                    break;
             }
-            break;
 
-         default:
-            log.warn("adding non-conforming command to admin only list: {}", msg);
-            components.add(Predicates.equalTo(msg));
-            break;
-         }
+        }
 
-      }
+        switch (components.size()) {
+            case 0:
+                return Predicates.alwaysFalse();
 
-      switch (components.size()) {
-      case 0:
-         return Predicates.alwaysFalse();
-      
-      case 1:
-         return components.get(0);
+            case 1:
+                return components.get(0);
 
-      default:
-         return Predicates.or(components);
-      } 
-   }
+            default:
+                return Predicates.or(components);
+        }
+    }
 
-   @Provides @Singleton
-   public BridgeMetrics provideBridgeMetrics() {
-      return new BridgeMetrics("hub");
-   }
+    @Provides
+    @Singleton
+    public BridgeMetrics provideBridgeMetrics() {
+        return new BridgeMetrics("hub");
+    }
 
 }
 
