@@ -45,11 +45,12 @@ public class TemplateMessageRenderer implements NotificationMessageRenderer {
    public static final String CUSTOM_MESSAGE_KEY="customMessage";
    private final static String CUSTOM_TEMPLATE="custom.notification";
    private final static String RESOURCE_SERVER_URL_KEY="static.resource.server.url";
+   private final static String TWITTER_UNAME_KEY = "twitter.uname";
    private final static String REDIRECT_BASE_URL_KEY="redirect.base.url";
-	private static final String WEBHOME_BASE_URL_KEY = "webhome.base.url";
+   private static final String WEBHOME_BASE_URL_KEY = "webhome.base.url";
    
    @Inject @Named(RESOURCE_SERVER_URL_KEY) String staticResourceServerUrl;      
-   @Inject @Named(TWITTER_UNAME_CONTEXT_KEY) String atTwitter;
+   @Inject @Named(TWITTER_UNAME_KEY) String atTwitter;
    @Inject @Named(REDIRECT_BASE_URL_KEY) String redirectBaseUrl;
    @Inject @Named(WEBHOME_BASE_URL_KEY) String webHomeBaseUrl;
    

@@ -53,7 +53,7 @@ public class TestMessages extends IrisMockTestCase {
 	public static final String MSG_KEY_ENUM = "enum";
 	
 	static {
-		System.setProperty("_atTwitter", "tweet");
+		System.setProperty("twitter.uname", "tweet");
 		System.setProperty("static.resource.server.url", "http://fakeurl");
 	}
 	
