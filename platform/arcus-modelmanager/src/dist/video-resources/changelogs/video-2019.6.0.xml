@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2019.6.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="changeRecordingCompaction" author="andrewx192">
+      <cl:description>Change recording_v2 compaction strategy</cl:description>
+      <cl:tracking></cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER table recording_v2 WITH compaction =
+            {'class': 'org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:update>
+         <cl:rollback>ALTER table recording_v2 WITH compaction =
+            {'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="changeRecordingMetadataCompaction" author="andrewx192">
+      <cl:description>Change recording_metadata_v2 compaction strategy</cl:description>
+      <cl:tracking></cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER table recording_metadata_v2 WITH compaction =
+            {'class': 'org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:update>
+         <cl:rollback>ALTER table recording_metadata_v2 WITH compaction =
+            {'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+   <cl:changeset identifier="changePlaceRecordingCompaction" author="andrewx192">
+      <cl:description>Change compaction strategy</cl:description>
+      <cl:tracking></cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER table place_recording_index_v2 WITH compaction =
+            {'class': 'org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:update>
+         <cl:rollback>ALTER table place_recording_index_v2 WITH compaction =
+            {'class': 'com.jeffjirsa.cassandra.db.compaction.TimeWindowCompactionStrategy',
+            'compaction_window_size': '1', 'compaction_window_unit': 'DAYS'};</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+</cl:changelog>
