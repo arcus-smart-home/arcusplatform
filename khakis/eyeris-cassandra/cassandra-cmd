@@ -115,6 +115,10 @@ cassandra_init() {
         CASSANDRA_ENDPOINT_SNITCH="SimpleSnitch"
     fi
 
+    if [[ -n "${CASSANDRA_COMMITLOG_TOTAL_SPACE_IN_MB}" ]]; then
+	sed -i "s/^# commitlog_total_space_in_mb:\s.*$/commitlog_total_space_in_mb: ${CASSANDRA_COMMITLOG_TOTAL_SPACE_IN_MB}/" $CASSANDRA_HOME/conf/cassandra.yaml
+    fi
+
     sed -i "s/^\s*endpoint_snitch: SimpleSnitch$/endpoint_snitch: ${CASSANDRA_ENDPOINT_SNITCH}/" $CASSANDRA_HOME/conf/cassandra.yaml
 
     if [[ -n "${CASSANDRA_CONCURRENT_COMPACTORS}" ]]; then
