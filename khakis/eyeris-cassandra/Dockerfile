@@ -19,7 +19,7 @@ ENV CASSANDRA_VERSION 3.11.4
 
 # Download and install the required version of Apache Cassandra. 
 RUN \
-    wget --no-check-certificate https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -O /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
+    wget https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -O /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     tar xfz /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -C /opt && \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
     rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
