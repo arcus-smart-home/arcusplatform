@@ -57,6 +57,10 @@ autopurge.snapRetainCount=3
 autopurge.purgeInterval=1
 EOF
 
+    if [[ -n ${CLIENT_PORT_ADDRESS} ]] ; then
+        echo "clientPortAddress=${CLIENT_PORT_ADDRESS}" >> "${ZOOKEEPER_HOME}/conf/zoo.cfg"
+    fi
+
     cat >"${ZOOKEEPER_HOME}/conf/java.env" <<EOF
 export JVMFLAGS="-Xmx64m -Xms64m"
 EOF

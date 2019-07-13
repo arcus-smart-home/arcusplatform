@@ -58,7 +58,12 @@ kafka_init() {
     if [[ -n ${ADVERTISED_HSTN} ]] ; then
         echo "advertised.listeners=PLAINTEXT://$ADVERTISED_HSTN:9092" >> $KAFKA_HOME/config/server.properties
     fi
-    
+
+    if [[ -n ${LISTENERS} ]] ; then
+	# e.g. PLAINTEXT://localhost:9092 for Istio
+        echo "listeners=${LISTENERS}" >> $KAFKA_HOME/config/server.properties
+    fi
+
     if [[ -n ${KAFKA_PROTOCOL_VERSION} ]] ; then
         echo "inter.broker.protocol.version=${KAFKA_PROTOCOL_VERSION}" >> $KAFKA_HOME/config/server.properties
     else 
