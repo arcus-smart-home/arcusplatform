@@ -27,18 +27,16 @@ import java.util.concurrent.TimeUnit;
 
 public class ZigbeeLocalProcessingNoop implements ZigbeeLocalProcessing {
    public boolean isOffline(Address addr) {
-      return true;
+      return false;
    }
 
    public void setOfflineTimeout(Address addr, long offlineTimeout) {
-
    }
 
    public Observable<?> send(Address addr, Protocol.Message msg) {
       return Observable.empty();
    }
 
-   public  void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
-
+   public void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
    }
 }
