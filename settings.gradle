@@ -91,6 +91,7 @@ include 'agent:arcus-reflex-controller'
 include 'agent:arcus-alarm-controller'
 include 'agent:arcus-spy-controller'
 include 'agent:arcus-zw-controller'
+include 'agent:arcus-zigbee-controller'
 
 include 'agent:arcus-hal:api'
 include 'agent:arcus-hal:common'
