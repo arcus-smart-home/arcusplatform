@@ -64,6 +64,7 @@ import com.iris.agent.router.SnoopingPortHandler;
 import com.iris.agent.util.Backoff;
 import com.iris.agent.util.Backoffs;
 import com.iris.agent.util.RxIris;
+import com.iris.agent.zigbee.ZigbeeLocalProcessing;
 import com.iris.driver.reflex.ReflexAction;
 import com.iris.driver.reflex.ReflexActionBuiltin;
 import com.iris.driver.reflex.ReflexDefinition;
@@ -110,10 +111,12 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
 
    private final Timer timer;
    private final Router router;
+
+   private final ZigbeeLocalProcessing zigbee;
+
    /*
     * Disable protocols that use proprietary information.
     * 
-   private final ZigbeeLocalProcessing zigbee;
    private final ZWaveLocalProcessing zwave;
    private final SercommLocalProcessing sercomm;
    */
@@ -178,8 +181,8 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    @SuppressWarnings("null")
    public ReflexController(
       ReflexLocalProcessing localProcessing,
-      /*
       ZigbeeLocalProcessing zigbee,
+      /*
       ZWaveLocalProcessing zwave,
       SercommLocalProcessing sercomm,
       */
@@ -187,8 +190,9 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    ) {
       this.timer = new HashedWheelTimer();
       this.router = router;
-      /*
+
       this.zigbee = zigbee;
+      /*
       this.zwave = zwave;
       this.sercomm = sercomm;
       */
@@ -271,11 +275,11 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    // APIs for Drivers
    /////////////////////////////////////////////////////////////////////////////
    
-   /*
+
    public ZigbeeLocalProcessing zigbee() {
       return this.zigbee;
    }
-   
+   /*
    public ZWaveLocalProcessing zwave() {
       return this.zwave;
    }
