@@ -20,8 +20,11 @@ package com.iris.agent.zigbee;
 
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 import com.iris.messages.address.Address;
+import com.iris.protocol.zigbee.zcl.General;
+import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
@@ -31,4 +34,8 @@ public interface ZigbeeLocalProcessing {
    void setOfflineTimeout(Address addr, long offlineTimeout);
    Observable<?> send(Address addr, Protocol.Message msg);
    void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads);
+   long getNodeEui64(Address addr);
+   long eui64();
+   Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, Map<Short, ZclData> p4);
+   Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, General.ZclWriteAttributeRecord[] attrs);
 }

@@ -52,11 +52,7 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
 
    public AbstractZigbeeHubDriver(ReflexController parent, Address addr) {
       super(parent, addr);
-      /**
-       * This will need to be addressed if Zigbee support is present.
-       */
-      this.eui64 = 0l;
-      //this.eui64 = parent.zigbee().getNodeEui64(addr);
+      this.eui64 = parent.zigbee().getNodeEui64(addr);
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -504,8 +500,7 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
 
    public long hubEui64() {
       // This will need to addressed if Zigbee support is added.
-      return 0l;
-      //return parent.zigbee().eui64();
+      return parent.zigbee().eui64();
    }
 
    public Observable<ZdpBindRsp> bind(short profile, byte endpoint, short cluster, boolean server) {
@@ -545,15 +540,11 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
    }
 
    public Observable<General.ZclWriteAttributesResponse> write(short profile, byte endpoint, short cluster, Map<Short,ZclData> attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
+      return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<General.ZclWriteAttributesResponse> write(short profile, byte endpoint, short cluster, General.ZclWriteAttributeRecord[] attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
+       return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<General.ZclReadAttributesResponse> read(short profile, byte endpoint, short cluster, Collection<Short> attrs) {

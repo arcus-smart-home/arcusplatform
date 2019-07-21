@@ -19,24 +19,51 @@
 package com.iris.agent.zigbee;
 
 import com.iris.messages.address.Address;
+import com.iris.protocol.zigbee.ZclData;
+import com.iris.protocol.zigbee.zcl.General;
 import com.iris.protocol.zwave.Protocol;
 import rx.Observable;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ZigbeeLocalProcessingNoop implements ZigbeeLocalProcessing {
+   @Override
    public boolean isOffline(Address addr) {
       return false;
    }
 
+   @Override
    public void setOfflineTimeout(Address addr, long offlineTimeout) {
    }
 
+   @Override
    public Observable<?> send(Address addr, Protocol.Message msg) {
       return Observable.empty();
    }
 
+   @Override
    public void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
+   }
+
+   @Override
+   public long getNodeEui64(Address addr) {
+      return 0;
+   }
+
+   @Override
+   public long eui64() {
+      return 0;
+   }
+
+   @Override
+   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, Map<Short, ZclData> p4) {
+      return null;
+   }
+
+   @Override
+   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, General.ZclWriteAttributeRecord[] attrs) {
+      return null;
    }
 }
