@@ -19,8 +19,10 @@
 package com.iris.agent.zigbee;
 
 import com.iris.messages.address.Address;
+import com.iris.protoc.runtime.ProtocMessage;
 import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zigbee.zcl.General;
+import com.iris.protocol.zigbee.zdp.Bind;
 import com.iris.protocol.zwave.Protocol;
 import rx.Observable;
 
@@ -29,6 +31,31 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ZigbeeLocalProcessingDefault implements ZigbeeLocalProcessing {
+   @Override
+   public Observable<Bind.ZdpBindRsp> bind(long eui64, short profile, byte endpoint, short cluster, boolean server) {
+      return null;
+   }
+
+   @Override
+   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint, short cluster, Collection<Short> attrs) {
+      return null;
+   }
+
+   @Override
+   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint, short cluster, short[] attrs) {
+      return null;
+   }
+
+   @Override
+   public Observable<Boolean> zcl(long eui64, short profile, byte endpoint, short cluster, ProtocMessage req, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
+      return null;
+   }
+
+   @Override
+   public Observable<Boolean> zclmsp(long eui64, int manuf, short profile, short endpoint, short cluster, int cmd, byte[] data, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
+      return null;
+   }
+
    @Override
    public boolean isOffline(Address addr) {
       return true;
