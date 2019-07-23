@@ -14,12 +14,12 @@ SUPPORT_KEYSPACE=support
 VIDEO_KEYSPACE=video
 HISTORY_KEYSPACE=history
 ANALYTICS_KEYSPACE=analytics
-
+CASSANDRA_HOSTNAME=${CASSANDRA_HOSTNAME:-$HOSTNAME}
 CASSANDRA_REPLICATION=${CASSANDRA_REPLICATION:-3}
 
 check_cassandra() {
    # cqlsh will return an error code if it can't connect to cassandra
-   echo "EXIT" | cqlsh $HOSTNAME &>/dev/null
+   echo "EXIT" | cqlsh $CASSANDRA_HOSTNAME &>/dev/null
 }
 
 # wait for cassandra to come online
@@ -44,35 +44,35 @@ else
 fi
 
 echo "Creating keyspace $KEYSPACE"
-echo "create keyspace $KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $HOSTNAME
+echo "create keyspace $KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create keyspace $KEYSPACE"
    exit -1
 fi
 
 echo "Creating support keyspace $SUPPORT_KEYSPACE"
-echo "create keyspace $SUPPORT_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $HOSTNAME
+echo "create keyspace $SUPPORT_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create support keyspace $SUPPORT_KEYSPACE"
    exit -1
 fi
 
 echo "Creating video keyspace $VIDEO_KEYSPACE"
-echo "create keyspace $VIDEO_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $HOSTNAME
+echo "create keyspace $VIDEO_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create support keyspace $VIDEO_KEYSPACE"
    exit -1
 fi
 
 echo "Creating history keyspace $HISTORY_KEYSPACE"
-echo "create keyspace $HISTORY_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $HOSTNAME
+echo "create keyspace $HISTORY_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create support keyspace $HISTORY_KEYSPACE"
    exit -1
 fi
 
 echo "Creating analytics keyspace $ANALYTICS_KEYSPACE"
-echo "create keyspace $ANALYTICS_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $HOSTNAME
+echo "create keyspace $ANALYTICS_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create support keyspace $ANALYTICS_KEYSPACE"
    exit -1
