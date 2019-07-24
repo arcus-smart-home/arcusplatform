@@ -28,5 +28,11 @@
 			description="The heat set point (see min / max on the selector for range)"
 			unit="C"
 			/>
+		<t:attribute
+				name="fanmode"
+				type="int"
+				description="The mode of the fan, 0 is auto, 1 is on"
+				optional="true"
+		/>
 	</t:attributes>
  </t:type>
