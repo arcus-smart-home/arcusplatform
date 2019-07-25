@@ -18,6 +18,7 @@
  */
 package com.iris.platform.scene.resolver;
 
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class ThermostatResolver extends BaseResolver {
    }
 
    private Action generateSetAttributes(ActionContext context, Address target, ThermostatAction action) {
-      Map<String, Object> attributes = new HashMap<String, Object>(4);
+      Map<String, Object> attributes = new HashMap<String, Object>(5);
       attributes.put(ThermostatCapability.ATTR_HVACMODE, action.getMode());
       switch(action.getMode()) {
       case ThermostatCapability.HVACMODE_AUTO:

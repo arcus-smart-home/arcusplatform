@@ -29,10 +29,10 @@
 			unit="C"
 			/>
 		<t:attribute
-				name="fanmode"
-				type="int"
-				description="The mode of the fan, 0 is auto, 1 is on"
-				optional="true"
+			name="fanmode"
+			type="int"
+			description="The mode of the fan, 0 is auto, 1 is on"
+			optional="true"
 		/>
 	</t:attributes>
  </t:type>
