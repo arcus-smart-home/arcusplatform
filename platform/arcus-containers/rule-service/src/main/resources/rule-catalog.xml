@@ -655,6 +655,46 @@
       </template>
 
 
+        <template id="tq29nhs" keywords="scene" tags="scene,pres"
+                  added="2019-05-09T00:00:00" modified="2019-05-09T00:00:00"
+                  name="Change thermostat fan depending on temperature condition"
+                  description="Turn on or off thermostat fan depending on whether ."
+                  extra="Check with your HVAC expert to ensure proper airflow through your home."
+                  premium="false">
+            <populations>
+                <population name="general" /> <population name="qa" /> <population name="beta" />
+            </populations>
+            <categories>
+                <category name="Climate" />
+            </categories>
+            <description>When ${device} temperature goes ${above or below} ${value}, then set ${therm} to ${level}.</description>
+            <conditions>
+                <attribute-value-threshold attribute="temp:temperature" source="${device}" threshold="${value}" trigger-when="${above or below}" sensitivity="1" />
+            </conditions>
+            <actions>
+                <device-query var="address" query="base:address == '${therm}' and therm:fanmode != '${level}'">
+                    <set-attribute to="${address}" name="therm:fanmode" value="${level}" />
+                </device-query>
+            </actions>
+            <selectors>
+                <selector type="device" name="device" query="base:caps contains 'temp'" />
+                <selector type="constant" name="above or below">
+                    <options>
+                        <option label="below" value="BELOW" />
+                        <option label="above" value="ABOVE" />
+                    </options>
+                </selector>
+                <selector type="device" name="therm" query="base:caps contains 'therm'" />
+                <selector type="constant" name="level">
+                    <options>
+                        <option label="AUTO" value="0" />
+                        <option label="ON" value="1" />
+                    </options>
+                </selector>
+                <selector type="temperature" name="value" min="20" max="105" increment="1" />
+            </selectors>
+        </template>
+
 		<template id="0b6ff3" keywords="mot" tags="mot,vent"
          added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
          name="Cool Whichever Room I am In"
