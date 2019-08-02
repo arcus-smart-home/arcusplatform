@@ -61,7 +61,7 @@ dependencies {
     reflexGeneratorRuntime libraries.guiceCore
     reflexGeneratorRuntime libraries.guiceMultibindings
     reflexGeneratorRuntime libraries.guava
-    reflexGeneratorRuntime libraries.groovy
+    reflexGeneratorRuntime "org.codehaus.groovy:groovy-all:2.4.10:indy" // gradle depends on 2.5, so override here
     reflexGeneratorRuntime libraries.gson
     reflexGeneratorRuntime libraries.commons_lang
     reflexGeneratorRuntime libraries.commonsCodec
