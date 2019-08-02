@@ -1,3 +1,5 @@
 common/arcus-model/platform-client/src/generated/
 common/arcus-model/platform-messages/src/generated/
 common/protocol-generator/src/generated/
+.idea
+.gradle
