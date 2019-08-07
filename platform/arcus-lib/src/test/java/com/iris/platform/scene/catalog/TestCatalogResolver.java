@@ -16,11 +16,12 @@
 
 package com.iris.platform.scene.catalog;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
+import com.iris.messages.MessageBody;
+import com.iris.platform.scene.resolver.ThermostatResolver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +51,9 @@ import com.iris.platform.scene.resolver.CatalogActionTemplateResolver;
 import com.iris.platform.scene.resolver.ShadeResolver;
 import com.iris.resource.Resources;
 import com.iris.test.Modules;
+
+import static com.iris.Utils.assertTrue;
+import static com.iris.messages.MessageBody.buildMessage;
 
 @Modules({ CapabilityRegistryModule.class, MessagesModule.class })
 public class TestCatalogResolver extends SceneCatalogBaseTest {
@@ -150,13 +154,32 @@ public class TestCatalogResolver extends SceneCatalogBaseTest {
       assertEquals("OFF", message.getValue().getAttributes().get(SwitchCapability.ATTR_STATE));
       assertEquals(null, message.getValue().getAttributes().get(FanCapability.ATTR_SPEED));
    }
-   
+
+   @Test
+   public void testFanmodeOn() {
+
+      ThermostatResolver test = new ThermostatResolver();
+      Model testThermostat = createThermostat(1.67, 35.0, 1.67);
+
+      ThermostatAction taction = createThermostatAction(30.0, 15.0, ThermostatAction.MODE_AUTO, false);
+      taction.setFanmode(1);
+      Map<String,Object>variables=ImmutableMap.of("thermostat",taction.toMap());
+
+      Action holder = test.generate(context, testThermostat.getAddress(), variables);
+      holder.execute(context);
+      BlockingQueue<PlatformMessage> messages = context.getMessages();
+      PlatformMessage message = messages.remove();
+      assertEquals("subclimate:DisableScheduler", message.getValue().getMessageType());
+      message = messages.remove();
+      assertTrue(Long.valueOf("1") == message.getValue().getAttributes().get("therm:fanmode"));
+   }
+
    @Test
    public void testThermostatResolver() {
       resolver=resolverMap.get("thermostat");
       Model testThermostat = createThermostat(1.67, 35.0, 1.67);         
       ThermostatAction taction = createThermostatAction(30.0, 15.0, ThermostatAction.MODE_AUTO, false);
-      
+
       doExecuteThermostatActionOK(taction, testThermostat);
       
    }

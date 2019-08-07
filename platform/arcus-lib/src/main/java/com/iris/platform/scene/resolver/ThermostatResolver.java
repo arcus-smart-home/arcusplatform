@@ -18,6 +18,7 @@
  */
 package com.iris.platform.scene.resolver;
 
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class ThermostatResolver extends BaseResolver {
    }
 
    private Action generateSetAttributes(ActionContext context, Address target, ThermostatAction action) {
-      Map<String, Object> attributes = new HashMap<String, Object>(4);
+      Map<String, Object> attributes = new HashMap<String, Object>(5);
       attributes.put(ThermostatCapability.ATTR_HVACMODE, action.getMode());
       switch(action.getMode()) {
       case ThermostatCapability.HVACMODE_AUTO:
@@ -115,14 +116,14 @@ public class ThermostatResolver extends BaseResolver {
          Preconditions.checkNotNull(model);
          //The minimum setpoint for the thermostat, inclusive.  The heatsetpoint can't be set below this and the coolsetpoint can't be set below minsetpoint + setpointseparation.
          double minSetPoint = ThermostatModel.getMinsetpoint(model).doubleValue();
-         //The maximum setpoint for the thermostat, inclusive.  The coolsetpoint can't be set above this and the heatsetpoint can't be set above maxsetpoint - setpointseparation.         
+         //The maximum setpoint for the thermostat, inclusive.  The coolsetpoint can't be set above this and the heatsetpoint can't be set above maxsetpoint - setpointseparation.
          double maxSetPoint = ThermostatModel.getMaxsetpoint(model).doubleValue();
          double seperation = ThermostatModel.getSetpointseparation(model).doubleValue();
          Preconditions.checkArgument(Precision.compareTo(action.getHeatSetPoint(), minSetPoint, PRECISION) >= 0 , "The heatsetpoint can't be set below minSetPoint");
          Preconditions.checkArgument(Precision.compareTo(action.getCoolSetPoint(), minSetPoint + seperation, PRECISION) >= 0 , "The coolsetpoint can't be set below minSetPoint + setpointseparation");
          Preconditions.checkArgument(Precision.compareTo(action.getCoolSetPoint(), maxSetPoint, PRECISION) <= 0 , "The coolsetpoint can't be set above maxSetPoint");
          Preconditions.checkArgument(Precision.compareTo(action.getHeatSetPoint(), maxSetPoint - seperation, PRECISION) <= 0 , "The heatsetpoint can't be set above maxsetpoint - setpointseparation");
-         
+
          attributes.put(ThermostatCapability.ATTR_HEATSETPOINT, action.getHeatSetPoint());
          attributes.put(ThermostatCapability.ATTR_COOLSETPOINT, action.getCoolSetPoint());
          break;
@@ -136,7 +137,12 @@ public class ThermostatResolver extends BaseResolver {
          attributes.put(ThermostatCapability.ATTR_COOLSETPOINT, action.getCoolSetPoint());
          attributes.put(ThermostatCapability.ATTR_HEATSETPOINT, action.getCoolSetPoint() - 2);
          break;
-         
+
+      }
+
+      if (action.getFanmode() != null)
+      {
+         attributes.put(ThermostatCapability.ATTR_FANMODE, action.getFanmode());
       }
       return new SendAction(Capability.CMD_SET_ATTRIBUTES, Functions.constant(target), attributes);
    }
