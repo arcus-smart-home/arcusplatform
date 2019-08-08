@@ -27,7 +27,9 @@ dependencies {
    compile project(':common:arcus-client')
    compile project(':common:arcus-common')
    compile libraries.guava
-
+   compile libraries.zsmartsystems_zigbee
+   compile libraries.zsmartsystems_zigbee_serial
+   compile libraries.zsmartsystems_zigbee_ember
 
    testCompile project(':agent:arcus-test-agent')
 
