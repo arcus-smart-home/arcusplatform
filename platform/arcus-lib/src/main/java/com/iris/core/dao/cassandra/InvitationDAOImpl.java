@@ -237,8 +237,8 @@ public class InvitationDAOImpl implements InvitationDAO {
             stmt.setString(Column.placeOwnerFirstName.name(), invitation.getPlaceOwnerFirstName());
             stmt.setString(Column.placeOwnerLastName.name(), invitation.getPlaceOwnerLastName());
             stmt.setTimestamp(Column.created.name(), created);
-            stmt.setDate(Column.accepted.name(), null);
-            stmt.setDate(Column.rejected.name(), null);
+            stmt.setTimestamp(Column.accepted.name(), null);
+            stmt.setTimestamp(Column.rejected.name(), null);
             stmt.setString(Column.rejectReason.name(), invitation.getRejectReason());
             stmt.setString(Column.relationship.name(), invitation.getRelationship());
             stmt.setString(Column.invitationText.name(), invitation.getInvitationText());
