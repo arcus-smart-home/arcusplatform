@@ -111,13 +111,12 @@ public class SubsystemConfig {
       return placeCacheSoftValues;
    }
 
-	public boolean isPreloadPlaces() {
+   public boolean isPreloadPlaces() {
 		return preloadPlaces;
 	}
 
-	public void setPreloadPlaces(boolean preloadPlaces) {
+   public void setPreloadPlaces(boolean preloadPlaces) {
 		this.preloadPlaces = preloadPlaces;
 	}
-   
 }
 
