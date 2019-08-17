@@ -47,6 +47,9 @@ dependencies {
     compile project(':common:arcus-model')
 }
 
+docker {
+   baseImage "eyeris/java"
+}
 
 tasks.addRule("Pattern: <CodeGenerationType>Code") {
     String taskName ->
