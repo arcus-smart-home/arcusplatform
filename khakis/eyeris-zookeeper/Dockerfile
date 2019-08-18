@@ -1,6 +1,8 @@
 # Use the standard eyeris java image
 FROM eyeris/java
 
+USER root
+
 # Initial system configuration
 RUN \
     apt-get update && \

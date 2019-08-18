@@ -1,6 +1,8 @@
 # Use the standard eyeris java image
 FROM eyeris/java
 
+USER root
+
 # Initial system configuration
 #  python is required to run cqlsh
 #  unzip is required to unzip the modelmanager jar

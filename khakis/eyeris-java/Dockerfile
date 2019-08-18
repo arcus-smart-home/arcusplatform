@@ -26,5 +26,7 @@ RUN \
     groupadd -g 999 arcus && \
     useradd -r -u 999 -g arcus arcus
 
+USER arcus
+
 # Define default command.
 CMD ["bash"]
