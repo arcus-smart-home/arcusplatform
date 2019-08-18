@@ -2,6 +2,8 @@
 
 FROM eyeris/java as builder
 
+USER root
+
 ARG KAIROSDB_TAG="v1.2.2"
 
 RUN apt-get update && \
