@@ -656,9 +656,9 @@
 
 
         <template id="tq29nhs" keywords="scene" tags="scene,pres"
-                  added="2019-05-09T00:00:00" modified="2019-05-09T00:00:00"
-                  name="Change thermostat fan depending on temperature condition"
-                  description="Turn on or off thermostat fan depending on whether ."
+                  added="2019-07-24T00:00:00" modified="2019-07-24T00:00:00"
+                  name="Change thermostat fan according to temperature condition"
+                  description="Turn on or off thermostat fan depending on temperature conditionss."
                   extra="Check with your HVAC expert to ensure proper airflow through your home."
                   premium="false">
             <populations>
