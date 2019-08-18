@@ -1,3 +1,5 @@
+# Based on https://github.com/kairosdb/kairosdb/issues/288#issuecomment-404411656
+
 FROM eyeris/java as builder
 
 ARG KAIROSDB_TAG="v1.2.2"
