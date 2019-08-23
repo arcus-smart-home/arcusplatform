@@ -1,6 +1,8 @@
 Arcus is an open-source home automation and control system, based on the Iris by Lowes codebase.
 This project contains the files necessary to run Arcus Platform, including the backend services and portions of the hub (agent).
 
+![Arcus Screenshot on Arcus Web Dashboard](docs/screenshot.png)
+
 # Other Repositories
 
 Arcus Platform does not contain a UI (beyond oculus, which is in Java). If you wish to access Arcus from a phone or web browser check out the other repositories under arcus-smart-home.
