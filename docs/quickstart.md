@@ -22,6 +22,7 @@ A few examples of what works:
 * Honeywell wifi thermostats
 * Phillips Hue
 * Nest
+* Sercomm cameras
 
 ### Needs confirmation
 
