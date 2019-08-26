@@ -48,6 +48,17 @@ echo "Creating Kafka Provisions Topics..."
 "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "irisLog" & PID0=$!
 "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "metrics" & PID1=$!
 
+if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_MS" ]]; then
+   echo "Altering metrics retention.ms"
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.ms=${KAFAOPS_METRICS_LOG_RETENTION_MS}
+fi
+
+if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_BYTES" ]]; then
+   echo "Altering metrics retention.ms"
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.bytes=${KAFAOPS_METRICS_LOG_RETENTION_BYTES}
+fi
+
+
 wait $PID0; RESULT=$(($RESULT | $?))
 wait $PID1; RESULT=$(($RESULT | $?))
 
