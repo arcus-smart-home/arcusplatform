@@ -6,7 +6,7 @@ USER root
 # Initial system configuration
 RUN \
     apt-get update && \
-    apt-get install -y wget runit && \
+    apt-get install -y wget && \
     useradd -M -U -r -s /bin/false kafka && \
     rm -rf /var/lib/apt/lists/*
 
