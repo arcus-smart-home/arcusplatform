@@ -20,7 +20,7 @@ RUN \
     tar xfz /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt && \
     ln -s /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
     rm /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
-    chown -R arcus:arcus /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
+    chown -R kafka:kafka /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 
 RUN \
     /bin/bash -c 'echo "127.0.0.1	kafka.eyeris" > /etc/hosts' && \
