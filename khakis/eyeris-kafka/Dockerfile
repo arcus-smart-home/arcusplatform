@@ -42,7 +42,7 @@ ENV KAFKA_HOME /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 # Expose the Apache Kafka port to the outside
 EXPOSE 9092
 
-USER arcus
+USER kafka
 
 # Set the entry point as "kafka-cmd init"
 ENTRYPOINT ["/usr/bin/kafka-cmd", "entry"]
