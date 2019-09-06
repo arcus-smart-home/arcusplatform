@@ -74,7 +74,8 @@ public class GatewayConnection {
    private static final Logger SECONDARY_LOG = LoggerFactory.getLogger(GatewayConnection.class.getName() + ".sec");
 
    private static final String[] ALLOWED_CIPHERS = new String[] {
-      "ECDHE-RSA-AES128-GCM-SHA256",
+      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
       "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
    };
 
