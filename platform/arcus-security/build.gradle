@@ -22,7 +22,7 @@ dependencies {
    compile libraries.cassandraDriver
    compile libraries.shiro
    compile libraries.shiro_guice
-	compile libraries.commons_beanutils
+   compile libraries.commons_beanutils
    compile libraries.javax_annotation_api
 
    runtime libraries.jaxb_api
