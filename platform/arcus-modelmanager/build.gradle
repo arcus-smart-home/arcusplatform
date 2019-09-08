@@ -30,7 +30,6 @@ dependencies {
     compile project (':platform:arcus-lib')
 	
     compile libraries.cassandraDriver
-	 compile libraries.timewindow_compaction
     compile libraries.commonsCodec
     compile libraries.commons_lang
     compile libraries.commonsIO

@@ -39,8 +39,6 @@ ext.libraries << [
 			exclude group: "io.netty", module: "netty-all"
 		},
 
-		timewindow_compaction: "com.jeffjirsa.cassandra.db.compaction:TimeWindowCompactionStrategy:2.2.5",
-
 
 // Apache
 		commons_beanutils: "commons-beanutils:commons-beanutils:1.9.3",
