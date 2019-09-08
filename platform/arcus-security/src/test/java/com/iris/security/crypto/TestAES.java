@@ -21,7 +21,7 @@ public class TestAES {
     @Test
     public void testAesCbc() {
         String ctext = aes.encryptUnsafe("foo", "foo1");
-        String decoded = aes.unsafeDecrypt("foo", ctext);
+        String decoded = aes.decryptUnsafe("foo", ctext);
 
         Assert.assertEquals(decoded, "foo1");
     }
@@ -43,7 +43,7 @@ public class TestAES {
     @Test
     public void testAesGcm() {
         String ctext = aes.encryptSafe("foo", "a very secret secret");
-        String decoded = aes.safeDecrypt("foo", ctext);
+        String decoded = aes.decryptSafe("foo", ctext);
 
         System.out.println("decrypted message: " + ctext);
 
@@ -53,7 +53,7 @@ public class TestAES {
     @Test
     public void testAesGcmMessage() {
         String ctext = aes.encryptSafe("foo", "a very secret secret");
-        String decoded = aes.safeDecrypt("foo", ctext);
+        String decoded = aes.decryptSafe("foo", ctext);
 
         System.out.println("decrypted message: " + ctext);
 
