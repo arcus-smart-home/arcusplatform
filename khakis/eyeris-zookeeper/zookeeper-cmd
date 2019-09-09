@@ -38,6 +38,8 @@ zookeeper_init() {
 
     # Setup the data directory
     mkdir -p "${ZOOKEEPER_DATA_DIR}"
+    mkdir -p "${ZOOKEEPER_HOME}/logs"
+    chown -R "zookeeper:zookeeper" "${ZOOKEEPER_HOME}/logs"
     chown -R "zookeeper:zookeeper" "${ZOOKEEPER_DATA_DIR}"
     chmod "0700" "${ZOOKEEPER_DATA_DIR}"
 
