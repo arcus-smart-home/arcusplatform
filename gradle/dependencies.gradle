@@ -96,9 +96,9 @@ ext.libraries << [
 		jaxb_api: "javax.xml.bind:jaxb-api:2.2.7",
 
 // Encryption via Bouncy Castle
-		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.54",
-		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.54",
-		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.54",
+		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.62",
+		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.62",
+		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.62",
 
 // SQL Database
 		dbcp: "commons-dbcp:commons-dbcp:1.4",
