@@ -49,6 +49,10 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
 
    public MigrateCryptoLibrary() throws NoSuchAlgorithmException {
       this.aes = new AES();
+
+      if (questionsAesSecret == null) {
+         throw new IllegalArgumentException("questions.aes.secret must be provided");
+      }
    }
 
    @Override
