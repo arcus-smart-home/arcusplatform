@@ -55,7 +55,8 @@ public class AES {
 
    private SecureRandom random;
 
-   public AES() {
+   public AES() throws NoSuchAlgorithmException {
+      this.random = SecureRandom.getInstanceStrong();
    }
 
    public AES(String secret, String iv) throws NoSuchAlgorithmException {
