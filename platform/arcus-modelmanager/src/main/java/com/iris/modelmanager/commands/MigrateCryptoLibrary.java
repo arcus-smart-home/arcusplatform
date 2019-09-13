@@ -47,16 +47,17 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
    @Named("questions.aes.secret")
    private String questionsAesSecret;
 
-   public MigrateCryptoLibrary() throws NoSuchAlgorithmException {
-      this.aes = new AES();
-
-      if (questionsAesSecret == null) {
-         throw new IllegalArgumentException("questions.aes.secret must be provided");
-      }
+   @Inject
+   public MigrateCryptoLibrary(AES aes) throws NoSuchAlgorithmException {
+      this.aes = aes;
    }
 
    @Override
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
+      if (questionsAesSecret == null) {
+         throw new IllegalArgumentException("questions.aes.secret must be provided");
+      }
+
       Session session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE);
       
