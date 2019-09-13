@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -57,6 +58,9 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
       if (questionsAesSecret == null) {
          throw new IllegalArgumentException("questions.aes.secret must be provided");
       }
+
+      // TODO: Add this elsewhere?
+      Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
       Session session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE);
