@@ -26,6 +26,14 @@ public class TestAES {
         Assert.assertEquals(decoded, "foo1");
     }
 
+    @Test
+    public void testAesCbcUpgrade() {
+        String ctext = aes.encryptUnsafe("foo", "foo1");
+        String decoded = aes.decrypt("foo", ctext);
+
+        Assert.assertEquals(decoded, "foo1");
+    }
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
