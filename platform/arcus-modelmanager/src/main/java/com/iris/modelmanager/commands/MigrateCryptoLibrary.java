@@ -89,6 +89,7 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
       logger.warn("Rollback is not supported for {}", this);
    }
 
+   @SuppressWarnings("deprecation")
    private Map<String, String> reencryptSecurityQuestion(Map<String, String> answers) {
       Map<String, String> result = new HashMap<>(3);
       for (Map.Entry<String, String> entry: answers.entrySet()) {
