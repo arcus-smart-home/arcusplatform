@@ -232,7 +232,6 @@ ext.libraries << [
 
 // Notifications
 		sendgridJava: "com.sendgrid:sendgrid-java:3.0.5",
-		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
 		sendgridHTTP: "com.sendgrid:java-http-client:2.3.2",
 		pushy: "com.relayrides:pushy:0.4.3",
 		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
