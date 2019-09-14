@@ -34,5 +34,6 @@ dependencies {
 	compile libraries.twilio
 
 	testCompile project (':platform:arcus-test')
+	testCompile libraries.mockito
 }
 
