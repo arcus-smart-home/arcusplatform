@@ -30,8 +30,11 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
@@ -40,6 +43,7 @@ import java.util.Arrays;
  * http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html
  */
 public class AES {
+   private static final Logger logger = LoggerFactory.getLogger(AES.class);
 
    private static final String KEY_ALG = "AES";
    private static final String CIPHER_ALG = "AES/CBC/PKCS5Padding";
@@ -51,16 +55,17 @@ public class AES {
 
    @Inject
    @Named("iris.aes.iv")
-   private String iv;
+   private String unsafeIV;
 
    private SecureRandom random;
 
-   public AES() {
+   public AES() throws NoSuchAlgorithmException {
+      this.random = SecureRandom.getInstanceStrong();
    }
 
-   public AES(String secret, String iv) throws NoSuchAlgorithmException {
+   public AES(String secret, String unsafeIV) throws NoSuchAlgorithmException {
       this.secret = secret;
-      this.iv = iv;
+      this.unsafeIV = unsafeIV;
 
       this.random = SecureRandom.getInstanceStrong();
    }
@@ -92,7 +97,7 @@ public class AES {
 
       try {
          SecretKey secretKey = new SecretKeySpec(sha1(key, secret), KEY_ALG);
-         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(iv));
+         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(unsafeIV));
 
          Cipher cipher = Cipher.getInstance(CIPHER_ALG);
          cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
@@ -132,6 +137,9 @@ public class AES {
          // Store the iv before the ciphertext
          byte[] ciphertext = Bytes.concat(iv, data);
          return Utils.b64Encode(ciphertext);
+      } catch (NoSuchProviderException e) {
+         logger.error("Couldn't find BouncyCastle Provider!", e);
+         throw new RuntimeException(e);
       } catch (Exception e) {
          throw new RuntimeException(e);
       }
@@ -165,7 +173,7 @@ public class AES {
 
       try {
          SecretKey secretKey = new SecretKeySpec(sha1(key, secret), KEY_ALG);
-         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(iv));
+         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(unsafeIV));
          Cipher cipher = Cipher.getInstance(CIPHER_ALG);
          cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
          byte[] encrypted = cipher.doFinal(Utils.b64Decode(value));
@@ -199,6 +207,9 @@ public class AES {
 
          byte[] plaintext = cipher.doFinal(Arrays.copyOfRange(decoded, GCM_IV_LENGTH, decoded.length));
          return new String(plaintext, "UTF-8");
+      } catch (NoSuchProviderException e) {
+         logger.error("Couldn't find BouncyCastle Provider!", e);
+         throw new RuntimeException(e);
       } catch (Exception e) {
          throw new RuntimeException(e);
       }

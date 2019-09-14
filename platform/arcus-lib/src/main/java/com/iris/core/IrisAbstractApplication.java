@@ -15,6 +15,7 @@
  */
 package com.iris.core;
 
+import java.security.Security;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -152,6 +153,9 @@ public abstract class IrisAbstractApplication {
                ServiceLocator.destroy();
             }
          }));
+
+         // XXX: is this the right place?
+         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
          // If a security manager is present then initialize it
          List<? extends SecurityManager> secManager = ServiceLocator.getInstancesOf(SecurityManager.class);
