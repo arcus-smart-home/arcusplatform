@@ -32,6 +32,7 @@ dependencies {
 	compile libraries.smackTCP
 	compile libraries.smackExt
 	compile libraries.twilio
+	compile libraries.apacheCommonsValidator
 
 	testCompile project (':platform:arcus-test')
 }
