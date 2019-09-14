@@ -64,9 +64,9 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
 
       Session session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE);
-      
+
       ResultSet rs = context.getSession().execute(SELECT);
-      for(Row row: rs) {
+      for (Row row : rs) {
          UUID id = row.getUUID("id");
          // Handle Security Questions
          Map<String, String> oldQuestions = row.getMap("securityAnswers", String.class, String.class);
@@ -75,8 +75,8 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
 
          // Handle user pins
          Map<String, String> newPins = null;
-         Map<String,String> pinPerPlace = row.getMap("pinPerPlace", String.class, String.class);
-         if(pinPerPlace != null && !pinPerPlace.isEmpty()) {
+         Map<String, String> pinPerPlace = row.getMap("pinPerPlace", String.class, String.class);
+         if (pinPerPlace != null && !pinPerPlace.isEmpty()) {
             newPins = new HashMap<>(pinPerPlace);
             logger.debug("Re-encrypting pins answers for [{}]...", id);
             newPins.replaceAll((k, v) -> {
@@ -87,7 +87,7 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
          session.execute(bs);
       }
    }
-   
+
    @Override
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       logger.warn("Rollback is not supported for {}", this);
@@ -96,7 +96,7 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
    @SuppressWarnings("deprecation")
    private Map<String, String> reencryptSecurityQuestion(Map<String, String> answers) {
       Map<String, String> result = new HashMap<>(3);
-      for (Map.Entry<String, String> entry: answers.entrySet()) {
+      for (Map.Entry<String, String> entry : answers.entrySet()) {
          result.put(entry.getKey(), aes.encrypt(entry.getKey(), Utils.aesDecrypt(questionsAesSecret, entry.getValue())));
       }
       return result;
