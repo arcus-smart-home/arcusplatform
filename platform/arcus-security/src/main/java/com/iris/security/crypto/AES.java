@@ -209,6 +209,7 @@ public class AES {
          return new String(plaintext, "UTF-8");
       } catch (NoSuchProviderException e) {
          logger.error("Couldn't find BouncyCastle Provider!", e);
+         throw new RuntimeException(e);
       } catch (Exception e) {
          throw new RuntimeException(e);
       }
