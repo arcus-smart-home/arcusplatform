@@ -127,7 +127,7 @@ public class AES {
          byte[] iv = new byte[GCM_IV_LENGTH];
          this.random.nextBytes(iv);
 
-         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
+         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
          IvParameterSpec ivParamSpec = new IvParameterSpec(iv);
 
          cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParamSpec);
@@ -202,7 +202,7 @@ public class AES {
          SecretKey secretKey = new SecretKeySpec(sha1(key, secret), KEY_ALG);
          IvParameterSpec ivParamSpec = new IvParameterSpec(Arrays.copyOfRange(decoded, 0, GCM_IV_LENGTH));
 
-         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
+         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
          cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
 
          byte[] plaintext = cipher.doFinal(Arrays.copyOfRange(decoded, GCM_IV_LENGTH, decoded.length));
