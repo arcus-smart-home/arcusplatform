@@ -51,7 +51,7 @@ public class AES {
 
    @Inject
    @Named("iris.aes.iv")
-   private String iv;
+   private String unsafeIV;
 
    private SecureRandom random;
 
@@ -59,9 +59,9 @@ public class AES {
       this.random = SecureRandom.getInstanceStrong();
    }
 
-   public AES(String secret, String iv) throws NoSuchAlgorithmException {
+   public AES(String secret, String unsafeIV) throws NoSuchAlgorithmException {
       this.secret = secret;
-      this.iv = iv;
+      this.unsafeIV = unsafeIV;
 
       this.random = SecureRandom.getInstanceStrong();
    }
@@ -93,7 +93,7 @@ public class AES {
 
       try {
          SecretKey secretKey = new SecretKeySpec(sha1(key, secret), KEY_ALG);
-         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(iv));
+         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(unsafeIV));
 
          Cipher cipher = Cipher.getInstance(CIPHER_ALG);
          cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParamSpec);
@@ -166,7 +166,7 @@ public class AES {
 
       try {
          SecretKey secretKey = new SecretKeySpec(sha1(key, secret), KEY_ALG);
-         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(iv));
+         IvParameterSpec ivParamSpec = new IvParameterSpec(md5(unsafeIV));
          Cipher cipher = Cipher.getInstance(CIPHER_ALG);
          cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParamSpec);
          byte[] encrypted = cipher.doFinal(Utils.b64Decode(value));
