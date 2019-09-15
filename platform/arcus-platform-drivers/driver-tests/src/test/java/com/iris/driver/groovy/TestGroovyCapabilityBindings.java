@@ -249,7 +249,6 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
    }
 
    @Test
-//   @Ignore
    public void testCompile() throws Exception {
       CompilerConfiguration config = new CompilerConfiguration();
       config.setTargetDirectory(new File(TMP_DIR));
