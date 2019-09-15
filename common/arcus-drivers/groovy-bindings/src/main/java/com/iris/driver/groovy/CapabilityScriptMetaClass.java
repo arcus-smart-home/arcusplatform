@@ -33,7 +33,12 @@ public class CapabilityScriptMetaClass extends MetaClassImpl {
    public CapabilityScriptMetaClass(Class cls) {
       super(cls, new MetaMethod [] { });
    }
-   
+
+   @Override
+   public Object invokeMethod(Class sender, Object object, String methodName, Object[] originalArguments, boolean isCallToSuper, boolean fromInsideClass) {
+      return getBinding(object).invokeMethod(methodName, originalArguments);
+   }
+
    @Override
    public Object invokeMethod(Object object, String methodName, Object[] arguments) {
       return getBinding(object).invokeMethod(methodName, arguments);
