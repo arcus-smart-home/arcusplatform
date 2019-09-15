@@ -289,6 +289,7 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
       CapabilityEnvironmentBinding binding = new CapabilityEnvironmentBinding(builder);
       Script s = (Script) metadataClass.getConstructor(Binding.class).newInstance(binding);
       s.setMetaClass(new CapabilityScriptMetaClass(s.getClass()));
+      s.getMetaClass().initialize();
       s.setBinding(binding);
       s.run();
       System.out.println("Definition: " + builder.create().getCapabilityDefinition());
