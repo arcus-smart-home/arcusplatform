@@ -189,7 +189,7 @@ public class HttpRequester {
       Bootstrap bootstrap = new Bootstrap();
       bootstrap.group(group)
          .channel(NioSocketChannel.class)
-         .handler(new HttpRequestInitializer(sslCtx));
+         .handler(new HttpRequestInitializer(sslCtx, uri));
       
       ChannelFuture future = bootstrap.connect(host, port);
       future.addListener(new SslChannelFutureListener() {
@@ -241,16 +241,18 @@ public class HttpRequester {
    
    private class HttpRequestInitializer extends ChannelInitializer<SocketChannel> {
       private final SslContext sslCtx;
-      
-      HttpRequestInitializer(SslContext sslCtx) {
+      private final URI uri;
+
+       HttpRequestInitializer(SslContext sslCtx, URI u) {
          this.sslCtx = sslCtx;
+         this.uri = u;
       }
 
       @Override
       protected void initChannel(SocketChannel ch) throws Exception {
          ChannelPipeline pipeline = ch.pipeline();
          if (sslCtx != null) {
-            pipeline.addLast(sslCtx.newHandler(ch.alloc()));
+             pipeline.addLast(sslCtx.newHandler(ch.alloc(), this.uri.getHost(), 443));
          }
          pipeline.addLast(new IdleStateHandler(IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS));
          pipeline.addLast(new HttpIdleStateHandler());
