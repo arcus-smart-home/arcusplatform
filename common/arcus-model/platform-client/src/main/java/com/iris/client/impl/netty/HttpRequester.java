@@ -252,7 +252,7 @@ public class HttpRequester {
       protected void initChannel(SocketChannel ch) throws Exception {
          ChannelPipeline pipeline = ch.pipeline();
          if (sslCtx != null) {
-             pipeline.addLast(sslCtx.newHandler(ch.alloc(), this.uri.getHost(), 443));
+            pipeline.addLast(sslCtx.newHandler(ch.alloc(), this.uri.getHost(), this.uri.getPort()));
          }
          pipeline.addLast(new IdleStateHandler(IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS));
          pipeline.addLast(new HttpIdleStateHandler());
