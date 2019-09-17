@@ -49,6 +49,17 @@ public class TestAES {
     }
 
     @Test
+    public void testAesGcmManipulated() {
+        // thrown as java.lang.RuntimeException: AEADBadTagException:
+        thrown.expect(RuntimeException.class);
+        String ctext = aes.encryptSafe("foo", "foo1");
+        byte[] tamper = Utils.b64Decode(ctext);
+        tamper[3] = 'A';
+        String tampered = Utils.b64Encode(tamper);
+        String decoded = aes.decryptSafe("foo", tampered);
+    }
+
+    @Test
     public void testAesGcm() {
         String ctext = aes.encryptSafe("foo", "a very secret secret");
         String decoded = aes.decryptSafe("foo", ctext);
