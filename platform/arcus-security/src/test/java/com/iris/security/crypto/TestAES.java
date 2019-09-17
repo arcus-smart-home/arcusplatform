@@ -53,8 +53,6 @@ public class TestAES {
         String ctext = aes.encryptSafe("foo", "a very secret secret");
         String decoded = aes.decryptSafe("foo", ctext);
 
-        System.out.println("decrypted message: " + ctext);
-
         Assert.assertEquals(decoded, "a very secret secret");
     }
 
@@ -62,8 +60,6 @@ public class TestAES {
     public void testAesGcmMessage() {
         String ctext = aes.encryptSafe("foo", "a very secret secret");
         String decoded = aes.decryptSafe("foo", ctext);
-
-        System.out.println("decrypted message: " + ctext);
 
         Assert.assertNotEquals(decoded, "not the same");
     }
