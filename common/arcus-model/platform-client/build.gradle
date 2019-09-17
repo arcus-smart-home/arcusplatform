@@ -86,10 +86,6 @@ task generateSource(type: JavaExec) {
 	}
 }
 
-shadowJar {
-  zip64 true
-}
-
 artifacts {
    archives shadowJar
 }
