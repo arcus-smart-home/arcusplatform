@@ -16,8 +16,8 @@
 // project specific build settings, dependencies, etc.
 apply plugin: 'com.github.jacobono.jaxb'
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 // Support for JAXB bindings
 ext.generatedSrcDir = 'src/generated/java'
