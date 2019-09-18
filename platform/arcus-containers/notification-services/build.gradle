@@ -35,5 +35,6 @@ dependencies {
 	compile libraries.apacheCommonsValidator
 
 	testCompile project (':platform:arcus-test')
+	testCompile libraries.mockito
 }
 
