@@ -16,8 +16,8 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/application.gradle")
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 // TODO add a Main which can multiplex these or generate multiple distributions
 mainClassName = 'com.iris.capability.generator.html.HtmlGenerator'
