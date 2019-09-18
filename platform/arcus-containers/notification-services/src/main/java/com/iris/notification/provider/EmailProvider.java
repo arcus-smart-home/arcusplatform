@@ -44,7 +44,7 @@ import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.validator.constraints.impl.EmailValidator;
+import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ public class EmailProvider implements NotificationProvider {
     private final static String SUBJECT_SECTION = "subject";
     private final static String PLAINTEXT_BODY_SECTION = "plaintext-body";
     private final static String HTML_BODY_SECTION = "html-body";
-    private final static EmailValidator EMAIL_VALIDATOR = new EmailValidator();
+    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
 
 
     @Inject @Named("email.sendername") 	private String defaultSenderName;
@@ -235,7 +235,7 @@ public class EmailProvider implements NotificationProvider {
     public Boolean isEmailValid(String email) {
        if (StringUtils.isEmpty(email)) return false;
 
-       return EMAIL_VALIDATOR.isValid(email, null);
+       return EMAIL_VALIDATOR.isValid(email);
     }
 
    private void notifyCustomerOldEmail(Notification notification) throws DispatchUnsupportedByUserException, DispatchException {

@@ -39,7 +39,7 @@ import com.iris.util.TimeZones;
  * 
  */
 public class GenerateTimeZoneId implements ExecutionCommand {
-   private static final Logger logger = LoggerFactory.getLogger(LowercaseLoginIndex.class);
+   private static final Logger logger = LoggerFactory.getLogger(GenerateTimeZoneId.class);
    
    private static final String SELECT = "SELECT id, tzName, tzOffset, tzUsesDst FROM place";
    private static final String UPDATE_PLACE =
