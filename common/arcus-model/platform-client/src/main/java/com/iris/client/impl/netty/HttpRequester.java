@@ -72,7 +72,11 @@ public class HttpRequester {
          int retryAttempts, 
          int retryDelay,
          int maxResponseSize
-   ) {
+   ) throws IllegalArgumentException {
+      if(uri == null) {
+         throw new IllegalArgumentException("Cannot pass a null URI to HttpRequester");
+      }
+
       this.uri = uri;
       this.trustManagerFactory = trustManagerFactory;
       this.lostHandler = lostHandler;
@@ -189,7 +193,7 @@ public class HttpRequester {
       Bootstrap bootstrap = new Bootstrap();
       bootstrap.group(group)
          .channel(NioSocketChannel.class)
-         .handler(new HttpRequestInitializer(sslCtx));
+         .handler(new HttpRequestInitializer(sslCtx, uri, port));
       
       ChannelFuture future = bootstrap.connect(host, port);
       future.addListener(new SslChannelFutureListener() {
@@ -241,16 +245,20 @@ public class HttpRequester {
    
    private class HttpRequestInitializer extends ChannelInitializer<SocketChannel> {
       private final SslContext sslCtx;
-      
-      HttpRequestInitializer(SslContext sslCtx) {
+      private final URI uri;
+      private final int port;
+
+       HttpRequestInitializer(SslContext sslCtx, URI u, int port) {
          this.sslCtx = sslCtx;
+         this.uri = u;
+         this.port = port;
       }
 
       @Override
       protected void initChannel(SocketChannel ch) throws Exception {
          ChannelPipeline pipeline = ch.pipeline();
          if (sslCtx != null) {
-            pipeline.addLast(sslCtx.newHandler(ch.alloc()));
+             pipeline.addLast(sslCtx.newHandler(ch.alloc(), this.uri.getHost(), this.port));
          }
          pipeline.addLast(new IdleStateHandler(IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS));
          pipeline.addLast(new HttpIdleStateHandler());
