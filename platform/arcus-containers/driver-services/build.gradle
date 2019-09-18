@@ -18,7 +18,7 @@ apply from: file("${rootDir}/gradle/container.gradle")
 apply plugin: 'maven-publish'
 
 configurations {
-   reflexGeneratorRuntime { transitive = false }
+   reflexGeneratorRuntime { transitive = true }
 }
 
 dependencies {

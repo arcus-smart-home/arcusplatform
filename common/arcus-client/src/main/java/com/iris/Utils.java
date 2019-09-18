@@ -398,6 +398,7 @@ public final class Utils {
       }
    }
 
+   @Deprecated
    public static byte[] aesEncrypt(String secretStr, byte[] decrypted) {
       if(decrypted == null || decrypted.length == 0) {
          return null;
@@ -430,6 +431,7 @@ public final class Utils {
       }
    }
 
+   @Deprecated
    public static byte[] aesDecrypt(String secretStr, byte[] encrypted) {
       if(encrypted == null || encrypted.length == 0) {
          return null;
@@ -454,6 +456,7 @@ public final class Utils {
       }
    }
 
+   @Deprecated
    public static String aesEncrypt(String secretStr, String decrypted) {
       if(StringUtils.isBlank(decrypted)) {
          return null;
@@ -467,6 +470,7 @@ public final class Utils {
       }
    }
 
+   @Deprecated
    public static String aesDecrypt(String secretStr, String encrypted) {
       if(StringUtils.isBlank(encrypted)) {
          return null;

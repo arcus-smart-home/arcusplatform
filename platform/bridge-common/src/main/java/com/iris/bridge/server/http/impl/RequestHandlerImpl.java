@@ -79,7 +79,7 @@ public class RequestHandlerImpl implements RequestHandler {
    @Override
    public void handleRequest(FullHttpRequest req, ChannelHandlerContext ctx) throws Exception {
       if (!authorizer.isAuthorized(ctx, req)) {
-      	logger.warn("Authorization failed for request {}", req);
+      	logger.warn("Authorization failed for request {}", req.getUri());
          if (!authorizer.handleFailedAuth(ctx, req))  {
          	logger.error("Failed to handle authorization failure for request {}", req);
             throw new HttpException(HttpResponseStatus.FORBIDDEN.code());

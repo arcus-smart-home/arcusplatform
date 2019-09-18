@@ -79,6 +79,19 @@ public class DriverScriptMetaClass extends MetaClassImpl {
    }
 
    @Override
+   public Object invokeMethod(Class sender, Object object, String methodName, Object[] originalArguments, boolean isCallToSuper, boolean fromInsideClass) {
+      try {
+         return  getBinding(object).invokeMethod(methodName, originalArguments);
+      } catch (Exception e) {
+         try {
+            return super.invokeMethod(sender, object, methodName, originalArguments, isCallToSuper, fromInsideClass);
+         } catch (Exception e1) {
+            throw e1;
+         }
+      }
+   }
+
+   @Override
    public Object invokeMethod(Object object, String methodName, Object[] arguments) {
       DriverBinding binding = getBinding(object);
       if(binding.hasVariable(methodName)) {
@@ -88,7 +101,11 @@ public class DriverScriptMetaClass extends MetaClassImpl {
          }
       }
 
-      return super.invokeMethod(object, methodName, arguments);
+      try {
+         return getBinding(object).invokeMethod(methodName, arguments);
+      } catch (Exception e) {
+         return super.invokeMethod(object, methodName, arguments);
+      }
    }
 
    @Override

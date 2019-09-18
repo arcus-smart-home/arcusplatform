@@ -51,7 +51,7 @@ public class UpdateSecurityQuestions implements ExecutionCommand {
             .create()
             ;
             
-   private static final Logger logger = LoggerFactory.getLogger(LowercaseLoginIndex.class);
+   private static final Logger logger = LoggerFactory.getLogger(UpdateSecurityQuestions.class);
    
    private static final String SELECT = "SELECT id, securityAnswers FROM person";
    private static final String UPDATE =

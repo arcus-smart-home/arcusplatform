@@ -15,6 +15,7 @@
  */
 package com.iris.modelmanager.engine.command;
 
+import com.iris.bootstrap.ServiceLocator;
 import com.iris.modelmanager.changelog.CQLCommand;
 import com.iris.modelmanager.changelog.Command;
 import com.iris.modelmanager.changelog.JavaCommand;
@@ -42,10 +43,10 @@ public final class ExecutionCommandFactory {
       try {
          Class clazz = Class.forName(command.getClassName());
          if(ExecutionCommand.class.isAssignableFrom(clazz)) {
-            return (ExecutionCommand) clazz.newInstance();
+            return (ExecutionCommand) ServiceLocator.getInstance(clazz);
          }
       } catch(Exception e) {
-         throw new RuntimeException(command + " could not be found or instantiated.");
+         throw new RuntimeException(command + " could not be found or instantiated.", e);
       }
       throw new RuntimeException(command + " does not implement the ExecutionCommand interface.");
    }

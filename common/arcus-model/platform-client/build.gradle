@@ -21,6 +21,8 @@ ext.capabilityDir   = '../src/main/resources'
 ext.templateDir     = 'src/main/templates'
 ext.templateName    = 'client'
 
+apply plugin: 'com.github.johnrengelman.shadow'
+
 configurations {
 	generator {
 		description "Classpath for source generators"
@@ -82,6 +84,10 @@ task generateSource(type: JavaExec) {
 		args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
 		main 'com.iris.capability.generator.java.Generator'
 	}
+}
+
+artifacts {
+   archives shadowJar
 }
 
 compileJava.dependsOn generateSource

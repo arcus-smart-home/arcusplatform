@@ -18,6 +18,8 @@
  */
 package com.iris.driver.groovy;
 
+import com.google.common.collect.ImmutableSet;
+import com.iris.driver.groovy.control.ControlProtocolPlugin;
 import groovy.lang.Binding;
 import groovy.lang.Script;
 
@@ -29,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import groovy.util.GroovyScriptEngine;
 import org.apache.commons.io.IOUtils;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.junit.Test;
@@ -249,7 +252,6 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
    }
 
    @Test
-//   @Ignore
    public void testCompile() throws Exception {
       CompilerConfiguration config = new CompilerConfiguration();
       config.setTargetDirectory(new File(TMP_DIR));
@@ -289,9 +291,28 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
       CapabilityEnvironmentBinding binding = new CapabilityEnvironmentBinding(builder);
       Script s = (Script) metadataClass.getConstructor(Binding.class).newInstance(binding);
       s.setMetaClass(new CapabilityScriptMetaClass(s.getClass()));
+      s.getMetaClass().initialize();
       s.setBinding(binding);
       s.run();
       System.out.println("Definition: " + builder.create().getCapabilityDefinition());
+   }
+
+   @Test
+   public void testPlatformDeviceConnectionImport() {
+      CapabilityRegistry registry = ServiceLocator.getInstance(CapabilityRegistry.class);
+
+      CompilerConfiguration config = new CompilerConfiguration();
+      config.setTargetDirectory(new File(TMP_DIR));
+      config.addCompilationCustomizers(new DriverCompilationCustomizer(registry));
+
+      GroovyScriptEngine engine = new GroovyScriptEngine(new ClasspathResourceConnector());
+      engine.setConfig(config);
+      DriverBinding binding = new DriverBinding(
+              ServiceLocator.getInstance(CapabilityRegistry.class),
+              new GroovyDriverFactory(engine, registry, ImmutableSet.of(new ControlProtocolPlugin()))
+      );
+      GroovyDriverBuilder builder = binding.getBuilder();
+      assertNotNull(builder.importCapability(GroovyDrivers.PLATFORM_DEVICE_CONNECTION_CAPABILITY));
    }
 }
 
