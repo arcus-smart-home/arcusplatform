@@ -33,6 +33,7 @@ import com.iris.platform.services.person.PersonServiceModule;
 import com.iris.platform.services.place.PlaceServiceModule;
 import com.iris.platform.services.population.PopulationServiceModule;
 import com.iris.platform.services.productcatalog.ProductCatalogServiceModule;
+import com.iris.platform.subsystem.SubsystemDaoModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.netflix.governator.annotations.Modules;
 
@@ -42,6 +43,7 @@ import com.netflix.governator.annotations.Modules;
 @Modules(include={
       AccountServiceModule.class,
       HttpSmartyStreetsModule.class,
+      SubsystemDaoModule.class,
       HubServiceModule.class,
       IpcdServiceModule.class,
       MobileDeviceServiceModule.class,
