@@ -612,7 +612,7 @@
       </populations>
       <reconnect/>
     </product>
-    <product name="Wi-Fi Indoor Smart Plug" shortname="Smart Plug" screen="Switch" description="" manufacturer="GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Greatstar, Iris, indoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="2.12" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="220a4a" added="2018-04-20T14:46:07-0400" lastchanged="2018-09-12T22:56:31.380Z">
+    <product name="Wi-Fi Indoor Smart Plug" shortname="Smart Plug" screen="Switch" description="" manufacturer="GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Greatstar, Iris, indoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="2.12" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="220a4a" added="2018-04-20T14:46:07-0400" lastchanged="2018-09-12T22:56:31.380Z">
       <categories>
         <category name="Lights &amp; Switches"/>
       </categories>
@@ -633,7 +633,7 @@
       <removal/>
       <reconnect/>
     </product>
-    <product name="Wi-Fi Outdoor Smart Plug" shortname="Smart Plug" screen="Switch" description="" manufacturer="GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Greatstar, Iris, outdoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="2.12" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="2a97b9" added="2018-04-20T14:46:07-0400" lastchanged="2018-09-12T22:56:44.422Z">
+    <product name="Wi-Fi Outdoor Smart Plug" shortname="Smart Plug" screen="Switch" description="" manufacturer="GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Greatstar, Iris, outdoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="2.12" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="2a97b9" added="2018-04-20T14:46:07-0400" lastchanged="2018-09-12T22:56:44.422Z">
       <categories>
         <category name="Lights &amp; Switches"/>
       </categories>
@@ -1443,7 +1443,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product name="Wi-Fi Smart Switch" shortname="Smart Switch" screen="Switch" description="" manufacturer="Swann" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/CVTgIfymFEk" keywords="Swann, Iris, indoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="1.13.0" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="162918" added="2016-05-17T09:11:29-0400" lastchanged="2018-08-15T20:57:55.165Z">
+    <product name="Wi-Fi Smart Switch" shortname="Smart Switch" screen="Switch" description="" manufacturer="Swann" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="https://youtu.be/CVTgIfymFEk" keywords="Swann, Iris, indoor, module, control, outlet, smart, plug, switch, 120, volt, wifi" ota="true" protofamily="IPCD" hubrequired="false" minappversion="1.13.0" appRequired="true" pairingMode="WIFI" pairingIdleTimeoutMs="240000" id="162918" added="2016-05-17T09:11:29-0400" lastchanged="2018-08-15T20:57:55.165Z">
       <categories>
         <category name="Lights &amp; Switches"/>
       </categories>
@@ -2403,7 +2403,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="cf441c" name="Electric Water Heater Controller" shortname="Water Heater" screen="Water Heater" description="" manufacturer="AOSmith" installManualUrl="" vendor="EnergySmart" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/19STYASvOD8" keywords="Energy, Smart, Water, Heater, Whirlpool, AO, Smith" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
+    <product id="cf441c" name="Electric Water Heater Controller" shortname="Water Heater" screen="Water Heater" description="" manufacturer="AOSmith" installManualUrl="" vendor="EnergySmart" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="https://youtu.be/19STYASvOD8" keywords="Energy, Smart, Water, Heater, Whirlpool, AO, Smith" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
       <categories>
         <category name="Water"/>
       </categories>
@@ -2427,7 +2427,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="3981d9" name="Water Softener" shortname="Water Softener" screen="Water Softener" description="" manufacturer="EcoWater" installManualUrl="" vendor="Whirlpool" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/uVVoVOw5Ouk" keywords="" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
+    <product id="3981d9" name="Water Softener" shortname="Water Softener" screen="Water Softener" description="" manufacturer="EcoWater" installManualUrl="" vendor="Whirlpool" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="https://youtu.be/uVVoVOw5Ouk" keywords="" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
       <categories>
         <category name="Water"/>
       </categories>
@@ -2469,7 +2469,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="aeda43" name="Aladdin Connect Garage Door Controller" shortname="Garage Door Controller" screen="Genie Aladdin Controller" description="" manufacturer="Genie" installManualUrl="http://www.geniecompany.com/aladdinconnect/" vendor="Genie" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/U1kmPAH1skM" keywords="Genie, Aladdin, Connect, garage, door, opener, takeover, ip, wifi, wi-fi, ipcd, controller, barrier, security, lock" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
+    <product id="aeda43" name="Aladdin Connect Garage Door Controller" shortname="Garage Door Controller" screen="Genie Aladdin Controller" description="" manufacturer="Genie" installManualUrl="http://www.geniecompany.com/aladdinconnect/" vendor="Genie" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="https://youtu.be/U1kmPAH1skM" keywords="Genie, Aladdin, Connect, garage, door, opener, takeover, ip, wifi, wi-fi, ipcd, controller, barrier, security, lock" ota="Yes" protofamily="IPCD" hubrequired="false" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600" pairingMode="IPCD" pairingIdleTimeoutMs="240000">
       <categories>
         <category name="Doors &amp; Locks"/>
         <category name="Care"/>
@@ -2496,7 +2496,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="aeda44" name="Aladdin Connect Door Sensor" shortname="Garage Door" screen="Garage Door" description="" manufacturer="Genie" installManualUrl="http://www.geniecompany.com/aladdinconnect/" vendor="Genie" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="Genie, Aladdin, Connect, garage, door, position, sensor, opener, ip, wifi, wi-fi, ipcd, controller, barrier, security, lock" ota="" protofamily="Proprietary" hubrequired="false" devrequired="aeda43" added="2015-06-29T22:56:59-0600" lastchanged="2018-04-19T09:00:00-0600" pairingMode="BRIDGED_DEVICE" appRequired="false">
+    <product id="aeda44" name="Aladdin Connect Door Sensor" shortname="Garage Door" screen="Garage Door" description="" manufacturer="Genie" installManualUrl="http://www.geniecompany.com/aladdinconnect/" vendor="Genie" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="Genie, Aladdin, Connect, garage, door, position, sensor, opener, ip, wifi, wi-fi, ipcd, controller, barrier, security, lock" ota="" protofamily="Proprietary" hubrequired="false" devrequired="aeda43" added="2015-06-29T22:56:59-0600" lastchanged="2018-04-19T09:00:00-0600" pairingMode="BRIDGED_DEVICE" appRequired="false">
       <categories>
         <category name="Doors &amp; Locks"/>
         <category name="Care"/>
