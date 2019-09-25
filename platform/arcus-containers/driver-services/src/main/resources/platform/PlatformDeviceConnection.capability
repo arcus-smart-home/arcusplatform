@@ -26,7 +26,7 @@ onConnected {
    attributes.lastchange = now()
 }
 
-onDisconnected {   
+onDisconnected {
    def caps = attributes['base:caps']
    def curStatus = attributes['devconn:status']
    log.debug "PlatformDeviceConnection [onDisconnected] {}, {}", now(), curStatus

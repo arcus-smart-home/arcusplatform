@@ -42,9 +42,9 @@ public class HubServer extends BridgeServer {
          HubServerModule.class,
          ClusterAwareServerModule.class,
          KafkaModule.class,
-			HubBlacklistDAOModule.class,
+         HubBlacklistDAOModule.class,
          CassandraResourceBundleDAOModule.class,
-			PopulationAwareFirmwareModule.class,
+         PopulationAwareFirmwareModule.class,
          MetricsTopicReporterBuilderModule.class,
          HttpHealthCheckModule.class
       );

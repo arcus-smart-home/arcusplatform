@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="2019.9.0"
+   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="migrateEncryptionSystem" author="andrewx192">
+      <cl:description>Migrates user data to a new cipher</cl:description>
+      <cl:tracking></cl:tracking>
+      <cl:java class="com.iris.modelmanager.commands.MigrateCryptoLibrary"/>
+   </cl:changeset>
+</cl:changelog>

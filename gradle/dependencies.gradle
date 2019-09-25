@@ -46,8 +46,6 @@ ext.libraries << [
 			exclude group: "io.netty", module: "netty-all"
 		},
 
-		timewindow_compaction: "com.jeffjirsa.cassandra.db.compaction:TimeWindowCompactionStrategy:2.2.5",
-
 
 // Apache
 		commons_beanutils: "commons-beanutils:commons-beanutils:1.9.3",
@@ -105,25 +103,12 @@ ext.libraries << [
 		jaxb_api: "javax.xml.bind:jaxb-api:2.2.7",
 
 // Encryption via Bouncy Castle
-		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.54",
-		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.54",
-		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.54",
+		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.62",
+		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.62",
+		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.62",
 
 // SQL Database
-		dbcp: "commons-dbcp:commons-dbcp:1.4",
-		h2: "com.h2database:h2:1.4.192",
-		mysql: "mysql:mysql-connector-java:5.1.33",
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
-
-// Spring
-		spring_beans: "org.springframework:spring-beans:4.1.1.RELEASE",
-		spring_context: "org.springframework:spring-context:4.1.1.RELEASE",
-		spring_context_support: "org.springframework:spring-context-support:4.1.1.RELEASE",
-		spring_core: "org.springframework:spring-core:4.1.1.RELEASE",
-		spring_web: "org.springframework:spring-web:4.1.1.RELEASE",
-		spring_webmvc: "org.springframework:spring-webmvc:4.1.1.RELEASE",
-		spring_data_jpa: "org.springframework.data:spring-data-jpa:1.7.0.RELEASE",
-		spring_orm: "org.springframework:spring-orm:4.1.1.RELEASE",
 
 // guice dependencies
 		guiceCore: "com.google.inject:guice:4.0-beta5",
@@ -211,7 +196,7 @@ ext.libraries << [
       javax_annotation_api: 'javax.annotation:javax.annotation-api:1.3.2',
 
 // Groovy
-		groovy: "org.codehaus.groovy:groovy-all:2.4.10:indy",
+		groovy: "org.codehaus.groovy:groovy-all:2.5.8",
 
 // Cucumber
 		cucumber_junit: "io.cucumber:cucumber-junit:2.4.0",
@@ -253,9 +238,9 @@ ext.libraries << [
 
 
 // Notifications
-		sendgridJava: "com.sendgrid:sendgrid-java:3.0.5",
+		sendgridJava: "com.sendgrid:sendgrid-java:4.4.1",
 		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
-		sendgridHTTP: "com.sendgrid:java-http-client:2.3.2",
+		sendgridHTTP: "com.sendgrid:java-http-client:4.2.0",
 		pushy: "com.relayrides:pushy:0.4.3",
 		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
 		smackTCP: "org.igniterealtime.smack:smack-tcp:4.0.7",

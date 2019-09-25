@@ -36,15 +36,15 @@ import com.iris.notification.upstream.UpstreamNotificationResponder;
 import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
 import com.iris.platform.notification.provider.NotificationProviderUtil;
-import com.sendgrid.Content;
-import com.sendgrid.Email;
-import com.sendgrid.Mail;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.validator.constraints.impl.EmailValidator;
+import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ public class EmailProvider implements NotificationProvider {
     private final static String SUBJECT_SECTION = "subject";
     private final static String PLAINTEXT_BODY_SECTION = "plaintext-body";
     private final static String HTML_BODY_SECTION = "html-body";
-    private final static EmailValidator EMAIL_VALIDATOR = new EmailValidator();
+    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
 
 
     @Inject @Named("email.sendername") 	private String defaultSenderName;
@@ -235,7 +235,7 @@ public class EmailProvider implements NotificationProvider {
     public Boolean isEmailValid(String email) {
        if (StringUtils.isEmpty(email)) return false;
 
-       return EMAIL_VALIDATOR.isValid(email, null);
+       return EMAIL_VALIDATOR.isValid(email);
     }
 
    private void notifyCustomerOldEmail(Notification notification) throws DispatchUnsupportedByUserException, DispatchException {
@@ -310,18 +310,18 @@ public class EmailProvider implements NotificationProvider {
 
       Request request = new Request();
       try {
-        request.method = Method.POST;
-        request.endpoint = REQUEST_END_POINT;
-        request.body = mail.build();
+        request.setMethod(Method.POST);
+        request.setEndpoint(REQUEST_END_POINT);
+        request.setBody(mail.build());
         Response response = sendGrid.api(request);
         //TODO - status codes?
         if(response == null) {
            logger.error("Null response attempting to send mail");
            throw new DispatchException("Failed to send notification email. Reason: null response");
         }
-        else if (response.statusCode > 202) {
-           logger.error("Invalid response status [{}] attempting to send mail with response body [{}]", response.statusCode, response.body);
-           throw new DispatchException("Failed to send notification email. Reason: " + response.statusCode);
+        else if (response.getStatusCode() > 202) {
+           logger.error("Invalid response status [{}] attempting to send mail with response body [{}]", response.getStatusCode(), response.getBody());
+           throw new DispatchException("Failed to send notification email. Reason: " + response.getStatusCode());
         }
 
       } catch (IOException ex) {

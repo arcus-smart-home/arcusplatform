@@ -51,10 +51,10 @@ import com.iris.notification.upstream.UpstreamNotificationResponder;
 import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
 import com.iris.platform.notification.provider.NotificationProviderUtil;
-import com.sendgrid.Content;
-import com.sendgrid.Email;
-import com.sendgrid.Mail;
-import com.sendgrid.Personalization;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
@@ -212,7 +212,7 @@ public class EmailProviderTest {
 
 
    private void validateEmail(Request request, String toName, String toEmail, String message) throws JsonParseException, JsonMappingException, IOException {
-      String body = request.body;
+      String body = request.getBody();
       ObjectMapper objectMapper = new ObjectMapper();
       Mail curMail = objectMapper.readValue(body, Mail.class);
 

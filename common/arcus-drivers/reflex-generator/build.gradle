@@ -37,6 +37,10 @@ dependencies {
    compile libraries.jcommander
 }
 
+shadowJar {
+  zip64 true
+}
+
 artifacts {
    archives shadowJar
 }

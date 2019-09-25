@@ -287,7 +287,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
       if(entity.getSecurityAnswers() != null) {
          Map<String,String> securityAnswers = new HashMap<>(entity.getSecurityAnswers());
-         securityAnswers.replaceAll((k,v) -> { return Utils.aesEncrypt(questionsAesSecret, v); });
+         securityAnswers.replaceAll((k,v) -> { return aes.encrypt(k, v); });
          values.add(securityAnswers);
       } else {
          values.add(null);
@@ -364,7 +364,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Map<String,String> securityAnswers = row.getMap(PersonEntityColumns.SECURITY_ANSWERS, String.class, String.class);
       if(securityAnswers != null && !securityAnswers.isEmpty()) {
          securityAnswers = new HashMap<>(securityAnswers);
-         securityAnswers.replaceAll((k,v) -> { return Utils.aesDecrypt(questionsAesSecret, v); });
+         securityAnswers.replaceAll((k,v) -> { return aesDecrypt(questionsAesSecret, k, v); });
          entity.setSecurityAnswers(securityAnswers);
       }
 
@@ -1002,6 +1002,23 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    	if(phone1 != null) {
    		person.setMobileNumber(PhoneNumbers.format(phone1, PhoneNumberFormat.PARENS));
    	}
+   }
+
+   /**
+    * Wrapper to preserve existing encrypted secrets while allowing for migration.
+    *
+    * @param secretStr
+    * @param key
+    * @param encrypted
+    * @return
+    */
+   private String aesDecrypt(String secretStr, String key, String encrypted) {
+      try {
+         // Don't use secretStr - set by injection.
+         return aes.decrypt(key, encrypted);
+      } catch (RuntimeException e) {
+         return Utils.aesDecrypt(secretStr, encrypted);
+      }
    }
 }
 
