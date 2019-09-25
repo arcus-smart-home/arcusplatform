@@ -18,5 +18,9 @@
  */
 package com.iris.agent.zigbee;
 
+import com.iris.agent.addressing.HubAddressUtils;
+import com.iris.agent.addressing.HubBridgeAddress;
+
 public class ZigbeeController {
+    public static final HubBridgeAddress ADDRESS = HubAddressUtils.bridge("zigbee", "ZBIG");
 }
