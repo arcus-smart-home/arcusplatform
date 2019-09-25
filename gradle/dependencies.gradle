@@ -31,9 +31,6 @@ ext.libraries << [
                 zsmartsystems_zigbee_serial: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.0",
                 zsmartsystems_zigbee_ember: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.ember:1.2.0",
 
-// ZWave
-                openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
-
 // Cassandra
 		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.0.8:shaded") {
 			exclude group: "com.codahale.metrics" // interferes with platform dropwizard metrics
