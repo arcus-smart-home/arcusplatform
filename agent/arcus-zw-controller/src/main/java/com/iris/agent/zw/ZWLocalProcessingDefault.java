@@ -24,7 +24,7 @@ import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
 
-public class ZWLocalProcessingDefault implements ZWLocalProcessing {
+public class ZWaveLocalProcessingDefault implements ZWLocalProcessing {
    
    @Inject
    public ZWLocalProcessingDefault() {

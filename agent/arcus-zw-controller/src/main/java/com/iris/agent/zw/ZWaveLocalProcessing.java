@@ -18,33 +18,14 @@ package com.iris.agent.zw;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-import com.google.inject.Inject;
 import com.iris.messages.address.Address;
 import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
 
-public class ZWLocalProcessingNoop implements ZWLocalProcessing {
-   
-   @Inject
-   public ZWLocalProcessingNoop() {
-   }
-
-   @Override
-   public boolean isOffline(Address addr) {
-      return false;
-   }
-
-   @Override
-   public void setOfflineTimeout(Address addr, long offlineTimeout) {
-   }
-
-   @Override
-   public Observable<?> send(Address addr, Protocol.Message msg) {
-      return Observable.empty();
-   }
-
-   @Override
-   public void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
-   }
+public interface ZWaveLocalProcessing {
+   boolean isOffline(Address addr);
+      void setOfflineTimeout(Address addr, long offlineTimeout);
+      Observable<?> send(Address addr, Protocol.Message msg);
+      void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads);
 }

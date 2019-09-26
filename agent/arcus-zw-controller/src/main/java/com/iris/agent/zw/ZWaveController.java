@@ -100,8 +100,8 @@ import rx.subjects.ReplaySubject;
  * 
  * @author Erik Larson
  */
-public class ZWController implements PortHandler, LifeCycleListener, SceneHandler<Port>, ZWEventListener {
-   private static final Logger logger = LoggerFactory.getLogger(ZWController.class);
+public class ZWaveController implements PortHandler, LifeCycleListener, SceneHandler<Port>, ZWEventListener {
+   private static final Logger logger = LoggerFactory.getLogger(ZWaveController.class);
    
    public static final HubBridgeAddress ADDRESS = HubAddressUtils.bridge("zwave", "ZWAV");
    private static final int ADD_REMOVE_DEVICE_TTL = (int)TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
