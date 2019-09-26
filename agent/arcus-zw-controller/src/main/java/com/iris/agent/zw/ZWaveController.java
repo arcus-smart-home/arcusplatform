@@ -126,7 +126,7 @@ public class ZWaveController implements PortHandler, LifeCycleListener, SceneHan
     * @param router Hub message router.
     */
    @Inject
-   public ZWController(Router router) {
+   public ZWaveController(Router router) {
       this.router = router;      
       ZWEventDispatcher.INSTANCE.register(this);
       ZWSpy.INSTANCE.initialize();      

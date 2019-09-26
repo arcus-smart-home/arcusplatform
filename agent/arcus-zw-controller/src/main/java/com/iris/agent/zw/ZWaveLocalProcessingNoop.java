@@ -24,10 +24,10 @@ import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
 
-public class ZWaveLocalProcessingNoop implements ZWLocalProcessing {
+public class ZWaveLocalProcessingNoop implements ZWaveLocalProcessing {
    
    @Inject
-   public ZWLocalProcessingNoop() {
+   public ZWaveLocalProcessingNoop() {
    }
 
    @Override

@@ -24,10 +24,10 @@ import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
 
-public class ZWaveLocalProcessingDefault implements ZWLocalProcessing {
+public class ZWaveLocalProcessingDefault implements ZWaveLocalProcessing {
    
    @Inject
-   public ZWLocalProcessingDefault() {
+   public ZWaveLocalProcessingDefault() {
    }
 
    @Override
