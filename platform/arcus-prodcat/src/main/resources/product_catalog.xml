@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <prodcat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://arcus.com/prodcat_1.0.0">
   <brands>
+    <brand name="Arcus"/>
     <brand name="Aeotec by Aeon Labs"/>
     <brand name="Amazon"/>
     <brand name="Blink"/>
