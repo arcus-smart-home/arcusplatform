@@ -78,7 +78,11 @@
   <products>
     <product id="0c9a55" name="Generic Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="switch, energy, power, insteon" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-09-24T19:56:50-0600" lastchanged="2019-09-24T19:56:50-0600">
         <categories>
-            <category name="Lights &amp; Switches"/>
+            <category name="Cameras &amp; Sensors"/>
+            <category name="Care"/>
+            <category name="Doors &amp; Locks"/>
+            <category name="Security"/>
+            <category name="Windows &amp; Blinds"/>
         </categories>
         <pair>
             <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
