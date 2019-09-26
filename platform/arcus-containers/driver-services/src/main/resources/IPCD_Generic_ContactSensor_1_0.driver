@@ -52,13 +52,13 @@ onAdded {
 }
 
 onConnected {
-   log.debug "IPCD Generic Contact Switch Device Connected."
+   log.debug "IPCD Generic Contact Sensor Device Connected."
    
    Ipcd.Commands.getParameterValues("txnid", [ATTR_CONTACT])
 }
 
 onDisconnected {
-   log.debug "IPCD Generic Contact Switch Device Device Disconnected."
+   log.debug "IPCD Generic Contact Sensor Device Device Disconnected."
 }
 
 onRemoved {
@@ -91,11 +91,11 @@ onIpcdMessage.event {
    if (eventMap.containsKey(VALUE_CHANGES)) {
       def valueChanges = eventMap[VALUE_CHANGES]
       for (valueChange in valueChanges) {
-         if (valueChange["parameter"] == ATTR_SWITCH) {
-            def prevState = Switch.state.get()
-            Switch.state( valueChange["value"] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
-            if (Switch.state.get() != prevState) {
-               Switch.statechanged( new Date())
+         if (valueChange["parameter"] == ATTR_CONTACT) {
+            def prevState = Contact.state.get()
+            Contact.state( valueChange["value"] == 'opened' ? Contact.OPENED : Contact.CLOSED )
+            if (Contact.state.get() != prevState) {
+               Contact.statechanged( new Date())
             }
          }
       }
