@@ -15,6 +15,7 @@
     <brand name="FortrezZ"/>
     <brand name="Gatehouse"/>
     <brand name="GE"/>
+    <brand name="Generic"/>
     <brand name="Genie"/>
     <brand name="GoControl"/>
     <brand name="Google"/>
@@ -80,7 +81,7 @@
         </categories>
         <pair>
             <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
-                <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8 maxlen="8" required="true"/>
+                <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
                 <input type="hidden" name="IPCD:v1devicetype" value="GenericContactSensor"/>
             </step1>
         </pair>
