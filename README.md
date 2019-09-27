@@ -12,7 +12,7 @@ Please see [Quickstart](docs/quickstart.md) for details. At present, local devel
 
 # Overview of codebase
 
-Please see [README.projects](docs/README.projects) for details. Individual subdirectories may have their own additional documentation.
+Please see [README.projects](docs/projects.md) for details. Individual subdirectories may have their own additional documentation.
 
 # Support
 
