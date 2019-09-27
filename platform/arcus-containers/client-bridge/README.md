@@ -1,3 +1,9 @@
+# Client Bridge
+
+The client bridge allows the user to interact with the Arcus Platform. The client bridge provides a handful of RESTful APIs for things like getting the product catalog, inviting users, etc. Additionally, the client bridge hosts a websocket server that the clients (e.g. iOS, Android, and Web applications) use to send messages to the Platform bus.
+
+You can run a single instance of the client-bridge, or run multiple and configure different message prefixes depending on the class of user or application.
+
 How to run the server:
 =====================
   * Method 1:
