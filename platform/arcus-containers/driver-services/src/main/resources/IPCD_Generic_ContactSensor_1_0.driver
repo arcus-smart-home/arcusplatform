@@ -94,7 +94,7 @@ onIpcdMessage.event {
          if (valueChange["parameter"] == ATTR_CONTACT) {
             def prevState = Contact.contact.get()
             Contact.contact( valueChange["value"] == 'opened' ? Contact.CONTACT_CLOSED : Contact.CONTACT_CLOSED )
-            if (Contact.state.get() != prevState) {
+            if (Contact.contact.get() != prevState) {
                Contact.contactchanged( new Date())
             }
          }
