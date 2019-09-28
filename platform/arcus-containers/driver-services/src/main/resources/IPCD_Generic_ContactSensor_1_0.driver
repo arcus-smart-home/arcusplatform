@@ -48,7 +48,7 @@ onAdded {
    DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
 
    Contact.contact                  Contact.CONTACT_OPENED
-   Contact.statechanged             ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Contact.contactchanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
 }
 
 onConnected {
@@ -93,9 +93,9 @@ onIpcdMessage.event {
       for (valueChange in valueChanges) {
          if (valueChange["parameter"] == ATTR_CONTACT) {
             def prevState = Contact.state.get()
-            Contact.state( valueChange["value"] == 'opened' ? Contact.OPENED : Contact.CLOSED )
+            Contact.state( valueChange["value"] == 'opened' ? Contact.CONTACT_CLOSED : Contact.CONTACT_CLOSED )
             if (Contact.state.get() != prevState) {
-               Contact.statechanged( new Date())
+               Contact.contactchanged( new Date())
             }
          }
       }
