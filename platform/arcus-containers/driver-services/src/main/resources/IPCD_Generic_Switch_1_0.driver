@@ -18,7 +18,7 @@ description    "Driver for emulated IPCD Switch"
 version        "1.0"
 protocol       "IPCD"
 deviceTypeHint "Switch"
-productId      "0c9a67"
+productId      "0c9a66"
 vendor         "Generic"
 model          "SwitchLinc"
 
