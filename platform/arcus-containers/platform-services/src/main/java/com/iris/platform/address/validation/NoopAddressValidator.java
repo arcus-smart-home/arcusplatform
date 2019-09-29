@@ -6,7 +6,7 @@ import com.iris.platform.address.StreetAddress;
 import java.util.LinkedList;
 import java.util.List;
 
-public class NoopAddressValidatorImpl implements AddressValidator {
+public class NoopAddressValidator implements AddressValidator {
     @Override
     public AddressValidationResult validate(StreetAddress address) {
         List<StreetAddress> addresses = new LinkedList<StreetAddress>();

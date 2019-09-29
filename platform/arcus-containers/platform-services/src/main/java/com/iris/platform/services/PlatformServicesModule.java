@@ -36,7 +36,7 @@ import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.address.validation.AddressValidator;
-import com.iris.platform.address.validation.NoopAddressValidatorImpl;
+import com.iris.platform.address.validation.NoopAddressValidator;
 import com.iris.platform.address.validation.smartystreets.SmartyStreetsValidator;
 import com.iris.platform.pairing.customization.RuleTemplateRequestor;
 import com.iris.platform.services.account.AccountService;
@@ -106,7 +106,7 @@ public class PlatformServicesModule extends AbstractModule {
               break;
            case "noop":
               logger.warn("using noop address validator");
-              bind(AddressValidator.class).to(NoopAddressValidatorImpl.class);
+              bind(AddressValidator.class).to(NoopAddressValidator.class);
               break;
         }
    }
