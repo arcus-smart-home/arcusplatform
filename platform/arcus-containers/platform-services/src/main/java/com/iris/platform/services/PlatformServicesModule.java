@@ -65,7 +65,7 @@ public class PlatformServicesModule extends AbstractModule {
    @Inject(optional = true) @Named("platform.service.threads.keepAliveMs")
    private int keepAliveMs = 10000;
 
-   @Named("platformservices.addressvalidator")
+   @Inject(optional=true) @Named("platform.address.validator")
    private String addressValidator = "default";
 
    private ExecutorService executor;
