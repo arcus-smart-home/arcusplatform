@@ -1,0 +1,94 @@
+version: '3'
+services:
+  ui-server:
+    image: gcr.io/arcus-238802/eyeris/ui-server:latest
+    environment:
+    - ARCUS_WS_URI=client.dev.arcussmarthome.com
+    - ARCUS_HTTP_URI=dev.arcussmarthome.com
+    ports:
+    - 8080:8086
+  modelmanger-platform:
+    image: eyeris/modelmanager:2018.10.2
+    environment:
+    - CASSANDRA_CONTACTPOINTS=cassandra
+    - CASSANDRA_HISTORY_CONTACTPOINTS=cassandra
+    - cassandra_contactPoints=cassandra
+    - cassandra_history_contactPoints=cassandra
+    - MODELMANAGER_HOME=/modelmanager-2018.10.2/
+    - MODELMANAGER_SCHEMA=platform
+    - MODELMANAGER_AUTO=true
+    - BOOTSTRAP_SERVERS=kafka:9092
+    - OPS_BOOTSTRAP_SERVERS=kafka:9092
+    command: ["-c", "/modelmanager-2018.10.2/conf/arcus-modelmanager.properties", "-P", "dev"]
+    depends_on:
+    - cassandra
+    restart: on-failure
+  modelmanger-history:
+    image: eyeris/modelmanager:2018.10.2
+    environment:
+    - CASSANDRA_CONTACTPOINTS=cassandra
+    - CASSANDRA_HISTORY_CONTACTPOINTS=cassandra
+    - cassandra_contactPoints=cassandra
+    - cassandra_history_contactPoints=cassandra
+    - MODELMANAGER_HOME=/modelmanager-2018.10.2/history-resources
+    - MODELMANAGER_SCHEMA=history
+    - MODELMANAGER_AUTO=true
+    - BOOTSTRAP_SERVERS=kafka:9092
+    - OPS_BOOTSTRAP_SERVERS=kafka:9092
+    command: ["-c", "/modelmanager-2018.10.2/conf/arcus-modelmanager.properties"]
+    depends_on:
+    - cassandra
+    restart: on-failure
+
+  client-bridge:
+    image: eyeris/client-bridge:2018.10.2
+    environment:
+    - CASSANDRA_CONTACTPOINTS=cassandra
+    - CASSANDRA_HISTORY_CONTACTPOINTS=cassandra
+    - cassandra_contactPoints=cassandra
+    - cassandra_history_contactPoints=cassandra
+    - BOOTSTRAP_SERVERS=kafka:9092
+    - OPS_BOOTSTRAP_SERVERS=kafka:9092
+    - CASSANDRA_KEYSPACE=dev
+    depends_on:
+    - cassandra
+    restart: always
+    ports:
+    - 8081:8081
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 30
+        window: 120s
+  zookeeper:
+    image: eyeris/zookeeper:latest
+    ports:
+    - 2181:2181
+  cassandra:
+    image: eyeris/cassandra:latest
+    environment:
+    - CASSANDRA_SEEDS=localhost
+    - CASSANDRA_SINGLE_NODE=true
+    ports:
+    - 7000:7000
+    - 7001:7001
+    - 7199:7199
+    - 9042:9042
+    - 9160:9160
+    volumes:
+    - cassandra-storage:/data
+  kafka:
+    image: eyeris/kafka:latest
+    ports:
+    - 9092:9092
+    environment:
+    - KAFKA_HSIZE=512
+    - ZOOKEEPER=zookeeper:2181
+    - ZOOKEEPEROPS=zookeeper:2181
+      #networks:
+      #  eyeris
+    restart: always
+volumes:
+  cassandra-storage:
+
