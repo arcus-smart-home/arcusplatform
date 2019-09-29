@@ -65,3 +65,11 @@ docker_stop() {
 docker_exec() {
     "${DOCKER_BIN}" exec $@
 }
+
+function prompt() {
+  local  __resultvar=$1
+  echo -n "${2} "
+  local  myresult=''
+  read myresult
+  eval $__resultvar="'$myresult'"
+}
