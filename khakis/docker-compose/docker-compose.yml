@@ -50,6 +50,25 @@ services:
     - BOOTSTRAP_SERVERS=kafka:9092
     - OPS_BOOTSTRAP_SERVERS=kafka:9092
     - CASSANDRA_KEYSPACE=dev
+    - BILLING_URL=https://example.com
+    - BILLING_API_KEY=https://example.com
+    - SMARTY_AUTH_ID=
+    - SMARTY_AUTH_TOKEN=
+    - BILLING_PUBLIC_API_KEY=
+    - BOUNCE_HELP_URL=
+    - BOUNCE_APPLE_URL=
+    - BOUNCE_APP_URL=
+    - BOUNCE_ANDROID_URL=
+    - BOUNCE_WEB_URL=
+    - BOUNCE_REDIRECT_URL=
+    - REDIRECT_BASE_URL=
+    - IOS_APP_IDS=
+    - VIDEO_PREVIEW_UPLOAD_URL=
+    - SECURE_STATIC_RESOURCE_BASE_URL=
+    - INVOICE_RESOURCE_BASE_URL=
+    - STATIC_RESOURCE_BASE_URL=
+    - CAMERA_PREVIEW_BASEURL=
+    - CORS_ORIGINS=
     depends_on:
     - cassandra
     restart: always
@@ -65,10 +84,10 @@ services:
     image: eyeris/zookeeper:latest
     ports:
     - 2181:2181
+  # Cassandra for database
   cassandra:
     image: eyeris/cassandra:latest
     environment:
-    - CASSANDRA_SEEDS=localhost
     - CASSANDRA_SINGLE_NODE=true
     ports:
     - 7000:7000
@@ -78,6 +97,12 @@ services:
     - 9160:9160
     volumes:
     - cassandra-storage:/data
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
   kafka:
     image: eyeris/kafka:latest
     ports:
@@ -89,6 +114,9 @@ services:
       #networks:
       #  eyeris
     restart: always
+    volumes:
+      - kafka-storage:/data
 volumes:
   cassandra-storage:
+  kafka-storage:
 
