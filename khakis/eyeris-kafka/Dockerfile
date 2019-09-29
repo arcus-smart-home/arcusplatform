@@ -35,6 +35,8 @@ ADD kafka-console-producer /usr/bin/
 
 # Define working directory.
 WORKDIR /data
+RUN \
+    chown -R kafka:kafka /data
 
 # Export Apache Kafka environment variables
 ENV KAFKA_HOME /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
