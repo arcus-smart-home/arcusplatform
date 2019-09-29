@@ -44,7 +44,7 @@ cassandra_init() {
    [ -z "${CID}" ] && CID="eyeris_prod"
 
    if [[ -z "${CASSANDRA_HOST}" ]]; then
-        CASSANDRA_HOST="cassandra.eyeris" # for local docker
+       CASSANDRA_HOST=$(hostname) # for local docker
    fi
 
    local SEEDS="${CASSANDRA_SEEDS}"
