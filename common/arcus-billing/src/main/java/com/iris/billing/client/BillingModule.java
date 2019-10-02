@@ -19,24 +19,42 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BillingModule extends AbstractIrisModule {
+   private static final Logger logger = LoggerFactory.getLogger(BillingModule.class);
 
-   @Inject
+   @Inject(optional = true)
    @Named(value = "billing.api.key")
    private String recurlyAPIKey;
 
-   @Inject
+   @Inject(optional = true)
    @Named(value = "billing.url")
    private String recurlyURL;
+
+   @Inject(optional = true)
+   @Named(value = "billing.client")
+   private String billingClient = "default";
 
    @Override
    protected void configure() {
    }
 
    @Provides
-   public BillingClient recurlyClient() {
-      return new RecurlyClient(recurlyURL, recurlyAPIKey);
+   public BillingClient billingClient() {
+      switch (billingClient) {
+         default:
+            logger.warn("unknown billing client {}: using default instead");
+            // fall through
+         case "default":
+         case "recurly":
+            logger.info("using recurly billing client");
+            return new RecurlyClient(recurlyURL, recurlyAPIKey);
+
+         case "noop":
+            logger.warn("using noop billing client");
+            return new NoopBillingClient();
+      }
    }
 }
-
