@@ -1,12 +1,29 @@
-# Notes about hub
+# Notes on the IRIS Hub
+
+# Hubs
+
+There are several generations of Hubs
+
+* AlertMe Hub (unsupported) - this had minimal resources and is not capable of running Arcus.
+* Iris v2 hub (IH200) / Centralite - this is the most common hub, and was shipped with the Iris Pro Monitoring Kit
+* Iris v3 hub (IH300) / GreatStar - this was the final hub, shipped with the final "Safe and Secure" kit.
 
 ## Certificates
 
-The Arcus hub appears to use mutual TLS with pinned certificates on the hub and a pre-generated certificate on the device. You key filename is based on the device's wired network MAC address, located in /var/volatile/tmp/mfg/keys/. The certificate is also available in /var/volatile/tmp/mfg/certs/ following a similar filename scheme. The certificate is signed by `C=US, ST=NC, L=Mooresville, O=Lowe's Companies, Inc., OU=Iris, CN=Lowe's Iris Hub Signing CA`.
+The Arcus hub uses mutual TLS with pinned certificates on the hub and a pre-generated certificate on the device. The key filename is based on the device's wired network MAC address, located in /var/volatile/tmp/mfg/keys/. The certificate is also available in /var/volatile/tmp/mfg/certs/ following a similar filename scheme. The certificate is signed by `C=US, ST=NC, L=Mooresville, O=Lowe's Companies, Inc., OU=Iris, CN=Lowe's Iris Hub Signing CA`.
 
-The iris2-system jar file (/data/agent/libs/iris2-system-2.13.22.jar) contains the keystore that the hub uses to determine what it should trust. In theory, putting a new truststore in agent/arcus-system/src/main/resources and placing the respective jar in /data/agent/libs/ would be sufficent to overwrite the system trust store.
+The iris2-system jar file (/data/agent/libs/iris2-system-2.13.22.jar) contains the keystore that the hub uses to determine what it should trust. Arcus ships with a truststore that supports LetsEncrypt via the ISRG and DST roots. The trust store can be changed by updating truststore.jks in agent/arcus-system/src/main/resources and placing the respective jar in /data/agent/libs/.
 
 To change the system trust store, simply generate a new java keystore with your root certificate(s) of choice, and add it to the jar file. You will need to scp the jar file off of the hub and back onto the hub once complete since the hub does not have the `jar` utility installed.
+
+### Copying the new trust store
+
+Either replace the existing iris2-system jar, or delete it and upload arcus-system-x.x.x.jar
+```
+scp agent/arcus-system/build/libs/arcus-system-*.jar root@172.16.1.128:/data/agent/libs/iris2-system-2.13.22.jar
+```
+
+### Editing the existing trust store (not recommended)
 
 Copying the jar file from the Hub to your local system:
 ```
@@ -25,13 +42,9 @@ $ scp iris2-system-2.13.22.jar  root@172.16.1.121:/data/agent/libs
 
 Once complete, reboot the hub or restart the hub agent, and it should use the updated trust store. Please note that if you factory reset the hub, the keystore will be blown away.
 
-### Unknowns
-
-TBD
-
 ### Hub authentication
 
-the hubs appear to authenticate based on mac address, and the hub id can be derived with the following:
+the hub authenticates based on the Hub ID (derived from the mac address), which can be derived with the following:
 
 ```
 class Main {
