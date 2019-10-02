@@ -66,6 +66,12 @@ docker_exec() {
     "${DOCKER_BIN}" exec $@
 }
 
+findroot() {
+    local  __resultvar=$1
+    result=$(git rev-parse --show-toplevel)
+    eval $__resultvar="'$result'"
+}
+
 function prompt() {
   local  __resultvar=$1
   echo -n "${2} "
