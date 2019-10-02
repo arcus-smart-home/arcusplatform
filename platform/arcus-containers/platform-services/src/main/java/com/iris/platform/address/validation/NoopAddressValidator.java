@@ -15,29 +15,16 @@
  */
 package com.iris.platform.address.validation;
 
-import com.google.common.base.Preconditions;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import com.iris.messages.model.Place;
+import com.iris.platform.address.StreetAddress;
 
-@Singleton
-public class AddressValidatorFactory {
+import java.util.LinkedList;
+import java.util.List;
 
-   private final AddressValidator addressValidator;
-
-   @Inject
-   public AddressValidatorFactory(AddressValidator addressValidator) {
-      this.addressValidator = addressValidator;
-   }
-
-   public AddressValidator validatorFor(Place place) {
-      Preconditions.checkNotNull(place);
-      return addressValidator;
-   }
-
-   public AddressValidator defaultValidator() {
-      return addressValidator;
-   }
-
+public class NoopAddressValidator implements AddressValidator {
+    @Override
+    public AddressValidationResult validate(StreetAddress address) {
+        List<StreetAddress> addresses = new LinkedList<>();
+        addresses.add(address);
+        return new AddressValidationResult(addresses, true);
+    }
 }
-
