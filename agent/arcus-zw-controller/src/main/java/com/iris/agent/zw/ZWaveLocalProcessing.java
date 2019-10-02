@@ -23,7 +23,7 @@ import com.iris.protocol.zwave.Protocol;
 
 import rx.Observable;
 
-public interface ZWLocalProcessing {
+public interface ZWaveLocalProcessing {
    boolean isOffline(Address addr);
       void setOfflineTimeout(Address addr, long offlineTimeout);
       Observable<?> send(Address addr, Protocol.Message msg);
