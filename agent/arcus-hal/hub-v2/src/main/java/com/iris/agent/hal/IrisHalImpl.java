@@ -69,6 +69,12 @@ import com.iris.agent.spy.SpyService;
 import com.iris.agent.storage.StorageService;
 import com.iris.agent.util.IpUtil;
 import com.iris.agent.util.ThreadUtils;
+import com.iris.agent.zigbee.ZigbeeController;
+import com.iris.agent.zigbee.ZigbeeEmberDriverFactory;
+import com.iris.agent.zigbee.ZigbeeDriverFactory;
+import com.iris.agent.zigbee.ZigbeeLocalProcessing;
+import com.iris.agent.zigbee.ZigbeeLocalProcessingDefault;
+import com.iris.agent.zigbee.ZigbeeLocalProcessingNoop;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.messages.capability.HubPowerCapability;
@@ -807,7 +813,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       @Override
       protected void configure() {
          String disable = System.getenv("ZIGBEE_DISABLE");
-         /*
+
          if (disable != null) {
             bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingNoop.class).asEagerSingleton();
             return;
@@ -822,7 +828,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          bind(ZigbeeDriverFactory.class).toInstance(factory);
          bind(ZigbeeController.class).in(Singleton.class);
          bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingDefault.class).asEagerSingleton();
-         */
+
       }
    }
 
