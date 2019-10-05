@@ -29,6 +29,9 @@ dependencies {
    compile project(':common:arcus-common')
    compile project(':common:arcus-model')
    compile project(':common:arcus-model:platform-messages')
+
+   runtime project(":agent:arcus-agent")
+   runtime project(":agent:arcus-hal:arcus-hal-hub-v2")
 }
 
 task run() {
@@ -37,3 +40,11 @@ task run() {
    dependsOn "run-hub-v2"
 }
 
+// Run the agent. This feels like the wrong place to put this, but the original run task references run-hub-v2 which wasn't defined anywhere.
+task('run-hub-v2', type:JavaExec) {
+   classpath = files("$projectDir/src/dist/conf") + sourceSets.main.runtimeClasspath
+   group "Application"
+   main = 'com.iris.agent.IrisAgent'
+   args '~/.hub-simulated/' // Store files in ~/.hub-simulated
+   jvmArgs '-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml'
+}
