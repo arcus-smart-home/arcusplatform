@@ -46,5 +46,5 @@ task('run-hub-v2', type:JavaExec) {
    group "Application"
    main = 'com.iris.agent.IrisAgent'
    args '~/.hub-simulated/' // Store files in ~/.hub-simulated
-   jvmArgs '-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml'
+   jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
 }
