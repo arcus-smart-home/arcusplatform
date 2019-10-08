@@ -42,6 +42,10 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.iris.agent.zw.ZWaveController;
+import com.iris.agent.zw.ZWaveLocalProcessing;
+import com.iris.agent.zw.ZWaveLocalProcessingDefault;
+import com.iris.agent.zw.ZWaveLocalProcessingNoop;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -790,7 +794,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       protected void configure() {
          String disable = System.getenv("ZWAVE_DISABLE");
          if (disable != null) {
-            // bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingNoop.class).asEagerSingleton();
+             bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingNoop.class).asEagerSingleton();
             return;
          }
 
@@ -801,11 +805,9 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
             bind(String.class).annotatedWith(Names.named("iris.zwave.port")).toInstance(port);
          }
 
-         /*
-         bind(ZWaveDriverFactory.class).in(Singleton.class);
+//         bind(ZWaveDriverFactory.class).in(Singleton.class);
          bind(ZWaveController.class).in(Singleton.class);
          bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingDefault.class).asEagerSingleton();
-         */
       }
    }
 

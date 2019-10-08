@@ -24,7 +24,8 @@ dependencies {
    compile project(':common:arcus-drivers:drivers-common')
 
    compile project(':agent:arcus-zigbee-controller')
+   compile project(':agent:arcus-zw-controller')
 
-	testCompile libraries.google_guava_testlib
+   testCompile libraries.google_guava_testlib
 }
 

@@ -36,6 +36,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import com.iris.agent.zw.ZWaveLocalProcessing;
+import com.iris.protocol.zigbee.ZigbeeProtocol;
+import com.iris.protocol.zwave.ZWaveProtocol;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
@@ -113,11 +116,11 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    private final Router router;
 
    private final ZigbeeLocalProcessing zigbee;
+   private final ZWaveLocalProcessing zwave;
 
    /*
     * Disable protocols that use proprietary information.
     * 
-   private final ZWaveLocalProcessing zwave;
    private final SercommLocalProcessing sercomm;
    */
 
@@ -182,8 +185,8 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    public ReflexController(
       ReflexLocalProcessing localProcessing,
       ZigbeeLocalProcessing zigbee,
-      /*
       ZWaveLocalProcessing zwave,
+      /*
       SercommLocalProcessing sercomm,
       */
       Router router
@@ -192,8 +195,8 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       this.router = router;
 
       this.zigbee = zigbee;
-      /*
       this.zwave = zwave;
+      /*
       this.sercomm = sercomm;
       */
       this.localProcessing = localProcessing;
@@ -279,11 +282,11 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    public ZigbeeLocalProcessing zigbee() {
       return this.zigbee;
    }
-   /*
+
    public ZWaveLocalProcessing zwave() {
       return this.zwave;
    }
-   
+   /*
    public SercommLocalProcessing sercomm() {
       return this.sercomm;
    }
@@ -755,14 +758,14 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    private void sendOfflineTimeout(Address protocol, long offlineTimeout) {
       if (offlineTimeout > 0) {
          switch (((DeviceProtocolAddress)protocol).getProtocolName()) {
-         /*
+
          case ZigbeeProtocol.NAMESPACE:
             zigbee.setOfflineTimeout(protocol, offlineTimeout);
             break;
          case ZWaveProtocol.NAMESPACE:
             zwave.setOfflineTimeout(protocol, offlineTimeout);
             break;
-         */
+
          default:
             log.trace("cannot set offline timeout for unknown protocol: {}", protocol);
             break;
