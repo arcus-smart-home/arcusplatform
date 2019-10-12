@@ -27,6 +27,7 @@ import com.iris.agent.lifecycle.LifeCycleService;
 import com.iris.agent.router.Port;
 import com.iris.agent.router.PortHandler;
 import com.iris.agent.router.Router;
+import com.iris.agent.zigbee.ember.ZigbeeDriver;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.HubCapability;
@@ -52,6 +53,9 @@ public class ZigbeeController implements PortHandler, LifeCycleListener {
     // Hub Message Router
     private final Router router;
 
+    // Zigbee Driver/transport
+    private final ZigbeeDriver driver;
+
     // The Hub port this controller is attached to.
     private Port port;
 
@@ -61,8 +65,9 @@ public class ZigbeeController implements PortHandler, LifeCycleListener {
      * @param router Hub message router.
      */
     @Inject
-    public ZigbeeController(Router router) {
+    public ZigbeeController(Router router, ZigbeeDriver driver) {
         this.router = router;
+        this.driver = driver;
     }
 
     /**
@@ -230,7 +235,7 @@ public class ZigbeeController implements PortHandler, LifeCycleListener {
    }
 
    private void sendZigbeeProtocolMessage(ProtocolMessage msg) {
-      sendZigbeeProtocolMessage(msg, null);
+//      sendZigbeeProtocolMessage(msg, null);
    }
 
 }
