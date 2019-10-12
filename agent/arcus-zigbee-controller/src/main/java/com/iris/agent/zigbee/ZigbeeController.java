@@ -27,8 +27,12 @@ import com.iris.agent.lifecycle.LifeCycleService;
 import com.iris.agent.router.Port;
 import com.iris.agent.router.PortHandler;
 import com.iris.agent.router.Router;
+import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.capability.HubCapability;
+import com.iris.messages.errors.Errors;
 import com.iris.protocol.ProtocolMessage;
+import com.iris.protocol.zigbee.ZigbeeProtocol;
 import com.netflix.governator.annotations.WarmUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +121,7 @@ public class ZigbeeController implements PortHandler, LifeCycleListener {
     }
 
     ///////////////
-    // Port Handler Implemntation
+    // Port Handler Implementation
     //////////////
     /**
      * Entry point for platform messages for the ZWave controller.
@@ -127,16 +131,106 @@ public class ZigbeeController implements PortHandler, LifeCycleListener {
     public Object recv(Port port, PlatformMessage message) throws Exception {
         logger.trace("Handling zwave platform message: {} -> {}", message, message.getValue());
 
-        return null;
-    }
+       //TODO: Check for performing backup/restore
+
+       String type = message.getMessageType();
+       switch (type) {
+          case HubCapability.PairingRequestRequest.NAME:
+             return handlePairingRequest(message);
+
+          case HubCapability.UnpairingRequestRequest.NAME:
+             return handleUnpairingRequest(message);
+
+          case com.iris.messages.ErrorEvent.MESSAGE_TYPE:
+             logger.warn("Error received from platform: {}", message);
+             return null;
+
+          default:
+             return Errors.unsupportedMessageType(message.getMessageType());
+       }    }
 
     @Override
     public void recv(Port port, ProtocolMessage message) {
+       if (!ZigbeeProtocol.NAMESPACE.equals((message.getMessageType()))) {
+          return;
+       }
 
+       sendZigbeeProtocolMessage(message);
     }
 
+   /**
+    * Not used in this implementation.
+    */
     @Override
     public void recv(Port port, Object message) {
-
+       logger.trace("call to recv which is unused");
     }
+
+   /**
+    * Pairing request handler. This could be a request to start pairing or to
+    * stop pairing depending on message contents. The pairing process singleton
+    * is called to either start or stop pairing.
+    *
+    * The message type should be confirmed to be PairingRequest before calling
+    * this method with that message.
+    *
+    * @param message PairingRequest message
+    * @return always returns null
+    */
+   private Object handlePairingRequest(PlatformMessage message) throws Exception {
+
+      MessageBody body = message.getValue();
+      String action = HubCapability.PairingRequestRequest.getActionType(body);
+
+      //TODO: Wait for bootstrapping to be finished.
+
+      switch (action) {
+         case HubCapability.PairingRequestRequest.ACTIONTYPE_START_PAIRING:
+            long timeoutInMillis = HubCapability.PairingRequestRequest.getTimeout(body);
+//            Pairing.INSTANCE.startPairing((int)(timeoutInMillis/1000));
+            return null;
+         case HubCapability.PairingRequestRequest.ACTIONTYPE_STOP_PAIRING:
+//            Pairing.INSTANCE.stopPairing();
+            return null;
+         default:
+            // TODO: Better Exception
+            throw new Exception("Unknown pairing action: " + action);
+      }
+   }
+
+   /**
+    * Unpairing request handler. This could be a request to start unpairing or
+    * to stop unpairing depending on message contents. The pairing process singleton
+    * is called to either start or stop unpairing.
+    *
+    * The message type should be confirmed to be UnpairingRequest before calling
+    * this method with that message.
+    *
+    * @param message UnpairingRequest message
+    * @return always returns null
+    */
+   private Object handleUnpairingRequest(PlatformMessage message) throws Exception {
+      MessageBody body = message.getValue();
+      String action = HubCapability.UnpairingRequestRequest.getActionType(body);
+
+      //TODO: Wait for bootstrapping to finish.
+
+      switch (action) {
+         case HubCapability.UnpairingRequestRequest.ACTIONTYPE_START_UNPAIRING:
+            long timeoutInMillis = HubCapability.UnpairingRequestRequest.getTimeout(body);
+//            Pairing.INSTANCE.startRemoval((int)(timeoutInMillis/1000));
+            return null;
+         case HubCapability.UnpairingRequestRequest.ACTIONTYPE_STOP_UNPAIRING:
+//            Pairing.INSTANCE.stopRemoval();
+            return null;
+         default:
+            // TODO: Better Exception
+            throw new Exception("Unknown unpairing action: " + action);
+      }
+   }
+
+   private void sendZigbeeProtocolMessage(ProtocolMessage msg) {
+      sendZigbeeProtocolMessage(msg, null);
+   }
+
 }
