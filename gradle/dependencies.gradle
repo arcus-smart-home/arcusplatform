@@ -27,9 +27,9 @@ ext.libraries << [
 		ipcd: "ipcd-lib:ipcd-lib:1.0",
 
 // Zigbee
-		zsmartsystems_zigbee: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.0",
-		zsmartsystems_zigbee_serial: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.0",
-		zsmartsystems_zigbee_ember: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.ember:1.2.0",
+		zsmartsystems_zigbee: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.4",
+		zsmartsystems_zigbee_serial: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.4",
+		zsmartsystems_zigbee_ember: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.dongle.ember:1.2.4",
 
 // ZWave
 		openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
