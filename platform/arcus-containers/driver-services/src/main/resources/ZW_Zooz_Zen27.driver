@@ -32,7 +32,6 @@ matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:P
 
 capabilities	DevicePower, Dimmer, Switch, Indicator
 
-importCapability 'zwave/JascoZWaveSwitchAll'
 importCapability 'zwave/GenericZWaveDim'
 importCapability 'zwave/GenericZWaveVersion'
 
@@ -245,3 +244,8 @@ onZWaveMessage {
     return false;
 }
 
+onZWaveMessage.basic.report {
+    byte currState = message.command.get('value')
+    log.trace "Basic Report: {}", currState
+    GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+}
