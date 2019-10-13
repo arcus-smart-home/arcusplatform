@@ -72,7 +72,7 @@ final byte CNFG_RESET_SIZE        = 0x81		// size field (actually flags indicati
 final byte CNFG_RESET_VALUE       = 0x00        // Not used by device
 final int  OFFLINE_TIMEOUT_SECS   = 1800 		// 30 min
 
-final String DEVICE_NAME = 'Jasco In-Wall Dimmer'
+final String DEVICE_NAME = 'Zooz Zen 27 In-Wall Dimmer'
 
 
 onAdded {
@@ -244,6 +244,7 @@ onZWaveMessage {
     return false;
 }
 
+// ZEN27 reports local changes via basic report
 onZWaveMessage.basic.report {
     byte currState = message.command.get('value')
     log.trace "Basic Report: {}", currState
