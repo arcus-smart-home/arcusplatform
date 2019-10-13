@@ -23,7 +23,7 @@ description		"Driver for a Zooz Zen27 In-Wall Dimmer"
 version			"1.0"
 protocol		"ZWAV"
 deviceTypeHint	"Dimmer"
-productId		"6c56c8"
+productId		"acd43a"
 vendor 			"Zooz"
 model           "Zen27"
 
