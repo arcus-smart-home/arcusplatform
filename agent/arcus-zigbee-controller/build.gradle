@@ -1,5 +1,8 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Copyright 2019 Arcus Project
+ *
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +21,17 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 dependencies {
    compile project(":agent:arcus-system")
    compile project(":agent:arcus-router")
+   compile project(":agent:arcus-os")
 
+   compile project(':common:arcus-protocol')
+   compile project(':common:arcus-client')
    compile project(':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':common:arcus-drivers:drivers-common')
+   compile libraries.guava
+   compile libraries.zsmartsystems_zigbee
+   compile libraries.zsmartsystems_zigbee_serial
+   compile libraries.zsmartsystems_zigbee_ember
 
-   compile project(':agent:arcus-zigbee-controller')
+   testCompile project(':agent:arcus-test-agent')
 
-	testCompile libraries.google_guava_testlib
 }
 

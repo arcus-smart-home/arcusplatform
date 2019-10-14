@@ -35,6 +35,9 @@ import com.iris.core.platform.PlatformModule;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.platform.address.validation.AddressValidator;
+import com.iris.platform.address.validation.NoopAddressValidator;
+import com.iris.platform.address.validation.smartystreets.SmartyStreetsValidator;
 import com.iris.platform.pairing.customization.RuleTemplateRequestor;
 import com.iris.platform.services.account.AccountService;
 import com.iris.platform.services.hub.HubService;
@@ -47,16 +50,23 @@ import com.iris.platform.services.population.PopulationService;
 import com.iris.platform.services.productcatalog.ProductCatalogService;
 import com.iris.prodcat.ProductCatalogReloadListener;
 import com.iris.util.ThreadPoolBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Defines all the necessary stuff for the platform service.
  */
 public class PlatformServicesModule extends AbstractModule {
+   private static final Logger logger = LoggerFactory.getLogger(PlatformServicesModule.class);
 
    @Inject(optional = true) @Named("platform.service.threads.max")
    private int threads = 100;
+
    @Inject(optional = true) @Named("platform.service.threads.keepAliveMs")
    private int keepAliveMs = 10000;
+
+   @Inject(optional=true) @Named("platform.address.validator")
+   private String addressValidator = "default";
 
    private ExecutorService executor;
    
@@ -84,6 +94,21 @@ public class PlatformServicesModule extends AbstractModule {
                ;
       
 		bind(RuleTemplateRequestor.class);
+
+		switch (addressValidator) {
+           default:
+              logger.warn("unknown address validator {}: using default instead");
+              // fall through
+           case "default":
+           case "smartystreets":
+              logger.info("using smartystreets address validator");
+              bind(AddressValidator.class).to(SmartyStreetsValidator.class);
+              break;
+           case "noop":
+              logger.warn("using noop address validator");
+              bind(AddressValidator.class).to(NoopAddressValidator.class);
+              break;
+        }
    }
 
    @PreDestroy

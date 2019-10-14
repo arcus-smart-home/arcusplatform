@@ -41,6 +41,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import com.iris.agent.zigbee.ZigbeeController;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
@@ -561,12 +562,12 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
          if (type.startsWith(HubZwaveCapability.NAMESPACE)) {
             port.send(ZWaveController.ADDRESS, message);
             return Port.HANDLED;
-         } else if (type.startsWith(HubZigbeeCapability.NAMESPACE) 
+         } else*/ if (type.startsWith(HubZigbeeCapability.NAMESPACE)
         		 || type.startsWith(HubKitCapability.NAMESPACE)
         		 ) {
             port.send(ZigbeeController.ADDRESS, message);
             return Port.HANDLED;
-         } else if (type.startsWith(HubSercommCapability.NAMESPACE)) {
+         }/* else if (type.startsWith(HubSercommCapability.NAMESPACE)) {
             port.send(SercommCameraController.ADDRESS, message);
             return Port.HANDLED;
          } else if (type.startsWith(Hub4gCapability.NAMESPACE)) {
@@ -830,7 +831,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
 
       updateLEDState();
       // port.forward(ZWaveController.ADDRESS, message);
-      // port.forward(ZigbeeController.ADDRESS, message);
+       port.forward(ZigbeeController.ADDRESS, message);
       // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
    }
@@ -842,7 +843,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       } else if (HubCapability.STATE_UNPAIRING.equals(oldState)) {
          if (force) {
             // port.forward(ZWaveController.ADDRESS, message);
-            // port.forward(ZigbeeController.ADDRESS, message);
+             port.forward(ZigbeeController.ADDRESS, message);
             // port.forward(SercommCameraController.ADDRESS, message);
          } else {
             log.warn("dropping start unpairing request, already in unpairing mode");
@@ -871,7 +872,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
 
       updateLEDState(IrisHal.isBatteryPowered(), LifeCycleService.getState(), FourgService.getState());
       // port.forward(ZWaveController.ADDRESS, message);
-      // port.forward(ZigbeeController.ADDRESS, message);
+       port.forward(ZigbeeController.ADDRESS, message);
       // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
    }
@@ -902,7 +903,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
 
       PlatformMessage message = PlatformMessage.buildMessage(stopPairing, port.getSendPlatformAddress(), port.getSendPlatformAddress()).create();
       // port.forward(ZWaveController.ADDRESS, message);
-      // port.forward(ZigbeeController.ADDRESS, message);
+       port.forward(ZigbeeController.ADDRESS, message);
       // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
 
@@ -917,7 +918,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
 
       PlatformMessage message = PlatformMessage.buildMessage(stopUnpairing, port.getSendPlatformAddress(), port.getSendPlatformAddress()).create();
       // port.forward(ZWaveController.ADDRESS, message);
-      // port.forward(ZigbeeController.ADDRESS, message);
+       port.forward(ZigbeeController.ADDRESS, message);
       // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
 

@@ -1,4 +1,4 @@
-== Agent ==
+# Agent
 
 Contains the agent application that runs on the Arcus hub.  The hub's primary role is a bridge/gateway between devices in the and the platform.  In addition, it may run device drivers locally and execute the alarm state machine to make noises when security or safety events are detected.
 
@@ -14,8 +14,9 @@ Contains the agent application that runs on the Arcus hub.  The hub's primary ro
 * arcus-system:  Core agent functionality and building blocks managing startup/shutdown, database operations, configuration, addressing, etc.
 * arcus-test-agent:  Subproject providing the ability to startup the agent in a system/integration test manner
 * arcus-zw-controller:  Controller for integrating with ZWave devices
+* arcus-zigbee-controller:  Controller for integrating with Zigbee devices
 
-== Common ==
+# Common
 
 Shared code that may be shared by the platform and/or agent.  In particular, this is the home of a multitude of descriptors that are used to generate code such as capability or service descriptors that act as the primary APIs.
 
@@ -37,11 +38,11 @@ Shared code that may be shared by the platform and/or agent.  In particular, thi
 * arcus-reflection:  Common shared utilities for Java reflection
 * protocol-generator:  Another protocol to concrete implementation generator but specific to the IPCD protocol.
 
-== Khakis ==
+# Khakis
 
 Set of core docker containers required to run the platform (kafka, cassandra, zookeeper and base java container)
 
-== Platform ==
+# Platform
 
 This contains common code used within platform as well as all containers that get deployed into production.
 
@@ -92,7 +93,7 @@ This contains common code used within platform as well as all containers that ge
 * bridge-common:  Common code and building blocks for all bridges within the platform.  In particular, wiring up Netty and applying security policies.
 * ipcd-common:  Common code used for managing IPCD devices
 
-== Tools ==
+# Tools
 
 A set of tools that will be useful for others trying to develop against Arcus.
 
@@ -101,7 +102,7 @@ A set of tools that will be useful for others trying to develop against Arcus.
 * oculus:  Rough UI for interacting with the Arcus platform during development
 * hubdebug: Debugging keys for accessing Iris hubs
 
-== Others ==
+# Others
 
 * gradle:  Common build scripts used by all projects
 * libs:  Common shared libraries that are not published on Maven Central or Jcenter
