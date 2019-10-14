@@ -18,16 +18,16 @@
  *
  */
 
-driver			"ZWZoozZen27Driver"
-description		"Driver for a Zooz Zen27 In-Wall Dimmer"
-version			"1.0"
-protocol		"ZWAV"
-deviceTypeHint	"Dimmer"
-productId		"acd43a"
-vendor			"Zooz"
-model			"Zen27"
+driver          "ZWZoozZen27Driver"
+description     "Driver for a Zooz Zen27 In-Wall Dimmer"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Dimmer"
+productId       "acd43a"
+vendor          "Zooz"
+model           "Zen27"
 
-matcher			'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa002
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa002
 
 
 capabilities	DevicePower, Dimmer, Switch, Indicator
