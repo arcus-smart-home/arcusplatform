@@ -26,7 +26,6 @@ def getLocalProps() {
    def localPropsHome = System.env['LOCAL_PROPS_HOME']
    if (localPropsHome != null) {
       def localPropsPath = localPropsHome + '/' + project.name + '.properties'
-      print localPropsPath
       if (file(localPropsPath).exists()) {
          def localProps = new Properties()
          file(localPropsPath).withInputStream { localProps.load(it) }
