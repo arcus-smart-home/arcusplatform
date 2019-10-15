@@ -3960,6 +3960,24 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="acd43a" name="S2 Dimmer Switch (Zen27)" shortname="Dimmer Switch" screen="Dimmer" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz, switch, dimmer, zwave, zen27" ota="No" protofamily="Z-Wave" added="2019-10-13T14:10:00-0700" lastchanged="2019-10-13T14:10:30-0700">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Press the up button three times quickly. The LED will blink rapidly in pairing mode and the hub will beep when pairing is complete"/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Pres the down button three times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d4e156" name="Water Leak Sensor" shortname="Water Leak Sensor" screen="Water Leak" description="" manufacturer="Dome" vendor="Dome" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR14250" batteryprimnum="1" keywords="dome, safety, moisture, water, leak, sensor" ota="No" protofamily="Z-Wave" added="2017-04-24T07:50:30-0400" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Water"/>
