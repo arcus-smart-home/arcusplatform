@@ -34,7 +34,7 @@ dependencies {
    compile libraries.httpMime
    compile libraries.guava
    compile libraries.logback
-   
+   compile libraries.junit
    compile libraries.kxml2
 
    compile netty_handler

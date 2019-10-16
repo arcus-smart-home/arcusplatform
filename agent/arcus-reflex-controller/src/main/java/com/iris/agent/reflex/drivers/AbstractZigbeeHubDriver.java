@@ -52,11 +52,7 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
 
    public AbstractZigbeeHubDriver(ReflexController parent, Address addr) {
       super(parent, addr);
-      /**
-       * This will need to be addressed if Zigbee support is present.
-       */
-      this.eui64 = 0l;
-      //this.eui64 = parent.zigbee().getNodeEui64(addr);
+      this.eui64 = parent.zigbee().getNodeEui64(addr);
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -275,243 +271,16 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
       }
    }
 
-   /*
-   private void handleZclMessage(ZigbeeNetwork nwk, EzspIncomingMessageHandler msg, ZclFrame zcl, String type) {
-      ZigbeeNode node = nwk.getNodeUsingNwk(msg.rawSender());
-      if (node == null) {
-         log.warn("unknown zigbee node {}, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-         handleUnknownNode(nwk, msg.rawSender());
-         return;
-      }
-
-      if (node.isInSetup()) {
-         log.warn("zigbee node {} still being setup, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-         return;
-      }
-
-      boolean clsSpec = ((zcl.getFrameControl() & ZclFrame.FRAME_TYPE_MASK) == ZclFrame.FRAME_TYPE_CLUSTER_SPECIFIC);
-      boolean mspSpec = ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0);
-
-      if (clsSpec && !mspSpec) {
-         switch (msg.getApsFrame().rawClusterId()) {
-         case com.iris.protocol.zigbee.zcl.Ota.CLUSTER_ID:
-            int cmd = zcl.getCommand();
-            if (cmd == com.iris.protocol.zigbee.zcl.Ota.ImageBlockRequest.ID ||
-                cmd == com.iris.protocol.zigbee.zcl.Ota.ImageBlockResponse.ID ||
-                cmd == com.iris.protocol.zigbee.zcl.Ota.ImagePageRequest.ID ||
-                cmd == com.iris.protocol.zigbee.zcl.Ota.UpgradeEndRequest.ID ||
-                cmd == com.iris.protocol.zigbee.zcl.Ota.UpgradeEndResponse.ID ||
-                cmd == com.iris.protocol.zigbee.zcl.Ota.ImageNotify.ID) {
-               if (log.isTraceEnabled()) {
-                  log.trace("zigbee node {} sent local message, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-               }
-               return;
-            }
-            break;
-
-         default:
-            break;
-         }
-      }
-
-      try {
-         log.trace("handling {} message: {} -> {}", type, msg, zcl);
-
-         int flags = 0;
-         if ((zcl.getFrameControl() & ZclFrame.FRAME_TYPE_MASK) == ZclFrame.FRAME_TYPE_CLUSTER_SPECIFIC) {
-            flags |= ZigbeeMessage.Zcl.CLUSTER_SPECIFIC;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.DISABLE_DEFAULT_RSP) != 0) {
-            flags |= ZigbeeMessage.Zcl.DISABLE_DEFAULT_RESPONSE;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.FROM_SERVER) != 0) {
-            flags |= ZigbeeMessage.Zcl.FROM_SERVER;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0) {
-            flags |= ZigbeeMessage.Zcl.MANUFACTURER_SPECIFIC;
-         }
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.Builder zmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.builder()
-            .setZclMessageId(zcl.rawCommand())
-            .setProfileId(msg.getApsFrame().rawProfileId())
-            .setEndpoint(msg.getApsFrame().rawSourceEndpoint())
-            .setClusterId(msg.getApsFrame().rawClusterId())
-            .setFlags(flags)
-            .setPayload(zcl.getPayload());
-
-         if ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0) {
-            zmsg.setManufacturerCode(zcl.getManufacturer());
-         }
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol pmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol.builder()
-            .setType(com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.ID)
-            .setPayload(ByteOrder.LITTLE_ENDIAN, zmsg.create())
-            .create();
-
-         ProtocolMessage smsg = ProtocolMessage.buildProtocolMessage(node.protocolAddress, Address.broadcastAddress(), ZigbeeProtocol.INSTANCE, pmsg)
-            .withReflexVersion(HubReflexVersions.CURRENT)
-            .create();
-         port.send(smsg);
-      } catch (IOException ex) {
-         log.warn("serialization failure: {}, dropping {} message: {}", ex.getMessage(), type, msg, ex);
-      }
-   }
-
-   private void handleZclMessage(ZigbeeNetwork nwk, ZigbeeClusterLibrary.Zcl msg) {
-      handleZclMessage(nwk, msg.msg, msg.zcl, "zcl");
-   }
-
-   private void handleAmeMessage(ZigbeeNetwork nwk, ZigbeeAlertmeProfile.Ame msg) {
-      handleZclMessage(nwk, msg.msg, msg.zcl, "alertme");
-   }
-
-   private void handleZdpMessage(ZigbeeNetwork nwk, ZigbeeDeviceProfile.Zdp msg) {
-      ZigbeeNode node = nwk.getNodeUsingNwk(msg.msg.rawSender());
-      if (node == null) {
-         log.warn("unknown zigbee node {}, dropping zdp message: {}", ProtocUtil.toHexString(msg.msg.rawSender()), msg.msg);
-         handleUnknownNode(nwk, msg.msg.rawSender());
-         return;
-      }
-
-      if (node.isInSetup()) {
-         log.warn("zigbee node {} still being setup, dropping zdp message: {}", ProtocUtil.toHexString(msg.msg.rawSender()), msg.msg);
-         return;
-      }
-
-      switch (msg.msg.getApsFrame().rawClusterId()) {
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_END_DEVICE_BIND_REQ:
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REQ:
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_UNBIND_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REGISTER_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REPLACE_DEVICE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_STORE_BKUP_BIND_ENTRY_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REMOVE_BKUP_BIND_ENTRY_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_BIND_TABLE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_BIND_TABLE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_SOURCE_BIND_REQ:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_SOURCE_BIND_REQ:
-
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_END_DEVICE_BIND_RSP:
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_RSP:
-      case com.iris.protocol.zigbee.zdp.Bind.ZDP_UNBIND_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REGISTER_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REPLACE_DEVICE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_STORE_BKUP_BIND_ENTRY_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REMOVE_BKUP_BIND_ENTRY_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_BIND_TABLE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_BIND_TABLE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_SOURCE_BIND_RSP:
-      //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_SOURCE_BIND_RSP:
-
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NWK_ADDR_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_IEEE_ADDR_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_MATCH_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_COMPLEX_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_CACHE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DEVICE_ANNCE:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_SET:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SYSTEM_SERVER_DISCOVERY_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_STORE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_STORE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_STORE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_STORE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_STORE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_REMOVE_NODE_CACHE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_FIND_NODE_CACHE_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_SIMPLE_DESC_REQ:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_ACTIVE_EP_REQ:
-
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NWK_ADDR_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_IEEE_ADDR_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_MATCH_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_COMPLEX_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_CACHE_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_CONF:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SYSTEM_SERVER_DISCOVERY_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_STORE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_STORE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_STORE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_STORE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_STORE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_REMOVE_NODE_CACHE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_FIND_NODE_CACHE_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_SIMPLE_DESC_RSP:
-      case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_ACTIVE_EP_RSP:
-
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_DISC_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LQI_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_RTG_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_BIND_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LEAVE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_DIRECT_JOIN_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_PERMIT_JOINING_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_CACHE_REQ:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_UPDATE_REQ:
-
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_DISC_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LQI_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_RTG_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_BIND_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LEAVE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_DIRECT_JOIN_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_PERMIT_JOINING_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_CACHE_RSP:
-      //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_UPDATE_NOTIFY:
-      break;
-
-      default:
-         log.trace("zdp message not allowed for drivers: {}", msg.msg);
-         return;
-      }
-
-      try {
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp zmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp.builder()
-            .setZdpMessageId(msg.msg.getApsFrame().getClusterId())
-            .setPayload(msg.zdp.getMessageContents())
-            .create();
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol pmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol.builder()
-            .setType(com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp.ID)
-            .setPayload(ByteOrder.LITTLE_ENDIAN, zmsg)
-            .create();
-
-         ProtocolMessage smsg = ProtocolMessage.buildProtocolMessage(node.protocolAddress, Address.broadcastAddress(), ZigbeeProtocol.INSTANCE, pmsg)
-            .withReflexVersion(HubReflexVersions.CURRENT)
-            .create();
-         port.send(smsg);
-      } catch (IOException ex) {
-         log.warn("serialization failure: {}, dropping zdp message: {}", ex.getMessage(), msg.msg, ex);
-      }
-   }
-   */
-
    /////////////////////////////////////////////////////////////////////////////
    // Zigbee Driver APIs
    /////////////////////////////////////////////////////////////////////////////
 
    public long hubEui64() {
-      // This will need to addressed if Zigbee support is added.
-      return 0l;
-      //return parent.zigbee().eui64();
+      return parent.zigbee().eui64();
    }
 
    public Observable<ZdpBindRsp> bind(short profile, byte endpoint, short cluster, boolean server) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().bind(eui64, profile, endpoint, cluster, server);
+      return parent.zigbee().bind(eui64, profile, endpoint, cluster, server);
    }
 
    public Observable<ZdpBindRsp> bind(Binding... bindings) {
@@ -545,42 +314,30 @@ public abstract class AbstractZigbeeHubDriver extends AbstractHubDriver {
    }
 
    public Observable<General.ZclWriteAttributesResponse> write(short profile, byte endpoint, short cluster, Map<Short,ZclData> attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
+      return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<General.ZclWriteAttributesResponse> write(short profile, byte endpoint, short cluster, General.ZclWriteAttributeRecord[] attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
+      return parent.zigbee().write(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<General.ZclReadAttributesResponse> read(short profile, byte endpoint, short cluster, Collection<Short> attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().read(eui64, profile, endpoint, cluster, attrs);
+      return parent.zigbee().read(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<General.ZclReadAttributesResponse> read(short profile, byte endpoint, short cluster, short[] attrs) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().read(eui64, profile, endpoint, cluster, attrs);
+      return parent.zigbee().read(eui64, profile, endpoint, cluster, attrs);
    }
 
    public Observable<Boolean> zcl(short profile, byte endpoint, short cluster,
       ProtocMessage req, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      // return parent.zigbee().zcl(eui64, profile, endpoint, cluster, req, fromServer, clusterSpecific, disableDefaultResponse);
+      return parent.zigbee().zcl(eui64, profile, endpoint, cluster, req, fromServer, clusterSpecific, disableDefaultResponse);
    }
 
    public Observable<Boolean> zclmsp(int manuf, short profile, short endpoint, short cluster,
       int cmd, byte[] data, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      // This will need to addressed if Zigbee support is added.
-      return null;
-      //return parent.zigbee().zclmsp(eui64, manuf, profile, endpoint, cluster,
-      //   cmd, data, fromServer, clusterSpecific, disableDefaultResponse);
+      return parent.zigbee().zclmsp(eui64, manuf, profile, endpoint, cluster,
+         cmd, data, fromServer, clusterSpecific, disableDefaultResponse);
    }
 
    public Observable<Boolean> zclrsp(ZigbeeMessage.Zcl req, ProtocMessage rsp) {

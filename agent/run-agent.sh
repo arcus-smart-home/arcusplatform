@@ -3,8 +3,8 @@
 # This tells the agent code that we aren't a real hub so it should
 # expect some hub specific things to be missing (e.g. LEDs, Buzzer, etc.)
 export IRIS_AGENT_HUBV2_FAKE=true
-export IRIS_AGENT_HUBV2_DATADIR=/Users/name/.hub-simulated/data
-export IRIS_AGENT_HUBV2_TMPDIR=/Users/name/.hub-simulated/tmp
+export IRIS_AGENT_HUBV2_DATADIR=~/.hub-simulated/data
+export IRIS_AGENT_HUBV2_TMPDIR=~/.hub-simulated/tmp
  
 # By default the hub does not allow the hub bridge to resolve to a
 # non-routable IP address. Since we are connecting to a non-routable
@@ -16,16 +16,14 @@ export IRIS_GATEWAY_URI=wss://localhost:8082/hub/1.0
 export IRIS_AGENT_LOGTYPE=dev
  
 # Disable Z-Wave support. If you need to run Z-Wave support in a
-# local manner then get a Z-Wave controller USB dongle from the
-# hub technical lead and update ZWAVE_PORT to point at the correct
-# USB modem port.
+# local manner then get a Z-Wave controller USB dongle and update
+# ZWAVE_PORT to point at the correct USB modem port.
 export ZWAVE_DISABLE=true
 export ZWAVE_PORT=/dev/ttyACM0
  
 # Disable Zigbee support. If you need to run Zigbee support in a
-# local manner then get a Zigbee development adapter from the hub
-# technical lead and update ZIGBEE_PORT to the IP address assigned
-# to the debug adapter.
+# local manner then get a Zigbee development adapter and update ZIGBEE_PORT
+# to the IP address assigned to the debug adapter.
 export ZIGBEE_DISABLE=true
 export ZIGBEE_PORT=tcp://192.168.2.218
  
@@ -46,5 +44,5 @@ export FOURG_DISABLE=true
 # that the Sercomm or Hue device is connected to.
 export IRIS_AGENT_UPNP_IFACES=enp38s0
  
-gradle --no-daemon run
+../gradlew --no-daemon run
 

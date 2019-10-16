@@ -1,5 +1,8 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Copyright 2019 Arcus Project
+ *
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +16,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply from: file("${rootDir}/gradle/subproject.gradle")
+package com.iris.agent.zigbee.ember;
 
-dependencies {
-   compile project(":agent:arcus-system")
-   compile project(":agent:arcus-router")
+import com.zsmartsystems.zigbee.dongle.ember.ZigBeeDongleEzsp;
+import com.zsmartsystems.zigbee.transport.*;
 
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':common:arcus-drivers:drivers-common')
+public class ZigbeeEmberDriver implements ZigbeeDriver {
+   private ZigBeeTransportTransmit transport;
 
-   compile project(':agent:arcus-zigbee-controller')
-   compile project(':agent:arcus-zw-controller')
+   public ZigbeeEmberDriver(ZigBeePort port) {
+      this.transport = new ZigBeeDongleEzsp(port);
+   }
 
-   testCompile libraries.google_guava_testlib
+   public void send() {
+   }
 }
-

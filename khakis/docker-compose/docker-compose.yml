@@ -1,0 +1,47 @@
+version: '3'
+services:
+  ui-server:
+    image: gcr.io/arcus-238802/eyeris/ui-server:latest
+    environment:
+    - ARCUS_WS_URI=client.dev.arcussmarthome.com
+    - ARCUS_HTTP_URI=dev.arcussmarthome.com
+    ports:
+    - 8080:8086
+  zookeeper:
+    image: eyeris/zookeeper:latest
+    ports:
+    - 2181:2181
+  # Cassandra for database
+  cassandra:
+    image: eyeris/cassandra:latest
+    environment:
+    - CASSANDRA_SINGLE_NODE=true
+    ports:
+    - 7000:7000
+    - 7001:7001
+    - 7199:7199
+    - 9042:9042
+    - 9160:9160
+    volumes:
+    - cassandra-storage:/data
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+  kafka:
+    image: eyeris/kafka:latest
+    ports:
+    - 9092:9092
+    environment:
+    - KAFKA_HSIZE=512
+    - ZOOKEEPER=zookeeper:2181
+    - ZOOKEEPEROPS=zookeeper:2181
+    restart: always
+    volumes:
+      - kafka-storage:/data
+volumes:
+  cassandra-storage:
+  kafka-storage:
+

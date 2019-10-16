@@ -20,6 +20,22 @@ apply from: file("${rootDir}/gradle/application.gradle")
 mainClassName = "com.iris.modelmanager.ModelManager"
 applicationName = "modelmanager"
 
+// XXX: this is duplicated from gradle/application.gradle. How to fix?
+def getLocalProps() {
+   def localPropsMap = new HashMap()
+   def localPropsHome = System.env['LOCAL_PROPS_HOME']
+   if (localPropsHome != null) {
+      def localPropsPath = localPropsHome + '/' + project.name + '.properties'
+      if (file(localPropsPath).exists()) {
+         def localProps = new Properties()
+         file(localPropsPath).withInputStream { localProps.load(it) }
+         localProps.each { key, value -> localPropsMap.put(key, value) }
+      }
+   }
+   return localPropsMap
+}
+
+
 distZip.enabled = false
 ext.dockerGroup = 'eyeris'
 
@@ -107,11 +123,13 @@ schemas.each() { target ->
       workingDir = "${buildDir}/install/modelmanager"
       classpath = files("${workingDir}/lib/*")
 
-		systemProperty "modelmanager.home", "${homeDir}"
-		systemProperty "modelmanager.schema", "${target}"
-		
+      systemProperty "modelmanager.home", "${homeDir}"
+      systemProperty "modelmanager.schema", "${target}"
+
       main = "com.iris.modelmanager.ModelManager"
-		
+
+      environment getLocalProps()
+
       args = ["-c", "${project.projectDir}/src/dist/conf/arcus-modelmanager.properties"]
    }
 }

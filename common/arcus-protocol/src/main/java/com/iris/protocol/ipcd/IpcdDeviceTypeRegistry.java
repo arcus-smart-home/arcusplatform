@@ -35,6 +35,8 @@ public enum IpcdDeviceTypeRegistry {
    public static final String DEVICE_TYPE_SWANN_WIFI_BATTERY_CAMERA = "SwannWifiBatteryCamera";
    public static final String DEVICE_TYPE_GREATSTAR_INDOOR_WIFI_PLUG = "GreatStarIndoorPlug";
    public static final String DEVICE_TYPE_GREATSTAR_OUTDOOR_WIFI_PLUG = "GreatStarOutdoorPlug";
+   public static final String DEVICE_TYPE_GENERIC_SWITCH = "GenericSwitch";
+   public static final String DEVICE_TYPE_GENERIC_CONTACT_SENSOR = "GenericContactSensor";
    public static final String DEVICE_TYPE_OTHER = "Other";
 
    public static final IpcdDeviceType GENIE = createDeviceType("Genie", "Aladdin");
@@ -45,7 +47,8 @@ public enum IpcdDeviceTypeRegistry {
    public static final IpcdDeviceType SWANN_WIFI_BATTERY_CAMERA = createDeviceType("Swann", "SWWHD-INTCAM-US");
    public static final IpcdDeviceType GREATSTAR_INDOOR_PLUG = createDeviceType("GreatStar", "plug_indoor" );
    public static final IpcdDeviceType GREATSTAR_OUTDOOR_PLUG = createDeviceType("GreatStar", "plug_outdoor" );
-   
+   public static final IpcdDeviceType GENERIC_SWITCH = createDeviceType("Generic", "Switch");
+   public static final IpcdDeviceType GENERIC_CONTACT_SENSOR = createDeviceType("Generic", "ContactSensor");
 
    private static final Map<String, List<IpcdDeviceType>> V1_TYPES = ImmutableMap.<String, List<IpcdDeviceType>>builder()
       .put(DEVICE_TYPE_GENIE_GDO.toLowerCase(), ImmutableList.of(GENIE))
@@ -56,6 +59,7 @@ public enum IpcdDeviceTypeRegistry {
       .put(DEVICE_TYPE_SWANN_WIFI_BATTERY_CAMERA.toLowerCase(), ImmutableList.of(SWANN_WIFI_BATTERY_CAMERA))
       .put(DEVICE_TYPE_GREATSTAR_INDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_INDOOR_PLUG))
       .put(DEVICE_TYPE_GREATSTAR_OUTDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_OUTDOOR_PLUG))
+      .put(DEVICE_TYPE_GENERIC_CONTACT_SENSOR.toLowerCase(), ImmutableList.of(GENERIC_CONTACT_SENSOR))
       .build();
 
    private static final List<IpcdDeviceType> types;
