@@ -19,26 +19,24 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.messages.model.Place;
-import com.iris.messages.model.ServiceLevel;
-import com.iris.platform.address.validation.smartystreets.SmartyStreetsValidator;
 
 @Singleton
 public class AddressValidatorFactory {
 
-   private final SmartyStreetsValidator smartyStreetsValidator;
+   private final AddressValidator addressValidator;
 
    @Inject
-   public AddressValidatorFactory(SmartyStreetsValidator smartyStreetsValidator) {
-      this.smartyStreetsValidator = smartyStreetsValidator;
+   public AddressValidatorFactory(AddressValidator addressValidator) {
+      this.addressValidator = addressValidator;
    }
 
    public AddressValidator validatorFor(Place place) {
       Preconditions.checkNotNull(place);
-      return smartyStreetsValidator;
+      return addressValidator;
    }
 
    public AddressValidator defaultValidator() {
-      return smartyStreetsValidator;
+      return addressValidator;
    }
 
 }

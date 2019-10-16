@@ -1,0 +1,114 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+driver         "IPCDGenericContactSensor"
+description    "Driver for emulated IPCD Contact Sensor"
+version        "1.0"
+protocol       "IPCD"
+deviceTypeHint "Contact"
+productId      "0c9a55"
+vendor         "Generic"
+model          "ContactSensor"
+
+matcher        'IPCD:vendor' : 'Generic', 'IPCD:model' : 'ContactSensor'
+
+capabilities   DevicePower, Contact
+
+DevicePower.source                 DevicePower.SOURCE_LINE
+DevicePower.linecapable            true
+DevicePower.backupbatterycapable   false
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_UNKNOWN
+    bind contactchanged to Contact.contact
+}
+
+///////////////// Constants ////////////////////////
+def final ATTR_CONTACT = "generic.contact"
+def final VALUE_CHANGES = "valueChanges"
+
+///////////////// Driver Lifecycle ////////////////
+
+onAdded {
+   log.debug "IPCD Generic Contact Sensor Device Added."
+
+   DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Contact.contact                  Contact.CONTACT_OPENED
+   Contact.contactchanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "IPCD Generic Contact Sensor Device Connected."
+   
+   Ipcd.Commands.getParameterValues("txnid", [ATTR_CONTACT])
+}
+
+onDisconnected {
+   log.debug "IPCD Generic Contact Sensor Device Device Disconnected."
+}
+
+onRemoved {
+   Ipcd.Commands.factoryReset()
+   log.debug "IPCD Generic Contact Sensor Device Removed."
+}
+
+/////////////// Capability Attribute Closures ///////////////////
+
+setAttributes('cont') {
+   log.debug "IPCD Generic Contact Sensor driver received 'cont' set Attribute message " + message
+   def attributes = message.attributes
+   for (attribute in attributes) {
+		switch(attribute.key) {
+			case Contact.usehint:
+				Contact.usehint attribute.value
+				break;
+
+			default:
+				log.error "unrecognized attribute:{}", attribute
+		}
+   }
+}
+
+///////////////// Protocol Messages ///////////////////////////
+
+onIpcdMessage.event {
+   log.debug("Got event from IPCD Device " + message)
+   def eventMap = message.mapify()
+   if (eventMap.containsKey(VALUE_CHANGES)) {
+      def valueChanges = eventMap[VALUE_CHANGES]
+      for (valueChange in valueChanges) {
+         if (valueChange["parameter"] == ATTR_CONTACT) {
+            def prevState = Contact.contact.get()
+            Contact.contact( valueChange["value"] == 'opened' ? Contact.CONTACT_OPENED : Contact.CONTACT_CLOSED )
+            if (Contact.contact.get() != prevState) {
+               Contact.contactchanged( new Date())
+            }
+         }
+      }
+   }
+}
+
+onIpcdMessage.response.getParameterValues("success") {
+   log.debug("Got Response from IPCD Device " + message)
+   def response = message.mapify()["response"]
+   log.debug("Response contents from IPCD Device " + response)
+   if (response.containsKey(ATTR_CONTACT)) {
+      Contact.contact( response[ATTR_CONTACT] == 'opened' ? Contact.CONTACT_OPENED : Contact.CONTACT_CLOSED )
+   }
+}
+
+

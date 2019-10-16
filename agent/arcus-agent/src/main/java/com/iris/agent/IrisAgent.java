@@ -62,7 +62,7 @@ public final class IrisAgent implements Callable<Integer> {
       }
 
       BootUtils.initialize(new File(args[0]), configs);
-      log.info("iris agent boostrap complete");
+      log.info("iris agent bootstrap complete");
    }
 
    @Override

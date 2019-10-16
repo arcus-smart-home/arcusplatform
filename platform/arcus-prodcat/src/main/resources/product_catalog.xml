@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <prodcat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://arcus.com/prodcat_1.0.0">
   <brands>
+    <brand name="Arcus"/>
     <brand name="Aeotec by Aeon Labs"/>
     <brand name="Amazon"/>
     <brand name="Blink"/>
@@ -15,6 +16,7 @@
     <brand name="FortrezZ"/>
     <brand name="Gatehouse"/>
     <brand name="GE"/>
+    <brand name="Generic"/>
     <brand name="Genie"/>
     <brand name="GoControl"/>
     <brand name="Google"/>
@@ -74,6 +76,54 @@
     <category name="Voice Assistant"/>
   </categories>
   <products>
+    <product id="0c9a55" name="Generic Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="contact, door, window, sensor, security, alarmcontact, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-09-24T19:56:50-0600" lastchanged="2019-09-24T19:56:50-0600">
+        <categories>
+            <category name="Cameras &amp; Sensors"/>
+            <category name="Care"/>
+            <category name="Doors &amp; Locks"/>
+            <category name="Security"/>
+            <category name="Windows &amp; Blinds"/>
+        </categories>
+        <pair>
+            <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
+                <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
+                <input type="hidden" name="IPCD:v1devicetype" value="GenericContactSensor"/>
+            </step1>
+        </pair>
+        <removal>
+          <step1 type="text" img="" text="Please wait for the device to be removed from the Arcus Cloud Platform. &#xA;          &#x9;If this takes longer than a few seconds, consider factory resetting the device."/>
+        </removal>
+        <reset>
+            <step1 type="text" img="" text="TODO"/>
+        </reset>
+        <populations>
+            <population name="general"/>
+            <population name="qa"/>
+            <population name="beta"/>
+        </populations>
+    </product>
+    <product id="0c9a56" name="Generic Switch" shortname="Light Switch" screen="Switch" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="switch, energy, power, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-09-24T19:56:50-0600" lastchanged="2019-09-24T19:56:50-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
+          <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
+          <input type="hidden" name="IPCD:v1devicetype" value="GenericSwitch"/>
+        </step1>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="Please wait for the device to be removed from the Arcus Cloud Platform. &#xA;          &#x9;If this takes longer than a few seconds, consider factory resetting the device."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="TODO"/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="0c9a66" name="Plug-In Switch (12719 Z-Wave)" shortname="Plug-In Switch" screen="Switch" description="" manufacturer="Jasco" installManualUrl="https://byjasco.com/sites/default/files/product/manuals/12719%20EnFrSp%20QStart%20V1%20081814.pdf" vendor="GE" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/NNOZR9qrmpQ" keywords="GE, Jasco, indoor, module, control, outlet, plug, switch, energy, 120, volt, 15, amp, power, zwave, 12719" ota="No" protofamily="Z-Wave" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
@@ -3953,6 +4003,24 @@
         <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
         <step1 type="text" img="" text="Press the ZWAVE button 3 times."/>
         <step2 type="text" img="" text="The LED will flash 5 times and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="acd43a" name="S2 Dimmer Switch (Zen27)" shortname="Dimmer Switch" screen="Dimmer" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz, switch, dimmer, zwave, zen27" ota="No" protofamily="Z-Wave" added="2019-10-13T14:10:00-0700" lastchanged="2019-10-13T14:10:30-0700">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Press the up button three times quickly. The LED will blink rapidly in pairing mode and the hub will beep when pairing is complete"/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Pres the down button three times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
       </removal>
       <populations>
         <population name="general"/>
