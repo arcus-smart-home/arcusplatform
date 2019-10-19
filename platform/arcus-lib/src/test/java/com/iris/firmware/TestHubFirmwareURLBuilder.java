@@ -29,7 +29,7 @@ public class TestHubFirmwareURLBuilder {
    public void testFirmwareURLBuild() {
       Hub hub = new Hub();
 
-      assertEquals("http://null/IH200/hubOS_2.0.0.017.bin", builder.buildURL(hub, "IH200/hubOS_2.0.0.017"));
+      assertEquals("https://null/IH200/hubOS_2.0.0.017.bin", builder.buildURL(hub, "IH200/hubOS_2.0.0.017"));
    }
 
 }
