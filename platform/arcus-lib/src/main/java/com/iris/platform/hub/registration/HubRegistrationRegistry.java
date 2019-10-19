@@ -156,7 +156,7 @@ public class HubRegistrationRegistry  {
             .build();
       return upgrade;
 	}
-	
+
 	@Nullable
 	public MessageBody upgradeIfNeeded(Hub hub, String currentFirmwareVersion) {
 	   return upgradeIfNeeded(hub, currentFirmwareVersion, null);
