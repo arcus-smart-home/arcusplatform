@@ -27,23 +27,23 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
    public void testResolveGeneralInValidRange() throws Exception {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
-      FirmwareResult result = resolver.getTargetForVersion("2.0.0.024");
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.0.0.024");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());
       
-      result = resolver.getTargetForVersion(Version.fromRepresentation("2.0.0.124"));
+      result = resolver.getTargetForVersion("IH200", Version.fromRepresentation("2.0.0.124"));
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());
       
-      result = resolver.getTargetForVersion("2.0.0.024", Population.NAME_GENERAL);
+      result = resolver.getTargetForVersion("IH200", "2.0.0.024", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());
       
-      result = resolver.getTargetForVersion("2.1.0.004");
+      result = resolver.getTargetForVersion("IH200", "2.1.0.004");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());
       
-      result = resolver.getTargetForVersion("3.1.0.023");
+      result = resolver.getTargetForVersion("IH300", "3.1.0.023");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubOS_3.1.1.002", result.getTarget());
    }
@@ -54,31 +54,31 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       
       // This is a weird test case because exceeding the max 2.0.x but it doesn't qualify for upgrading
       // to a 2.1.x version. 
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.002", Population.NAME_GENERAL);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.002", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());
       
       // This is a weird test case because exceeding the max 2.0.x but it doesn't qualify for upgrading
       // to a 2.1.x version. 
-      result = resolver.getTargetForVersion("2.1.0.002");
+      result = resolver.getTargetForVersion("IH200", "2.1.0.002");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());
       
-      result = resolver.getTargetForVersion("2.0.0.023");
+      result = resolver.getTargetForVersion("IH200", "2.0.0.023");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_POSSIBLE, result.getResult());
       Assert.assertEquals(null, result.getTarget());
       
       // This is a weird test case because exceeding the max 2.0.x but it doesn't qualify for upgrading
       // to a 2.1.x version. 
-      result = resolver.getTargetForVersion("2.0.1.005");
+      result = resolver.getTargetForVersion("IH200", "2.0.1.005");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());    
       
-      result = resolver.getTargetForVersion("3.1.0.001");
+      result = resolver.getTargetForVersion("IH300", "3.1.0.001");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_POSSIBLE, result.getResult());
       Assert.assertEquals(null, result.getTarget());
       
-      result = resolver.getTargetForVersion("3.1.1.002");
+      result = resolver.getTargetForVersion("IH300", "3.1.1.002");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());
    }
@@ -92,11 +92,11 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       
       
       // Check matching invalid ranges (wrong population)
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.006", Population.NAME_GENERAL);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.006", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());
       
-      result = resolver.getTargetForVersion("2.1.0.007", Population.NAME_GENERAL);
+      result = resolver.getTargetForVersion("IH200", "2.1.0.007", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());
    }
@@ -106,7 +106,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match QA Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.0.0.027", Population.NAME_QA);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.0.0.027", Population.NAME_QA);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());      
    }
@@ -116,7 +116,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match QA Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.004", Population.NAME_QA);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.004", Population.NAME_QA);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.1.000", result.getTarget());      
    }
@@ -126,7 +126,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match QA Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.006", Population.NAME_QA);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.006", Population.NAME_QA);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubOS_2.1.2.000", result.getTarget());      
    }
@@ -136,7 +136,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match QA Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.0.0.023", Population.NAME_QA);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.0.0.023", Population.NAME_QA);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_POSSIBLE, result.getResult());
       Assert.assertEquals(null, result.getTarget());      
    }
@@ -146,7 +146,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match QA Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.008", Population.NAME_QA);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.008", Population.NAME_QA);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_NEEDED, result.getResult());
       Assert.assertEquals(null, result.getTarget());      
    }
@@ -156,7 +156,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match Beta Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.0.0.999", "beta");
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.0.0.999", "beta");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.0.006", result.getTarget());      
    }
@@ -166,7 +166,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match Beta Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.004", "beta");
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.004", "beta");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubBL_2.1.1.000", result.getTarget());      
    }
@@ -176,7 +176,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match Beta Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.1.0.006", "beta");
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.1.0.006", "beta");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("hubOS_2.1.2.001", result.getTarget());      
    }
@@ -186,7 +186,7 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-cases.xml");
       
       // Match Beta Population Entry
-      FirmwareResult result = resolver.getTargetForVersion("2.0.0.023", "beta");
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "2.0.0.023", "beta");
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NOT_POSSIBLE, result.getResult());
       Assert.assertEquals(null, result.getTarget());      
    }
@@ -196,12 +196,12 @@ public class TestXMLFirmwareResolver extends FirmwareTestCase {
       FirmwareUpdateResolver resolver = getResolver("firmware-test.xml");
       
       // Match First Firmware Entry
-      FirmwareResult result = resolver.getTargetForVersion("1.0.0.001", Population.NAME_GENERAL);
+      FirmwareResult result = resolver.getTargetForVersion("IH200", "1.0.0.001", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("HubOS_2.1.0.006", result.getTarget());
       
       // Match Second Firmware Entry
-      result = resolver.getTargetForVersion("2.1.0.010", Population.NAME_GENERAL);
+      result = resolver.getTargetForVersion("IH200", "2.1.0.010", Population.NAME_GENERAL);
       Assert.assertEquals(FirmwareResult.Result.UPGRADE_NEEDED, result.getResult());
       Assert.assertEquals("HubBL_2.1.1.002", result.getTarget());
    }
