@@ -2842,7 +2842,7 @@
             <attribute-value-change attribute="mot:motion" new="DETECTED" query="base:address == '${motion}'"/>
          </conditions>
          <actions>
-            <device-query var="address" query="base:address == '${dimmer}' and dim:brightness != '${state}'">
+            <device-query var="address" query="base:address == '${dimmer}' and dim:brightness != '${value}'">
                <set-attribute to="${address}" name="dim:brightness" value="${state}" duration="${for awhile}"
                               condition-query="base:address == '${motion}' AND mot:motion == 'NONE'"/>
             </device-query>
