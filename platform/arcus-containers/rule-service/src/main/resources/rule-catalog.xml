@@ -2843,7 +2843,7 @@
          </conditions>
          <actions>
             <device-query var="address" query="base:address == '${dimmer}' and dim:brightness != '${value}'">
-               <set-attribute to="${address}" name="dim:brightness" value="${state}" duration="${for awhile}"
+               <set-attribute to="${address}" name="dim:brightness" value="${value}" duration="${for awhile}"
                               condition-query="base:address == '${motion}' AND mot:motion == 'NONE'"/>
             </device-query>
          </actions>
