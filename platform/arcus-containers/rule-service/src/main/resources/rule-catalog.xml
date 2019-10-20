@@ -2822,8 +2822,8 @@
 
       <template id="2ac31b" keywords="mot" tags="mot,swit"
                 added="2019-10-11T15:02:00" modified="2019-10-11T15:02:00"
-                name="Motion Detected, Activate Switch"
-                description="Turn a light on when something moves."
+                name="Motion Detected, Change Dimmer"
+                description="Turn on a dimmer to a predetermined value when something moves."
                 premium="false">
          <populations>
             <population name="general"/>
@@ -2850,7 +2850,7 @@
          <selectors>
             <selector type="device" name="motion" query="base:caps contains 'mot'"/>
             <selector type="device" name="dimmer" query="base:caps contains 'dim'"/>
-            <selector type="constant" name="state">
+            <selector type="constant" name="value">
                <options>
                   <option label="10" value="10" />
                   <option label="20" value="20" />
