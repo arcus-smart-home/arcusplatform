@@ -74,7 +74,7 @@ import com.iris.agent.router.Router;
 import com.iris.agent.storage.StorageService;
 import com.iris.agent.watchdog.WatchdogService;
 import com.iris.agent.zigbee.ZigbeeController;
-import com.iris.agent.zw.ZWaveController;
+import com.iris.agent.zwave.ZWaveController;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
