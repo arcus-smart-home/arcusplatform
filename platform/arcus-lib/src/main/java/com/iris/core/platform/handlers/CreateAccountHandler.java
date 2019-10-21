@@ -61,9 +61,12 @@ import com.iris.messages.service.AccountService.CreateAccountRequest;
 import com.iris.platform.location.TimezonesChangeHelper;
 import com.iris.platform.location.TimezonesManager;
 import com.iris.security.authz.AuthorizationGrant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class CreateAccountHandler implements ContextualRequestMessageHandler<Account> {
+   private static final Logger logger = LoggerFactory.getLogger(CreateAccountHandler.class);
 
    public static final String EMAIL_IN_USE_ERROR_CODE = "error.signup.emailinuse";
    public static final String EMAIL_IN_USE_ERROR_MSG = "This email address is already in use. Please Sign In.";
@@ -129,7 +132,8 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
       this.placeTransformer = placeTransformer;
       this.bus = bus;
       this.timezoneHelper = new TimezonesChangeHelper(timezonesMgr);
-      this.defaultServiceLevel= ServiceLevel.fromString(defaultServiceLevelStr);
+      this.defaultServiceLevel = ServiceLevel.fromString(defaultServiceLevelStr);
+      logger.info("Using {} as default service level", defaultServiceLevelStr);
    }
 
    @Override
