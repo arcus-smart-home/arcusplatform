@@ -3,7 +3,7 @@
   
    <metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
    
-   <firmware min="2.0.0.024" max="2.0.0.999" target="hubBL_2.1.0.006" population="general,qa,beta" />
-   <firmware min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.0.006" population="general,qa,beta" />
+   <firmware model="IH200" min="2.0.0.024" max="2.0.0.999" target="hubBL_2.1.0.006" population="general,qa,beta" />
+   <firmware model="IH200" min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.0.006" population="general,qa,beta" />
    
 </firmwares>

@@ -32,22 +32,22 @@ public class XMLFirmwareResolver implements FirmwareUpdateResolver {
    }
 
    @Override
-   public FirmwareResult getTargetForVersion(String version) {
-      return getTargetForVersion(Version.fromRepresentation(version), null);
+   public FirmwareResult getTargetForVersion(String model, String version) {
+      return getTargetForVersion(model, Version.fromRepresentation(version), null);
    }
 
    @Override
-   public FirmwareResult getTargetForVersion(Version version) {
-      return getTargetForVersion(version, null);
+   public FirmwareResult getTargetForVersion(String model, Version version) {
+      return getTargetForVersion(model, version, null);
    }
 
    @Override
-   public FirmwareResult getTargetForVersion(String version, String population) {
-      return getTargetForVersion(Version.fromRepresentation(version), population);
+   public FirmwareResult getTargetForVersion(String model, String version, String population) {
+      return getTargetForVersion(model, Version.fromRepresentation(version), population);
    }
 
    @Override
-   public FirmwareResult getTargetForVersion(Version version, String population) {
+   public FirmwareResult getTargetForVersion(String model, Version version, String population) {
       List<FirmwareUpdate> updates = manager.getParsedData();
       if (updates == null || updates.isEmpty()) {
          return FirmwareResult.NO_UPGRADES_AVAILABLE;
@@ -55,18 +55,19 @@ public class XMLFirmwareResolver implements FirmwareUpdateResolver {
       String target = null;
       boolean exceedsMaximum = false;
       for (FirmwareUpdate update : updates) {
-         FirmwareUpdate.MatchType match = update.matches(version, population);
-         if (match == MatchType.VERSION_AND_POPULATION) {
-            return new FirmwareResult(FirmwareResult.Result.UPGRADE_NEEDED, update.getTarget());
-         }
-         else if (match == MatchType.VERSION) {
-            if (population == null || population.isEmpty()) {
+         // ONLY allow firmware updates that match a given model.
+         if (update.getModel().equals(model)) {
+            FirmwareUpdate.MatchType match = update.matches(version, population);
+            if (match == MatchType.VERSION_AND_POPULATION) {
                return new FirmwareResult(FirmwareResult.Result.UPGRADE_NEEDED, update.getTarget());
+            } else if (match == MatchType.VERSION) {
+               if (population == null || population.isEmpty()) {
+                  return new FirmwareResult(FirmwareResult.Result.UPGRADE_NEEDED, update.getTarget());
+               }
+               target = update.getTarget();
+            } else if (update.exceedsMaximum(version, population)) {
+               exceedsMaximum = true;
             }
-            target = update.getTarget();
-         }
-         else if (update.exceedsMaximum(version, population)) {
-            exceedsMaximum = true;
          }
       }
       return target != null 
