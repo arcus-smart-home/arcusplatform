@@ -36,7 +36,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
-import com.iris.agent.zw.ZWaveLocalProcessing;
+import com.iris.agent.zwave.ZWaveLocalProcessing;
 import com.iris.protocol.zigbee.ZigbeeProtocol;
 import com.iris.protocol.zwave.ZWaveProtocol;
 import org.apache.commons.codec.binary.Base64;
