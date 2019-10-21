@@ -106,7 +106,6 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
    private final BeanAttributesTransformer<Place> placeTransformer;
    private final PlatformMessageBus bus;
    private final TimezonesChangeHelper timezoneHelper;
-   private final ServiceLevel defaultServiceLevel;
 
    @Inject(optional = true) @Named("default.service.level")
    private String defaultServiceLevelStr = "basic";
@@ -132,8 +131,6 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
       this.placeTransformer = placeTransformer;
       this.bus = bus;
       this.timezoneHelper = new TimezonesChangeHelper(timezonesMgr);
-      this.defaultServiceLevel = ServiceLevel.fromString(defaultServiceLevelStr);
-      logger.info("Using {} as default service level", defaultServiceLevelStr);
    }
 
    @Override
@@ -215,8 +212,8 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
          if(placeAttributes != null && !placeAttributes.isEmpty()) {
             timezoneHelper.processTimeZoneChanges(placeAttributes);
             placeTransformer.merge(place, placeAttributes);            
-         }         
-         place.setServiceLevel(defaultServiceLevel);
+         }
+         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevelStr));
          place.setAccount(account.getId());
          place.setPrimary(true);
          place = placeDao.create(place);
