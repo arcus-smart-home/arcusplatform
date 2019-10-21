@@ -66,7 +66,6 @@ import org.slf4j.LoggerFactory;
 
 @Singleton
 public class CreateAccountHandler implements ContextualRequestMessageHandler<Account> {
-   private static final Logger logger = LoggerFactory.getLogger(CreateAccountHandler.class);
 
    public static final String EMAIL_IN_USE_ERROR_CODE = "error.signup.emailinuse";
    public static final String EMAIL_IN_USE_ERROR_MSG = "This email address is already in use. Please Sign In.";
@@ -108,7 +107,7 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
    private final TimezonesChangeHelper timezoneHelper;
 
    @Inject(optional = true) @Named("default.service.level")
-   private String defaultServiceLevelStr = "basic";
+   private String defaultServiceLevel = "basic";
 
    @Inject
    public CreateAccountHandler(
@@ -213,7 +212,7 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
             timezoneHelper.processTimeZoneChanges(placeAttributes);
             placeTransformer.merge(place, placeAttributes);            
          }
-         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevelStr));
+         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevel));
          place.setAccount(account.getId());
          place.setPrimary(true);
          place = placeDao.create(place);

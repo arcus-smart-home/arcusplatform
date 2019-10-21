@@ -58,10 +58,9 @@ public class PromoteToAccountHandler implements ContextualRequestMessageHandler<
    private final BeanAttributesTransformer<Place> placeTransform;
    private final PlatformMessageBus bus;
    private final PlacePopulationCacheManager populationCacheMgr;
-   private final ServiceLevel defaultServiceLevel;
 
    @Inject(optional = true) @Named("default.service.level")
-   private String defaultServiceLevelStr = "basic";
+   private String defaultServiceLevel = "basic";
 
    @Inject
    public PromoteToAccountHandler(
@@ -82,7 +81,6 @@ public class PromoteToAccountHandler implements ContextualRequestMessageHandler<
       this.placeTransform = placeTransform;
       this.bus = bus;
       this.populationCacheMgr = populationCacheMgr;
-      this.defaultServiceLevel= ServiceLevel.fromString(defaultServiceLevelStr);
    }
 
    @Override
@@ -116,7 +114,7 @@ public class PromoteToAccountHandler implements ContextualRequestMessageHandler<
 
          place = placeTransform.transform(PersonCapability.PromoteToAccountRequest.getPlace(body));
          place.setId(placeId);
-         place.setServiceLevel(defaultServiceLevel);
+         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevel));
          place.setAccount(account.getId());
          place.setPrimary(true);
          place = placeDao.create(place);
