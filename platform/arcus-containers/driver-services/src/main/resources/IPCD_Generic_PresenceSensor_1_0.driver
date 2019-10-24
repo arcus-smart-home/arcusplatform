@@ -106,7 +106,7 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Got Response from IPCD Device " + message)
    def response = message.mapify()["response"]
    log.debug("Response contents from IPCD Device " + response)
-   if (response.containsKey(ATTR_CONTACT)) {
+   if (response.containsKey(ATTR_PRESENCE)) {
       Presence.presence( valueChange["value"] == 'absent' ? Presence.PRESENCE_ABSENT : Presence.PRESENCE_PRESENT )
    }
 }
