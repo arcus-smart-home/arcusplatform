@@ -146,7 +146,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="0c9a53" name="Generic Presence Sensor" shortname="Dimmer" screen="Switch" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="dimmer, energy, power, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-10-23T21:54:50-0600" lastchanged="2019-10-23T21:54:50-0600">
+    <product id="0c9a53" name="Generic Presence Sensor" shortname="Presence Sensor" screen="Keyfob" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="presence, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-10-23T21:54:50-0600" lastchanged="2019-10-23T21:54:50-0600">
       <categories>
         <category name="Care"/>
         <category name="Security"/>
