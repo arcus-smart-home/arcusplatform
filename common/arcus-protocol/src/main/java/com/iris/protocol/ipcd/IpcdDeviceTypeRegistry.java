@@ -62,6 +62,7 @@ public enum IpcdDeviceTypeRegistry {
       .put(DEVICE_TYPE_GREATSTAR_INDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_INDOOR_PLUG))
       .put(DEVICE_TYPE_GREATSTAR_OUTDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_OUTDOOR_PLUG))
       .put(DEVICE_TYPE_GENERIC_CONTACT_SENSOR.toLowerCase(), ImmutableList.of(GENERIC_CONTACT_SENSOR))
+      .put(DEVICE_TYPE_GENERIC_SWITCH.toLowerCase(), ImmutableList.of(GENERIC_SWITCH))
       .put(DEVICE_TYPE_GENERIC_DIMMER.toLowerCase(), ImmutableList.of(GENERIC_DIMMER))
       .build();
 
