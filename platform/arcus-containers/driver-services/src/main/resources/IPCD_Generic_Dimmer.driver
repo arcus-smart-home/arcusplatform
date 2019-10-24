@@ -32,7 +32,8 @@ DevicePower.linecapable            true
 DevicePower.backupbatterycapable   false
 
 ///////////////// Constants ////////////////////////
-def final ATTR_LEVEL = "generic.level"
+def final ATTR_SWITCH = "generic.switch"
+def final ATTR_LEVEL = "generic.brightness"
 def final VALUE_CHANGES = "valueChanges"
 
 ///////////////// Driver Lifecycle ////////////////
@@ -75,9 +76,9 @@ setAttributes {
                Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "off" ])
             }
          break;
-         case ctx.Dimmer.brightness:
-         	   level = normalizeBrightness(ctx, attribute.value)
-         	   Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "off" ])
+         case Dimmer.brightness:
+         	level = normalizeBrightness(this, attribute.value)
+         	Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "off" ])
          break;
 
          default:
@@ -111,10 +112,16 @@ onIpcdMessage.event {
    if (eventMap.containsKey(VALUE_CHANGES)) {
       def valueChanges = eventMap[VALUE_CHANGES]
       for (valueChange in valueChanges) {
-         if (valueChange["parameter"] == ATTR_LEVEL) {
+         if (valueChange["parameter"] == ATTR_SWITCH) {
             def prevState = Switch.state.get()
             Switch.state( valueChange["value"] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
             if (Switch.state.get() != prevState) {
+               Switch.statechanged( new Date())
+            }
+         } else if (valueChange["parameter"] == ATTR_LEVEL) {
+            def prevState = Dimmer.brightness.get()
+            Dimmmer.brightness valueChange["value"]
+            if (Dimmer.brightness.get() != prevState) {
                Switch.statechanged( new Date())
             }
          }
@@ -126,8 +133,9 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Got Response from IPCD Device " + message)
    def response = message.mapify()["response"]
    log.debug("Response contents from IPCD Device " + response)
-   if (response.containsKey(ATTR_LEVEL)) {
+   if (response.containsKey(ATTR_SWITCH)) {
       Switch.state( response[ATTR_LEVEL] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+   } else if (response.containsKey(ATTR_LEVEL)) {
+      Dimmer.brightness( response[ATTR_LEVEL])
    }
 }
-
