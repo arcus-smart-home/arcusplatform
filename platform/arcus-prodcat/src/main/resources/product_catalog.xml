@@ -131,7 +131,7 @@
       <pair>
         <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
           <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
-          <input type="hidden" name="IPCD:v1devicetype" value="GenericSwitch"/>
+          <input type="hidden" name="IPCD:v1devicetype" value="GenericDimmer"/>
         </step1>
       </pair>
       <removal>
