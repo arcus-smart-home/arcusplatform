@@ -87,20 +87,20 @@ setAttributes {
 }
 
 static int normalizeBrightness (ctx, name, targetBrightness) {
-	return normalizeBrightness(ctx, targetBrightness)
+   return normalizeBrightness(ctx, targetBrightness)
 }
 
 static int normalizeBrightness (ctx, targetBrightness) {
-	// limit brightness from 0 to 100
-	if (100 < targetBrightness) {
-		ctx.log.info "Generic limiting requested Brightness of {} to max allowed of 100", targetBrightness
-		targetBrightness = 100
-	}
-	if (0 > targetBrightness) {
-		ctx.log.info "Generic limiting requested Brightness of {} to min allowed of 0", targetBrightness
-		targetBrightness = 0
-	}
-	return targetBrightness
+   // limit brightness from 0 to 100
+   if (100 < targetBrightness) {
+      ctx.log.info "Generic limiting requested Brightness of {} to max allowed of 100", targetBrightness
+      targetBrightness = 100
+   }
+   if (0 > targetBrightness) {
+      ctx.log.info "Generic limiting requested Brightness of {} to min allowed of 0", targetBrightness
+      targetBrightness = 0
+   }
+   return targetBrightness
 }
 
 ///////////////// Protocol Messages ///////////////////////////

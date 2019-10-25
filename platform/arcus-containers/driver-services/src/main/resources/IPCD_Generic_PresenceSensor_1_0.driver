@@ -79,7 +79,7 @@ setAttributes('pres') {
 
             default:
                log.error "unrecognized attribute:{}", attribute
-		}
+      }
    }
 }
 
