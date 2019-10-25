@@ -41,10 +41,10 @@ onAdded {
 
    DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
 
-	Presence.presence                Presence.PRESENCE_PRESENT
-	Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
-    Presence.usehint                 Presence.USEHINT_UNKNOWN
-    Presence.person                  'UNSET'
+   Presence.presence                Presence.PRESENCE_PRESENT
+   Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Presence.usehint                 Presence.USEHINT_UNKNOWN
+   Presence.person                  'UNSET'
 }
 
 onConnected {
@@ -110,5 +110,3 @@ onIpcdMessage.response.getParameterValues("success") {
       Presence.presence( valueChange["value"] == 'absent' ? Presence.PRESENCE_ABSENT : Presence.PRESENCE_PRESENT )
    }
 }
-
-

@@ -105,6 +105,7 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Got Response from IPCD Device " + message)
    def response = message.mapify()["response"]
    log.debug("Response contents from IPCD Device " + response)
+
    if (response.containsKey(ATTR_SWITCH)) {
       Switch.state( response[ATTR_SWITCH] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
    }

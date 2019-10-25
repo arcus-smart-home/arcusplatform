@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-driver         "IPCDGenericSwitchDimmer"
-description    "Driver for emulated IPCD Switch"
+driver         "IPCDGenericDimmer"
+description    "Driver for emulated IPCD Dimmer"
 version        "1.0"
 protocol       "IPCD"
 deviceTypeHint "Switch"
@@ -49,8 +49,7 @@ onAdded {
 
 onConnected {
    log.debug "IPCD Generic Dimmer Device Connected."
-   
-   Ipcd.Commands.getParameterValues("txnid", [ATTR_LEVEL])
+   Ipcd.Commands.getParameterValues("txnid", [ATTR_LEVEL, ATTR_SWITCH])
 }
 
 onDisconnected {
@@ -133,6 +132,7 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Got Response from IPCD Device " + message)
    def response = message.mapify()["response"]
    log.debug("Response contents from IPCD Device " + response)
+
    if (response.containsKey(ATTR_SWITCH)) {
       Switch.state( response[ATTR_LEVEL] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
    } else if (response.containsKey(ATTR_LEVEL)) {
