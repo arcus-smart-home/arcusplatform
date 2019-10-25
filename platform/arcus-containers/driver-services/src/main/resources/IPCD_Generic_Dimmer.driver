@@ -120,7 +120,7 @@ onIpcdMessage.event {
             }
          } else if (valueChange["parameter"] == ATTR_LEVEL) {
             def prevState = Dimmer.brightness.get()
-            Dimmmer.brightness valueChange["value"]
+            Dimmer.brightness valueChange["value"]
             if (Dimmer.brightness.get() != prevState) {
                Switch.statechanged( new Date())
             }
