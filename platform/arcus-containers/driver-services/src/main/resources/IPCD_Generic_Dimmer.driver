@@ -71,14 +71,14 @@ setAttributes {
       switch(attribute.key) {
          case Switch.state:
             if (attribute.value == 'ON') {
-               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "on" ])
+               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "on" ])
             } else { 
-               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "off" ])
+               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "off" ])
             }
          break;
          case Dimmer.brightness:
          	level = normalizeBrightness(this, attribute.value)
-         	Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : "off" ])
+         	Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : level ])
          break;
 
          default:
