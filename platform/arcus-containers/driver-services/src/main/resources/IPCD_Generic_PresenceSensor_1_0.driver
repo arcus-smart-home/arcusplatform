@@ -68,17 +68,17 @@ setAttributes('pres') {
    log.debug "IPCD Generic Presence Sensor driver received 'cont' set Attribute message " + message
    def attributes = message.attributes
    for (attribute in attributes) {
-		switch(attribute.key) {
-			case Presence.usehint:
-				Presence.usehint attribute.value
-				break;
+      switch(attribute.key) {
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
 
-			case Presence.person:
-				Presence.person attribute.value
-				break;
+            case Presence.person:
+               Presence.person attribute.value
+               break;
 
-			default:
-				log.error "unrecognized attribute:{}", attribute
+            default:
+               log.error "unrecognized attribute:{}", attribute
 		}
    }
 }
