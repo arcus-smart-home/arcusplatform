@@ -15,10 +15,7 @@
  */
 package com.iris.client.session;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -280,31 +277,8 @@ public class SessionInfo {
 
 	@Override
 	public int hashCode() {
-		int result = billingPublicKey != null ? billingPublicKey.hashCode() : 0;
-		result = 31 * result + (tokenURL != null ? tokenURL.hashCode() : 0);
-		result = 31 * result + (sessionToken != null ? sessionToken.hashCode() : 0);
-		result = 31 * result + (username != null ? username.hashCode() : 0);
-		result = 31 * result + (personId != null ? personId.hashCode() : 0);
-		result = 31 * result + (places != null ? places.hashCode() : 0);
-		result = 31 * result + (smartyAuthToken != null ? smartyAuthToken.hashCode() : 0);
-		result = 31 * result + (smartyAuthID != null ? smartyAuthID.hashCode() : 0);
-		result = 31 * result + (previewURLBase != null ? previewURLBase.hashCode() : 0);
-		result = 31 * result + (staticResourceBaseUrl != null ? staticResourceBaseUrl.hashCode() : 0);
-		result = 31 * result + (secureStaticResourceBaseUrl != null ? secureStaticResourceBaseUrl.hashCode() : 0);
-		result = 31 * result + (honeywellRedirectUri != null ? honeywellRedirectUri.hashCode() : 0);
-		result = 31 * result + (honeywellLoginBaseUrl != null ? honeywellLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (honeywellClientId != null ? honeywellClientId.hashCode() : 0);
-		result = 31 * result + (lutronLoginBaseUrl != null ? lutronLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (webLaunchUrl != null ? webLaunchUrl.hashCode() : 0);
-		result = 31 * result + (androidLaunchUrl != null ? androidLaunchUrl.hashCode() : 0);
-		result = 31 * result + (requiresTermsAndConditionsConsent != null ? requiresTermsAndConditionsConsent.hashCode() : 0);
-		result = 31 * result + (requiresPrivacyPolicyConsent != null ? requiresPrivacyPolicyConsent.hashCode() : 0);
-		result = 31 * result + (promonAdUrl != null ? promonAdUrl.hashCode() : 0);
-		result = 31 * result + (redirectBaseUrl != null ? redirectBaseUrl.hashCode() : 0);
-		return result;
+		return Objects.hash(billingPublicKey, tokenURL, sessionToken, username, personId, places, smartyAuthToken, smartyAuthID, previewURLBase, staticResourceBaseUrl, secureStaticResourceBaseUrl, honeywellRedirectUri, honeywellLoginBaseUrl, honeywellClientId, lutronLoginBaseUrl, webLaunchUrl, androidLaunchUrl, requiresTermsAndConditionsConsent, requiresPrivacyPolicyConsent, promonAdUrl, redirectBaseUrl);
 	}
-
-	
 
 	public static class PlaceDescriptor {
 
