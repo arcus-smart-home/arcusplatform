@@ -73,12 +73,12 @@ setAttributes('pres') {
             Presence.usehint attribute.value
             break;
 
-            case Presence.person:
-               Presence.person attribute.value
-               break;
+         case Presence.person:
+            Presence.person attribute.value
+            break;
 
-            default:
-               log.error "unrecognized attribute:{}", attribute
+         default:
+            log.error "unrecognized attribute:{}", attribute
       }
    }
 }
