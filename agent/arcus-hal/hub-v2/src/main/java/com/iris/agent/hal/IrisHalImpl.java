@@ -42,6 +42,10 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.iris.agent.zwave.ZWaveController;
+import com.iris.agent.zwave.ZWaveLocalProcessing;
+import com.iris.agent.zwave.ZWaveLocalProcessingDefault;
+import com.iris.agent.zwave.ZWaveLocalProcessingNoop;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -69,6 +73,12 @@ import com.iris.agent.spy.SpyService;
 import com.iris.agent.storage.StorageService;
 import com.iris.agent.util.IpUtil;
 import com.iris.agent.util.ThreadUtils;
+import com.iris.agent.zigbee.ZigbeeController;
+import com.iris.agent.zigbee.ZigbeeEmberDriverFactory;
+import com.iris.agent.zigbee.ZigbeeDriverFactory;
+import com.iris.agent.zigbee.ZigbeeLocalProcessing;
+import com.iris.agent.zigbee.ZigbeeLocalProcessingDefault;
+import com.iris.agent.zigbee.ZigbeeLocalProcessingNoop;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.messages.capability.HubPowerCapability;
@@ -784,7 +794,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       protected void configure() {
          String disable = System.getenv("ZWAVE_DISABLE");
          if (disable != null) {
-            // bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingNoop.class).asEagerSingleton();
+             bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingNoop.class).asEagerSingleton();
             return;
          }
 
@@ -795,11 +805,9 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
             bind(String.class).annotatedWith(Names.named("iris.zwave.port")).toInstance(port);
          }
 
-         /*
-         bind(ZWaveDriverFactory.class).in(Singleton.class);
+//         bind(ZWaveDriverFactory.class).in(Singleton.class);
          bind(ZWaveController.class).in(Singleton.class);
          bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingDefault.class).asEagerSingleton();
-         */
       }
    }
 
@@ -807,7 +815,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       @Override
       protected void configure() {
          String disable = System.getenv("ZIGBEE_DISABLE");
-         /*
+
          if (disable != null) {
             bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingNoop.class).asEagerSingleton();
             return;
@@ -822,7 +830,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          bind(ZigbeeDriverFactory.class).toInstance(factory);
          bind(ZigbeeController.class).in(Singleton.class);
          bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingDefault.class).asEagerSingleton();
-         */
+
       }
    }
 

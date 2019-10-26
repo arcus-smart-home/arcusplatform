@@ -52,6 +52,7 @@ public class FirmwareParser implements ResourceParser<List<FirmwareUpdate>> {
    private static final String ELEMENT_FIRMWARE = "firmware";
    private static final String ATTR_MIN = "min";
    private static final String ATTR_MAX = "max";
+   private static final String ATTR_MODEL = "model";
    private static final String ATTR_TARGET = "target";
    private static final String ATTR_POPULATION = "population";
    
@@ -84,6 +85,7 @@ public class FirmwareParser implements ResourceParser<List<FirmwareUpdate>> {
    
    private FirmwareUpdate buildFirmwareUpdate(Node firmwareNode) {
       Element firmware = (Element)firmwareNode;
+      String model = firmware.getAttribute(ATTR_MODEL);
       String min = firmware.getAttribute(ATTR_MIN);
       String max = firmware.getAttribute(ATTR_MAX);
       String target = firmware.getAttribute(ATTR_TARGET);
@@ -92,7 +94,7 @@ public class FirmwareParser implements ResourceParser<List<FirmwareUpdate>> {
       	throw new RuntimeException("Firmware XML is invalid because population attribute is missing.");
       }
       
-      return new FirmwareUpdate(min, max, target, populations);
+      return new FirmwareUpdate(model, min, max, target, populations);
    }
    
    private Set<String> getPopulations(String populationStr) {

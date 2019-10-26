@@ -23,6 +23,9 @@ dependencies {
    compile project(':common:arcus-model:platform-messages')
    compile project(':common:arcus-drivers:drivers-common')
 
-	testCompile libraries.google_guava_testlib
+   compile project(':agent:arcus-zigbee-controller')
+   compile project(':agent:arcus-zw-controller')
+
+   testCompile libraries.google_guava_testlib
 }
 

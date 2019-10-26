@@ -36,6 +36,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
@@ -60,6 +61,8 @@ import com.iris.messages.service.AccountService.CreateAccountRequest;
 import com.iris.platform.location.TimezonesChangeHelper;
 import com.iris.platform.location.TimezonesManager;
 import com.iris.security.authz.AuthorizationGrant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class CreateAccountHandler implements ContextualRequestMessageHandler<Account> {
@@ -101,7 +104,10 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
    private final BeanAttributesTransformer<Person> personTransformer;
    private final BeanAttributesTransformer<Place> placeTransformer;
    private final PlatformMessageBus bus;
-   private final TimezonesChangeHelper timezoneHelper; 
+   private final TimezonesChangeHelper timezoneHelper;
+
+   @Inject(optional = true) @Named("default.service.level")
+   private String defaultServiceLevel = "basic";
 
    @Inject
    public CreateAccountHandler(
@@ -205,8 +211,8 @@ public class CreateAccountHandler implements ContextualRequestMessageHandler<Acc
          if(placeAttributes != null && !placeAttributes.isEmpty()) {
             timezoneHelper.processTimeZoneChanges(placeAttributes);
             placeTransformer.merge(place, placeAttributes);            
-         }         
-         place.setServiceLevel(ServiceLevel.BASIC);
+         }
+         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevel));
          place.setAccount(account.getId());
          place.setPrimary(true);
          place = placeDao.create(place);

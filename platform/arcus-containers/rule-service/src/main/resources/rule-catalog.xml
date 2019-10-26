@@ -2820,6 +2820,80 @@
          </selectors>
       </template>
 
+      <template id="2ac31b" keywords="mot" tags="mot,swit"
+                added="2019-10-11T15:02:00" modified="2019-10-11T15:02:00"
+                name="Motion Detected, Change Dimmer"
+                description="Turn on a dimmer to a predetermined value when something moves."
+                premium="false">
+         <populations>
+            <population name="general"/>
+            <population name="qa"/>
+            <population name="beta"/>
+         </populations>
+         <categories>
+            <category name="Lights &amp; Switches"/>
+         </categories>
+         <description>When the ${motion} detects motion, then turn the ${dimmer} to ${value} ${for awhile}.
+         </description>
+         <satisfiable-if>
+            <satisfiable query="base:caps contains 'dim'"/>
+         </satisfiable-if>
+         <conditions>
+            <attribute-value-change attribute="mot:motion" new="DETECTED" query="base:address == '${motion}'"/>
+         </conditions>
+         <actions>
+            <device-query var="address" query="base:address == '${dimmer}' and dim:brightness != '${value}'">
+               <set-attribute to="${address}" name="dim:brightness" value="${value}" duration="${for awhile}"
+                              condition-query="base:address == '${motion}' AND mot:motion == 'NONE'"/>
+            </device-query>
+         </actions>
+         <selectors>
+            <selector type="device" name="motion" query="base:caps contains 'mot'"/>
+            <selector type="device" name="dimmer" query="base:caps contains 'dim'"/>
+            <selector type="constant" name="value">
+               <options>
+                  <option label="10" value="10" />
+                  <option label="20" value="20" />
+                  <option label="30" value="30" />
+                  <option label="40" value="40" />
+                  <option label="50" value="50" />
+                  <option label="60" value="60" />
+                  <option label="70" value="70" />
+                  <option label="80" value="80" />
+                  <option label="90" value="90" />
+                  <option label="100" value="100" />
+               </options>
+            </selector>
+            <selector type="constant" name="for awhile">
+               <options>
+                  <option label="and leave it" value="0"/>
+                  <option label="for 30 secs" value="30"/>
+                  <option label="for 1 min" value="60"/>
+                  <option label="for 2 mins" value="120"/>
+                  <option label="for 3 mins" value="180"/>
+                  <option label="for 4 mins" value="240"/>
+                  <option label="for 5 mins" value="300"/>
+                  <option label="for 6 mins" value="360"/>
+                  <option label="for 7 mins" value="420"/>
+                  <option label="for 8 mins" value="480"/>
+                  <option label="for 9 mins" value="540"/>
+                  <option label="for 10 mins" value="600"/>
+                  <option label="for 15 mins" value="900"/>
+                  <option label="for 30 mins" value="1800"/>
+                  <option label="for 45 mins" value="2700"/>
+                  <option label="for 1 hour" value="3600"/>
+                  <option label="for 2 hours" value="7200"/>
+                  <option label="for 3 hours" value="10800"/>
+                  <option label="for 4 hours" value="14400"/>
+                  <option label="for 5 hours" value="18000"/>
+                  <option label="for 6 hours" value="21600"/>
+                  <option label="for 7 hours" value="25200"/>
+                  <option label="for 8 hours" value="28800"/>
+               </options>
+            </selector>
+         </selectors>
+      </template>
+
   	 <template id="5a5d3d" keywords="climate" tags="climate,note"
          added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
          name="Don't Cool the Neighborhood"

@@ -112,26 +112,26 @@ public class HubRegistrationRegistry  {
 		}
 	}
 	
-	public FirmwareResult getTargetFirmware(String currentFirmwareVersion, String population) {
-	   if(StringUtils.isNotEmpty(population)) {
-	      return resolver.getTargetForVersion(currentFirmwareVersion, population);
-	   }else{
-	      return resolver.getTargetForVersion(currentFirmwareVersion);
+	public FirmwareResult getTargetFirmware(String model, String currentFirmwareVersion, String population) {
+	   if (StringUtils.isNotEmpty(population)) {
+	      return resolver.getTargetForVersion(model, currentFirmwareVersion, population);
+	   } else {
+	      return resolver.getTargetForVersion(model, currentFirmwareVersion);
 	   }
 	}
 	
 	@Nullable
-	public MessageBody upgrade(String hubId, String currentFirmwareVersion, String targetFirmware, String priority, boolean showLed) {
+	public MessageBody upgrade(Hub hub, String currentFirmwareVersion, String targetFirmware, String priority, boolean showLed) {
 
       Instant now = Instant.now();
-      HubRegistration curHubReg = findHubRegistration(hubId);
+      HubRegistration curHubReg = findHubRegistration(hub.getId());
 
       if (curHubReg != null && RegistrationState.APPLYING.equals(curHubReg.getState()) && targetFirmware != null) {
          // state is APPLYING, but firmwareVersion still did not reach
          // targetFirmware version.  Will log a warning, but do not update the error in hub_registration
          logger.warn(
                "Hub [{}] is at firmware version [{}], but registration state is APPLYING which should not happen.  Will try sending upgrade request again.",
-               hubId, currentFirmwareVersion);
+               hub.getId(), currentFirmwareVersion);
       }
       
 
@@ -144,10 +144,9 @@ public class HubRegistrationRegistry  {
          curHubReg.setDownloadProgress(0);
          hubRegistrationDao.save(curHubReg);
       }
-      String firmwareURL = urlBuilder.buildURL(hubTemplate, targetFirmware);
+      String firmwareURL = urlBuilder.buildURL(hub, targetFirmware);
 
-      logger.debug("Sending firmware update request with url: {} to hub: {}", firmwareURL, hubId);
-      
+      logger.debug("Sending firmware update request with url: {} to hub: {}", firmwareURL, hub.getId());
       
       MessageBody upgrade = HubAdvancedCapability.FirmwareUpdateRequest.builder()
     		.withUrl(firmwareURL)
@@ -157,28 +156,28 @@ public class HubRegistrationRegistry  {
             .build();
       return upgrade;
 	}
-	
+
 	@Nullable
-	public MessageBody upgradeIfNeeded(String hubId, String currentFirmwareVersion) {
-	   return upgradeIfNeeded(hubId, currentFirmwareVersion, null);
+	public MessageBody upgradeIfNeeded(Hub hub, String currentFirmwareVersion) {
+	   return upgradeIfNeeded(hub, currentFirmwareVersion, null);
 	}
 
 	@Nullable
-	public MessageBody upgradeIfNeeded(String hubId, String currentFirmwareVersion, String population) {
-		FirmwareResult targetFirmwareResult = getTargetFirmware(currentFirmwareVersion, population);		
+	public MessageBody upgradeIfNeeded(Hub hub, String currentFirmwareVersion, String population) {
+		FirmwareResult targetFirmwareResult = getTargetFirmware(hub.getModel(), currentFirmwareVersion, population);
 
-		HubRegistration curHubReg = findHubRegistration(hubId);
+		HubRegistration curHubReg = findHubRegistration(hub.getId());
 		
 		if (targetFirmwareResult.getResult() != FirmwareResult.Result.UPGRADE_NEEDED) {
-		   if (targetFirmwareResult.getResult() == FirmwareResult.Result.UPGRADE_NOT_POSSIBLE) {
-   			logger.info("Hub [{}] is at firmware version [{}] which can't be upgraded", hubId, currentFirmwareVersion);
-   			firmwareUpgradeFailed(curHubReg, HubRegistrationErrors.VERSION_CAN_NOT_UPGRADE.getCode(),
-   					 HubRegistrationErrors.VERSION_CAN_NOT_UPGRADE.getMessage(currentFirmwareVersion));
-		   }
+			if (targetFirmwareResult.getResult() == FirmwareResult.Result.UPGRADE_NOT_POSSIBLE) {
+				logger.info("Hub [{}] is at firmware version [{}] which can't be upgraded", hub.getId(), currentFirmwareVersion);
+				firmwareUpgradeFailed(curHubReg, HubRegistrationErrors.VERSION_CAN_NOT_UPGRADE.getCode(),
+						HubRegistrationErrors.VERSION_CAN_NOT_UPGRADE.getMessage(currentFirmwareVersion));
+			}
 			return null;
 		}
 
-		return upgrade(hubId, currentFirmwareVersion, targetFirmwareResult.getTarget(), HubAdvancedCapability.FirmwareUpdateRequest.PRIORITY_URGENT, true);
+		return upgrade(hub, currentFirmwareVersion, targetFirmwareResult.getTarget(), HubAdvancedCapability.FirmwareUpdateRequest.PRIORITY_URGENT, true);
 	}
 
 	public boolean updateFirmwareUpgradeProcess(String hubId, String upgradeStatus, Double percentDone) {
