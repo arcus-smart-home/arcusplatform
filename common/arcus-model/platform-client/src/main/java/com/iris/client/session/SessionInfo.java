@@ -414,9 +414,5 @@ public class SessionInfo {
 	            + ", promonAdEnabled=" + promonAdEnabled
 	            + "]";
 	   }
-
-      
 	}
-
 }
-
