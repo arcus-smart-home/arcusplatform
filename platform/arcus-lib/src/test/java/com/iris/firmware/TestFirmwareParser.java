@@ -99,6 +99,16 @@ public class TestFirmwareParser extends FirmwareTestCase {
    }
 
    @Test
+   public void testFirmwareMissingModel() throws Exception {
+      try {
+         loadFirmwares("firmware-missing-model.xml");
+         Assert.fail("Shouldn't have been able to parse the firmware update.");
+      }
+      catch(RuntimeException ex) {
+         Assert.assertTrue(ex.getCause().getCause().getMessage().startsWith("The firmware hardware model cannot be empty"));
+      }
+   }
+   @Test
    public void testFirmwareReverseMinMax() throws Exception {
       try {
          loadFirmwares("firmware-reverse-min-max.xml");

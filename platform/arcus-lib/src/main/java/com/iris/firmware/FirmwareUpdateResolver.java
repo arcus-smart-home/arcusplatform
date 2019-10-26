@@ -19,12 +19,12 @@ import com.iris.model.Version;
 
 public interface FirmwareUpdateResolver {
    
-   FirmwareResult getTargetForVersion(String version);
+   FirmwareResult getTargetForVersion(String model, String version);
    
-   FirmwareResult getTargetForVersion(Version version);
+   FirmwareResult getTargetForVersion(String model, Version version);
    
-   FirmwareResult getTargetForVersion(String version, String population);
+   FirmwareResult getTargetForVersion(String model, String version, String population);
    
-   FirmwareResult getTargetForVersion(Version version, String population);
+   FirmwareResult getTargetForVersion(String model, Version version, String population);
 }
 

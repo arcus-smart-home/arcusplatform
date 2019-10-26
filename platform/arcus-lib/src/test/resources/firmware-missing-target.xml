@@ -4,6 +4,6 @@
 
    <f:metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
    
-   <f:firmware min="2.1.0.009" max="2.1.1.002" target="" population="alpha,beta" />
+   <f:firmware model="IH200" min="2.1.0.009" max="2.1.1.002" target="" population="alpha,beta" />
    
 </f:firmwares>

@@ -202,12 +202,12 @@ public class HubConnectedHandler extends DirectMessageHandler {
 
 
 
-private boolean upgradeIfNeeded(Session session, Hub hub, MessageBody request) {
+   private boolean upgradeIfNeeded(Session session, Hub hub, MessageBody request) {
       String hardwareVersion = HubAdvancedCapability.getHardwarever(request);
       String firmwareVersion = HubAdvancedCapability.getOsver(request);
       String agentVersion = HubAdvancedCapability.getAgentver(request);
 
-      log.info("{} firmware versions: hwVer={}, osVer={}, agentVer={}", hub.getId(), hardwareVersion, firmwareVersion, agentVersion);
+      log.info("{} firmware versions: model={}, hwVer={}, osVer={}, agentVer={}", hub.getId(), hub.getModel(), hardwareVersion, firmwareVersion, agentVersion);
 
       if (firmwareVersion == null || firmwareVersion.equalsIgnoreCase("unknown")) {
          log.warn("Hub [{}] firmware version is unkown.");
@@ -217,7 +217,7 @@ private boolean upgradeIfNeeded(Session session, Hub hub, MessageBody request) {
       //require upgrade
       hubRegistrationRegistry.online(hub.getId());
       
-      MessageBody msgBody = hubRegistrationRegistry.upgradeIfNeeded(hub.getId(), firmwareVersion, hubPopulationResolver.getPopulationNameForHub(hub));
+      MessageBody msgBody = hubRegistrationRegistry.upgradeIfNeeded(hub, firmwareVersion, hubPopulationResolver.getPopulationNameForHub(hub));
       if (msgBody == null) {
     	  return false;
       }

@@ -3,10 +3,10 @@
 
    <f:metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
    
-   <f:firmware min="1.0.0.0" max="2.1.0.005" target="HubOS_2.1.0.006" population="general,qa,beta"/>
+   <f:firmware model="IH200" min="1.0.0.0" max="2.1.0.005" target="HubOS_2.1.0.006" population="general,qa,beta"/>
    
-   <f:firmware min="2.0.0.009" max="2.1.0.026" target="HubBL_2.1.1.002" population="general,qa"/>
+   <f:firmware model="IH200" min="2.0.0.009" max="2.1.0.026" target="HubBL_2.1.1.002" population="general,qa"/>
    
-   <f:firmware min="2.1.0.009" max="2.1.1.002" target="HubOS_2.1.2.0" population="qa,beta" />
+   <f:firmware model="IH200" min="2.1.0.009" max="2.1.1.002" target="HubOS_2.1.2.0" population="qa,beta" />
    
 </f:firmwares>

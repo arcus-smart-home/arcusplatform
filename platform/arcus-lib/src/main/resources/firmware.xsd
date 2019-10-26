@@ -25,6 +25,7 @@
 	</xs:complexType>
 	
 	<xs:complexType name="firmwareType">
+	   <xs:attribute name="model" type="xs:string" use="required" />
 	   <xs:attribute name="min" type="xs:string" use="required" />
 	   <xs:attribute name="max" type="xs:string" use="required" />
 	   <xs:attribute name="target" type="xs:string" use="required" />

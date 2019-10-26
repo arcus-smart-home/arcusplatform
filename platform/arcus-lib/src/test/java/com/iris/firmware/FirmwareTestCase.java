@@ -17,7 +17,6 @@ package com.iris.firmware;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.Assert;

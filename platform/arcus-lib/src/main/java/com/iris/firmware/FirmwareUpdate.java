@@ -16,6 +16,7 @@
 package com.iris.firmware;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -25,14 +26,16 @@ import com.iris.model.Version;
 
 public class FirmwareUpdate {
    public enum MatchType { NONE, VERSION, VERSION_AND_POPULATION }
-   
+   private final String model;
    private final Version min;
    private final Version max;
    private final String target;
    private final Set<String> populations;
    
-   public FirmwareUpdate(String min, String max, String target, Set<String> populations) {
+   public FirmwareUpdate(String model, String min, String max, String target, Set<String> populations) {
+      Preconditions.checkArgument(!StringUtils.isEmpty(model), "The firmware hardware model cannot be empty");
       Preconditions.checkArgument(!StringUtils.isEmpty(target), "The firmware target cannot be empty");
+      this.model = model;
       this.min = Version.fromRepresentation(min);
       this.max = Version.fromRepresentation(max);
       Preconditions.checkArgument(this.min.compareTo(this.max) >= 0, "The max version cannot be less than the min version for target " + target);
@@ -98,6 +101,10 @@ public class FirmwareUpdate {
    public Set<String> getPopulations() {
       return populations;
    }
+
+   public String getModel() {
+      return model;
+   }
    
    private boolean matchVersion(Version version) {
       return (min.compareTo(version) >= 0) && (max.compareTo(version) <= 0);
@@ -114,47 +121,20 @@ public class FirmwareUpdate {
    }
 
    @Override
-   public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((max == null) ? 0 : max.hashCode());
-      result = prime * result + ((min == null) ? 0 : min.hashCode());
-      result = prime * result
-            + ((populations == null) ? 0 : populations.hashCode());
-      result = prime * result + ((target == null) ? 0 : target.hashCode());
-      return result;
+   public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      FirmwareUpdate that = (FirmwareUpdate) o;
+      return model.equals(that.model) &&
+              min.equals(that.min) &&
+              max.equals(that.max) &&
+              target.equals(that.target) &&
+              populations.equals(that.populations);
    }
 
    @Override
-   public boolean equals(Object obj) {
-      if (this == obj)
-         return true;
-      if (obj == null)
-         return false;
-      if (getClass() != obj.getClass())
-         return false;
-      FirmwareUpdate other = (FirmwareUpdate) obj;
-      if (max == null) {
-         if (other.max != null)
-            return false;
-      } else if (!max.equals(other.max))
-         return false;
-      if (min == null) {
-         if (other.min != null)
-            return false;
-      } else if (!min.equals(other.min))
-         return false;
-      if (populations == null) {
-         if (other.populations != null)
-            return false;
-      } else if (!populations.equals(other.populations))
-         return false;
-      if (target == null) {
-         if (other.target != null)
-            return false;
-      } else if (!target.equals(other.target))
-         return false;
-      return true;
+   public int hashCode() {
+      return Objects.hash(model, min, max, target, populations);
    }
 }
 

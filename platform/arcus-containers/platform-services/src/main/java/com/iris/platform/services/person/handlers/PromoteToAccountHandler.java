@@ -25,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
@@ -57,7 +58,9 @@ public class PromoteToAccountHandler implements ContextualRequestMessageHandler<
    private final BeanAttributesTransformer<Place> placeTransform;
    private final PlatformMessageBus bus;
    private final PlacePopulationCacheManager populationCacheMgr;
-   
+
+   @Inject(optional = true) @Named("default.service.level")
+   private String defaultServiceLevel = "basic";
 
    @Inject
    public PromoteToAccountHandler(
@@ -111,7 +114,7 @@ public class PromoteToAccountHandler implements ContextualRequestMessageHandler<
 
          place = placeTransform.transform(PersonCapability.PromoteToAccountRequest.getPlace(body));
          place.setId(placeId);
-         place.setServiceLevel(ServiceLevel.BASIC);
+         place.setServiceLevel(ServiceLevel.fromString(defaultServiceLevel));
          place.setAccount(account.getId());
          place.setPrimary(true);
          place = placeDao.create(place);
