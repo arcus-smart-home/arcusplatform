@@ -1,3 +1,7 @@
 language: java
 jdk:
 - openjdk8
+cache:
+  directories:
+  - $HOME/.gradle
+script: ./gradlew test
