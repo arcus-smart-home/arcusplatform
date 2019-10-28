@@ -15,10 +15,7 @@
  */
 package com.iris.client.session;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -39,8 +36,6 @@ public class SessionInfo {
 	private final String honeywellRedirectUri;
 	private final String honeywellLoginBaseUrl;
 	private final String honeywellClientId;
-	private final String nestLoginBaseUrl;
-	private final String nestClientId;
 	private final String lutronLoginBaseUrl;
 	private final String webLaunchUrl;
 	private final String androidLaunchUrl;
@@ -75,8 +70,6 @@ public class SessionInfo {
 		this.honeywellLoginBaseUrl = null;
 		this.honeywellRedirectUri = null;
 		this.honeywellClientId = null;
-		this.nestLoginBaseUrl = null;
-		this.nestClientId = null;
 		this.lutronLoginBaseUrl = null;
 		this.promonAdUrl = null;
 		this.redirectBaseUrl = null;
@@ -113,8 +106,6 @@ public class SessionInfo {
 		this.honeywellLoginBaseUrl = (String) event.getAttribute("honeywellLoginBaseUrl");
 		this.honeywellRedirectUri = (String) event.getAttribute("honeywellRedirectUri");
 		this.honeywellClientId = (String) event.getAttribute("honeywellClientId");
-		this.nestLoginBaseUrl = (String) event.getAttribute("nestLoginBaseUrl");
-		this.nestClientId = (String) event.getAttribute("nestClientId");
 		this.lutronLoginBaseUrl = (String) event.getAttribute("lutronLoginBaseUrl");
 		this.requiresPrivacyPolicyConsent = (Boolean)event.getAttribute("requiresPrivacyPolicyConsent");
 		this.requiresTermsAndConditionsConsent = (Boolean)event.getAttribute("requiresTermsAndConditionsConsent");
@@ -180,14 +171,6 @@ public class SessionInfo {
 		return honeywellClientId;
 	}
 	
-	public final String getNestLoginBaseUrl() {
-		return nestLoginBaseUrl;
-	}
-
-	public final String getNestClientId() {
-		return nestClientId;
-	}
-	
 	public final String getLutronLoginBaseUrl() {
 		return lutronLoginBaseUrl;
 	}
@@ -240,8 +223,6 @@ public class SessionInfo {
 				", honeywellRedirectUri='" + honeywellRedirectUri + '\'' +
 				", honeywellLoginBaseUrl='" + honeywellLoginBaseUrl + '\'' +
 				", honeywellClientId='" + honeywellClientId + '\'' +
-				", nestLoginBaseUrl='" + nestLoginBaseUrl + '\'' +
-				", nestClientId='" + nestClientId + '\'' +
 				", lutronLoginBaseUrl='" + lutronLoginBaseUrl + '\'' +
 				", webLaunchUrl='" + webLaunchUrl + '\'' +
 				", androidLaunchUrl='" + androidLaunchUrl + '\'' +
@@ -281,9 +262,6 @@ public class SessionInfo {
 			return false;
 		if (honeywellClientId != null ? !honeywellClientId.equals(that.honeywellClientId) : that.honeywellClientId != null)
 			return false;
-		if (nestLoginBaseUrl != null ? !nestLoginBaseUrl.equals(that.nestLoginBaseUrl) : that.nestLoginBaseUrl != null)
-			return false;
-		if (nestClientId != null ? !nestClientId.equals(that.nestClientId) : that.nestClientId != null) return false;
 		if (lutronLoginBaseUrl != null ? !lutronLoginBaseUrl.equals(that.lutronLoginBaseUrl) : that.lutronLoginBaseUrl != null)
 			return false;
 		if (webLaunchUrl != null ? !webLaunchUrl.equals(that.webLaunchUrl) : that.webLaunchUrl != null) return false;
@@ -299,33 +277,8 @@ public class SessionInfo {
 
 	@Override
 	public int hashCode() {
-		int result = billingPublicKey != null ? billingPublicKey.hashCode() : 0;
-		result = 31 * result + (tokenURL != null ? tokenURL.hashCode() : 0);
-		result = 31 * result + (sessionToken != null ? sessionToken.hashCode() : 0);
-		result = 31 * result + (username != null ? username.hashCode() : 0);
-		result = 31 * result + (personId != null ? personId.hashCode() : 0);
-		result = 31 * result + (places != null ? places.hashCode() : 0);
-		result = 31 * result + (smartyAuthToken != null ? smartyAuthToken.hashCode() : 0);
-		result = 31 * result + (smartyAuthID != null ? smartyAuthID.hashCode() : 0);
-		result = 31 * result + (previewURLBase != null ? previewURLBase.hashCode() : 0);
-		result = 31 * result + (staticResourceBaseUrl != null ? staticResourceBaseUrl.hashCode() : 0);
-		result = 31 * result + (secureStaticResourceBaseUrl != null ? secureStaticResourceBaseUrl.hashCode() : 0);
-		result = 31 * result + (honeywellRedirectUri != null ? honeywellRedirectUri.hashCode() : 0);
-		result = 31 * result + (honeywellLoginBaseUrl != null ? honeywellLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (honeywellClientId != null ? honeywellClientId.hashCode() : 0);
-		result = 31 * result + (nestLoginBaseUrl != null ? nestLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (nestClientId != null ? nestClientId.hashCode() : 0);
-		result = 31 * result + (lutronLoginBaseUrl != null ? lutronLoginBaseUrl.hashCode() : 0);
-		result = 31 * result + (webLaunchUrl != null ? webLaunchUrl.hashCode() : 0);
-		result = 31 * result + (androidLaunchUrl != null ? androidLaunchUrl.hashCode() : 0);
-		result = 31 * result + (requiresTermsAndConditionsConsent != null ? requiresTermsAndConditionsConsent.hashCode() : 0);
-		result = 31 * result + (requiresPrivacyPolicyConsent != null ? requiresPrivacyPolicyConsent.hashCode() : 0);
-		result = 31 * result + (promonAdUrl != null ? promonAdUrl.hashCode() : 0);
-		result = 31 * result + (redirectBaseUrl != null ? redirectBaseUrl.hashCode() : 0);
-		return result;
+		return Objects.hash(billingPublicKey, tokenURL, sessionToken, username, personId, places, smartyAuthToken, smartyAuthID, previewURLBase, staticResourceBaseUrl, secureStaticResourceBaseUrl, honeywellRedirectUri, honeywellLoginBaseUrl, honeywellClientId, lutronLoginBaseUrl, webLaunchUrl, androidLaunchUrl, requiresTermsAndConditionsConsent, requiresPrivacyPolicyConsent, promonAdUrl, redirectBaseUrl);
 	}
-
-	
 
 	public static class PlaceDescriptor {
 
@@ -461,9 +414,5 @@ public class SessionInfo {
 	            + ", promonAdEnabled=" + promonAdEnabled
 	            + "]";
 	   }
-
-      
 	}
-
 }
-

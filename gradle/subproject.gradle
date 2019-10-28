@@ -26,8 +26,8 @@ if (project.hasProperty('eyeris_owasp')) {
 
         dependencyCheck {
             format = "ALL"
-            suppressionFile = "${rootDir}/build/gradle/owasp/suppression.xml"
-            hintsFile = "${rootDir}/build/gradle/owasp/hints.xml"
+            suppressionFile = "${rootDir}/gradle/owasp/suppression.xml"
+            hintsFile = "${rootDir}/gradle/owasp/hints.xml"
             skipConfigurations = ["test", "testRuntime", "systemTest", "systemTestRuntime"]
         }
     }
