@@ -4,3 +4,4 @@ jdk:
 cache:
   directories:
   - $HOME/.gradle
+script: ./gradlew test
