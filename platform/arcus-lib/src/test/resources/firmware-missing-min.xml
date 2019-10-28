@@ -3,6 +3,6 @@
 
    <f:metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
    
-   <f:firmware min="" max="2.1.0.005" target="HubOS_2.1.0.006" population="alpha" />
+   <f:firmware model="IH200" min="" max="2.1.0.005" target="HubOS_2.1.0.006" population="alpha" />
    
 </f:firmwares>

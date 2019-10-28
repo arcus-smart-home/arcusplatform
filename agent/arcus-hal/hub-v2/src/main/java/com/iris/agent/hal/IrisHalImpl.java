@@ -42,10 +42,10 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import com.iris.agent.zw.ZWaveController;
-import com.iris.agent.zw.ZWaveLocalProcessing;
-import com.iris.agent.zw.ZWaveLocalProcessingDefault;
-import com.iris.agent.zw.ZWaveLocalProcessingNoop;
+import com.iris.agent.zwave.ZWaveController;
+import com.iris.agent.zwave.ZWaveLocalProcessing;
+import com.iris.agent.zwave.ZWaveLocalProcessingDefault;
+import com.iris.agent.zwave.ZWaveLocalProcessingNoop;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;

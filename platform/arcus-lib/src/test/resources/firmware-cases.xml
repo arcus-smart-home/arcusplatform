@@ -3,16 +3,16 @@
 
    <metadata version="2015-07-29T22:56:59" publisher="Jane Doe"/>
    
-   <firmware min="2.0.0.024" max="2.0.0.999" target="hubBL_2.1.0.006" population="general, qa, beta"/>
+   <firmware model="IH200" min="2.0.0.024" max="2.0.0.999" target="hubBL_2.1.0.006" population="general, qa, beta"/>
    
-   <firmware min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.0.006" population="general"/>
+   <firmware model="IH200" min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.0.006" population="general"/>
    
-   <firmware min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.1.000" population="qa, beta"/>
+   <firmware model="IH200" min="2.1.0.003" max="2.1.0.005" target="hubBL_2.1.1.000" population="qa, beta"/>
    
-   <firmware min="2.1.0.006" max="2.1.0.006" target="hubOS_2.1.2.000" population="qa" />
+   <firmware model="IH200" min="2.1.0.006" max="2.1.0.006" target="hubOS_2.1.2.000" population="qa" />
+
+   <firmware model="IH200" min="2.1.0.006" max="2.1.0.008" target="hubOS_2.1.2.001" population="beta" />
    
-   <firmware min="2.1.0.006" max="2.1.0.008" target="hubOS_2.1.2.001" population="beta" />
-   
-   <firmware min="3.1.0.004" max="3.1.0.054" target="hubOS_3.1.1.002" population="general, qa, beta"/>
+   <firmware model="IH300" min="3.1.0.004" max="3.1.0.054" target="hubOS_3.1.1.002" population="general, qa, beta"/>
    
 </firmwares>

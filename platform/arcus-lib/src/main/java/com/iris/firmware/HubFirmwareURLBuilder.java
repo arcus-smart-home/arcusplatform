@@ -26,7 +26,7 @@ public class HubFirmwareURLBuilder implements FirmwareURLBuilder<Hub> {
 
    @Inject(optional = true)
    @Named("firmware.download.scheme")
-   private String firmwareDownloadScheme = "http";
+   private String firmwareDownloadScheme = "https";
 
    @Inject
    @Named("firmware.download.host")
