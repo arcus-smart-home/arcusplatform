@@ -4,7 +4,7 @@ ROOT=$(git rev-parse --show-toplevel)
 GRADLE=$ROOT/gradlew
 
 if [[ "${TRAVIS_REPO_SLUG}" != 'wl-net/arcusplatform' ]]; then
-
+  exit 0  # skip due to not being on a known repo
 fi
 
 REGISTRY_SEPERATOR='/'
