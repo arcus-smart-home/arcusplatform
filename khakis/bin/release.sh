@@ -7,8 +7,8 @@ if [[ "${TRAVIS_REPO_SLUG}" != 'wl-net/arcusplatform' ]]; then
   exit 0  # skip due to not being on a known repo
 fi
 
-REGISTRY_SEPERATOR='/'
-REGISTRY_NAME=docker.pkg.github.com/$TRAVIS_REPO_SLUG
+export REGISTRY_SEPERATOR='/'
+export REGISTRY_NAME=docker.pkg.github.com/$TRAVIS_REPO_SLUG
 
 echo "$GITHUB_SECRET" | docker login docker.pkg.github.com -u "$GITHUB_USERNAME" --password-stdin
 
