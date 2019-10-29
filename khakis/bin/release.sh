@@ -12,7 +12,7 @@ REGISTRY_NAME=docker.pkg.github.com/$TRAVIS_REPO_SLUG
 
 echo "$GITHUB_SECRET" | docker login docker.pkg.github.com -u "$GITHUB_USERNAME" --password-stdin
 
-echo "Building and publishing containers to ${REGISTRY_SEPERATOR}"
+echo "Building and publishing containers to ${REGISTRY_NAME}"
 
 cd $ROOT/khakis
 $ROOT/khakis/bin/build.sh
