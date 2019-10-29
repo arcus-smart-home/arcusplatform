@@ -10,6 +10,8 @@ fi
 REGISTRY_SEPERATOR='/'
 REGISTRY_NAME=docker.pkg.github.com/$TRAVIS_REPO_SLUG
 
+echo "$GITHUB_SECRET" | docker login -u "$GITHUB_USERNAME" --password-stdin
+
 cd $ROOT/khakis
 $ROOT/khakis/bin/build.sh
 $ROOT/khakis/bin/tag.sh
