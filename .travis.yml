@@ -9,5 +9,6 @@ script: ./gradlew test
 deploy:
   - provider: script
     script: bash khakis/bin/release.sh
+    skip_cleanup: true
     on:
       branch: automate-build 
