@@ -5,3 +5,9 @@ cache:
   directories:
   - $HOME/.gradle
 script: ./gradlew test
+
+deploy:
+  - provider: script
+    script: bash khakis/bin/release.sh
+    on:
+      branch: automate-build 
