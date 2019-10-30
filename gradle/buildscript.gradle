@@ -22,7 +22,6 @@ dependencies {
    classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
    classpath "com.netflix.nebula:gradle-contacts-plugin:3.0.1"
    classpath 'se.transmode.gradle:gradle-docker:1.2'
-   classpath "org.ajoberstar:grgit:1.7.0"
+   classpath "org.ajoberstar.grgit:grgit-gradle:4.0.0-rc.1"
    classpath "org.owasp:dependency-check-gradle:5.2.2"
-
 }
