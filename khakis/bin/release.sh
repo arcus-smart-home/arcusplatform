@@ -15,10 +15,10 @@ echo "$GITHUB_SECRET" | docker login docker.pkg.github.com -u "$GITHUB_USERNAME"
 echo "Building and publishing containers to ${REGISTRY_NAME}"
 
 $GRADLE :khakis:distDocker
+
 echo "tagging"
 $ROOT/khakis/bin/tag.sh
 echo "pushing"
 $ROOT/khakis/bin/push.sh
-cd -
-$GRADLE pushDocker
 
+$GRADLE pushDocker
