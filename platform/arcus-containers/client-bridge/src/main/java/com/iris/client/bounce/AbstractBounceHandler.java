@@ -22,6 +22,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
+import io.netty.handler.codec.http.*;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,14 +39,7 @@ import com.iris.bridge.server.session.Session;
 import com.iris.io.json.JSON;
 
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
 
 public abstract class AbstractBounceHandler extends HttpResource {
 	private static final Logger logger = LoggerFactory.getLogger(AbstractBounceHandler.class);
@@ -131,8 +125,8 @@ public abstract class AbstractBounceHandler extends HttpResource {
 	
 	protected FullHttpResponse redirect(String url) {
 		FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND);
-		response.headers().add(HttpHeaders.newNameEntity(Names.LOCATION), url);
-		response.headers().add(HttpHeaders.newNameEntity(Names.CONTENT_TYPE), BridgeHeaders.CONTENT_TYPE_JSON_UTF8);
+		response.headers().add(HttpHeaderNames.LOCATION, url);
+		response.headers().add(HttpHeaderNames.CONTENT_TYPE, BridgeHeaders.CONTENT_TYPE_JSON_UTF8);
 		response.content().writeBytes(JSON.toJson(ImmutableMap.of(ATTR_LOCATION, url)).getBytes(Charsets.UTF_8));
 		return response;
 	}
