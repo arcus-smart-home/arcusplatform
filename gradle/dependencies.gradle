@@ -307,7 +307,7 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
 else
-	ext.netty_version = "4.0.42.Final"
+	ext.netty_version = "4.1.43.Final"
 if (project.hasProperty("tcnative_override_version"))
 	ext.tcnative_version = "${tcnative_override_version}"
 else
