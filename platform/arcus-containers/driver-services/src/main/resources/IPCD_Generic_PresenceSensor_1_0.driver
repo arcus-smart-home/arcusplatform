@@ -13,71 +13,72 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-driver         "IPCDGenericSwitch"
-description    "Driver for emulated IPCD Switch"
+driver         "IPCDGenericPresenceSensor"
+description    "Driver for emulated IPCD Presence Sensor"
 version        "1.0"
 protocol       "IPCD"
-deviceTypeHint "Switch"
-productId      "0c9a56"
+deviceTypeHint "Presence"
+productId      "0c9a53"
 vendor         "Generic"
-model          "Switch"
+model          "PresenceSensor"
 
-matcher        'IPCD:vendor' : 'Generic', 'IPCD:model' : 'Switch'
+matcher        'IPCD:vendor' : 'Generic', 'IPCD:model' : 'PresenceSensor'
 
-capabilities   DevicePower, Switch
-
+capabilities   DevicePower, Presence
 
 DevicePower.source                 DevicePower.SOURCE_LINE
 DevicePower.linecapable            true
 DevicePower.backupbatterycapable   false
 
 ///////////////// Constants ////////////////////////
-def final ATTR_SWITCH = "generic.switch"
+def final ATTR_PRESENCE = "generic.presence"
 def final VALUE_CHANGES = "valueChanges"
 
 ///////////////// Driver Lifecycle ////////////////
 
 onAdded {
-   log.debug "IPCD Generic Switch Device Added."
-   
+   log.debug "IPCD Generic Presence Sensor Device Added."
+
    DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
-   
-   Switch.state                     Switch.STATE_OFF
-   Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Presence.presence                Presence.PRESENCE_PRESENT
+   Presence.presencechanged         ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Presence.usehint                 Presence.USEHINT_UNKNOWN
+   Presence.person                  'UNSET'
 }
 
 onConnected {
-   log.debug "IPCD Generic Switch Device Connected."
+   log.debug "IPCD Generic Presence Sensor Device Connected."
    
-   Ipcd.Commands.getParameterValues("txnid", [ATTR_SWITCH])
+   Ipcd.Commands.getParameterValues("txnid", [ATTR_CONTACT])
 }
 
 onDisconnected {
-   log.debug "IPCD Generic Switch Device Disconnected."
+   log.debug "IPCD Generic Presence Sensor Device Device Disconnected."
 }
 
 onRemoved {
    Ipcd.Commands.factoryReset()
-   log.debug "IPCD Generic Switch Device Removed."
+   log.debug "IPCD Generic Presence Sensor Device Removed."
 }
 
 /////////////// Capability Attribute Closures ///////////////////
 
-setAttributes('swit') {
-   log.debug "IPCD Generic Switch driver received 'swit' set Attribute message " + message
+setAttributes('pres') {
+   log.debug "IPCD Generic Presence Sensor driver received 'cont' set Attribute message " + message
    def attributes = message.attributes
    for (attribute in attributes) {
       switch(attribute.key) {
-         case Switch.state:
-            if (attribute.value == 'ON') {
-               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "on" ])
-            } else { 
-               Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "off" ])
-            }
-         break;
+         case Presence.usehint:
+            Presence.usehint attribute.value
+            break;
+
+         case Presence.person:
+            Presence.person attribute.value
+            break;
 
          default:
-            log.error "unrecognized attribute: " + attribute
+            log.error "unrecognized attribute:{}", attribute
       }
    }
 }
@@ -90,11 +91,11 @@ onIpcdMessage.event {
    if (eventMap.containsKey(VALUE_CHANGES)) {
       def valueChanges = eventMap[VALUE_CHANGES]
       for (valueChange in valueChanges) {
-         if (valueChange["parameter"] == ATTR_SWITCH) {
-            def prevState = Switch.state.get()
-            Switch.state( valueChange["value"] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
-            if (Switch.state.get() != prevState) {
-               Switch.statechanged( new Date())
+         if (valueChange["parameter"] == ATTR_PRESENCE) {
+            def prevState = Presence.presence.get()
+            Presence.presence( valueChange["value"] == 'absent' ? Presence.PRESENCE_ABSENT : Presence.PRESENCE_PRESENT )
+            if (Presence.presence.get() != prevState) {
+               Presence.presencechanged( new Date())
             }
          }
       }
@@ -105,8 +106,7 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Got Response from IPCD Device " + message)
    def response = message.mapify()["response"]
    log.debug("Response contents from IPCD Device " + response)
-
-   if (response.containsKey(ATTR_SWITCH)) {
-      Switch.state( response[ATTR_SWITCH] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+   if (response.containsKey(ATTR_PRESENCE)) {
+      Presence.presence( valueChange["value"] == 'absent' ? Presence.PRESENCE_ABSENT : Presence.PRESENCE_PRESENT )
    }
 }

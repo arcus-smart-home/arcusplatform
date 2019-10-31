@@ -124,6 +124,52 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="0c9a54" name="Generic Dimmer" shortname="Dimmer" screen="Switch" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="dimmer, energy, power, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-10-23T21:54:50-0600" lastchanged="2019-10-23T21:54:50-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
+          <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
+          <input type="hidden" name="IPCD:v1devicetype" value="GenericDimmer"/>
+        </step1>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="Please wait for the device to be removed from the Arcus Cloud Platform. &#xA;          &#x9;If this takes longer than a few seconds, consider factory resetting the device."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="TODO"/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="0c9a53" name="Generic Presence Sensor" shortname="Presence Sensor" screen="Keyfob" description="" manufacturer="Arcus" installManualUrl="" vendor="Arcus" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="presence, generic" ota="No" protofamily="IPCD" pairingMode="IPCD" hubrequired="false" added="2019-10-23T21:54:50-0600" lastchanged="2019-10-23T21:54:50-0600">
+      <categories>
+        <category name="Care"/>
+        <category name="Security"/>
+        <category name="Home &amp; Family"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Enter the Device ID" target="BRDG::IPCD" message="bridgesvc:RegisterDevice">
+          <input type="text" label="8-Character Code" name="IPCD:sn" minlen="8" maxlen="8" required="true"/>
+          <input type="hidden" name="IPCD:v1devicetype" value="GenericPresenceSensor"/>
+        </step1>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="Please wait for the device to be removed from the Arcus Cloud Platform. &#xA;          &#x9;If this takes longer than a few seconds, consider factory resetting the device."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="TODO"/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="0c9a66" name="Plug-In Switch (12719 Z-Wave)" shortname="Plug-In Switch" screen="Switch" description="" manufacturer="Jasco" installManualUrl="https://byjasco.com/sites/default/files/product/manuals/12719%20EnFrSp%20QStart%20V1%20081814.pdf" vendor="GE" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/NNOZR9qrmpQ" keywords="GE, Jasco, indoor, module, control, outlet, plug, switch, energy, 120, volt, 15, amp, power, zwave, 12719" ota="No" protofamily="Z-Wave" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
