@@ -16,6 +16,8 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/release.gradle")
 
+apply plugin: 'application'
+
 dependencies {
    compile project(":agent:arcus-hal:arcus-hal-api")
    compile project(":agent:arcus-hal:arcus-hal-common")
@@ -34,7 +36,9 @@ dependencies {
    runtime project(":agent:arcus-hal:arcus-hal-hub-v2")
 }
 
-task run() {
+mainClassName = 'com.iris.agent.IrisAgent'
+
+task run(overwrite: true) {
    group "Application"
    description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
    dependsOn "run-hub-v2"
@@ -47,4 +51,23 @@ task('run-hub-v2', type:JavaExec) {
    main = 'com.iris.agent.IrisAgent'
    args '~/.hub-simulated/' // Store files in ~/.hub-simulated
    jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
+}
+
+jar {
+   manifest {
+      attributes(
+              'Implementation-Title': project.name,
+              'Implementation-Version': project.version,
+              'Implementation-Vendor': "Arcus Smart Home",
+              'Created': buildTime
+      )
+   }
+}
+
+distributions {
+   main {
+      contents {
+         from jar
+      }
+   }
 }
