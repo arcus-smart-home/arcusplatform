@@ -30,12 +30,6 @@ public class PairingConfig {
 	@Inject(optional = true) @Named("pairing.request.timeoutMs")
 	private long requestTimeoutMs = TimeUnit.SECONDS.toMillis(30);
 
-	@Inject @Named(value = "nest.login.base.url")
-	private String nestLoginBaseUrl;
-
-	@Inject @Named(value = "nest.client.id")
-	private String nestClientId;
-
 	public long getIdleTimeoutMs() {
 		return idleTimeoutMs;
 	}
@@ -58,22 +52,6 @@ public class PairingConfig {
 
 	public void setRequestTimeoutMs(long bridgeTimeoutMs) {
 		this.requestTimeoutMs = bridgeTimeoutMs;
-	}
-
-	public String getNestLoginBaseUrl() {
-		return nestLoginBaseUrl;
-	}
-
-	public void setNestLoginBaseUrl(String nestLoginBaseUrl) {
-		this.nestLoginBaseUrl = nestLoginBaseUrl;
-	}
-
-	public String getNestClientId() {
-		return nestClientId;
-	}
-
-	public void setNestClientId(String nestClientId) {
-		this.nestClientId = nestClientId;
 	}
 
 }

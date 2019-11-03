@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="MediaPlayer"
+   namespace="mediaplayer"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+
+   <c:description>
+   </c:description>
+   <c:attributes>
+      <c:attribute
+            name="playing"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Is the player playing?"/>
+      <c:attribute
+            name="genre"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Genre of playing media"/>
+      <c:attribute
+            name="title"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Title of playing media"/>
+      <c:attribute
+            name="song"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Song name of playing media"/>
+      <c:attribute
+            name="artist"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Artist name of playing media"/>
+      <c:attribute
+            name="album"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Album name of playing media"/>
+      <c:attribute
+            name="muted"
+            readwrite="r"
+            type="boolean"
+            optional="false"
+            description="Is the player muted?"/>
+      <c:attribute
+            name="source"
+            readwrite="r"
+            type="string"
+            optional="false"
+            description="Source of the media being played."/>
+      <c:attribute
+           name="volume"
+           readwrite="r"
+           type="int"
+           optional="false"
+           description="Volume level"/>
+   </c:attributes>
+   <c:methods>   
+      <c:method
+         name="Play"
+         description="Causes the player to play media.">
+         <c:parameters>
+            <c:parameter 
+               name="source"
+               type="String"
+               description="Target of media to play"
+               optional="false"/>
+         </c:parameters>
+	   </c:method>
+      <c:method
+        name="Pause"
+        description="Pause any playing media." />
+      <c:method
+         name="Stop"
+         description="Stop playing any media." />
+      <c:method
+        name="Mute"
+        description="Mute any playing media." />
+      <c:method
+        name="Unmute"
+        description="Unmute any playing media." />
+    </c:methods>
+   <c:events>
+   </c:events>
+</c:capability>

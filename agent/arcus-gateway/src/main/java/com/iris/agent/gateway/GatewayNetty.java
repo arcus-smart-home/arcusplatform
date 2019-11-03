@@ -15,9 +15,11 @@
  */
 package com.iris.agent.gateway;
 
+import java.security.Security;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,9 @@ class GatewayNetty {
 
    public static SslProvider createSslProvider() {
       Supplier<String> sslProvider = ConfigService.supplier("iris.gateway.ssl.provider", String.class, "");
+
+      Security.addProvider(new BouncyCastleProvider());
+
       switch (sslProvider.get()) {
       case "":
       case "openssl":
