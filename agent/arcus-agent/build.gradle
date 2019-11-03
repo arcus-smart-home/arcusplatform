@@ -17,34 +17,40 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 
 ext.agentMainManifest = manifest {
     attributes(
-        'Implementation-Title': "Arcus Hub Agent",
+            'Implementation-Title': "Arcus Hub Agent",
     )
 }
-   
+
 dependencies {
-   compile project(":agent:arcus-system");
-   compile project(":agent:arcus-hub-controller");
-   compile project(":agent:arcus-hal:arcus-hal-api");
+    compile project(":agent:arcus-system");
+    compile project(":agent:arcus-hub-controller");
+    compile project(":agent:arcus-hal:arcus-hal-api");
 
-   compile project(":common:arcus-common")
-   compile project(":common:arcus-metrics")
+    compile project(":common:arcus-common")
+    compile project(":common:arcus-metrics")
 
-   compile libraries.guiceCore
-   compile libraries.governator
+    compile libraries.guiceCore
+    compile libraries.governator
 
-	compile libraries.metrics_core
-	compile libraries.metrics_logback
-	compile libraries.logback
+    compile libraries.metrics_core
+    compile libraries.metrics_logback
+    compile libraries.logback
 
-	runtime libraries.commonsConfig
-	runtime libraries.janino
-	compile libraries.slf4jJcl
+    runtime libraries.commonsConfig
+    runtime libraries.janino
+    compile libraries.slf4jJcl
 }
-   
+
+task writeAgentVersion() {
+    def versionFile = file("agent.version")
+    versionFile.write(agentVersion)
+}
+
 jar {
     manifest = project.manifest {
         from sharedManifest
         from agentMainManifest
     }
+    dependsOn writeAgentVersion
 }
 

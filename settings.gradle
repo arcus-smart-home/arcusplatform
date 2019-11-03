@@ -82,6 +82,9 @@ include 'platform:arcus-containers:voice-service'
 include 'platform:arcus-platform-drivers:driver-tests'
 
 include 'agent:arcus-agent'
+include 'agent:arcus-agent:hub-v2'
+project(':agent:arcus-agent:hub-v2').name = 'arcus-agent-hub-v2'
+
 include 'agent:arcus-gateway'
 include 'agent:arcus-hub-controller'
 include 'agent:arcus-os'

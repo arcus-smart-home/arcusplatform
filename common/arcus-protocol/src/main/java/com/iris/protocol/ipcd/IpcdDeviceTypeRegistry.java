@@ -36,7 +36,10 @@ public enum IpcdDeviceTypeRegistry {
    public static final String DEVICE_TYPE_GREATSTAR_INDOOR_WIFI_PLUG = "GreatStarIndoorPlug";
    public static final String DEVICE_TYPE_GREATSTAR_OUTDOOR_WIFI_PLUG = "GreatStarOutdoorPlug";
    public static final String DEVICE_TYPE_GENERIC_SWITCH = "GenericSwitch";
+   public static final String DEVICE_TYPE_GENERIC_DIMMER = "GenericDimmer";
    public static final String DEVICE_TYPE_GENERIC_CONTACT_SENSOR = "GenericContactSensor";
+   public static final String DEVICE_TYPE_GENERIC_PRESENCE_SENSOR = "GenericPresenceSensor";
+
    public static final String DEVICE_TYPE_OTHER = "Other";
 
    public static final IpcdDeviceType GENIE = createDeviceType("Genie", "Aladdin");
@@ -48,7 +51,9 @@ public enum IpcdDeviceTypeRegistry {
    public static final IpcdDeviceType GREATSTAR_INDOOR_PLUG = createDeviceType("GreatStar", "plug_indoor" );
    public static final IpcdDeviceType GREATSTAR_OUTDOOR_PLUG = createDeviceType("GreatStar", "plug_outdoor" );
    public static final IpcdDeviceType GENERIC_SWITCH = createDeviceType("Generic", "Switch");
+   public static final IpcdDeviceType GENERIC_DIMMER = createDeviceType("Generic", "Dimmer");
    public static final IpcdDeviceType GENERIC_CONTACT_SENSOR = createDeviceType("Generic", "ContactSensor");
+   public static final IpcdDeviceType GENERIC_PRESENCE_SENSOR = createDeviceType("Generic", "PresenceSensor");
 
    private static final Map<String, List<IpcdDeviceType>> V1_TYPES = ImmutableMap.<String, List<IpcdDeviceType>>builder()
       .put(DEVICE_TYPE_GENIE_GDO.toLowerCase(), ImmutableList.of(GENIE))
@@ -60,6 +65,9 @@ public enum IpcdDeviceTypeRegistry {
       .put(DEVICE_TYPE_GREATSTAR_INDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_INDOOR_PLUG))
       .put(DEVICE_TYPE_GREATSTAR_OUTDOOR_WIFI_PLUG.toLowerCase(), ImmutableList.of(GREATSTAR_OUTDOOR_PLUG))
       .put(DEVICE_TYPE_GENERIC_CONTACT_SENSOR.toLowerCase(), ImmutableList.of(GENERIC_CONTACT_SENSOR))
+      .put(DEVICE_TYPE_GENERIC_SWITCH.toLowerCase(), ImmutableList.of(GENERIC_SWITCH))
+      .put(DEVICE_TYPE_GENERIC_DIMMER.toLowerCase(), ImmutableList.of(GENERIC_DIMMER))
+      .put(DEVICE_TYPE_GENERIC_PRESENCE_SENSOR.toLowerCase(), ImmutableList.of(GENERIC_PRESENCE_SENSOR))
       .build();
 
    private static final List<IpcdDeviceType> types;

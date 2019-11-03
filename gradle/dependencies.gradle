@@ -48,7 +48,7 @@ ext.libraries << [
 
 
 // Apache
-		commons_beanutils: "commons-beanutils:commons-beanutils:1.9.3",
+		commons_beanutils: "commons-beanutils:commons-beanutils:1.9.4",
 		commons_cli: "commons-cli:commons-cli:1.2",
 		commonsCodec: "commons-codec:commons-codec:1.10",
 		commonsCollections: "commons-collections:commons-collections:3.2",
@@ -118,7 +118,7 @@ ext.libraries << [
 // governator runtime dependencies
 		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.4.3",
 		jacksonCoreAsl: "org.codehaus.jackson:jackson-core-asl:1.9.11",
-		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.4.4",
+		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.10.0",
 		jacksonMapper: "org.codehaus.jackson:jackson-mapper-asl:1.9.11",
 
 // governator compile dependencies
