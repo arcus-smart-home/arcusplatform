@@ -41,10 +41,16 @@ dependencies {
     compile libraries.slf4jJcl
 }
 
+task writeAgentVersion() {
+    def versionFile = file("agent.version")
+    versionFile.write(agentVersion)
+}
+
 jar {
     manifest = project.manifest {
         from sharedManifest
         from agentMainManifest
     }
+    dependsOn writeAgentVersion
 }
 
