@@ -63,11 +63,3 @@ jar {
       )
    }
 }
-
-distributions {
-   main {
-      contents {
-         from jar
-      }
-   }
-}
