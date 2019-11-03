@@ -27,10 +27,13 @@ dependencies {
 
    compile libraries.commonsIO
    compile libraries.apacheCommonsExec
+   compile libraries.bouncycastle // pull in to support old zwave
    
    compile project(':common:arcus-common')
    compile project(':common:arcus-model')
    compile project(':common:arcus-model:platform-messages')
+   compile project(':agent:arcus-agent')
+
 
    runtime project(":agent:arcus-agent")
    runtime project(":agent:arcus-hal:arcus-hal-hub-v2")
@@ -38,22 +41,8 @@ dependencies {
 
 mainClassName = 'com.iris.agent.IrisAgent'
 
-task run(overwrite: true) {
-   group "Application"
-   description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
-   dependsOn "run-hub-v2"
-}
-
-// Run the agent. This feels like the wrong place to put this, but the original run task references run-hub-v2 which wasn't defined anywhere.
-task('run-hub-v2', type:JavaExec) {
-   classpath = files("$projectDir/src/dist/conf") + sourceSets.main.runtimeClasspath
-   group "Application"
-   main = 'com.iris.agent.IrisAgent'
-   args '~/.hub-simulated/' // Store files in ~/.hub-simulated
-   jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
-}
-
 jar {
+
    manifest {
       attributes(
               'Implementation-Title': project.name,
@@ -61,5 +50,36 @@ jar {
               'Implementation-Vendor': "Arcus Smart Home",
               'Created': buildTime
       )
+   }
+}
+
+distributions {
+   main {
+      contents {
+         from jar
+         eachFile {
+            it.path = it.path.replace("lib/", 'libs/')
+            it.path = it.path.replace("arcus-agent-hub-v2-${agentVersion}/", '')
+         }
+
+         exclude ('**/*.class')
+         exclude ('**/*.hbs')
+         exclude ('**/*.bat')
+         exclude ('**/arcus-agent-hub-v2')
+         exclude ('**/META-INF/**')
+
+         into('conf') {
+            from project(":agent:arcus-agent").file('src/dist/main/conf/')
+            from project(":agent:arcus-agent").file('agent.version')
+         }
+
+         into('bin') {
+            from project(":agent:arcus-hal:arcus-hal-hub-v2").file('src/dist/main/bin/iris-agent')
+         }
+
+         into('lib') {
+            from project(":agent:arcus-hal:arcus-hal-hub-v2").file('src/dist/main/lib/')
+         }
+      }
    }
 }
