@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-driver         "IPCDGenericSwitch"
-description    "Driver for emulated IPCD Switch"
+driver         "IPCDGenericDimmer"
+description    "Driver for emulated IPCD Dimmer"
 version        "1.0"
 protocol       "IPCD"
 deviceTypeHint "Switch"
-productId      "0c9a56"
+productId      "0c9a54"
 vendor         "Generic"
-model          "Switch"
+model          "Dimmer"
 
-matcher        'IPCD:vendor' : 'Generic', 'IPCD:model' : 'Switch'
+matcher        'IPCD:vendor' : 'Generic', 'IPCD:model' : 'Dimmer'
 
-capabilities   DevicePower, Switch
+capabilities   DevicePower, Dimmer, Switch
 
 
 DevicePower.source                 DevicePower.SOURCE_LINE
@@ -33,12 +33,13 @@ DevicePower.backupbatterycapable   false
 
 ///////////////// Constants ////////////////////////
 def final ATTR_SWITCH = "generic.switch"
+def final ATTR_LEVEL = "generic.brightness"
 def final VALUE_CHANGES = "valueChanges"
 
 ///////////////// Driver Lifecycle ////////////////
 
 onAdded {
-   log.debug "IPCD Generic Switch Device Added."
+   log.debug "IPCD Generic Dimmer Device Added."
    
    DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
    
@@ -47,13 +48,12 @@ onAdded {
 }
 
 onConnected {
-   log.debug "IPCD Generic Switch Device Connected."
-   
-   Ipcd.Commands.getParameterValues("txnid", [ATTR_SWITCH])
+   log.debug "IPCD Generic Dimmer Device Connected."
+   Ipcd.Commands.getParameterValues("txnid", [ATTR_LEVEL, ATTR_SWITCH])
 }
 
 onDisconnected {
-   log.debug "IPCD Generic Switch Device Disconnected."
+   log.debug "IPCD Generic Dimmer Device Disconnected."
 }
 
 onRemoved {
@@ -63,8 +63,8 @@ onRemoved {
 
 /////////////// Capability Attribute Closures ///////////////////
 
-setAttributes('swit') {
-   log.debug "IPCD Generic Switch driver received 'swit' set Attribute message " + message
+setAttributes {
+   log.debug "IPCD Generic Dimmer driver received set Attribute message " + message
    def attributes = message.attributes
    for (attribute in attributes) {
       switch(attribute.key) {
@@ -75,11 +75,32 @@ setAttributes('swit') {
                Ipcd.Commands.setParameterValues("txnid", [ (ATTR_SWITCH) : "off" ])
             }
          break;
+         case Dimmer.brightness:
+         	level = normalizeBrightness(this, attribute.value)
+         	Ipcd.Commands.setParameterValues("txnid", [ (ATTR_LEVEL) : level ])
+         break;
 
          default:
             log.error "unrecognized attribute: " + attribute
       }
    }
+}
+
+static int normalizeBrightness (ctx, name, targetBrightness) {
+   return normalizeBrightness(ctx, targetBrightness)
+}
+
+static int normalizeBrightness (ctx, targetBrightness) {
+   // limit brightness from 0 to 100
+   if (100 < targetBrightness) {
+      ctx.log.info "Generic limiting requested Brightness of {} to max allowed of 100", targetBrightness
+      targetBrightness = 100
+   }
+   if (0 > targetBrightness) {
+      ctx.log.info "Generic limiting requested Brightness of {} to min allowed of 0", targetBrightness
+      targetBrightness = 0
+   }
+   return targetBrightness
 }
 
 ///////////////// Protocol Messages ///////////////////////////
@@ -96,6 +117,12 @@ onIpcdMessage.event {
             if (Switch.state.get() != prevState) {
                Switch.statechanged( new Date())
             }
+         } else if (valueChange["parameter"] == ATTR_LEVEL) {
+            def prevState = Dimmer.brightness.get()
+            Dimmer.brightness valueChange["value"]
+            if (Dimmer.brightness.get() != prevState) {
+               Switch.statechanged( new Date())
+            }
          }
       }
    }
@@ -107,6 +134,8 @@ onIpcdMessage.response.getParameterValues("success") {
    log.debug("Response contents from IPCD Device " + response)
 
    if (response.containsKey(ATTR_SWITCH)) {
-      Switch.state( response[ATTR_SWITCH] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+      Switch.state( response[ATTR_LEVEL] == 'on' ? Switch.STATE_ON : Switch.STATE_OFF )
+   } else if (response.containsKey(ATTR_LEVEL)) {
+      Dimmer.brightness( response[ATTR_LEVEL])
    }
 }

@@ -46,7 +46,6 @@ fi
 if [ -z "${JAVA}" ]; then
    JAVA_SEARCH=""
    JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/current"
-   JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/java-7-openjdk"
    JAVA_SEARCH="${JAVA_SEARCH} /usr/lib/jvm/java-8-openjdk"
    for next in ${JAVA_SEARCH}; do
       if [ -z "${JAVA}" ]; then
