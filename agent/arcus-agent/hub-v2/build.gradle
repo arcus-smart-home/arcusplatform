@@ -70,6 +70,7 @@ distributions {
 
          into('conf') {
             from project(":agent:arcus-agent").file('src/dist/main/conf/')
+            from project(":agent:arcus-agent").file('agent.version')
          }
 
          into('bin') {
