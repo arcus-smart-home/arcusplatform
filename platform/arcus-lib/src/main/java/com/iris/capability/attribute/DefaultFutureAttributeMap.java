@@ -54,7 +54,7 @@ class DefaultFutureAttributeMap implements FutureAttributeMap {
 		delegate
 			.values()
 			.stream()
-			.forEach((l) -> l.addListener(onResult, MoreExecutors.sameThreadExecutor()));
+			.forEach((l) -> l.addListener(onResult, MoreExecutors.newDirectExecutorService()));
    }
 
 	@SuppressWarnings("unchecked")
