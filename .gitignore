@@ -45,6 +45,7 @@ platform/arcus-rules/out/
 platform/arcus-subsystems/out/
 platform/arcus-test/out/
 platform/bridge-common/out/
+.secret/
 tools/arcus-captools/out/
 tools/eye-kat/out/
 tools/oculus/out/
