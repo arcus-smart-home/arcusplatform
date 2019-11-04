@@ -1,8 +1,11 @@
-## Building the Iris 2 docker images
+# Khakis - Arcus Infrastructure
 
+Arcus utilizes Cassandra, Kafka, and Zookeeper in order to support arcusplatform. This sub-project contains the necessary Dockerfiles and scripts to build and run the Arcus containers.
+For a production deployment, it is recommended to use some form of container orchestration, e.g. Docker Compose or Kubernetes.
+## Building the Arcus docker images
 
 Running the following command on the console will build all of the docker
-images required for the Iris 2 platform.
+images required for the Arcus Platform.
 
 ```
 $ ./bin/build.sh
@@ -11,7 +14,7 @@ $ ./bin/build.sh
 Docker caches intermediate images to speed up image creation, so running this
 command after making small changes will not take as long as the first run.
 
-## Bringing up the Iris 2 docker container
+## Bringing up the Arcus docker container
 
 Running the following command on the console will start a new docker container
 named "eyeris" using the Iris 2 uber Docker image "eyeris/uber".
