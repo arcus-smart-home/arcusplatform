@@ -72,7 +72,7 @@ ext.libraries << [
 		cxfJaxws: "org.apache.cxf:cxf-tools-wsdlto-frontend-jaxws:3.1.6",
 		cxfJaxb: "org.apache.cxf:cxf-tools-wsdlto-databinding-jaxb:3.1.6",
 
-		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.0.37",
+		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.10.4",
 
 // Apache Lucene
 		luceneCore: "org.apache.lucene:lucene-core:5.4.0",
@@ -307,7 +307,7 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
 else
-	ext.netty_version = "4.0.42.Final"
+	ext.netty_version = "4.1.43.Final"
 if (project.hasProperty("tcnative_override_version"))
 	ext.tcnative_version = "${tcnative_override_version}"
 else
@@ -320,7 +320,7 @@ ext.netty_codec = "io.netty:netty-codec:${netty_version}"
 ext.netty_codec_http = "io.netty:netty-codec-http:${netty_version}"
 ext.netty_handler = "io.netty:netty-handler:${netty_version}"
 // handler proxy only exists in versions above 4.0
-if(!netty_version.startsWith("4.0"))
+if(!netty_version.startsWith("4."))
 	ext.netty_handler_proxy = "io.netty:netty-handler-proxy:${netty_version}"
 ext.netty_epoll = "io.netty:netty-transport-native-epoll:${netty_version}"
 ext.netty_epoll_linux = "io.netty:netty-transport-native-epoll:${netty_version}:linux-x86_64"
@@ -334,7 +334,7 @@ if (OperatingSystem.current().isMacOsX()) {
 } else {
 	ext.netty_tcnative_lib = netty_tcnative_linux
 }
-if(!netty_version.startsWith("4.0")) {
+if(!netty_version.startsWith("4.")) {
     ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_handler_proxy, netty_epoll_linux, javassist, netty_tcnative, netty_tcnative_lib]
 }
 else {

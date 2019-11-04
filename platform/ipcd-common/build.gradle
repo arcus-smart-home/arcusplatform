@@ -22,7 +22,7 @@ ext.agentMainManifest = manifest {
    )
 }
 
-ext.ipcd_netty_version = '4.0.32.Final'
+ext.ipcd_netty_version = '4.1.43.Final'
 
 configurations.all {
    resolutionStrategy {
