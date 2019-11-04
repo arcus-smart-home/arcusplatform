@@ -35,59 +35,59 @@ import com.iris.billing.client.model.request.BillingInfoRequest;
 import com.iris.billing.exception.RecurlyAPIErrorException;
 
 public class RecurlyTokenClient {
-	private static final String TOKEN_URL = "https://api.recurly.com/js/v1/token";
-	private static final Gson GSON = new GsonBuilder().create();
-	private final AsyncHttpClient client;
+    private static final String TOKEN_URL = "https://api.recurly.com/js/v1/token";
+    private static final Gson GSON = new GsonBuilder().create();
+    private final AsyncHttpClient client;
 
-	public RecurlyTokenClient() {
-		this.client = new DefaultAsyncHttpClient();
-	}
+    public RecurlyTokenClient() {
+        this.client = new DefaultAsyncHttpClient();
+    }
 
-	public ListenableFuture<String> getBillingToken(BillingInfoRequest request) {
-		return doGetBillingToken(request);
-	}
+    public ListenableFuture<String> getBillingToken(BillingInfoRequest request) {
+        return doGetBillingToken(request);
+    }
 
-	private final ListenableFuture<String> doGetBillingToken(BillingInfoRequest billingInfoRequest) {
-		final SettableFuture<String> future = SettableFuture.create();
+    private final ListenableFuture<String> doGetBillingToken(BillingInfoRequest billingInfoRequest) {
+        final SettableFuture<String> future = SettableFuture.create();
 
-		try {
-			BoundRequestBuilder builder = client.preparePost(TOKEN_URL)
-					.addHeader(HttpHeaders.ACCEPT, "application/xml")
-					.addHeader(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded");
+        try {
+            BoundRequestBuilder builder = client.preparePost(TOKEN_URL)
+                    .addHeader(HttpHeaders.ACCEPT, "application/xml")
+                    .addHeader(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded");
 
-			for (Map.Entry<String, String> item : billingInfoRequest.getMappings().entrySet()) {
-				builder.addFormParam(item.getKey(), item.getValue());
-			}
+            for (Map.Entry<String, String> item : billingInfoRequest.getMappings().entrySet()) {
+                builder.addFormParam(item.getKey(), item.getValue());
+            }
 
-			builder.execute(new AsyncCompletionHandler<Void>() {
-				@Override
-				public void onThrowable(Throwable throwable) {
-					future.setException(throwable);
-				}
+            builder.execute(new AsyncCompletionHandler<Void>() {
+                @Override
+                public void onThrowable(Throwable throwable) {
+                    future.setException(throwable);
+                }
 
-				@Override
-				public Void onCompleted(Response response) throws Exception {
-					try {
-						RecurlyJSONResponse message = GSON.fromJson(
-								response.getResponseBody(), 
-								RecurlyJSONResponse.class
-						);
-						if (message.isError()) {
-							future.setException(new RecurlyAPIErrorException(message.getCode(), message.getMessage()));
-						} else {
-							future.set(message.getID());
-						}
-					} catch (Exception ex) {
-						future.setException(ex);
-					}
-					return null;
-				}
-			});
-		} catch (Exception ex) {
-			future.setException(ex);
-		}
+                @Override
+                public Void onCompleted(Response response) throws Exception {
+                    try {
+                        RecurlyJSONResponse message = GSON.fromJson(
+                                response.getResponseBody(),
+                                RecurlyJSONResponse.class
+                        );
+                        if (message.isError()) {
+                            future.setException(new RecurlyAPIErrorException(message.getCode(), message.getMessage()));
+                        } else {
+                            future.set(message.getID());
+                        }
+                    } catch (Exception ex) {
+                        future.setException(ex);
+                    }
+                    return null;
+                }
+            });
+        } catch (Exception ex) {
+            future.setException(ex);
+        }
 
-		return future;
-	}
+        return future;
+    }
 }
 
