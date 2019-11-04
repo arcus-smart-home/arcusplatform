@@ -70,6 +70,12 @@ $ ./bin/connect.sh [command]
 If a command is not given then the script will start a bash shell by default.
 
 
+## Versioning
+
+if you invoke `./bin/build.sh` to build your containers, the version will be latest, however if you utilize `./gradlew :khakis:distDocker`, the version will be set based on `version.properties`, e.g. `2019.10.0`.
+
+The version can be adjusted by changing `version.properties`, but you should probably use the gradle `branchRelease` and `tagRelease` targets instead. 
+
 ## Building Docker Containers
 
 ```
