@@ -1,3 +1,7 @@
+apply plugin: 'org.ajoberstar.grgit'
+
+ext.repo = grgit.open()
+
 ext.buildTime = new Date ()
 def writeVersion(major, minor, patch, qualifier) {
    def versionFile = file("version.properties")

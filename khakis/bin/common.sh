@@ -7,9 +7,12 @@ docker_build() {
     local DOCKER_PATH="$1"
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' '/')
+    if [ $DOCKER_VERSION ]; then
+        local DOCKER_VERSION=":${DOCKER_VERSION}"
+    fi
 
-    if [ -z "${bamboo_bitbucket_user}" ]; then
-        "${DOCKER_BIN}" build -t "${DOCKER_TAG}" "${DOCKER_PATH}"
+    if [ -z "${is_build_server}" ]; then
+        "${DOCKER_BIN}" build -t "${DOCKER_TAG}${DOCKER_VERSION}" "${DOCKER_PATH}"
     else
         echo "running on build server, forcing clean rebuild..."
         "${DOCKER_BIN}" build --no-cache=true -t "${DOCKER_TAG}" "${DOCKER_PATH}"
