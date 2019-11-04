@@ -10,4 +10,5 @@ deploy:
   - provider: script
     script: bash khakis/bin/release.sh
     skip_cleanup: true
-    on.tags: true
+    on:
+      tags: true
