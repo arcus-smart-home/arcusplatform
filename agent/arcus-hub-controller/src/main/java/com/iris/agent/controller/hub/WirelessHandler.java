@@ -158,7 +158,7 @@ enum WirelessHandler implements PortHandler {
 
       case HubWiFiCapability.WIFISECURITY_WEP:
          // Valid lengths depend on ASCII or hex - only support 64/128 bit values
-         if (NumberUtils.isNumber(key)) {
+         if (NumberUtils.isCreatable(key)) {
             if ((key.length() != WEP_64_HEX_SIZE) && (key.length() != WEP_128_HEX_SIZE)) {
                valid = false;
             }
