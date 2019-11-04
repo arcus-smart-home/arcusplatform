@@ -6,6 +6,7 @@ ext.dockerVersion = "${version_major}.${version_minor}.${version_patch}"
 println "Building v${platformVersion} for docker: ${dockerVersion}"
 
 task distDocker(type: Exec) {
+   environment 'DOCKER_VERSION', dockerVersion
    commandLine 'bin/build.sh' 
 }
 
