@@ -33,6 +33,7 @@ dependencies {
 	compile libraries.smackExt
 	compile libraries.twilio
 	compile libraries.apacheCommonsValidator
+	compile netty_all
 
 	testCompile project (':platform:arcus-test')
 	testCompile libraries.mockito

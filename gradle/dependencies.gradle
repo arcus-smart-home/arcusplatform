@@ -241,7 +241,9 @@ ext.libraries << [
 		sendgridJava: "com.sendgrid:sendgrid-java:4.4.1",
 		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
 		sendgridHTTP: "com.sendgrid:java-http-client:4.2.0",
-		pushy: "com.relayrides:pushy:0.4.3",
+		pushy: dependencies.create("com.relayrides:pushy:0.4.3") {
+                        exclude group: "io.netty", module: "netty-all"
+                },
 		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
 		smackTCP: "org.igniterealtime.smack:smack-tcp:4.0.7",
 		smackExt: "org.igniterealtime.smack:smack-extensions:4.0.7",
@@ -319,6 +321,7 @@ ext.netty_transport = "io.netty:netty-transport:${netty_version}"
 ext.netty_codec = "io.netty:netty-codec:${netty_version}"
 ext.netty_codec_http = "io.netty:netty-codec-http:${netty_version}"
 ext.netty_handler = "io.netty:netty-handler:${netty_version}"
+ext.netty_all = "io.netty:netty-all:${netty_version}"
 // handler proxy only exists in versions above 4.0
 if(!netty_version.startsWith("4."))
 	ext.netty_handler_proxy = "io.netty:netty-handler-proxy:${netty_version}"
