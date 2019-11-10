@@ -57,6 +57,8 @@ public class IrisMetricsExporter {
    
    @PostConstruct
    public void start() {
+      logger.info("Starting metrics server on port {}", config.getMetricsHttpPort());
+
       this.executor.execute(() -> {
          Server server = new Server(this.config.getMetricsHttpPort());
          ServletContextHandler context = new ServletContextHandler();
