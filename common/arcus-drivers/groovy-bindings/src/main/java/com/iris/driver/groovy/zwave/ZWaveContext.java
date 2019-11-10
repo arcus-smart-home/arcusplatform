@@ -468,8 +468,6 @@ public class ZWaveContext extends GroovyObjectSupport {
    }
 
    private static Map<String, CommandClassObject> convertToGroovy(List<ZWaveCommandClass> commandClasses) {
-      LOGGER.warn("Converting {} command classes to classes", commandClasses.size());
-      System.out.println(commandClasses.size());
       if(commandClasses == null || commandClasses.isEmpty()) {
          LOGGER.warn("No command classes loaded, all Z-Wave messages need to be sent as binary");
          return Collections.emptyMap();
