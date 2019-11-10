@@ -27,10 +27,10 @@ import com.iris.metrics.IrisMetrics;
  *
  */
 @Singleton
-public class MetricsExporterModule extends AbstractIrisModule {
+public class MetricsExporterBuilderModule extends AbstractIrisModule {
 
    @Inject
-   public MetricsExporterModule(
+   public MetricsExporterBuilderModule(
          IrisApplication application // ensure IrisApplication has been loaded to set some of the info
    ) {
    }
