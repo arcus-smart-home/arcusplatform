@@ -55,8 +55,8 @@ public class ReflexDriverProcessor extends AbstractReflexProcessor {
       switch (daddr.getProtocolName()) {
       case ZigbeeProtocol.NAMESPACE:
          return ctx.parent.zigbee().isOffline(daddr);
-      /*case ZWaveProtocol.NAMESPACE:
-         return ctx.parent.zwave().isOffline(daddr);*/
+      case ZWaveProtocol.NAMESPACE:
+         return ctx.parent.zwave().isOffline(daddr);
       default:
          return false;
       }
