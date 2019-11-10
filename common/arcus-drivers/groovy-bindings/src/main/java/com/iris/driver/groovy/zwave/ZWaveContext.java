@@ -59,7 +59,7 @@ import com.iris.protocol.zwave.model.ZWaveNode;
 @Singleton
 public class ZWaveContext extends GroovyObjectSupport {
    private static final Logger LOGGER = LoggerFactory.getLogger(ZWaveContext.class);
-   private final Map<String, CommandClassObject> commandClasses;
+   private static Map<String, CommandClassObject> commandClasses;
    private final ZWaveConfigContext configContext;
 
    @Inject
@@ -68,7 +68,9 @@ public class ZWaveContext extends GroovyObjectSupport {
    }
 
    public ZWaveContext(List<ZWaveCommandClass> commandClasses) {
-      this.commandClasses = convertToGroovy(commandClasses);
+      if (this.commandClasses == null) {
+         this.commandClasses = convertToGroovy(commandClasses);
+      }
       this.configContext = new ZWaveConfigContext();
    }
 
@@ -466,6 +468,8 @@ public class ZWaveContext extends GroovyObjectSupport {
    }
 
    private static Map<String, CommandClassObject> convertToGroovy(List<ZWaveCommandClass> commandClasses) {
+      LOGGER.warn("Converting {} command classes to classes", commandClasses.size());
+      System.out.println(commandClasses.size());
       if(commandClasses == null || commandClasses.isEmpty()) {
          LOGGER.warn("No command classes loaded, all Z-Wave messages need to be sent as binary");
          return Collections.emptyMap();
