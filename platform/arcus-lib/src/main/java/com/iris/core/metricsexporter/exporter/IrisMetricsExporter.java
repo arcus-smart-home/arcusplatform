@@ -15,12 +15,12 @@
  */
 package com.iris.core.metricsexporter.exporter;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.inject.Inject;
 import com.iris.core.metricsexporter.config.IrisMetricsExporterConfig;
 import com.iris.util.ThreadPoolBuilder;
 import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.exporter.MetricsServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -52,7 +52,7 @@ public class IrisMetricsExporter {
                   .build()
       );
 
-      CollectorRegistry.defaultRegistry.register(new DropwizardExports(registry));
+      CollectorRegistry.defaultRegistry.register(new IrisDropwizardExports(registry));
    }
    
    @PostConstruct
