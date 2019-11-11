@@ -131,8 +131,16 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
       Map<String, MetricFamilySamples> mfSamplesMap = new HashMap<String, MetricFamilySamples>();
 
       for (SortedMap.Entry<String, Gauge> entry : registry.getGauges().entrySet()) {
-         addToMap(mfSamplesMap, fromGauge(entry.getKey(), entry.getValue()));
+         if (entry.getValue().getValue() instanceof Map) {
+            Map<String, Object> gauges = (Map) entry.getValue().getValue();
+            for (String gauge: gauges.keySet()) {
+               addToMap(mfSamplesMap, fromGauge(entry.getKey() + '_' + gauge, (Gauge<Object>) () -> gauges.get(gauge)));
+            }
+         } else {
+            addToMap(mfSamplesMap, fromGauge(entry.getKey(), entry.getValue()));
+         }
       }
+
       for (SortedMap.Entry<String, Counter> entry : registry.getCounters().entrySet()) {
          addToMap(mfSamplesMap, fromCounter(entry.getKey(), entry.getValue()));
       }
