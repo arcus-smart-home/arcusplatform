@@ -69,8 +69,8 @@ public class IrisMetricsExporter {
          try {
             server.start();
             server.join();
-         } catch (Exception e) {
-            e.printStackTrace();
+         } catch (Exception e) { // server.start throws Exception, so can't be more general here.
+            logger.error("Failed to start metrics exporter", e);
          }
       });
    }
