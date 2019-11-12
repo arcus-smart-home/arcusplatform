@@ -32,6 +32,7 @@ import com.iris.client.server.session.ClientBridgeSecurityModule;
 import com.iris.core.IrisAbstractApplication;
 import com.iris.core.dao.cassandra.CassandraDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
+import com.iris.core.metricsexporter.builder.MetricsExporterBuilderModule;
 import com.iris.core.metricsreporter.builder.MetricsTopicReporterBuilderModule;
 import com.iris.platform.subsystem.SubsystemDaoModule;
 import com.iris.security.authz.AuthzModule;
@@ -59,6 +60,7 @@ public class ClientServer extends BridgeServer {
          ClientBridgeSecurityModule.class,
          AuthzModule.class,
          MetricsTopicReporterBuilderModule.class,
+         MetricsExporterBuilderModule.class,
          ClientBridgeHealthCheckModule.class,
          SubsystemDaoModule.class
       );
