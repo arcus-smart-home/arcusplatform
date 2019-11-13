@@ -35,7 +35,7 @@ ext.libraries << [
 		openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
 
 // Cassandra
-		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.0.8:shaded") {
+		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.8.0:shaded") {
 			exclude group: "com.codahale.metrics" // interferes with platform dropwizard metrics
 			exclude group: "io.netty"
 		},
