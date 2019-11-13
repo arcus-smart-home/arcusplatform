@@ -151,6 +151,9 @@ ext.libraries << [
 		metrics_jvm: "io.dropwizard.metrics:metrics-jvm:3.1.1",
 		metrics_logback: "io.dropwizard.metrics:metrics-logback:3.1.1",
 
+		prometheus_dropwizard: "io.prometheus:simpleclient_dropwizard:0.8.0",
+		prometheus_servlet: "io.prometheus:simpleclient_servlet:0.8.0",
+
 // misc dependencies
 		guava: "com.google.guava:guava:19.0",
 		google_guava_testlib: "com.google.guava:guava-testlib:19.0",

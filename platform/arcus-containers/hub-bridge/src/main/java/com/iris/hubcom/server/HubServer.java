@@ -28,6 +28,7 @@ import com.iris.core.IrisAbstractApplication;
 import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.dao.file.HubBlacklistDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
+import com.iris.core.metricsexporter.builder.MetricsExporterBuilderModule;
 import com.iris.core.metricsreporter.builder.MetricsTopicReporterBuilderModule;
 
 public class HubServer extends BridgeServer {
@@ -46,6 +47,7 @@ public class HubServer extends BridgeServer {
          CassandraResourceBundleDAOModule.class,
          PopulationAwareFirmwareModule.class,
          MetricsTopicReporterBuilderModule.class,
+			MetricsExporterBuilderModule.class,
          HttpHealthCheckModule.class
       );
 
