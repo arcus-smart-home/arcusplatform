@@ -26,6 +26,7 @@ import com.iris.bridge.server.cluster.ClusterAwareServerModule;
 import com.iris.bridge.server.http.health.HttpHealthCheckModule;
 import com.iris.core.IrisAbstractApplication;
 import com.iris.core.messaging.kafka.KafkaModule;
+import com.iris.core.metricsexporter.builder.MetricsExporterBuilderModule;
 import com.iris.core.metricsreporter.builder.MetricsTopicReporterBuilderModule;
 import com.iris.io.json.gson.GsonModule;
 
@@ -42,6 +43,7 @@ public class IpcdServer extends BridgeServer {
 			ClusterAwareServerModule.class,
 			GsonModule.class,
 			KafkaModule.class,
+			MetricsExporterBuilderModule.class,
 			MetricsTopicReporterBuilderModule.class,
 			HttpHealthCheckModule.class
       );
