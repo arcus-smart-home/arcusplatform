@@ -60,7 +60,7 @@
             currLocation varchar,
             currLocationTime timestamp,
             currLocationMethod varchar,
-            pin int
+            pin varchar
          )
          </cl:update>
          <cl:rollback>DROP TABLE IF EXISTS person</cl:rollback>
@@ -136,10 +136,10 @@
             protocolName    varchar,
             protocolId      varchar,
             driverName      varchar,
-            driverVersion   int,
+            driverVersion   varchar,
             driverAddress   varchar,
             protocolAddress varchar,
-            hubId           uuid
+            hubId           varchar
          )
          </cl:update>
          <cl:rollback>DROP TABLE IF EXISTS device</cl:rollback>
@@ -832,7 +832,7 @@
 			ruleExpressions     varchar,
 			ruleDisabled        boolean,
 			ruleSuspended       boolean,
-			ruleTemplate        UUID,
+			ruleTemplate        varchar,
 			ruleVariables       varchar,
 			
 			/* action-only fields */
