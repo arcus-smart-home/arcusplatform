@@ -19,7 +19,6 @@ package com.iris.core.metricsexporter.exporter;
 
 import com.codahale.metrics.*;
 import com.codahale.metrics.Timer;
-import com.google.inject.internal.cglib.proxy.$FixedValue;
 import com.iris.metrics.tag.TagValue;
 import com.iris.metrics.tag.TaggingMetric;
 import io.prometheus.client.dropwizard.DropwizardExports;
