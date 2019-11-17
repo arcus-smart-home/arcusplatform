@@ -18,16 +18,14 @@
 package com.iris.core.metricsexporter.exporter;
 
 import com.codahale.metrics.*;
+import com.codahale.metrics.Timer;
+import com.iris.metrics.tag.TagValue;
+import com.iris.metrics.tag.TaggingMetric;
 import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.dropwizard.samplebuilder.DefaultSampleBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +72,12 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
       return new MetricFamilySamples(sample.name, Type.GAUGE, getHelpMessage(dropwizardName, counter), Arrays.asList(sample));
    }
 
+   MetricFamilySamples fromCounter(String dropwizardName, Counter counter, HashMap<String, String> tags) {
+      MetricFamilySamples.Sample sample = sampleBuilder.createSample(dropwizardName, "", new ArrayList<String>(tags.keySet()), new ArrayList<String>(tags.values()),
+              new Long(counter.getCount()).doubleValue());
+      return new MetricFamilySamples(sample.name, Type.GAUGE, getHelpMessage(dropwizardName, counter), Arrays.asList(sample));
+   }
+
    /**
     * Export gauge as a prometheus gauge.
     */
@@ -95,6 +99,19 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
    }
 
    /**
+    * Do a shallow clone and add
+    * @param list
+    * @param element
+    * @return
+    */
+   private ArrayList<String> cloneAndAdd(ArrayList<String> list, String element) {
+      ArrayList<String> cloned = (ArrayList<String>) list.clone();
+      cloned.add(element);
+
+      return cloned;
+   }
+
+   /**
     * Export a histogram snapshot as a prometheus SUMMARY.
     *
     * @param dropwizardName metric name.
@@ -102,15 +119,26 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
     * @param count          the total sample count for this snapshot.
     * @param factor         a factor to apply to histogram values.
     */
-   MetricFamilySamples fromSnapshotAndCount(String dropwizardName, Snapshot snapshot, long count, double factor, String helpMessage) {
+   MetricFamilySamples fromSnapshotAndCount(String dropwizardName, Snapshot snapshot, long count, double factor, String helpMessage, Map<String, String> tags) {
+      ArrayList<String> keys;
+      ArrayList<String> values;
+
+      if (tags != null) {
+         keys = new ArrayList(tags.keySet());
+         values = new ArrayList(tags.values());
+      } else {
+         keys = new ArrayList<>();
+         values = new ArrayList<>();
+      }
+
       List<MetricFamilySamples.Sample> samples = Arrays.asList(
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.5"), snapshot.getMedian() * factor),
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.75"), snapshot.get75thPercentile() * factor),
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.95"), snapshot.get95thPercentile() * factor),
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.98"), snapshot.get98thPercentile() * factor),
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.99"), snapshot.get99thPercentile() * factor),
-            sampleBuilder.createSample(dropwizardName, "", Arrays.asList("quantile"), Arrays.asList("0.999"), snapshot.get999thPercentile() * factor),
-            sampleBuilder.createSample(dropwizardName, "_count", new ArrayList<String>(), new ArrayList<String>(), count)
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.5"), snapshot.getMedian() * factor),
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.75"), snapshot.get75thPercentile() * factor),
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.95"), snapshot.get95thPercentile() * factor),
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.98"), snapshot.get98thPercentile() * factor),
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.99"), snapshot.get99thPercentile() * factor),
+            sampleBuilder.createSample(dropwizardName, "", cloneAndAdd(keys, "quantile"), cloneAndAdd(values, "0.999"), snapshot.get999thPercentile() * factor),
+            sampleBuilder.createSample(dropwizardName, "_count", keys, values, count)
       );
       return new MetricFamilySamples(samples.get(0).name, Type.SUMMARY, helpMessage, samples);
    }
@@ -120,15 +148,15 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
     */
    MetricFamilySamples fromHistogram(String dropwizardName, Histogram histogram) {
       return fromSnapshotAndCount(dropwizardName, histogram.getSnapshot(), histogram.getCount(), 1.0,
-            getHelpMessage(dropwizardName, histogram));
+            getHelpMessage(dropwizardName, histogram), null);
    }
 
    /**
     * Export Dropwizard Timer as a histogram. Use TIME_UNIT as time unit.
     */
-   MetricFamilySamples fromTimer(String dropwizardName, Timer timer) {
+   MetricFamilySamples fromTimer(String dropwizardName, Timer timer, Map<String, String> tags) {
       return fromSnapshotAndCount(dropwizardName, timer.getSnapshot(), timer.getCount(),
-            1.0D / TimeUnit.SECONDS.toNanos(1L), getHelpMessage(dropwizardName, timer));
+            1.0D / TimeUnit.SECONDS.toNanos(1L), getHelpMessage(dropwizardName, timer), tags);
    }
 
    /**
@@ -165,11 +193,41 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
          addToMap(mfSamplesMap, fromHistogram(entry.getKey(), entry.getValue()));
       }
       for (SortedMap.Entry<String, Timer> entry : registry.getTimers().entrySet()) {
-         addToMap(mfSamplesMap, fromTimer(entry.getKey(), entry.getValue()));
+         if (entry.getValue() instanceof Map) {
+            Map<String, Object> timers = (Map) entry.getValue();
+            for (String timer: timers.keySet()) {
+               addToMap(mfSamplesMap, fromTimer(entry.getKey() + '_' + timer, (Timer) timers.get(timer), null));
+            }
+         } else {
+            addToMap(mfSamplesMap, fromTimer(entry.getKey(), entry.getValue(), null));
+         }
       }
       for (SortedMap.Entry<String, Meter> entry : registry.getMeters().entrySet()) {
          addToMap(mfSamplesMap, fromMeter(entry.getKey(), entry.getValue()));
       }
+
+      Map<String, Metric> metrics = registry.getMetrics();
+
+      for (String key: metrics.keySet()) {
+         if (metrics.get(key) instanceof TaggingMetric) {
+            TaggingMetric<?> tm = (TaggingMetric) metrics.get(key);
+
+            for(Map.Entry<Set<TagValue>, ? extends Metric> entry: tm.getMetrics().entrySet()) {
+               HashMap<String, String> tags = new HashMap<>();
+
+               for (TagValue tv: entry.getKey()) {
+                  tags.put(tv.getName(), tv.getValue());
+               }
+
+               if (entry.getValue() instanceof Counter) {
+                  addToMap(mfSamplesMap, fromCounter(key, (Counter) entry.getValue(), tags));
+               } else if (entry.getValue() instanceof Timer) {
+                  addToMap(mfSamplesMap, fromTimer(key, (Timer) entry.getValue(), tags));
+               }
+            }
+         }
+      }
+
       return new ArrayList<MetricFamilySamples>(mfSamplesMap.values());
    }
 

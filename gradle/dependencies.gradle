@@ -145,11 +145,11 @@ ext.libraries << [
 
 		},
 		// metrics compile dependencies
-		metrics_core: "io.dropwizard.metrics:metrics-core:3.1.1",
+		metrics_core: "io.dropwizard.metrics:metrics-core:3.2.6",
 		metrics_hdr: "org.mpierce.metrics.reservoir:hdrhistogram-metrics-reservoir:1.1.0",
-		metrics_json: "io.dropwizard.metrics:metrics-json:3.1.1",
-		metrics_jvm: "io.dropwizard.metrics:metrics-jvm:3.1.1",
-		metrics_logback: "io.dropwizard.metrics:metrics-logback:3.1.1",
+		metrics_json: "io.dropwizard.metrics:metrics-json:3.2.6",
+		metrics_jvm: "io.dropwizard.metrics:metrics-jvm:3.2.6",
+		metrics_logback: "io.dropwizard.metrics:metrics-logback:3.2.6",
 
 		prometheus_dropwizard: "io.prometheus:simpleclient_dropwizard:0.8.0",
 		prometheus_servlet: "io.prometheus:simpleclient_servlet:0.8.0",
