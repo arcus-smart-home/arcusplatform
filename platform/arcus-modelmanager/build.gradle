@@ -134,7 +134,7 @@ schemas.each() { target ->
    }
 }
 
-task run(overwrite: true, dependsOn: ['run-platform', 'run-history', 'run-video'])  {
-    doLast{}
-}
+run.dependsOn 'run-platform'
+run.dependsOn 'run-history'
+run.dependsOn 'run-video'
 
