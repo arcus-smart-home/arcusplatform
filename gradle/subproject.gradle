@@ -18,7 +18,6 @@ apply plugin: 'docker'
 apply plugin: 'nebula.contacts'
 apply plugin: 'project-report'
 apply plugin: 'eclipse'
-apply plugin: 'findbugs'
 
 if (project.hasProperty('eyeris_owasp')) {
     if (eyeris_owasp?.trim()) {
@@ -122,18 +121,4 @@ ext.sharedManifest = manifest {
 jar.manifest = sharedManifest
 jar {
    entryCompression = ZipEntryCompression.STORED
-}
-
-findbugs {
-   ignoreFailures = true
-   reportsDir = file("$project.buildDir/findbugsReports")
-   effort = "max"
-   reportLevel = "medium"
-}
-
-tasks.withType(FindBugs) {
-   reports {
-      xml.enabled false
-      html.enabled true
-   }
 }
