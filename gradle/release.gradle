@@ -75,11 +75,6 @@ task tagRelease {
    }
 }
 
-task install(overwrite: true) {
-   group "Build"
-   description "Installs a release into the build directory."
-}
-
 task release() {
    group "Build"
    description "Builds all releases."

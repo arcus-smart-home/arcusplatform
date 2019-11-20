@@ -38,14 +38,11 @@ dependencies {
 
 mainClassName = 'com.iris.agent.IrisAgent'
 
-task run(overwrite: true) {
-   group "Application"
-   description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
-   dependsOn "run-hub-v2"
-}
+run.dependsOn "run-hub-v2"
 
 // Run the agent. This feels like the wrong place to put this, but the original run task references run-hub-v2 which wasn't defined anywhere.
 task('run-hub-v2', type:JavaExec) {
+   description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
    classpath = files("$projectDir/src/dist/conf") + sourceSets.main.runtimeClasspath
    group "Application"
    main = 'com.iris.agent.IrisAgent'
