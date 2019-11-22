@@ -48,7 +48,7 @@ dependencies {
 }
 
 docker {
-    baseImage "eyeris/java"
+    baseImage "arcus/java"
 }
 
 tasks.addRule("Pattern: <CodeGenerationType>Code") {

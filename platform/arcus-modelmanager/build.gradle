@@ -37,7 +37,7 @@ def getLocalProps() {
 
 
 distZip.enabled = false
-ext.dockerGroup = 'eyeris'
+ext.dockerGroup = 'arcus'
 
 def schemas = [ "platform", "video", "history" ]
 
@@ -61,7 +61,7 @@ dependencies {
 }   
 
 docker {
-   baseImage "eyeris/java"
+   baseImage "arcus/java"
 }
 
 distDocker {
