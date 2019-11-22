@@ -77,7 +77,7 @@ task uberDocker {
 
 
 docker {
-   baseImage "eyeris/java"
+   baseImage "arcus/java"
 }
 
 distDocker {
