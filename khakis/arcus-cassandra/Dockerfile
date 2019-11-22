@@ -1,5 +1,5 @@
-# Use the standard eyeris java image
-FROM eyeris/java
+# Use the standard arcus java image
+FROM arcus/java
 
 USER root
 
