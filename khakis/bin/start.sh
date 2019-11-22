@@ -8,9 +8,9 @@ SCRIPT_DIR=$(dirname ${SCRIPT_PATH})
 . "${SCRIPT_DIR}/common.sh"
 
 # Images default to local
-ZOOKEEPER_IMAGE=${ZOOKEEPER_IMAGE:-"eyeris/zookeeper"}
-KAFKA_IMAGE=${KAFKA_IMAGE:-"eyeris/kafka"}
-CASSANDRA_IMAGE=${CASSANDRA_IMAGE:-"eyeris/cassandra"}
+ZOOKEEPER_IMAGE=${ZOOKEEPER_IMAGE:-"arcus/zookeeper"}
+KAFKA_IMAGE=${KAFKA_IMAGE:-"arcus/kafka"}
+CASSANDRA_IMAGE=${CASSANDRA_IMAGE:-"arcus/cassandra"}
 
 # Container configuration
 EYERIS_PLATFORM_DIRECT_PORTS=${EYERIS_PLATFORM_DIRECT_PORTS:-1}
