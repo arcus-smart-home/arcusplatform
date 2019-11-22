@@ -9,11 +9,11 @@ SCRIPT_DIR=$(dirname ${SCRIPT_PATH})
 IMAGES="$@"
 if [ -z "${IMAGES}" ]; then
     IMAGES=""
-    IMAGES="${IMAGES} eyeris-java"
-    IMAGES="${IMAGES} eyeris-zookeeper"
-    IMAGES="${IMAGES} eyeris-kafka"
-    IMAGES="${IMAGES} eyeris-cassandra"
-    IMAGES="${IMAGES} eyeris-kairosdb"
+    IMAGES="${IMAGES} arcus-java"
+    IMAGES="${IMAGES} arcus-zookeeper"
+    IMAGES="${IMAGES} arcus-kafka"
+    IMAGES="${IMAGES} arcus-cassandra"
+    IMAGES="${IMAGES} arcus-kairosdb"
 fi
 
 docker_tag_for_registry() {
