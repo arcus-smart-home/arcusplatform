@@ -45,9 +45,6 @@ COPY TimeWindowCompactionStrategy-2.2.5.jar /opt/cassandra/lib/
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
 
-# Export Apache Kafka environment variables
-ENV KAFKA_HOME /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
-
 # Expose the Apache Kafka port to the outside
 # 7000: intra-node communication
 # 7001: TLS intra-node communication
