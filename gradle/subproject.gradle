@@ -18,6 +18,7 @@ apply plugin: 'docker'
 apply plugin: 'nebula.contacts'
 apply plugin: 'project-report'
 apply plugin: 'eclipse'
+apply plugin: "com.github.spotbugs"
 
 if (project.hasProperty('eyeris_owasp')) {
     if (eyeris_owasp?.trim()) {
