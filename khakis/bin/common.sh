@@ -12,7 +12,7 @@ docker_build() {
     fi
 
     if [ -z "${is_build_server}" ]; then
-        "${DOCKER_BIN}" build -t "${DOCKER_TAG}${DOCKER_VERSION}" "${DOCKER_PATH}"
+        "${DOCKER_BIN}" build -t "${DOCKER_TAG}${DOCKER_VERSION}" -t "${DOCKER_TAG}:latest" "${DOCKER_PATH}"
     else
         echo "running on build server, forcing clean rebuild..."
         "${DOCKER_BIN}" build --no-cache=true -t "${DOCKER_TAG}" "${DOCKER_PATH}"
