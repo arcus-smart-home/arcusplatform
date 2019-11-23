@@ -20,24 +20,24 @@ docker_build() {
 }
 
 docker_create() {
-    "${DOCKER_BIN}" create $@
+    "${DOCKER_BIN}" create "$@"
 }
 
 docker_delete() {
-    "${DOCKER_BIN}" rm $@
+    "${DOCKER_BIN}" rm "$@"
 }
 
 docker_delete_image() {
-    "${DOCKER_BIN}" rmi $@
+    "${DOCKER_BIN}" rmi "$@"
 }
 
 docker_run() {
     echo "Executing: ${DOCKER_BIN} run $@"
-    "${DOCKER_BIN}" run $@
+    "${DOCKER_BIN}" run "$@"
 }
 
 docker_tag() {
-    "${DOCKER_BIN}" tag $@
+    "${DOCKER_BIN}" tag "$@"
 }
 
 docker_push() {
@@ -45,7 +45,7 @@ docker_push() {
     local SUCCESS="false"
     
     while [ $COUNT -lt 4 ]; do
-        if "${DOCKER_BIN}" push $@; then
+        if "${DOCKER_BIN}" push "$@"; then
             echo "Push succeeded."
             COUNT="5"
             SUCCESS="true"
@@ -62,11 +62,11 @@ docker_push() {
 }
 
 docker_stop() {
-    "${DOCKER_BIN}" stop $@
+    "${DOCKER_BIN}" stop "$@"
 }
 
 docker_exec() {
-    "${DOCKER_BIN}" exec $@
+    "${DOCKER_BIN}" exec "$@"
 }
 
 findroot() {
