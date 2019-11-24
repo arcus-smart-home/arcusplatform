@@ -16,6 +16,7 @@ task tagDocker(type: Exec) {
 }
 
 task pushDocker(type: Exec) {
+    dependsOn 'tagDocker'
     environment 'DOCKER_VERSION', dockerVersion
     commandLine 'bin/push.sh'
 }
