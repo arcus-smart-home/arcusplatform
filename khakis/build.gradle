@@ -15,7 +15,7 @@ task startPlatformContainers(type: Exec) {
     commandLine 'bin/start.sh'
 }
 
-task startPlatform(dependsOn: ['startPlatformContainers', ':iris2-modelmanager:run']) {
+task startPlatform(dependsOn: ['startPlatformContainers', ':arcus-modelmanager:run']) {
 }
 
 task startProdPlatform(type: Exec) {
