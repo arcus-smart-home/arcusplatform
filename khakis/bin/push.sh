@@ -25,7 +25,7 @@ docker_push_to_registry() {
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
 
     if [ "$DOCKER_PREFIX_OVERRIDE" ]; then
-        DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr 'arcus' "${DOCKER_PREFIX_OVERRIDE}")
+        DOCKER_TAG=$(echo "${DOCKER_NAME}" | sed "s%arcus%${DOCKER_PREFIX_OVERRIDE}%")
     fi
 
     if [ "$DOCKER_VERSION" ]; then
