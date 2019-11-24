@@ -20,7 +20,7 @@ echo "Building and publishing containers to '${REGISTRY_NAME}'"
 $GRADLE :khakis:distDocker
 
 echo "tagging"
-$ROOT/khakis/bin/tag.sh
+$GRADLE :khakis:tagDocker
 echo "pushing"
 $GRADLE :khakis:pushDocker
 
