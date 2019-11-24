@@ -23,10 +23,20 @@ docker_tag_for_registry() {
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
     local DOCKER_SRC=$(echo "${DOCKER_NAME}" |tr '-' "/")
 
+    if [ "$DOCKER_PREFIX_OVERRIDE" ]; then
+        DOCKER_TAG=$(echo "${DOCKER_TAG}" | sed "s%arcus%${DOCKER_PREFIX_OVERRIDE}%")
+    fi
+
+    if [ "$DOCKER_VERSION" ]; then
+        local DOCKER_VERSION=":${DOCKER_VERSION}"
+    fi
+
     if [ "$REGISTRY_NAME" ]; then
         docker_tag "${DOCKER_SRC}" "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
+        docker_tag "${DOCKER_SRC}" "${REGISTRY_NAME}/${DOCKER_TAG}${DOCKER_VERSION}"
     else
         docker_tag "${DOCKER_SRC}" "${DOCKER_TAG}:latest"
+        docker_tag "${DOCKER_SRC}" "${DOCKER_TAG}${DOCKER_VERSION}"
     fi
 }
 
