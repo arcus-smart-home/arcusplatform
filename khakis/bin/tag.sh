@@ -22,7 +22,12 @@ docker_tag_for_registry() {
     local seperator=${REGISTRY_SEPERATOR:-/}
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
     local DOCKER_SRC=$(echo "${DOCKER_NAME}" |tr '-' "/")
-    docker_tag "${DOCKER_SRC}" "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
+
+    if [ "$REGISTRY_NAME" ]; then
+        docker_tag "${DOCKER_SRC}" "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
+    else
+        docker_tag "${DOCKER_SRC}" "${DOCKER_TAG}:latest"
+    fi
 }
 
 # Build the requested images
