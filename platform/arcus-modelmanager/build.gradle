@@ -38,6 +38,7 @@ def getLocalProps() {
 
 distZip.enabled = false
 ext.dockerGroup = 'arcus'
+ext.containerTag = "${project.dockerGroup}/${project.name}"
 
 def schemas = [ "platform", "video", "history" ]
 
