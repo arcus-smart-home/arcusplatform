@@ -10,6 +10,11 @@ task distDocker(type: Exec) {
     commandLine 'bin/build.sh'
 }
 
+task pushDocker(type: Exec) {
+    environment 'DOCKER_VERSION', dockerVersion
+    commandLine 'bin/push.sh'
+}
+
 task startPlatformContainers(type: Exec) {
     dependsOn 'distDocker'
     commandLine 'bin/start.sh'
