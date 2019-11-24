@@ -27,9 +27,9 @@ docker_push_to_registry() {
     fi
 
     if [ "$REGISTRY_NAME" ]; then
-        docker_push "${REGISTRY_NAME}/${DOCKER_TAG}:${DOCKER_VERSION}"
+        docker_push "${REGISTRY_NAME}/${DOCKER_TAG}${DOCKER_VERSION}"
     else
-        docker_push "${DOCKER_TAG}:${DOCKER_VERSION}"
+        docker_push "${DOCKER_TAG}${DOCKER_VERSION}"
     fi
 
 }
