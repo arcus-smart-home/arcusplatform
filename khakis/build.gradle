@@ -6,8 +6,13 @@ ext.dockerVersion = "${version_major}.${version_minor}.${version_patch}"
 println "Building v${platformVersion} for docker: ${dockerVersion}"
 
 task distDocker(type: Exec) {
-   environment 'DOCKER_VERSION', dockerVersion
-   commandLine 'bin/build.sh' 
+    environment 'DOCKER_VERSION', dockerVersion
+    commandLine 'bin/build.sh'
+}
+
+task pushDocker(type: Exec) {
+    environment 'DOCKER_VERSION', dockerVersion
+    commandLine 'bin/push.sh'
 }
 
 task startPlatformContainers(type: Exec) {
@@ -15,7 +20,7 @@ task startPlatformContainers(type: Exec) {
     commandLine 'bin/start.sh'
 }
 
-task startPlatform(dependsOn: ['startPlatformContainers', ':iris2-modelmanager:run']) {
+task startPlatform(dependsOn: ['startPlatformContainers', ':arcus-modelmanager:run']) {
 }
 
 task startProdPlatform(type: Exec) {
@@ -23,7 +28,7 @@ task startProdPlatform(type: Exec) {
     commandLine 'bin/start-prod.sh'
 }
 task stopPlatform(type: Exec) {
-   commandLine 'bin/stop.sh'
+    commandLine 'bin/stop.sh'
 }
 task stopProdPlatform(type: Exec) {
     commandLine 'bin/stop-prod.sh'

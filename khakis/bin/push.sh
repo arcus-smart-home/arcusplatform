@@ -21,7 +21,17 @@ docker_push_to_registry() {
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
     local seperator=${REGISTRY_SEPERATOR:-/}
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
-    docker_push "${REGISTRY_NAME}/${DOCKER_TAG}:latest"
+
+    if [ "$DOCKER_VERSION" ]; then
+        local DOCKER_VERSION=":${DOCKER_VERSION}"
+    fi
+
+    if [ "$REGISTRY_NAME" ]; then
+        docker_push "${REGISTRY_NAME}/${DOCKER_TAG}${DOCKER_VERSION}"
+    else
+        docker_push "${DOCKER_TAG}${DOCKER_VERSION}"
+    fi
+
 }
 
 # Build the requested images

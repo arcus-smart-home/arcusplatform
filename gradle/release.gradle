@@ -23,7 +23,7 @@ def writeVersion(major, minor, patch, qualifier) {
 }
 
 def push(tags) {
-   if(is_build_server) {
+   if(is_build_server.toBoolean()) {
       println "Pushing changes..."
       repo.push(remote: 'mainline', tags: tags ? true : false)
    }
