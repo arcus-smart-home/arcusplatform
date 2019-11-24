@@ -72,7 +72,8 @@ distDocker {
 }
 
 task tagDocker(type: Exec) {
-   dependsOn "distDocker"
+    dependsOn "distDocker"
+    def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
     def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
 
     if (System.getenv('REGISTRY_NAME')) {
