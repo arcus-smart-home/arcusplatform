@@ -100,13 +100,6 @@ onConnected {
 
 	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
 	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
-	// get the current switch level
-	ZWave.switch_multilevel.get()
-
-	// These devices do NOT send a switch_multilevel.report when their level is changed locally,
-	// so periodically poll for the current switch level.  They do send a Node Info when the
-	// level is changed locally, but we also periodically poll in case we miss that message.
-	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
 
 	// get configuration settings
 	ZWave.configuration.get(CNFG_LED_PARAM_NO)
