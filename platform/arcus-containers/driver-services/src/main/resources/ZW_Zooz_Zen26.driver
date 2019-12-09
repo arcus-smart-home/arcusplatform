@@ -130,7 +130,7 @@ onRemoved {
 ////////////////////////////////////////////////////////////////////////////////
 
 setAttributes(){
-	GenericZWaveSwitch.handleSetAttributes(this, DEVICE_NAME, message)
+	GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, message)
 
 	def attributes = message.attributes
 	for(attribute in attributes) {
@@ -171,21 +171,9 @@ setAttributes(){
 // Protocol Message Callbacks
 ////////////////////////////////////////////////////////////////////////////////
 
-onZWaveMessage.switch_multilevel.report {
-	 GenericZWaveSwitch.handleMultilevelReport(this, DEVICE_NAME, message)
-
-	// adjust Indicator attributes based on reported state
-	def boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
-	if (Switch.STATE_OFF == Switch.state.get()) {
-		//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
-		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
-	} else {
-		//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
-		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
-	}
+onZWaveMessage.switch_binary.report {
+	GenericZWaveSwitch.handleBinarySwitchReport(this,DEVICE_NAME,message)
 }
-
-
 
 onZWaveMessage.configuration.report {
 	log.debug "${DEVICE_NAME} reported configuration: {}", message
@@ -228,9 +216,9 @@ onZWaveMessage {
     return false;
 }
 
-// ZEN27 reports local changes via basic report
+// ZEN26 reports local changes via basic report
 onZWaveMessage.basic.report {
     byte currState = message.command.get('value')
     log.trace "Basic Report: {}", currState
-    GenericZWaveSwitch.updateDeviceAttributes(this, DEVICE_NAME, currState)
+    GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, currState)
 }
