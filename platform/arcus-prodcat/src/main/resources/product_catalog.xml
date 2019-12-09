@@ -4065,7 +4065,7 @@
       </pair>
       <removal>
         <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
-        <step1 type="text" img="" text="Pres the down button three times quickly."/>
+        <step1 type="text" img="" text="Press the down button three times quickly."/>
         <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
       </removal>
       <populations>
@@ -4083,7 +4083,7 @@
       </pair>
       <removal>
         <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
-        <step1 type="text" img="" text="Pres the down button three times quickly."/>
+        <step1 type="text" img="" text="Press the down button three times quickly."/>
         <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
       </removal>
       <populations>
