@@ -23,7 +23,7 @@ description     "Driver for a Zooz Zen26 In-Wall Switch"
 version         "1.0"
 protocol        "ZWAV"
 deviceTypeHint  "Switch"
-productId       "acd43a"
+productId       "acd43b"
 vendor          "Zooz"
 model           "Zen26"
 
