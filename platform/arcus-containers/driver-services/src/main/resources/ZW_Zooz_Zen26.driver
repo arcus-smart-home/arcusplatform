@@ -122,7 +122,7 @@ onRemoved {
 // Capability Support
 ////////////////////////////////////////////////////////////////////////////////
 
-setAttributes(){
+setAttributes('swit') {
 	GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, message)
 
 	def attributes = message.attributes
@@ -139,7 +139,16 @@ setAttributes(){
 					log.warn "Attempted to set Switch.inverted attribute on device that does not support it"
 				}
 				break
+			default:
+				break
+		}
+	}
+}
 
+setAttributes('indicator') {
+	def attributes = message.attributes
+	for(attribute in attributes) {
+		switch(attribute.key) {
 			case Indicator.inverted:
 				// set the LED configuration
 				ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
@@ -158,7 +167,6 @@ setAttributes(){
 		}
 	}
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Protocol Message Callbacks
