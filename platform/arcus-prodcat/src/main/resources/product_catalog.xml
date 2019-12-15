@@ -2906,6 +2906,22 @@
       </populations>
       <reset/>
     </product>
+    <product id="c6b3da" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Aeotec,range,exender,zwave,ZW117" ota="No" protofamily="Z-Wave" added="2019-12-15T14:59:30-0600" lastchanged="2019-12-15T14:59:30-0600">
+      <categories>
+        <category name="More"/>
+      </categories>
+      <pair>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text=""/>
+      </removal>
+      <reset supported="false"/>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="b4dd14" name="Home Energy Meter" shortname="Energy Meter" screen="Electricity Meter" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Aeotec,Aeon,Labs,energy,electricity,zwave,DSB28-ZWUS,wattage,kilowatt" ota="No" protofamily="Z-Wave" added="2015-08-18T17:53:30-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Energy"/>
