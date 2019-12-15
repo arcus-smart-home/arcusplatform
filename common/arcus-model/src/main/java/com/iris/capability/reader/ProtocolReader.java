@@ -26,7 +26,7 @@ import com.iris.capability.definition.ProtocolDefinition;
 
 public class ProtocolReader  extends BaseDefinitionReader<ProtocolDefinition, ProtocolDefinitionBuilder> {
    private final static Logger logger = LoggerFactory.getLogger(ProtocolReader.class);
-   public final static String SCHEMA_URI = "http://www.iris.com/schema/protocol/1.0.0";
+   public final static String SCHEMA_URI = "http://www.arcussmarthome.com/schema/protocol/1.0.0";
    
    public ProtocolReader() {
       super(SCHEMA_URI);

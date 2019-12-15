@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="master"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
    
   <cl:import file="video-1.0.0.xml"/>
   <cl:import file="video-2.4.0.xml"/>

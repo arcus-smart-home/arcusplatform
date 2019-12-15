@@ -4,7 +4,7 @@
    namespace="accountmig"
    enhances="Account"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    Add additional methods necessary to migration an account from V1 to V2

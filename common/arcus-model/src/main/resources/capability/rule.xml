@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <c:capability name="Rule" namespace="rule"
-   version="1.0" xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   version="1.0" xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    Model of a rule, which is a specific instance of a RuleTemplate with context necessary for evaluation

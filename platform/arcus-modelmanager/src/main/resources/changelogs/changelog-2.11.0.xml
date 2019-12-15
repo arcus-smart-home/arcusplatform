@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="2.11.0"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
 
    <cl:changeset identifier="addLastPasswordChange" author="rob">
       <cl:description>Adds the last password change to the login</cl:description>

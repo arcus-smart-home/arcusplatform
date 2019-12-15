@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <s:service name="ProductCatalogService" namespace="prodcat"
-	version="1.0" xmlns:s="http://www.iris.com/schema/service/1.0.0">
+	version="1.0" xmlns:s="http://www.arcussmarthome.com/schema/service/1.0.0">
 
 	<s:description>
 		Service methods for retrieving the product catalog and product catalog version

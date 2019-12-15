@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <c:capability name="PlaceMonitorSubsystem" namespace="subplacemonitor"
    enhances="Subsystem" version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
 
    <c:description>
       Place Monitor subsystem.

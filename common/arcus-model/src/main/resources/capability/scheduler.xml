@@ -3,7 +3,7 @@
    name="Scheduler"
    namespace="scheduler"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    A scheduler associated with one target object (device, subsystem, etc).
