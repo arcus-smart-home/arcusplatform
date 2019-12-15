@@ -24,8 +24,6 @@ class Libraries {
 ext.libraries = new Libraries();
 
 ext.libraries << [
-		ipcd: "ipcd-lib:ipcd-lib:1.0",
-
 // Zigbee
 		zsmartsystems_zigbee: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee:1.2.4",
 		zsmartsystems_zigbee_serial: "com.zsmartsystems.zigbee:com.zsmartsystems.zigbee.serial:1.2.4",

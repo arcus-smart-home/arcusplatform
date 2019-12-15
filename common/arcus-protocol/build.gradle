@@ -74,7 +74,6 @@ dependencies {
    compile libraries.commonsIO
    compile libraries.gson
    compile libraries.guava
-   compile libraries.ipcd
    compile libraries.jacksonCore
    compile libraries.jacksonDatabind
 
