@@ -19,8 +19,14 @@ fi
 docker_push_to_registry() {
     local DOCKER_PATH="$1"
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
+
+    # arcus-java becomes arcus/java
     local seperator=${REGISTRY_SEPERATOR:-/}
     local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
+
+    if [ "$DOCKER_PREFIX_OVERRIDE" ]; then
+        DOCKER_TAG=$(echo "${DOCKER_TAG}" | sed "s%arcus%${DOCKER_PREFIX_OVERRIDE}%")
+    fi
 
     if [ "$DOCKER_VERSION" ]; then
         local DOCKER_VERSION=":${DOCKER_VERSION}"

@@ -10,7 +10,13 @@ task distDocker(type: Exec) {
     commandLine 'bin/build.sh'
 }
 
+task tagDocker(type: Exec) {
+    environment 'DOCKER_VERSION', dockerVersion
+    commandLine 'bin/tag.sh'
+}
+
 task pushDocker(type: Exec) {
+    dependsOn 'tagDocker'
     environment 'DOCKER_VERSION', dockerVersion
     commandLine 'bin/push.sh'
 }
