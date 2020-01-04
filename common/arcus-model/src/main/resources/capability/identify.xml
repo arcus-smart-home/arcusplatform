@@ -4,7 +4,7 @@
    namespace="ident"
    enhances="Device"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
 This capability is used by devices that can identify themselves in the real world.  The underlying real use of this capability is to make sure that the RF connection to the device works and to also show the user which is which if more than one is attached (assuming the system names them "device 1" and "device 2" like Iris1). Often this will mean blinking an LED, although it could also be playing a sound or some other feedback to let the user know which device 'this' is. 

@@ -1,7 +1,7 @@
 <t:type
    name="Preferences"
    version="1.0"
-   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+   xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
 
    <t:description>Represents ui preferences for a user at a place</t:description>
 

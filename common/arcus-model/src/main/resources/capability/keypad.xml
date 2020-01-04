@@ -4,7 +4,7 @@
    namespace="keypad"
    enhances="Device"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
       Keypads handle a user entering a PIN and arming disarming an alarm system or entering a panic mode.  The keypad should also display the current state of the Security Alarm Subsystem in some manner, either through LEDs or sound alerts. 

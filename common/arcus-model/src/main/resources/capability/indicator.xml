@@ -4,7 +4,7 @@
    namespace="indicator"
    enhances="Device"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
 This capability is used by devices that have an indicator on them, like switches with an LED.  Often devices which have the Indicator capability will also have the Identify capability and blink the LED or something of that nature to identify the device.  Some devices allow the indicator to be disabled independent of the state of the device.  Often this is to remove unwanted light sources, when this is supported the   

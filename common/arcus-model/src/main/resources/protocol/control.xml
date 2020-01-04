@@ -3,7 +3,7 @@
    name="Control"
    namespace="CTRL"
    version="1.0"
-   xmlns:p="http://www.iris.com/schema/protocol/1.0.0">
+   xmlns:p="http://www.arcussmarthome.com/schema/protocol/1.0.0">
    
    <p:description>
    Control protocol

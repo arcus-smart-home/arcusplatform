@@ -2,7 +2,7 @@
 <t:type 
 	name="DoorChimeConfig"
     version="1.0"
-    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+    xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
 
     <t:description>Represents whether or not chiming is configured for specific device</t:description>
 

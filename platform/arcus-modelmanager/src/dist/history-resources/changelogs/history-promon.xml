@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="pro"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
    <cl:changeset identifier="alarmHistoryTable" author="rob">
       <cl:description>Creates the table for alarm history events to be appended</cl:description>
       <cl:tracking>ITWO-9051</cl:tracking>

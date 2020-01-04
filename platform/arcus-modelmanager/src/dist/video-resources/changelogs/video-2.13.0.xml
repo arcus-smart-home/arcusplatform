@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="2.13.0"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
    
    <cl:changeset identifier="createRecordingV2Table" author="dpatrow">
       <cl:description>Create recording_v2 table</cl:description>

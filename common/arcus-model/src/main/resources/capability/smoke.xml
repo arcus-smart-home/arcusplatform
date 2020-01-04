@@ -4,7 +4,7 @@
    namespace="smoke"
    enhances="Device"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    Model of a smoke detector.

@@ -3,7 +3,7 @@
       name="PairingDevice"
       namespace="pairdev"
       version="1.0"
-      xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+      xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
 
    <c:description>
       A reference to a device that is in the process of being paired.

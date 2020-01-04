@@ -2,7 +2,7 @@
 <t:type 
    name="PairingCompletionStep"
    version="1.0"
-   xmlns:t="http://www.iris.com/schema/type/1.0.0">
+   xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
 
    <t:description>Steps for a user to follow after they have quit pairing.  Clients should ignore actions they don't recognize.</t:description>
 
