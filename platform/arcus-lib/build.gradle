@@ -41,6 +41,7 @@ dependencies {
    compile libraries.prometheus_servlet
    compile libraries.jetty_servlet
 
+   compile libraries.zookeeper
    compile libraries.kafka
    compile libraries.cassandraDriver
    compile libraries.guiceCore
