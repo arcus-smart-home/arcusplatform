@@ -43,6 +43,10 @@ kafka_init() {
     local BID=$(cat /data/brokerid 2>/dev/null)
     [ -z "${BID}" ] && BID=1
 
+    if [[ -n "${KAFKA_BROKER_ID}" ]] ; then
+        BID="${KAFKA_BROKER_ID}"
+    fi
+
     echo "Setting up broker: brokerid=${BID}, hostname=${HSTN}, zookeeper=${ZKN} ..."
     sed -i "s/^\s*broker.id\s*=.*$/broker.id=$BID/" $KAFKA_HOME/config/server.properties
     sed -i "s/^\s*zookeeper.connect\s*=.*$/zookeeper.connect=$ZKN/" $KAFKA_HOME/config/server.properties
