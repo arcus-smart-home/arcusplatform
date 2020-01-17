@@ -61,7 +61,7 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao {
             ClusterConfig clusterConfig,
             @Named(IrisApplicationModule.NAME_APPLICATION_NAME) String service) throws IOException {
         this.clock = clock;
-        this.zk = new ZooKeeper(clusterConfig.getClusterZkHost(), clusterConfig.getClusterZkPort(), null);
+        this.zk = new ZooKeeper(clusterConfig.getClusterZkHost(), clusterConfig.getClusterZkTimeout(), null);
         this.members = config.getMembers();
         this.host = IrisApplicationInfo.getHostName();
         this.service = service;

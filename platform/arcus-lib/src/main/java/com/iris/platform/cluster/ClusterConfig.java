@@ -40,6 +40,8 @@ public class ClusterConfig {
    private String clusterZkHost;
    @Inject(optional = true) @Named("cluster.zk.port")
    private int clusterZkPort = 2181;
+   @Inject(optional = true) @Named("cluster.zk.timeout")
+   private int clusterZkTimeout = 3000;
 
    public ClusterConfig() {
       // TODO Auto-generated constructor stub
@@ -160,6 +162,20 @@ public class ClusterConfig {
     */
    public void setClusterZkPort(int clusterZkPort) {
       this.clusterZkPort = clusterZkPort;
+   }
+
+   /*
+    * @param clusterZkTimeout the cluster zk timeout
+    */
+   public void setClusterZkTimeout(int clusterZkTimeout) {
+      this.clusterZkTimeout = clusterZkTimeout;
+   }
+
+   /*
+    * @return the cluster zk timeout
+    */
+   public int getClusterZkTimeout() {
+      return clusterZkTimeout;
    }
 }
 
