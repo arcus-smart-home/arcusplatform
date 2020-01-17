@@ -29,12 +29,6 @@ kafka_docker_entry() {
 ################################################################################
 
 kafka_init() {
-    # Get the current broker ID. If the ID is zero then this server is not setup.
-    local BID=$(cat ${KAFKA_HOME}/config/server.properties  |grep broker.id |sed 's/broker.id\s*=\s*\([0-9]*\)/\1/')
-    if [ "${BID}" != "0" ]; then
-        return
-    fi
-
     echo "Initializing Apache Kafka Server..."
 
     local HSTN=$(cat /data/hostname 2>/dev/null)
@@ -48,6 +42,10 @@ kafka_init() {
 
     local BID=$(cat /data/brokerid 2>/dev/null)
     [ -z "${BID}" ] && BID=1
+
+    if [[ -n "${KAFKA_BROKER_ID}" ]] ; then
+        BID="${KAFKA_BROKER_ID}"
+    fi
 
     echo "Setting up broker: brokerid=${BID}, hostname=${HSTN}, zookeeper=${ZKN} ..."
     sed -i "s/^\s*broker.id\s*=.*$/broker.id=$BID/" $KAFKA_HOME/config/server.properties
