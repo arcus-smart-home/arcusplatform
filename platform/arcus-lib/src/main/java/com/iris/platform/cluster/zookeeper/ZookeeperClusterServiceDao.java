@@ -116,10 +116,21 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
         try {
             zk.create(zkPathPrefix + service + '/' + memberId, gson.toJson(csr).getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             return csr;
-        } catch (KeeperException | InterruptedException e) {
+        } catch (KeeperException e) {
+            logger.info("Creating path in zookeeper for {} ", service);
+            if (e.code() == KeeperException.Code.NONODE) {
+                try {
+                    zk.create(zkPathPrefix + service, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                } catch(KeeperException | InterruptedException e1) {
+                    logger.error("Failed to create path for service", e1);
+                    return null;
+                }
+            }
+        } catch (InterruptedException e) {
             logger.error("Failed to write to zk", e);
             return null;
         }
+        return null;
     }
 
     @Override
@@ -147,7 +158,11 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
         } catch (InterruptedException e) {
             // ignore
         } catch (KeeperException e) {
-            logger.warn("Failed to list members due to ", e);
+            if (e.code() == KeeperException.Code.NONODE) {
+                logger.info("{} hasn't been registered in zookeeper before, will need to be created", service);
+            } else {
+                logger.warn("Failed to list members of service", e);
+            }
             if (e.code() == KeeperException.Code.CONNECTIONLOSS) {
                 logger.info("Unable to communicate with zookeeper {}", e.getMessage());
             }
