@@ -42,11 +42,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ZookeeperClusterServiceDao implements ClusterServiceDao {
+public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
     private static final Logger logger = LoggerFactory.getLogger(ZookeeperClusterServiceDao.class);
 
     private final Clock clock;
     private final ZooKeeper zk;
+    private final ZookeeperMonitor monitor;
     private final String service;
     private final int members;
     private final String host;
@@ -61,11 +62,12 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao {
             ClusterConfig clusterConfig,
             @Named(IrisApplicationModule.NAME_APPLICATION_NAME) String service) throws IOException {
         this.clock = clock;
-        this.zk = new ZooKeeper(clusterConfig.getClusterZkHost(), clusterConfig.getClusterZkTimeout(), null);
+        this.zk = new ZooKeeper(clusterConfig.getClusterZkHost(), clusterConfig.getClusterZkTimeout(), this);
         this.members = config.getMembers();
         this.host = IrisApplicationInfo.getHostName();
         this.service = service;
         this.gson = new Gson();
+        this.monitor = new ZookeeperMonitor(zk);
 
         this.zkPathPrefix = clusterConfig.getClusterZkPathPrefix();
     }
@@ -143,9 +145,12 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao {
                 }
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            // ignore
         } catch (KeeperException e) {
-            e.printStackTrace();
+            logger.warn("Failed to list members due to ", e);
+            if (e.code() == KeeperException.Code.CONNECTIONLOSS) {
+                logger.info("Unable to communicate with zookeeper {}", e.getMessage());
+            }
         }
 
         return records;
@@ -154,6 +159,11 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao {
     private ClusterServiceRecord transform(byte[] zkdata) {
         ClusterServiceRecord record = gson.fromJson(new String(zkdata), ClusterServiceRecord.class);
         return record;
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+        monitor.process(event);
     }
 
     private static class ClusterServiceMetrics {
