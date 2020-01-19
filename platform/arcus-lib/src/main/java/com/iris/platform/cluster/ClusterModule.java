@@ -58,6 +58,7 @@ public class ClusterModule extends AbstractIrisModule {
             logger.warn("unknown cluster dao {}: using default instead", clusterServiceDao);
             // fall through
          case "default":
+         case "cassandra":
             bind(ClusterServiceDao.class).to(CassandraClusterServiceDao.class);
             break;
          case "zookeeper":
