@@ -34,7 +34,15 @@ public class ClusterConfig {
    private boolean exitOnDeregistered = true;
    @Inject(optional = true) @Named("cluster.heartbeatTimeoutSec")
    private long timeoutMs = TimeUnit.SECONDS.toMillis(20);
-   
+   @Inject(optional = true) @Named("cluster.zk.pathPrefix")
+   private String clusterZkPathPrefix = "/arcus";
+   @Inject(optional = true) @Named("cluster.zk.host")
+   private String clusterZkHost;
+   @Inject(optional = true) @Named("cluster.zk.port")
+   private int clusterZkPort = 2181;
+   @Inject(optional = true) @Named("cluster.zk.timeout")
+   private int clusterZkTimeout = 3000;
+
    public ClusterConfig() {
       // TODO Auto-generated constructor stub
    }
@@ -114,5 +122,60 @@ public class ClusterConfig {
       this.exitOnDeregistered = exitOnDeregistered;
    }
 
+   /**
+    * @return the cluster zk path prefix
+    */
+   public String getClusterZkPathPrefix() {
+      return clusterZkPathPrefix.endsWith("/") ? clusterZkPathPrefix : clusterZkPathPrefix + '/';
+   }
+
+   /*
+    * @param clusterZkPathPrefix the cluster zk path prefix
+    */
+   public void setClusterZkPathPrefix(String clusterZkPathPrefix) {
+      this.clusterZkPathPrefix = clusterZkPathPrefix;
+   }
+
+   /**
+    * @return the cluster zk host
+    */
+   public String getClusterZkHost() {
+      return clusterZkHost;
+   }
+
+   /*
+    * @param clusterZkHost the cluster zk host
+    */
+   public void setClusterZkHost(String clusterZkHost) {
+      this.clusterZkHost = clusterZkHost;
+   }
+
+   /**
+    * @return the cluster zk port
+    */
+   public int getClusterZkPort() {
+      return clusterZkPort;
+   }
+
+   /*
+    * @param clusterZkHost the cluster zk port
+    */
+   public void setClusterZkPort(int clusterZkPort) {
+      this.clusterZkPort = clusterZkPort;
+   }
+
+   /*
+    * @param clusterZkTimeout the cluster zk timeout
+    */
+   public void setClusterZkTimeout(int clusterZkTimeout) {
+      this.clusterZkTimeout = clusterZkTimeout;
+   }
+
+   /*
+    * @return the cluster zk timeout
+    */
+   public int getClusterZkTimeout() {
+      return clusterZkTimeout;
+   }
 }
 
