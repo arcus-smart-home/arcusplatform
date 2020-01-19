@@ -34,12 +34,12 @@ public class ZookeeperMonitor implements Watcher, StatCallback {
 
     @Override
     public void process(WatchedEvent event) {
-        String path = event.getPath();
         if (event.getType() == Event.EventType.None) {
             switch (event.getState()) {
                 case SyncConnected:
                     break;
                 case Expired:
+                    // TODO: move this elsewhere?
                     logger.error("SHUTTING DOWN -- zookeeper session has been marked as expired");
                     System.err.println("SHUTTING DOWN -- zookeeper session has been marked as expired");
                     System.exit(-1);

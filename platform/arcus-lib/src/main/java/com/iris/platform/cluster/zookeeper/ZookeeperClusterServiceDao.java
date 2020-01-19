@@ -82,7 +82,7 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
                         .collect(Collectors.toList());
         try (Timer.Context timer = ZookeeperClusterServiceDao.ClusterServiceMetrics.registerTimer.time()) {
             Instant heartbeat = clock.instant();
-            // try to grab an empty first
+            // grab an empty cluster id, or wait
             for (int i = 0; i < members; i++) {
                 if (others.contains(i)) {
                     continue;
@@ -96,8 +96,6 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
                     ZookeeperClusterServiceDao.ClusterServiceMetrics.clusterRegistrationMissCounter.inc();
                 }
             }
-            // try to grab an existing one then
-            // TODO: is this actually needed?
 
             ZookeeperClusterServiceDao.ClusterServiceMetrics.clusterRegistrationFailedCounter.inc();
             throw new ClusterIdUnavailableException("No cluster ids for service [" + service + "] were available");
@@ -135,6 +133,7 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
 
     @Override
     public ClusterServiceRecord heartbeat(ClusterServiceRecord service) throws ClusterServiceDaoException {
+        // Not required for this implementation - ZooKeeper will automatically expire ephemeral nodes.
         return null;
     }
 
@@ -183,7 +182,6 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
 
     private static class ClusterServiceMetrics {
         static final Timer registerTimer = DaoMetrics.upsertTimer(ClusterServiceDao.class, "register");
-        static final Timer heartbeatTimer = DaoMetrics.updateTimer(ClusterServiceDao.class, "heartbeat");
         static final Timer deregisterTimer = DaoMetrics.deleteTimer(ClusterServiceDao.class, "deregister");
         static final Timer listByServiceTimer = DaoMetrics.readTimer(ClusterServiceDao.class, "listMembersByService");
         static final Counter clusterIdRegisteredCounter = DaoMetrics.counter(ClusterServiceDao.class, "clusterid.registered");
