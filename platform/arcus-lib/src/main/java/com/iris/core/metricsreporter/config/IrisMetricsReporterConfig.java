@@ -25,6 +25,10 @@ import com.google.inject.name.Named;
 @Singleton
 public class IrisMetricsReporterConfig {
     @Inject(optional = true)
+    @Named("metrics.topic.enabled")
+    protected boolean enabled = true;
+
+    @Inject(optional = true)
     @Named("metrics.topic.rateunit")
     protected TimeUnit topicRateUnit = TimeUnit.SECONDS;
 
@@ -52,6 +56,14 @@ public class IrisMetricsReporterConfig {
     @Inject(optional = true)
     @Named("metrics.topic.batchsize")
     protected int batchSize = 1000;
+
+    public boolean getEnabled() {
+        return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public TimeUnit getReportingUnitType() {
         return reportingUnitType;
