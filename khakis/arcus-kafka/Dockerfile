@@ -1,5 +1,5 @@
-# Use the standard eyeris java image
-FROM eyeris/java
+# Use the standard arcus java image
+FROM arcus/java
 
 USER root
 
@@ -11,8 +11,8 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV KAFKA_SCALA_VERSION 2.11
-ENV KAFKA_VERSION 2.3.0
+ENV KAFKA_SCALA_VERSION 2.12
+ENV KAFKA_VERSION 2.4.0
 
 # Download and install the required version of Apache Kafka. 
 RUN \

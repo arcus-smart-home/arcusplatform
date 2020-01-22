@@ -22,7 +22,7 @@ import com.iris.capability.definition.Definitions;
 import com.iris.capability.definition.Definitions.CapabilityDefinitionBuilder;
 
 public class CapabilityReader extends BaseDefinitionReader<CapabilityDefinition, CapabilityDefinitionBuilder> {
-   public final static String SCHEMA_URI = "http://www.iris.com/schema/capability/1.0.0";
+   public final static String SCHEMA_URI = "http://www.arcussmarthome.com/schema/capability/1.0.0";
 
    public CapabilityReader() {
       super(SCHEMA_URI);

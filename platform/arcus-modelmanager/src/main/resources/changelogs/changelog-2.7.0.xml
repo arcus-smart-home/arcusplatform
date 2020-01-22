@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="2.7.0"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
    
    <cl:changeset identifier="addHandoffToken" author="ted">
       <cl:description>Add a table for session handoff tokens</cl:description>

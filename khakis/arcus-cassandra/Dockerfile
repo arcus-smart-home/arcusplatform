@@ -1,5 +1,5 @@
-# Use the standard eyeris java image
-FROM eyeris/java
+# Use the standard arcus java image
+FROM arcus/java
 
 USER root
 
@@ -17,7 +17,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV CASSANDRA_VERSION 3.11.4
+ENV CASSANDRA_VERSION 3.11.5
 
 # Download and install the required version of Apache Cassandra. 
 RUN \
@@ -44,9 +44,6 @@ COPY TimeWindowCompactionStrategy-2.2.5.jar /opt/cassandra/lib/
 # Define working directory.
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
-
-# Export Apache Kafka environment variables
-ENV KAFKA_HOME /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 
 # Expose the Apache Kafka port to the outside
 # 7000: intra-node communication

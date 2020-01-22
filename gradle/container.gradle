@@ -14,7 +14,7 @@ import java.nio.file.Files;
 
 apply from: file("${rootDir}/gradle/application.gradle")
 
-project.ext.dockerGroup = 'eyeris'
+project.ext.dockerGroup = 'arcus'
 project.ext.containerName = "${project.name}.${project.dockerGroup}"
 project.ext.containerTag = "${project.dockerGroup}/${project.name}"
 project.ext.containerVersion = "${version_major}.${version_minor}.${version_patch}"
@@ -77,7 +77,7 @@ task uberDocker {
 
 
 docker {
-   baseImage "eyeris/java"
+   baseImage "arcus/java"
 }
 
 distDocker {
@@ -90,19 +90,30 @@ distDocker {
 
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
-   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def tag = project.dockerGroup + seperator + applicationName
-   def tagVersion = project.dockerVersion
-   def registryName = System.env['REGISTRY_NAME']
-   commandLine 'docker', 'tag', "${project.containerTag}:${project.dockerVersion}", "${registryName}/${tag}:${project.dockerVersion}"
 
+   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+
+   if (System.getenv('REGISTRY_NAME')) {
+      def registryName = System.getenv("REGISTRY_NAME")
+      commandLine 'docker', 'tag', "${project.containerTag}:${project.dockerVersion}", "${registryName}/${tag}:${project.dockerVersion}"
+   } else {
+      commandLine 'docker', 'tag', "${project.containerTag}:${project.dockerVersion}", "${tag}:${project.dockerVersion}"
+   }
 }
 
 task pushDocker(type: Exec) {
    dependsOn "tagDocker"
+
    def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def registryName = System.env['REGISTRY_NAME']
-   commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+
+   if (System.getenv('REGISTRY_NAME')) {
+      def registryName = System.getenv("REGISTRY_NAME")
+      commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+   } else {
+      commandLine 'docker', 'push', "${tag}:${project.dockerVersion}"
+   }
 }
 
 task rmiDocker(type: Exec) {

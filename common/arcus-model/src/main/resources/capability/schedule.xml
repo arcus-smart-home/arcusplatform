@@ -3,7 +3,7 @@
    name="Schedule"
    namespace="sched"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    A schedule is a set of commands and when they are run. In general these

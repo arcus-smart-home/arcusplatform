@@ -23,7 +23,7 @@ targetCompatibility = 1.8
 mainClassName = 'com.iris.capability.generator.html.HtmlGenerator'
 
 ext.jsTemplateDir = "src/main/resources/js"
-ext.outputJSDir   = "$buildDir/js"
+ext.outputJSDir = "$buildDir/js"
 ext.outputHtmlDir = "$buildDir/doc"
 ext.capabilityDir = "$buildDir/capability"
 
@@ -32,9 +32,9 @@ configurations {
         description "Classpath for source generators"
         transitive true
     }
-    
+
     capabilities {
-    	description "Classpath to get the capabilities"
+        description "Classpath to get the capabilities"
     }
 }
 
@@ -48,7 +48,7 @@ dependencies {
 }
 
 docker {
-   baseImage "eyeris/java"
+    baseImage "arcus/java"
 }
 
 tasks.addRule("Pattern: <CodeGenerationType>Code") {
@@ -77,17 +77,17 @@ configurations {
 }
 
 task extractCapabilities(type: Copy) {
-	from(zipTree(
-		project
-			.configurations
-			.compile.files({ it.name == 'arcus-model'; })
-			.find({ it.name.indexOf('arcus-model') > -1 })
-	)) {
-		include "capability/**"
-		include "protocol/**"
-		include "service/**"
-	}
-	into capabilityDir		
+    from(zipTree(
+            project
+                    .configurations
+                    .compile.files({ it.name == 'arcus-model'; })
+                    .find({ it.name.indexOf('arcus-model') > -1 })
+    )) {
+        include "capability/**"
+        include "protocol/**"
+        include "service/**"
+    }
+    into capabilityDir
 }
 
 task generateJSSource(type: JavaExec) {
@@ -109,26 +109,26 @@ task generateJSSource(type: JavaExec) {
 }
 
 task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
-	inputs.dir  capabilityDir
-	outputs.dir outputHtmlDir
+    inputs.dir  capabilityDir
+    outputs.dir outputHtmlDir
 
     classpath = sourceSets.main.runtimeClasspath
     args '-i', capabilityDir, '-o', outputHtmlDir
     main "com.iris.capability.generator.html.HtmlGenerator"
 
-	doFirst {
-		delete(outputHtmlDir)
-		file(outputHtmlDir).mkdirs()
+    doFirst {
+        delete(outputHtmlDir)
+        file(outputHtmlDir).mkdirs()
         println "Generating HTML dics into ${outputHtmlDir}..."
-	}
+    }
 }
 
 run {
-    if ( project.hasProperty("scriptParams") ) {
+    if (project.hasProperty("scriptParams")) {
         args(scriptParams.split(','))
     }
 
-    if ( project.hasProperty("mainClass") ) {
+    if (project.hasProperty("mainClass")) {
         mainClassName = mainClass
     }
 }
@@ -140,7 +140,7 @@ task createPackageJson(type: Copy) {
     from "src/main/resources/js"
     include "package.tmpl.json"
     rename { file -> "package.json" }
-    into "${outputJSDir}/i2-capabilities" 
+    into "${outputJSDir}/i2-capabilities"
     expand(version: "${version_major}.${version_minor}.${System.getenv()['bamboo_buildNumber']}")
     outputs.upToDateWhen { false }
 }

@@ -70,7 +70,8 @@ public class IrisMetricsTopicReporter {
    private final MetricRegistry registry;
    private final MetricFilter filter;
    private final ScheduledExecutorService executor;
-   
+
+   private final boolean reporting;
    private final String kafkaTopic;
    private final int counterBatchSize;
    private final long reportingIntervalMs;
@@ -90,7 +91,8 @@ public class IrisMetricsTopicReporter {
       this.kafkaProducer = new KafkaProducer<String, String>(config.toNuProducerProperties(), new StringSerializer(), new StringSerializer());
       this.executor = ThreadPoolBuilder.newSingleThreadedScheduler("metrics-" + config.getTopicMetrics() + "-reporter");
       this.kafkaTopic = config.getTopicMetrics();
-      
+
+      this.reporting = reporterConfig.getEnabled();
       this.filter = reporterConfig.getTopicFilter();
       this.reportingIntervalMs = TimeUnit.MILLISECONDS.convert(reporterConfig.getReportingUnit(), reporterConfig.getReportingUnitType());
       this.counterBatchSize = reporterConfig.getBatchSize();
@@ -105,7 +107,9 @@ public class IrisMetricsTopicReporter {
       if(startDelayMs < 0) {
          startDelayMs += reportingIntervalMs;
       }
-      executor.scheduleAtFixedRate(() -> report(), startDelayMs, reportingIntervalMs, TimeUnit.MILLISECONDS); 
+      if (reporting) {
+         executor.scheduleAtFixedRate(() -> report(), startDelayMs, reportingIntervalMs, TimeUnit.MILLISECONDS);
+      }
    }
    
    @PreDestroy

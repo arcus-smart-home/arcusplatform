@@ -2906,6 +2906,22 @@
       </populations>
       <reset/>
     </product>
+    <product id="c6b3da" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Aeotec,range,exender,zwave,ZW117" ota="No" protofamily="Z-Wave" added="2019-12-15T14:59:30-0600" lastchanged="2019-12-15T14:59:30-0600">
+      <categories>
+        <category name="More"/>
+      </categories>
+      <pair>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text=""/>
+      </removal>
+      <reset supported="false"/>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="b4dd14" name="Home Energy Meter" shortname="Energy Meter" screen="Electricity Meter" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Aeotec,Aeon,Labs,energy,electricity,zwave,DSB28-ZWUS,wattage,kilowatt" ota="No" protofamily="Z-Wave" added="2015-08-18T17:53:30-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Energy"/>
@@ -4065,7 +4081,25 @@
       </pair>
       <removal>
         <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
-        <step1 type="text" img="" text="Pres the down button three times quickly."/>
+        <step1 type="text" img="" text="Press the down button three times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="acd43b" name="S2 Switch (Zen26)" shortname="Switch" screen="Switch" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz, switch, zwave, zen26" ota="No" protofamily="Z-Wave" added="2019-12-08T17:10:30-0700" lastchanged="2019-12-08T17:10:30-0700">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Press the up button three times quickly. The LED will blink rapidly in pairing mode and the hub will beep when pairing is complete"/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the down button three times quickly."/>
         <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
       </removal>
       <populations>

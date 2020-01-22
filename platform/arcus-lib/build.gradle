@@ -37,6 +37,11 @@ dependencies {
    // handling jvm metrics
    compile libraries.metrics_jvm
 
+   compile libraries.prometheus_dropwizard
+   compile libraries.prometheus_servlet
+   compile libraries.jetty_servlet
+
+   compile libraries.zookeeper
    compile libraries.kafka
    compile libraries.cassandraDriver
    compile libraries.guiceCore

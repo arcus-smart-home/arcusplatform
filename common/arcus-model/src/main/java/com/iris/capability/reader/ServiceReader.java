@@ -22,7 +22,7 @@ import com.iris.capability.definition.ServiceDefinition;
 import com.iris.capability.definition.Definitions.ServiceDefinitionBuilder;
 
 public class ServiceReader extends BaseDefinitionReader<ServiceDefinition, ServiceDefinitionBuilder> {
-   public final static String SCHEMA_URI = "http://www.iris.com/schema/service/1.0.0";
+   public final static String SCHEMA_URI = "http://www.arcussmarthome.com/schema/service/1.0.0";
 
    public ServiceReader() {
       super(SCHEMA_URI);

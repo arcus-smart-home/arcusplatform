@@ -3,7 +3,7 @@
    name="AlexaService"
    namespace="alexa"
    version="1.0"
-   xmlns:s="http://www.iris.com/schema/service/1.0.0"
+   xmlns:s="http://www.arcussmarthome.com/schema/service/1.0.0"
 >
            
    <s:description>

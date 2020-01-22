@@ -2,7 +2,7 @@
 <t:type 
 	name="StatsSample4G"
     version="1.0"
-    xmlns:t="http://www.iris.com/schema/type/1.0.0">
+    xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
 
     <t:description>
     Represents a sample of the 4G connection statistics for a 4G

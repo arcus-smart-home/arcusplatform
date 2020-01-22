@@ -8,12 +8,12 @@ services:
     ports:
     - 8080:8086
   zookeeper:
-    image: eyeris/zookeeper:latest
+    image: arcus/zookeeper:latest
     ports:
     - 2181:2181
   # Cassandra for database
   cassandra:
-    image: eyeris/cassandra:latest
+    image: arcus/cassandra:latest
     environment:
     - CASSANDRA_SINGLE_NODE=true
     ports:
@@ -31,7 +31,7 @@ services:
         max_attempts: 5
         window: 120s
   kafka:
-    image: eyeris/kafka:latest
+    image: arcus/kafka:latest
     ports:
     - 9092:9092
     environment:

@@ -26,7 +26,7 @@ import com.iris.capability.definition.TypeDefinition;
 
 public class TypeReader extends BaseDefinitionReader<TypeDefinition, TypeDefinitionBuilder> {
    private final static Logger logger = LoggerFactory.getLogger(TypeReader.class);
-   public final static String SCHEMA_URI = "http://www.iris.com/schema/type/1.0.0";
+   public final static String SCHEMA_URI = "http://www.arcussmarthome.com/schema/type/1.0.0";
    
    public TypeReader() {
       super(SCHEMA_URI);

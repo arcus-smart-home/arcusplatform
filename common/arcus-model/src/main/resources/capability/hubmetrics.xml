@@ -4,7 +4,7 @@
    namespace="hubmetric"
    enhances="Hub"
    version="1.0"
-   xmlns:c="http://www.iris.com/schema/capability/1.0.0">
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
    
    <c:description>
    </c:description>

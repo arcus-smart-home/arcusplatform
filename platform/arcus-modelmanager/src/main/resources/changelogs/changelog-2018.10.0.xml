@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cl:changelog
    version="2018.10.0"
-   xmlns:cl="http://www.iris.com/schema/changelog/1.0.0">
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
 
    <cl:changeset identifier="addRequestedServiceLevelToSettings" author="mmuller">
       <cl:description>Add the state field requestedServiceLevel to the pro monitoring settings.  This preserves the desired service level while waiting on a test call.</cl:description>

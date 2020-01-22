@@ -1,6 +1,6 @@
 # Based on https://github.com/kairosdb/kairosdb/issues/288#issuecomment-404411656
 
-FROM eyeris/java as builder
+FROM arcus/java as builder
 
 USER root
 
@@ -18,7 +18,7 @@ RUN apt-get update && \
     rm -Rf ./kairosdb/ && \
     chown -R arcus:arcus /build/kairosdb
 
-FROM eyeris/java
+FROM arcus/java
 
 COPY --chown=arcus:arcus --from=0 /build/kairosdb /opt/kairosdb
 
