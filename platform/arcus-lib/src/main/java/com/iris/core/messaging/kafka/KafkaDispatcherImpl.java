@@ -18,6 +18,7 @@
  */
 package com.iris.core.messaging.kafka;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -264,7 +265,7 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 							seekAndAssign(partitions, consumer);
 						}
 					
-						ConsumerRecords<PlatformPartition, byte[]> records = consumer.poll(config.getPollingTimeoutMs());
+						ConsumerRecords<PlatformPartition, byte[]> records = consumer.poll(Duration.ofMillis(config.getPollingTimeoutMs()));
 						if(records.isEmpty()) {
 							logger.trace("No messages within polling timeout [{}]", config.getPollingTimeoutMs());
 						}
