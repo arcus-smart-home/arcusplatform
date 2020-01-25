@@ -16,7 +16,7 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-	compile libraries.kafka
+	compile libraries.eyekatkafka
 	compile libraries.guava
 	compile libraries.gson
 	compile libraries.eclipse_annotation

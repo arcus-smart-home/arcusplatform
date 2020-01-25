@@ -18,14 +18,8 @@
  */
 package com.iris.core.messaging.kafka;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -77,6 +71,8 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 	private final AtomicReference<Set<PlatformPartition>> partitionRef = new AtomicReference<>(ImmutableSet.of()); 
 	private final AtomicBoolean shutdown = new AtomicBoolean(false);
 	private final int platformPartitions;
+	// contains jobs that need to be started, whereas dispatchers is for active jobs
+	private List<DispatchJob> jobs = new ArrayList<>();
 
 	@Inject
 	public KafkaDispatcherImpl(KafkaConfig config, PartitionConfig pConfig) {
@@ -181,6 +177,14 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 	public synchronized void onPartitionsChanged(PartitionChangedEvent event) {
 		logger.info("Node assigned [{}] platform partitions", event.getPartitions().size());
 		partitionRef.set(event.getPartitions());
+
+		if (event.getPartitions().size() > 0) {
+			logger.info("partition assignments changed, starting consumer");
+			for (DispatchJob job: jobs) {
+				executor.submit(job);
+			}
+		}
+
 		for(DispatchJob job: dispatchers.values()) {
 			job.updatePartitions(event.getPartitions());
 		}
@@ -195,8 +199,8 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 	}
 
 	private DispatchJob startDispatchJob(String topic) {
-		logger.info("Starting to listen to topic {}", topic);
 		DispatchJob job;
+		logger.info("creating job for {}", topic);
 		if(config.hasSecondaryBootstrapServers()) {
 			DispatchJob primary = new SingleDispatchJob(topic, true);
 			DispatchJob secondary = new SingleDispatchJob(topic, false);
@@ -205,7 +209,7 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 		else {
 			job = new SingleDispatchJob(topic, true);
 		}
-		executor.submit(job);
+		this.jobs.add(job);
 		return job;
 	}
 
@@ -264,7 +268,7 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 							seekAndAssign(partitions, consumer);
 						}
 					
-						ConsumerRecords<PlatformPartition, byte[]> records = consumer.poll(config.getPollingTimeoutMs());
+						ConsumerRecords<PlatformPartition, byte[]> records = consumer.poll(Duration.ofMillis(config.getPollingTimeoutMs()));
 						if(records.isEmpty()) {
 							logger.trace("No messages within polling timeout [{}]", config.getPollingTimeoutMs());
 						}

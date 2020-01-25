@@ -129,7 +129,12 @@ ext.libraries << [
 		},
 		
 // kafka dependencies
-		kafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
+		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
+			exclude group: "org.apache.zookeeper", module: "zookeeper"
+			exclude group: "log4j", module: "log4j"
+			exclude group: "org.slf4j", module: "slf4j-log4j12"
+		},
+		kafka: dependencies.create("org.apache.kafka:kafka_2.12:2.4.0") {
 			exclude group: "org.apache.zookeeper", module: "zookeeper"
 			exclude group: "log4j", module: "log4j"
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
