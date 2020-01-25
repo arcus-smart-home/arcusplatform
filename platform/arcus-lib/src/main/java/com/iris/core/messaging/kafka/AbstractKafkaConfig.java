@@ -162,6 +162,8 @@ public abstract class AbstractKafkaConfig {
    private Boolean checkCrcs;
    @Consumer @Named("fetch.max.wait.ms")
    private Long fetchMaxWaitMs;
+   @Consumer @Named("client.rack")
+   private String clientRack;
    
    // nu producer properties
    @Producer @Named("acks")
@@ -542,6 +544,14 @@ public abstract class AbstractKafkaConfig {
 
    public void setFetchMaxWaitMs(Long fetchMaxWaitMs) {
       this.fetchMaxWaitMs = fetchMaxWaitMs;
+   }
+
+   public String getClientRack() {
+      return clientRack;
+   }
+
+   public void setClientRack(String clientRack) {
+      this.clientRack = clientRack;
    }
 
    public String getAcks() {
