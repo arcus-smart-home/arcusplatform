@@ -96,6 +96,10 @@ kafka_init() {
         echo "delete.topic.enable=${KAFKA_DELETE_TOPIC_ENABLE}" >> $KAFKA_HOME/config/server.properties
     fi 
 
+    if [[ -n ${KAFKA_REPLICATOR_SELECTOR_CLASS} ]] ; then
+        echo "replica.selector.class=${KAFKA_REPLICATOR_SELECTOR_CLASS}" >> $KAFKA_HOME/config/server.properties
+    fi
+
     # Setup the data directories
     local KDD=""
     for datadir in ${KAFKA_DATA_DIRS}; do
