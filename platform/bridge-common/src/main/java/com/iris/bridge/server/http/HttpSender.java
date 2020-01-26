@@ -15,13 +15,13 @@
  */
 package com.iris.bridge.server.http;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CACHE_CONTROL;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.DATE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.EXPIRES;
-import static io.netty.handler.codec.http.HttpHeaders.Names.LAST_MODIFIED;
-import static io.netty.handler.codec.http.HttpHeaders.Names.LOCATION;
+import static io.netty.handler.codec.http.HttpHeaderNames.CACHE_CONTROL;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaderNames.DATE;
+import static io.netty.handler.codec.http.HttpHeaderNames.EXPIRES;
+import static io.netty.handler.codec.http.HttpHeaderNames.LAST_MODIFIED;
+import static io.netty.handler.codec.http.HttpHeaderNames.LOCATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_MODIFIED;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -56,9 +56,11 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpChunkedInput;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.ssl.SslHandler;
@@ -127,7 +129,7 @@ public class HttpSender {
    }
 
    public void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse res) {
-	   if (HttpHeaders.isTransferEncodingChunked(res)){
+	   if (HttpUtil.isTransferEncodingChunked(res)){
 		   sendChunkedHttpResponse(ctx,req,res);
 	   } else {
 		   sendHttpResponseFull(ctx,req,res);
@@ -135,31 +137,31 @@ public class HttpSender {
    }
 
    public void sendHttpResponseFull(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse res) {
-      HttpHeaders.setContentLength(res, res.content().readableBytes());
+      HttpUtil.setContentLength(res, res.content().readableBytes());
       ChannelFuture f1 = ctx.channel().writeAndFlush(res);
-      if (!HttpHeaders.isKeepAlive(req) || res.getStatus().code() != 200) {
+      if (!HttpUtil.isKeepAlive(req) || res.status().code() != 200) {
          f1.addListener(ChannelFutureListener.CLOSE);
       }
-      metrics.incHTTPResponseCounter(className, res.getStatus().code());
+      metrics.incHTTPResponseCounter(className, res.status().code());
    }
 
 	public void sendChunkedHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse res) {
 		
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        HttpHeaders.setTransferEncodingChunked(response);
-        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, res.headers().get(HttpHeaders.Names.CONTENT_TYPE));
+        HttpUtil.setTransferEncodingChunked(response, true);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, res.headers().get(HttpHeaderNames.CONTENT_TYPE));
 
-        if(HttpHeaders.isKeepAlive(req)) {
-           response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+        if(HttpUtil.isKeepAlive(req)) {
+           response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
         }
 
         ctx.write(response);
         ctx.write(new ChunkedStream(new ByteBufInputStream(res.content())));
         ChannelFuture future = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-        if(!HttpHeaders.isKeepAlive(req)) {
+        if(!HttpUtil.isKeepAlive(req)) {
            future.addListener(ChannelFutureListener.CLOSE);
         }		
-        metrics.incHTTPResponseCounter(className, res.getStatus().code());
+        metrics.incHTTPResponseCounter(className, res.status().code());
 	}
 	
    public void sendRedirect(ChannelHandlerContext ctx, String newUri, FullHttpRequest req) {
@@ -184,11 +186,11 @@ public class HttpSender {
    public void sendNotModified(ChannelHandlerContext ctx, FullHttpRequest req) {
       FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, NOT_MODIFIED);
       setDateHeader(response);
-      HttpHeaders.setContentLength(response, 0);
+      HttpUtil.setContentLength(response, 0);
 
       // if keepalive is set, don't close the connection. The zero content length header will tell the client
       // that we're done
-      if (HttpHeaders.isKeepAlive(req)) {
+      if (HttpUtil.isKeepAlive(req)) {
          ctx.writeAndFlush(response);
          return;
       }
@@ -208,12 +210,12 @@ public class HttpSender {
       long fileLength = raf.length();
 
       HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-      HttpHeaders.setContentLength(response, fileLength);
+      HttpUtil.setContentLength(response, fileLength);
       
       headers.keySet().stream().forEach((k) -> response.headers().set(k, headers.get(k)));
       setDateAndCacheHeaders(response, file);
       if (keepAlive) {
-         response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+         response.headers().set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
       }
 
       // Write the initial line and the header.
