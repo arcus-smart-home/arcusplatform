@@ -60,7 +60,7 @@ kafka_init() {
     fi
 
     if [[ -n ${LISTENERS} ]] ; then
-	# e.g. PLAINTEXT://localhost:9092 for Istio
+	      # e.g. PLAINTEXT://localhost:9092 for Istio
         echo "listeners=${LISTENERS}" >> $KAFKA_HOME/config/server.properties
     fi
 
@@ -95,6 +95,10 @@ kafka_init() {
     if [[ -n ${KAFKA_DELETE_TOPIC_ENABLE} ]] ; then
         echo "delete.topic.enable=${KAFKA_DELETE_TOPIC_ENABLE}" >> $KAFKA_HOME/config/server.properties
     fi 
+
+    if [[ -n ${KAFKA_REPLICATOR_SELECTOR_CLASS} ]] ; then
+        echo "replica.selector.class=${KAFKA_REPLICATOR_SELECTOR_CLASS}" >> $KAFKA_HOME/config/server.properties
+    fi
 
     # Setup the data directories
     local KDD=""
