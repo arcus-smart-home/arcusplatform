@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.RememberMeAuthenticationToken;
@@ -54,10 +59,6 @@ import com.iris.util.TypeMarker;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -152,7 +153,7 @@ public class ShiroAuthenticator implements Authenticator {
             }
             
             DefaultCookie nettyCookie = createCookie(sessionId, authCookieMaxAge);
-            response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
             if(responseContentIfSuccess == null) {
                response.content().writeBytes(DEFAULT_SUCCESS);
             }
@@ -253,10 +254,10 @@ public class ShiroAuthenticator implements Authenticator {
    private FullHttpResponse createErrorResponse(DefaultCookie cookie) {
       DefaultFullHttpResponse resp = new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED);
       if (cookie != null) {
-         resp.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
+         resp.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
       }
 
-      resp.headers().add(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+      resp.headers().add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
       return resp;
    }
    
