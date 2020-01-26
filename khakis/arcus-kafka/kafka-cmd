@@ -60,7 +60,7 @@ kafka_init() {
     fi
 
     if [[ -n ${LISTENERS} ]] ; then
-	# e.g. PLAINTEXT://localhost:9092 for Istio
+	      # e.g. PLAINTEXT://localhost:9092 for Istio
         echo "listeners=${LISTENERS}" >> $KAFKA_HOME/config/server.properties
     fi
 
