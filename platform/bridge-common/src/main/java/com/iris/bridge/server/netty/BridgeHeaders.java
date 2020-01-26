@@ -21,14 +21,15 @@ import com.iris.bridge.server.http.impl.HttpRequestParameters;
 import com.iris.bridge.server.session.Session;
 
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpRequest;
 
 public class BridgeHeaders {
    public static final String HEADER_CLIENT_VERSION = "X-Client-Version";
    public static final String PARAM_CLIENT_VERSION = "v";
 
-   public static final String CONTENT_TYPE_JSON_UTF8 = HttpHeaders.Values.APPLICATION_JSON + "; charset=utf-8";
+   public static final String CONTENT_TYPE_JSON_UTF8 = HttpHeaderValues.APPLICATION_JSON + "; charset=utf-8";
 
    /**
     * Gets the type of client (app).
@@ -36,7 +37,7 @@ public class BridgeHeaders {
     * @return
     */
    public static String getClientType(HttpRequest request) {
-      String userAgent = request.headers().get(HttpHeaders.Names.USER_AGENT);
+      String userAgent = request.headers().get(HttpHeaderNames.USER_AGENT);
       if(StringUtils.isEmpty(userAgent)) {
          return null;
       }
@@ -68,7 +69,7 @@ public class BridgeHeaders {
    }
 
    public static String getContentType(FullHttpRequest req) {
-      String contentType = req.headers().get(HttpHeaders.Names.CONTENT_TYPE);
+      String contentType = req.headers().get(HttpHeaderNames.CONTENT_TYPE);
       if(contentType == null) {
          return "";
       }
@@ -82,7 +83,7 @@ public class BridgeHeaders {
    }
 
    public static OsType getOsType(HttpRequest request) {
-      String userAgent = request.headers().get(HttpHeaders.Names.USER_AGENT);
+      String userAgent = request.headers().get(HttpHeaderNames.USER_AGENT);
       if(StringUtils.isEmpty(userAgent)) {
          return OsType.OTHER;
       }
