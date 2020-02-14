@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.RememberMeAuthenticationToken;
@@ -54,10 +59,6 @@ import com.iris.util.TypeMarker;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -72,14 +73,14 @@ public class ShiroAuthenticator implements Authenticator {
    private static final Logger logger = LoggerFactory.getLogger(ShiroAuthenticator.class);
 
    private static final byte [] DEFAULT_SUCCESS = JSON.toJson(ImmutableMap.of("status", "success")).getBytes(Charsets.UTF_8);
-   
+
    private final ClientFactory clientFactory;
    private final BridgeMetrics metrics;
-   
+
    private final CookieConfig cookieConfig;
    private final long authCookieMaxAge;
    private final long publicAuthCookieMaxAgeSecs;
-   
+
    @Inject
    public ShiroAuthenticator(CookieConfig cookieConfig, ClientFactory clientFactory, BridgeMetrics metrics, SessionConfig config) {
       this.cookieConfig = cookieConfig;
@@ -88,17 +89,17 @@ public class ShiroAuthenticator implements Authenticator {
       this.authCookieMaxAge = config.getDefaultSessionTimeoutInSecs();
       this.publicAuthCookieMaxAgeSecs = config.getPublicSessionTimeoutInSecs();
    }
-   
+
    @PostConstruct
    public void init() {
-   	if(cookieConfig.isDomainNameSet()) {
-   		logger.info("Session cookie set for domain [{}]", cookieConfig.getDomainName());
-   	}
-   	if(!cookieConfig.isSecureOnly()) {
-   		logger.warn("*** NON-SSL COOKIES ENABLED -- THIS SHOULD ONLY BE SET IN DEVELOPMENT ENVIRONMENTS ***");
-   	}
+      if (cookieConfig.isDomainNameSet()) {
+         logger.info("Session cookie set for domain [{}]", cookieConfig.getDomainName());
+      }
+      if (!cookieConfig.isSecureOnly()) {
+         logger.warn("*** NON-SSL COOKIES ENABLED -- THIS SHOULD ONLY BE SET IN DEVELOPMENT ENVIRONMENTS ***");
+      }
    }
-   
+
    @Override
    public FullHttpResponse authenticateRequest(Channel channel, String username, String password, String isPublic, ByteBuf responseContentIfSuccess) {
       UsernamePasswordToken token = new UsernamePasswordToken(username, password);
@@ -112,7 +113,7 @@ public class ShiroAuthenticator implements Authenticator {
       AuthenticationToken token = extractToken(channel, req);
       return authenticateRequest(channel, token, null);
    }
-   
+
    protected FullHttpResponse authenticateRequest(Channel channel, AuthenticationToken authToken, ByteBuf responseContentIfSuccess) {
       metrics.incAuthenticationTriedCounter();
       Timer.Context timerContext = metrics.startAuthenticationTimer();
@@ -125,7 +126,7 @@ public class ShiroAuthenticator implements Authenticator {
          }
 
          /*
-          *  user is logging in again, so if currently authenticated, 
+          *  user is logging in again, so if currently authenticated,
           *  end that authentication and start a new one
           */
          try {
@@ -144,15 +145,15 @@ public class ShiroAuthenticator implements Authenticator {
          try {
             currentUser.login(authToken);
             String sessionId = currentUser.getSessionId();
-            
+
             FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK);
             if (!(authToken instanceof RememberMeAuthenticationToken) || !((RememberMeAuthenticationToken) authToken).isRememberMe()) {
                // Set the session timeout for public sites
                currentUser.setSessionExpirationTimeout(TimeUnit.SECONDS.toMillis(publicAuthCookieMaxAgeSecs));
             }
-            
+
             DefaultCookie nettyCookie = createCookie(sessionId, authCookieMaxAge);
-            response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
             if(responseContentIfSuccess == null) {
                response.content().writeBytes(DEFAULT_SUCCESS);
             }
@@ -174,7 +175,7 @@ public class ShiroAuthenticator implements Authenticator {
          timerContext.stop();
       }
    }
-   
+
    public AuthenticationToken extractToken(Channel channel, FullHttpRequest req) {
       boolean isPublic = false;
       String token = null;
@@ -183,7 +184,7 @@ public class ShiroAuthenticator implements Authenticator {
 
       // the body here is username/password DON'T LOG THE CONTENTS
       HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), req);
-      
+
       List<InterfaceHttpData> datas = decoder.getBodyHttpDatas();
       for (InterfaceHttpData data : datas) {
          if (data.getHttpDataType() == HttpDataType.Attribute) {
@@ -253,13 +254,13 @@ public class ShiroAuthenticator implements Authenticator {
    private FullHttpResponse createErrorResponse(DefaultCookie cookie) {
       DefaultFullHttpResponse resp = new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED);
       if (cookie != null) {
-         resp.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
+         resp.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(cookie));
       }
 
-      resp.headers().add(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+      resp.headers().add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
       return resp;
    }
-   
+
    @Override
    public DefaultCookie createCookie(String value) {
       return createCookie(value, authCookieMaxAge);
@@ -269,14 +270,14 @@ public class ShiroAuthenticator implements Authenticator {
    public DefaultCookie expireCookie() {
       return createCookie("", 1L);
    }
-   
+
    private DefaultCookie createCookie(String value, Long maxAge) {
       DefaultCookie nettyCookie = new DefaultCookie(cookieConfig.getAuthCookieName(), value);
       nettyCookie.setMaxAge(maxAge);
       nettyCookie.setHttpOnly(true);
       nettyCookie.setSecure(cookieConfig.isSecureOnly());
       nettyCookie.setPath("/");
-      
+
       if (cookieConfig.isDomainNameSet()) {
          nettyCookie.setDomain(cookieConfig.getDomainName());
       }
