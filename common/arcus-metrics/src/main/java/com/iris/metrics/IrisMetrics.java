@@ -51,6 +51,7 @@ public final class IrisMetrics {
       registerIfPossible("jvm.memory", "com.codahale.metrics.jvm.MemoryUsageGaugeSet");
       registerIfPossible("jvm.threads", "com.codahale.metrics.jvm.ThreadStatesGaugeSet");
       registerIfPossible("jvm.buffers", "com.codahale.metrics.jvm.BufferPoolMetricSet");
+      registerIfPossible("jvm.attribute", "com.codahale.metrics.JvmAttributeGaugeSet");
 
       String reservoirType = "default";
       String envReservoirType1 = System.getenv("IRIS_METRICS_RESERVOIR");
