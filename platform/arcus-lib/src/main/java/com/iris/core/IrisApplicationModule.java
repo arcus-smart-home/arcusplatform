@@ -62,7 +62,7 @@ public class IrisApplicationModule implements BootstrapModule {
             urls.add(en.nextElement());
          }
          if(urls.isEmpty()) {
-            logger.info("No application.properties was found");
+            logger.warn("No application.properties was found");
             return;
          }
          
