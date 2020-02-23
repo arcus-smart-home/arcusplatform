@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.ExecutionError;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  *
@@ -51,7 +52,7 @@ public class Results {
          public void onFailure(Throwable t) {
 	         callback.onResult((Result<T>)Results.fromError(t));
          }
-		});
+		}, MoreExecutors.directExecutor());
 	}
 
 	private static abstract class AbstractResult<T> implements Result<T> {

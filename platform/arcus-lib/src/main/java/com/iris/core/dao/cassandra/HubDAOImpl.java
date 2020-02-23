@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -495,7 +496,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
                ctxt.stop();
                hubInsertCellBackupFailure.inc();
             }
-         });
+         }, MoreExecutors.directExecutor());
       });
    }
 
@@ -605,7 +606,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
             ctxt.stop();
             hubUpdateAttributesFailure.inc();
          }
-      });
+      }, MoreExecutors.directExecutor());
    }
 
    @Override

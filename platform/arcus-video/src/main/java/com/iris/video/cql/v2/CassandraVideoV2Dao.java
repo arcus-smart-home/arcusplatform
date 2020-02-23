@@ -280,7 +280,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 		if(metadata != null && metadata.getTags().contains(VideoConstants.TAG_FAVORITE)) {
 			BatchStatement stmt = new BatchStatement(BatchStatement.Type.LOGGED);
 			addStatementsForRemoveFromFavoriteTables(stmt, metadata);	
-			return Futures.transform(
+			return Futures.transformAsync(
 					VideoV2Util.executeAsyncAndUpdateTimer(session, stmt, RemoveTagsTimer),
 	            (AsyncFunction<ResultSet, Set<String>>) input -> {
 	            	Set<String> expectedTags = new HashSet<>(metadata.getTags());

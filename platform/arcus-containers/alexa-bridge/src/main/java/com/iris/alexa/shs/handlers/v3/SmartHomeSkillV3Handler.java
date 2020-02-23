@@ -87,7 +87,7 @@ public class SmartHomeSkillV3Handler implements SmartHomeSkillHandler {
       Txfm txfm = Txfm.transformerFor(message);
       PlatformMessage platformMessage = txfm.txfmRequest(message, placeId, populationCacheMgr.getPopulationByPlaceId(placeId), (int) config.getRequestTimeoutMs());
       logger.debug("[{}] transformed to platform message [{}]", message, platformMessage);
-      return Futures.transform(
+      return Futures.transformAsync(
          busClient.request(platformMessage),
          (AsyncFunction<PlatformMessage, AlexaMessage>) input -> {
             metrics.timeServiceSuccess(platformMessage.getMessageType(), startTime);

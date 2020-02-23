@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +148,7 @@ class ReflectiveCommandHandler implements ContextualEventHandler<MessageBody> {
 	}
 
 	private static ListenableFuture<MessageBody> translateFromAsync(Object future, com.google.common.base.Function<Object, MessageBody> translator) {
-		return Futures.transform((ListenableFuture<Object>) future, translator);
+		return Futures.transform((ListenableFuture<Object>) future, translator, MoreExecutors.directExecutor());
 	}
 
 	private final Method method;
@@ -195,7 +196,8 @@ class ReflectiveCommandHandler implements ContextualEventHandler<MessageBody> {
                      context.respondToPlatform(event);
                   }
 
-               }
+               },
+			   MoreExecutors.directExecutor()
          );
       }
       catch(InvocationTargetException e) {

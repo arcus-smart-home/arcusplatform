@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
@@ -387,7 +388,8 @@ public abstract class BaseAlarmIncidentService implements AlarmIncidentService {
 						/* no op */
 						logger.debug("Failed to cancel incident [{}]", incidentAddress, t);
 					}
-				}
+				},
+				MoreExecutors.directExecutor()
 			);
 		}
 		return toModel( incident );

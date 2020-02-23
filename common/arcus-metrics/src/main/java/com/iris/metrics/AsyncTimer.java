@@ -23,6 +23,7 @@ import com.codahale.metrics.Timer;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * Doesn't implement {@link Metric} to make it clear that it's really a lightweight composite of two {@link Timer}s that
@@ -86,7 +87,7 @@ public class AsyncTimer
             }
          };
 
-         Futures.addCallback(operation, callback);
+         Futures.addCallback(operation, callback, MoreExecutors.directExecutor());
 
          return operation;
       }

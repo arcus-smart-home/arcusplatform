@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -76,7 +77,8 @@ public class RuleTemplateRequestor {
 		return 
 			Futures.transform(
 				requestor.request(request), 
-				(Function<PlatformMessage, List<Map<String, Object>>>) (message) -> ListRuleTemplatesResponse.getRuleTemplates(message.getValue(), ImmutableList.of())
+				(Function<PlatformMessage, List<Map<String, Object>>>) (message) -> ListRuleTemplatesResponse.getRuleTemplates(message.getValue(), ImmutableList.of()),
+				MoreExecutors.directExecutor()
 			);
 	}
 	
