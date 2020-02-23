@@ -1,6 +1,8 @@
 apply plugin: 'org.ajoberstar.grgit'
 
-ext.repo = grgit.open()
+try {
+ ext.repo = grgit.open()
+} catch(e) { /* ignore (need to be in git repo root) */ }
 
 ext.buildTime = new Date ()
 def writeVersion(major, minor, patch, qualifier) {
