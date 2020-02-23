@@ -219,7 +219,7 @@ ext.libraries << [
 		powermock_easymock: "org.powermock:powermock-api-easymock:1.7.3",
 
 //Junit
-		junit: "junit:junit:4.11",
+		junit: "junit:junit:4.13",
 
 // Apache Shiro
 		shiro: "org.apache.shiro:shiro-core:1.3.2",
