@@ -49,10 +49,12 @@ public class IrisApplicationModule implements BootstrapModule {
    
    private static final Logger logger = LoggerFactory.getLogger(IrisApplicationModule.class);
 
-   private String applicationName = "<unknown>";
+   public final static String DEFAULT_APPLICATION_NAME = "<unknown>";
+
+   private String applicationName = DEFAULT_APPLICATION_NAME;
    private String applicationVersion = "<unknown>";
    private String applicationDir = "";
-   
+
    @PostConstruct
    public void init() {
       try {
