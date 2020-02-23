@@ -181,6 +181,11 @@ public abstract class IrisAbstractApplication {
                   app.getApplicationVersion(),
                   app.getApplicationDir()
             );
+
+            if (app.getApplicationName().equals(IrisApplicationModule.DEFAULT_APPLICATION_NAME)) {
+               logger.error("Application cannot start without a name");
+               System.exit(1);
+            }
             StartupListener.publishStarted();
             app.start();
          }
