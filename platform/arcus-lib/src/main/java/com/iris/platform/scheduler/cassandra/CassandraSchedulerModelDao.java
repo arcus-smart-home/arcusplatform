@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,7 +189,8 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
             ResultSetFuture resultFuture = session().executeAsync( findById.bind(schedulerId) );
             ListenableFuture<ModelEntity> modelFuture = Futures.transform(
                   resultFuture,
-                  (Function<ResultSet, ModelEntity>) (result) -> toModel(result.one(), includeWeekdays)
+                  (Function<ResultSet, ModelEntity>) (result) -> toModel(result.one(), includeWeekdays),
+                  MoreExecutors.directExecutor()
             );
             modelFutures.add(modelFuture);
          }

@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.alexa.AlexaUtil;
@@ -70,7 +71,7 @@ public class HealthCheckDirectiveHandler {
                logger.error("alexa health check failed: ", t);
                future.set(badHealth());
             }
-         });
+         }, MoreExecutors.directExecutor());
       } catch(Exception e) {
          logger.error("alexa health check failed: ", e);
          future.set(badHealth());
@@ -93,7 +94,7 @@ public class HealthCheckDirectiveHandler {
          response.setHealthy(true);
          response.setDescription("The system is currently healthy");
          return response;
-      });
+      }, MoreExecutors.directExecutor());
    }
 
    private HealthCheckResponse badHealth() {

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +103,7 @@ public class PlaceExecutor {
 				public void onFailure(Throwable t) {
 					logger.warn("Error handling message [{}]", message, t);
 				}
-			});
+			}, MoreExecutors.directExecutor());
 		});
 	}
 	

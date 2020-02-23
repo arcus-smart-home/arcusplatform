@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +124,8 @@ public class SmartHomeSkillV2Handler implements SmartHomeSkillHandler {
                Preconditions.checkNotNull(input, "input cannot be null");
                Header h = Header.v2(message.getHeader().getMessageId(), input.getName(), input.getNamespace());
                return new AlexaMessage(h, input);
-            }
+            },
+            MoreExecutors.directExecutor()
          );
       }
 
@@ -133,7 +135,7 @@ public class SmartHomeSkillV2Handler implements SmartHomeSkillHandler {
          Txfm txfm = Txfm.transformerFor(message);
          PlatformMessage platformMessage = txfm.txfmRequest(message, placeId, populationCacheMgr.getPopulationByPlaceId(placeId), (int) config.getRequestTimeoutMs());
          logger.debug("[{}] transformed to platform message [{}]", message, platformMessage);
-         return Futures.transform(
+         return Futures.transformAsync(
             busClient.request(platformMessage),
             (AsyncFunction<PlatformMessage, AlexaMessage>) input -> {
                metrics.timeServiceSuccess(platformMessage.getMessageType(), startTime);

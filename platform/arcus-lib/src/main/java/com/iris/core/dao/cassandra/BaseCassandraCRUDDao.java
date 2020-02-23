@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -321,7 +322,7 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 
             ResultSetFuture entityResultSetFuture = session.executeAsync(entityQuery);
 
-            entityFutures.add(Futures.transform(entityResultSetFuture, entityTransform));
+            entityFutures.add(Futures.transform(entityResultSetFuture, entityTransform, MoreExecutors.directExecutor()));
          }
 
          return Futures

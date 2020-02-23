@@ -17,6 +17,7 @@ package com.iris.oculus.modules.account;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.iris.billing.client.RecurlyTokenClient;
 import com.iris.billing.client.model.request.BillingInfoRequest;
@@ -128,7 +129,7 @@ public class AccountController extends SessionAwareController {
          public void onFailure(Throwable t) {
             future.setError(t);
          }
-      });
+      }, MoreExecutors.directExecutor());
 
       return future;
    }
@@ -157,7 +158,7 @@ public class AccountController extends SessionAwareController {
          public void onFailure(Throwable t) {
             future.setError(t);
          }
-      });
+      }, MoreExecutors.directExecutor());
 
       return future;
    }
