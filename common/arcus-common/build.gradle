@@ -27,6 +27,7 @@ dependencies {
 	compile libraries.gson
 	compile libraries.guice
 	compile libraries.governator
+	compile libraries.governator_api
 	compile libraries.sunrise_sunset_calc
 	compile netty_common
 
