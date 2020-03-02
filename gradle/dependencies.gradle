@@ -109,9 +109,9 @@ ext.libraries << [
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
 
 // guice dependencies
-		guiceCore: "com.google.inject:guice:4.0-beta5",
-		guiceServlet: "com.google.inject.extensions:guice-servlet:4.0-beta5",
-		guiceMultibindings: "com.google.inject.extensions:guice-multibindings:4.0-beta5",
+		guiceCore: "com.google.inject:guice:4.0",
+		guiceServlet: "com.google.inject.extensions:guice-servlet:4.0",
+		guiceMultibindings: "com.google.inject.extensions:guice-multibindings:4.0",
 
 // governator runtime dependencies
 		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.4.3",
@@ -120,14 +120,21 @@ ext.libraries << [
 		jacksonMapper: "org.codehaus.jackson:jackson-mapper-asl:1.9.11",
 
 // governator compile dependencies
-		governator: dependencies.create("com.netflix.governator:governator:1.3.3") {
+		governator: dependencies.create("com.netflix.governator:governator:1.12.15") {
 			exclude group: "com.google.inject.extensions", module: "guice-grapher"
 			exclude group: "asm"
 			exclude group: "com.google.code.findbugs", module: "annotations"
 			exclude group: "org.apache.xbean", module: "xbean-bundleutils"
 			exclude group: "com.netflix.archaius", module: "archaius-core"
 		},
-		
+		governator_api: dependencies.create("com.netflix.governator:governator-api:1.12.15") {
+			exclude group: "com.google.inject.extensions", module: "guice-grapher"
+			exclude group: "asm"
+			exclude group: "com.google.code.findbugs", module: "annotations"
+			exclude group: "org.apache.xbean", module: "xbean-bundleutils"
+			exclude group: "com.netflix.archaius", module: "archaius-core"
+		},
+
 // kafka dependencies
 		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
 			exclude group: "org.apache.zookeeper", module: "zookeeper"
