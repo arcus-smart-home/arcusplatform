@@ -51,6 +51,7 @@ matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0104, 'ZWAV:P
 matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0104, 'ZWAV:ProductId': 0x0075
 matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0204, 'ZWAV:ProductId': 0x0075
 matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0204, 'ZWAV:ProductId': 0x0075
+matcher         'ZWAV:Manufacturer':  0x371, 'ZWAV:ProductType': 0x0104, 'ZWAV:ProductId': 0x00BD
 
 capabilities    DevicePower
 
@@ -67,6 +68,13 @@ def final int OFFLINE_TIMEOUT_SECS   = 3600               // 60 minutes
 
 def final String DEVICE_NAME = "Aeotec Range Extender"
 
+
+ZWave {
+    poll reflex{
+        after 20, MINUTES
+        send manufacturer_specific.get
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Driver lifecycle callbacks
