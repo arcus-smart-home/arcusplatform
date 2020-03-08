@@ -69,6 +69,13 @@ def final int OFFLINE_TIMEOUT_SECS   = 3600               // 60 minutes
 def final String DEVICE_NAME = "Aeotec Range Extender"
 
 
+ZWave {
+    poll reflex{
+        after 20, MINUTES
+        send manufacturer_specific.get
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Driver lifecycle callbacks
 ////////////////////////////////////////////////////////////////////////////////
