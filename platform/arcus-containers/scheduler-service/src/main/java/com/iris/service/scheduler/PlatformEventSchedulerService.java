@@ -40,22 +40,27 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.google.inject.Singleton;
 import com.iris.common.scheduler.ScheduledTask;
 import com.iris.common.scheduler.Scheduler;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.messages.address.Address;
+import com.iris.messages.capability.SchedulerCapability;
 import com.iris.messages.event.Listener;
 import com.iris.messages.event.ScheduledEvent;
-import com.iris.metrics.IrisMetricSet;
+import com.iris.messages.model.Place;
+import com.iris.messages.model.serv.SchedulerModel;
+import com.iris.messages.PlatformMessage;
 import com.iris.metrics.IrisMetrics;
+import com.iris.metrics.IrisMetricSet;
 import com.iris.platform.partition.PartitionChangedEvent;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.PlatformPartition;
-import com.iris.platform.scheduler.ScheduleDao;
-import com.iris.platform.scheduler.SchedulerConfig;
 import com.iris.platform.scheduler.model.PartitionOffset;
 import com.iris.platform.scheduler.model.ScheduledCommand;
+import com.iris.platform.scheduler.ScheduleDao;
+import com.iris.platform.scheduler.SchedulerConfig;
 import com.iris.util.ThreadPoolBuilder;
 
 @Singleton
@@ -71,7 +76,9 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
    private final ScheduledExecutorService executor;
    private final Scheduler scheduler;
    private final ScheduleDao scheduleDao;
-   
+   private final PlaceDAO placeDao;
+   private final PlatformSchedulerRegistry registry;
+
    private final SchedulerMetrics metrics;
    private final Map<PlatformPartition, PartitionSchedulerJob> partitions =
          new HashMap<>();
@@ -86,11 +93,15 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          @Named(NAME_SCHEDULED_EVENT_LISTENER)
          Listener<ScheduledEvent> listener,
          Scheduler scheduler,
-         ScheduleDao scheduleDao
+         ScheduleDao scheduleDao,
+         PlaceDAO placeDao,
+         PlatformSchedulerRegistry registry
    ) {
       this.listener = listener;
       this.scheduler = scheduler;
       this.scheduleDao = scheduleDao;
+      this.placeDao = placeDao;
+      this.registry = registry;
 
       this.schedulingHorizonMs = TimeUnit.MILLISECONDS.convert(config.getSchedulerHorizonSec(), TimeUnit.SECONDS);
       this.metrics = new SchedulerMetrics();
@@ -138,8 +149,43 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          job.setSchedulerFuture(future);
          this.partitions.put(offset.getPartition(), job);
       }
+
+      logger.info("Checking assigned schedulers for past due events.");
+      // Check all schedulers
+      for (PlatformPartition p: partitions) {
+         placeDao.streamByPartitionId(p.getId())
+                 .forEach((place) -> checkByPlace(place));
+      }
+      logger.info("Finished checking assigned schedulers for past due events.");
    }
 
+   public void checkByPlace(Place place) {
+      logger.debug("checking place [{}]", place.getId());
+      registry.loadByPlace(place.getId(), true).forEach((executor) -> checkScheduler(executor));
+   }
+
+   public void checkScheduler(SchedulerCapabilityDispatcher executor) {
+      if (SchedulerModel.getNextFireTime(executor.getScheduler()) == null) {
+         logger.debug("Skipping disabled scheduler [{}]", executor.getScheduler().getId());
+         return;
+      }
+
+      if (SchedulerModel.getNextFireTime(executor.getScheduler()).getTime() < System.currentTimeMillis()) {
+         logger.warn("Found scheduler in need of update: [{}]", executor.getScheduler().getId());
+         executor.onPlatformMessage(PlatformMessage.builder()
+                 .from(Address.fromString(SchedulerModel.getTarget(executor.getScheduler())))
+                 .withPayload(SchedulerCapability.RecalculateCommandRequest.NAME)
+                 .create());
+      }
+   }
+
+   /**
+    * Schedule the scheduler at a given time, both in Dao and memory.
+    *
+    * @param placeId
+    * @param address
+    * @param time
+    */
    @Override
    public void fireEventAt(UUID placeId, Address address, Date time) {
       ScheduledCommand command = scheduleDao.schedule(placeId, address, time);
