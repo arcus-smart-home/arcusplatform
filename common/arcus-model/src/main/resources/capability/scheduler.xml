@@ -101,7 +101,10 @@ If a schedule with the given id already exists with the same type this will be a
          name="Delete"
          description="Deletes this scheduler object and all associated schedules, this is generally not recommended.  If the target object is deleted, this Scheduler will automatically be deleted.">
       </c:method>
-   
+       <c:method
+         name="RecalculateCommand"
+         description="Recalculate the next time to run at">
+       </c:method>
    </c:methods>
 
    <c:events>
