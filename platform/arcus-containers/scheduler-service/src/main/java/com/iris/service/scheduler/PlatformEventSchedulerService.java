@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
+import com.iris.messages.services.PlatformConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,8 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
    // TODO tune this
    private final Map<PartitionOffset, EventSchedulerJob> activeJobs =
          new ConcurrentHashMap<>();
+
+   private final boolean sanityCheckExisting;
    
    @Inject
    public PlatformEventSchedulerService(
@@ -102,6 +105,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       this.scheduleDao = scheduleDao;
       this.placeDao = placeDao;
       this.registry = registry;
+      this.sanityCheckExisting = config.getSanityCheckExisting();
 
       this.schedulingHorizonMs = TimeUnit.MILLISECONDS.convert(config.getSchedulerHorizonSec(), TimeUnit.SECONDS);
       this.metrics = new SchedulerMetrics();
@@ -150,13 +154,15 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          this.partitions.put(offset.getPartition(), job);
       }
 
-      logger.info("Checking assigned schedulers for past due events.");
-      // Check all schedulers
-      for (PlatformPartition p: partitions) {
-         placeDao.streamByPartitionId(p.getId())
-                 .forEach((place) -> checkByPlace(place));
+      if (sanityCheckExisting) {
+         logger.info("Checking assigned schedulers for past due events.");
+         // Check all schedulers
+         for (PlatformPartition p : partitions) {
+            placeDao.streamByPartitionId(p.getId())
+                    .forEach((place) -> checkByPlace(place));
+         }
+         logger.info("Finished checking assigned schedulers for past due events.");
       }
-      logger.info("Finished checking assigned schedulers for past due events.");
    }
 
    private void checkByPlace(Place place) {
