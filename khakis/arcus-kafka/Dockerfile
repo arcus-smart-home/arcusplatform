@@ -12,7 +12,7 @@ RUN \
 
 # Environment variables for configuration
 ENV KAFKA_SCALA_VERSION 2.12
-ENV KAFKA_VERSION 2.4.0
+ENV KAFKA_VERSION 2.4.1
 
 # Download and install the required version of Apache Kafka. 
 RUN \
