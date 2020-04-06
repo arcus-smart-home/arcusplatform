@@ -159,12 +159,12 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       logger.info("Finished checking assigned schedulers for past due events.");
    }
 
-   public void checkByPlace(Place place) {
+   private void checkByPlace(Place place) {
       logger.debug("checking place [{}]", place.getId());
-      registry.loadByPlace(place.getId(), true).forEach((executor) -> checkScheduler(executor));
+      registry.loadByPlace(place.getId(), true).forEach((executor) -> checkScheduler(executor, place.getPopulation()));
    }
 
-   public void checkScheduler(SchedulerCapabilityDispatcher executor) {
+   private void checkScheduler(SchedulerCapabilityDispatcher executor, String population) {
       if (SchedulerModel.getNextFireTime(executor.getScheduler()) == null) {
          logger.debug("Skipping disabled scheduler [{}]", executor.getScheduler().getId());
          return;
@@ -172,9 +172,13 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
 
       if (SchedulerModel.getNextFireTime(executor.getScheduler()).getTime() < System.currentTimeMillis()) {
          logger.warn("Found scheduler in need of update: [{}]", executor.getScheduler().getId());
-         executor.onPlatformMessage(PlatformMessage.builder()
+         executor.onPlatformMessage(PlatformMessage
+                 .builder()
                  .from(Address.fromString(SchedulerModel.getTarget(executor.getScheduler())))
+                 .to(Address.platformService(executor.getScheduler().getId(), SchedulerCapability.NAMESPACE))
+                 .withPlaceId(SchedulerModel.getPlaceId(executor.getScheduler()))
                  .withPayload(SchedulerCapability.RecalculateCommandRequest.NAME)
+                 .withPopulation(population)
                  .create());
       }
    }
