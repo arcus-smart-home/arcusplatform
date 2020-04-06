@@ -48,7 +48,7 @@ import com.iris.population.PlacePopulationCacheManager;
  */
 // TODO add in caching...
 @Singleton
-class PlatformSchedulerRegistry implements SchedulerRegistry {
+public class PlatformSchedulerRegistry implements SchedulerRegistry {
    private static final Logger logger = LoggerFactory.getLogger(PlatformSchedulerRegistry.class);
 
    private final SunriseSunsetCalc calculator;
