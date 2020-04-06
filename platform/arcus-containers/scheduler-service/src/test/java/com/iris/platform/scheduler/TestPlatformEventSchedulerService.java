@@ -33,10 +33,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
-import com.google.inject.Provides;
 import com.google.inject.name.Named;
+import com.google.inject.Provides;
 import com.iris.common.scheduler.ScheduledTask;
 import com.iris.common.scheduler.Scheduler;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.SchedulerCapability;
 import com.iris.messages.event.Listener;
@@ -47,6 +48,7 @@ import com.iris.platform.partition.PlatformPartition;
 import com.iris.platform.scheduler.model.PartitionOffset;
 import com.iris.platform.scheduler.model.ScheduledCommand;
 import com.iris.service.scheduler.PlatformEventSchedulerService;
+import com.iris.service.scheduler.PlatformSchedulerRegistry;
 import com.iris.test.IrisMockTestCase;
 import com.iris.test.Mocks;
 
@@ -54,7 +56,7 @@ import com.iris.test.Mocks;
 /**
  * 
  */
-@Mocks(value={ Scheduler.class, ScheduleDao.class })
+@Mocks(value={ Scheduler.class, ScheduleDao.class, PlaceDAO.class, PlatformSchedulerRegistry.class })
 public class TestPlatformEventSchedulerService extends IrisMockTestCase {
 
 
@@ -62,6 +64,8 @@ public class TestPlatformEventSchedulerService extends IrisMockTestCase {
    
    @Inject Scheduler mockScheduler;
    @Inject ScheduleDao mockScheduleDao;
+   @Inject PlaceDAO mockPlaceDao;
+   @Inject PlatformSchedulerRegistry mockPlatformSchedulerRegistry;
    
    @Inject PlatformEventSchedulerService service;
    
