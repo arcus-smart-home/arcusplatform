@@ -105,6 +105,7 @@ onConnected {
 	ZWave.configuration.get(CNFG_LED_PARAM_NO)
 	ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
 	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
 }
 
 
