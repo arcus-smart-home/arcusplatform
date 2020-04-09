@@ -44,7 +44,7 @@ DevicePower.backupbatterycapable false
 Indicator.enabled			true
 Indicator.enableSupported	false
 
-final int  POLLING_INTERVAL_SEC = 71		// Iris 1 uses 30s
+final int  POLLING_INTERVAL_SEC = 600
 
 final byte SWITCH_ON		= 0xff
 final byte SWITCH_OFF		= 0x00
@@ -105,6 +105,7 @@ onConnected {
 	ZWave.configuration.get(CNFG_LED_PARAM_NO)
 	ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
 	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
 }
 
 
