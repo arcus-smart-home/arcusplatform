@@ -183,7 +183,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
                  .from(Address.fromString(SchedulerModel.getTarget(executor.getScheduler())))
                  .to(Address.platformService(executor.getScheduler().getId(), SchedulerCapability.NAMESPACE))
                  .withPlaceId(SchedulerModel.getPlaceId(executor.getScheduler()))
-                 .withPayload(SchedulerCapability.RecalculateCommandRequest.NAME)
+                 .withPayload(SchedulerCapability.RecalculateScheduleRequest.NAME)
                  .withPopulation(population)
                  .create());
       }

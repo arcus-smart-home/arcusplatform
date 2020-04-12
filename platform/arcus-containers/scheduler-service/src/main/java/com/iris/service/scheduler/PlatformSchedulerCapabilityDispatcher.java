@@ -361,9 +361,9 @@ class PlatformSchedulerCapabilityDispatcher extends BaseModelHandler implements 
             fireCommand(request);
             return SchedulerCapability.FireCommandResponse.instance();
 
-         case SchedulerCapability.RecalculateCommandRequest.NAME:
+         case SchedulerCapability.RecalculateScheduleRequest.NAME:
             handler.updated();
-            return SchedulerCapability.RecalculateCommandResponse.instance();
+            return SchedulerCapability.RecalculateScheduleResponse.instance();
          }
          
          return Errors.unsupportedMessageType(message.getMessageType());
