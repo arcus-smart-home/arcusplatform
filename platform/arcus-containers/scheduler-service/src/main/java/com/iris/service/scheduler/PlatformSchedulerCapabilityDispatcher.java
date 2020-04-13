@@ -360,7 +360,10 @@ class PlatformSchedulerCapabilityDispatcher extends BaseModelHandler implements 
          case SchedulerCapability.FireCommandRequest.NAME:
             fireCommand(request);
             return SchedulerCapability.FireCommandResponse.instance();
-            
+
+         case SchedulerCapability.RecalculateScheduleRequest.NAME:
+            handler.updated();
+            return SchedulerCapability.RecalculateScheduleResponse.instance();
          }
          
          return Errors.unsupportedMessageType(message.getMessageType());
@@ -454,7 +457,7 @@ class PlatformSchedulerCapabilityDispatcher extends BaseModelHandler implements 
       
       sendRequest(body);
    }
-   
+
    private TimeOfDayCommand scheduleWeeklyCommand(MessageBody request) {
       String scheduleId = ScheduleWeeklyCommandRequest.getSchedule(request);
       Errors.assertRequiredParam(scheduleId, ScheduleWeeklyCommandRequest.ATTR_SCHEDULE);

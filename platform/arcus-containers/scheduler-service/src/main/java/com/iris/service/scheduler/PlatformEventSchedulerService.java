@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
+import com.iris.messages.services.PlatformConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,22 +41,27 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.google.inject.Singleton;
 import com.iris.common.scheduler.ScheduledTask;
 import com.iris.common.scheduler.Scheduler;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.messages.address.Address;
+import com.iris.messages.capability.SchedulerCapability;
 import com.iris.messages.event.Listener;
 import com.iris.messages.event.ScheduledEvent;
-import com.iris.metrics.IrisMetricSet;
+import com.iris.messages.model.Place;
+import com.iris.messages.model.serv.SchedulerModel;
+import com.iris.messages.PlatformMessage;
 import com.iris.metrics.IrisMetrics;
+import com.iris.metrics.IrisMetricSet;
 import com.iris.platform.partition.PartitionChangedEvent;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.PlatformPartition;
-import com.iris.platform.scheduler.ScheduleDao;
-import com.iris.platform.scheduler.SchedulerConfig;
 import com.iris.platform.scheduler.model.PartitionOffset;
 import com.iris.platform.scheduler.model.ScheduledCommand;
+import com.iris.platform.scheduler.ScheduleDao;
+import com.iris.platform.scheduler.SchedulerConfig;
 import com.iris.util.ThreadPoolBuilder;
 
 @Singleton
@@ -71,7 +77,9 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
    private final ScheduledExecutorService executor;
    private final Scheduler scheduler;
    private final ScheduleDao scheduleDao;
-   
+   private final PlaceDAO placeDao;
+   private final PlatformSchedulerRegistry registry;
+
    private final SchedulerMetrics metrics;
    private final Map<PlatformPartition, PartitionSchedulerJob> partitions =
          new HashMap<>();
@@ -79,6 +87,8 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
    // TODO tune this
    private final Map<PartitionOffset, EventSchedulerJob> activeJobs =
          new ConcurrentHashMap<>();
+
+   private final boolean sanityCheckExisting;
    
    @Inject
    public PlatformEventSchedulerService(
@@ -86,11 +96,16 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          @Named(NAME_SCHEDULED_EVENT_LISTENER)
          Listener<ScheduledEvent> listener,
          Scheduler scheduler,
-         ScheduleDao scheduleDao
+         ScheduleDao scheduleDao,
+         PlaceDAO placeDao,
+         PlatformSchedulerRegistry registry
    ) {
       this.listener = listener;
       this.scheduler = scheduler;
       this.scheduleDao = scheduleDao;
+      this.placeDao = placeDao;
+      this.registry = registry;
+      this.sanityCheckExisting = config.getSanityCheckExisting();
 
       this.schedulingHorizonMs = TimeUnit.MILLISECONDS.convert(config.getSchedulerHorizonSec(), TimeUnit.SECONDS);
       this.metrics = new SchedulerMetrics();
@@ -138,8 +153,50 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          job.setSchedulerFuture(future);
          this.partitions.put(offset.getPartition(), job);
       }
+
+      if (sanityCheckExisting) {
+         logger.info("Checking assigned schedulers for past due events.");
+         // Check all schedulers
+         for (PlatformPartition p : partitions) {
+            placeDao.streamByPartitionId(p.getId())
+                    .forEach((place) -> checkByPlace(place));
+         }
+         logger.info("Finished checking assigned schedulers for past due events.");
+      }
    }
 
+   private void checkByPlace(Place place) {
+      logger.debug("checking place [{}]", place.getId());
+      registry.loadByPlace(place.getId(), true).forEach((executor) -> checkScheduler(executor, place.getPopulation()));
+   }
+
+   private void checkScheduler(SchedulerCapabilityDispatcher executor, String population) {
+      if (SchedulerModel.getNextFireTime(executor.getScheduler()) == null) {
+         logger.debug("Skipping disabled scheduler [{}]", executor.getScheduler().getId());
+         return;
+      }
+
+      if (SchedulerModel.getNextFireTime(executor.getScheduler()).getTime() < System.currentTimeMillis()) {
+         metrics.onCommandRescheduled();
+         logger.warn("Found scheduler in need of update: [{}]", executor.getScheduler().getId());
+         executor.onPlatformMessage(PlatformMessage
+                 .builder()
+                 .from(Address.fromString(SchedulerModel.getTarget(executor.getScheduler())))
+                 .to(Address.platformService(executor.getScheduler().getId(), SchedulerCapability.NAMESPACE))
+                 .withPlaceId(SchedulerModel.getPlaceId(executor.getScheduler()))
+                 .withPayload(SchedulerCapability.RecalculateScheduleRequest.NAME)
+                 .withPopulation(population)
+                 .create());
+      }
+   }
+
+   /**
+    * Schedule the scheduler at a given time, both in Dao and memory.
+    *
+    * @param placeId
+    * @param address
+    * @param time
+    */
    @Override
    public void fireEventAt(UUID placeId, Address address, Date time) {
       ScheduledCommand command = scheduleDao.schedule(placeId, address, time);
@@ -422,6 +479,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       private final Counter commandFired;
       private final Counter commandExpired;
       private final Counter commandError;
+      private final Counter commandRescheduled;
       
       private SchedulerMetrics() {
          IrisMetricSet metrics = IrisMetrics.metrics("scheduler");
@@ -433,6 +491,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          this.commandFired = metrics.counter("command.sent");
          this.commandExpired = metrics.counter("command.expired");
          this.commandError = metrics.counter("command.error");
+         this.commandRescheduled = metrics.counter("command.rescheduled");
          
          metrics.gauge("partition.count",   (Supplier<Integer>) () -> partitions.size());
          metrics.gauge("partition.pending", (Supplier<Integer>) () -> activeJobs.size());
@@ -469,7 +528,10 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       public void onCommandError() {
          this.commandError.inc();
       }
-      
+
+      public void onCommandRescheduled() {
+         this.commandRescheduled.inc();
+      }
    }
 }
 

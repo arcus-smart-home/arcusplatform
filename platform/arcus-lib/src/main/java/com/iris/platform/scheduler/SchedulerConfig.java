@@ -26,6 +26,7 @@ public class SchedulerConfig {
    public static final String PARAM_SCHEDULING_THREAD_POOL_SIZE  = "scheduler.schedulingThreadPoolSize";
    public static final String PARAM_DISPATCH_THREAD_POOL_SIZE    = "scheduler.dispatchThreadPoolSize";
    public static final String PARAM_DEFAULT_EXPIRATION_TIME_SEC  = "scheduler.defaultExpirationTimeSec";
+   public static final String PARAM_SCHEDULER_SANITY_CHECK       = "scheduler.sanity.check";
 
    @Inject(optional = true) @Named(PARAM_WINDOW_SIZE_SEC)
    private int windowSizeSec = 60;
@@ -37,7 +38,9 @@ public class SchedulerConfig {
    private int dispatchThreadPoolSize = 40;
    @Inject(optional = true) @Named(PARAM_DEFAULT_EXPIRATION_TIME_SEC)
    private int defaultExpirationTimeSec = (int) TimeUnit.DAYS.toSeconds(1);
-   
+   @Inject(optional = true) @Named(PARAM_SCHEDULER_SANITY_CHECK)
+   private boolean sanityCheckExisting = false;
+
    /**
     * @return the windowSizeSec
     */
@@ -107,6 +110,19 @@ public class SchedulerConfig {
    public void setDefaultExpirationTimeSec(int defaultExpirationTimeSec) {
       this.defaultExpirationTimeSec = defaultExpirationTimeSec;
    }
-   
+
+   /**
+    * @return whether to sanity check or not
+    */
+   public boolean getSanityCheckExisting() {
+      return sanityCheckExisting;
+   }
+
+   /**
+    * @param sanityCheckExisting whether to sanity check or not
+    */
+   public void setSanityCheckExisting(boolean sanityCheckExisting) {
+      this.sanityCheckExisting = sanityCheckExisting;
+   }
 }
 
