@@ -177,6 +177,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       }
 
       if (SchedulerModel.getNextFireTime(executor.getScheduler()).getTime() < System.currentTimeMillis()) {
+         metrics.onCommandRescheduled();
          logger.warn("Found scheduler in need of update: [{}]", executor.getScheduler().getId());
          executor.onPlatformMessage(PlatformMessage
                  .builder()
@@ -478,6 +479,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       private final Counter commandFired;
       private final Counter commandExpired;
       private final Counter commandError;
+      private final Counter commandRescheduled;
       
       private SchedulerMetrics() {
          IrisMetricSet metrics = IrisMetrics.metrics("scheduler");
@@ -489,6 +491,7 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
          this.commandFired = metrics.counter("command.sent");
          this.commandExpired = metrics.counter("command.expired");
          this.commandError = metrics.counter("command.error");
+         this.commandRescheduled = metrics.counter("command.rescheduled");
          
          metrics.gauge("partition.count",   (Supplier<Integer>) () -> partitions.size());
          metrics.gauge("partition.pending", (Supplier<Integer>) () -> activeJobs.size());
@@ -525,7 +528,10 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       public void onCommandError() {
          this.commandError.inc();
       }
-      
+
+      public void onCommandRescheduled() {
+         this.commandRescheduled.inc();
+      }
    }
 }
 
