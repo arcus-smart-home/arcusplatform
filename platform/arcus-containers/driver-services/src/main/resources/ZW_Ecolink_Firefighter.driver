@@ -1,0 +1,125 @@
+/*
+ * Copyright 2020 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Z-wave Ecolink Smoke CO Detector
+ */
+
+import static com.iris.protocol.zwave.Alarm.AlarmReportV2
+
+////////////////////////////////////////////////////////////////////////////////
+// DRIVER SETUP
+////////////////////////////////////////////////////////////////////////////////
+
+driver			"ZWEcolinkFirefighterDriver"
+description	    "Driver for an Ecolink Smoke CO Sensor"
+version		    "1.0"
+protocol		"ZWAV"
+deviceTypeHint	"Smoke/CO"
+productId		"831acf"
+vendor 		    "Uncertified"
+model 			"FF-ZWAVE5"
+
+matcher         'ZWAV:Manufacturer': 0x014A, 'ZWAV:ProductType': 0x0005, 'ZWAV:ProductId': 0x000f
+
+
+capabilities	Smoke, CarbonMonoxide
+
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Smoke {
+   Smoke.smoke Smoke.SMOKE_SAFE
+   bind smokechanged to Smoke.smoke
+}
+
+CarbonMonoxide {
+   CarbonMonoxide.co CarbonMonoxide.CO_SAFE
+   CarbonMonoxide.eol CarbonMonoxide.EOL_OK
+   bind cochanged to CarbonMonoxide.co
+}
+
+Test {
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PLATFORM LIFECYCLE
+////////////////////////////////////////////////////////////////////////////////
+onAdded {
+   log.debug "{} added", DEVICE_NAME
+
+   Test.lastTestTime       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "{} connected", DEVICE_NAME
+}
+
+onDisconnected {
+   log.debug "{} disconnected", DEVICE_NAME
+}
+
+
+onRemoved {
+   log.debug "{} removed", DEVICE_NAME
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// REFLEX CONFIGURATION
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+    offlineTimeout 210, MINUTES
+
+    //**********************************************************************************
+    //SMOKE REFLEXES
+    //**********************************************************************************
+    match reflex {
+        on alarm.report, notificationtype: 0x01, event: 0x02
+        set Smoke.smoke, Smoke.SMOKE_DETECTED
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x01, event: 0x00
+        set Smoke.smoke, Smoke.SMOKE_SAFE
+    }
+
+    //**********************************************************************************
+    //CO REFLEXES
+    //**********************************************************************************
+    match reflex {
+        on alarm.report, notificationtype: 0x02, event: 0x02
+        set CarbonMonoxide.co, CarbonMonoxide.CO_DETECTED
+    }
+    match reflex {
+        on alarm.report, notificationtype: 0x02, event: 0x00
+        set CarbonMonoxide.co, CarbonMonoxide.CO_SAFE
+    }
+}
+
+onZWaveMessage.battery.report {
+   // pass message to generic ZWave Battery Report handler
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {} with data {}", DEVICE_NAME, message, message.command.recvBytes
+    return false;
+}
