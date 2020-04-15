@@ -319,6 +319,7 @@
       <xs:enumeration value="Google"/>
       <xs:enumeration value="Amazon"/>
       <xs:enumeration value="Lux"/>
+      <xs:enumeration value="Ring" />
     </xs:restriction>
   </xs:simpleType>
 
