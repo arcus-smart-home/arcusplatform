@@ -4288,6 +4288,29 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="831acf" name="Firefighter (FF-ZWAVE5)" shortname="Smoke Detector" screen="Smoke/CO"  description="" manufacturer="Ecolink" vendor="Ecolink" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="ecolink, sensor, alarm, zwave, battery, smoke, firefighter, detector, ff-zwave5" ota="No" protofamily="Z-Wave" added="2020-04-14T21:00:00-0600" lastchanged="2020-04-14T21:00:00-0600">
+      <categories>
+        <category name="Smoke &amp; CO"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert the batteries"/>
+        <step2 type="text" img="" text="Press teh pair button on the device for one second"/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Put the battery in the sensor"/>
+        <step2 type="text" img="" text="Do not press the tamper switch"/>
+        <step3 type="text" img="" text="Hold the learn button for 10 seconds until the LED turns RED"/>
+        <step4 type="text" img="" text="Release the learn button and wait for the sensor’s green LED to “breath” on and off continuously. The sensor is now ready to be added to a Z-Wave Plus network, and all settings have been restored."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="64ffad" name="Vizia Electrical Outlet (VRR15-1LZ Z-Wave)" shortname="Electrical Outlet" screen="Switch" description="" manufacturer="Leviton" vendor="Leviton" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="leviton, indoor, control, in, wall, outlet, plug, switch, energy, duplex, receptacle, 120, volt, power, zwave, vizia, vrr15, vrr15-1lz, decora" ota="No" protofamily="Z-Wave" added="2016-02-29T10:00:00-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
