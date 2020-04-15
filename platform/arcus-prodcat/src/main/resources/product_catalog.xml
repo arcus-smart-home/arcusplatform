@@ -57,6 +57,7 @@
     <brand name="Yale"/>
     <brand name="Zooz"/>
     <brand name="Z-Wave"/>
+    <brand name="Ring" />
   </brands>
   <categories>
     <category name="Cameras &amp; Sensors"/>
@@ -5221,6 +5222,28 @@
         <step1 type="text" img="" text="On the Home screen, press the knob once to open the menu and rotate the knob to open the gear (Settings page) and press to select. Rotate the knob to Factory Reset and press select again."/>
       </reset>
       <reconnect/>
+    </product>
+    <product id="afd531" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Ring, indoor, range, signal, extender, zwave" ota="" protofamily="Z-Wave" added="2020-04-14T21:00:00-0600" lastchanged="2020-04-14T21:00:00-0600">
+      <categories>
+        <category name="More"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the range extender into an outlet that is no more than 10 feet from your hub in order to pair it.  You can move it after pairing."/>
+        <step2 type="text" img="" text="The light on the front of the range extender will flash.  The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Unplug the range extender from the outlet. Using a paperclip, hold the small button on the front for 15 seconds, then reinsert the range extender."/>
+        <step2 type="text" img="" text="Immediately press the front button eight or more times, allowing one second between presses."/>
+        <step3 type="text" img="" text="The green light on the range extender will flash when it has returned to pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
     </product>
   </products>
 </prodcat>

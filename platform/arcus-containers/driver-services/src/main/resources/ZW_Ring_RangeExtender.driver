@@ -1,0 +1,107 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Ring Range Extender
+ *
+ * ISSUES/NOTES:
+ *
+ * FACTORY RESET:
+ *
+ * PAIR:
+ * UNPAIR:
+ *
+ */
+import groovy.transform.Field
+
+driver          "ZWRingRangeExtender"
+description     "Driver for a Ring Range Extender"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "rangeextender"
+productId       "afd531"
+vendor          "RING"
+model           "4AR1S70EN0"
+
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0101
+
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0201
+
+capabilities    DevicePower
+
+
+def final int OFFLINE_TIMEOUT_SECS   = 3600               // 60 minutes
+
+def final String DEVICE_NAME = "Ring Range Extender"
+
+
+DevicePower {
+   source DevicePower.SOURCE_LINE
+   linecapable true
+   backupbatterycapable true
+   bind sourcechanged to source
+}
+
+ZWave {
+    poll reflex{
+        after 20, MINUTES
+        send manufacturer_specific.get
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x08, event: 0x02
+        set DevicePower.source, DevicePower.SOURCE_BATTERY
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x08, event: 0x03
+        set DevicePower.source, DevicePower.SOURCE_LINE
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+}
+
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+onZWaveNodeInfo {
+	log.debug "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+onZWaveMessage.battery.report {
+   // pass message to generic ZWave Battery Report handler
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
