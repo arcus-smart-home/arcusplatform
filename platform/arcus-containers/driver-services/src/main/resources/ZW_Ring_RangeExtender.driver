@@ -62,7 +62,7 @@ ZWave {
 
     match reflex {
         on alarm.report, notificationtype: 0x08, event: 0x02
-        set DevicePower.source, DevicePower.SOURCE_BATTERY
+        set DevicePower.source, DevicePower.SOURCE_BACKUPBATTERY
     }
 
     match reflex {
