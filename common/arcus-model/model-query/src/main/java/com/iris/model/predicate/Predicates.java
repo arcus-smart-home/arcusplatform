@@ -148,10 +148,19 @@ public class Predicates {
 
    private static Object coerce(String name, Object value) {
       Object coerced = null;
+
+      if (value == null) {
+         return value;
+      }
+
       try {
          coerced = IrisAttributeLookup.coerce(name, value);
       } catch (Exception e) {
          logger.trace("failed to coerce [attribute={}, oldType={} newType={}]: ",name, value.getClass(), value.getClass());
+      }
+
+      if (coerced == null) {
+         return value; // Don't convert to null.
       }
 
       if (coerced.getClass().equals(value.getClass())) {
