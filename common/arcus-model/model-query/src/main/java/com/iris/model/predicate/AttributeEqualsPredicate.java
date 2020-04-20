@@ -21,6 +21,8 @@ package com.iris.model.predicate;
 import java.io.Serializable;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -31,6 +33,8 @@ import com.iris.messages.model.Model;
  * 
  */
 public class AttributeEqualsPredicate implements Predicate<Model>, Serializable {
+   private static final Logger logger = LoggerFactory.getLogger(AttributeEqualsPredicate.class);
+
    private final String attributeName;
    private final Object attributeValue;
 
@@ -51,13 +55,15 @@ public class AttributeEqualsPredicate implements Predicate<Model>, Serializable 
          // TODO logger
          return false;
       }
-      
+
       if(!Objects.equal(attributeValue, value)) {
-         // TODO logger
+         logger.trace("comparison for [attributeName={}, attributeValue={}, value={}] is not equal",
+                 attributeName, attributeValue, value);
          return false;
       }
-      
-      // TODO logger
+
+      logger.trace("comparison for [attributeName={}, attributeValue={}, value={}] is equal",
+              attributeName, attributeValue, value);
       return true;
    }
 
