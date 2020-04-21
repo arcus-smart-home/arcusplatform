@@ -27,11 +27,15 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.DeviceConnectionCapability;
 import com.iris.messages.model.Model;
+import com.iris.util.IrisAttributeLookup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 
  */
 public class Predicates {
+   private static final Logger logger = LoggerFactory.getLogger(Predicates.class);
 
    private static final Predicate<Model> isDevice = typeEquals(DeviceCapability.NAMESPACE);
    private static final Predicate<Model> isDeviceOffline = attributeEquals(DeviceConnectionCapability.ATTR_STATE, DeviceConnectionCapability.STATE_OFFLINE);
@@ -91,11 +95,11 @@ public class Predicates {
    }
    
    public static Predicate<Model> attributeEquals(String attributeName, Object attributeValue) {
-      return new AttributeEqualsPredicate(attributeName, attributeValue);
+      return new AttributeEqualsPredicate(attributeName, coerce(attributeName, attributeValue));
    }
    
    public static Predicate<Model> attributeNotEquals(String attributeName, Object attributeValue) {
-      return new AttributeNotEqualsPredicate(attributeName, attributeValue);
+      return new AttributeNotEqualsPredicate(attributeName, coerce(attributeName, attributeValue));
    }
 
    public static Predicate<Model> attributeContains(String attributeName, Object attributeValue) {
@@ -142,5 +146,29 @@ public class Predicates {
       return new AttributeLessThanEqualToPredicate(attributeName,attributeValue);
    }
 
+   private static Object coerce(String name, Object value) {
+      Object coerced = null;
+
+      if (value == null) {
+         return value;
+      }
+
+      try {
+         coerced = IrisAttributeLookup.coerce(name, value);
+      } catch (Exception e) {
+         logger.trace("failed to coerce [attribute={}, oldType={} newType={}]: ",name, value.getClass(), value.getClass());
+      }
+
+      if (coerced == null) {
+         return value; // Don't convert to null.
+      }
+
+      if (coerced.getClass().equals(value.getClass())) {
+         return value;
+      }
+
+      logger.debug("coercing [{}] from [{}] to [{}]", name, value.getClass(), coerced.getClass());
+      return coerced;
+   }
 }
 
