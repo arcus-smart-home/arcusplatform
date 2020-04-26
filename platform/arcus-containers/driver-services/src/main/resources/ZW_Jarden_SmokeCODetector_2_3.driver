@@ -821,6 +821,8 @@ onZWaveMessage.alarm.report {
          log.warn "{} sent unknown alarm type: {}", DEVICE_NAME, curType
          return false
    }
+
+   return true
 }
 
 onZWaveMessage.battery.report {
