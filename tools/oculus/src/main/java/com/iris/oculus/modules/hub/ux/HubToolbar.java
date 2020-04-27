@@ -23,6 +23,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 
+import com.iris.client.ClientRequest;
+import com.iris.client.capability.Hub;
 import com.iris.client.capability.HubZwave;
 import com.iris.client.capability.HubZwave.NetworkInformationResponse;
 import com.iris.client.event.ClientFuture;
@@ -135,11 +137,15 @@ public class HubToolbar extends JPanel {
    
    public void onGraph() {
       graph.setEnabled(false);
+
+      ClientRequest request = new ClientRequest();
+      request.setCommand(HubZwave.NetworkInformationRequest.NAME);
+      request.setAddress(this.model.getAddress());
+
       ClientFuture<?> theFuture =
-         ((HubZwave) this.model)
-            .networkInformation()
+         this.model.request(request)
             // FIXME update i2common and refer to the constant
-            .onSuccess((NetworkInformationResponse response) -> NetworkGraph.show((String) response.getAttribute("graph")))
+            .onSuccess((response) -> NetworkGraph.show((String) response.getAttribute("graph")))
             .onFailure((cause) -> Oculus.error("Unable to analyze network", Actions.build("Details", (e) -> Oculus.showError("Fail", cause))))
             .onCompletion((e) -> graph.setEnabled(true))
             ;
