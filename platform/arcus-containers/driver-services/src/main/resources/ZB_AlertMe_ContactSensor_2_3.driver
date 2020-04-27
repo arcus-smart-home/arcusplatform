@@ -34,8 +34,7 @@
  *  - Apparently we do not have to write the IAS CIE ADDRESS to this device for the IAS Zone Cluster.
  *  - We send a Stop Polling (0xFD) message after each Lifesign message received, to lengthen time between 
  *    Lifesign messages to 2 minutes.
- *  - Currently we do not do anything with TAMPER information, other than log it at TRACE level.
- *  
+ *
  *
  * End Point:   0x02
  * Profile ID:  0xC216
@@ -93,6 +92,9 @@ Temperature {
     temperature null
 }
 
+Tamper {
+    Tamper.tamper Tamper.TAMPER_CLEAR
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Driver Reflex Declarations
@@ -181,9 +183,21 @@ onZigbeeMessage(Zigbee.TYPE_ZCL) {
     // Cluster 0x00F2 is Tamper Cluster
     if (242 == clusterId) {
         if (messageId == 0) {
+            def prevState = Tamper.tamper.get()
+
+            Tamper.tamper Tamper.TAMPER_TAMPERED
+            if (Tamper.tamper.get() != prevState) {
+                Tamper.tamperchanged(new Date())
+            }
             log.trace "Sensor Tamper: DETECTED (cover removed)"
         }
         if (messageId == 1) {
+            def prevState = Tamper.tamper.get()
+
+            Tamper.tamper Tamper.TAMPER_CLEAR
+            if (Tamper.tamper.get() != prevState) {
+                Tamper.tamperchanged(new Date())
+            }
             log.trace "Sensor Tamper: NONE"
         }
         return
