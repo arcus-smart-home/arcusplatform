@@ -21,8 +21,12 @@
  * FACTORY RESET:
  *
  * PAIR:
- * UNPAIR:
+ *   Open the contact sensor's battery cover.
+ *   Remove the battery, replacing quickly.
  *
+ * UNPAIR:
+ *   Open the contact sensor's battery cover.
+ *   Press the tamper switch.
  */
 import groovy.transform.Field
 
