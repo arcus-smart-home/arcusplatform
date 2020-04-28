@@ -5245,5 +5245,26 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="cad253" name="Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Ring, contact, sensor zwave" ota="" protofamily="Z-Wave" added="2020-04-27T20:00:00-0600" lastchanged="2020-04-27T20:00:00-0600">
+      <categories>
+        <category name="More"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Open the contact sensor's battery cover."/>
+        <step2 type="text" img="" text="Remove the battery, replacing quickly."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Open the contact sensor's battery cover."/>
+        <step2 type="text" img="" text="Press the tamper switch once."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
   </products>
 </prodcat>
