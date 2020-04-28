@@ -39,7 +39,7 @@ protocol        "ZWAV"
 deviceTypeHint  "Contact"
 productId       "cad253"
 vendor          "RING"
-model           "4AR1S70EN0"
+model           "4XD3S70EN0"
 
 matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0201
 
