@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="Tamper"
+   namespace="tamp"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
+   
+   <c:description>
+   Model of a tamper sensor.
+   </c:description>
+   
+   <c:attributes>
+   <c:attribute
+      name="tamper"
+      readwrite="r" 
+      type="enum"
+      values="TAMPERED,CLEAR"
+      optional="false" 
+      description="Reflects the state of the tamper sensor (tampered or clear)."/>
+   <c:attribute 
+      name="tamperchanged"
+      readwrite="r" 
+      type="timestamp" 
+      optional="false" 
+      description="UTC date time of last tamper change"/>
+   </c:attributes>
+</c:capability>

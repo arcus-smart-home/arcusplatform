@@ -34,6 +34,7 @@ import com.iris.platform.history.appender.devvc.DeviceSmokeAppender;
 import com.iris.platform.history.appender.devvc.DeviceSpaceHeaterAppender;
 import com.iris.platform.history.appender.devvc.DeviceSwitchAppender;
 import com.iris.platform.history.appender.devvc.DeviceThermostatAppender;
+import com.iris.platform.history.appender.devvc.DeviceTamperAppender;
 import com.iris.platform.history.appender.devvc.DeviceTiltAppender;
 import com.iris.platform.history.appender.devvc.DeviceValveAppender;
 import com.iris.platform.history.appender.devvc.DeviceVentAppender;
@@ -85,6 +86,7 @@ public class HistoryAppenderModule extends AbstractIrisModule {
       bind(DeviceSmokeAppender.class);
       bind(DeviceSwitchAppender.class);
       bind(DeviceThermostatAppender.class);
+      bind(DeviceTamperAppender.class);
       bind(DeviceTiltAppender.class);
       bind(DeviceValveAppender.class);
       bind(DeviceVentAppender.class);
