@@ -1,0 +1,115 @@
+/*
+ * Copyright 2020 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Ring Contact Sensor
+ *
+ * ISSUES/NOTES:
+ *
+ * FACTORY RESET:
+ *
+ * PAIR:
+ *   Open the contact sensor's battery cover.
+ *   Remove the battery, replacing quickly.
+ *
+ * UNPAIR:
+ *   Open the contact sensor's battery cover.
+ *   Press the tamper switch.
+ */
+import groovy.transform.Field
+
+uses "generic.GenericContact"
+
+driver          "ZWRingContactSensor"
+description     "Driver for a Ring Contact Sensor"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Contact"
+productId       "cad253"
+vendor          "RING"
+model           "4XD3S70EN0"
+
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0201
+
+capabilities    DevicePower
+
+
+def final int OFFLINE_TIMEOUT_SECS   = 3600               // 60 minutes
+
+def final String DEVICE_NAME = "Ring Contact Sensor"
+
+Contact {
+    Contact.contact  Contact.CONTACT_CLOSED
+    Contact.usehint  Contact.USEHINT_UNKNOWN
+    bind contactchanged to Contact.contact
+}
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+}
+
+ZWave {
+    poll reflex{
+        after 20, MINUTES
+        send manufacturer_specific.get
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x07, event: 0x00
+        set Contact.contact, Contact.CONTACT_CLOSED
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x07, event: 0x02
+        set Contact.contact, Contact.CONTACT_OPENED
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+}
+
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+onZWaveNodeInfo {
+	log.debug "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+onZWaveMessage.battery.report {
+   // pass message to generic ZWave Battery Report handler
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
