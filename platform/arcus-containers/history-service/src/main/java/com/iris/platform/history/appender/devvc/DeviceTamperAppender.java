@@ -33,8 +33,8 @@ import static com.iris.messages.capability.TamperCapability.*;
 @Singleton
 @Group(DeviceCapability.NAMESPACE)
 @AutoTranslate()
-@EnumValue(attr=ATTR_TAMPER, val=TAMPER_TAMPERED, tpl="device.tamper.tampered", critical=true)
-@EnumValue(attr=ATTR_TAMPER, val=TAMPER_CLEAR, tpl="device.tamper.clear", critical=true)
+@EnumValue(attr=ATTR_TAMPER, val=TAMPER_TAMPERED, tpl="device.tamper.tampered", critical=false)
+@EnumValue(attr=ATTR_TAMPER, val=TAMPER_CLEAR, tpl="device.tamper.clear", critical=false)
 public class DeviceTamperAppender extends AnnotatedDeviceValueChangeAppender {
 
 	@Inject
