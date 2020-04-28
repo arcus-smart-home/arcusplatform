@@ -5223,7 +5223,7 @@
       </reset>
       <reconnect/>
     </product>
-    <product id="afd531" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Ring, indoor, range, signal, extender, zwave" ota="" protofamily="Z-Wave" added="2020-04-14T21:00:00-0600" lastchanged="2020-04-14T21:00:00-0600">
+    <product id="afd531" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Ring, indoor, range, signal, extender, zwave" ota="" protofamily="Z-Wave" added="2020-04-14T21:00:00-0600" lastchanged="2020-04-14T21:00:00-0600">
       <categories>
         <category name="More"/>
       </categories>
@@ -5245,7 +5245,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="cad253" name="Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Ring, contact, sensor zwave" ota="" protofamily="Z-Wave" added="2020-04-27T20:00:00-0600" lastchanged="2020-04-27T20:00:00-0600">
+    <product id="cad253" name="Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Ring, contact, sensor zwave" ota="" protofamily="Z-Wave" added="2020-04-27T20:00:00-0600" lastchanged="2020-04-27T20:00:00-0600">
       <categories>
         <category name="More"/>
       </categories>
