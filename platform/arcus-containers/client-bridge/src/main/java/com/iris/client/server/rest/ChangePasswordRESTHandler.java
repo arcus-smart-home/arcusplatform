@@ -28,6 +28,8 @@ import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -58,8 +60,11 @@ import com.iris.messages.services.PlatformConstants;
 @Singleton
 @HttpPost("/person/ChangePassword")
 public class ChangePasswordRESTHandler extends HttpResource {
-   public static final String EMAIL_NOT_FOUND_ERROR_CODE = "error.changepassword.emailnotfound";   
+   public static final String EMAIL_NOT_FOUND_ERROR_CODE = "error.changepassword.emailnotfound";
+   public static final int MAX_PASSWORD_LENGTH = 100;
+   public static final int MIN_PASSWORD_LENGTH = 8;
 
+   private static final Logger logger = LoggerFactory.getLogger(ChangePasswordRESTHandler.class);
    private final ClientFactory clientFactory;
    private final PersonDAO personDao;
    private final PlatformMessageBus platformBus;
@@ -98,6 +103,9 @@ public class ChangePasswordRESTHandler extends HttpResource {
       String newPassword = PersonService.ChangePasswordRequest.getNewPassword(clientMessage.getPayload());
       String emailAddress = PersonService.ChangePasswordRequest.getEmailAddress(clientMessage.getPayload());
 
+      Errors.assertValidRequest(newPassword.length() < MAX_PASSWORD_LENGTH, "New password is too long.");
+      Errors.assertValidRequest(newPassword.length() > MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+
       MessageBody responseBody;
       HttpResponseStatus status;
 
@@ -115,8 +123,11 @@ public class ChangePasswordRESTHandler extends HttpResource {
       } else {
          boolean success = personDao.updatePassword(emailAddress, currentPassword, newPassword);
          if(success){
+            logger.info("person=[{}] changed their password.", person.getId()); // Audit event
             notify(person, client);
             if(client != null) { client.getAuthorizationContext(true); }
+         } else {
+            logger.info("person=[{}] failed to change their password.", person.getId()); // Audit event
          }
          responseBody = PersonService.ChangePasswordResponse.builder().withSuccess(success).build();
          status = success?HttpResponseStatus.OK:HttpResponseStatus.BAD_REQUEST;
