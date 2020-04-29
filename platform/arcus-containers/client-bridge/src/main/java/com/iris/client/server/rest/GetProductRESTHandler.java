@@ -29,6 +29,7 @@ import com.iris.core.dao.PlaceDAO;
 import com.iris.core.dao.PopulationDAO;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
+import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.ProductCatalogService;
 import com.iris.messages.service.ProductCatalogService.GetProductRequest;
@@ -60,7 +61,7 @@ public class GetProductRESTHandler extends ProductCatalogRESTHandler {
 	 * @throws Exception
 	 */
 	@Override
-	protected MessageBody doHandle(ClientMessage request) throws Exception {
+	protected MessageBody doHandle(ClientMessage request) throws ErrorEventException {
 		MessageBody payload = request.getPayload(); // User supplied
 		String placeAddressStr = ProductCatalogService.GetProductsRequest.getPlace(payload); // TODO: ensure this place is one the user has access to?
       Population population = determinePopulationFromRequest(placeAddressStr);
@@ -69,10 +70,7 @@ public class GetProductRESTHandler extends ProductCatalogRESTHandler {
 		String id = ProductCatalogService.GetProductRequest.getId(payload);
 		
 		Errors.assertRequiredParam(id, GetProductRequest.ATTR_ID);
-
-		if (id.length() == 0 || id.length() > MAX_PRODUCT_ID_SIZE) {
-			Errors.invalidParam(GetProductRequest.ATTR_ID);
-		}
+		Errors.assertValidRequest(id.length() != 0 && id.length() <= MAX_PRODUCT_ID_SIZE, "supplied parameter is invalid");
 
 		ProductCatalogEntry product = catalog.getProductById(id);
 
