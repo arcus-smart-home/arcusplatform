@@ -25,6 +25,9 @@ import java.net.URLEncoder;
 import java.util.Objects;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.metrics.BridgeMetrics;
@@ -46,6 +49,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.PersonCapability;
+import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Person;
 import com.iris.messages.service.PersonService;
 import com.iris.messages.services.PlatformConstants;
@@ -71,7 +75,10 @@ public class ResetPasswordRESTHandler extends HttpResource {
    private static final String PERSON_NOT_FOUND_MSG = "Unable to locate record for person";
    private static final String PASSWORD_RESET_FAILED_MSG = "Unable to reset password, perhaps try again.";
    private static final String PASSWORD_RESET_TOKEN_FAILED_MSG = "Unable to reset password because reset token doesn't match, perhaps try again.";
+   public static final int MAX_PASSWORD_LENGTH = 100;
+   public static final int MIN_PASSWORD_LENGTH = 8;
 
+   private static final Logger logger = LoggerFactory.getLogger(ResetPasswordRESTHandler.class);
    private final CookieConfig cookieConfig;
    private final PersonDAO personDao;
    private final PlatformMessageBus platformBus;
@@ -98,6 +105,9 @@ public class ResetPasswordRESTHandler extends HttpResource {
       String password = PersonService.ResetPasswordRequest.getPassword(body);
       Person person = personDao.findByEmail(email);
 
+      Errors.assertValidRequest(password.length() < MAX_PASSWORD_LENGTH, "New password is too long.");
+      Errors.assertValidRequest(password.length() > MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+
       if(person == null) {
          return error(CODE_PERSON_NOT_FOUND, PERSON_NOT_FOUND_MSG);
       }
@@ -107,12 +117,15 @@ public class ResetPasswordRESTHandler extends HttpResource {
             password);
 
       if (result == FAILURE) {
+         logger.info("person=[{}] failed to reset their password - general failure", person.getId()); // Audit event
          return error(CODE_PERSON_RESET_FAILED, PASSWORD_RESET_FAILED_MSG);
       }
       else if (result == TOKEN_FAILURE) {
+         logger.info("person=[{}] failed to reset their password - wrong token", person.getId()); // Audit event
          return error(CODE_PERSON_RESET_TOKEN_FAILED, PASSWORD_RESET_TOKEN_FAILED_MSG);
       }
 
+      logger.info("person=[{}] reset their password", person.getId()); // Audit event
       notify(person);
       FullHttpResponse response = login(email, password, ctx);
 
