@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -44,6 +46,7 @@ import com.iris.security.authz.AuthorizationGrant;
 @Singleton
 @HttpPost("/person/ChangePinV2")
 public class ChangePinV2RESTHandler extends BasePinRESTHandler {
+   private static final Logger logger = LoggerFactory.getLogger(ChangePinV2RESTHandler.class);
 
    @Inject
    public ChangePinV2RESTHandler(
@@ -88,6 +91,7 @@ public class ChangePinV2RESTHandler extends BasePinRESTHandler {
          person = personDao.updatePinAtPlace(person, UUID.fromString(place), newPin);
 
          broadcastValueChange(person, place, grants, hadPinAtPlace, previousPlacesWithPin);
+         logger.info("person=[{}] changed their pin at place=[{}]", person.getId(), UUID.fromString(place)); // Audit event
          notify(person, place);
       }
 
