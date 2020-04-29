@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Arcus Project
+ * Copyright 2020 Arcus Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,14 +88,14 @@ public class LockDeviceRESTHandler extends RESTHandler {
 
    @Override
    public FullHttpResponse respond(FullHttpRequest req, ChannelHandlerContext ctx) throws Exception {
-      try{
+      try {
          FullHttpResponse response = super.respond(req, ctx);
          response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(authenticator.expireCookie()));
          return response;
-      }finally{
-         try{
+      } finally {
+         try {
             factory.get(ctx.channel()).logout();
-         }catch (Throwable t) {
+         } catch (Throwable t) {
             logger.debug("Error attempting to logout current user", t);
          }
       }
@@ -110,24 +110,24 @@ public class LockDeviceRESTHandler extends RESTHandler {
       validateParameters(deviceIdentifier, reason);
 
       MobileDevice mobileDeviceRecord = mobileDeviceDao.findWithToken(deviceIdentifier);
-      if(mobileDeviceRecord != null) {
+      if (mobileDeviceRecord != null) {
          //0. Make sure the person id in the mobile device record matches the person logged in
          Client client = factory.get(ctx.channel());
-         if(client.getPrincipalId().equals(mobileDeviceRecord.getPersonId())) {
+         if (client.getPrincipalId().equals(mobileDeviceRecord.getPersonId())) {
             //1. Device the mobile device record
             mobileDeviceDao.delete(mobileDeviceRecord);
             //2. Send notification if reason is TOUCH_FAILED
             boolean isSend = sendNotificationIfNecessary(mobileDeviceRecord);
-            if(!isSend) {
+            if (!isSend) {
                logger.warn("Failed to send notification during device lock for deviceIdentifier [{}]", deviceIdentifier);
-            }else{
+            } else {
                //success
                return LockDeviceResponse.instance();
             }
-         }else{
+         } else {
             logger.warn("The person id in the mobile device record does not match the person logged in");
          }
-      }else{
+      } else {
          logger.warn("Failed to send notification during device lock for deviceIdentifier [{}] because mobile device record is not found", deviceIdentifier);
       }
       return Errors.invalidRequest("Lock Device request failed");
@@ -139,9 +139,9 @@ public class LockDeviceRESTHandler extends RESTHandler {
    }
 
    private boolean sendNotificationIfNecessary(MobileDevice mobileDeviceRecord){
-      if(mobileDeviceRecord.getPersonId() != null) {
+      if (mobileDeviceRecord.getPersonId() != null) {
          Person person = personDao.findById(mobileDeviceRecord.getPersonId());
-         if(person != null && person.getCurrPlace() != null) {
+         if (person != null && person.getCurrPlace() != null) {
             Notifications.sendEmailNotification(bus, person.getId().toString(), person.getCurrPlace().toString(), populationCacheMgr.getPopulationByPlaceId(person.getCurrPlace()), Notifications.TouchFailed.KEY,
                     ImmutableMap.<String, String>of(Notifications.TouchFailed.PARAM_DEVICE_MODEL, emptyIfNull(mobileDeviceRecord.getDeviceModel()),
                             Notifications.TouchFailed.PARAM_DEVICE_VENDOR, emptyIfNull(mobileDeviceRecord.getDeviceVendor()),
@@ -155,9 +155,9 @@ public class LockDeviceRESTHandler extends RESTHandler {
    }
 
    private String emptyIfNull(String str) {
-      if(str == null) {
+      if (str == null) {
          return "";
-      }else{
+      } else{
          return str;
       }
    }
@@ -165,15 +165,9 @@ public class LockDeviceRESTHandler extends RESTHandler {
    private void validateParameters(String deviceId, String reason) {
       Errors.assertRequiredParam(deviceId, LockDeviceRequest.ATTR_DEVICEIDENTIFIER);
       Errors.assertRequiredParam(reason, LockDeviceRequest.ATTR_REASON);
-      if(!LockDeviceRequest.REASON_TOUCH_FAILED.equals(reason) && !LockDeviceRequest.REASON_USER_REQUESTED.equals(reason)) {
+      if (!LockDeviceRequest.REASON_TOUCH_FAILED.equals(reason) && !LockDeviceRequest.REASON_USER_REQUESTED.equals(reason)) {
          new ErrorEventException(Errors.invalidParam(LockDeviceRequest.ATTR_REASON));
       }
 
    }
-
-
-
-
-
 }
-
