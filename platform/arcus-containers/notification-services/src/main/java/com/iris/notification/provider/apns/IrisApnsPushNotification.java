@@ -16,14 +16,14 @@
 package com.iris.notification.provider.apns;
 
 import com.iris.platform.notification.Notification;
-import com.relayrides.pushy.apns.util.SimpleApnsPushNotification;
+import com.eatthepath.pushy.apns.util.SimpleApnsPushNotification;
 
 public class IrisApnsPushNotification extends SimpleApnsPushNotification {
 
     private final Notification notification;
 
-    public IrisApnsPushNotification(Notification notification, byte[] token, String payload) {
-        super(token, payload);
+    public IrisApnsPushNotification(Notification notification, String token, String topic, String payload) {
+        super(token, topic, payload);
         this.notification = notification;
     }
 
