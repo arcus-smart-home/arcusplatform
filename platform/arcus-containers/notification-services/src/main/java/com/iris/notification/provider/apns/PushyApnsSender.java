@@ -91,7 +91,7 @@ public class PushyApnsSender implements ApnsSender {
             if (response.isAccepted()) {
                 upstreamResponder.handleHandOff(notification);
             } else {
-                System.out.println("Notification rejected by the APNs gateway: " +
+                logger.warn("Notification rejected by the APNs gateway: " +
                         response.getRejectionReason());
 
                 if (response.getTokenInvalidationTimestamp() != null) {
