@@ -24,7 +24,7 @@ public class NoopApnsSender implements ApnsSender {
     private static final Logger logger = LoggerFactory.getLogger(NoopApnsSender.class);
 
     @Override
-    public void sendMessage(final Notification notification, final byte[] token, final String payload) {
+    public void sendMessage(final Notification notification, final String token, final String payload) {
        logger.warn("noop apns sender dropping notification: {} - {}", notification, payload);
     }
 }

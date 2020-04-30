@@ -18,6 +18,6 @@ package com.iris.notification.provider.apns;
 import com.iris.platform.notification.Notification;
 
 public interface ApnsSender {
-    public void sendMessage(final Notification notification, final byte[] token, final String payload);
+    public void sendMessage(final Notification notification, String token, final String payload);
 }
 
