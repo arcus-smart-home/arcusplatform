@@ -114,7 +114,11 @@ public class ApnsProvider extends AbstractPushNotificationProvider implements No
     }
 
     private void sendNotificationToDevice(Notification notification, String deviceToken, String payload) {
-        sender.sendMessage(notification, deviceToken, payload);
+       sender.sendMessage(notification, removeSpaces(deviceToken), payload);
     }
+
+    private String removeSpaces(String token) {
+       return token.replaceAll("\\s+", "");
+   }
 }
 
