@@ -347,7 +347,7 @@ public class Client {
          if (frame instanceof CloseWebSocketFrame) {
             CloseWebSocketFrame closeFrame = (CloseWebSocketFrame)frame;
             if(STATUS_EXPIRED_STATUS == closeFrame.statusCode()) {
-               disconnect(CloseCause.SESSION_EXPIRED);
+               Client.this.disconnect(CloseCause.SESSION_EXPIRED);
             }
             else {
                reconnect();
