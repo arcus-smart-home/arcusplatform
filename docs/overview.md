@@ -61,7 +61,7 @@ If you do not deploy all of these services, the web ui will not be able to load 
 
 ### Docker
 
-If you are not familar with Docker, you should take some time to look up Docker basics first, even if it's just a 15 minute introduction or crash course.
+If you are not familiar with Docker, you should take some time to look up Docker basics first, even if it's just a 15 minute introduction or crash course.
 
 It is recommended that you setup docker in direct lvm mode, see https://docs.docker.com/storage/storagedriver/device-mapper-driver/#configure-direct-lvm-mode-for-production
 
