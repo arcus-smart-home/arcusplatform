@@ -13,7 +13,7 @@ if [ -z "${IMAGES}" ]; then
     IMAGES="${IMAGES} arcus-zookeeper"
     IMAGES="${IMAGES} arcus-kafka"
     IMAGES="${IMAGES} arcus-cassandra"
-    IMAGES="${IMAGES} arcus-kairosdb"
+#    IMAGES="${IMAGES} arcus-kairosdb"
 fi
 
 docker_tag_for_registry() {
