@@ -6,7 +6,7 @@ This page outlines some of the high-level compatibility for Arcus and how to get
 
 The following classes of devices are supported:
 
-A few examples of what works:
+Some examples of what works:
 
 * Iris first generation devices, including Contact Sensors, Motion Sensors, Range Extenders, and Smart Plugs
 * Iris second generation devices, including Keyfobs, Contact Sensors, Motion Sensors, and Smart Plugs
@@ -27,6 +27,7 @@ A few examples of what works:
 ### Needs confirmation
 
 * Alexa
+* Google Assistant
 
 ## Pre-reqs
 
@@ -38,9 +39,9 @@ A few examples of what works:
 
 #### Platform (khakis)
 Start by deploying the following:
-* eyeris/zookeeper - this is required by kafka.
-* eyeris/kafka - for getting messages between the bridges (e.g. hub-bridge and client-bridge) to the respective message processing services (e.g. subsystem-service).
-* eyeris/cassandra - used for persistent storage.
+* arcus/zookeeper - this is required by kafka.
+* arcus/kafka - for getting messages between the bridges (e.g. hub-bridge and client-bridge) to the respective message processing services (e.g. subsystem-service).
+* arcus/cassandra - used for persistent storage.
 
 
 #### Platform (services)
@@ -60,7 +61,7 @@ If you do not deploy all of these services, the web ui will not be able to load 
 
 ### Docker
 
-If you are not familar with Docker, you should take some time to look up Docker basics first, even if it's just a 15 minute introduction or crash course.
+If you are not familiar with Docker, you should take some time to look up Docker basics first, even if it's just a 15 minute introduction or crash course.
 
 It is recommended that you setup docker in direct lvm mode, see https://docs.docker.com/storage/storagedriver/device-mapper-driver/#configure-direct-lvm-mode-for-production
 
@@ -87,13 +88,19 @@ Make sure you can run basic commands like `docker ps` before continuing.
 
 ### Java
 
-I believe this is only used for gradle (e.g. building the jars, and running smallish things like modelmanager), so maybe the version doesn't matter too much. I had luck with `openjdk-8-jdk-headless` in Ubuntu 18.04.
+You'll need to install Java (e.g. OpenJDK or AdoptOpenJDK) 8. Versions above 8 are currently not supported. If you choose to install multiple versions of the JDK, you'll need to tell gradle to use the correct version. Please note that when running Arcus in production you'll use the version of java included with the arcus/java container (OpenJDK 8 aka `openjdk-8-jdk-headless` in debian).
 
+Example of working Java version:
 ```
 java -version
-openjdk version "1.8.0_191"
-OpenJDK Runtime Environment (build 1.8.0_191-8u191-b12-2ubuntu0.18.04.1-b12)
-OpenJDK 64-Bit Server VM (build 25.191-b12, mixed mode)
+openjdk version "1.8.0_232"
+OpenJDK Runtime Environment (build 1.8.0_232-8u232-b09-1~deb9u1-b09)
+OpenJDK 64-Bit Server VM (build 25.232-b09, mixed mode)
+```
+
+Using gradle with a custom version of Java (needed on each gradle command):
+```
+./gradlew -Dorg.gradle.java.home=/usr/lib/jvm/java-8-openjdk-amd64/
 ```
 
 ## General process
@@ -116,16 +123,16 @@ $ ./gradlew jobs
 
 You'll need to get at least the following services up to reach a usable system:
 
-* eyeris/kafka
-* eyeris/zookeeper
-* eyeris/cassandra
-* eyeris/hub-bridge
-* eyeris/client-bridge
-* eyeris/driver-services
-* eyeris/subsystem-service
-* eyeris/rule-service
-* eyeris/platform-services
-* eyeris/scheduler-service
+* arcus/kafka
+* arcus/zookeeper
+* arcus/cassandra
+* arcus/hub-bridge
+* arcus/client-bridge
+* arcus/driver-services
+* arcus/subsystem-service
+* arcus/rule-service
+* arcus/platform-services
+* arcus/scheduler-service
 
 If any of these aren't able to run and continue to run (e.g. uptime of over a minute), you'll need to troubleshoot further.
 
