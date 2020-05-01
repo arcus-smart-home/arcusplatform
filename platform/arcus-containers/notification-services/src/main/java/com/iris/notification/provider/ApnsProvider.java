@@ -32,13 +32,10 @@ import com.iris.notification.provider.apns.ApnsSender;
 import com.iris.notification.retry.RetryProcessor;
 import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
-import com.iris.platform.notification.audit.AuditEventState;
 import com.iris.platform.notification.audit.NotificationAuditor;
 import com.iris.platform.notification.provider.NotificationProviderUtil;
 import com.iris.util.TypeMarker;
-import com.relayrides.pushy.apns.util.ApnsPayloadBuilder;
-import com.relayrides.pushy.apns.util.MalformedTokenStringException;
-import com.relayrides.pushy.apns.util.TokenUtil;
+import com.eatthepath.pushy.apns.util.ApnsPayloadBuilder;
 
 @Singleton
 public class ApnsProvider extends AbstractPushNotificationProvider implements NotificationProvider {
@@ -98,7 +95,7 @@ public class ApnsProvider extends AbstractPushNotificationProvider implements No
        ApnsPayloadBuilder builder = new ApnsPayloadBuilder()
           .setAlertBody(msg.get("body"))
           .setAlertTitle(msg.get("title"))       
-          .setSoundFileName(ApnsPayloadBuilder.DEFAULT_SOUND_FILENAME)
+          .setSound(ApnsPayloadBuilder.DEFAULT_SOUND_FILENAME)
           .setContentAvailable(true);
           
        // Add data for deep-link messages when such data is present
@@ -117,11 +114,11 @@ public class ApnsProvider extends AbstractPushNotificationProvider implements No
     }
 
     private void sendNotificationToDevice(Notification notification, String deviceToken, String payload) {
-        try {
-            sender.sendMessage(notification, TokenUtil.tokenStringToByteArray(deviceToken), payload);
-        } catch (MalformedTokenStringException e) {
-            auditor.log(notification, AuditEventState.ERROR, "Customer's APNS token is malformed: " + e.toString());
-        }
+       sender.sendMessage(notification, removeSpaces(deviceToken), payload);
     }
+
+    private String removeSpaces(String token) {
+       return token.replaceAll("\\s+", "");
+   }
 }
 

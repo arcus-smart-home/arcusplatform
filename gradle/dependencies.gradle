@@ -254,7 +254,7 @@ ext.libraries << [
 		sendgridJava: "com.sendgrid:sendgrid-java:4.4.1",
 		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
 		sendgridHTTP: "com.sendgrid:java-http-client:4.2.0",
-		pushy: dependencies.create("com.relayrides:pushy:0.4.3") {
+		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
                         exclude group: "io.netty", module: "netty-all"
                 },
 		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",

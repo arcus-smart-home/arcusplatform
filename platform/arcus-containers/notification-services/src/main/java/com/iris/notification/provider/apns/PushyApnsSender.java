@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Arcus Project
+ * Copyright 2020 Arcus Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,11 @@
  */
 package com.iris.notification.provider.apns;
 
-import java.io.InputStream;
-import java.util.concurrent.SynchronousQueue;
-
-import javax.annotation.PreDestroy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.eatthepath.pushy.apns.ApnsClient;
+import com.eatthepath.pushy.apns.ApnsClientBuilder;
+import com.eatthepath.pushy.apns.PushNotificationResponse;
+import com.eatthepath.pushy.apns.util.SimpleApnsPushNotification;
+import com.eatthepath.pushy.apns.util.concurrent.PushNotificationFuture;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -29,22 +27,25 @@ import com.google.inject.name.Named;
 import com.iris.notification.NotificationServiceConfig;
 import com.iris.notification.upstream.UpstreamNotificationResponder;
 import com.iris.platform.notification.Notification;
-import com.iris.resource.Resources;
-import com.relayrides.pushy.apns.ApnsConnectionConfiguration;
-import com.relayrides.pushy.apns.ApnsEnvironment;
-import com.relayrides.pushy.apns.PushManager;
-import com.relayrides.pushy.apns.PushManagerConfiguration;
-import com.relayrides.pushy.apns.util.SSLContextUtil;
+import com.iris.platform.notification.NotificationMethod;
 
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
+
+import java.io.File;
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class PushyApnsSender implements ApnsSender {
 
     private static final Logger logger = LoggerFactory.getLogger(PushyApnsSender.class);
 
-    private final PushManager<IrisApnsPushNotification> pushManager;
+    private final ApnsClient apnsClient;
     private final UpstreamNotificationResponder upstreamResponder;
+    private final String topic;
 
     @Inject
     public PushyApnsSender(
@@ -53,39 +54,18 @@ public class PushyApnsSender implements ApnsSender {
             @Named("apns.pkcs12.password") String keystorePassword,
             @Named("apns.production") boolean isProduction,
             @Named("apns.inactiveCloseTime") int inactiveCloseTime,
+            @Named("apns.topic") String topic,
             UpstreamNotificationResponder upstreamResponder) throws Exception
     {
         this.upstreamResponder = upstreamResponder;
 
-        InputStream pkcsStream = Resources.open(pkcs12Path);
+        this.apnsClient = new ApnsClientBuilder()
+                .setApnsServer(isProduction ? ApnsClientBuilder.PRODUCTION_APNS_HOST : ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                .setClientCredentials(new File(pkcs12Path), keystorePassword)
+                .setConcurrentConnections(config.getApnsConnections())
+                .build();
 
-        PushManagerConfiguration pushManagerConfig = new PushManagerConfiguration();
-        ApnsConnectionConfiguration connConfig = pushManagerConfig.getConnectionConfiguration();
-        connConfig.setCloseAfterInactivityTime(inactiveCloseTime);
-
-        pushManagerConfig.setConnectionConfiguration(connConfig);
-        pushManagerConfig.setConcurrentConnectionCount(config.getApnsConnections());
-
-        NioEventLoopGroup elGroup = new NioEventLoopGroup(Math.min(config.getApnsConnections(), config.getApnsThreads()));
-        pushManager = new PushManager<IrisApnsPushNotification>(
-                isProduction ? ApnsEnvironment.getProductionEnvironment() : ApnsEnvironment.getSandboxEnvironment(), // production or sandbox environment
-                        SSLContextUtil.createDefaultSSLContext(pkcsStream, keystorePassword), // SSL context
-                        elGroup, // Optional: custom event loop group
-                        null, // Optional: custom ExecutorService for calling listeners
-                        new SynchronousQueue<>(), // Optional: custom BlockingQueue implementation
-                pushManagerConfig, // default configuration options
-                "IrisApnsPushManager"); // Human-readable name of this manager
-
-        // Register listeners for error conditions
-        pushManager.registerRejectedNotificationListener(new RejectedNotificationAuditor(upstreamResponder));
-        pushManager.registerFailedConnectionListener(new FailedConnectionAuditor());
-        pushManager.registerExpiredTokenListener(new ExpiredTokenAuditor(upstreamResponder));
-
-        // Start the Pushy service
-        pushManager.start();
-
-        // Request to be informed about expired APNS tokens
-        pushManager.requestExpiredTokens();
+        this.topic = topic;
 
         logger.info("APNS provider has started up.");
     }
@@ -94,21 +74,33 @@ public class PushyApnsSender implements ApnsSender {
     public void shutdown() {
         try {
             logger.info("Shutting down APNS provider.");
-            pushManager.shutdown();
+            apnsClient.close().await();
         } catch (InterruptedException e) {
             logger.warn("APNS provider failed to shut down gracefully.", e);
         }
     }
 
     @Override
-    public void sendMessage(Notification notification, byte[] token, String payload) {
-        try {
-            // Put the message in Pushy's queue for transmission to Apple
-            pushManager.getQueue().put(new IrisApnsPushNotification(notification, token, payload));
-            upstreamResponder.handleHandOff(notification);
-        } catch (InterruptedException e) {
-            upstreamResponder.handleError(notification, true, e.toString());
-        }
+    public void sendMessage(Notification notification, String token, String payload) {
+        // Put the message in Pushy's queue for transmission to Apple
+        PushNotificationFuture<SimpleApnsPushNotification, PushNotificationResponse<SimpleApnsPushNotification>>
+                sendNotificationFuture = apnsClient.sendNotification(new IrisApnsPushNotification(notification, token, topic, payload));
+
+        sendNotificationFuture.addListener((GenericFutureListener<Future<PushNotificationResponse>>) future -> {
+            final PushNotificationResponse response = future.getNow();
+            if (response.isAccepted()) {
+                upstreamResponder.handleHandOff(notification);
+            } else {
+                logger.warn("Notification rejected by the APNs gateway: " +
+                        response.getRejectionReason());
+
+                if (response.getTokenInvalidationTimestamp() != null) {
+                    upstreamResponder.handleDeviceUnregistered(NotificationMethod.APNS, token);
+                } else {
+                    upstreamResponder.handleError(notification, true, response.getRejectionReason());
+                }
+            }
+        });
     }
 }
 
