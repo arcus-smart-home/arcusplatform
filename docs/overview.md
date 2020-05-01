@@ -88,13 +88,19 @@ Make sure you can run basic commands like `docker ps` before continuing.
 
 ### Java
 
-I believe this is only used for gradle (e.g. building the jars, and running smallish things like modelmanager), so maybe the version doesn't matter too much. I had luck with `openjdk-8-jdk-headless` in Ubuntu 18.04.
+You'll need to install Java (e.g. OpenJDK or AdoptOpenJDK) 8. Versions above 8 are currently not supported. If you choose to install multiple versions of the JDK, you'll need to tell gradle to use the correct version. Please note that when running Arcus in production you'll use the version of java included with the arcus/java container (OpenJDK 8 aka `openjdk-8-jdk-headless` in debian).
 
+Example of working Java version:
 ```
 java -version
-openjdk version "1.8.0_191"
-OpenJDK Runtime Environment (build 1.8.0_191-8u191-b12-2ubuntu0.18.04.1-b12)
-OpenJDK 64-Bit Server VM (build 25.191-b12, mixed mode)
+openjdk version "1.8.0_232"
+OpenJDK Runtime Environment (build 1.8.0_232-8u232-b09-1~deb9u1-b09)
+OpenJDK 64-Bit Server VM (build 25.232-b09, mixed mode)
+```
+
+Using gradle with a custom version of Java (needed on each gradle command):
+```
+./gradlew -Dorg.gradle.java.home=/usr/lib/jvm/java-8-openjdk-amd64/
 ```
 
 ## General process
