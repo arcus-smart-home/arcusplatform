@@ -6,7 +6,7 @@ This page outlines some of the high-level compatibility for Arcus and how to get
 
 The following classes of devices are supported:
 
-A few examples of what works:
+Some examples of what works:
 
 * Iris first generation devices, including Contact Sensors, Motion Sensors, Range Extenders, and Smart Plugs
 * Iris second generation devices, including Keyfobs, Contact Sensors, Motion Sensors, and Smart Plugs
@@ -123,16 +123,16 @@ $ ./gradlew jobs
 
 You'll need to get at least the following services up to reach a usable system:
 
-* eyeris/kafka
-* eyeris/zookeeper
-* eyeris/cassandra
-* eyeris/hub-bridge
-* eyeris/client-bridge
-* eyeris/driver-services
-* eyeris/subsystem-service
-* eyeris/rule-service
-* eyeris/platform-services
-* eyeris/scheduler-service
+* arcus/kafka
+* arcus/zookeeper
+* arcus/cassandra
+* arcus/hub-bridge
+* arcus/client-bridge
+* arcus/driver-services
+* arcus/subsystem-service
+* arcus/rule-service
+* arcus/platform-services
+* arcus/scheduler-service
 
 If any of these aren't able to run and continue to run (e.g. uptime of over a minute), you'll need to troubleshoot further.
 
