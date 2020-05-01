@@ -39,9 +39,9 @@ A few examples of what works:
 
 #### Platform (khakis)
 Start by deploying the following:
-* eyeris/zookeeper - this is required by kafka.
-* eyeris/kafka - for getting messages between the bridges (e.g. hub-bridge and client-bridge) to the respective message processing services (e.g. subsystem-service).
-* eyeris/cassandra - used for persistent storage.
+* arcus/zookeeper - this is required by kafka.
+* arcus/kafka - for getting messages between the bridges (e.g. hub-bridge and client-bridge) to the respective message processing services (e.g. subsystem-service).
+* arcus/cassandra - used for persistent storage.
 
 
 #### Platform (services)
