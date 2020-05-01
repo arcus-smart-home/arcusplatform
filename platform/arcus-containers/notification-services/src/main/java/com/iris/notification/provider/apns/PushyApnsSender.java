@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Arcus Project
+ * Copyright 2020 Arcus Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,11 @@
  */
 package com.iris.notification.provider.apns;
 
-import java.io.File;
-
-import javax.annotation.PreDestroy;
-
 import com.eatthepath.pushy.apns.ApnsClient;
 import com.eatthepath.pushy.apns.ApnsClientBuilder;
 import com.eatthepath.pushy.apns.PushNotificationResponse;
-
 import com.eatthepath.pushy.apns.util.SimpleApnsPushNotification;
 import com.eatthepath.pushy.apns.util.concurrent.PushNotificationFuture;
-import com.iris.platform.notification.NotificationMethod;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -37,6 +27,16 @@ import com.google.inject.name.Named;
 import com.iris.notification.NotificationServiceConfig;
 import com.iris.notification.upstream.UpstreamNotificationResponder;
 import com.iris.platform.notification.Notification;
+import com.iris.platform.notification.NotificationMethod;
+
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
+
+import java.io.File;
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class PushyApnsSender implements ApnsSender {
