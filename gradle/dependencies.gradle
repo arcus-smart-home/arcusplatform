@@ -33,7 +33,7 @@ ext.libraries << [
 		openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
 
 // Cassandra
-		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.8.0:shaded") {
+		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.9.0:shaded") {
 			exclude group: "com.codahale.metrics" // interferes with platform dropwizard metrics
 			exclude group: "io.netty"
 		},
@@ -101,9 +101,9 @@ ext.libraries << [
 		jaxb_api: "javax.xml.bind:jaxb-api:2.2.7",
 
 // Encryption via Bouncy Castle
-		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.62",
-		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.62",
-		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.62",
+		bouncycastle: "org.bouncycastle:bcprov-jdk15on:1.65",
+		bouncycastle_pgp: "org.bouncycastle:bcpg-jdk15on:1.65",
+		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk15on:1.65",
 
 // SQL Database
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
@@ -146,7 +146,7 @@ ext.libraries << [
 			exclude group: "log4j", module: "log4j"
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 		},
-		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.4.8") {
+		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.5.7") {
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 			exclude group: "log4j", module: "log4j"
 			exclude group: "junit", module: "junit"
@@ -322,7 +322,7 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
 else
-	ext.netty_version = "4.1.43.Final"
+	ext.netty_version = "4.1.48.Final"
 if (project.hasProperty("tcnative_override_version"))
 	ext.tcnative_version = "${tcnative_override_version}"
 else
