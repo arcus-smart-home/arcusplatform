@@ -27,6 +27,7 @@ A few examples of what works:
 ### Needs confirmation
 
 * Alexa
+* Google Assistant
 
 ## Pre-reqs
 
