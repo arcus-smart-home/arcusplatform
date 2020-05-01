@@ -146,7 +146,7 @@ ext.libraries << [
 			exclude group: "log4j", module: "log4j"
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 		},
-		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.4.8") {
+		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.5.7") {
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 			exclude group: "log4j", module: "log4j"
 			exclude group: "junit", module: "junit"
