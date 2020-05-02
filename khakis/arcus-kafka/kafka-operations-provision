@@ -37,7 +37,7 @@ else
    echo "Kafka is online"
 fi
 
-export KAFKA_HEAP_OPTS="-Xmx4m -Xms4m"
+export KAFKA_HEAP_OPTS="-Xmx128m -Xms4m"
 export KAFKA_JVM_PERFORMANCE_OPTS="-client -Djava.awt.headless=true"
 
 RESULT=0
