@@ -2,7 +2,7 @@
 
 KAFKA_REPLICATION=${KAFKAOPS_REPLICATION:-2}
 
-if [ -e /etc/install/.eyeris-kafka-opsprov ]; then
+if [ -e /data/install/.eyeris-kafka-opsprov ]; then
    if [ "$1" == "-f" ]; then
       echo "Kafka appears to already be provisioned, re-running since '-f' was specified"
    else
@@ -46,25 +46,24 @@ echo "Creating Kafka Provisions Topics..."
 "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "irisLog" & PID0=$!
 "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --create --partitions 128 --replication-factor ${KAFKAOPS_REPLICATION} --topic "metrics" & PID1=$!
 
+wait $PID0; RESULT=$(($RESULT | $?))
+wait $PID1; RESULT=$(($RESULT | $?))
+
 if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_MS" ]]; then
    echo "Altering metrics retention.ms"
-   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.ms=${KAFAOPS_METRICS_LOG_RETENTION_MS}
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --bootstrap-server "${ADVERTISED_HSTN}:9092" --alter --entity-type topics --entity-name metrics --add-config retention.ms=${KAFAOPS_METRICS_LOG_RETENTION_MS}
 fi
 
 if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_BYTES" ]]; then
-   echo "Altering metrics retention.ms"
-   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.bytes=${KAFAOPS_METRICS_LOG_RETENTION_BYTES}
+   echo "Altering metrics retention.bytes"
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --bootstrap-server "${ADVERTISED_HSTN}:9092" --alter --entity-type topics --entity-name metrics --add-config retention.bytes=${KAFAOPS_METRICS_LOG_RETENTION_BYTES}
 fi
-
-
-wait $PID0; RESULT=$(($RESULT | $?))
-wait $PID1; RESULT=$(($RESULT | $?))
 
 echo "DONE!"
 if [ $RESULT == 0 ]; then
    echo "Kafka topics successfully provisioned!"
-    mkdir -p /etc/install
-    touch /etc/install/.eyeris-kafka-opsprov
+    mkdir -p /data/install
+    touch /data/install/.eyeris-kafka-opsprov
 else
    echo "ERROR Provisioning Kafka topics, see log for more details"
 fi
