@@ -261,7 +261,7 @@ onZWaveMessage.sensor_multilevel.report {
                 dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
             }
             dataValue /= Math.pow(10, dataPrecision)
-            log.debug "Luminance - size:{}, precision:{}, scale (0=Percent,1=Lux):{}, value:{}", dataSize, dataPrecision, dataScale, dataValue
+            log.trace "Luminance - size:{}, precision:{}, scale (0=Percent,1=Lux):{}, value:{}", dataSize, dataPrecision, dataScale, dataValue
             if (1 == dataScale) {
                 if (100000 < dataValue) dataValue = 100000
                 if (0 > dataValue) dataValue = 0
