@@ -51,12 +51,12 @@ wait $PID1; RESULT=$(($RESULT | $?))
 
 if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_MS" ]]; then
    echo "Altering metrics retention.ms"
-   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.ms=${KAFAOPS_METRICS_LOG_RETENTION_MS}
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --bootstrap-server "${ADVERTISED_HSTN}:9092" --alter --entity-type topics --entity-name metrics --add-config retention.ms=${KAFAOPS_METRICS_LOG_RETENTION_MS}
 fi
 
 if [[ -n "$KAFAOPS_METRICS_LOG_RETENTION_BYTES" ]]; then
    echo "Altering metrics retention.bytes"
-   "${KAFKA_HOME}/bin/kafka-configs.sh" --zookeeper "${ZOOKEEPEROPS}" --alter --entity-type topics --entity-name metrics --add-config retention.bytes=${KAFAOPS_METRICS_LOG_RETENTION_BYTES}
+   "${KAFKA_HOME}/bin/kafka-configs.sh" --bootstrap-server "${ADVERTISED_HSTN}:9092" --alter --entity-type topics --entity-name metrics --add-config retention.bytes=${KAFAOPS_METRICS_LOG_RETENTION_BYTES}
 fi
 
 echo "DONE!"
