@@ -2,7 +2,7 @@
 
 KAFKA_REPLICATION=${KAFKAOPS_REPLICATION:-2}
 
-if [ -e /etc/install/.eyeris-kafka-opsprov ]; then
+if [ -e /data/install/.eyeris-kafka-opsprov ]; then
    if [ "$1" == "-f" ]; then
       echo "Kafka appears to already be provisioned, re-running since '-f' was specified"
    else
@@ -62,8 +62,8 @@ fi
 echo "DONE!"
 if [ $RESULT == 0 ]; then
    echo "Kafka topics successfully provisioned!"
-    mkdir -p /etc/install
-    touch /etc/install/.eyeris-kafka-opsprov
+    mkdir -p /data/install
+    touch /data/install/.eyeris-kafka-opsprov
 else
    echo "ERROR Provisioning Kafka topics, see log for more details"
 fi
