@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="UltravioletIndex"
+   namespace="uvi"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
+   
+   <c:description>
+      Model of an ultraviolet index (UV index) sensor.
+   </c:description>
+   
+   <c:attributes>
+      <c:attribute 
+         name="index"
+         readwrite="r" 
+         type="int"
+         optional="false" 
+         min="0"
+         max="12"
+         description="Reflects the current ultraviolet index measured by the device."/>
+   </c:attributes>
+</c:capability>
