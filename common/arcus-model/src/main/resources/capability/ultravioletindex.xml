@@ -18,7 +18,6 @@
          optional="false" 
          min="0"
          max="12"
-         unit="lux"
          description="Reflects the current ultraviolet index measured by the device."/>
    </c:attributes>
 </c:capability>
