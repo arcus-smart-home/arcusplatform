@@ -51,7 +51,7 @@ matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0102, 'ZWAV:P
 matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x0064
 
 
-capabilities     'DevicePower', 'Temperature', 'Motion', 'Illuminance', 'RelativeHumidity', 'Tamper'
+capabilities     'DevicePower', 'Temperature', 'Motion', 'Illuminance', 'RelativeHumidity', 'Tamper', 'UltravioletIndex'
 
 importCapability 'zwave/GenericZWaveBattery'
 importCapability 'zwave/GenericZWaveVersion'
@@ -277,8 +277,9 @@ onZWaveMessage.sensor_multilevel.report {
         RelativeHumidity.humidity value
     }
 
-    if ((27 == sensorType) && (null != level)) {
-        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - uv: {}', level
+    if ((27 == sensorType) && (null != value)) {
+        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - uv: {}', value
+        UltravioletIndex.index value
     }
 }
 
