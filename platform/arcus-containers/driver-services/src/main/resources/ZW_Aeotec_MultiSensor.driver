@@ -1,0 +1,351 @@
+/*
+ * Copyright 2020 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Aeotec Multi Sensor (Motion, Light, Humidity, Temperature)
+ *
+ * FACTORY RESET:  TBD
+ *
+ * PAIR/INCLUDE:   Press the "Action" button once while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Press the "Action" button once while the hub is in exclusion mode.
+ *
+ * Command Classes: (TODO)
+ *   0x30   (48) Sensor_Binary
+ *   0x31   (49) Sensor_Multilevel
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification v3)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ */
+import groovy.transform.Field
+
+driver           "ZwAeotecMultiSensor"
+description      "Driver for a Aeotec MultiSensor"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Motion"
+productId        "74ab3d"
+vendor           "Aeotec"
+model            "ZW100"
+
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x0064
+matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x0064
+
+
+capabilities     'DevicePower', 'Temperature', 'Motion', 'Illuminance', 'RelativeHumidity', 'Tamper'
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Motion.motion                    Motion.MOTION_NONE
+
+Illuminance.sensorType           Illuminance.SENSORTYPE_PHOTODIODE
+
+
+final int POLLING_INTERVAL_SEC  = 3600      // every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+final int BATTERY_POLLING_SEC   = 86400     // Ask for battery level every 24 hours
+
+
+// Config Parameters (http://products.z-wavealliance.org/products/1938/configs)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_MOTION_SENSITIVITY_PARAM_NO   = 1          // parameter number to configure sensitivity of Motion sensor
+final byte CNFG_MOTION_SENSITIVITY_SIZE              = 1          // size is 1 byte
+final byte CNFG_MOTION_SENSITIVITY_VALUE             = 12         // 8 (high sensitivity) - 255 (low sensitivity)(documented default=255, factory reset default=12)
+
+@Field final byte CNFG_MOTION_ON_DURATION_PARAM_NO   = 2          // parameter number to configure duration motion sensor stays "on" after being triggered
+final byte CNFG_MOTION_ON_DURATION_SIZE              = 2          // size is 2 bytes
+final byte CNFG_MOTION_ON_DURATION_VALUE_1           = 0          // high order byte for On Duration value
+final byte CNFG_MOTION_ON_DURATION_VALUE_2           = 30         // 5-600 seconds, (documented default=600, factory reset default=30)
+
+@Field final byte CNFG_TRIGGER_ACTION_PARAM_NO       = 3          // parameter number to configure value sent for BASIC SET action when motion detected
+final byte CNFG_TRIGGER_ACTION_SIZE                  = 1          // size is 1 byte
+final byte CNFG_TRIGGER_ACTION_VALUE                 = 255        // 0=OFF, 255=ON (default), 1-99=Level
+
+@Field final byte CNFG_MOTION_DETECT_PARAM_NO        = 4          // parameter number to configure operation of Motion Detector
+final byte CNFG_MOTION_DETECT_SIZE                   = 1          // size is 1 byte
+final byte CNFG_MOTION_DETECT_VALUE                  = 255        // 0=Disabled, 255=Enabled (default)
+
+@Field final byte CNFG_LIGHT_TRIGGER_LVL_PARAM_NO    = 5          // parameter number to configure level for light level trigger. If light level in a room falls
+                                                                  // beyond the set point and motion is detected, the Mini Sensor will send BASIC_SET command to associated
+                                                                  // devices to turn ON. The number entered as the value corresponds to the number of LUX. So if 100 is entered
+                                                                  // by default, the associated device will turn ON if light level last reported by the sensor is under 100 LUX
+                                                                  // and if motion has been detected by your Mini Sensor.
+final byte CNFG_LIGHT_TRIGGER_LVL_SIZE               = 2          // size is 2 bytes
+final byte CNFG_LIGHT_TRIGGER_LVL_VALUE_1            = 0          // high order byte for trigger level value
+final byte CNFG_LIGHT_TRIGGER_LVL_VALUE_2            = 100        // 5-1000 LUX, documented default=1000LUX, factory reset default=100LUX
+
+@Field final byte CNFG_MOTION_TRIGGER_PARAM_NO       = 6          // parameter number to configure trigger interval of Motion sensor
+final byte CNFG_MOTION_TRIGGER_SIZE                  = 1          // size is 1 byte
+final byte CNFG_MOTION_TRIGGER_VALUE                 = 8          // 1-8 seconds, 8=default
+
+@Field final byte CNFG_LIGHT_SENSE_INTERVAL_PARAM_NO = 7          // parameter number to configure Light Sensing Interval (in seconds).
+final byte CNFG_LIGHT_SENSE_INTERVAL_SIZE            = 2          // size is 2 bytes (60-3600, documented default=3600, factory reset default=180)
+final byte CNFG_LIGHT_SENSE_INTERVAL_VALUE_1         = 0          // highest order byte for number of seconds
+final byte CNFG_LIGHT_SENSE_INTERVAL_VALUE_2         = 180        // lowest order byte for number of seconds
+
+@Field final byte CNFG_LIGHT_TRIGGER_PARAM_NO        = 8          // parameter number to configure light sensor as secondary trigger. If this feature is enabled, the Mini Sensor
+                                                                  // will activate associated devices based on motion AND light level set in parameter 5.
+final byte CNFG_LIGHT_TRIGGER_SIZE                   = 1          // size is 1 byte
+final byte CNFG_LIGHT_TRIGGER_VALUE                  = 0          // 0=disabled (default), 255=enabled
+
+@Field final byte CNFG_LIGHT_SENSITIVITY_PARAM_NO    = 9          // parameter number to configure Light Sensitivity
+final byte CNFG_LIGHT_SENSITIVITY_SIZE               = 1          // size is 1 byte
+final byte CNFG_LIGHT_SENSITIVITY_VALUE              = 100        // 0-255 LUX (documented default=255LUX, factory reset default=100LUX)
+
+@Field final byte CNFG_LED_PARAM_NO                  = 10         // parameter number to configure LED operation
+final byte CNFG_LED_SIZE                             = 1          // size is 1 byte
+final byte CNFG_LED_VALUE                            = 1          // 0=disabled, 1=Enabled (default)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    log.info "new multisensor added"
+    Motion.motionchanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+    ZWave.configuration.set( 101, 4, 241);
+    ZWave.configuration.set( 102, 4, 1);
+    ZWave.configuration.set( 0x03, 0x02, 30);
+    ZWave.configuration.set( 0x04, 0x01, 0x05);
+
+    ZWave.configuration.set( 0x05, 0x01, 0x02);
+
+    ZWave.configuration.set( 0xc9, 0x02, 0x0002);
+}
+
+onConnected {
+    log.info "new MultiSensor device connected"
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    ZWave.basic.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+
+    // configure device (only concerned about parameters 1,2,4,6,8,10)
+    //ZWave.configuration.set( CNFG_MOTION_SENSITIVITY_PARAM_NO, CNFG_MOTION_SENSITIVITY_SIZE, CNFG_MOTION_SENSITIVITY_VALUE )
+    //ZWave.configuration.set( CNFG_MOTION_ON_DURATION_PARAM_NO, CNFG_MOTION_ON_DURATION_SIZE, CNFG_MOTION_ON_DURATION_VALUE_1, CNFG_MOTION_ON_DURATION_VALUE_2 )
+    //ZWave.configuration.set( CNFG_MOTION_DETECT_PARAM_NO, CNFG_MOTION_DETECT_SIZE, CNFG_MOTION_DETECT_VALUE )
+    //ZWave.configuration.set( CNFG_MOTION_TRIGGER_PARAM_NO, CNFG_MOTION_TRIGGER_SIZE, CNFG_MOTION_TRIGGER_VALUE )
+    //ZWave.configuration.set( CNFG_LIGHT_TRIGGER_PARAM_NO, CNFG_LIGHT_TRIGGER_SIZE, CNFG_LIGHT_TRIGGER_VALUE )
+    //ZWave.configuration.set( CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_VALUE )
+    log.warn "Setting configuration"
+    ZWave.configuration.set( 101, 4, 241);
+    ZWave.configuration.set( 102, 4, 1);
+    // Report no motion after 30 seconds
+    ZWave.configuration.set( 0x03, 0x02, 0x1e);
+    // Enable at maximum sensitivity
+    ZWave.configuration.set( 0x04, 0x01, 0x05);
+
+    // Ideally a sensor binary report
+    ZWave.configuration.set( 0x05, 0x01, 0x02);
+
+    ZWave.configuration.set( 0xc9, 0x02, 0x0002);
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+    def prevState = Motion.motion.get()
+    if (-1 == currentState ) {
+        Motion.motion Motion.MOTION_DETECTED
+        log.info 'Motion: DETECTED'
+    } else if (0 == currentState ) {
+        Motion.motion Motion.MOTION_NONE
+        log.info 'Motion: NONE'
+    } else {
+        log.warn "Unexpected State value reported [expected 0(None) or -1(Motion)]: {}", currentState
+    }
+    if (Motion.motion.get() != prevState) {
+        def now = new Date()
+        Motion.motionchanged now
+    }
+}
+
+onZWaveMessage.basic.report {
+    log.warn "Basic Report: {}", message
+    handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.set {
+    log.warn "Basic set: {}", message
+    handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.sensor_binary.report {
+    log.warn "Sensor Binary Report: {}", message
+    handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.sensor_multilevel.report {
+    log.warn "Sensor MultiLevel Report: {}", message
+
+    def sensorType = message.command.get('type')
+    def level = message.command.get('level')
+    def value = message.command.get("val1");
+
+    // Type 0x01 = Temperature
+    if ((1 == sensorType) && (null != value)) {
+        byte[] vals = new byte[4]
+        vals[0] = 0
+        vals[1] = 0
+        vals[2] = message.command.get('val1')
+        vals[3] = message.command.get('val2')
+        dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+
+        double precision = (dataValue & 0xE0) >> 5
+        double temp = dataValue / 10
+
+        //Convert from F to C
+        temp = 5 * (temp-32) / 9;
+        temp = Math.round( temp * Math.pow(10, precision) ) / Math.pow(10, precision)
+
+        Temperature.temperature temp
+
+    }
+
+    // Type 0x03 = Luminance
+    if ((3 == sensorType) && (null != level)) {
+        double dataSize      = (level & 0x07)
+        double dataScale     = (level & 0x18) >> 3        // 0 = Percent, 1 = Lux
+        double dataPrecision = (level & 0xE0) >> 5
+        int    dataValue     = -1
+        byte[] vals = new byte[4]
+        try {
+            if ( 2 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = message.command.get('val1')
+                vals[3] = message.command.get('val2')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if( 4 == dataSize ) {
+                vals[0] = message.command.get('val1')
+                vals[1] = message.command.get('val2')
+                vals[2] = message.command.get('val3')
+                vals[3] = message.command.get('val4')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            dataValue /= Math.pow(10, dataPrecision)
+            log.trace "Luminance - size:{}, precision:{}, scale (0=Percent,1=Lux):{}, value:{}", dataSize, dataPrecision, dataScale, dataValue
+            if (1 == dataScale) {
+                if (100000 < dataValue) dataValue = 100000
+                if (0 > dataValue) dataValue = 0
+                Illuminance.illuminance dataValue
+            }
+        } catch (Exception e) {
+            log.info "Error parsing Luminance value: {}", e.getMessage()
+        }
+    }
+
+    if ((5 == sensorType) && (null != value)) {
+        RelativeHumidity.humidity value
+    }
+
+    if ((27 == sensorType) && (null != level)) {
+        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - uv: {}', level
+    }
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.warn "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    if (notificationType == 0x7 && event == 0x3) {
+        def prevState = Tamper.tamper.get()
+
+        Tamper.tamper Tamper.TAMPER_TAMPERED
+        if (Tamper.tamper.get() != prevState) {
+            Tamper.tamperchanged(new Date())
+        }
+        log.warn "Sensor Tamper: DETECTED (cover removed)"
+    }
+}
+
+onZWaveMessage.configuration.report {
+     log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param: {}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.debug "Wakeup Notification"
+    // don't do a ZWave.basic.get() here. Instead we poll for that so the queued message will be sent as soon as the device communicates to the hub,
+    // rather than waiting for the driver to see that the device is awake and then sending the request down to the hub and then on to the device.
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Debugging Support: Uncomment to view messages not being handled
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage {
+   log.warn "{} received unknown message: {}", DEVICE_NAME, message
+}

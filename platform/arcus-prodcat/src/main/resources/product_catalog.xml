@@ -2907,6 +2907,27 @@
       </populations>
       <reset/>
     </product>
+    <product id="74ab3d" name="MultiSensor" shortname="MultiSensor" screen="Motion" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="2" keywords="aotec, motion, security, battery, zwave, sensor" ota="No" protofamily="Z-Wave" added="2020-05-01T19:50:30-0700" lastchanged="2020-05-01T19:50:30-0700">
+      <categories>
+        <category name="Care"/>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert the batteries or remove the battery tab."/>
+        <step2 type="text" img="" text="Press the action button button once. The LED will turn green and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the action button once."/>
+        <step2 type="text" img="" text="The LED will flash various colors when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="c6b3da" name="Range Extender" shortname="Range Extender" screen="Accessory" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="workswith" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="Aeotec,range,exender,zwave,ZW117" ota="No" protofamily="Z-Wave" added="2019-12-15T14:59:30-0600" lastchanged="2019-12-15T14:59:30-0600">
       <categories>
         <category name="More"/>
