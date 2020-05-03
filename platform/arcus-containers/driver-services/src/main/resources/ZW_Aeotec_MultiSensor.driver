@@ -307,7 +307,7 @@ onZWaveMessage.alarm.report {
 }
 
 onZWaveMessage.configuration.report {
-    log.warn "Config Report: {}", message
+     log.trace "Config Report: {}", message
     byte[] bytes = message.command.recvBytes
     int param = message.command.get('param') & 0xFF
     int byteCnt = message.command.get('level') & 0xFF
@@ -321,7 +321,7 @@ onZWaveMessage.configuration.report {
         long val4 = message.command.get('val4') & 0xFF
         val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
     }
-    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+    log.debug "Config Param: {}, Bytes: {}, Val: {}", param, byteCnt, val1
 }
 
 onZWaveMessage.wake_up.notification {
