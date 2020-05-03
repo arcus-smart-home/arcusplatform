@@ -58,6 +58,9 @@ Temperature {
    Temperature.temperature null
 }
 
+Tamper {
+   Tamper.tamper Tamper.TAMPER_CLEAR
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Reflex support
@@ -187,10 +190,19 @@ onZigbeeMessage(Zigbee.TYPE_ZCL) {
 
    // Cluster 0x00F2 is Tamper Cluster
    if (242 == clusterId) {
+      prevState = Tamper.tamper.get()
       if (messageId == 0) {
+         Tamper.tamper Tamper.TAMPER_TAMPERED
+         if (Tamper.tamper.get() != prevState) {
+            Tamper.tamperchanged(new Date())
+         }
          log.trace "Sensor Tamper: DETECTED (cover removed)"
       }
       if (messageId == 1) {
+         Tamper.tamper Tamper.TAMPER_CLEAR
+         if (Tamper.tamper.get() != prevState) {
+            Tamper.tamperchanged(new Date())
+         }
          log.trace "Sensor Tamper: NONE"
       }
       return
