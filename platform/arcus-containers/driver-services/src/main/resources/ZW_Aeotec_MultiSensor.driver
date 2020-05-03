@@ -221,19 +221,20 @@ onZWaveMessage.sensor_multilevel.report {
 
     // Type 0x01 = Temperature
     if ((1 == sensorType) && (null != value)) {
-        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - temp: {}', value
+        byte[] vals = new byte[4]
+        vals[0] = 0
+        vals[1] = 0
+        vals[2] = message.command.get('val1')
+        vals[3] = message.command.get('val2')
+        dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
 
-        double precision = (value & 0xE0) >> 5
-        double scale     = (value & 0x18) >> 3
-        double size      = (value & 0x07)
+        double precision = (dataValue & 0xE0) >> 5
+        double temp = dataValue / 10
 
-        double temp = value
-        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - temp: {}', temp
         //Convert from F to C
         temp = 5 * (temp-32) / 9;
-        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - temp: {}', temp
         temp = Math.round( temp * Math.pow(10, precision) ) / Math.pow(10, precision)
-        log.debug 'ZwAeotecMultiSensor6Driver driver handle sensor multilevel report - temp: {}', temp
+
         Temperature.temperature temp
 
     }
