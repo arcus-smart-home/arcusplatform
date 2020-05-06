@@ -37,6 +37,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 
@@ -111,7 +112,7 @@ public abstract class RESTHandler extends HttpResource {
 		FullHttpResponse httpResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status,
 				Unpooled.copiedBuffer(contents, CharsetUtil.UTF_8));
 		if (restHandlerConfig.isSendChunked()) {
-			HttpHeaders.setTransferEncodingChunked(httpResponse);
+			HttpUtil.setTransferEncodingChunked(httpResponse, true);
 		}
 		httpResponse.headers().set(HttpHeaders.Names.CONTENT_TYPE, contentType);
 		return httpResponse;

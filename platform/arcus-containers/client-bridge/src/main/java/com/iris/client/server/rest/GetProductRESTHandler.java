@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Arcus Project
+ * Copyright 2020 Arcus Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import com.iris.core.dao.PlaceDAO;
 import com.iris.core.dao.PopulationDAO;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
+import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.ProductCatalogService;
 import com.iris.messages.service.ProductCatalogService.GetProductRequest;
@@ -42,6 +43,7 @@ import com.iris.prodcat.ProductCatalogManager;
 public class GetProductRESTHandler extends ProductCatalogRESTHandler {
 
 	private final BeanAttributesTransformer<ProductCatalogEntry> transformer;
+	private static final int MAX_PRODUCT_ID_SIZE = 6;
 
 	@Inject
 	public GetProductRESTHandler(AlwaysAllow alwaysAllow, BridgeMetrics metrics, ProductCatalogManager manager,
@@ -50,17 +52,25 @@ public class GetProductRESTHandler extends ProductCatalogRESTHandler {
 		this.transformer = transformer;
 	}
 
+	/**
+	 * Builds a product catalog request for a given user-supplied product/place request.
+	 *
+	 * Security Implications: If an attacker can guess a product / place pairing, they may be able to gain knowledge of a non-public product.
+	 * @param request
+	 * @return
+	 * @throws Exception
+	 */
 	@Override
-	protected MessageBody doHandle(ClientMessage request) throws Exception {
-
-		MessageBody payload = request.getPayload();
-		String placeAddressStr = ProductCatalogService.GetProductsRequest.getPlace(payload);
+	protected MessageBody doHandle(ClientMessage request) throws ErrorEventException {
+		MessageBody payload = request.getPayload(); // User supplied
+		String placeAddressStr = ProductCatalogService.GetProductsRequest.getPlace(payload); // TODO: ensure this place is one the user has access to?
       Population population = determinePopulationFromRequest(placeAddressStr);
       ProductCatalog catalog = getCatalog(population);
 
 		String id = ProductCatalogService.GetProductRequest.getId(payload);
 		
 		Errors.assertRequiredParam(id, GetProductRequest.ATTR_ID);
+		Errors.assertValidRequest(id.length() != 0 && id.length() <= MAX_PRODUCT_ID_SIZE, "supplied parameter is invalid");
 
 		ProductCatalogEntry product = catalog.getProductById(id);
 

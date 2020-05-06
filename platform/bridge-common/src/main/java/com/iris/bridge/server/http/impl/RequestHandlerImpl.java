@@ -29,7 +29,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
 
 import com.iris.bridge.server.http.HttpException;
 import com.iris.bridge.server.http.RequestAuthorizer;
@@ -79,14 +79,14 @@ public class RequestHandlerImpl implements RequestHandler {
    @Override
    public void handleRequest(FullHttpRequest req, ChannelHandlerContext ctx) throws Exception {
       if (!authorizer.isAuthorized(ctx, req)) {
-      	logger.warn("Authorization failed for request {}", req.getUri());
+      	logger.warn("Authorization failed for request {}", req.uri());
          if (!authorizer.handleFailedAuth(ctx, req))  {
          	logger.error("Failed to handle authorization failure for request {}", req);
             throw new HttpException(HttpResponseStatus.FORBIDDEN.code());
          }
          return;
       }
-      logger.debug("Handling request for [{} {}]", req.getMethod(), req.getUri());
+      logger.debug("Handling request for [{} {}]", req.method(), req.uri());
       responder.sendResponse(req, ctx);
    }
 
@@ -97,9 +97,9 @@ public class RequestHandlerImpl implements RequestHandler {
    }
 
    public static void setNoCacheHeaders(HttpResponse response) {
-      response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-      response.headers().set(HttpHeaders.Names.PRAGMA, "no-cache");
-      response.headers().set(HttpHeaders.Names.EXPIRES, "0");
+      response.headers().set(HttpHeaderNames.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+      response.headers().set(HttpHeaderNames.PRAGMA, "no-cache");
+      response.headers().set(HttpHeaderNames.EXPIRES, "0");
    }
    
    private RequestMatcher createMatcher() {

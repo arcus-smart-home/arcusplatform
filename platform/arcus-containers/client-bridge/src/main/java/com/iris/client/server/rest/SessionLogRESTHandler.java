@@ -35,7 +35,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
@@ -62,7 +62,7 @@ public class SessionLogRESTHandler extends HttpResource {
             getStatus(responseMessage), 
             Unpooled.copiedBuffer(JSON.toJson(responseMessage), CharsetUtil.UTF_8)
       );
-      httpResponse.headers().set(HttpHeaders.Names.CONTENT_TYPE, BridgeHeaders.CONTENT_TYPE_JSON_UTF8);
+      httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, BridgeHeaders.CONTENT_TYPE_JSON_UTF8);
       return httpResponse;
    }
 
