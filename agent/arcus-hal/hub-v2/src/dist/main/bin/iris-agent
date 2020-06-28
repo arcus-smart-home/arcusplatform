@@ -115,6 +115,7 @@ JAVA_OPTS="${JAVA_OPTS} -Djava.awt.headless=true"
 JAVA_OPTS="${JAVA_OPTS} -Djava.net.preferIPv4Stack=true"
 JAVA_OPTS="${JAVA_OPTS} -Dsun.net.inetaddr.ttl=${DNS_TTL}"
 JAVA_OPTS="${JAVA_OPTS} -Dsun.net.inetaddr.negative.ttl=${DNS_NEGATIVE_TTL}"
+JAVA_OPTS="${JAVA_OPTS} -Djavax.net.ssl.trustStorePassword=changeit"
 
 JAVA_OPTS="${JAVA_OPTS} -XX:+AggressiveOpts"
 JAVA_OPTS="${JAVA_OPTS} -XX:StringTableSize=${STRING_TABLE_SIZE}"
