@@ -17,7 +17,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV CASSANDRA_VERSION 3.11.8
+ENV CASSANDRA_VERSION 3.11.11
 
 # Download and install the required version of Apache Cassandra. 
 RUN \
