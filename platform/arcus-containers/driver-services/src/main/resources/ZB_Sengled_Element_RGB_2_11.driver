@@ -63,6 +63,8 @@ model            "E11-N1EA"
                  // need to use a regular expression for now to get the matcher to work.
 matcher          'ZIGB:manufacturer': 0x1160, 'ZIGB:vendor': 'sengled', 'ZIGB:model': ~/^E11-N1EA[\x00]*$/
 matcher          'ZIGB:manufacturer': 0x1160, 'ZIGB:vendor': 'sengled', 'ZIGB:model': 'E11-N1EA'
+matcher          'ZIGB:manufacturer': 0x1160, 'ZIGB:vendor': 'sengled', 'ZIGB:model': ~/^E21-N1EA[\x00]*$/
+matcher          'ZIGB:manufacturer': 0x1160, 'ZIGB:vendor': 'sengled', 'ZIGB:model': 'E21-N1EA'
 
 capabilities     DeviceOta, Identify
 
