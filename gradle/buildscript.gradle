@@ -1,7 +1,7 @@
 repositories {
    repositories { 
       maven { 
-         url 'http://dl.bintray.com/content/netflixoss/external-gradle-plugins/'
+         url 'https://dl.bintray.com/content/netflixoss/external-gradle-plugins/'
       }
 
       maven {
