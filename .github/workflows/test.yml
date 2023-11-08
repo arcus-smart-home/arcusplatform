@@ -11,4 +11,4 @@ jobs:
            java-version: '8'
            distribution: 'temurin'
       - name: run tests
-        run: ./gradlew test
+        run: ./gradlew test --no-daemon
