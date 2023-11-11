@@ -52,12 +52,12 @@ import com.iris.messages.services.PlatformConstants;
 import com.iris.messages.type.Population;
 import com.iris.prodcat.ProductCatalogReloadListener;
 import com.iris.resource.config.ResourceModule;
-import com.iris.test.IrisTestCase;
+import com.iris.test.IrisMockTestCase;
 import com.iris.test.Modules;
 import com.iris.test.util.TestUtils;
 
 @Modules({ InMemoryMessageModule.class, AttributeMapTransformModule.class, ResourceModule.class, ProductCatalogServiceModule.class })
-public class TestProductCatalogService extends IrisTestCase {
+public class TestProductCatalogService extends IrisMockTestCase {
    @Inject
    private ProductCatalogService service;
 
