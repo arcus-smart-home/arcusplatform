@@ -165,13 +165,13 @@ task generateIpcdSource(type: JavaExec) {
     
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
-    
+    main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+
     doFirst {
         outputDir.mkdirs()
         println "Generating templates from $templateName..."
         classpath configurations.generator.asPath.split(':')
         args '-t', templateName, '-i', ipcdDefinitionFile, '-o', genSrcMain
-        main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
     }
 }
 
