@@ -75,14 +75,14 @@ task generateSource(type: JavaExec) {
 	
 	def outputDir = file(generatedSrcDir)
 	outputs.dir outputDir
-	
+	main 'com.iris.capability.generator.java.Generator'
+
 	doFirst {
 		delete(outputDir)
 		outputDir.mkdirs()
 		println "Generating templates from $templateName..."
 		classpath configurations.generator.asPath.split(':')
 		args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
-		main 'com.iris.capability.generator.java.Generator'
 	}
 }
 
