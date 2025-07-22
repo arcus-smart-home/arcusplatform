@@ -92,17 +92,7 @@ public class MailgunEmailProvider implements EmailProvider {
    }
     
    public void sendEmail(Message message) throws DispatchException {
-      // Filter the load testing domain so we don't flood email provider.
-//      String filterDomain = mailParams.getEmailFilterDomain();
-//
-//      if (StringUtils.isNotBlank(filterDomain)) {
-//         String email = mailParams.getToEmail().getEmail();
-//         if (StringUtils.isNotBlank(email) && email.endsWith(filterDomain)) {
-//            logger.debug("Dropping email to address {} matches domain {}", mailParams.getToEmail().getEmail(), filterDomain);
-//            return;
-//         }
-//      }
-      MessageResponse messageResponse = mailgunMessagesApiUS.sendMessage("filterDomain", message);
+      MessageResponse messageResponse = mailgunMessagesApiUS.sendMessage("arcus.wl-net.net", message);
       if (messageResponse.getId() == null || messageResponse.getId().isEmpty()) {
          logger.error("Failed to send email using Mailgun, no message ID returned. Response: {}", messageResponse);
          throw new DispatchException("Failed to send notification email. Reason: no message ID returned");
