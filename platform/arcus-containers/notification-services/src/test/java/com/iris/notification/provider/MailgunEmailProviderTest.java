@@ -197,11 +197,9 @@ public class MailgunEmailProviderTest {
       boolean foundHtmlContent = false;
       boolean foundTextContent = false;
         
-      //   if (headers.get("Content-Type").equals("text/html")) {
       if (html != null && !html.isEmpty()) {
          assertEquals(expectedEmailBody, message.getHtml());
          foundHtmlContent = true;
-      //   } else if (headers.get("Content-Type").equals("text/plain")) {
       } else if (text != null && !text.isEmpty()) {
          assertEquals(expectedEmailBody, message.getText());
          foundTextContent = true;
