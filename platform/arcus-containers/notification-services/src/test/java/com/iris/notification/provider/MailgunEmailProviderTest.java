@@ -51,7 +51,6 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -104,8 +103,8 @@ public class MailgunEmailProviderTest {
    
    @Before
    public void initializeMailgunMock() throws Exception {
-      FieldSetter.setField(uut, uut.getClass().getDeclaredField("mailgunMessagesApiUS"), mailgunMessagesApi);
-      FieldSetter.setField(uut, uut.getClass().getDeclaredField("logger"), logger);
+      new FieldSetter(uut, uut.getClass().getDeclaredField("mailgunMessagesApiUS")).set(mailgunMessagesApi);
+      new FieldSetter(uut, uut.getClass().getDeclaredField("logger")).set(logger);
       Map<String, String> renderedParts = new HashMap<String, String>();
       renderedParts.put("", expectedEmailBody);
 
@@ -115,7 +114,7 @@ public class MailgunEmailProviderTest {
       entityMap.put(NotificationProviderUtil.PLACE_KEY, place);
 
       mockStatic(MailgunClient.class);
-      when(MailgunClient.config(anyString()).createApi(MailgunMessagesApi.class)).thenReturn(mailgunMessagesApi);
+      when(MailgunClient.config(Mockito.any(String.class)).createApi(MailgunMessagesApi.class)).thenReturn(mailgunMessagesApi);
 
       Mockito.when(personDao.findById(Mockito.any())).thenReturn(person);
       Mockito.when(placeDao.findById(placeId)).thenReturn(place);
@@ -124,7 +123,7 @@ public class MailgunEmailProviderTest {
       Mockito.when(person.getLastName()).thenReturn(expectedLastName);
       Mockito.when(messageRenderer.renderMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(expectedEmailBody);
       Mockito.when(messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(renderedParts);
-      Mockito.when(mailgunMessagesApi.sendMessage(Mockito.anyString(), Mockito.any(Message.class)));
+      Mockito.when(mailgunMessagesApi.sendMessage(Mockito.any(String.class), Mockito.any(Message.class)));
    }
 
    @Test

@@ -13,6 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ configurations.all {
+    resolutionStrategy {
+        force 'org.mockito:mockito-core:1.10.19'
+    }
+}
+
 apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/container.gradle")
 
@@ -38,6 +44,7 @@ dependencies {
 
 	testCompile project (':platform:arcus-test')
 	testCompile libraries.mockito
+	testImplementation libraries.mockito
 	testImplementation libraries.powermock_junit
 	testImplementation libraries.powermock_mockito
 }

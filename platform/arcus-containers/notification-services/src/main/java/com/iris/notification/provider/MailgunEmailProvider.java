@@ -56,6 +56,7 @@ public class MailgunEmailProvider implements EmailProvider {
    private final NotificationMessageRenderer messageRenderer;
    private final UpstreamNotificationResponder responder;
 
+   private final String domain;
    private final static String SENDER_NAME_SECTION = "sender-name";
    private final static String SENDER_EMAIL_SECTION = "sender-email";
    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
@@ -65,7 +66,8 @@ public class MailgunEmailProvider implements EmailProvider {
    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
    
    @Inject
-   public MailgunEmailProvider(@Named("mailgunemail.provider.apikey") String mailgunApiKey, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
+   public MailgunEmailProvider(@Named("mailgunemail.provider.apikey") String mailgunApiKey, @Named("email.provider.domain") String domain, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
+      this.domain = domain;
       this.mailgunMessagesApiUS = MailgunClient.config(mailgunApiKey).createApi(MailgunMessagesApi.class);
       this.personDao = personDao;
       this.placeDao = placeDao;
@@ -92,7 +94,7 @@ public class MailgunEmailProvider implements EmailProvider {
    }
     
    public void sendEmail(Message message) throws DispatchException {
-      MessageResponse messageResponse = mailgunMessagesApiUS.sendMessage("arcus.wl-net.net", message);
+      MessageResponse messageResponse = mailgunMessagesApiUS.sendMessage(this.domain, message);
       if (messageResponse.getId() == null || messageResponse.getId().isEmpty()) {
          logger.error("Failed to send email using Mailgun, no message ID returned. Response: {}", messageResponse);
          throw new DispatchException("Failed to send notification email. Reason: no message ID returned");
