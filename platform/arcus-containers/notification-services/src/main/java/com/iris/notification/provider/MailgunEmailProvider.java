@@ -39,7 +39,6 @@ import com.mailgun.client.MailgunClient;
 import com.mailgun.model.message.Message;
 import com.mailgun.model.message.Message.MessageBuilder;
 import com.mailgun.model.message.MessageResponse;
-import com.mailgun.util.EmailUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
@@ -47,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 @Singleton
 public class MailgunEmailProvider implements EmailProvider {
-   private static Logger logger = LoggerFactory.getLogger(MailgunEmailProvider.class);
+   private final static Logger logger = LoggerFactory.getLogger(MailgunEmailProvider.class);
    
    private final PersonDAO personDao;
    private final PlaceDAO placeDao;
@@ -80,19 +79,14 @@ public class MailgunEmailProvider implements EmailProvider {
    public void notifyCustomer(Notification notification) throws DispatchException, DispatchUnsupportedByUserException {
       notifyCustomerOldEmail(notification);
 
-      Message message = buildMessage(notification).build();
-      if (message == null) return;
-
-      String toEmail = message.getReplyTo();
-      if (!isEmailValid(toEmail)) {
-         logger.warn("Notification [{}] for placeId [{}] for person [{}] had invalid toEmail [{}].", notification.getMessageKey(), notification.getPlaceId(), notification.getPersonId(), toEmail == null ? "toEmail is null" : toEmail);
-         return;
-      }
+      MessageBuilder messageBuilder = buildMessage(notification);
+      if (messageBuilder == null) return;
+      Message message = messageBuilder.build();
 
       sendEmail(message);
       responder.handleHandOff(notification);
    }
-    
+
    public void sendEmail(Message message) throws DispatchException {
       MessageResponse messageResponse = mailgunMessagesApiUS.sendMessage(this.domain, message);
       if (messageResponse.getId() == null || messageResponse.getId().isEmpty()) {
@@ -118,17 +112,15 @@ public class MailgunEmailProvider implements EmailProvider {
          logger.warn("Notification [{}] for placeId [{}] for person [{}] has invalid oldEmail [{}].", notification.getMessageKey(), notification.getPlaceId(), notification.getPersonId(), oldEmail);
          return;
       }
-      
-      Map<String, BaseEntity<?, ?>> additionalEntityParams = NotificationProviderUtil.addAdditionalParamsAndReturnRecipient(placeDao, personDao, accountDao, notification);
-      Person person = NotificationProviderUtil.getPersonFromParams(additionalEntityParams);
-      EmailRecipient recipient = getRecipient(person, notification);
 
       MessageBuilder messageBuilder = buildMessage(notification);
-      messageBuilder.to(EmailUtil.nameWithEmail(getPersonDisplayName(recipient), oldEmail));
-      Message message = messageBuilder.build();
-      if (message == null)
-         return;
-      sendEmail(message);
+      if (messageBuilder != null) {
+         messageBuilder.to(oldEmail);
+         Message message = messageBuilder.build();
+         if (message == null)
+            return;
+         sendEmail(message);
+      }
    }
 
    private MessageBuilder buildMessage(Notification notification) throws DispatchUnsupportedByUserException {
@@ -156,12 +148,15 @@ public class MailgunEmailProvider implements EmailProvider {
 
       MessageBuilder messageBuilder = Message.builder();
       if (messageParts.containsKey(SENDER_NAME_SECTION) && messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(SENDER_NAME_SECTION), messageParts.get(SENDER_EMAIL_SECTION)));
+         messageBuilder.from(messageParts.get(SENDER_EMAIL_SECTION));
       } else {
          messageBuilder.from(messageParts.get(SENDER_EMAIL_SECTION));
       }
       if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
-         messageBuilder.to(EmailUtil.nameWithEmail(getPersonDisplayName(recipient), messageParts.get(REPLYTO_EMAIL_SECTION)));
+         messageBuilder.replyTo(messageParts.get(REPLYTO_EMAIL_SECTION));
+         messageBuilder.to(messageParts.get(REPLYTO_EMAIL_SECTION));
+      } else {
+         messageBuilder.to(recipientEmail);
       }
       if (messageParts.containsKey(SUBJECT_SECTION)) {
          messageBuilder.subject(messageParts.get(SUBJECT_SECTION));
@@ -181,13 +176,5 @@ public class MailgunEmailProvider implements EmailProvider {
          return recipient;
       }
       return n.getEmailRecipient();
-   }
-
-   private String getPersonDisplayName(EmailRecipient p) {
-      if (p.getFirstName() == null || p.getFirstName().isEmpty() || p.getLastName() == null || p.getLastName().isEmpty() ) {
-         return p.getEmail();
-      } else {
-         return p.getFirstName() + " " + p.getLastName();
-      }
    }
 }
