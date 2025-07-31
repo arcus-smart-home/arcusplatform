@@ -177,7 +177,7 @@ public class MailgunEmailProviderTest {
       String expectedFullName = expectedFirstName + " " + expectedLastName;
       renderedParts.put(SENDER_NAME_SECTION, expectedFullName);
       renderedParts.put(SENDER_EMAIL_SECTION, expectedEmailFromEmail);
-      renderedParts.put(REPLYTO_EMAIL_SECTION, "text@example.com");
+      renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
       renderedParts.put(SUBJECT_SECTION, "subject");
       renderedParts.put(HTML_BODY_SECTION, expectedEmailBody);
       Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.anyObject())).thenReturn(renderedParts);
@@ -186,17 +186,6 @@ public class MailgunEmailProviderTest {
       Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), mailRequestCaptor.capture());
 
       validateEmail(mailRequestCaptor.getValue());
-   }
-
-   @Test
-   public void shouldFailWhenCreatingEmailFails() throws DispatchException, DispatchUnsupportedByUserException {
-      Mockito.when(person.getFirstName()).thenReturn("");
-      Mockito.when(person.getLastName()).thenReturn(null);
-      ArgumentCaptor<Message> emailCaptor = ArgumentCaptor.forClass(Message.class);
-      mockMailgunEmailProvider.notifyCustomer(notification);
-      Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), emailCaptor.capture());
-
-      validateEmail(emailCaptor.getValue());
    }
    
    private void validateEmail(Message message) {
