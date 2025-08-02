@@ -79,12 +79,12 @@ public class TestBehaviorMonitor extends BaseCareBehaviorTest{
       Date previousWindowStart=adjustDate(currentMoment.getTime(),-4,TimeUnit.HOURS);
       currentWindowStart=adjustDate(currentMoment.getTime(),-1,TimeUnit.HOURS);
       Date futureWindowStart=adjustDate(currentMoment.getTime(),4,TimeUnit.HOURS);
-      Date futureWindowStartNextDat=adjustDate(currentMoment.getTime(),24,TimeUnit.HOURS);
+      Date futureWindowStartNextDate=adjustDate(currentMoment.getTime(),24,TimeUnit.HOURS);
 
       previousTimeWindow = createRelativeTimeWindow(previousWindowStart,2,TimeUnit.HOURS);
       currentTimeWindow = createRelativeTimeWindow(currentWindowStart,2,TimeUnit.HOURS);
       futureTimeWindow = createRelativeTimeWindow(futureWindowStart,2,TimeUnit.HOURS);
-      TimeWindow futureTimeWindowNextDay = createRelativeTimeWindow(futureWindowStartNextDat,2,TimeUnit.HOURS);
+      TimeWindow futureTimeWindowNextDay = createRelativeTimeWindow(futureWindowStartNextDate,2,TimeUnit.HOURS);
       
       currentBehavior=addBehaviorToContext(ImmutableList.of(previousTimeWindow,currentTimeWindow,futureTimeWindow,futureTimeWindowNextDay));
 
@@ -258,7 +258,7 @@ public class TestBehaviorMonitor extends BaseCareBehaviorTest{
    private void assertTimeoutExists(String name,Date fireTime){
       Date timeoutDate = SubsystemUtils.getTimeout(context,name).orNull();
       assertNotNull("expecting timeout for " +name,timeoutDate);
-      assertEquals("execting timeout for name " + name,new Date(fireTime.getTime()),new Date(timeoutDate.getTime()));
+      assertEquals("execting timeout for name " + name,fireTime.getTime(),timeoutDate.getTime());
    }
    private void assertNoTimeoutExists(String name){
       Date timeoutDate = SubsystemUtils.getTimeout(context,name).orNull();
