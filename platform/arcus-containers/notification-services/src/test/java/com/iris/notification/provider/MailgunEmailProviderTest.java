@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.powermock.api.mockito.PowerMockito;
 import org.slf4j.Logger;
 
@@ -93,7 +94,7 @@ public class MailgunEmailProviderTest {
    private final static String HTML_BODY_SECTION = "html-body";
    
    @Before
-   public void initializeMailgunMock() {
+   public void initializeMailgunMock() throws Exception {
       logger = Mockito.mock(Logger.class);
       Place place = Mockito.mock(Place.class);
       PlaceDAO placeDao = Mockito.mock(PlaceDAO.class);
@@ -129,6 +130,8 @@ public class MailgunEmailProviderTest {
       Mockito.when(messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(renderedParts);
       Mockito.when(mailgunMessagesApi.sendMessage(Mockito.any(String.class), Mockito.any(Message.class))).thenReturn(messageResponse);
       mockMailgunEmailProvider = new MailgunEmailProvider("fakeApiKey", "testDomain", personDao, placeDao, accountDao, messageRenderer, responder);
+
+      new FieldSetter(mockMailgunEmailProvider, mockMailgunEmailProvider.getClass().getDeclaredField("logger")).set(logger);
    }
 
    @Test
@@ -167,7 +170,7 @@ public class MailgunEmailProviderTest {
               Mockito.eq("message-key"),
               Mockito.eq(placeId),
               Mockito.eq(personId),
-              Mockito.eq(null));
+              Mockito.isNull());
    }
    
    @Test
