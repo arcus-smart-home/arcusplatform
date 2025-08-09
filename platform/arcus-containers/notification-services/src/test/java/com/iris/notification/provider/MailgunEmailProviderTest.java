@@ -69,6 +69,8 @@ public class MailgunEmailProviderTest {
 
    protected Person person;
 
+   protected String defaultSenderEmail;
+
    protected NotificationMessageRenderer messageRenderer;
 
    protected UpstreamNotificationResponder responder;
@@ -83,11 +85,10 @@ public class MailgunEmailProviderTest {
    protected MailgunEmailProvider mockMailgunEmailProvider;
 
    private final String expectedEmailBody = "test-message";
-   private final String expectedEmailFromEmail = "bill@birditzman.com";
+   private final String expectedEmailToEmail = "bill@birditzman.com";
    private final String expectedFirstName = "Bill";
    private final String expectedLastName = "Birditzman";
 
-   private final static String SENDER_NAME_SECTION = "sender-name";
    private final static String SENDER_EMAIL_SECTION = "sender-email";
    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
    private final static String SUBJECT_SECTION = "subject";
@@ -123,7 +124,7 @@ public class MailgunEmailProviderTest {
 
       Mockito.when(personDao.findById(Mockito.any())).thenReturn(person);
       Mockito.when(placeDao.findById(placeId)).thenReturn(place);
-      Mockito.when(person.getEmail()).thenReturn(expectedEmailFromEmail);
+      Mockito.when(person.getEmail()).thenReturn(expectedEmailToEmail);
       Mockito.when(person.getFirstName()).thenReturn(expectedFirstName);
       Mockito.when(person.getLastName()).thenReturn(expectedLastName);
       Mockito.when(messageRenderer.renderMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(expectedEmailBody);
@@ -177,9 +178,7 @@ public class MailgunEmailProviderTest {
    public void shouldSendEmail() throws DispatchException, DispatchUnsupportedByUserException {
       ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
       Map<String, String> renderedParts = new HashMap<>();
-      String expectedFullName = expectedFirstName + " " + expectedLastName;
-      renderedParts.put(SENDER_NAME_SECTION, expectedFullName);
-      renderedParts.put(SENDER_EMAIL_SECTION, expectedEmailFromEmail);
+      renderedParts.put(SENDER_EMAIL_SECTION, "wes.stueve@wds-it.com");
       renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
       renderedParts.put(SUBJECT_SECTION, "subject");
       renderedParts.put(HTML_BODY_SECTION, expectedEmailBody);
@@ -201,6 +200,9 @@ public class MailgunEmailProviderTest {
          assertEquals(expectedEmailBody, message.getText());
       }
       
+      assertEquals("wes.stueve@wds-it.com", message.getFrom());
+      assertEquals("subject", message.getSubject());
       assertEquals("test@example.com", message.getReplyTo());
+      assertTrue(message.getTo().contains(expectedEmailToEmail));
    }
 }

@@ -55,8 +55,11 @@ public class MailgunEmailProvider implements EmailProvider {
    private final NotificationMessageRenderer messageRenderer;
    private final UpstreamNotificationResponder responder;
 
+   @Inject @Named("email.senderemail") private String defaultSenderEmail;
+   @Inject @Named("email.replyto") 	private String defaultReplyToEmail;
+   @Inject @Named("email.subject") 	private String defaultSubject;
+
    private final String domain;
-   private final static String SENDER_NAME_SECTION = "sender-name";
    private final static String SENDER_EMAIL_SECTION = "sender-email";
    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
    private final static String SUBJECT_SECTION = "subject";
@@ -147,20 +150,22 @@ public class MailgunEmailProvider implements EmailProvider {
       Map<String, String> messageParts = messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, additionalEntityParams);
 
       MessageBuilder messageBuilder = Message.builder();
-      if (messageParts.containsKey(SENDER_NAME_SECTION) && messageParts.containsKey(SENDER_EMAIL_SECTION)) {
+      if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
          messageBuilder.from(messageParts.get(SENDER_EMAIL_SECTION));
       } else {
-         messageBuilder.from(messageParts.get(SENDER_EMAIL_SECTION));
+         messageBuilder.from(defaultSenderEmail);
       }
       if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
          messageBuilder.replyTo(messageParts.get(REPLYTO_EMAIL_SECTION));
-         messageBuilder.to(messageParts.get(REPLYTO_EMAIL_SECTION));
       } else {
-         messageBuilder.to(recipientEmail);
+         messageBuilder.replyTo(defaultReplyToEmail);
       }
       if (messageParts.containsKey(SUBJECT_SECTION)) {
          messageBuilder.subject(messageParts.get(SUBJECT_SECTION));
+      } else {
+         messageBuilder.subject(defaultSubject);
       }
+      messageBuilder.to(recipientEmail);
       messageBuilder.text(messageParts.containsKey(PLAINTEXT_BODY_SECTION) ? messageParts.get(PLAINTEXT_BODY_SECTION) : messageParts.get(""));
       messageBuilder.html(messageParts.containsKey(HTML_BODY_SECTION) ? messageParts.get(HTML_BODY_SECTION) : messageParts.get(PLAINTEXT_BODY_SECTION));
 

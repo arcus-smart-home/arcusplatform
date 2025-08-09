@@ -65,8 +65,8 @@ public class NotificationModule extends AbstractIrisModule {
    private String gcmSender = "default";
 
    @Inject(optional=true)
-   @Named("notificationservice.provider.email")
-   private String emailProvider = "default";
+   @Named("notificationservice.sender.email")
+   private String emailSender = "default";
 
     @Override
     protected void configure() {
@@ -111,9 +111,9 @@ public class NotificationModule extends AbstractIrisModule {
            break;
         }
 
-        switch (emailProvider) {
+        switch (emailSender) {
          default:
-            logger.warn("unknown email provider implementation {}: using default instead");
+            logger.warn("unknown email sender implementation {}: using default instead");
             // fall through
 
          case "default":
