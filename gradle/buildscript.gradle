@@ -34,5 +34,5 @@ dependencies {
    classpath "com.github.spotbugs:spotbugs-gradle-plugin:2.0.1"
 
    // mailgun
-   classpath 'com.github.mailgun:mailgun-java:1.1.6'
+   classpath 'com.github.mailgun:mailgun-java:1.0.0'
 }
