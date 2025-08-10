@@ -38,6 +38,7 @@ import com.mailgun.api.v3.MailgunMessagesApi;
 import com.mailgun.client.MailgunClient;
 import com.mailgun.model.message.Message;
 import com.mailgun.model.message.Message.MessageBuilder;
+import com.mailgun.util.EmailUtil;
 import com.mailgun.model.message.MessageResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.EmailValidator;
@@ -55,11 +56,13 @@ public class MailgunEmailProvider implements EmailProvider {
    private final NotificationMessageRenderer messageRenderer;
    private final UpstreamNotificationResponder responder;
 
+   @Inject @Named("email.sendername") 	private String defaultSenderName;
    @Inject @Named("email.senderemail") private String defaultSenderEmail;
    @Inject @Named("email.replyto") 	private String defaultReplyToEmail;
    @Inject @Named("email.subject") 	private String defaultSubject;
 
    private final String domain;
+   private final static String SENDER_NAME_SECTION = "sender-name";
    private final static String SENDER_EMAIL_SECTION = "sender-email";
    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
    private final static String SUBJECT_SECTION = "subject";
@@ -68,7 +71,7 @@ public class MailgunEmailProvider implements EmailProvider {
    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
    
    @Inject
-   public MailgunEmailProvider(@Named("mailgunemail.provider.apikey") String mailgunApiKey, @Named("email.provider.domain") String domain, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
+   public MailgunEmailProvider(@Named("email.provider.apikey") String mailgunApiKey, @Named("email.provider.domain") String domain, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
       this.domain = domain;
       this.mailgunMessagesApiUS = MailgunClient.config(mailgunApiKey).createApi(MailgunMessagesApi.class);
       this.personDao = personDao;
@@ -151,9 +154,9 @@ public class MailgunEmailProvider implements EmailProvider {
 
       MessageBuilder messageBuilder = Message.builder();
       if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-         messageBuilder.from(messageParts.get(SENDER_EMAIL_SECTION));
+         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(SENDER_NAME_SECTION), messageParts.get(SENDER_EMAIL_SECTION)));
       } else {
-         messageBuilder.from(defaultSenderEmail);
+         messageBuilder.from(EmailUtil.nameWithEmail(defaultSenderName, defaultSenderEmail));
       }
       if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
          messageBuilder.replyTo(messageParts.get(REPLYTO_EMAIL_SECTION));

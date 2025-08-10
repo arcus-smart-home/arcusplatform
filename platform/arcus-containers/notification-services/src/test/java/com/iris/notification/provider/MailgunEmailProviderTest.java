@@ -69,6 +69,8 @@ public class MailgunEmailProviderTest {
 
    protected Person person;
 
+   protected String defaultSenderName;
+
    protected String defaultSenderEmail;
 
    protected NotificationMessageRenderer messageRenderer;
@@ -89,6 +91,7 @@ public class MailgunEmailProviderTest {
    private final String expectedFirstName = "Bill";
    private final String expectedLastName = "Birditzman";
 
+   private final static String SENDER_NAME_SECTION = "sender-name";
    private final static String SENDER_EMAIL_SECTION = "sender-email";
    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
    private final static String SUBJECT_SECTION = "subject";
@@ -178,6 +181,7 @@ public class MailgunEmailProviderTest {
    public void shouldSendEmail() throws DispatchException, DispatchUnsupportedByUserException {
       ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
       Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(SENDER_NAME_SECTION, "Wes Stueve");
       renderedParts.put(SENDER_EMAIL_SECTION, "wes.stueve@wds-it.com");
       renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
       renderedParts.put(SUBJECT_SECTION, "subject");
@@ -186,11 +190,12 @@ public class MailgunEmailProviderTest {
       Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
       mockMailgunEmailProvider.notifyCustomer(notification);
       Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), mailRequestCaptor.capture());
-
-      validateEmail(mailRequestCaptor.getValue());
+      
+      String expectedFromEmail = "Wes Stueve <wes.stueve@wds-it.com>";
+      validateEmail(expectedFromEmail, mailRequestCaptor.getValue());
    }
    
-   private void validateEmail(Message message) {
+   private void validateEmail(String expectedFromEmail, Message message) {
       String html = message.getHtml();
       String text = message.getText();
         
@@ -200,9 +205,28 @@ public class MailgunEmailProviderTest {
          assertEquals(expectedEmailBody, message.getText());
       }
       
-      assertEquals("wes.stueve@wds-it.com", message.getFrom());
+      assertEquals(expectedFromEmail, message.getFrom());
       assertEquals("subject", message.getSubject());
       assertEquals("test@example.com", message.getReplyTo());
       assertTrue(message.getTo().contains(expectedEmailToEmail));
+   }
+
+   @Test
+   public void shouldSendEmailWithDefaultSender() throws DispatchException, DispatchUnsupportedByUserException, NoSuchFieldException {
+      defaultSenderName = "Arcus Platform";
+      defaultSenderEmail = "mail@arcus.test.net";
+      new FieldSetter(mockMailgunEmailProvider, mockMailgunEmailProvider.getClass().getDeclaredField("defaultSenderName")).set(defaultSenderName);
+      new FieldSetter(mockMailgunEmailProvider, mockMailgunEmailProvider.getClass().getDeclaredField("defaultSenderEmail")).set(defaultSenderEmail);
+      ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
+      renderedParts.put(SUBJECT_SECTION, "subject");
+      renderedParts.put(HTML_BODY_SECTION, expectedEmailBody);
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.anyObject())).thenReturn(renderedParts);
+      Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
+      mockMailgunEmailProvider.notifyCustomer(notification);
+      Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), mailRequestCaptor.capture());
+
+      validateEmail(defaultSenderName + " <" + defaultSenderEmail + ">", mailRequestCaptor.getValue());
    }
 }
