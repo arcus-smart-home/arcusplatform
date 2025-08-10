@@ -224,6 +224,7 @@ ext.libraries << [
 //Powermock
 		powermock_junit:  "org.powermock:powermock-module-junit4:1.7.3",
 		powermock_easymock: "org.powermock:powermock-api-easymock:1.7.3",
+		powermock_mockito: "org.powermock:powermock-api-mockito:1.7.3",
 
 //Junit
 		junit: "junit:junit:4.13",
@@ -251,6 +252,7 @@ ext.libraries << [
 
 
 // Notifications
+		mailgun: "com.mailgun:mailgun-java:1.0.0",
 		sendgridJava: "com.sendgrid:sendgrid-java:4.4.1",
 		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
 		sendgridHTTP: "com.sendgrid:java-http-client:4.2.0",

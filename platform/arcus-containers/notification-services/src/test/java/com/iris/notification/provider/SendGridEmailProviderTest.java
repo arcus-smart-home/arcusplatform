@@ -62,7 +62,7 @@ import org.slf4j.Logger;
 
 
 @RunWith(MockitoJUnitRunner.class)
-public class EmailProviderTest {
+public class SendGridEmailProviderTest {
 
    protected Notification notification = new NotificationBuilder().build();
 
@@ -95,7 +95,7 @@ public class EmailProviderTest {
    protected Logger logger;
 
    @InjectMocks
-   protected EmailProvider uut;
+   protected SendGridEmailProvider uut;
 
    private String expectedEmailBody = "test-message";
    private String expectedEmailFromEmail = "bill@birditzman.com";
