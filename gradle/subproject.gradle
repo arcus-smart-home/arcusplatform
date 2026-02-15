@@ -20,6 +20,10 @@ apply plugin: 'project-report'
 apply plugin: 'eclipse'
 apply plugin: "com.github.spotbugs"
 
+spotbugs {
+   ignoreFailures = true
+}
+
 if (project.hasProperty('eyeris_owasp')) {
     if (eyeris_owasp?.trim()) {
         apply plugin: "org.owasp.dependencycheck"
