@@ -99,6 +99,8 @@ subprojects {
         // Java EE APIs removed from JDK 9+
         compile libraries.jaxb_api
         compile libraries.javax_annotation_api
+        compile libraries.javax_activation_api
+        runtime libraries.javax_activation_impl
 
         // all sub-projects use junit for unit testing
         testCompile libraries.junit

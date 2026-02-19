@@ -68,6 +68,11 @@ subprojects {
       if (plugins.hasPlugin('java')) {
          sourceCompatibility = '11'
          targetCompatibility = '11'
+         // javax.activation was removed from the JDK in Java 9+
+         dependencies {
+            compile libraries.javax_activation_api
+            runtime libraries.javax_activation_impl
+         }
       }
    }
 }
