@@ -18,13 +18,9 @@
  */
 package com.iris.gson;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
-import com.google.gson.internal.bind.ObjectTypeAdapter;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -33,20 +29,14 @@ import com.google.gson.reflect.TypeToken;
 public class IrisObjectTypeAdapterFactory implements TypeAdapterFactory {
 
    /**
-    * GSON will not allows the default Object type adapter to be replaced,
-    * so this method reflectively replaces the reference to the global
-    * Object type adapter.
+    * No-op for backwards compatibility. The reflection hack is no longer needed
+    * since Gson 2.8.9+ supports ToNumberPolicy.LONG_OR_DOUBLE which handles
+    * Long deserialization without rounding errors.
     */
    public static void install() {
-      // de-reference and throw if an error
-      if(IrisObjectTypeAdapterInstaller.FAILURE != null) {
-         throw new IllegalStateException("Unable to install type adapter factory", IrisObjectTypeAdapterInstaller.FAILURE);
-      }
+      // no longer needed
    }
 
-   /* (non-Javadoc)
-    * @see com.google.gson.TypeAdapterFactory#create(com.google.gson.Gson, com.google.gson.reflect.TypeToken)
-    */
    @SuppressWarnings("unchecked")
    @Override
    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
@@ -56,27 +46,4 @@ public class IrisObjectTypeAdapterFactory implements TypeAdapterFactory {
          return null;
       }
    }
-
-   private static class IrisObjectTypeAdapterInstaller {
-      private static final Throwable FAILURE;
-
-      static {
-         Throwable cause = null;
-         try {
-            Field field = ObjectTypeAdapter.class.getDeclaredField("FACTORY");
-            field.setAccessible(true);
-
-            Field modifiers = Field.class.getDeclaredField("modifiers");
-            modifiers.setAccessible(true);
-            modifiers.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-
-            field.set(null, new IrisObjectTypeAdapterFactory());
-         }
-         catch(Throwable e) {
-            cause = e;
-         }
-         FAILURE = cause;
-      }
-   }
 }
-

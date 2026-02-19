@@ -96,9 +96,13 @@ subprojects {
         // all sub-projects use dropwizard for metrics
         compile libraries.metrics_core
 
+        // Java EE APIs removed from JDK 9+
+        compile libraries.jaxb_api
+        compile libraries.javax_annotation_api
+
         // all sub-projects use junit for unit testing
         testCompile libraries.junit
-        
+
         // all sub-projects use logback during tests
         testCompile libraries.logback
     }

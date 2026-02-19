@@ -63,4 +63,12 @@ println "Building platform v${platformVersion}"
 
 apply from: file("${rootDir}/gradle/release.gradle")
 
+subprojects {
+   afterEvaluate {
+      if (plugins.hasPlugin('java')) {
+         sourceCompatibility = '11'
+         targetCompatibility = '11'
+      }
+   }
+}
 

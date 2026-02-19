@@ -13,7 +13,7 @@ RUN \
     wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - && \
     echo "deb https://packages.adoptium.net/artifactory/deb bullseye main " >> /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y temurin-8-jre \
+    apt-get install -y temurin-11-jre \
         procps less tcpdump vim locales && \
     apt-get remove -y gnupg wget && \
     apt-get clean && \

@@ -24,6 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonSerializer;
+import com.google.gson.ToNumberPolicy;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 
@@ -61,9 +62,8 @@ public class GsonFactory {
          Set<JsonDeserializer<?>> deserializers,
          boolean serializeNulls
    ) {
-      IrisObjectTypeAdapterFactory.install();
-
       GsonBuilder builder = new GsonBuilder();
+      builder.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE);
       if (serializeNulls) {
          builder.serializeNulls();
       }

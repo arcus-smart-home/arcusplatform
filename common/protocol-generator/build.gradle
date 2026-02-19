@@ -27,6 +27,8 @@ dependencies {
     jaxb 'com.sun.xml.bind:jaxb-impl:2.2.7-b41'
     jaxb 'javax.xml.bind:jaxb-api:2.2.7'
     
+    compile libraries.jaxb_api
+    compile libraries.jaxb_impl
     compile libraries.commons_lang
     compile libraries.handlebars
     compile libraries.jcommander
