@@ -89,9 +89,10 @@ distDocker {
 }
 
 // The gradle-docker plugin v1.2 calls JavaBaseImage.imageFor(targetCompatibility)
-// which throws for Java 11+ since it only supports Java 6/7/8. Override the method
-// to return our base image directly, bypassing the version lookup.
-distDocker.metaClass.getBaseImage = { -> "arcus/java" }
+// which throws for Java 11+ since it only supports Java 6/7/8. Temporarily set
+// targetCompatibility to 1.8 before the task action runs so the lookup succeeds,
+// then the docker{} extension baseImage "arcus/java" is used as the actual image.
+distDocker.doFirst { project.targetCompatibility = '1.8' }
 
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
