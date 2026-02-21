@@ -65,10 +65,6 @@ startScripts {
            '-XX:StringTableSize=1000003',
            "-Xms${jvmMem}m",
            "-Xmx${jvmMem}m",
-           '-XX:+UseSHA',
-           '-XX:+UseSHA1Intrinsics',
-           '-XX:+UseSHA256Intrinsics',
-           '-XX:+UseSHA512Intrinsics',
            '-XX:+UseNUMA',
            '-XX:+UseNUMAInterleaving'
    ]
