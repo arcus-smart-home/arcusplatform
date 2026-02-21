@@ -81,6 +81,7 @@ docker {
 }
 
 distDocker {
+   baseImage = "arcus/java"
    tag = project.containerTag;
    tagVersion = project.dockerVersion;
 
