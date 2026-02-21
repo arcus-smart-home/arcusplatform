@@ -81,13 +81,17 @@ docker {
 }
 
 distDocker {
-   baseImage = "arcus/java"
    tag = project.containerTag;
    tagVersion = project.dockerVersion;
 
    def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
    defaultCommand(['-c', irisConfig])
 }
+
+// The gradle-docker plugin v1.2 calls JavaBaseImage.imageFor(targetCompatibility)
+// which throws for Java 11+ since it only supports Java 6/7/8. Override the method
+// to return our base image directly, bypassing the version lookup.
+distDocker.metaClass.getBaseImage = { -> "arcus/java" }
 
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
