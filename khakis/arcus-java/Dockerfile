@@ -1,5 +1,5 @@
 # Use Debian as the base installation
-FROM debian:bullseye
+FROM debian:bookworm
 
 # Install the latest updates.
 ADD sources.list /etc/apt/
@@ -10,8 +10,9 @@ RUN apt-get update && apt-get install -y locales ca-certificates wget gnupg && r
 
 # Install Java and some utilities
 RUN \
-    wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - && \
-    echo "deb https://packages.adoptium.net/artifactory/deb bullseye main " >> /etc/apt/sources.list && \
+    mkdir -p /etc/apt/keyrings && \
+    wget -qO /etc/apt/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public && \
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
     apt-get install -y temurin-11-jre \
         procps less tcpdump vim locales && \
