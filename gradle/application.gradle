@@ -47,6 +47,7 @@ run {
    systemProperty "sun.net.inetaddr.negative.ttl", "5"
    systemProperty "jdk.tls.ephemeralDHKeySize", "2048"
    systemProperty 'kafka.consumerTimeoutMs', '3600000'
+   systemProperty "logback.configurationFile", "/home/andrew/projects/arcus-k8/config/extrafiles/logback.xml"
    environment getLocalProps()
    args '-c', 'src/dist/conf/' + project.name + '.properties'
 }
@@ -64,17 +65,10 @@ startScripts {
            '-XX:StringTableSize=1000003',
            "-Xms${jvmMem}m",
            "-Xmx${jvmMem}m",
-           '-XX:+UseMontgomeryMultiplyIntrinsic',
-           '-XX:+UseMontgomerySquareIntrinsic',
-           '-XX:+UseSquareToLenIntrinsic',
-           '-XX:+UseMultiplyToLenIntrinsic',
            '-XX:+UseSHA',
            '-XX:+UseSHA1Intrinsics',
            '-XX:+UseSHA256Intrinsics',
            '-XX:+UseSHA512Intrinsics',
-           '-XX:+UseMulAddIntrinsic',
-           '-XX:+UseXmmI2D',
-           '-XX:+UseXmmI2F',
            '-XX:+UseNUMA',
            '-XX:+UseNUMAInterleaving'
    ]
