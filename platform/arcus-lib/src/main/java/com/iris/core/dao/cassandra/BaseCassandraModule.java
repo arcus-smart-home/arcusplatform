@@ -232,8 +232,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
         ClusterDestroyer destroyer = new ClusterDestroyer();
         destroyer.cluster = bld.build();
+        destroyer.cluster.register(CassandraHealth.instance());
 
         destroyer.session = destroyer.cluster.connect(keyspace);
+        CassandraHealth.instance().initializeFrom(destroyer.cluster);
 
         if (name == null) {
             bind(ClusterDestroyer.class).toInstance(destroyer);
