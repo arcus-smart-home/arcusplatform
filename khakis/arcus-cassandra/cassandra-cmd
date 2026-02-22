@@ -99,6 +99,9 @@ cassandra_init() {
 
     fi
 
+    # Cassandra 4.0 changed default num_tokens from 256 to 16; preserve 256 for existing data
+    sed -i "s/^\s*num_tokens\s*:.*$/num_tokens: 256/" $CASSANDRA_HOME/conf/cassandra.yaml
+
     sed -i "s/^\s*cross_node_timeout\s*:.*$/cross_node_timeout: true/" $CASSANDRA_HOME/conf/cassandra.yaml
    
     sed -i "s/^# streaming_socket_timeout_in_ms:\s.*$/streaming_socket_timeout_in_ms: 172800000/"  $CASSANDRA_HOME/conf/cassandra.yaml
