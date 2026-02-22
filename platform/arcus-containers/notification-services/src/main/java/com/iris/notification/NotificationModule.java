@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- *
- */
 package com.iris.notification;
 
 import org.slf4j.Logger;
@@ -31,13 +28,15 @@ import com.iris.notification.dispatch.NotificationDispatcher;
 import com.iris.notification.message.NotificationMessageRenderer;
 import com.iris.notification.message.TemplateMessageRenderer;
 import com.iris.notification.provider.ApnsProvider;
-import com.iris.notification.provider.EmailProvider;
 import com.iris.notification.provider.GCMProvider;
 import com.iris.notification.provider.IVRProvider;
 import com.iris.notification.provider.LogProvider;
+import com.iris.notification.provider.EmailProvider;
+import com.iris.notification.provider.MailgunEmailProvider;
 import com.iris.notification.provider.MapNotificationProviderRegistry;
 import com.iris.notification.provider.NotificationProvider;
 import com.iris.notification.provider.NotificationProviderRegistry;
+import com.iris.notification.provider.SendGridEmailProvider;
 import com.iris.notification.provider.WebhookProvider;
 import com.iris.notification.provider.apns.ApnsSender;
 import com.iris.notification.provider.apns.NoopApnsSender;
@@ -64,6 +63,10 @@ public class NotificationModule extends AbstractIrisModule {
    @Inject(optional=true)
    @Named("notificationservice.sender.gcm")
    private String gcmSender = "default";
+
+   @Inject(optional=true)
+   @Named("notificationservice.sender.email")
+   private String emailSender = "default";
 
     @Override
     protected void configure() {
@@ -106,6 +109,20 @@ public class NotificationModule extends AbstractIrisModule {
            logger.warn("using noop gcm sender");
            bind(GcmSender.class).to(NoopGcmSender.class);
            break;
+        }
+
+        switch (emailSender) {
+         default:
+            logger.warn("unknown email sender implementation {}: using default instead");
+            // fall through
+
+         case "default":
+            bind(EmailProvider.class).to(SendGridEmailProvider.class);
+            break;
+         case "mailgun":
+            logger.info("using mailgun email sender");
+            bind(EmailProvider.class).to(MailgunEmailProvider.class);
+            break;
         }
 
         bind(UpstreamNotificationResponder.class).to(IrisUpstreamNotificationResponder.class);
