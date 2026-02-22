@@ -104,7 +104,11 @@ public class ClusterService implements StartupListener {
       }
       catch(Exception e) {
          if(retries < 0 || attempt < retries) {
-            logger.warn("Unable to reserve cluster id, will try again in [{}] ms, attempt [{}]", retryDelayMs, attempt);
+            if(attempt == 0 || attempt % 60 == 0) {
+               logger.warn("Unable to reserve cluster id, will try again in [{}] ms, attempt [{}]", retryDelayMs, attempt);
+            } else {
+               logger.debug("Unable to reserve cluster id, will try again in [{}] ms, attempt [{}]", retryDelayMs, attempt);
+            }
             executor.schedule(() -> tryRegister(attempt+1), retryDelayMs, TimeUnit.MILLISECONDS);
          }
          else {
