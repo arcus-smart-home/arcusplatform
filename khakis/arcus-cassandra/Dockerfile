@@ -34,6 +34,7 @@ RUN \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
     rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
+    ln -s /opt/cassandra/bin/nodetool /usr/bin && \
     apt-get remove -y wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
