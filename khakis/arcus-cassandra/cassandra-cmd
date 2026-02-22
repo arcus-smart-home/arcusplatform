@@ -99,17 +99,11 @@ cassandra_init() {
 
     fi
 
-    sed -i "s/^\s*rpc_server_type\s*:.*$/rpc_server_type: hsha/" $CASSANDRA_HOME/conf/cassandra.yaml
-    sed -i "s/^\s*#\s*rpc_min_threads\s*:.*$/rpc_min_threads: 16/" $CASSANDRA_HOME/conf/cassandra.yaml
-    sed -i "s/^\s*#\s*rpc_max_threads\s*:.*$/rpc_max_threads: 64/" $CASSANDRA_HOME/conf/cassandra.yaml
-
     sed -i "s/^\s*cross_node_timeout\s*:.*$/cross_node_timeout: true/" $CASSANDRA_HOME/conf/cassandra.yaml
    
     sed -i "s/^# streaming_socket_timeout_in_ms:\s.*$/streaming_socket_timeout_in_ms: 172800000/"  $CASSANDRA_HOME/conf/cassandra.yaml
 
     sed -i "s/^\s*-\s*seeds\s*:.*$/            - seeds: \"${SDS}\"/" $CASSANDRA_HOME/conf/cassandra.yaml
-
-    sed -i "s/^\s*start_rpc: false$/start_rpc: true/" $CASSANDRA_HOME/conf/cassandra.yaml
 
     if [[ -z "${CASSANDRA_ENDPOINT_SNITCH}" ]]; then
         CASSANDRA_ENDPOINT_SNITCH="SimpleSnitch"
