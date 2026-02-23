@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.core.StartupListener;
+import com.iris.core.dao.cassandra.CassandraHealth;
 import com.iris.util.ThreadPoolBuilder;
 
 public class TcpHealthCheck implements StartupListener {
@@ -85,7 +86,9 @@ public class TcpHealthCheck implements StartupListener {
          while(!Thread.interrupted()) {
             try {
                Socket client = server.accept();
-               client.getOutputStream().write(RESPONSE);
+               if (CassandraHealth.instance().isHealthy()) {
+                  client.getOutputStream().write(RESPONSE);
+               }
                client.close();
             }
             catch(SocketTimeoutException e) {
