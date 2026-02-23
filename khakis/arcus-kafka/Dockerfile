@@ -22,10 +22,6 @@ RUN \
     rm /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     chown -R kafka:kafka /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
 
-RUN \
-    /bin/bash -c 'echo "127.0.0.1	kafka.eyeris" > /etc/hosts' && \
-    /bin/bash -c 'echo "127.0.0.1     kafkaops.eyeris" > /etc/hosts'
-
 # Add Apache Kafka control script and debug utilities
 ADD kafka-cmd /usr/bin/kafka-cmd 
 ADD kafka-provision /usr/bin/kafka-provision

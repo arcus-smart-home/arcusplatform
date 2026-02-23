@@ -97,8 +97,8 @@ distDocker.doFirst { project.targetCompatibility = '1.8' }
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
 
-   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+   def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
    if (System.getenv('REGISTRY_NAME')) {
       def registryName = System.getenv("REGISTRY_NAME")
@@ -111,12 +111,12 @@ task tagDocker(type: Exec) {
 task pushDocker(type: Exec) {
    dependsOn "tagDocker"
 
-   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+   def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
    if (System.getenv('REGISTRY_NAME')) {
       def registryName = System.getenv("REGISTRY_NAME")
-      commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+      commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${separator}${applicationName}:${project.dockerVersion}"
    } else {
       commandLine 'docker', 'push', "${tag}:${project.dockerVersion}"
    }

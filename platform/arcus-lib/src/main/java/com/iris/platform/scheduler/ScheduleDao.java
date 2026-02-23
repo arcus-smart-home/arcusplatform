@@ -44,15 +44,21 @@ public interface ScheduleDao {
          return ImmutableMap.of();
       }
       
+      Date now = new Date();
       Map<PlatformPartition, PartitionOffset> pending = new HashMap<PlatformPartition, PartitionOffset>(partitions.size());
       for(PartitionOffset offset: listPartitionOffsets()) {
          if(!partitions.contains(offset.getPartition())) {
             continue;
          }
 
-         pending.put(offset.getPartition(), offset.getNextPartitionOffset());
+         PartitionOffset next = offset.getNextPartitionOffset();
+         Date cutoff = new Date(now.getTime() - getTimeBucketDurationMs());
+         if(next.getOffset().before(cutoff)) {
+            next = getPartitionOffsetFor(offset.getPartition(), cutoff);
+            completeOffset(next);
+         }
+         pending.put(offset.getPartition(), next);
       }
-      Date now = new Date();
       for(PlatformPartition partition: partitions) {
          pending.computeIfAbsent(partition, (p) -> getPartitionOffsetFor(p, now));
       }

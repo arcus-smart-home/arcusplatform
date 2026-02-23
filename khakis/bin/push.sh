@@ -21,8 +21,12 @@ docker_push_to_registry() {
     local DOCKER_NAME="${2:-$(basename ${DOCKER_PATH})}"
 
     # arcus-java becomes arcus/java
-    local seperator=${REGISTRY_SEPERATOR:-/}
-    local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${seperator}")
+    if [ -n "${REGISTRY_SEPERATOR}" ] && [ -z "${REGISTRY_SEPARATOR}" ]; then
+        echo "ERROR: REGISTRY_SEPERATOR is deprecated, use REGISTRY_SEPARATOR instead" >&2
+        exit 1
+    fi
+    local separator=${REGISTRY_SEPARATOR:-/}
+    local DOCKER_TAG=$(echo "${DOCKER_NAME}" |tr '-' "${separator}")
 
     if [ "$DOCKER_PREFIX_OVERRIDE" ]; then
         DOCKER_TAG=$(echo "${DOCKER_TAG}" | sed "s%arcus%${DOCKER_PREFIX_OVERRIDE}%")

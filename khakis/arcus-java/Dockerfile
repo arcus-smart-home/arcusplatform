@@ -5,7 +5,7 @@ FROM debian:bookworm
 ADD sources.list /etc/apt/
 
 # Setup the default locale to be UTF-8
-RUN apt-get update && apt-get install -y locales ca-certificates wget gnupg && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y locales ca-certificates wget && rm -rf /var/lib/apt/lists/* \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # Install Java and some utilities
@@ -16,7 +16,7 @@ RUN \
     apt-get update && \
     apt-get install -y temurin-11-jre \
         procps less tcpdump vim locales && \
-    apt-get remove -y gnupg wget && \
+    apt-get remove -y wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
