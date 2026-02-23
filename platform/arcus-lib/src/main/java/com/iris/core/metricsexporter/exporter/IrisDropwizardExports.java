@@ -21,21 +21,17 @@ import com.codahale.metrics.*;
 import com.codahale.metrics.Timer;
 import com.iris.metrics.tag.TagValue;
 import com.iris.metrics.tag.TaggingMetric;
-import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.dropwizard.samplebuilder.DefaultSampleBuilder;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Collect Dropwizard metrics from a MetricRegistry.
  * Taken from https://github.com/prometheus/client_java/blob/master/simpleclient_dropwizard/src/main/java/io/prometheus/client/dropwizard/DropwizardExports.java
  */
 public class IrisDropwizardExports extends io.prometheus.client.Collector implements io.prometheus.client.Collector.Describable {
-   private static final Logger LOGGER = Logger.getLogger(DropwizardExports.class.getName());
    private MetricRegistry registry;
    private SampleBuilder sampleBuilder;
 
@@ -89,8 +85,6 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
       } else if (obj instanceof Boolean) {
          value = ((Boolean) obj) ? 1 : 0;
       } else {
-         LOGGER.log(Level.FINE, String.format("Invalid type for Gauge %s: %s", sanitizeMetricName(dropwizardName),
-               obj == null ? "null" : obj.getClass().getName()));
          return null;
       }
       MetricFamilySamples.Sample sample = sampleBuilder.createSample(dropwizardName, "",

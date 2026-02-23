@@ -72,7 +72,16 @@ public class TestBehaviorMonitor extends BaseCareBehaviorTest{
       careBehavior=EasyMock.createNiceMock(CareBehavior.class);
       
       currentMoment = context.getLocalTime();
-      
+      // Pin to a safe mid-week, mid-day time so that no time windows
+      // (T-4h through T+24h) cross the Mon/Sun week boundary used by
+      // WeeklyTimeWindow.millisIntoWeek().  Without this, CI jobs that
+      // happen to run near Monday 00:00 UTC produce wrong results.
+      currentMoment.set(Calendar.DAY_OF_WEEK, Calendar.WEDNESDAY);
+      currentMoment.set(Calendar.HOUR_OF_DAY, 12);
+      currentMoment.set(Calendar.MINUTE, 0);
+      currentMoment.set(Calendar.SECOND, 0);
+      currentMoment.set(Calendar.MILLISECOND, 0);
+
       EasyMock.expect(careBehavior.getId()).andReturn(behaviorId.toString()).anyTimes();
       EasyMock.expect(careBehavior.toMap()).andReturn(ImmutableMap.<String,Object>of()).anyTimes();
       
