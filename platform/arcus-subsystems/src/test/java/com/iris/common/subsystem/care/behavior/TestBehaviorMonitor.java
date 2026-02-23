@@ -72,7 +72,8 @@ public class TestBehaviorMonitor extends BaseCareBehaviorTest{
       careBehavior=EasyMock.createNiceMock(CareBehavior.class);
       
       currentMoment = context.getLocalTime();
-      
+      currentMoment.set(Calendar.MILLISECOND, 0);
+
       EasyMock.expect(careBehavior.getId()).andReturn(behaviorId.toString()).anyTimes();
       EasyMock.expect(careBehavior.toMap()).andReturn(ImmutableMap.<String,Object>of()).anyTimes();
       
