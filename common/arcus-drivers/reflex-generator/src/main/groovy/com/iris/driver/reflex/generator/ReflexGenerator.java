@@ -25,7 +25,11 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
 import org.eclipse.jdt.annotation.Nullable;
@@ -134,35 +138,66 @@ public class ReflexGenerator {
 
       System.out.println("generating hub local reflex db...");
 
-      boolean validated = true;
-      for (String file : options.getInputFiles()) {
-         try {
-            File fl = new File(file);
-            System.out.println("parsing " + fl.getName() + "...");
-            
-            DeviceDriver driver = factory.load(fl.getAbsolutePath());
-            DeviceDriverDefinition def = driver.getDefinition();
+      List<String> inputFiles = options.getInputFiles();
+      int threads = Math.min(Runtime.getRuntime().availableProcessors(), inputFiles.size());
+      AtomicBoolean validated = new AtomicBoolean(true);
+      AtomicBoolean failed = new AtomicBoolean(false);
+      List<Exception> errors = Collections.synchronizedList(new ArrayList<Exception>());
 
-            ReflexDriverDefinition reflexes = def.getReflexes();
-            if (reflexes == null) {
-               continue;
-            }
-
-            String json1 = ReflexJson.toJson(reflexes);
-            ReflexDriverDefinition temp = ReflexJson.fromJson(json1);
-            String json2 = ReflexJson.toJson(reflexes);
-
-            if (!json1.equals(json2)) {
-               validated = false;
-               System.out.println("validation of reflex serialization/deserialization failed for: " + def.getName() + " " + def.getVersion());
-            }
-         } catch (Exception ex) {
-            throw ex;
+      if (threads <= 1) {
+         for (String file : inputFiles) {
+            parseAndValidateDriver(factory, file, validated);
          }
+      } else {
+         System.out.println("parsing " + inputFiles.size() + " drivers with " + threads + " threads...");
+         ExecutorService executor = Executors.newFixedThreadPool(threads);
+         CountDownLatch latch = new CountDownLatch(inputFiles.size());
+
+         for (String file : inputFiles) {
+            executor.submit(() -> {
+               try {
+                  parseAndValidateDriver(factory, file, validated);
+               } catch (Exception ex) {
+                  errors.add(ex);
+                  failed.set(true);
+               } finally {
+                  latch.countDown();
+               }
+            });
+         }
+
+         latch.await(10, TimeUnit.MINUTES);
+         executor.shutdown();
       }
 
-      if (!validated) {
+      if (!errors.isEmpty()) {
+         throw errors.get(0);
+      }
+
+      if (!validated.get()) {
          throw new RuntimeException("failed to validate drivers");
+      }
+   }
+
+   private void parseAndValidateDriver(GroovyDriverFactory factory, String file, AtomicBoolean validated) throws Exception {
+      File fl = new File(file);
+      System.out.println("parsing " + fl.getName() + "...");
+
+      DeviceDriver driver = factory.load(fl.getAbsolutePath());
+      DeviceDriverDefinition def = driver.getDefinition();
+
+      ReflexDriverDefinition reflexes = def.getReflexes();
+      if (reflexes == null) {
+         return;
+      }
+
+      String json1 = ReflexJson.toJson(reflexes);
+      ReflexDriverDefinition temp = ReflexJson.fromJson(json1);
+      String json2 = ReflexJson.toJson(reflexes);
+
+      if (!json1.equals(json2)) {
+         validated.set(false);
+         System.out.println("validation of reflex serialization/deserialization failed for: " + def.getName() + " " + def.getVersion());
       }
    }
 
