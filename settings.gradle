@@ -78,27 +78,32 @@ include 'platform:arcus-containers:scheduler-service'
 include 'platform:arcus-containers:subsystem-service'
 include 'platform:arcus-containers:metrics-server'
 
-// Disabled modules — not needed for self-hosted deployment.
-// Voice:
-// include 'platform:arcus-alexa'
-// include 'platform:arcus-google'
-// include 'platform:arcus-voice-bridge'
-// include 'platform:arcus-containers:alexa-bridge'
-// include 'platform:arcus-containers:google-bridge'
-// include 'platform:arcus-containers:voice-service'
-// Video:
-// include 'platform:arcus-video'
-// include 'platform:arcus-containers:video-purge'
-// include 'platform:arcus-containers:video-service'
-// include 'platform:arcus-containers:video-recording-server'
-// include 'platform:arcus-containers:video-streaming-server'
-// include 'platform:arcus-containers:video-download-server'
-// include 'platform:arcus-containers:video-preview-server'
-// include 'platform:arcus-containers:video-preview-ul-server'
-// Billing:
-// include 'platform:arcus-containers:billing-callback-server'
-// Analytics:
-// include 'platform:arcus-containers:tag-service'
+// Optional modules — disabled by default for self-hosted deployment.
+// Enable with: ./gradlew build -PenableVoice -PenableVideo -PenableBilling -PenableAnalytics
+if (settings.hasProperty('enableVoice')) {
+   include 'platform:arcus-alexa'
+   include 'platform:arcus-google'
+   include 'platform:arcus-voice-bridge'
+   include 'platform:arcus-containers:alexa-bridge'
+   include 'platform:arcus-containers:google-bridge'
+   include 'platform:arcus-containers:voice-service'
+}
+if (settings.hasProperty('enableVideo')) {
+   include 'platform:arcus-video'
+   include 'platform:arcus-containers:video-purge'
+   include 'platform:arcus-containers:video-service'
+   include 'platform:arcus-containers:video-recording-server'
+   include 'platform:arcus-containers:video-streaming-server'
+   include 'platform:arcus-containers:video-download-server'
+   include 'platform:arcus-containers:video-preview-server'
+   include 'platform:arcus-containers:video-preview-ul-server'
+}
+if (settings.hasProperty('enableBilling')) {
+   include 'platform:arcus-containers:billing-callback-server'
+}
+if (settings.hasProperty('enableAnalytics')) {
+   include 'platform:arcus-containers:tag-service'
+}
 include 'platform:arcus-platform-drivers:driver-tests'
 
 include 'agent:arcus-agent'
