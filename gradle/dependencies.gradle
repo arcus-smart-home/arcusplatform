@@ -253,9 +253,9 @@ ext.libraries << [
 
 // Notifications
 		mailgun: "com.mailgun:mailgun-java:1.0.0",
-		sendgridJava: "com.sendgrid:sendgrid-java:4.4.1",
+		sendgridJava: "com.sendgrid:sendgrid-java:4.10.3",
 		sendgridJavaOld: 'com.sendgrid:sendgrid-java:2.2.0',
-		sendgridHTTP: "com.sendgrid:java-http-client:4.2.0",
+		sendgridHTTP: "com.sendgrid:java-http-client:4.5.1",
 		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
                         exclude group: "io.netty", module: "netty-all"
                 },
