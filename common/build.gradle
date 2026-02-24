@@ -67,6 +67,7 @@ subprojects {
 
    group = 'com.arcussmarthome'
    version = rootProject.version
+   // Common libraries must always target Java 8 so agent (Java 8 toolchain) can consume them
    sourceCompatibility = '1.8'
    targetCompatibility = '1.8'
 
@@ -97,9 +98,15 @@ subprojects {
         // all sub-projects use dropwizard for metrics
         compile libraries.metrics_core
 
+        // Java EE APIs removed from JDK 9+
+        compile libraries.jaxb_api
+        compile libraries.javax_annotation_api
+        compile libraries.javax_activation_api
+        runtime libraries.javax_activation_impl
+
         // all sub-projects use junit for unit testing
         testCompile libraries.junit
-        
+
         // all sub-projects use logback during tests
         testCompile libraries.logback
     }

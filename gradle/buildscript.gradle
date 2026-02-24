@@ -31,7 +31,7 @@ dependencies {
    classpath 'se.transmode.gradle:gradle-docker:1.2'
    classpath "org.ajoberstar.grgit:grgit-gradle:4.1.1"
    classpath "org.owasp:dependency-check-gradle:5.2.2"
-   classpath "com.github.spotbugs:spotbugs-gradle-plugin:2.0.1"
+   classpath "com.github.spotbugs:spotbugs-gradle-plugin:4.8.0"
 
    // mailgun
    classpath 'com.github.mailgun:mailgun-java:1.0.0'

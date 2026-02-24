@@ -62,6 +62,10 @@ dependencies {
    generator project(':common:arcus-model:capability-generator')
    generator project(':common:protocol-generator')
    generator files(templateDir)
+   generator libraries.jaxb_api
+   generator libraries.jaxb_impl
+   generator libraries.javax_activation_api
+   generator libraries.javax_activation_impl
    
    compile project(':common:arcus-client')
    compile project(':common:arcus-common')

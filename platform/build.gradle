@@ -64,4 +64,21 @@ println "Building platform v${platformVersion}"
 
 apply from: file("${rootDir}/gradle/release.gradle")
 
+ext.isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
+
+subprojects {
+   afterEvaluate {
+      if (plugins.hasPlugin('java')) {
+         if (!isJava8) {
+            sourceCompatibility = JavaVersion.current().toString()
+            targetCompatibility = JavaVersion.current().toString()
+         }
+         // javax.activation was removed from the JDK in Java 9+
+         dependencies {
+            compile libraries.javax_activation_api
+            runtime libraries.javax_activation_impl
+         }
+      }
+   }
+}
 

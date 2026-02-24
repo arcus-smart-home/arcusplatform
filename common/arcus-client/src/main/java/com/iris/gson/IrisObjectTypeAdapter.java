@@ -25,7 +25,7 @@ package com.iris.gson;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
-import com.google.gson.internal.LinkedTreeMap;
+import java.util.LinkedHashMap;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -60,7 +60,7 @@ public final class IrisObjectTypeAdapter extends TypeAdapter<Object> {
       return list;
 
     case BEGIN_OBJECT:
-      Map<String, Object> map = new LinkedTreeMap<String, Object>();
+      Map<String, Object> map = new LinkedHashMap<String, Object>();
       in.beginObject();
       while (in.hasNext()) {
         map.put(in.nextName(), read(in));

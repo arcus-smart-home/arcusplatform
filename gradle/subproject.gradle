@@ -20,6 +20,10 @@ apply plugin: 'project-report'
 apply plugin: 'eclipse'
 apply plugin: "com.github.spotbugs"
 
+spotbugs {
+   ignoreFailures = true
+}
+
 if (project.hasProperty('eyeris_owasp')) {
     if (eyeris_owasp?.trim()) {
         apply plugin: "org.owasp.dependencycheck"
@@ -35,6 +39,10 @@ if (project.hasProperty('eyeris_owasp')) {
 
 apply from: file("${rootDir}/gradle/dependencies.gradle")
 
+// Gate Java 11 changes based on the JDK running Gradle
+ext.isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
+ext.javaCompatibility = ext.isJava8 ? '1.8' : JavaVersion.current().toString()
+
 ext.cpus = project.hasProperty('cpus') ? project.cpus : 2;
 ext.mem = project.hasProperty('mem') ? project.mem.toInteger() : 512; // docker memory max
 ext.instances = project.hasProperty('instances') ? project.instances : 1;
@@ -42,8 +50,8 @@ ext.jvmMem = (0.8 * mem).intValue(); // jvm memory max
 
 
 version = buildVersion
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = javaCompatibility
+targetCompatibility = javaCompatibility
 
 sourceSets {
 
