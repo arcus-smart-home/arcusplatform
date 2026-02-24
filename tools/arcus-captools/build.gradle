@@ -22,6 +22,7 @@ mainClassName = 'com.iris.capability.generator.html.HtmlGenerator'
 
 ext.jsTemplateDir = "src/main/resources/js"
 ext.outputJSDir = "$buildDir/js"
+ext.outputTSDir = "$buildDir/ts"
 ext.outputHtmlDir = "$buildDir/doc"
 ext.capabilityDir = "$buildDir/capability"
 
@@ -64,7 +65,12 @@ task cleanGeneratedJSSource(type: Delete) {
     delete outputJSDir
 }
 
+task cleanGeneratedTSSource(type: Delete) {
+    delete outputTSDir
+}
+
 clean.dependsOn cleanGeneratedJSSource
+clean.dependsOn cleanGeneratedTSSource
 
 configurations {
     generateJSSource { extendsFrom implementation, runtimeOnly }
@@ -100,6 +106,22 @@ task generateJSSource(type: JavaExec) {
     args '-i', capabilityDir, '-o', outputJSDir
     mainClass = "com.iris.capability.generator.js.BackboneGenerator"
 
+}
+
+task generateTSSource(type: JavaExec) {
+    dependsOn 'extractCapabilities'
+    inputs.dir capabilityDir
+    outputs.dir outputTSDir
+
+    doFirst {
+        delete(outputTSDir)
+        file(outputTSDir).mkdirs()
+        println "Generating TypeScript capabilities into ${outputTSDir}..."
+    }
+
+    classpath = sourceSets.main.runtimeClasspath
+    args '-i', capabilityDir, '-o', outputTSDir
+    main "com.iris.capability.generator.ts.TypeScriptGenerator"
 }
 
 task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
