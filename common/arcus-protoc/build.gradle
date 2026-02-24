@@ -17,8 +17,6 @@ apply plugin: 'groovy'
 
 ext.antlrSource = "src/main/antlr"
 ext.antlrOutput = "${buildDir}/generated-src/com/iris/protoc/parser"
-ext.groovy_version=GroovySystem.getVersion()
-
 ext.sharedManifest = manifest {
    attributes(
       "Implementation-Version": project.version,
@@ -28,29 +26,25 @@ ext.sharedManifest = manifest {
 
 configurations {
    antlr
-   compile.extendsFrom antlr
+   implementation.extendsFrom antlr
 }
-configurations.all {
-       resolutionStrategy {
-            force "org.codehaus.groovy:groovy-all:${groovy_version}"
-         }
-   }
 
 dependencies {
    antlr libraries.antlr4
 
-   compile libraries.handlebars
-   compile libraries.commons_cli
-   compile libraries.guava
-   compile libraries.groovy
+   implementation libraries.handlebars
+   implementation libraries.commons_cli
+   implementation libraries.guava
+   implementation libraries.groovy
 
-   compile gradleApi()
-
-   compile libraries.antlr4
+   implementation libraries.antlr4
 }
 
+// Exclude unused Gradle plugin classes (they reference gradleApi which conflicts with Groovy 2.5)
+sourceSets.main.groovy.exclude '**/IrisProtocPlugin.groovy', '**/IrisProtocTask.groovy'
+
 task antlr(type: JavaExec) {
-   main = 'org.antlr.v4.Tool'
+   mainClass = 'org.antlr.v4.Tool'
    classpath = project.configurations.antlr
 
    def inputFiles = fileTree(antlrSource).include('**/*.g4')
@@ -73,7 +67,7 @@ jar {
 task libs(type: Copy) {
    description "Copy all of the runtime dependencies to $buildDir/output/lib."
    into "$buildDir/output/lib"
-   from configurations.runtime
+   from configurations.runtimeClasspath
 }
 
 compileGroovy.dependsOn antlr

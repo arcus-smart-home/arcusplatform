@@ -17,11 +17,9 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project (':platform:arcus-lib')
-   compile project (':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
-
-   testCompile libraries.junit
+   api project (':platform:arcus-lib')
+   api project (':common:arcus-common')
+   api project(':common:arcus-model:platform-messages')
 
 }
 

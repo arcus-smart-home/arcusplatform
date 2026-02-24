@@ -22,7 +22,6 @@ println "agent dist version: ${agentDistributionVersion}"
       }
 
       mavenCentral()
-      jcenter()
    }
 
 configurations { sshAntTask }

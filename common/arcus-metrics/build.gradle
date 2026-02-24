@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 dependencies {
-    compile libraries.guava
-    compile libraries.metrics_core
-    compile libraries.metrics_hdr
+    implementation libraries.guava
+    implementation libraries.metrics_core
+    implementation libraries.metrics_hdr
 
-    testCompile libraries.commons_lang
+    testImplementation libraries.commons_lang
 }
 

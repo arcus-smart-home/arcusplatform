@@ -16,20 +16,20 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(':platform:bridge-common')
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-metrics')
-   compile project(':common:arcus-model:platform-messages')
+   api project(':platform:bridge-common')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
+   api project(':common:arcus-metrics')
+   api project(':common:arcus-model:platform-messages')
 
-   compile netty
+   implementation netty
 
-   compile libraries.cassandraDriver
-   compile libraries.azure_storage
-   compile libraries.joda
-   compile libraries.commonsCollections
+   implementation libraries.cassandraDriver
+   implementation libraries.azure_storage
+   implementation libraries.joda
+   implementation libraries.commonsCollections
 
-   testCompile project(':platform:arcus-test')
+   testImplementation project(':platform:arcus-test')
 }
 
 

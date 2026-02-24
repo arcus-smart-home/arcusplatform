@@ -15,6 +15,6 @@
  */
 
 dependencies {
-   compile netty_buffer
+   implementation netty_buffer
 }
 

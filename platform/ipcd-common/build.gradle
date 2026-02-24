@@ -36,15 +36,15 @@ configurations.all {
 }
 
 dependencies {
-   compile project(':platform:arcus-lib')
-   compile project(':platform:bridge-common')
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-metrics')
-   compile project(':common:arcus-protocol')
+   api project(':platform:arcus-lib')
+   api project(':platform:bridge-common')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
+   api project(':common:arcus-metrics')
+   api project(':common:arcus-protocol')
 
-   compile libraries.commons_lang
+   implementation libraries.commons_lang
 
-   compile netty
+   implementation netty
 }
 

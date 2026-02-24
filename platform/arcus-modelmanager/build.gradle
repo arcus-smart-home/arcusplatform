@@ -44,21 +44,21 @@ def schemas = [ "platform", "video", "history" ]
 
 dependencies {
 
-    compile project (':platform:arcus-lib')
+    api project (':platform:arcus-lib')
 	
-    compile libraries.cassandraDriver
-    compile libraries.commonsCodec
-    compile libraries.commons_lang
-    compile libraries.commonsIO
-    compile libraries.jcommander
-    compile libraries.gson
+    implementation libraries.cassandraDriver
+    implementation libraries.commonsCodec
+    implementation libraries.commons_lang
+    implementation libraries.commonsIO
+    implementation libraries.jcommander
+    implementation libraries.gson
 
     // TODO:  really unclear as to what of the transitive dependencies are actually required to
     // run the embedded server.  it is really annoying
-    testCompile libraries.cassandraUnit
-	 testCompile project (':platform:arcus-test')
+    testImplementation libraries.cassandraUnit
+	 testImplementation project (':platform:arcus-test')
 
-    runtime libraries.logback
+    runtimeOnly libraries.logback
 }   
 
 apply plugin: 'com.bmuschko.docker-remote-api'
@@ -76,7 +76,7 @@ task createDockerfile(type: DockerfileTask) {
 
 task prepareDockerContext(type: Copy) {
    dependsOn distTar
-   from distTar.archivePath
+   from distTar.archiveFile.get().asFile
    into "${buildDir}/docker"
 }
 
@@ -152,7 +152,7 @@ schemas.each() { target ->
       systemProperty "modelmanager.home", "${homeDir}"
       systemProperty "modelmanager.schema", "${target}"
 
-      main = "com.iris.modelmanager.ModelManager"
+      mainClass = "com.iris.modelmanager.ModelManager"
 
       environment getLocalProps()
 
