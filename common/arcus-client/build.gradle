@@ -16,11 +16,11 @@
 apply plugin: 'project-report'
 
 dependencies {
-	compile project(':common:arcus-model')
+	api project(':common:arcus-model')
 
-	compile libraries.commonsCodec
-	compile libraries.commons_lang
-	compile libraries.gson
-	compile libraries.guava
+	api libraries.commonsCodec
+	api libraries.commons_lang
+	api libraries.gson
+	api libraries.guava
 }
 

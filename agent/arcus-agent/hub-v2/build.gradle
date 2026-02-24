@@ -19,24 +19,24 @@ apply from: file("${rootDir}/gradle/release.gradle")
 apply plugin: 'application'
 
 dependencies {
-   compile project(":agent:arcus-hal:arcus-hal-api")
-   compile project(":agent:arcus-hal:arcus-hal-common")
+   api project(":agent:arcus-hal:arcus-hal-api")
+   api project(":agent:arcus-hal:arcus-hal-common")
 
-   compile project(":agent:arcus-os")
-   compile project(":agent:arcus-system")
+   api project(":agent:arcus-os")
+   api project(":agent:arcus-system")
 
-   compile libraries.commonsIO
-   compile libraries.apacheCommonsExec
-   compile libraries.bouncycastle // pull in to support old zwave
+   implementation libraries.commonsIO
+   implementation libraries.apacheCommonsExec
+   implementation libraries.bouncycastle // pull in to support old zwave
    
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-model')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':agent:arcus-agent')
+   api project(':common:arcus-common')
+   api project(':common:arcus-model')
+   api project(':common:arcus-model:platform-messages')
+   api project(':agent:arcus-agent')
 
 
-   runtime project(":agent:arcus-agent")
-   runtime project(":agent:arcus-hal:arcus-hal-hub-v2")
+   runtimeOnly project(":agent:arcus-agent")
+   runtimeOnly project(":agent:arcus-hal:arcus-hal-hub-v2")
 }
 
 mainClassName = 'com.iris.agent.IrisAgent'

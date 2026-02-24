@@ -67,21 +67,22 @@ dependencies {
    generator libraries.javax_activation_api
    generator libraries.javax_activation_impl
    
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-protoc-runtime')
-   compile project(':common:arcus-protoc').sourceSets.main.output
-   compile project(':common:arcus-model')
-   compile project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
+   api project(':common:arcus-protoc-runtime')
+   api project(':common:arcus-protoc').sourceSets.main.output
+   api project(':common:arcus-model')
+   api project(':common:arcus-model:platform-messages')
 
-   compile libraries.commons_lang
-   compile libraries.commonsIO
-   compile libraries.gson
-   compile libraries.guava
-   compile libraries.jacksonCore
-   compile libraries.jacksonDatabind
+   api libraries.commons_lang
+   api libraries.commonsIO
+   api libraries.gson
+   api libraries.guava
+   api libraries.jacksonCore
+   api libraries.jacksonDatabind
+   api netty_buffer
 
-    testCompile "org.hamcrest:hamcrest-all:1.3"
+    testImplementation "org.hamcrest:hamcrest-all:1.3"
 }
 
 task generateZigbeeZclSource(type:JavaExec) {
@@ -92,7 +93,7 @@ task generateZigbeeZclSource(type:JavaExec) {
    def packageName = 'com.iris.protocol.zigbee'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
    main = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
 }
@@ -105,7 +106,7 @@ task generateZigbeeZdpSource(type:JavaExec) {
    def packageName = 'com.iris.protocol.zigbee'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
    main = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
 }
@@ -118,7 +119,7 @@ task generateZigbeeAmeSource(type:JavaExec) {
    def packageName = 'com.iris.protocol.zigbee'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
    main = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
 }
@@ -131,7 +132,7 @@ task generateZigbeeMessageSource(type:JavaExec) {
     def packageName = 'com.iris.protocol.zigbee'
     def protoc = project(':common:arcus-protoc')
     
-    classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+    classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
     main = 'com.iris.protoc.Main'
     args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
@@ -144,7 +145,7 @@ task generateZWaveMessageSource(type:JavaExec) {
     def packageName = 'com.iris.protocol'
     def protoc = project(':common:arcus-protoc')
     
-    classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
+    classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
     main = 'com.iris.protoc.Main'
     args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }

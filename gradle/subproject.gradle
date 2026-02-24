@@ -4,7 +4,6 @@ repositories {
    }
 
    mavenCentral()
-   jcenter()
 
     flatDir {
         dirs "$rootDir/libs"
@@ -12,8 +11,8 @@ repositories {
 }
 
 
-apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
 apply plugin: 'nebula.contacts'
 apply plugin: 'project-report'
 apply plugin: 'eclipse'
@@ -31,12 +30,21 @@ if (project.hasProperty('eyeris_owasp')) {
             format = "ALL"
             suppressionFile = "${rootDir}/gradle/owasp/suppression.xml"
             hintsFile = "${rootDir}/gradle/owasp/hints.xml"
-            skipConfigurations = ["test", "testRuntime", "systemTest", "systemTestRuntime"]
+            skipConfigurations = ["test", "testRuntimeOnly", "systemTest", "systemTestRuntimeOnly"]
         }
     }
 }
 
 apply from: file("${rootDir}/gradle/dependencies.gradle")
+
+// Shared test dependencies for all subprojects
+dependencies {
+   testImplementation libraries.junit
+   testImplementation libraries.easymock
+   testImplementation libraries.logback
+   testImplementation 'commons-lang:commons-lang:2.6'
+   testImplementation 'org.hamcrest:hamcrest-all:1.3'
+}
 
 // Gate Java 11 changes based on the JDK running Gradle
 ext.isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
@@ -80,8 +88,8 @@ task systemTestRunner(type: Test,dependsOn: testClasses) {
     classpath = sourceSets.systemTests.runtimeClasspath
 
     description = "Runs the system tests located in src/system-test/java. Assumes you have already called startPlatform"
-    reports.junitXml.destination = file("$buildDir/reports/system-tests/xml")
-    reports.html.destination = file("$buildDir/reports/system-tests/html")
+    reports.junitXml.outputLocation = file("$buildDir/reports/system-tests/xml")
+    reports.html.outputLocation = file("$buildDir/reports/system-tests/html")
 	
 	testLogging {
 	   events "passed", "failed"

@@ -17,19 +17,17 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/container.gradle")
 
 dependencies {
-   compile project (':platform:arcus-prodcat')
-   compile project (':platform:arcus-alarm')
-   compile project (':platform:arcus-lib')
-   compile project (':common:arcus-billing')
-   compile project (':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':common:arcus-protocol')
+   api project (':platform:arcus-prodcat')
+   api project (':platform:arcus-alarm')
+   api project (':platform:arcus-lib')
+   api project (':common:arcus-billing')
+   api project (':common:arcus-common')
+   api project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-protocol')
 
-   compile libraries.commonsCollections
-   compile libraries.httpClient
+   implementation libraries.commonsCollections
+   implementation libraries.httpClient
 
-   testCompile project (':platform:arcus-test')
-   testCompile libraries.junit
-   testCompile libraries.easymock
+   testImplementation project (':platform:arcus-test')
 }
 

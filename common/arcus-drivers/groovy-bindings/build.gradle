@@ -41,11 +41,11 @@ dependencies {
     generator libraries.javax_activation_api
     generator libraries.javax_activation_impl
    
-    compile project(':common:arcus-drivers:drivers-common')
-    compile project(':common:arcus-protoc-runtime')
-    compile project(':common:arcus-protoc').sourceSets.main.output
+    api project(':common:arcus-drivers:drivers-common')
+    api project(':common:arcus-protoc-runtime')
+    api project(':common:arcus-protoc').sourceSets.main.output
 
-    compile libraries.groovy
+    implementation libraries.groovy
 }
 
 sourceSets {
@@ -71,8 +71,8 @@ task generateZigbeeZclBindings(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
 }
 
@@ -83,8 +83,8 @@ task generateZigbeeZdpBindings(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
 }
 
@@ -95,8 +95,8 @@ task generateZigbeeAmeBindings(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-b'] + source 
 }
 
@@ -107,8 +107,8 @@ task generateZigbeeZclNaming(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
 }
 
@@ -119,8 +119,8 @@ task generateZigbeeZdpNaming(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
 }
 
@@ -131,8 +131,8 @@ task generateZigbeeAmeNaming(type:JavaExec) {
    def packageName = 'com.iris.driver.groovy.zigbee.cluster'
    def protoc = project(':common:arcus-protoc')
 
-   classpath = protoc.configurations.runtime + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
+   classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
+   mainClass = 'com.iris.protoc.Main'
    args = ['-o', genSrcMain, '-p', packageName, '-n'] + source 
 }
 
@@ -144,19 +144,18 @@ clean {
     delete "target"
 }
 
-task generateZigbeeBindings(type: GradleBuild) {
-
-    tasks = ['generateZigbeeZclBindings', 'generateZigbeeZdpBindings', 'generateZigbeeAmeBindings', 'generateZigbeeZclNaming', 'generateZigbeeZdpNaming','generateZigbeeAmeNaming']
+task generateZigbeeBindings {
    description 'Compile Iris IRP files into groovy bindings.'
-    generateZigbeeZclBindings.mustRunAfter cleanGeneratedSource
-    generateZigbeeZdpBindings.mustRunAfter generateZigbeeZclBindings
-    generateZigbeeAmeBindings.mustRunAfter generateZigbeeZdpBindings
-    generateZigbeeZclNaming.mustRunAfter generateZigbeeAmeBindings
-    generateZigbeeZdpNaming.mustRunAfter generateZigbeeZclNaming
-    generateZigbeeAmeNaming.mustRunAfter generateZigbeeZdpNaming
+   dependsOn generateZigbeeZclBindings, generateZigbeeZdpBindings, generateZigbeeAmeBindings, generateZigbeeZclNaming, generateZigbeeZdpNaming, generateZigbeeAmeNaming
 
+   generateZigbeeZclBindings.mustRunAfter cleanGeneratedSource
+   generateZigbeeZdpBindings.mustRunAfter generateZigbeeZclBindings
+   generateZigbeeAmeBindings.mustRunAfter generateZigbeeZdpBindings
+   generateZigbeeZclNaming.mustRunAfter generateZigbeeAmeBindings
+   generateZigbeeZdpNaming.mustRunAfter generateZigbeeZclNaming
+   generateZigbeeAmeNaming.mustRunAfter generateZigbeeZdpNaming
 
-    inputs.files fileTree('../../arcus-protocol/src/main/irp').include('**/*.irp')
+   inputs.files fileTree('../../arcus-protocol/src/main/irp').include('**/*.irp')
    outputs.dir genSrcMain
 }
 
@@ -169,7 +168,7 @@ task generateIpcdSource(type: JavaExec) {
     
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
-    main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    mainClass = 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
 
     doFirst {
         outputDir.mkdirs()

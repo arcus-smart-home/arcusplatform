@@ -17,6 +17,6 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-    compile project(':common:arcus-model:platform-messages')
+    api project(':common:arcus-model:platform-messages')
 }
 

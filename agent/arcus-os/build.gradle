@@ -16,11 +16,11 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile libraries.jna
-   compile libraries.logback
-   compile libraries.guava
-   compile libraries.eclipse_annotation
-   compile netty_handler
-   compile netty_epoll
+   implementation libraries.jna
+   implementation libraries.logback
+   implementation libraries.guava
+   implementation libraries.eclipse_annotation
+   implementation netty_handler
+   implementation netty_epoll
 }
 

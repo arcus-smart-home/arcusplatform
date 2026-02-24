@@ -16,10 +16,8 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project (':platform:arcus-lib')
-   compile project (':platform:arcus-subscriptions')
-   
-   testCompile libraries.junit
+   api project (':platform:arcus-lib')
+   api project (':platform:arcus-subscriptions')
 }
 
 

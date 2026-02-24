@@ -17,23 +17,23 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/application.gradle")
 
 dependencies {
-   compile project(':common:arcus-billing')
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-protocol')
-   compile project(':common:arcus-model:platform-client')
-   compile project(':common:arcus-model')
+   api project(':common:arcus-billing')
+   api project(':common:arcus-common')
+   api project(':common:arcus-protocol')
+   api project(':common:arcus-model:platform-client')
+   api project(':common:arcus-model')
 
-   compile project(':platform:arcus-lib')
+   api project(':platform:arcus-lib')
 
-   compile libraries.jcommander
-   compile libraries.swingx // for JXCollapsiblePanel
-   compile netty
-   compile libraries.httpClient
-   compile libraries.natty
-   compile libraries.antlr
-   
-   testCompile libraries.junit
-   testCompile libraries.mockito
+   implementation libraries.jcommander
+   implementation libraries.swingx // for JXCollapsiblePanel
+   implementation netty
+   implementation libraries.httpClient
+   implementation libraries.natty
+   implementation libraries.antlr
+   implementation 'com.google.code.findbugs:jsr305:3.0.1'
+
+   testImplementation libraries.mockito
 }
 configurations
         {   all*.exclude group: 'io.netty', module:'netty-all'

@@ -24,22 +24,22 @@ sourceSets.main.groovy.srcDirs += ["src/main/java"]
 
 configurations {
 	cucumberRuntime {
-		extendsFrom testRuntime
+		extendsFrom testImplementation, testRuntimeOnly
 	}
 }
 
 dependencies {
-	compile project (':common:arcus-drivers:drivers-common')
-	compile project (':common:arcus-drivers:groovy-bindings')
-	compile project (':common:arcus-protocol')
+	api project (':common:arcus-drivers:drivers-common')
+	api project (':common:arcus-drivers:groovy-bindings')
+	api project (':common:arcus-protocol')
 
-	compile project(':platform:arcus-containers:driver-services')
-	compile project(':platform:arcus-lib')
-	compile project(':platform:arcus-test')
-	compile project(':common:arcus-common')
+	api project(':platform:arcus-containers:driver-services')
+	api project(':platform:arcus-lib')
+	api project(':platform:arcus-test')
+	api project(':common:arcus-common')
 	
-	compile libraries.cucumber
-	compile libraries.groovy
+	implementation libraries.cucumber
+	implementation libraries.groovy
 }
 
 test {

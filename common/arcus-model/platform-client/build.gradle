@@ -50,16 +50,15 @@ dependencies {
 	generator project(':common:arcus-model:capability-generator')
 	generator files(templateDir)
 
-	compile project(':common:arcus-model')
-	compile netty
+	api project(':common:arcus-model')
+	implementation netty
 	
-	compile libraries.commonsCodec
-	compile libraries.commons_lang
-	compile libraries.gson
+	implementation libraries.commonsCodec
+	implementation libraries.commons_lang
+	implementation libraries.gson
 
-	compile libraries.guava
+	implementation libraries.guava
 
-   testCompile libraries.easymock
 }
 
 task cleanGeneratedSource(type: Delete) {

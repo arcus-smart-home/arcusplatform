@@ -19,12 +19,12 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName = "com.iris.platform.metrics.MetricsServer"
 
 dependencies {
-   compile project (':platform:arcus-lib')
-   compile project (':platform:arcus-rules')
-   compile project (':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
+   api project (':platform:arcus-lib')
+   api project (':platform:arcus-rules')
+   api project (':common:arcus-common')
+   api project(':common:arcus-model:platform-messages')
 
-   compile libraries.httpClient
+   implementation libraries.httpClient
 
    //testCompile project(':arcus-lib').sourceSets.test.output
 }

@@ -19,15 +19,15 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName= "com.iris.bridge.server.BridgeServer"
 
 dependencies {
-   compile project(':platform:bridge-common')
-   compile project (':platform:arcus-alarm')
-   compile project (':platform:arcus-lib')
-   compile project (':platform:arcus-security')
-   compile project (':common:arcus-common')
+   api project(':platform:bridge-common')
+   api project (':platform:arcus-alarm')
+   api project (':platform:arcus-lib')
+   api project (':platform:arcus-security')
+   api project (':common:arcus-common')
 
-   compile netty
+   implementation netty
    
-   testCompile libraries.httpClient // for URIBuilder in TestTwilioCallbackHandler
-   testCompile project(':platform:arcus-test')
+   testImplementation libraries.httpClient // for URIBuilder in TestTwilioCallbackHandler
+   testImplementation project(':platform:arcus-test')
 }
 

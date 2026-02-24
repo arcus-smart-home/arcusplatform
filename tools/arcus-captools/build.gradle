@@ -37,12 +37,12 @@ configurations {
 }
 
 dependencies {
-    compile libraries.slf4j
-    compile libraries.logback
-    compile libraries.handlebars
-    compile libraries.jcommander
+    implementation libraries.slf4j
+    implementation libraries.logback
+    implementation libraries.handlebars
+    implementation libraries.jcommander
 
-    compile project(':common:arcus-model')
+    api project(':common:arcus-model')
 }
 
 tasks.addRule("Pattern: <CodeGenerationType>Code") {
@@ -67,14 +67,14 @@ task cleanGeneratedJSSource(type: Delete) {
 clean.dependsOn cleanGeneratedJSSource
 
 configurations {
-    generateJSSource { extendsFrom runtime }
+    generateJSSource { extendsFrom implementation, runtimeOnly }
 }
 
 task extractCapabilities(type: Copy) {
     from(zipTree(
             project
                     .configurations
-                    .compile.files({ it.name == 'arcus-model'; })
+                    .compileClasspath.files({ it.name == 'arcus-model'; })
                     .find({ it.name.indexOf('arcus-model') > -1 })
     )) {
         include "capability/**"

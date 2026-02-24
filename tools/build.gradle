@@ -22,7 +22,6 @@ buildscript {
       }
 
       mavenCentral()
-      jcenter()
    }
 
    apply from: file("${rootDir}/gradle/buildscript.gradle"), to: buildscript
@@ -41,7 +40,6 @@ repositories {
    }
 
    mavenCentral()
-   jcenter()
 }
 
 configurations.all {

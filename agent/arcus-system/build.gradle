@@ -16,43 +16,44 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(':agent:arcus-hal:arcus-hal-api')
+   api project(':agent:arcus-hal:arcus-hal-api')
    
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-protocol')
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-model')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':common:arcus-drivers:drivers-common')
+   api project(':common:arcus-client')
+   api project(':common:arcus-protocol')
+   api project(':common:arcus-common')
+   api project(':common:arcus-model')
+   api project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-drivers:drivers-common')
 
-   compile libraries.guiceCore
-   compile libraries.commonsIO
-   compile libraries.commonsCodec
-   compile libraries.sqlite4java
-   compile libraries.httpCore
-   compile libraries.httpClient
-   compile libraries.httpMime
-   compile libraries.guava
-   compile libraries.logback
-   compile libraries.junit
-   compile libraries.kxml2
-   compile libraries.bouncycastle
-   compile libraries.bouncycastle_pki
+   api libraries.guiceCore
+   api 'commons-lang:commons-lang:2.6'
+   api libraries.commonsIO
+   api libraries.commonsCodec
+   api libraries.sqlite4java
+   api libraries.httpCore
+   api libraries.httpClient
+   api libraries.httpMime
+   api libraries.guava
+   api libraries.logback
+   implementation libraries.junit
+   implementation libraries.kxml2
+   api libraries.bouncycastle
+   api libraries.bouncycastle_pki
 
-   compile netty_handler
-   compile netty_codec_http
-   compile netty_codec
-   compile netty_transport
-   compile netty_buffer
-   compile netty_common
-   compile netty_tcnative
-   compile netty_epoll
-   compile name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
+   api netty_handler
+   api netty_codec_http
+   api netty_codec
+   api netty_transport
+   api netty_buffer
+   api netty_common
+   api netty_tcnative
+   api netty_epoll
+   implementation name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
 
-   compile libraries.rxjava
-   compile libraries.rxjava_async
+   api libraries.rxjava
+   api libraries.rxjava_async
 
-   compile libraries.jetty_servlet
-   compile libraries.asyncHTTPClient
+   api libraries.jetty_servlet
+   api libraries.asyncHTTPClient
 }
 

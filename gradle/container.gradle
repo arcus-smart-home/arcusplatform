@@ -40,7 +40,7 @@ task uberDistInstall() {
 
    doLast {
       copy {
-         from tarTree(distTar.archivePath)
+         from tarTree(distTar.archiveFile.get().asFile)
          into "${rootDir}/build/uber/"
       }
    }
@@ -90,7 +90,7 @@ task createDockerfile(type: DockerfileTask) {
 
 task prepareDockerContext(type: Copy) {
    dependsOn distTar
-   from distTar.archivePath
+   from distTar.archiveFile.get().asFile
    into "${buildDir}/docker"
 }
 

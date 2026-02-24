@@ -17,14 +17,11 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-    compile project(':common:arcus-common')
-    compile project(':common:arcus-model:platform-messages')
-    compile project(':common:arcus-protocol')
-    compile project(':common:arcus-model:model-query')
+    api project(':common:arcus-common')
+    api project(':common:arcus-model:platform-messages')
+    api project(':common:arcus-protocol')
+    api project(':common:arcus-model:model-query')
 
-    compile libraries.commons_lang
-    
-    testCompile libraries.junit
-    testCompile libraries.easymock
+    implementation libraries.commons_lang
 }
 

@@ -16,15 +16,15 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(":agent:arcus-system")
-   compile project(":agent:arcus-router")
-   compile project(":agent:arcus-os")
+   api project(":agent:arcus-system")
+   api project(":agent:arcus-router")
+   api project(":agent:arcus-os")
 
-   compile project(':common:arcus-protocol')
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
-   compile libraries.guava
+   api project(':common:arcus-protocol')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
+   implementation libraries.guava
 
-   testCompile project(':agent:arcus-test-agent')
+   testImplementation project(':agent:arcus-test-agent')
 }
 

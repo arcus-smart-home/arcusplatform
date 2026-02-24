@@ -49,9 +49,9 @@ dependencies {
 	generator project(':common:arcus-model:capability-generator')
 	generator files(templateDir)
 
-	compile project(':common:arcus-model')
-	compile project(':common:arcus-common')
-	compile project(':common:arcus-reflection')
+	api project(':common:arcus-model')
+	api project(':common:arcus-common')
+	api project(':common:arcus-reflection')
 	
 }
 

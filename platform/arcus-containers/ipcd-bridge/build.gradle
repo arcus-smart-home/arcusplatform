@@ -31,12 +31,9 @@ configurations.all {
 }
 
 dependencies {
-  compile project(':platform:ipcd-common')
-  compile netty
+  api project(':platform:ipcd-common')
+  implementation netty
 
-    testCompile libraries.junit
-    testCompile libraries.easymock
-
-  testCompile libraries.httpClient
+  testImplementation libraries.httpClient
 }
 

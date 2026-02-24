@@ -17,20 +17,20 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/jaxb.gradle")
 
 dependencies {
-	compile project(':common:arcus-common')
-	compile project(':common:arcus-model:platform-messages')
-	compile project(':common:arcus-model:model-query')
+	api project(':common:arcus-common')
+	api project(':common:arcus-model:platform-messages')
+	api project(':common:arcus-model:model-query')
 
-	compile libraries.luceneCore
-	compile libraries.luceneAnalyzer
-	compile libraries.luceneParser
-   compile libraries.jaxb_api
+	implementation libraries.luceneCore
+	implementation libraries.luceneAnalyzer
+	implementation libraries.luceneParser
+   implementation libraries.jaxb_api
 
-   runtime libraries.jaxb_impl
-   runtime libraries.javax_activation_api
-   runtime libraries.javax_annotation_api
+   runtimeOnly libraries.jaxb_impl
+   runtimeOnly libraries.javax_activation_api
+   runtimeOnly libraries.javax_annotation_api
 	
-	testCompile project(':platform:arcus-test')
+	testImplementation project(':platform:arcus-test')
 }
 
 jaxb {
