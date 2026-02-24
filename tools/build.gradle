@@ -69,6 +69,7 @@ ext.version_major = version_props.major
 ext.version_minor = version_props.minor
 ext.version_patch = version_props.patch
 ext.version_qualifier = version_props.qualifier
+apply from: file("${rootDir}/gradle/snapshot.gradle")
 
 // full version numbers
 ext.buildVersion = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"

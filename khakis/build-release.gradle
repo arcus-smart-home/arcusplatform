@@ -13,6 +13,7 @@ rootProject.ext.version_major = version_props.major
 rootProject.ext.version_minor = version_props.minor
 rootProject.ext.version_patch = version_props.patch
 rootProject.ext.version_qualifier = version_props.qualifier
+apply from: file("${rootDir}/gradle/snapshot.gradle")
 
 def loadBuild() {
    return new File("${buildFile}").text;
