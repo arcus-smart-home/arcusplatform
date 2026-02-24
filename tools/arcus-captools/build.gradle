@@ -98,7 +98,7 @@ task generateJSSource(type: JavaExec) {
 
     classpath = sourceSets.main.runtimeClasspath
     args '-i', capabilityDir, '-o', outputJSDir
-    main "com.iris.capability.generator.js.BackboneGenerator"
+    mainClass = "com.iris.capability.generator.js.BackboneGenerator"
 
 }
 
@@ -108,7 +108,7 @@ task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
 
     classpath = sourceSets.main.runtimeClasspath
     args '-i', capabilityDir, '-o', outputHtmlDir
-    main "com.iris.capability.generator.html.HtmlGenerator"
+    mainClass = "com.iris.capability.generator.html.HtmlGenerator"
 
     doFirst {
         delete(outputHtmlDir)

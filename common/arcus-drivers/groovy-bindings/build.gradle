@@ -165,16 +165,16 @@ task generateZigbeeBindings {
 task generateIpcdSource(type: JavaExec) {
     dependsOn ':common:protocol-generator:jar', cleanGeneratedSource
     inputs.dir templateDir
-    
+
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
+    classpath = configurations.generator
     mainClass = 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    args '-t', templateName, '-i', ipcdDefinitionFile, '-o', genSrcMain
 
     doFirst {
         outputDir.mkdirs()
         println "Generating templates from $templateName..."
-        classpath configurations.generator.asPath.split(':')
-        args '-t', templateName, '-i', ipcdDefinitionFile, '-o', genSrcMain
     }
 }
 

@@ -94,8 +94,8 @@ task generateZigbeeZclSource(type:JavaExec) {
    def protoc = project(':common:arcus-protoc')
 
    classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
-   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+   mainClass = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
 
 task generateZigbeeZdpSource(type:JavaExec) {
@@ -107,8 +107,8 @@ task generateZigbeeZdpSource(type:JavaExec) {
    def protoc = project(':common:arcus-protoc')
 
    classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
-   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+   mainClass = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
 
 task generateZigbeeAmeSource(type:JavaExec) {
@@ -120,33 +120,33 @@ task generateZigbeeAmeSource(type:JavaExec) {
    def protoc = project(':common:arcus-protoc')
 
    classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
-   main = 'com.iris.protoc.Main'
-   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source 
+   mainClass = 'com.iris.protoc.Main'
+   args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
 
 task generateZigbeeMessageSource(type:JavaExec) {
     description 'Compile the Iris Zigbee Message file into Java files.'
     dependsOn ':common:arcus-protoc:jar'
-    
+
     def source = ["src/main/irp/zb-protocol-messages.irp"]
     def packageName = 'com.iris.protocol.zigbee'
     def protoc = project(':common:arcus-protoc')
-    
+
     classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
-    main = 'com.iris.protoc.Main'
+    mainClass = 'com.iris.protoc.Main'
     args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
 
 task generateZWaveMessageSource(type:JavaExec) {
     description 'Compile the Iris Z-Wave Message file into Java files.'
     dependsOn ':common:arcus-protoc:jar'
-    
+
     def source = ["src/main/irp/zwave-messages.irp"]
     def packageName = 'com.iris.protocol'
     def protoc = project(':common:arcus-protoc')
-    
+
     classpath = protoc.configurations.runtimeClasspath + protoc.sourceSets.main.output
-    main = 'com.iris.protoc.Main'
+    mainClass = 'com.iris.protoc.Main'
     args = ['-o', genSrcMain, '-t', genSrcTest, '-p', packageName] + source
 }
 
@@ -155,9 +155,9 @@ task cleanZWaveZigbeeSource(type: Delete) {
    delete genSrcTest
 }
 
-task generateZWaveZigbeeSource(type: GradleBuild) {
-    tasks = ['cleanZWaveZigbeeSource', 'generateZigbeeZclSource', 'generateZigbeeZdpSource', 'generateZigbeeAmeSource', 'generateZigbeeMessageSource', 'generateZWaveMessageSource']
+task generateZWaveZigbeeSource {
    description 'Compile the Iris Zigbee and Z-Wave IRP files into Java.'
+   dependsOn cleanZWaveZigbeeSource, generateZigbeeZclSource, generateZigbeeZdpSource, generateZigbeeAmeSource, generateZigbeeMessageSource, generateZWaveMessageSource
    dependsOn ':common:arcus-protoc:jar'
     generateZigbeeZclSource.mustRunAfter cleanZWaveZigbeeSource
     generateZigbeeZdpSource.mustRunAfter generateZigbeeZclSource
@@ -165,11 +165,9 @@ task generateZWaveZigbeeSource(type: GradleBuild) {
     generateZigbeeMessageSource.mustRunAfter generateZigbeeAmeSource
     generateZWaveMessageSource.mustRunAfter generateZigbeeMessageSource
 
-
     inputs.files fileTree('src/main/irp').include('**/*.irp')
    outputs.dir genSrcMain
    outputs.dir genSrcTest
-
 }
 
 clean {
@@ -187,51 +185,49 @@ task generateSource(type: JavaExec) {
     dependsOn ':common:arcus-model:capability-generator:jar'
     inputs.dir capabilityDir
     inputs.dir templateDir
-    
+
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
-    main 'com.iris.capability.generator.java.Generator'
+    classpath = configurations.generator
+    mainClass = 'com.iris.capability.generator.java.Generator'
+    args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
 
     doFirst {
         delete(outputDir)
         outputDir.mkdirs()
-
         genSrcMain.mkdirs()
         genSrcTest.mkdirs()
-
         println "Generating templates from $templateName..."
-        classpath configurations.generator.asPath.split(':')
-        args '-t', templateName, '-i', capabilityDir, '-o', generatedSrcDir
     }
 }
 
 task generateProtocolSource(type: JavaExec) {
     dependsOn ':common:protocol-generator:jar'
     inputs.dir templateDir
-    
+
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
-    main 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    classpath = configurations.generator
+    mainClass = 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
+    args '-t', ipcdTemplateName, '-i', ipcdDefinitionFile, '-o', generatedSrcDir
 
     doFirst {
         println "Generating templates from $ipcdTemplateName..."
-        classpath configurations.generator.asPath.split(':')
-        args '-t', ipcdTemplateName, '-i', ipcdDefinitionFile, '-o', generatedSrcDir
     }
 }
 
 task generateAosAdapterSource(type: JavaExec) {
     dependsOn ':common:protocol-generator:jar'
     inputs.dir templateDir
-    
+
     def outputDir = file(generatedSrcDir)
     outputs.dir outputDir
-    main 'com.iris.protocol.ipcd.definition.generator.AosGenerator'
+    classpath = configurations.generator
+    mainClass = 'com.iris.protocol.ipcd.definition.generator.AosGenerator'
+    args '-t', aosTemplateName, '-i', aosDefinitionFile, '-o', generatedSrcDir
 
     doFirst {
         println "Generating templates from $ipcdTemplateName..."
-        classpath configurations.generator.asPath.split(':')
-        args '-t', aosTemplateName, '-i', aosDefinitionFile, '-o', generatedSrcDir
     }
 }
 

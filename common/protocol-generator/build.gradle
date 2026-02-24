@@ -48,21 +48,38 @@ sourceSets {
 }
 
 // Replaces the jacobono jaxb plugin (incompatible with Gradle 7+)
-task xjc(type: JavaExec) {
-    description 'Generate JAXB classes from XSD schemas'
+task xjcDefinition(type: JavaExec) {
+    description 'Generate JAXB classes from ipcd-definition.xsd'
     classpath = configurations.jaxb
     mainClass = 'com.sun.tools.xjc.XJCFacade'
 
     def outputDir = file(generatedSrcDir)
-    inputs.dir xsdDir
+    inputs.file "${xsdDir}/ipcd-definition.xsd"
     outputs.dir outputDir
 
-    doFirst {
-        outputDir.mkdirs()
-    }
+    doFirst { outputDir.mkdirs() }
 
-    args = ['-d', outputDir, '-p', 'com.iris.protocol.ipcd.xml.model'] +
-           fileTree(xsdDir).include('*.xsd').collect { it.path }
+    args = ['-d', outputDir, '-p', 'com.iris.protocol.ipcd.xml.model',
+            "${xsdDir}/ipcd-definition.xsd"]
+}
+
+task xjcAos(type: JavaExec) {
+    description 'Generate JAXB classes from ipcd-aos.xsd'
+    classpath = configurations.jaxb
+    mainClass = 'com.sun.tools.xjc.XJCFacade'
+
+    def outputDir = file(generatedSrcDir)
+    inputs.file "${xsdDir}/ipcd-aos.xsd"
+    outputs.dir outputDir
+
+    doFirst { outputDir.mkdirs() }
+
+    args = ['-d', outputDir, '-p', 'com.iris.protocol.ipcd.aos.xml.model',
+            "${xsdDir}/ipcd-aos.xsd"]
+}
+
+task xjc {
+    dependsOn xjcDefinition, xjcAos
 }
 
 task cleanGeneratedSource(type: Delete) {

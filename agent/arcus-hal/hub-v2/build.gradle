@@ -45,7 +45,7 @@ task('run-hub-v2', type:JavaExec) {
    description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
    classpath = files("$projectDir/src/dist/conf") + sourceSets.main.runtimeClasspath
    group "Application"
-   main = 'com.iris.agent.IrisAgent'
+   mainClass = 'com.iris.agent.IrisAgent'
    args '~/.hub-simulated/' // Store files in ~/.hub-simulated
    jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
 }

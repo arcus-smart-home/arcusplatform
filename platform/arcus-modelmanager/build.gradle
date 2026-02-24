@@ -152,7 +152,7 @@ schemas.each() { target ->
       systemProperty "modelmanager.home", "${homeDir}"
       systemProperty "modelmanager.schema", "${target}"
 
-      main = "com.iris.modelmanager.ModelManager"
+      mainClass = "com.iris.modelmanager.ModelManager"
 
       environment getLocalProps()
 
