@@ -11,11 +11,21 @@ docker_build() {
         local DOCKER_VERSION=":${DOCKER_VERSION}"
     fi
 
+    # Detect Java major version from the build host JDK
+    local JAVA_MAJOR
+    JAVA_MAJOR=$(java -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')
+    # version string "1.8.x" reports "1", normalize to 8
+    if [ "${JAVA_MAJOR}" = "1" ]; then
+        JAVA_MAJOR=8
+    fi
+
+    local BUILD_ARGS="--build-arg JAVA_VERSION=${JAVA_MAJOR}"
+
     if [ -z "${is_build_server}" ]; then
-        "${DOCKER_BIN}" build -t "${DOCKER_TAG}${DOCKER_VERSION}" -t "${DOCKER_TAG}:latest" "${DOCKER_PATH}"
+        "${DOCKER_BIN}" build ${BUILD_ARGS} -t "${DOCKER_TAG}${DOCKER_VERSION}" -t "${DOCKER_TAG}:latest" "${DOCKER_PATH}"
     else
         echo "running on build server, forcing clean rebuild..."
-        "${DOCKER_BIN}" build --no-cache=true -t "${DOCKER_TAG}" "${DOCKER_PATH}"
+        "${DOCKER_BIN}" build ${BUILD_ARGS} --no-cache=true -t "${DOCKER_TAG}" "${DOCKER_PATH}"
     fi
 }
 

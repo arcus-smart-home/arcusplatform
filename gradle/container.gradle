@@ -11,8 +11,11 @@ import java.security.MessageDigest
 import groovy.io.FileType
 import java.nio.file.Files;
 
-
 apply from: file("${rootDir}/gradle/application.gradle")
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
+def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
 
 project.ext.dockerGroup = 'arcus'
 project.ext.containerName = "${project.name}.${project.dockerGroup}"
@@ -76,16 +79,25 @@ task uberDocker {
 }
 
 
-docker {
-   baseImage "arcus/java"
+task createDockerfile(type: DockerfileTask) {
+   destFile = project.file("${buildDir}/docker/Dockerfile")
+   from 'arcus/java'
+   addFile "${applicationName}-${version}.tar.gz", '/'
+   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
+   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
+   defaultCommand '-c', irisConfig
 }
 
-distDocker {
-   tag = project.containerTag;
-   tagVersion = project.dockerVersion;
+task prepareDockerContext(type: Copy) {
+   dependsOn distTar
+   from distTar.archivePath
+   into "${buildDir}/docker"
+}
 
-   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
-   defaultCommand(['-c', irisConfig])
+task distDocker(type: DockerBuildImageTask) {
+   dependsOn createDockerfile, prepareDockerContext
+   inputDir = project.file("${buildDir}/docker")
+   images.add("${project.containerTag}:${project.dockerVersion}")
 }
 
 task tagDocker(type: Exec) {

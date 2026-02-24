@@ -24,16 +24,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 public class TestIrisObjectTypeAdapter {
 	Gson gson;
-	
+
 	@Before
 	public void setUp() {
-		IrisObjectTypeAdapterFactory.install();
-		gson = 
+		gson =
 			new GsonBuilder()
-				.registerTypeAdapterFactory(new IrisObjectTypeAdapterFactory())
+				.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 				.create();
 	}
 	
