@@ -97,14 +97,35 @@ startScripts {
 }
 
 task createApplicationInfo {
-   doLast{
-      def f = new File(sourceSets.main.java.outputDir, "META-INF/application.properties");
-      f.delete();
-      f.parentFile.mkdirs();
+   def outputDir = file("${buildDir}/generated-resources/application-info")
+   outputs.dir outputDir
+   doLast {
+      def f = new File(outputDir, "META-INF/application.properties")
+      f.delete()
+      f.parentFile.mkdirs()
       f << "application.name=" + project.name + "\n"
       f << "application.version=" + platformVersion + "\n"
       f << "build.timestamp=" + new Date() + "\n"
    }
 }
 
-classes.dependsOn << createApplicationInfo
+sourceSets.main.output.dir("${buildDir}/generated-resources/application-info", builtBy: 'createApplicationInfo')
+
+task verifyApplicationInfo {
+   description 'Fails the build if META-INF/application.properties is missing from the jar'
+   dependsOn jar
+   doLast {
+      def jarFile = jar.archivePath
+      def found = false
+      new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+         found = zip.getEntry('META-INF/application.properties') != null
+      }
+      if (!found) {
+         throw new GradleException(
+            "META-INF/application.properties is missing from ${jarFile.name}. " +
+            "The createApplicationInfo task may not be wired into the build correctly."
+         )
+      }
+   }
+}
+check.dependsOn verifyApplicationInfo
