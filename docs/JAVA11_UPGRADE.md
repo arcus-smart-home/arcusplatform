@@ -1,91 +1,91 @@
 # Java 11 Upgrade Notes
 
-## Build Command
+## Overview
+
+The build automatically detects the JDK version running Gradle and adjusts `sourceCompatibility`/`targetCompatibility`, JVM flags, and test exclusions accordingly. No flags or properties needed — just run Gradle with the desired JDK.
 
 ```bash
-./gradlew build \
-  -x :platform:arcus-containers:voice-service:build \
-  -x :platform:arcus-containers:voice-service:generateProto \
-  -Dorg.gradle.java.home=/Users/andrew/Library/Java/JavaVirtualMachines/azul-15.0.10/Contents/Home
-```
+# Java 8 build
+JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 ./gradlew build
 
-Result: **BUILD SUCCESSFUL** - 568 tasks
+# Java 11 build
+JAVA_HOME=/usr/lib/jvm/temurin-11-jdk-amd64 ./gradlew build
+```
 
 ## Architecture
 
-- **Platform modules** → Java 11 (sourceCompatibility/targetCompatibility '11')
-- **Agent modules** → Java 8 via Gradle toolchain (keeps `sun.misc.SharedSecrets` for serial port/watchdog hardware access)
-- **Common modules** → Compiled targeting Java 8 bytecode, tests run on build JDK (15)
-- **Tools modules** → Java 11 (depend on platform modules, Gradle variant resolution requires matching)
-- **Docker base image** → `temurin-11-jre` (was `temurin-8-jre`)
+- **Platform modules** — Targets the JDK running Gradle (8 or 11+)
+- **Common modules** — Always targets Java 8 bytecode so agent can consume them
+- **Agent modules** — Always Java 8 via Gradle toolchain (`sun.misc.SharedSecrets` for serial/watchdog hardware)
+- **Tools modules** — Targets the JDK running Gradle
+- **Docker base image** — Parameterized via `ARG JAVA_VERSION`, auto-detected from build host JDK
 
-## Files Changed
+## How the Gating Works
+
+`gradle/subproject.gradle` sets two ext properties based on `JavaVersion.current()`:
+
+- `isJava8` — true when running on JDK 8
+- `javaCompatibility` — `'1.8'` on JDK 8, otherwise the current JDK version string
+
+These control:
+
+| What | JDK 8 | JDK 11+ |
+|------|-------|---------|
+| `sourceCompatibility` / `targetCompatibility` | `1.8` | Current JDK version |
+| JVM intrinsic flags (UseSHA*, UseXmm*, etc.) | Included | Excluded |
+| PowerMock test (MailgunEmailProviderTest) | Runs | Excluded |
+| Docker plugin workaround (targetCompatibility reset) | No-op | Active |
+
+`common/build.gradle` overrides this to always target Java 8, since agent depends on common libraries.
+
+## Changes Made
 
 ### Build Configuration
 
 | File | Change |
 |------|--------|
+| `gradle/subproject.gradle` | Defines `isJava8`/`javaCompatibility`, uses dynamic `sourceCompatibility` |
+| `gradle/application.gradle` | Java 8 JVM intrinsic flags gated behind `JavaVersion.VERSION_1_8` |
+| `gradle/container.gradle` | Docker plugin workaround (always runs, harmless on Java 8) |
 | `gradle/buildscript.gradle` | SpotBugs plugin 2.0.1 → 4.8.0 |
-| `gradle/subproject.gradle` | Added `spotbugs { ignoreFailures = true }` |
-| `gradle/dependencies.gradle` | Gson 2.3.1 → 2.10.1, Groovy 2.5.8 → 2.5.15 |
-| `platform/build.gradle` | Added subprojects block: afterEvaluate sets Java 11 for java-plugin projects |
-| `platform/arcus-platform-drivers/driver-tests/build.gradle` | Java 8 → 11 |
-| `agent/build.gradle` | Added subprojects block: Java 8 toolchain via `JavaLanguageVersion.of(8)` |
-| `common/build.gradle` | Added `jaxb_api`, `javax_annotation_api` deps (removed from JDK 9+) |
-| `common/protocol-generator/build.gradle` | Added `jaxb_api`, `jaxb_impl` compile deps |
+| `gradle/dependencies.gradle` | Gson 2.3.1 → 2.10.1, Groovy 2.5.8 → 2.5.15, added javax.activation/annotation libs |
+| `platform/build.gradle` | `afterEvaluate` overrides compatibility to current JDK when not Java 8 |
+| `agent/build.gradle` | Forces Java 8 toolchain via `JavaLanguageVersion.of(8)` |
+| `common/build.gradle` | Always targets Java 8; added JAXB/javax.activation deps |
 | `common/arcus-protocol/build.gradle` | Added JAXB + javax.activation to `generator` configuration |
 | `common/arcus-drivers/groovy-bindings/build.gradle` | Added JAXB + javax.activation to `generator` configuration |
-| `tools/eye-kat/build.gradle` | Java 8 → 11 |
-| `tools/oculus/build.gradle` | Java 8 → 11 |
-| `tools/arcus-captools/build.gradle` | Java 8 → 11 |
-| `khakis/arcus-java/Dockerfile` | `temurin-8-jre` → `temurin-11-jre` |
-| `platform/arcus-containers/notification-services/build.gradle` | Excluded PowerMock test (incompatible with JDK 12+) |
+| `common/protocol-generator/build.gradle` | Added JAXB activation + compile deps |
+| `platform/.../notification-services/build.gradle` | PowerMock test excluded when `!isJava8` |
+| `khakis/arcus-java/Dockerfile` | `ARG JAVA_VERSION=11`, uses `temurin-${JAVA_VERSION}-jre` |
+| `khakis/bin/common.sh` | Auto-detects build host JDK, passes `--build-arg JAVA_VERSION` |
 
-### Source Code
-
-| File | Change |
-|------|--------|
-| `common/arcus-client/src/main/java/com/iris/gson/GsonFactory.java` | Replaced `IrisObjectTypeAdapterFactory` registration with `builder.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)` |
-| `common/arcus-client/src/main/java/com/iris/gson/IrisObjectTypeAdapterFactory.java` | Removed reflection hack; `install()` is now a no-op; kept as TypeAdapterFactory for backward compat |
-| `common/arcus-client/src/main/java/com/iris/gson/IrisObjectTypeAdapter.java` | Replaced internal `com.google.gson.internal.LinkedTreeMap` with `java.util.LinkedHashMap` |
-| `common/arcus-reflection/src/main/java/com/iris/reflection/ArgumentResolverFactoryChain.java` | Explicit type parameters `<I, R>` (JDK 15 stricter type inference) |
-| `common/arcus-drivers/drivers-common/src/main/java/com/iris/driver/handler/ContextualEventHandlers.java` | Explicit local variable type for nested wildcard inference |
-
-### Test Code
+### Source Code (backward-compatible with Java 8)
 
 | File | Change |
 |------|--------|
-| `common/arcus-client/src/test/java/com/iris/gson/TestIrisObjectTypeAdapter.java` | Uses `setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)` instead of factory |
-| `common/arcus-common/src/test/java/com/iris/resource/classpath/TestClassPathJarResource.java` | Uses Guava class instead of `java.lang.String` (JDK 9+ uses `jrt:` protocol for system classes) |
+| `GsonFactory.java` | Replaced reflection hack with `setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)` |
+| `IrisObjectTypeAdapterFactory.java` | `install()` is now a no-op; removed reflection hack |
+| `IrisObjectTypeAdapter.java` | `LinkedTreeMap` → `LinkedHashMap` |
+| `ArgumentResolverFactoryChain.java` | Explicit type parameters `<I, R>` (stricter inference in JDK 11+) |
+| `ContextualEventHandlers.java` | Explicit local variable for nested wildcard inference |
+| `TestClassPathJarResource.java` | Uses Guava class instead of `java.lang.String` (JDK 9+ `jrt:` protocol) |
 
 ## Dependency Upgrades
 
 | Dependency | Old | New | Reason |
 |------------|-----|-----|--------|
-| SpotBugs Gradle plugin | 2.0.1 | 4.8.0 | Incompatible with Gradle 6.9 worker API |
-| Gson | 2.3.1 | 2.10.1 | Old version required reflection hack (`Field.getDeclaredField("modifiers")`) removed in JDK 12+ |
-| Groovy | 2.5.8 | 2.5.15 | 2.5.8 doesn't support JDK 15 (`InvokerHelper` init failure) |
+| SpotBugs Gradle plugin | 2.0.1 | 4.8.0 | Old version incompatible with Gradle 6.9 worker API |
+| Gson | 2.3.1 | 2.10.1 | Old version used `Field.getDeclaredField("modifiers")` hack removed in JDK 12+ |
+| Groovy | 2.5.8 | 2.5.15 | 2.5.8 incompatible with JDK 15+ |
 
 ## Known Limitations
 
-1. **voice-service excluded from build** — protoc 3.5.1 has no Apple Silicon (aarch64) binary. Pre-existing issue, not related to Java upgrade. Fix: upgrade protoc to 3.21+.
+1. **Gradle 6.9 requires JDK 8 or 11 to run** — JDK 17 is not supported (ASM version too old for class file major version 61). Upgrade to Gradle 7.3+ to use JDK 17.
 
-2. **MailgunEmailProviderTest excluded** — PowerMock 1.7.3 is fundamentally incompatible with JDK 12+ (Objenesis reflection issues). Only test in the project using PowerMock. Fix: upgrade to PowerMock 2.0+ with Mockito 2.x, or rewrite test without PowerMock.
+2. **SpotBugs 4.8.0 requires JDK 11+ to run** — On JDK 8, SpotBugs tasks will fail but `ignoreFailures = true` prevents build breakage.
 
-3. **SpotBugs set to ignoreFailures** — 1829 violations reported in arcus-protocol alone. These are pre-existing and unrelated to the upgrade.
+3. **MailgunEmailProviderTest excluded on JDK 11+** — PowerMock 1.7.3 is incompatible with JDK 12+. Fix: upgrade to PowerMock 2.0+ with Mockito 2.x, or rewrite without PowerMock.
 
-4. **Agent stays on Java 8** — Uses `sun.misc.SharedSecrets` and `sun.nio.ch.FileChannelImpl.open()` in `UartNative.java` and `WatchdogNative.java` for serial port and watchdog hardware access on embedded Linux hubs. These APIs have no public replacement.
+4. **Agent stays on Java 8** — Uses `sun.misc.SharedSecrets` and `sun.nio.ch.FileChannelImpl.open()` in `UartNative.java` and `WatchdogNative.java`. No public replacement exists.
 
-## JDKs Used
-
-- Build JDK: Azul Zulu 15.0.10 (`/Users/andrew/Library/Java/JavaVirtualMachines/azul-15.0.10/Contents/Home`)
-- Agent toolchain: Amazon Corretto 8 (`/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home`)
-- Also available: JBR 17
-
-## Next Steps
-
-- [ ] Install JDK 11 and verify build/tests pass on the target JDK
-- [ ] Upgrade protoc for voice-service Apple Silicon support
-- [ ] Upgrade PowerMock 1.7.3 → 2.0+ (requires Mockito 1.x → 2.x)
-- [ ] Address SpotBugs violations or configure exclusion filters
-- [ ] Consider upgrading Gradle 6.9 → 7.x+ for better toolchain support
+5. **SpotBugs ignoreFailures** — 1829 pre-existing violations. Unrelated to the upgrade.
