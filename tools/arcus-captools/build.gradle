@@ -45,10 +45,6 @@ dependencies {
     compile project(':common:arcus-model')
 }
 
-docker {
-    baseImage "arcus/java"
-}
-
 tasks.addRule("Pattern: <CodeGenerationType>Code") {
     String taskName ->
         if (taskName.toLowerCase().startsWith("htmlcode")) {

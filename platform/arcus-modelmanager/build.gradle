@@ -61,15 +61,29 @@ dependencies {
     runtime libraries.logback
 }   
 
-docker {
-   baseImage "arcus/java"
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
+def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
+
+task createDockerfile(type: DockerfileTask) {
+   destFile = project.file("${buildDir}/docker/Dockerfile")
+   from 'arcus/java'
+   addFile "${applicationName}-${version}.tar.gz", '/'
+   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
+   defaultCommand '-H', "/${applicationName}-${version}/", '-P', 'dev', '-a'
 }
 
-distDocker {
-   tag = "${project.dockerGroup}/${project.applicationName}"
-   tagVersion = dockerVersion
-   
-   defaultCommand(["-H", "/${project.applicationName}-${project.version}/", "-P", "dev", "-a"])
+task prepareDockerContext(type: Copy) {
+   dependsOn distTar
+   from distTar.archivePath
+   into "${buildDir}/docker"
+}
+
+task distDocker(type: DockerBuildImageTask) {
+   dependsOn createDockerfile, prepareDockerContext
+   inputDir = project.file("${buildDir}/docker")
+   images.add("${project.containerTag}:${dockerVersion}")
 }
 
 task tagDocker(type: Exec) {
