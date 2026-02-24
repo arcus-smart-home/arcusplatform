@@ -18,10 +18,6 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/groovy.gradle")
 
 
-sourceCompatibility = '11'
-targetCompatibility = '11'
-
-
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDirs += ["src/main/java"]
 //sourceSets.test.groovy.srcDirs += ["src/test/java"]

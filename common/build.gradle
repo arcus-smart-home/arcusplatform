@@ -66,6 +66,7 @@ subprojects {
 
    group = 'com.arcussmarthome'
    version = rootProject.version
+   // Common libraries must always target Java 8 so agent (Java 8 toolchain) can consume them
    sourceCompatibility = '1.8'
    targetCompatibility = '1.8'
 

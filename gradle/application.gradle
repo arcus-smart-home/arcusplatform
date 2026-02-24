@@ -55,7 +55,7 @@ run {
 
 startScripts {
    classpath += files('XXX_CONF_PLACEHOLDER_XXX')
-   defaultJvmOpts = [
+   def baseOpts = [
            '-Dsun.net.inetaddr.ttl=10',
            '-Dsun.net.inetaddr.negative.ttl=5',
            "-Djdk.tls.ephemeralDHKeySize=2048",
@@ -68,6 +68,25 @@ startScripts {
            '-XX:+UseNUMA',
            '-XX:+UseNUMAInterleaving'
    ]
+
+   // These intrinsic flags only exist in Java 8
+   if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+      baseOpts.addAll([
+           '-XX:+UseMontgomeryMultiplyIntrinsic',
+           '-XX:+UseMontgomerySquareIntrinsic',
+           '-XX:+UseSquareToLenIntrinsic',
+           '-XX:+UseMultiplyToLenIntrinsic',
+           '-XX:+UseSHA',
+           '-XX:+UseSHA1Intrinsics',
+           '-XX:+UseSHA256Intrinsics',
+           '-XX:+UseSHA512Intrinsics',
+           '-XX:+UseMulAddIntrinsic',
+           '-XX:+UseXmmI2D',
+           '-XX:+UseXmmI2F'
+      ])
+   }
+
+   defaultJvmOpts = baseOpts
 
    doLast {
       def windowsScriptFile = file getWindowsScript()

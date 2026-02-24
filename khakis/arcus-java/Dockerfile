@@ -1,5 +1,6 @@
 # Use Debian as the base installation
 FROM debian:bookworm
+ARG JAVA_VERSION=11
 
 # Install the latest updates.
 ADD sources.list /etc/apt/
@@ -14,7 +15,7 @@ RUN \
     wget -qO /etc/apt/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public && \
     echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
-    apt-get install -y temurin-11-jre \
+    apt-get install -y temurin-${JAVA_VERSION}-jre \
         procps less tcpdump vim locales && \
     apt-get remove -y wget && \
     apt-get clean && \

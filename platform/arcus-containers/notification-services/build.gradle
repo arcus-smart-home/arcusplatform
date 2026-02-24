@@ -51,7 +51,9 @@ dependencies {
 
 // PowerMock 1.7.x is incompatible with JDK 12+ (Objenesis/reflection issues).
 // Exclude PowerMock-based tests until PowerMock is upgraded to 2.0+ with Mockito 2.x.
-test {
-	exclude '**/MailgunEmailProviderTest.class'
+if (!isJava8) {
+	test {
+		exclude '**/MailgunEmailProviderTest.class'
+	}
 }
 
