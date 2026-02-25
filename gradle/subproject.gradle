@@ -38,11 +38,11 @@ if (project.hasProperty('eyeris_owasp')) {
 apply from: file("${rootDir}/gradle/dependencies.gradle")
 
 // Guava 32+ publishes Gradle Module Metadata with JRE and Android variants.
-// Gradle 6.9's 'compile' configuration doesn't set consumer attributes, so we
-// must explicitly select the standard-jvm (JRE) variant.
+// Explicitly select the standard-jvm (JRE) variant on all configurations.
 configurations.all {
    attributes {
-      attribute(Attribute.of('org.gradle.jvm.environment', String), 'standard-jvm')
+      attribute(org.gradle.api.attributes.java.TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
+               objects.named(org.gradle.api.attributes.java.TargetJvmEnvironment, org.gradle.api.attributes.java.TargetJvmEnvironment.STANDARD_JVM))
    }
 }
 
