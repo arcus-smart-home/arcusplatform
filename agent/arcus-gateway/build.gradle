@@ -16,28 +16,28 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(":agent:arcus-system")
-   compile project(":agent:arcus-router")
+   api project(":agent:arcus-system")
+   api project(":agent:arcus-router")
 
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
 
-   compile libraries.commonsIO
-   compile libraries.commons_lang
-   compile libraries.guava
+   implementation libraries.commonsIO
+   implementation libraries.commons_lang
+   implementation libraries.guava
 
-   compile netty_handler
-   compile netty_codec_http
-   compile netty_codec
-   compile netty_transport
-   compile netty_buffer
-   compile netty_common
-   compile netty_tcnative
-   compile netty_epoll
-   compile name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
+   implementation netty_handler
+   implementation netty_codec_http
+   implementation netty_codec
+   implementation netty_transport
+   implementation netty_buffer
+   implementation netty_common
+   implementation netty_tcnative
+   implementation netty_epoll
+   implementation name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
 
-   runtime libraries.javassist
+   runtimeOnly libraries.javassist
 
-   testCompile project(':agent:arcus-test-agent')
+   testImplementation project(':agent:arcus-test-agent')
 }
 

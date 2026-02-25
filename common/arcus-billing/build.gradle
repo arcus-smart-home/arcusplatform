@@ -17,12 +17,12 @@ apply from: file("${rootDir}/gradle/jaxb.gradle")
 
 
 dependencies {
-   compile project(':common:arcus-client')
-   compile project(':common:arcus-common')
+   api project(':common:arcus-client')
+   api project(':common:arcus-common')
 
-   compile libraries.guava
-   compile libraries.gson
-   compile libraries.asyncHTTPClient
+   implementation libraries.guava
+   implementation libraries.gson
+   implementation libraries.asyncHTTPClient
 }
 
 jaxb {

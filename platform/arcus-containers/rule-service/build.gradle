@@ -17,14 +17,15 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/container.gradle")
 
 dependencies {
-    compile project (':platform:arcus-lib')
-    compile project (':platform:arcus-rules')
-    compile project (':common:arcus-common')
-    compile project(':common:arcus-model:platform-messages')
+    api project (':platform:arcus-lib')
+    api project (':platform:arcus-rules')
+    api project (':common:arcus-common')
+    api project(':common:arcus-model:platform-messages')
 
-    compile libraries.commonsIO
+    implementation libraries.commonsIO
+    implementation libraries.slf4jLog4j
 
-    testCompile project (':platform:arcus-test')
+    testImplementation project (':platform:arcus-test')
 }
 
 distributions {

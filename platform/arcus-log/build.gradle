@@ -16,20 +16,22 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project (':platform:arcus-info')
-   compile project (':common:arcus-metrics')
+   api project (':platform:arcus-info')
+   api project (':common:arcus-metrics')
 
-   compile libraries.gson
-   compile libraries.kafka
-   compile libraries.slf4j
+   implementation libraries.eclipse_annotation
+   implementation libraries.metrics_core
+   implementation libraries.gson
+   implementation libraries.kafka
+   implementation libraries.slf4j
 
    // TODO this should be excluded from transitive compile time dependencies
-   compile libraries.logback
+   implementation libraries.logback
 
-   runtime libraries.slf4j
-   runtime libraries.slf4jLog4j
-   runtime libraries.slf4jJul
-   runtime libraries.slf4jJcl
+   runtimeOnly libraries.slf4j
+   runtimeOnly libraries.slf4jLog4j
+   runtimeOnly libraries.slf4jJul
+   runtimeOnly libraries.slf4jJcl
 
 
 }

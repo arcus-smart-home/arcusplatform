@@ -49,9 +49,9 @@ dependencies {
 	generator project(':common:arcus-model:capability-generator')
 	generator files(templateDir)
 
-	compile project(':common:arcus-model')
-	compile project(':common:arcus-common')
-	compile project(':common:arcus-reflection')
+	api project(':common:arcus-model')
+	api project(':common:arcus-common')
+	api project(':common:arcus-reflection')
 	
 }
 
@@ -65,17 +65,17 @@ task generateSource(type: JavaExec) {
 	dependsOn ':common:arcus-model:capability-generator:jar'
 	inputs.dir capabilityDir
 	inputs.dir templateDir
-	
+
 	def outputDir = file(generatedSrcDir)
 	outputs.dir outputDir
-	main 'com.iris.capability.generator.java.Generator'
+	classpath = configurations.generator
+	mainClass = 'com.iris.capability.generator.java.Generator'
+	args '-t', templateName, '-i', capabilityDir, internalCapabilityDir, '-o', generatedSrcDir
 
 	doFirst {
 		delete(outputDir)
 		outputDir.mkdirs()
 		println "Generating templates from $templateName..."
-		classpath configurations.generator.asPath.split(':')
-		args '-t', templateName, '-i', capabilityDir, internalCapabilityDir, '-o', generatedSrcDir
 	}
 }
 

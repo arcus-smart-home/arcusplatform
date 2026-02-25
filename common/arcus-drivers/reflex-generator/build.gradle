@@ -17,25 +17,18 @@ apply plugin: 'groovy'
 apply plugin: 'project-report'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-ext.groovy_version=GroovySystem.getVersion()
-
-configurations.all {
-    resolutionStrategy {
-      force "org.codehaus.groovy:groovy-all:${groovy_version}"
-   }
-}
-
 dependencies {
-   compile gradleApi()
+   api project(":common:arcus-common")
+   api project(":common:arcus-model:platform-client")
+   api project(":common:arcus-drivers:drivers-common")
+   api project(":common:arcus-drivers:groovy-bindings")
 
-   compile project(":common:arcus-common")
-   compile project(":common:arcus-model:platform-client")
-   compile project(":common:arcus-drivers:drivers-common")
-   compile project(":common:arcus-drivers:groovy-bindings")
-
-   compile libraries.groovy
-   compile libraries.jcommander
+   implementation libraries.groovy
+   implementation libraries.jcommander
 }
+
+// Exclude unused Gradle plugin classes (they reference gradleApi which conflicts with Groovy 2.5)
+sourceSets.main.groovy.exclude '**/ReflexGeneratorPlugin.groovy', '**/ReflexGeneratorTask.groovy'
 
 shadowJar {
   zip64 true

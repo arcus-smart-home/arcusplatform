@@ -16,8 +16,8 @@
 // project specific build settings, dependencies, etc.
 
 dependencies {
-    compile project(':common:arcus-common')
-    compile project(':common:arcus-protocol')
-    compile project(':common:arcus-model:platform-messages')
+    api project(':common:arcus-common')
+    api project(':common:arcus-protocol')
+    api project(':common:arcus-model:platform-messages')
 }
 

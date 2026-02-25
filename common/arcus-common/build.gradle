@@ -13,28 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply plugin: "me.champeau.gradle.jmh"
+apply plugin: "me.champeau.jmh"
 
 dependencies {
-	compile project(':common:arcus-client')
-	compile project(":common:arcus-metrics")
-	compile project(':common:arcus-model')
+	api project(':common:arcus-client')
+	api project(":common:arcus-metrics")
+	api project(':common:arcus-model')
 	
 
-	compile libraries.commons_lang
-	compile libraries.commons_math
-	compile libraries.governator
-	compile libraries.gson
-	compile libraries.guice
-	compile libraries.governator
-	compile libraries.governator_api
-	compile libraries.sunrise_sunset_calc
-	compile netty_common
+	api libraries.commonsCodec
+	api libraries.commons_lang
+	api libraries.commons_math
+	api libraries.guava
+	api libraries.governator
+	api libraries.gson
+	api libraries.guice
+	api libraries.governator
+	api libraries.governator_api
+	implementation libraries.sunrise_sunset_calc
+	implementation netty_common
 
-	runtime libraries.commonsConfig
-	runtime libraries.jacksonCore
-	runtime libraries.jacksonDatabind
-	runtime libraries.jacksonMapper
+	runtimeOnly libraries.commonsConfig
+	runtimeOnly libraries.jacksonCore
+	runtimeOnly libraries.jacksonDatabind
+	runtimeOnly libraries.jacksonMapper
 	
 	jmh libraries.jacksonCore
 	jmh libraries.jacksonDatabind
@@ -45,8 +47,8 @@ dependencies {
 
 jmh {
    jmhVersion = '1.13'
-   duplicateClassesStrategy = 'warn'
+   duplicateClassesStrategy = DuplicatesStrategy.WARN
 
-   include = 'PerfGsonSerDe'
+   includes = ['PerfGsonSerDe']
 }
 

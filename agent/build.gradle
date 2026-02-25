@@ -20,7 +20,6 @@ buildscript {
       }
 
       mavenCentral()
-      jcenter()
    }
 
    apply from: file('../gradle/buildscript.gradle'), to: buildscript
@@ -32,7 +31,6 @@ repositories {
    }
 
    mavenCentral()
-   jcenter()
 }
 
 ext.buildVersion = "${version_major}.${version_minor}.${version_patch}${version_prerelease}"
@@ -52,6 +50,7 @@ subprojects {
                languageVersion = JavaLanguageVersion.of(8)
             }
          }
+         // test deps now in gradle/subproject.gradle
       }
    }
 }

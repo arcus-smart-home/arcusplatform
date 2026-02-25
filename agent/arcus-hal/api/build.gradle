@@ -16,9 +16,9 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile libraries.guiceCore
-   compile libraries.governator
-   compile libraries.slf4jJcl
-   compile libraries.eclipse_annotation
+   implementation libraries.guiceCore
+   implementation libraries.governator
+   implementation libraries.slf4jJcl
+   implementation libraries.eclipse_annotation
 }
 

@@ -18,16 +18,14 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply plugin: 'project-report'
 
 dependencies {
-    compile project(':common:arcus-common')
-    compile project(':common:arcus-model:platform-messages')
-    compile project(':common:arcus-model:model-query')
-    compile libraries.jaxb_api
+    api project(':common:arcus-common')
+    api project(':common:arcus-model:platform-messages')
+    api project(':common:arcus-model:model-query')
+    implementation libraries.jaxb_api
+    implementation 'com.google.code.findbugs:jsr305:3.0.1'
 
-    runtime libraries.commons_lang
-    runtime libraries.jaxb_impl
-    runtime libraries.javax_activation_api
-    
-    testCompile libraries.junit
-    testCompile libraries.easymock
+    runtimeOnly libraries.commons_lang
+    runtimeOnly libraries.jaxb_impl
+    runtimeOnly libraries.javax_activation_api
 }
 

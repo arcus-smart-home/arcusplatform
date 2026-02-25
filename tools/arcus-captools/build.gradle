@@ -22,6 +22,7 @@ mainClassName = 'com.iris.capability.generator.html.HtmlGenerator'
 
 ext.jsTemplateDir = "src/main/resources/js"
 ext.outputJSDir = "$buildDir/js"
+ext.outputTSDir = "$buildDir/ts"
 ext.outputHtmlDir = "$buildDir/doc"
 ext.capabilityDir = "$buildDir/capability"
 
@@ -37,12 +38,12 @@ configurations {
 }
 
 dependencies {
-    compile libraries.slf4j
-    compile libraries.logback
-    compile libraries.handlebars
-    compile libraries.jcommander
+    implementation libraries.slf4j
+    implementation libraries.logback
+    implementation libraries.handlebars
+    implementation libraries.jcommander
 
-    compile project(':common:arcus-model')
+    api project(':common:arcus-model')
 }
 
 tasks.addRule("Pattern: <CodeGenerationType>Code") {
@@ -64,17 +65,22 @@ task cleanGeneratedJSSource(type: Delete) {
     delete outputJSDir
 }
 
+task cleanGeneratedTSSource(type: Delete) {
+    delete outputTSDir
+}
+
 clean.dependsOn cleanGeneratedJSSource
+clean.dependsOn cleanGeneratedTSSource
 
 configurations {
-    generateJSSource { extendsFrom runtime }
+    generateJSSource { extendsFrom implementation, runtimeOnly }
 }
 
 task extractCapabilities(type: Copy) {
     from(zipTree(
             project
                     .configurations
-                    .compile.files({ it.name == 'arcus-model'; })
+                    .compileClasspath.files({ it.name == 'arcus-model'; })
                     .find({ it.name.indexOf('arcus-model') > -1 })
     )) {
         include "capability/**"
@@ -98,8 +104,24 @@ task generateJSSource(type: JavaExec) {
 
     classpath = sourceSets.main.runtimeClasspath
     args '-i', capabilityDir, '-o', outputJSDir
-    main "com.iris.capability.generator.js.BackboneGenerator"
+    mainClass = "com.iris.capability.generator.js.BackboneGenerator"
 
+}
+
+task generateTSSource(type: JavaExec) {
+    dependsOn 'extractCapabilities'
+    inputs.dir capabilityDir
+    outputs.dir outputTSDir
+
+    doFirst {
+        delete(outputTSDir)
+        file(outputTSDir).mkdirs()
+        println "Generating TypeScript capabilities into ${outputTSDir}..."
+    }
+
+    classpath = sourceSets.main.runtimeClasspath
+    args '-i', capabilityDir, '-o', outputTSDir
+    main "com.iris.capability.generator.ts.TypeScriptGenerator"
 }
 
 task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
@@ -108,7 +130,7 @@ task generateDoc(type: JavaExec, dependsOn: extractCapabilities) {
 
     classpath = sourceSets.main.runtimeClasspath
     args '-i', capabilityDir, '-o', outputHtmlDir
-    main "com.iris.capability.generator.html.HtmlGenerator"
+    mainClass = "com.iris.capability.generator.html.HtmlGenerator"
 
     doFirst {
         delete(outputHtmlDir)

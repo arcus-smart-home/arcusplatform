@@ -20,7 +20,6 @@ buildscript {
       }
 
        mavenCentral()
-       jcenter()
    }
 
    apply from: file("${rootDir}/gradle/buildscript.gradle"), to: buildscript
@@ -32,7 +31,6 @@ repositories {
    }
 
     mavenCentral()
-    jcenter()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +78,7 @@ subprojects {
    }
    
     task sourcesJar(type: Jar, dependsOn: classes) {
-      classifier = 'sources'
+      archiveClassifier = 'sources'
       from sourceSets.main.allSource
     }
 
@@ -90,25 +88,21 @@ subprojects {
 
     dependencies {
         // all sub-project support using eclipse annotations
-        compile libraries.eclipse_annotation
+        api libraries.eclipse_annotation
 
         // all sub-projects use SLF4J for logging
-        compile libraries.slf4jApi
+        api libraries.slf4jApi
 
         // all sub-projects use dropwizard for metrics
-        compile libraries.metrics_core
+        api libraries.metrics_core
 
         // Java EE APIs removed from JDK 9+
-        compile libraries.jaxb_api
-        compile libraries.javax_annotation_api
-        compile libraries.javax_activation_api
-        runtime libraries.javax_activation_impl
+        api libraries.jaxb_api
+        api libraries.javax_annotation_api
+        api libraries.javax_activation_api
+        runtimeOnly libraries.javax_activation_impl
 
-        // all sub-projects use junit for unit testing
-        testCompile libraries.junit
-
-        // all sub-projects use logback during tests
-        testCompile libraries.logback
+        // test deps now in gradle/subproject.gradle
     }
 
     configurations.all {

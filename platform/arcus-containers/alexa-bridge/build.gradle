@@ -25,10 +25,10 @@ ext.agentMainManifest = manifest {
 mainClassName= "com.iris.alexa.server.AlexaServer"
 
 dependencies {
-   compile project(':platform:arcus-alexa')
-   compile project(':platform:arcus-voice-bridge')
-   compile libraries.commons_lang
+   api project(':platform:arcus-alexa')
+   api project(':platform:arcus-voice-bridge')
+   implementation libraries.commons_lang
 
-   testCompile project (':platform:arcus-test')
+   testImplementation project (':platform:arcus-test')
 }
 

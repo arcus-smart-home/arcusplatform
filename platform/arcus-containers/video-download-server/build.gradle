@@ -20,16 +20,16 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName= "com.iris.video.download.server.VideoDownloadServer"
 
 dependencies {
-   compile project (':platform:arcus-lib')
-   compile project (':platform:arcus-video')
-   compile project (':common:arcus-common')
+   api project (':platform:arcus-lib')
+   api project (':platform:arcus-video')
+   api project (':common:arcus-common')
 
-   compile netty
-   compile libraries.azure_storage
-   compile libraries.azure_mgmt_storage
+   implementation netty
+   implementation libraries.azure_storage
+   implementation libraries.azure_mgmt_storage
 
-   testCompile project(':platform:arcus-test')
-   testCompile libraries.httpClient
+   testImplementation project(':platform:arcus-test')
+   testImplementation libraries.httpClient
 }
 
 applicationDefaultJvmArgs = [

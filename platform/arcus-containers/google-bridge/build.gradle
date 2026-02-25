@@ -19,7 +19,7 @@ apply from: file("${rootDir}/gradle/container.gradle")
 
 mainClassName= "com.iris.google.GoogleBridge"
 dependencies {
-   compile project(':platform:arcus-voice-bridge')
-   compile project(':platform:arcus-google')
+   api project(':platform:arcus-voice-bridge')
+   api project(':platform:arcus-google')
 }
 

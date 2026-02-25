@@ -19,14 +19,14 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName= "com.iris.bridge.server.BridgeServer"
 
 dependencies {
-   compile project(':platform:bridge-common')
-   compile project (':platform:arcus-lib')
-   compile project (':platform:arcus-security')
-   compile project (':common:arcus-common')
+   api project(':platform:bridge-common')
+   api project (':platform:arcus-lib')
+   api project (':platform:arcus-security')
+   api project (':common:arcus-common')
 
-   compile netty
-   compile libraries.commonsIO
+   implementation netty
+   implementation libraries.commonsIO
    
-   testCompile project(':platform:arcus-test')
+   testImplementation project(':platform:arcus-test')
 }
 
