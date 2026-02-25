@@ -201,7 +201,7 @@ public abstract class IpcdSession extends DefaultSessionImpl implements Partitio
    }
 
    private boolean isMixedCase(String sn) {
-      return CharMatcher.JAVA_LOWER_CASE.matchesAnyOf(sn) && CharMatcher.JAVA_UPPER_CASE.matchesAnyOf(sn);
+      return CharMatcher.javaLowerCase().matchesAnyOf(sn) && CharMatcher.javaUpperCase().matchesAnyOf(sn);
    }
 }
 

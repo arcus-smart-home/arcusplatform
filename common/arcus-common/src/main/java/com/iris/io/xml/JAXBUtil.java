@@ -29,7 +29,6 @@ import javax.xml.transform.stream.StreamSource;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.io.Closeables;
 import com.iris.resource.Resource;
 
 public class JAXBUtil {
@@ -56,14 +55,10 @@ public class JAXBUtil {
    }
 
    public static <T> T fromXml(Resource resource, Class<T> clazz) {
-      InputStream is = null;
-      try{
-         is = resource.open();
+      try (InputStream is = resource.open()) {
          return fromXml(is, clazz);
       }catch (Exception e){
          throw new RuntimeException("Error parsing XML document", e);
-      }finally{
-         Closeables.closeQuietly(is);
       }
    }
 
