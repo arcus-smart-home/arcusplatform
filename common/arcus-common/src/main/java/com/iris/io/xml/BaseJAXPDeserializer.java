@@ -16,13 +16,11 @@
 package com.iris.io.xml;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.w3c.dom.Document;
 
-import com.google.common.io.Closeables;
 import com.iris.io.Deserializer;
 import com.iris.io.xml.XMLUtil;
 import com.iris.resource.Resource;
@@ -52,18 +50,13 @@ public abstract class BaseJAXPDeserializer<T> implements Deserializer<T> {
    }
    
    public T deserialize(Resource input) throws IllegalArgumentException {
-      InputStream is = null;
-      try{
-         is=input.open();
+      try (InputStream is = input.open()) {
          return deserialize(is);
       }
       catch(IOException ioe){
          throw new RuntimeException(ioe);
       }
-      finally{
-         Closeables.closeQuietly(is);
-      }
-   } 
+   }
    
    
 }

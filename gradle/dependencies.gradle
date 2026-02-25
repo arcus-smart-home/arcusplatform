@@ -165,8 +165,8 @@ ext.libraries << [
 		prometheus_servlet: "io.prometheus:simpleclient_servlet:0.8.0",
 
 // misc dependencies
-		guava: "com.google.guava:guava:19.0",
-		google_guava_testlib: "com.google.guava:guava-testlib:19.0",
+		guava: "com.google.guava:guava:33.4.0-jre",
+		google_guava_testlib: "com.google.guava:guava-testlib:33.4.0-jre",
 		gson: "com.google.code.gson:gson:2.10.1",
 		commons_lang: "org.apache.commons:commons-lang3:3.8.1",
 		commons_csv: "org.apache.commons:commons-csv:1.2",

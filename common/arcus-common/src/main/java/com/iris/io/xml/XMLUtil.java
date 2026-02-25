@@ -34,7 +34,6 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import com.google.common.io.Closeables;
 import com.iris.resource.Resource;
 import com.iris.resource.Resources;
 
@@ -42,17 +41,14 @@ public class XMLUtil {
    private static final Logger logger = LoggerFactory.getLogger(XMLUtil.class);
 
    public static Document parseDocumentDOM(String xmlResource) {
-      InputStream is = null;
       try{
          Resource resource = Resources.getResource(xmlResource);
-         is = resource.open();
-         return parseDocumentDOM(is);
+         try (InputStream is = resource.open()) {
+            return parseDocumentDOM(is);
+         }
       }
       catch(Exception ioe){
          throw new RuntimeException(ioe);
-      }
-      finally{
-         Closeables.closeQuietly(is);
       }
    }
    
@@ -77,22 +73,22 @@ public class XMLUtil {
 
    public static void validate(Document document, String schemaResource) {
       SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-      InputStream is=null;
       try{
          Resource resource = Resources.getResource(schemaResource);
-         is=resource.open();
-         Source schemaFile = new StreamSource(is);
-         Schema schema = factory.newSchema(schemaFile);
-         XMLUtil.SimpleXMLValidationErrorHandler errorHandler = new XMLUtil.SimpleXMLValidationErrorHandler();
-         Validator validator = schema.newValidator();
-         validator.setErrorHandler(errorHandler);
-         try{
-            validator.validate(new DOMSource(document));
-            if (!errorHandler.isValid()){
-               throw new RuntimeException("XML is invalid see log for details.");
+         try (InputStream is = resource.open()) {
+            Source schemaFile = new StreamSource(is);
+            Schema schema = factory.newSchema(schemaFile);
+            XMLUtil.SimpleXMLValidationErrorHandler errorHandler = new XMLUtil.SimpleXMLValidationErrorHandler();
+            Validator validator = schema.newValidator();
+            validator.setErrorHandler(errorHandler);
+            try{
+               validator.validate(new DOMSource(document));
+               if (!errorHandler.isValid()){
+                  throw new RuntimeException("XML is invalid see log for details.");
+               }
+            }catch (Exception e){
+               throw new RuntimeException("Error while validating XML", e);
             }
-         }catch (Exception e){
-            throw new RuntimeException("Error while validating XML", e);
          }
       }catch (SAXException e){
          throw new RuntimeException("Could not parse XML schema file for " + schemaResource, e);
@@ -100,10 +96,6 @@ public class XMLUtil {
       catch (Exception ioe){
          throw new RuntimeException("Could not parse XML schema file for " + ioe, ioe);
       }
-      finally{
-         Closeables.closeQuietly(is);
-      }
-      
    }
 
    private static class SimpleXMLValidationErrorHandler implements ErrorHandler {

@@ -145,7 +145,7 @@ public class KafkaStreamReader implements Runnable {
    
    private SimpleConsumer connect(BrokerEndPoint leader) {
       HostAndPort broker = config.getBrokerOverride(leader.id()).orElse(HostAndPort.fromParts(leader.host(), leader.port()));
-      return new SimpleConsumer(broker.getHostText(), broker.getPortOrDefault(9092), config.getSoTimeoutMs(), config.getBufferSize(), config.getClientId());
+      return new SimpleConsumer(broker.getHost(), broker.getPortOrDefault(9092), config.getSoTimeoutMs(), config.getBufferSize(), config.getClientId());
    }
    
 }
