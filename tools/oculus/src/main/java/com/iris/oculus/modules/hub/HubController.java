@@ -452,7 +452,7 @@ public class HubController extends SessionAwareController {
          request.setCommand(HubSounds.PlayToneRequest.NAME);
          request.setAddress(model.getAddress());
          request.setAttribute(HubSounds.PlayToneRequest.ATTR_TONE, tone);
-         request.setAttribute(HubSounds.PlayToneRequest.ATTR_DURATIONSEC, 5);
+         request.setAttribute(HubSounds.PlayToneRequest.ATTR_DURATIONSEC, 0);
          client.request(request)
             .onFailure((error) -> Oculus.showError("Unable to play tone", error));
       }
