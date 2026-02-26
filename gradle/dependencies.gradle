@@ -114,9 +114,9 @@ ext.libraries << [
 		guiceMultibindings: "com.google.inject.extensions:guice-multibindings:4.0",
 
 // governator runtime dependencies
-		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.4.3",
+		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.6",
 		jacksonCoreAsl: "org.codehaus.jackson:jackson-core-asl:1.9.11",
-		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.10.0",
+		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.18.6",
 		jacksonMapper: "org.codehaus.jackson:jackson-mapper-asl:1.9.11",
 
 // governator compile dependencies
@@ -141,7 +141,7 @@ ext.libraries << [
 			exclude group: "log4j", module: "log4j"
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 		},
-		kafka: dependencies.create("org.apache.kafka:kafka_2.12:2.4.0") {
+		kafka: dependencies.create("org.apache.kafka:kafka_2.12:2.8.2") {
 			exclude group: "org.apache.zookeeper", module: "zookeeper"
 			exclude group: "log4j", module: "log4j"
 			exclude group: "org.slf4j", module: "slf4j-log4j12"

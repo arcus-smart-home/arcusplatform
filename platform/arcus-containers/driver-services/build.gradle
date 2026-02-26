@@ -49,7 +49,7 @@ dependencies {
     reflexGeneratorRuntime 'org.hibernate:hibernate-validator:4.1.0.Final'
     reflexGeneratorRuntime 'commons-io:commons-io:2.4'
     reflexGeneratorRuntime 'org.codehaus.jsr166-mirror:jsr166y:1.7.0'
-    reflexGeneratorRuntime 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+    reflexGeneratorRuntime 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
     reflexGeneratorRuntime "io.netty:netty-buffer:${netty_version}"
     reflexGeneratorRuntime "io.netty:netty-common:${netty_version}"
     reflexGeneratorRuntime libraries.jcommander

@@ -112,9 +112,9 @@ subprojects {
             force 'org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0'
             force 'com.google.inject.extensions:guice-multibindings:4.0-beta5'
             force 'com.netflix.archaius:archaius-core:0.6.5'
-            force 'com.fasterxml.jackson.core:jackson-core:2.5.1'
-            force 'com.fasterxml.jackson.core:jackson-databind:2.5.1'
-            force 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+            force 'com.fasterxml.jackson.core:jackson-core:2.18.6'
+            force 'com.fasterxml.jackson.core:jackson-databind:2.18.6'
+            force 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
         }
     }
 
