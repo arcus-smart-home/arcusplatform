@@ -25,11 +25,8 @@ dependencies {
 	api libraries.commons_lang
 	api libraries.commons_math
 	api libraries.guava
-	api libraries.governator
 	api libraries.gson
 	api libraries.guice
-	api libraries.governator
-	api libraries.governator_api
 	implementation libraries.sunrise_sunset_calc
 	implementation netty_common
 

@@ -32,7 +32,7 @@ import com.iris.i18n.DBResourceBundleControl;
 import com.iris.i18n.I18NBundle;
 import com.iris.messages.type.HistoryLog;
 import com.iris.platform.history.HistoryLogEntry;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 /**
  * 

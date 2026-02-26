@@ -19,7 +19,7 @@ import com.google.inject.AbstractModule;
 import com.iris.core.dao.PlaceDAO;
 import com.iris.platform.location.LocationServiceModule;
 import com.iris.platform.location.UspsDataServiceModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class, LocationServiceModule.class, UspsDataServiceModule.class})
 public class CassandraPlaceDAOModule extends AbstractModule {

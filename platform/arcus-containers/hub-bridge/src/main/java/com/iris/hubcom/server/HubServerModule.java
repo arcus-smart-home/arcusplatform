@@ -76,7 +76,7 @@ import com.iris.messages.address.Address;
 import com.iris.messages.address.AddressMatchers;
 import com.iris.platform.hub.registration.HubRegistrationModule;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelInboundHandler;

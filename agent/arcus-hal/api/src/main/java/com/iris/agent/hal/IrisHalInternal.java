@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.inject.Module;
-import com.netflix.governator.guice.BootstrapModule;
 
 public interface IrisHalInternal {
    void start(File base, Set<File> configs);
@@ -181,8 +180,8 @@ public interface IrisHalInternal {
    // Application bootstrapping methods
    /////////////////////////////////////////////////////////////////////////////
 
-   Collection<? extends BootstrapModule> getBootstrapModules();
-   Collection<Class<? extends BootstrapModule>> getBootstrapModuleClasses();
+   Collection<? extends Module> getBootstrapModules();
+   Collection<Class<? extends Module>> getBootstrapModuleClasses();
 
    Collection<? extends Module> getApplicationModules();
    Collection<Class<? extends Module>> getApplicationModuleClasses();

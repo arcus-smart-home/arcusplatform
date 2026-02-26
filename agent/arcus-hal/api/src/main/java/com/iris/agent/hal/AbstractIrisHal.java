@@ -23,7 +23,6 @@ import java.util.Set;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.inject.Module;
-import com.netflix.governator.guice.BootstrapModule;
 
 public abstract class AbstractIrisHal implements IrisHalInternal {
    @Nullable
@@ -105,15 +104,15 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
    /////////////////////////////////////////////////////////////////////////////
 
    @Override
-   public Collection<? extends BootstrapModule> getBootstrapModules() {
-      Collection<? extends BootstrapModule> instModules = new LinkedList<>();
+   public Collection<? extends Module> getBootstrapModules() {
+      Collection<? extends Module> instModules = new LinkedList<>();
       addAdditionalBootstrapModules(instModules);
       return instModules;
    }
 
    @Override
-   public Collection<Class<? extends BootstrapModule>> getBootstrapModuleClasses() {
-      Collection<Class<? extends BootstrapModule>> classModules = new LinkedList<>();
+   public Collection<Class<? extends Module>> getBootstrapModuleClasses() {
+      Collection<Class<? extends Module>> classModules = new LinkedList<>();
       addAdditionalBootstrapModuleClasses(classModules);
       return classModules;
    }
@@ -185,10 +184,10 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
    // Hooks for sub-classes
    /////////////////////////////////////////////////////////////////////////////
 
-   protected void addAdditionalBootstrapModules(Collection<? extends BootstrapModule> modules) {
+   protected void addAdditionalBootstrapModules(Collection<? extends Module> modules) {
    }
 
-   protected void addAdditionalBootstrapModuleClasses(Collection<Class<? extends BootstrapModule>> modules) {
+   protected void addAdditionalBootstrapModuleClasses(Collection<Class<? extends Module>> modules) {
    }
 
    protected void addAdditionalModules(Collection<? extends Module> modules) {
@@ -201,7 +200,7 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
    // Utility methods
    /////////////////////////////////////////////////////////////////////////////
 
-   protected void addBootstrap(Collection<Class<? extends BootstrapModule>> classModules, @Nullable Class<? extends BootstrapModule> clazz) {
+   protected void addBootstrap(Collection<Class<? extends Module>> classModules, @Nullable Class<? extends Module> clazz) {
       if (clazz != null) {
          classModules.add(clazz);
       }
@@ -213,7 +212,7 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
       }
    }
 
-   protected void addBootstrap(Collection<BootstrapModule> modules, @Nullable BootstrapModule module) {
+   protected void addBootstrap(Collection<Module> modules, @Nullable Module module) {
       if (module != null) {
          modules.add(module);
       }

@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.iris.driver.DeviceDriver;
 import com.iris.messages.model.DriverId;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 public abstract class FilesystemDriverRegistry extends AbstractSingleDriverRegistry {
    private static final Logger logger = LoggerFactory.getLogger(FilesystemDriverRegistry.class);

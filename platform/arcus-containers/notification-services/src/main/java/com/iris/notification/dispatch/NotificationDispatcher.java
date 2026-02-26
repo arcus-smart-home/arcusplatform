@@ -24,7 +24,7 @@ import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationPriority;
 import com.iris.platform.notification.audit.AuditEventState;
 import com.iris.platform.notification.audit.NotificationAuditor;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class NotificationDispatcher implements Dispatcher {

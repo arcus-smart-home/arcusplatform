@@ -34,7 +34,7 @@ import com.iris.driver.service.registry.DriverScriptInfo;
 import com.iris.driver.service.registry.FilesystemDriverRegistry;
 import com.iris.messages.model.DriverId;
 import com.iris.validators.ValidationException;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 public class GroovyDriverRegistry extends FilesystemDriverRegistry {
    private final static Logger logger = LoggerFactory.getLogger(GroovyDriverRegistry.class);
@@ -69,6 +69,7 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
       long loaded = 0;
       long total = 0;
       long start = System.nanoTime();
+
       for (File driver : files) {
          if (driver.isFile() && driver.canRead() && (filterPattern == null || filterPattern.matcher(driver.getName()).matches())) {
             total++;
@@ -88,6 +89,7 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
             }
          }
       }
+
       long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
       logger.info("loaded {} of {} drivers in {}ms", loaded, total, elapsed);
 

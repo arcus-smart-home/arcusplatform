@@ -42,7 +42,7 @@ public final class ServiceLocator {
    }
 
    public synchronized static void destroy() {
-   	// swap operation, make sure that the injector can't be accessed before destroying the modules
+   	// swap operation, make sure that the injector can't be accessed during module destruction
    	Impl impl = ServiceLocator.impl;
    	if(impl == null) {
    		// already shutdown
@@ -51,9 +51,8 @@ public final class ServiceLocator {
    	}
 
    	LOGGER.info("Received shutdown signal, shutting down modules");
-   	impl.destroy();
-
    	ServiceLocator.impl = null;
+   	impl.destroy();
    	LOGGER.info("Shutdown");
    }
 

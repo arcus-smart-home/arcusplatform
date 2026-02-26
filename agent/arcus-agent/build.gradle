@@ -30,7 +30,6 @@ dependencies {
     api project(":common:arcus-metrics")
 
     implementation libraries.guiceCore
-    implementation libraries.governator
 
     implementation libraries.metrics_core
     implementation libraries.metrics_logback

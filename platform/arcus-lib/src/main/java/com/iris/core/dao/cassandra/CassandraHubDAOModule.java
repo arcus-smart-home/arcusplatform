@@ -18,7 +18,7 @@ package com.iris.core.dao.cassandra;
 import com.google.inject.AbstractModule;
 import com.iris.core.dao.HubDAO;
 import com.iris.core.dao.HubRegistrationDAO;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class})
 public class CassandraHubDAOModule extends AbstractModule {

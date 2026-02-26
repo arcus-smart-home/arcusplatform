@@ -33,7 +33,7 @@ import com.iris.bridge.server.netty.BaseWebSocketServerHandlerProvider;
 import com.iris.bridge.server.noauth.NoAuthModule;
 import com.iris.bridge.server.session.DefaultSessionModule;
 import com.iris.bridge.server.session.SessionListener;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  *

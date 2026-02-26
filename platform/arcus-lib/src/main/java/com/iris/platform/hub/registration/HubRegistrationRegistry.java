@@ -43,7 +43,7 @@ import com.iris.messages.model.HubRegistration;
 import com.iris.messages.model.HubRegistration.RegistrationState;
 import com.iris.messages.model.HubRegistrationErrors;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class HubRegistrationRegistry  {

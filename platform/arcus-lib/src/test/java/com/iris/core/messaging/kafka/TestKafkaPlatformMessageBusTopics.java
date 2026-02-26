@@ -34,7 +34,7 @@ import com.iris.messages.address.AddressMatchers;
 import com.iris.platform.partition.PartitionConfig;
 import com.iris.platform.partition.simple.SimplePartitioner;
 import com.iris.util.IrisCollections;
-import com.netflix.governator.configuration.PropertiesConfigurationProvider;
+import com.iris.bootstrap.config.PropertiesConfigurationProvider;
 
 /**
  * Tests that the proper topics are selected for each address.

@@ -27,7 +27,6 @@ import java.util.Set;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.inject.Module;
-import com.netflix.governator.guice.BootstrapModule;
 
 public final class IrisHal {
    public static enum OsType {
@@ -491,11 +490,11 @@ public final class IrisHal {
    // System bootstrapping methods
    /////////////////////////////////////////////////////////////////////////////
 
-   public static Collection<? extends BootstrapModule> getBootstrapModules() {
+   public static Collection<? extends Module> getBootstrapModules() {
       return get().getBootstrapModules();
    }
 
-   public static Collection<Class<? extends BootstrapModule>> getBootstrapModuleClasses() {
+   public static Collection<Class<? extends Module>> getBootstrapModuleClasses() {
       return get().getBootstrapModuleClasses();
    }
 

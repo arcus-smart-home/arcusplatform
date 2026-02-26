@@ -15,9 +15,9 @@
  */
 package com.iris.core.dao.cassandra;
 
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.ConfigurationProvider;
-import com.netflix.governator.configuration.KeyParser;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.KeyParser;
 
 public class CassandraUtils
 {

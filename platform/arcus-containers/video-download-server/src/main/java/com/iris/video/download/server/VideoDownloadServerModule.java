@@ -40,7 +40,7 @@ import com.iris.bridge.server.traffic.TrafficHandler;
 import com.iris.util.ThreadPoolBuilder;
 import com.iris.video.VideoStorageModule;
 import com.iris.video.cql.v2.CassandraVideoV2Module;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;

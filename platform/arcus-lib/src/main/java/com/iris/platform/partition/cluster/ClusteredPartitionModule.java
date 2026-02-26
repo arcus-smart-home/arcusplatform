@@ -24,7 +24,7 @@ import com.iris.platform.cluster.ClusterModule;
 import com.iris.platform.cluster.ClusterServiceListener;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.Partitioner;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = { ClusterModule.class })
 public class ClusteredPartitionModule extends AbstractIrisModule {

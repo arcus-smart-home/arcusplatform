@@ -24,7 +24,6 @@ dependencies {
 	implementation libraries.guiceCore
 	implementation libraries.guiceServlet
 	implementation libraries.guiceMultibindings
-	implementation libraries.governator
 
 	implementation libraries.kafka
 

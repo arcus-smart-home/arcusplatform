@@ -28,7 +28,7 @@ import com.iris.core.dao.cassandra.PersonDAOSecurityModule;
 import com.iris.security.GuicySessionManager;
 import com.iris.security.SessionConfig;
 import com.iris.security.handoff.AppHandoffRealm;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = CassandraAppHandoffDaoModule.class)
 public class ClientBridgeSecurityModule extends PersonDAOSecurityModule {

@@ -17,7 +17,7 @@ package com.iris.core.messaging.kafka;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 public class KafkaAnalyticsConfig extends AbstractKafkaConfig {
 	@Inject(optional = true) @Named("kafka.topic.analyticstags")

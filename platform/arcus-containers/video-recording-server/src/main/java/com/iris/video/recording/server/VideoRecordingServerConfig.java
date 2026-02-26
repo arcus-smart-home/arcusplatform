@@ -20,7 +20,7 @@ import java.util.Base64;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.video.VideoConfig;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 public class VideoRecordingServerConfig extends VideoConfig {
 

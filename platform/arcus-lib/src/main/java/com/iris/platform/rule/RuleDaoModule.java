@@ -22,7 +22,7 @@ import com.iris.platform.rule.cassandra.RuleEnvironmentDaoImpl;
 import com.iris.platform.rule.cassandra.SceneDaoImpl;
 import com.iris.platform.rule.catalog.serializer.json.RuleConfigJsonModule;
 import com.iris.platform.scene.SceneDao;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = RuleConfigJsonModule.class)
 public class RuleDaoModule extends AbstractIrisModule {

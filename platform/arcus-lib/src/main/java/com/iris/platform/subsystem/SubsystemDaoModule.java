@@ -21,7 +21,7 @@ package com.iris.platform.subsystem;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.platform.subsystem.cassandra.CassandraSubsystemDao;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

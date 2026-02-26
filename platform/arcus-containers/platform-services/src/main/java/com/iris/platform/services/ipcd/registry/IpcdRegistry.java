@@ -82,7 +82,7 @@ import com.iris.protocol.ipcd.IpcdDevice.ConnState;
 import com.iris.protocol.ipcd.IpcdDeviceTypeRegistry;
 import com.iris.protocol.ipcd.IpcdProtocol;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class IpcdRegistry implements PartitionListener {

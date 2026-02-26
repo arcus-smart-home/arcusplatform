@@ -25,8 +25,6 @@ import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.iris.bootstrap.ServiceLocator;
-import com.iris.bootstrap.guice.Injectors;
-import com.netflix.governator.lifecycle.LifecycleManager;
 
 public final class GuiceServiceLocator implements ServiceLocator.Impl {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
@@ -45,7 +43,7 @@ public final class GuiceServiceLocator implements ServiceLocator.Impl {
    	// TODO:  this really feels like it should be part of bootstrap, but if that is done
    	// then @WarmUp, @PostConstruct cannot use the ServiceLocator
    	try {
-   	   LifecycleManager manager = getInstance(LifecycleManager.class);
+   	   IrisLifecycleManager manager = getInstance(IrisLifecycleManager.class);
          if(manager != null) {
             LOGGER.info("Starting up all modules...");
             try {
@@ -64,7 +62,7 @@ public final class GuiceServiceLocator implements ServiceLocator.Impl {
    @Override
    public void destroy() {
       try {
-   	   LifecycleManager manager = getInstance(LifecycleManager.class);
+   	   IrisLifecycleManager manager = getInstance(IrisLifecycleManager.class);
    	   if(manager != null) {
    	      manager.close();
    	   }
@@ -104,4 +102,3 @@ public final class GuiceServiceLocator implements ServiceLocator.Impl {
 	   return Injectors.listInstancesOf(injector, type);
    }
 }
-

@@ -34,7 +34,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.platform.partition.DefaultPartition;
 import com.iris.platform.partition.PartitionChangedEvent;
 import com.iris.platform.partition.PlatformPartition;
-import com.netflix.governator.configuration.SystemConfigurationProvider;
+import com.iris.bootstrap.config.PropertiesConfigurationProvider;
 
 public class TestMessageTopicFilter {
 
@@ -44,7 +44,7 @@ public class TestMessageTopicFilter {
    @Before
    public void setUp() {
       System.setProperty("kafka.group", "message-topic-filter-test");
-      KafkaMetrics metrics = new KafkaMetrics("platform", partitions, new KafkaConfig(new SystemConfigurationProvider()));
+      KafkaMetrics metrics = new KafkaMetrics("platform", partitions, new KafkaConfig(new PropertiesConfigurationProvider(System.getProperties())));
       this.filter = new MessageTopicFilter<>(metrics, new TopicConfig(), JSON.createDeserializer(PlatformMessage.class));
    }
    

@@ -63,7 +63,7 @@ import com.iris.oauth.netty.HttpRequestInitializer;
 import com.iris.oauth.place.PlaceSelectionHandler;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.voice.oauth.VoicePlaceSelectionHandler;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;

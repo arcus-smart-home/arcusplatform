@@ -32,7 +32,7 @@ import com.iris.platform.history.appender.HistoryAppenderModule;
 import com.iris.platform.history.cassandra.CassandraHistoryDAOModule;
 import com.iris.platform.history.service.HistoryEventListener;
 import com.iris.platform.rule.RuleDaoModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

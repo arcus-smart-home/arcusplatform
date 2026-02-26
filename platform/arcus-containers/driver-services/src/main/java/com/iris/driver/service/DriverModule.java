@@ -50,7 +50,7 @@ import com.iris.messages.address.AddressMatchers;
 import com.iris.prodcat.ProductCatalogModule;
 import com.iris.prodcat.ProductCatalogReloadListener;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * Basic driver configuration bits.

@@ -31,7 +31,7 @@ import com.iris.platform.services.productcatalog.handlers.GetProductsByCategoryH
 import com.iris.platform.services.productcatalog.handlers.GetProductsHandler;
 import com.iris.prodcat.ProductCatalog;
 import com.iris.prodcat.ProductCatalogModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = ProductCatalogModule.class)
 public class ProductCatalogServiceModule extends AbstractIrisModule {

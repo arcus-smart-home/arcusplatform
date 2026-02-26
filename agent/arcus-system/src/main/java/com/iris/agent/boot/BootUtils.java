@@ -40,7 +40,6 @@ import com.iris.io.json.gson.GsonModule;
 import com.iris.messages.MessagesModule;
 import com.iris.messages.capability.ClasspathDefinitionRegistry;
 import com.iris.protocol.ProtocolMessagesModule;
-import com.netflix.governator.guice.BootstrapModule;
 
 public final class BootUtils {
    private static final Logger log = LoggerFactory.getLogger(Bootstrap.class);
@@ -71,17 +70,15 @@ public final class BootUtils {
          IrisHal.start(basePath, configs);
       }
 
-      Collection<BootstrapModule> bmodules = new LinkedList<>();
+      Collection<Module> bmodules = new LinkedList<>();
       bmodules.addAll(IrisHal.getBootstrapModules());
-
-      Collection<Class<? extends BootstrapModule>> bmoduleClasses = new LinkedList<>();
-      bmoduleClasses.addAll(IrisHal.getBootstrapModuleClasses());
 
       Collection<Module> modules = new LinkedList<>();
       modules.addAll(IrisHal.getApplicationModules());
 
       Collection<Class<? extends Module>> moduleClasses = new LinkedList<>();
       moduleClasses.addAll(EXTRA);
+      moduleClasses.addAll(IrisHal.getBootstrapModuleClasses());
       moduleClasses.addAll(IrisHal.getApplicationModuleClasses());
       moduleClasses.add(MessagesModule.class);
       moduleClasses.add(ProtocolMessagesModule.class);
@@ -90,7 +87,6 @@ public final class BootUtils {
 
       Bootstrap.Builder builder = Bootstrap.builder();
       builder.withBootstrapModules(bmodules);
-      builder.withBootstrapModuleClasses(bmoduleClasses);
       builder.withModules(modules);
       builder.withModuleClasses(moduleClasses);
 

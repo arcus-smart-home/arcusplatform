@@ -41,7 +41,7 @@ import com.iris.ipcd.server.session.IpcdSessionListener;
 import com.iris.ipcd.server.session.SessionFacade;
 import com.iris.ipcd.session.PartitionedSession;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = {
    IpcdBridgeConfigModule.class,

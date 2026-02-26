@@ -53,7 +53,6 @@ dependencies {
     reflexGeneratorRuntime "io.netty:netty-buffer:${netty_version}"
     reflexGeneratorRuntime "io.netty:netty-common:${netty_version}"
     reflexGeneratorRuntime libraries.jcommander
-    reflexGeneratorRuntime libraries.governator
     reflexGeneratorRuntime libraries.jacksonCore
     reflexGeneratorRuntime libraries.jacksonDatabind
     reflexGeneratorRuntime libraries.slf4jApi

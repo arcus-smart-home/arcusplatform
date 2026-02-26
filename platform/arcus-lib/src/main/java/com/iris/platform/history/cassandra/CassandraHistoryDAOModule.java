@@ -24,7 +24,7 @@ import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.platform.history.HistoryActivityDAO;
 import com.iris.platform.history.HistoryAppenderDAO;
 import com.iris.platform.history.HistoryLogDAO;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

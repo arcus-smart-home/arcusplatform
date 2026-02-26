@@ -17,8 +17,8 @@ package com.iris.core.dao.cassandra;
 
 import com.google.inject.Inject;
 import com.iris.capability.attribute.transform.AttributeMapTransformModule;
-import com.netflix.governator.annotations.Modules;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.annotations.Modules;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 @Modules( include = AttributeMapTransformModule.class )
 public class CassandraModule extends BaseCassandraModule {

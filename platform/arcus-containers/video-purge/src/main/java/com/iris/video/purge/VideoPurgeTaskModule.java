@@ -35,7 +35,7 @@ import com.iris.video.purge.dao.VideoPurgeDao;
 import com.iris.video.purge.dao.v2.CassandraVideoPurgeV2Dao;
 import com.iris.video.storage.PreviewStorage;
 import com.iris.video.storage.VideoStorage;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={ CassandraVideoV2Module.class, 
 		VideoStorageModule.class, 

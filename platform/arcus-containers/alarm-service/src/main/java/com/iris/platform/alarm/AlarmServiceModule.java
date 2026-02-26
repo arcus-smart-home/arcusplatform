@@ -34,7 +34,7 @@ import com.iris.platform.rule.RuleDaoModule;
 import com.iris.platform.subscription.IrisSubscriptionModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = {
       KafkaModule.class,

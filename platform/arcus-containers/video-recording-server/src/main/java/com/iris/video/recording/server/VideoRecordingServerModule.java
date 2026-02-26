@@ -41,7 +41,7 @@ import com.iris.video.cql.v2.CassandraVideoV2Module;
 import com.iris.video.recording.PlaceServiceLevelCacheModule;
 import com.iris.video.recording.StopRecordingSnooper;
 import com.iris.video.recording.StopRecordingSnooperConfig;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;

@@ -22,7 +22,7 @@ import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.dao.cassandra.HubRegistrationDAOImpl;
 import com.iris.platform.manufacture.kitting.dao.ManufactureKittingDao;
 import com.iris.platform.manufacture.kitting.dao.cassandra.ManufactureKittingDaoImpl;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = { CassandraModule.class
 })
