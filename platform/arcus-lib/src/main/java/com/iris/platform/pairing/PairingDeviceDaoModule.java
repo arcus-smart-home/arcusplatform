@@ -19,7 +19,7 @@ import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.platform.pairing.cassandra.CassandraPairingDeviceDao;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class, PlacePopulationCacheModule.class})
 public class PairingDeviceDaoModule extends AbstractIrisModule {

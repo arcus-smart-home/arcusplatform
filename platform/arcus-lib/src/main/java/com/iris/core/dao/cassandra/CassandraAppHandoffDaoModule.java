@@ -17,7 +17,7 @@ package com.iris.core.dao.cassandra;
 
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.security.dao.AppHandoffDao;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class})
 public class CassandraAppHandoffDaoModule extends AbstractIrisModule {

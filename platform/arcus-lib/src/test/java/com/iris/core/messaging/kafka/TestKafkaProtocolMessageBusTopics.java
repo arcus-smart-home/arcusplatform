@@ -36,7 +36,7 @@ import com.iris.platform.partition.PartitionConfig;
 import com.iris.platform.partition.simple.SimplePartitioner;
 import com.iris.protocol.ipcd.IpcdProtocol;
 import com.iris.protocol.zwave.ZWaveProtocol;
-import com.netflix.governator.configuration.PropertiesConfigurationProvider;
+import com.iris.bootstrap.config.PropertiesConfigurationProvider;
 
 /**
  * Tests that the proper topics are selected for each address.

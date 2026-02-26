@@ -31,7 +31,7 @@ import com.iris.platform.partition.PartitionConfig;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.Partitioner;
 import com.iris.platform.partition.PlatformPartition;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 /**
  * 
  */

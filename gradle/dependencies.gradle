@@ -103,27 +103,11 @@ ext.libraries << [
 		guiceServlet: "com.google.inject.extensions:guice-servlet:4.0",
 		guiceMultibindings: "com.google.inject.extensions:guice-multibindings:4.0",
 
-// governator runtime dependencies
+// jackson dependencies
 		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.6",
 		jacksonCoreAsl: "org.codehaus.jackson:jackson-core-asl:1.9.11",
 		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.18.6",
 		jacksonMapper: "org.codehaus.jackson:jackson-mapper-asl:1.9.11",
-
-// governator compile dependencies
-		governator: dependencies.create("com.netflix.governator:governator:1.12.15") {
-			exclude group: "com.google.inject.extensions", module: "guice-grapher"
-			exclude group: "asm"
-			exclude group: "com.google.code.findbugs", module: "annotations"
-			exclude group: "org.apache.xbean", module: "xbean-bundleutils"
-			exclude group: "com.netflix.archaius", module: "archaius-core"
-		},
-		governator_api: dependencies.create("com.netflix.governator:governator-api:1.12.15") {
-			exclude group: "com.google.inject.extensions", module: "guice-grapher"
-			exclude group: "asm"
-			exclude group: "com.google.code.findbugs", module: "annotations"
-			exclude group: "org.apache.xbean", module: "xbean-bundleutils"
-			exclude group: "com.netflix.archaius", module: "archaius-core"
-		},
 
 // kafka dependencies
 		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {

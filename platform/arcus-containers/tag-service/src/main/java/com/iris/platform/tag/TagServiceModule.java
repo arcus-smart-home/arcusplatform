@@ -35,7 +35,7 @@ import com.iris.core.dao.ResourceBundleDAO;
 import com.iris.core.messaging.kafka.KafkaModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = {
    KafkaModule.class,

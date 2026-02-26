@@ -86,7 +86,7 @@ import com.iris.protocol.control.DeviceOnlineEvent;
 import com.iris.protocol.reflex.ReflexProtocol;
 import com.iris.protocol.zigbee.ZigbeeProtocol;
 import com.iris.protocol.zwave.ZWaveProtocol;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 /**
  * Reads messages from the protocol bus and

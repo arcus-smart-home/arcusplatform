@@ -32,7 +32,7 @@ import com.iris.gson.ByteArrayToBase64TypeAdapter;
 import com.iris.gson.GsonFactory;
 import com.iris.gson.TypeTypeAdapterFactory;
 import com.iris.io.json.JsonModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include=JsonModule.class)
 public class GsonModule extends AbstractModule {

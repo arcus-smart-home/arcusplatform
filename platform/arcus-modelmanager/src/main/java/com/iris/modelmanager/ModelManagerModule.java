@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.inject.Inject;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.modelmanager.context.ModelManagerBaseCassandraModule;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 
 public class ModelManagerModule extends AbstractIrisModule {

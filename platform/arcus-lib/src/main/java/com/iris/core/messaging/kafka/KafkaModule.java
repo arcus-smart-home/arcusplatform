@@ -27,7 +27,7 @@ import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.protocol.ProtocolMessageBus;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.cluster.ClusteredPartitionModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  *

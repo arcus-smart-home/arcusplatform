@@ -17,7 +17,7 @@ package com.iris.platform.history.cassandra;
 
 import com.google.inject.Inject;
 import com.iris.core.dao.cassandra.BaseCassandraModule;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 public class CassandraHistoryModule extends BaseCassandraModule {
 

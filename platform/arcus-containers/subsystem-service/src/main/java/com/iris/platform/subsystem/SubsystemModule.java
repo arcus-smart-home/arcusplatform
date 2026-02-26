@@ -70,7 +70,7 @@ import com.iris.platform.subsystem.placemonitor.smarthomealert.SmartHomeAlertMod
 import com.iris.platform.util.LazyReference;
 import com.iris.util.IrisCorrelator;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
       SmartHomeAlertModule.class

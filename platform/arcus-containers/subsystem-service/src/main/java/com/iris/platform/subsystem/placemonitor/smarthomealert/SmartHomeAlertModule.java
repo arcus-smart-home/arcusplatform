@@ -27,7 +27,7 @@ import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.LockJa
 import com.iris.platform.subsystem.placemonitor.smarthomealert.postprocessors.ObscureIfHubOfflinePostProcessor;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.postprocessors.OfflineBatteryPostProcessor;
 import com.iris.prodcat.ProductCatalogModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
    ProductCatalogModule.class,

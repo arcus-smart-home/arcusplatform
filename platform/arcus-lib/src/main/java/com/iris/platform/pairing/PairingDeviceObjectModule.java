@@ -26,7 +26,7 @@ import com.iris.platform.pairing.handler.DismissRequestHandler;
 import com.iris.platform.pairing.handler.RemoveRequestHandler;
 import com.iris.platform.pairing.handler.UpdatePairingPhaseRequestHandler;
 import com.iris.platform.pairing.resolver.PairingDeviceResolver;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * @author tweidlin

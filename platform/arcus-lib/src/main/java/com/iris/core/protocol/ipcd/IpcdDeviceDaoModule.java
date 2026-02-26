@@ -18,7 +18,7 @@ package com.iris.core.protocol.ipcd;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.core.protocol.ipcd.cassandra.CassandraIpcdDeviceDao;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include=CassandraModule.class)
 public class IpcdDeviceDaoModule extends AbstractIrisModule {

@@ -53,7 +53,7 @@ import com.iris.messages.model.DriverId;
 import com.iris.messages.type.Population;
 import com.iris.model.Version;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include = CapabilityRegistryModule.class)
 public class TestDriverModule extends AbstractIrisModule {

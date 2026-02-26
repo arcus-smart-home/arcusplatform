@@ -17,7 +17,7 @@ package com.iris.population;
 
 import com.google.inject.AbstractModule;
 import com.iris.core.dao.cassandra.CassandraPlaceDAOModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraPlaceDAOModule.class})
 public class PlacePopulationCacheModule extends AbstractModule {

@@ -35,7 +35,7 @@ import com.iris.platform.services.population.PopulationServiceModule;
 import com.iris.platform.services.productcatalog.ProductCatalogServiceModule;
 import com.iris.platform.subsystem.SubsystemDaoModule;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * Defines all the services to be loaded.

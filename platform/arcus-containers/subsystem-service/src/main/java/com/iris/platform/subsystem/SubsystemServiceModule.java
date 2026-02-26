@@ -37,7 +37,7 @@ import com.iris.platform.subsystem.incident.AlarmIncidentModule;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.SmartHomeAlertModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.prodcat.ProductCatalogReloadListener;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
       KafkaModule.class,

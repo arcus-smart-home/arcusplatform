@@ -45,7 +45,7 @@ import com.iris.util.ThreadPoolBuilder;
 import com.iris.voice.VoiceBridgeConfig;
 import com.iris.voice.VoiceBridgeMetrics;
 import com.iris.voice.VoiceBridgeModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;

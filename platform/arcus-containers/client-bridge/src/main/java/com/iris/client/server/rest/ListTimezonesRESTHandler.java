@@ -34,7 +34,7 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.service.PlaceService;
 import com.iris.platform.location.TimezonesManager;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 @HttpPost("/" + PlaceService.NAMESPACE + "/ListTimezones")

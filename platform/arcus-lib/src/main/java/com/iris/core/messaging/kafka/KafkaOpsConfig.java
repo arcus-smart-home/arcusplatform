@@ -18,7 +18,7 @@ package com.iris.core.messaging.kafka;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 @Singleton
 public class KafkaOpsConfig extends AbstractKafkaConfig {

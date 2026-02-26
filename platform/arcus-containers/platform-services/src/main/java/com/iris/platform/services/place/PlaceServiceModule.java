@@ -50,7 +50,7 @@ import com.iris.platform.services.place.handlers.SendInvitationHandler;
 import com.iris.platform.services.place.handlers.StartAddingDevicesHandler;
 import com.iris.platform.services.place.handlers.StopAddingDevicesHandler;
 import com.iris.platform.services.place.handlers.ValidateAddressHandler;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 import com.iris.platform.manufacture.kitting.dao.ManufactureKittingDaoModule;
 import com.iris.platform.pairing.PairingDeviceDaoModule;
 

@@ -44,7 +44,7 @@ import com.iris.metrics.IrisMetrics;
 import com.iris.platform.partition.Partitioner;
 import com.iris.platform.partition.PlatformPartition;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class SessionHeartBeater {

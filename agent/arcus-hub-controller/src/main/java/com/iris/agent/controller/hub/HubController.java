@@ -103,7 +103,7 @@ import com.iris.messages.errors.Errors;
 import com.iris.messages.service.DeviceService;
 import com.iris.protocol.ProtocolMessage;
 import com.iris.util.IrisUUID;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 public class HubController implements PortHandler, LifeCycleListener, BackupFinishedListener, FourgListener {
    private static final Logger log = LoggerFactory.getLogger(HubController.class);

@@ -40,7 +40,7 @@ import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.model.DriverId;
 import com.iris.test.IrisTestCase;
 import com.iris.test.Modules;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Modules({ CapabilityRegistryModule.class, GroovyProtocolPluginModule.class } )
 public class TestGroovyDriverRegistry extends IrisTestCase {
