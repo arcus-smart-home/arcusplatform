@@ -56,8 +56,6 @@ dependencies {
     reflexGeneratorRuntime libraries.governator
     reflexGeneratorRuntime libraries.jacksonCore
     reflexGeneratorRuntime libraries.jacksonDatabind
-    reflexGeneratorRuntime libraries.jacksonCoreAsl
-    reflexGeneratorRuntime libraries.jacksonMapper
     reflexGeneratorRuntime libraries.slf4jApi
     reflexGeneratorRuntime libraries.guiceCore
     reflexGeneratorRuntime libraries.guiceMultibindings
