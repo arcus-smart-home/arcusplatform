@@ -25,6 +25,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import java.lang.management.ManagementFactory;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -33,7 +37,6 @@ import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.JmxAttributeGauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metered;
 import com.codahale.metrics.Metric;
@@ -248,19 +251,26 @@ public class IrisMetricSet implements MetricSet {
    // JMX Gauges
    /////////////////////////////////////////////////////////////////////////////
 
-   public JmxAttributeGauge jmx(ObjectName object, String attribute) {
-      return new JmxAttributeGauge(object, attribute);
+   public Gauge<Object> jmx(ObjectName object, String attribute) {
+      MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+      return () -> {
+         try {
+            return mBeanServer.getAttribute(object, attribute);
+         } catch (JMException e) {
+            return null;
+         }
+      };
    }
 
-   public JmxAttributeGauge jmx(String object, String attribute) throws MalformedObjectNameException {
+   public Gauge<Object> jmx(String object, String attribute) throws MalformedObjectNameException {
       return jmx(new ObjectName(object), attribute);
    }
 
-   public JmxAttributeGauge jmx(String name, ObjectName object, String attribute) {
+   public Gauge<Object> jmx(String name, ObjectName object, String attribute) {
       return register(name, jmx(object, attribute));
    }
 
-   public JmxAttributeGauge jmx(String name, String object, String attribute) throws MalformedObjectNameException {
+   public Gauge<Object> jmx(String name, String object, String attribute) throws MalformedObjectNameException {
       return register(name, jmx(object, attribute));
    }
 
