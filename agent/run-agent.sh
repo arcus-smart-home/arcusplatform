@@ -44,5 +44,4 @@ export FOURG_DISABLE=true
 # that the Sercomm or Hue device is connected to.
 export IRIS_AGENT_UPNP_IFACES=enp38s0
  
-../gradlew --no-daemon run
-
+../gradlew --daemon run
