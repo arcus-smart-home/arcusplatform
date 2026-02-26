@@ -141,6 +141,7 @@ public class HubToolbar extends JPanel {
       ClientRequest request = new ClientRequest();
       request.setCommand(HubZwave.NetworkInformationRequest.NAME);
       request.setAddress(this.model.getAddress());
+      request.setTimeoutMs(120000);
 
       ClientFuture<?> theFuture =
          this.model.request(request)
