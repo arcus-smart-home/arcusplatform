@@ -36,11 +36,9 @@ dependencies {
 	runtimeOnly libraries.commonsConfig
 	runtimeOnly libraries.jacksonCore
 	runtimeOnly libraries.jacksonDatabind
-	runtimeOnly libraries.jacksonMapper
-	
+
 	jmh libraries.jacksonCore
 	jmh libraries.jacksonDatabind
-	jmh libraries.jacksonMapper
 	jmh 'org.msgpack:jackson-dataformat-msgpack:0.8.11'
 	jmh 'com.fasterxml.jackson.module:jackson-module-afterburner:2.18.6'
 }
