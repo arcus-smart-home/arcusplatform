@@ -16,6 +16,7 @@
 package com.iris.driver.service;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -152,21 +153,21 @@ public class TestDeviceServiceLost extends IrisMockTestCase {
       EasyMock.expectLastCall();
    }
    
-   private void assertForceRemove() {
-      PlatformMessage message = messages.poll();
+   private void assertForceRemove() throws Exception {
+      PlatformMessage message = messages.take();
       assertEquals(DeviceCapability.ForceRemoveRequest.NAME, message.getMessageType());
    }
-   
-   private void assertValueChange(Map<String,Object> attributes) {
-      PlatformMessage message = messages.poll();
+
+   private void assertValueChange(Map<String,Object> attributes) throws Exception {
+      PlatformMessage message = messages.take();
       assertEquals(Address.broadcastAddress(), message.getDestination());
       assertEquals(device.getAddress(), message.getSource().getRepresentation());
       assertEquals(Capability.EVENT_VALUE_CHANGE, message.getMessageType());
       assertEquals(attributes, message.getValue().getAttributes());
    }
 
-   private void assertDeleted() {
-      PlatformMessage message = messages.poll();
+   private void assertDeleted() throws Exception {
+      PlatformMessage message = messages.take();
       assertEquals(Address.broadcastAddress(), message.getDestination());
       assertEquals(device.getAddress(), message.getSource().getRepresentation());
       assertEquals(Capability.EVENT_DELETED, message.getMessageType());
