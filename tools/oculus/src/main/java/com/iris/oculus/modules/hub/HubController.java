@@ -432,7 +432,16 @@ public class HubController extends SessionAwareController {
 
       @Override
       public void actionPerformed(ActionEvent e) {
-         delete(model);
+         int result = JOptionPane.showConfirmDialog(
+            null,
+            "Are you sure you want to delete hub " + model.getId() + "?",
+            "Confirm Delete",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+         );
+         if(result == JOptionPane.YES_OPTION) {
+            delete(model);
+         }
       }
    }
 

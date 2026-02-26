@@ -57,6 +57,7 @@ public class EventLogPopup extends BaseComponentWrapper<Window> {
       window.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
       // TODO remember dimensions
       window.setSize(800, 600);
+      window.setLocationRelativeTo(null);
       window.add(this.log.getComponent());
       return window;
    }
