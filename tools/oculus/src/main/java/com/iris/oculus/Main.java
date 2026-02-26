@@ -120,7 +120,6 @@ public class Main {
       int height = 1000;
       Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
       window.setBounds((int)screen.getWidth()/2 - width/2, (int)screen.getHeight()/2 - height/2, width, height);
-      window.setLocationByPlatform(true);
 
       window.setVisible(true);
       Oculus.setMainWindow(window);

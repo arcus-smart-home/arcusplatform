@@ -132,7 +132,8 @@ public class SessionController {
    }
 
    public List<OculusSession> listRecentSessions() {
-      return JSON.fromJson(Oculus.getPreference(PREF_RECENT_SESSIONS, "null"), TYPE_RECENT_SESSIONS);
+      List<OculusSession> sessions = JSON.fromJson(Oculus.getPreference(PREF_RECENT_SESSIONS, "null"), TYPE_RECENT_SESSIONS);
+      return sessions != null ? sessions : new ArrayList<>();
    }
    
    public void rememberSession(OculusSession session) {

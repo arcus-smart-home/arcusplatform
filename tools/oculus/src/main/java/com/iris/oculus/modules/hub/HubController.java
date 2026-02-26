@@ -42,6 +42,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -54,6 +57,7 @@ import com.iris.client.IrisClient;
 import com.iris.client.IrisClientFactory;
 import com.iris.client.capability.Capability.AddedEvent;
 import com.iris.client.capability.Hub;
+import com.iris.client.capability.HubSounds;
 import com.iris.client.capability.Place;
 import com.iris.client.capability.Place.GetHubRequest;
 import com.iris.client.capability.Place.GetHubResponse;
@@ -129,8 +133,40 @@ public class HubController extends SessionAwareController {
    }
 
    public List<Action> createHubActions(HubModel model) {
-      return ImmutableList.of();
-      //return Arrays.<Action> asList(new PairDevicesAction(model), new UnpairDevicesAction(model));
+      return Arrays.asList(
+         new SelectHubAction(model),
+         new UnpairDevicesAction(model),
+         new DeleteHubAction(model)
+      );
+   }
+
+   public List<Action> createPlayToneActions(HubModel model) {
+      List<Action> actions = new ArrayList<>();
+      String[] tones = {
+         HubSounds.PlayToneRequest.TONE_PAIRED,
+         HubSounds.PlayToneRequest.TONE_SUCCESS_TRIPLE,
+         HubSounds.PlayToneRequest.TONE_SUCCESS_SINGLE,
+         HubSounds.PlayToneRequest.TONE_DOOR_CHIME_1,
+         HubSounds.PlayToneRequest.TONE_DOOR_CHIME_2,
+         HubSounds.PlayToneRequest.TONE_DOOR_CHIME_3,
+         HubSounds.PlayToneRequest.TONE_ARMED,
+         HubSounds.PlayToneRequest.TONE_ARMING,
+         HubSounds.PlayToneRequest.TONE_INTRUDER,
+         HubSounds.PlayToneRequest.TONE_SECURITY_ALARM,
+         HubSounds.PlayToneRequest.TONE_PANIC_ALARM,
+         HubSounds.PlayToneRequest.TONE_SMOKE_ALARM,
+         HubSounds.PlayToneRequest.TONE_CO_ALARM,
+         HubSounds.PlayToneRequest.TONE_WATER_LEAK_ALARM,
+         HubSounds.PlayToneRequest.TONE_CARE_ALARM,
+         HubSounds.PlayToneRequest.TONE_LOW_BATTERY,
+         HubSounds.PlayToneRequest.TONE_STARTUP,
+         HubSounds.PlayToneRequest.TONE_BUTTON_PRESS,
+      };
+      for(String tone: tones) {
+         actions.add(new PlayToneAction(model, tone));
+      }
+      actions.add(new QuietAction(model));
+      return actions;
    }
 
    public ClientFuture<ClientEvent> startUnpairing(String hubAddress) {
@@ -358,6 +394,20 @@ public class HubController extends SessionAwareController {
 
 
 
+   private class SelectHubAction extends AbstractAction {
+      private HubModel model;
+
+      SelectHubAction(HubModel model) {
+         super("Select");
+         this.model = model;
+      }
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+         hubSelection.setSelection(model);
+      }
+   }
+
    private class UnpairDevicesAction extends AbstractAction {
       private String hubId;
 
@@ -369,6 +419,69 @@ public class HubController extends SessionAwareController {
       @Override
       public void actionPerformed(ActionEvent e) {
          startUnpairing(hubId);
+      }
+   }
+
+   private class DeleteHubAction extends AbstractAction {
+      private HubModel model;
+
+      DeleteHubAction(HubModel model) {
+         super("Delete");
+         this.model = model;
+      }
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+         int result = JOptionPane.showConfirmDialog(
+            null,
+            "Are you sure you want to delete hub " + model.getId() + "?",
+            "Confirm Delete",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+         );
+         if(result == JOptionPane.YES_OPTION) {
+            delete(model);
+         }
+      }
+   }
+
+   private class PlayToneAction extends AbstractAction {
+      private HubModel model;
+      private String tone;
+
+      PlayToneAction(HubModel model, String tone) {
+         super(tone);
+         this.model = model;
+         this.tone = tone;
+      }
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+         ClientRequest request = new ClientRequest();
+         request.setCommand(HubSounds.PlayToneRequest.NAME);
+         request.setAddress(model.getAddress());
+         request.setAttribute(HubSounds.PlayToneRequest.ATTR_TONE, tone);
+         request.setAttribute(HubSounds.PlayToneRequest.ATTR_DURATIONSEC, 0);
+         client.request(request)
+            .onFailure((error) -> Oculus.showError("Unable to play tone", error));
+      }
+   }
+
+   private class QuietAction extends AbstractAction {
+      private HubModel model;
+
+      QuietAction(HubModel model) {
+         super("Quiet");
+         this.model = model;
+      }
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+         ClientRequest request = new ClientRequest();
+         request.setCommand(HubSounds.QuietRequest.NAME);
+         request.setAddress(model.getAddress());
+         client.request(request)
+            .onFailure((error) -> Oculus.showError("Unable to quiet hub", error));
       }
    }
 

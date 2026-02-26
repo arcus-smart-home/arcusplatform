@@ -114,9 +114,10 @@ public class ProgressDialog {
             dialog.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
          }
          dialog.pack();
-         
+         dialog.setLocationRelativeTo(null);
+
          result.onCompletion((e) -> dialog.dispose());
-         
+
          return dialog;
       }
 
