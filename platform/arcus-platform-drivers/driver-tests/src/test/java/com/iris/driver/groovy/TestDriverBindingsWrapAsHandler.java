@@ -64,6 +64,9 @@ public class TestDriverBindingsWrapAsHandler extends GroovyDriverTestCase {
          }
       };
       final ContextualEventHandler<Object> handler = DriverBinding.wrapAsHandler(closure);
+      for(int i=0; i<count; i++) {
+         keys.add(i);
+      }
       List<Future<?>> results = new ArrayList<>(count);
       for(int i=0; i<count; i++) {
          final int index = i;
@@ -75,7 +78,6 @@ public class TestDriverBindingsWrapAsHandler extends GroovyDriverTestCase {
             }
          });
          results.add(result);
-         keys.add(index);
       }
       int succeeded = 0;
       for(Future<?> result: results) {
