@@ -22,19 +22,6 @@ ext.agentMainManifest = manifest {
    )
 }
 
-ext.ipcd_netty_version = '4.1.43.Final'
-
-configurations.all {
-   resolutionStrategy {
-      force "io.netty:netty-common:${ipcd_netty_version}"
-      force "io.netty:netty-buffer:${ipcd_netty_version}"
-      force "io.netty:netty-transport:${ipcd_netty_version}"
-      force "io.netty:netty-codec:${ipcd_netty_version}"
-      force "io.netty:netty-codec-http:${ipcd_netty_version}"
-      force "io.netty:netty-handler:${ipcd_netty_version}"
-   }
-}
-
 dependencies {
    api project(':platform:arcus-lib')
    api project(':platform:bridge-common')
