@@ -102,8 +102,10 @@ public class ModuleResolver {
       // Try no-arg constructor first
       Constructor<?> injectCtor = findInjectConstructor(clazz);
       if (injectCtor == null) {
-         // Use no-arg constructor
-         instance = clazz.newInstance();
+         // Use no-arg constructor (setAccessible for protected/package-private inner classes)
+         Constructor<? extends Module> noArgCtor = clazz.getDeclaredConstructor();
+         noArgCtor.setAccessible(true);
+         instance = noArgCtor.newInstance();
       } else {
          // Resolve @Inject constructor parameters
          Class<?>[] paramTypes = injectCtor.getParameterTypes();
