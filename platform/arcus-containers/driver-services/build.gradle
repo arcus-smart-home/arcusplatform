@@ -57,7 +57,6 @@ dependencies {
     reflexGeneratorRuntime libraries.jacksonDatabind
     reflexGeneratorRuntime libraries.slf4jApi
     reflexGeneratorRuntime libraries.guiceCore
-    reflexGeneratorRuntime libraries.guiceMultibindings
     reflexGeneratorRuntime libraries.guava
     reflexGeneratorRuntime libraries.groovy
     reflexGeneratorRuntime libraries.gson
