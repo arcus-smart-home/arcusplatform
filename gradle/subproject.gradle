@@ -44,6 +44,8 @@ configurations.all {
       attribute(org.gradle.api.attributes.java.TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
                objects.named(org.gradle.api.attributes.java.TargetJvmEnvironment, org.gradle.api.attributes.java.TargetJvmEnvironment.STANDARD_JVM))
    }
+   // guice 5.x bundles multibindings in core jar; exclude old transitive versions
+   exclude group: 'com.google.inject.extensions', module: 'guice-multibindings'
 }
 
 // Shared test dependencies for all subprojects
