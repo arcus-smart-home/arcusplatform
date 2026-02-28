@@ -98,9 +98,9 @@ ext.libraries << [
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
 
 // guice dependencies
-		guiceCore: "com.google.inject:guice:4.0",
-		guiceServlet: "com.google.inject.extensions:guice-servlet:4.0",
-		guiceMultibindings: "com.google.inject.extensions:guice-multibindings:4.0",
+		guiceCore: "com.google.inject:guice:5.1.0",
+		guiceServlet: "com.google.inject.extensions:guice-servlet:5.1.0",
+		// guice-multibindings merged into core guice jar in 5.x
 
 // jackson dependencies
 		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.6",
@@ -220,7 +220,7 @@ ext.libraries << [
 
 ]
 
-libraries.guice = [ libraries.guiceCore, libraries.guiceMultibindings ]
+libraries.guice = [ libraries.guiceCore ]
 libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libraries.cucumber_java ]
 
 
