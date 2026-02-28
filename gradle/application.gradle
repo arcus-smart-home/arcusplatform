@@ -99,6 +99,7 @@ startScripts {
 task createApplicationInfo {
    def outputDir = file("${buildDir}/generated-resources/application-info")
    outputs.dir outputDir
+   outputs.upToDateWhen { false }
    doLast {
       def f = new File(outputDir, "META-INF/application.properties")
       f.delete()
