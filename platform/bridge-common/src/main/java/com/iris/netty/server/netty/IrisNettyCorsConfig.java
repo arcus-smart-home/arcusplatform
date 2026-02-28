@@ -72,8 +72,8 @@ public class IrisNettyCorsConfig {
    // on every http request
    @PostConstruct
    public void init() {
-      exposeRequest = split(exposeRequestHeaders, false);
-      allowRequest = split(allowRequestHeaders, false);
+      exposeRequest = split(exposeRequestHeaders, true);
+      allowRequest = split(allowRequestHeaders, true);
       String[] splitMethods = split(allowRequestMethods, false);
       allowMethods = new HttpMethod[splitMethods.length];
       for(int i = 0; i < splitMethods.length; i++) {
