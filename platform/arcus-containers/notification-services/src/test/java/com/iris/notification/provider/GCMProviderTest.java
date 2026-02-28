@@ -26,7 +26,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.iris.core.dao.MobileDeviceDAO;
 import com.iris.core.dao.PersonDAO;
@@ -39,7 +39,7 @@ import com.iris.notification.retry.RetryProcessor;
 import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class GCMProviderTest {
     @Mock
     private NotificationMessageRenderer messageRenderer;

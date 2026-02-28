@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.codahale.metrics.Counter;
 import com.iris.metrics.IrisMetricSet;
@@ -39,7 +39,7 @@ import com.iris.platform.notification.NotificationMethod;
 import com.iris.platform.notification.audit.AuditEventState;
 import com.iris.platform.notification.audit.NotificationAuditor;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class MethodDispatchStrategyTest {
 
     private final IrisMetricSet METRICS = IrisMetrics.metrics(NotificationService.SERVICE_NAME);
