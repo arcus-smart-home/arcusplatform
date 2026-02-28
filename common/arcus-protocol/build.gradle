@@ -66,6 +66,7 @@ dependencies {
    generator libraries.jaxb_impl
    generator libraries.javax_activation_api
    generator libraries.javax_activation_impl
+   generator 'org.slf4j:slf4j-nop:2.0.17'
    
    api project(':common:arcus-client')
    api project(':common:arcus-common')
