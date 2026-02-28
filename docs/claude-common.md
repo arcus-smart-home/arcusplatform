@@ -6,7 +6,7 @@ Shared between the platform and agent. Contains the core messaging framework, co
 
 | Module | Used By | Purpose |
 |--------|---------|---------|
-| `arcus-common` | Both | Core messaging: `Message`, `PlatformMessage`, `Address` types, `CapabilityRegistry`, JSON utils, Guice/Governator bootstrap |
+| `arcus-common` | Both | Core messaging: `Message`, `PlatformMessage`, `Address` types, `CapabilityRegistry`, JSON utils, Guice bootstrap with custom lifecycle (`IrisLifecycleManager`) |
 | `arcus-client` | Platform | Client-facing data models: `Account`, `Person`, `Place`, `Device`, `Hub`, `MobileDevice`, `MessageConstants` |
 | `arcus-model` | Both | Root module; hosts capability/service/type XML definitions and the code generators |
 | `arcus-model/capability-generator` | Build only | Reads capability XML → generates Java via Handlebars templates |

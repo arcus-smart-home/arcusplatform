@@ -27,14 +27,14 @@ Defined in `gradle/dependencies.gradle`:
 
 | Framework | Version | Purpose |
 |-----------|---------|---------|
-| JUnit | 4.13 | Core unit testing |
+| JUnit | 4.13.2 | Core unit testing |
 | EasyMock | 3.3 | Primary mocking framework |
-| Mockito | 1.10+ | Alternative mocking |
+| Mockito | 1.10.19 | Alternative mocking |
 | PowerMock | 1.7.3 | Static/final class mocking |
 | Cucumber | 2.4.0 | BDD acceptance tests for drivers |
 | Hamcrest | 1.3 | Assertion matchers |
 | Cassandra Unit | 2.0.2.2 | Embedded Cassandra (optional) |
-| Google Guava TestLib | 19.0 | Guava test utilities |
+| Google Guava TestLib | 33.4.0-jre | Guava test utilities |
 
 Cucumber sub-dependencies:
 - `cucumber-junit` — JUnit runner and reports

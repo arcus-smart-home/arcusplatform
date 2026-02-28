@@ -37,7 +37,7 @@ All containers are built from `arcus/java`, the base image.
 
 | Property | Value |
 |----------|-------|
-| Version | 3.8.4 |
+| Version | 3.8.6 |
 | Ports | 2181 (client), 2888 (peer), 3888 (leader election) |
 | Entry point | `zookeeper-cmd entry` → `zookeeper-cmd start` |
 | Data dir | `/data` |
@@ -46,7 +46,7 @@ All containers are built from `arcus/java`, the base image.
 
 | Property | Value |
 |----------|-------|
-| Version | 2.6.0 (Scala 2.12) |
+| Version | 2.8.2 (Scala 2.12) |
 | Port | 9092 |
 | Entry point | `kafka-cmd entry` → `kafka-cmd start` |
 | Data dir | `/data` |
@@ -57,11 +57,11 @@ All containers are built from `arcus/java`, the base image.
 
 | Property | Value |
 |----------|-------|
-| Version | 3.11.11 |
-| Ports | 9042 (CQL), 9160 (Thrift), 7000 (intra-node), 7001 (TLS intra-node), 7199 (JMX) |
+| Version | 4.0.15 |
+| Ports | 9042 (CQL), 7000 (intra-node), 7001 (TLS intra-node), 7199 (JMX) |
 | Entry point | `cassandra-cmd entry` → `cassandra-cmd start` |
 | Data dir | `/data` |
-| Extras | `cqlsh` symlinked to `/usr/bin`, Python for CQL shell, custom `TimeWindowCompactionStrategy-2.2.5.jar` for time-series compaction |
+| Extras | `cqlsh` and `nodetool` symlinked to `/usr/bin`, Python 3 for CQL shell |
 | Scripts | `cassandra-cmd`, `cassandra-provision` |
 
 ### arcus/kairosdb (optional)
@@ -256,7 +256,7 @@ REGISTRY_SEPERATOR='--' REGISTRY_NAME=ghcr.io/wl-net ./khakis/bin/push.sh
 
 - `version.properties` in `khakis/` controls container image versions
 - `./bin/build.sh` tags images as `latest`
-- `./gradlew :khakis:distDocker` tags images with the version from `version.properties` (e.g., `2019.10.0`)
+- `./gradlew :khakis:distDocker` tags images with the version from `version.properties` (e.g., `2026.2.1`)
 - Use `./gradlew branchRelease` and `tagRelease` for formal version bumps
 
 ---

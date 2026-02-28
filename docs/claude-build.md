@@ -1,6 +1,6 @@
 # Build System
 
-The Arcus platform uses Gradle 6.9 with a multi-project build spanning 130+ subprojects. Builds target Java 8. Docker images are built via Gradle tasks wrapping shell scripts.
+The Arcus platform uses Gradle 7.6.4 with a multi-project build spanning ~86 subprojects. Builds target Java 8 or 11 (auto-detected). Docker images are built via Gradle tasks wrapping shell scripts.
 
 ---
 
@@ -57,7 +57,7 @@ The Arcus platform uses Gradle 6.9 with a multi-project build spanning 130+ subp
 
 ### settings.gradle
 
-Four major sections with 130+ subprojects:
+Four major sections with ~86 subprojects:
 
 | Section | Projects | Description |
 |---------|----------|-------------|
@@ -71,11 +71,11 @@ Four major sections with 130+ subprojects:
 
 Applied to all subprojects:
 - **Group:** `com.arcussmarthome`
-- **Java:** Source/target compatibility 1.8
+- **Java:** Source/target compatibility auto-detected (Java 8 or 11; fails fast on unsupported versions)
 - **Repositories:** Maven Central, JCenter (optional `mavenLocal` via `use_maven_local=true`)
-- **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13, Logback (test), Eclipse annotations
+- **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13.2, Logback (test), Eclipse annotations
 - **Global exclusions:** commons-logging, findbugs annotations, log4j, duplicate metrics-core
-- **Forced versions:** Jackson 2.5.1, Guice 4.0 (conflict resolution)
+- **Forced versions:** Jackson 2.18.6, Guice 4.0 (conflict resolution)
 - **Caching:** Dynamic versions cached for 60 minutes
 
 ---
@@ -86,7 +86,7 @@ All custom build logic lives in `gradle/`:
 
 | File | Purpose |
 |------|---------|
-| `buildscript.gradle` | Build classpath: Shadow 5.1.0, Docker, Grgit 4.1.1, JAXB 1.3.5, JMH 0.4.5, SpotBugs 2.0.1 |
+| `buildscript.gradle` | Build classpath: Shadow 5.1.0, Docker, Grgit 4.1.1, JMH 0.6.8, SpotBugs 4.8.0 |
 | `dependencies.gradle` | Centralized version catalog — 100+ libraries in an `ext.libraries` map |
 | `subproject.gradle` | Applied to all subprojects: Java, Maven, Docker, Eclipse, SpotBugs, system test source set |
 | `application.gradle` | Executable app setup: JVM opts, start scripts, manifest, `createApplicationInfo` task |
@@ -148,23 +148,26 @@ Centralized in `gradle/dependencies.gradle` as an `ext.libraries` map. Subprojec
 
 | Library | Version | Notes |
 |---------|---------|-------|
-| Netty | 4.1.48.Final | Overridable via `netty_override_version` property |
-| Groovy | 2.5.8 | Driver DSL runtime |
+| Netty | 4.1.128.Final | Overridable via `netty_override_version` property |
+| tcnative | 2.0.75.Final | Overridable via `tcnative_override_version` property |
+| Groovy | 2.5.15 | Driver DSL runtime |
 | Guice | 4.0 | DI framework (forced to resolve conflicts) |
-| Cassandra Driver | 3.9.0 | Shaded JAR |
-| Kafka | 2.4.0 | Scala 2.12 |
-| ZooKeeper | 3.5.7 | |
-| Jackson | 2.10.0 | |
+| Cassandra Driver | 3.11.5 | Shaded JAR |
+| Kafka | 2.8.2 | Scala 2.12 |
+| ZooKeeper | 3.8.4 | |
+| Jackson | 2.18.6 | |
 | SLF4J | 2.0.17 | |
 | Logback | 1.3.14 | |
 | Dropwizard Metrics | 4.2.30 | |
+| Guava | 33.4.0-jre | |
 | zsmartsystems ZigBee | 1.2.4 | |
-| SQLite4Java | — | Agent embedded DB |
-| JUnit | 4.13 | |
-| Mockito | — | Test mocking |
-| Cucumber | — | BDD tests |
-| Handlebars | — | Code gen templates |
-| ANTLR 4 | — | IRP parser |
+| SQLite4Java | 1.0.392 | Agent embedded DB |
+| JUnit | 4.13.2 | |
+| EasyMock | 3.3 | Primary test mocking |
+| Mockito | 1.10.19 | Alternative test mocking |
+| Cucumber | 2.4.0 | BDD driver tests |
+| Handlebars | 2.2.2 | Code gen templates |
+| ANTLR 4 | 4.5 | IRP parser |
 
 ### Dependency Overrides
 
@@ -268,8 +271,8 @@ See [claude-tools.md](claude-tools.md#arcus-captools) for details.
 |-----------|------|-----------|
 | `arcus/java` | Temurin JDK 8 (Debian Bullseye) | — (base image) |
 | `arcus/zookeeper` | arcus/java | 2181, 2888, 3888 |
-| `arcus/kafka` | arcus/java (Kafka 2.6.0, Scala 2.12) | 9092 |
-| `arcus/cassandra` | Cassandra 3.11.11 | 9042, 9160, 7000, 7199 |
+| `arcus/kafka` | arcus/java (Kafka 2.8.2, Scala 2.12) | 9092 |
+| `arcus/cassandra` | arcus/java (Cassandra 4.0.15) | 9042, 9160, 7000, 7199 |
 
 ### Service Containers
 
@@ -364,16 +367,16 @@ export FOURG_DISABLE=true
 Each subsystem has its own `version.properties`:
 
 ```properties
-# Example: platform/version.properties
-version_major=2019
-version_minor=10
-version_patch=0
-version_qualifier=-SNAPSHOT
+# Example: khakis/version.properties
+major=2026
+minor=2
+patch=1
+qualifier=
 ```
 
-Computed version: `2019.10.0-SNAPSHOT`
+Computed version: `2026.2.1` (or `2026.2.1-SNAPSHOT` with qualifier)
 
-Docker images strip the qualifier: `2019.10.0`
+Docker images strip the qualifier: `2026.2.1`
 
 ### Version Tasks
 
@@ -453,7 +456,7 @@ This uploads the distribution archive, clears the old agent, unpacks, and reboot
 | `use_maven_local` | Use local Maven repository | `false` |
 | `use_jacoco` | Enable code coverage | `false` |
 | `eyeris_owasp` | Enable OWASP dependency checking + SpotBugs | unset |
-| `netty_override_version` | Override Netty version | `4.1.48.Final` |
+| `netty_override_version` | Override Netty version | `4.1.128.Final` |
 | `tcnative_override_version` | Override Tomcat Native version | — |
 | `cpus`, `mem`, `instances` | Docker resource allocation | — |
 | `exposePort` | Ports to expose on Docker container | — |

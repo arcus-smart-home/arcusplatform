@@ -72,7 +72,7 @@
 | `arcus-hubsession` | WebSocket session management for hub connections |
 | `arcus-modelmanager` | Cassandra schema versioning CLI — applies XML-based changelogs to 3 keyspaces |
 | `arcus-platform-drivers` | Cucumber/BDD driver test infrastructure (Zigbee, Z-Wave, IPCD command builders) |
-| `arcus-test` | Common test fixtures, Cassandra Unit support, Governator test bootstrap |
+| `arcus-test` | Common test fixtures, Cassandra Unit support, Guice test bootstrap (`IrisTestCase`, `IrisMockTestCase`) |
 | `ipcd-common` | IPCD protocol Netty handlers |
 
 ---

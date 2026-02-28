@@ -29,13 +29,20 @@ Topic-specific docs live in `/docs/`:
 | [claude-driver-execution.md](docs/claude-driver-execution.md) | Platform-side execution model: threading, pairing, upgrade, request flow |
 | [claude-reflexes.md](docs/claude-reflexes.md) | Reflex system: concept, matches, actions, hub-side processing, sync |
 | [claude-agent.md](docs/claude-agent.md) | Hub agent modules, startup flow, simulated mode |
+| [claude-build.md](docs/claude-build.md) | Gradle build system, dependency management, code generation, Docker, CI/CD |
 | [claude-khakis.md](docs/claude-khakis.md) | Docker infrastructure containers, Gradle tasks, shell scripts |
+| [claude-hub-bridge.md](docs/claude-hub-bridge.md) | Hub-to-cloud WebSocket gateway, TLS, session management, message routing |
+| [claude-subsystems.md](docs/claude-subsystems.md) | Subsystem framework, all 16 subsystems, event handling, persistence |
+| [claude-rules.md](docs/claude-rules.md) | Rule engine: triggers, conditions, actions, templates, scenes |
+| [claude-scheduler.md](docs/claude-scheduler.md) | Scheduler service: weekly schedules, sunrise/sunset, time bucketing |
+| [claude-testing.md](docs/claude-testing.md) | Testing infrastructure, base classes, Cucumber BDD, mock framework |
+| [claude-tools.md](docs/claude-tools.md) | Oculus, eye-kat, arcus-captools, hubdebug |
 
 ---
 
 ## Build System
 
-**Gradle 6.9** via `./gradlew` wrapper. Parallel builds are enabled by default.
+**Gradle 7.6.4** via `./gradlew` wrapper. Parallel builds are enabled by default.
 
 Key Gradle scripts in `/gradle/`:
 - `dependencies.gradle` - Centralized dependency versions for all subprojects
@@ -59,34 +66,29 @@ Key Gradle scripts in `/gradle/`:
 
 ## Technology Stack
 
-- **Language:** Java (upgrading from 8 → 11; see below)
-- **Build:** Gradle 6.9
-- **Message Bus:** Apache Kafka 2.4.0
-- **Coordination:** Apache ZooKeeper 3.5.7
-- **Database:** Apache Cassandra (datastax driver 3.9.0)
-- **Networking:** Netty, Jetty
-- **DI/IoC:** Google Guice 4.0 + Netflix Governator
+- **Language:** Java 8 or 11 (auto-detected)
+- **Build:** Gradle 7.6.4
+- **Message Bus:** Apache Kafka 2.8.2
+- **Coordination:** Apache ZooKeeper 3.8.4
+- **Database:** Apache Cassandra (datastax driver 3.11.5)
+- **Networking:** Netty 4.1.128, Jetty
+- **DI/IoC:** Google Guice 4.0 + custom lifecycle (`IrisLifecycleManager`)
 - **Device Protocols:** Zigbee (ZSmartSystems 1.2.4), Z-Wave (OpenHAB 2.5.0)
-- **Serialization:** Jackson, GSON, JAXB
-- **Device Drivers:** Groovy DSL
-- **Testing:** JUnit, Cassandra Unit
+- **Serialization:** Jackson 2.18.6, GSON, JAXB
+- **Device Drivers:** Groovy 2.5.15 DSL
+- **Testing:** JUnit 4.13.2, EasyMock, Cucumber
 
 ---
 
-## Active Work: Java 8 → 11 Upgrade (`upgrade-java` branch)
+## Java 8 / 11 Compatibility
 
-The `upgrade-java` branch is migrating from Java 8 to Java 11. Key changes so far:
+The build supports both Java 8 and Java 11. The root `build.gradle` fails fast on unsupported JDK versions. Source/target compatibility is auto-detected based on the running JDK.
 
-- Replaced `javax.xml.bind` (removed in Java 11) with Jakarta EE equivalents (`jakarta.xml.bind`)
-- Added explicit JAXB runtime dependencies to modules that previously relied on the JDK-bundled version
-- Fixed JAXB/XJC code generation in `protocol-generator` and `capability-generator`
-- Updated Gradle buildscript dependencies for JAXB tooling compatibility
-- Added `bindings.xjb` schema binding file for XJC configuration
-
-When working on this upgrade:
-- Use `jakarta.xml.bind.*` imports, not `javax.xml.bind.*`
-- Modules needing JAXB must explicitly declare it in `build.gradle` (no longer implicit from JDK)
+Key Java 11 considerations:
+- JAXB is no longer bundled in the JDK — modules that need it declare explicit dependencies
+- `javax.xml.bind.*` imports are used (not Jakarta EE) with standalone JAXB 2.2.7 runtime
 - The `jaxb.gradle` script provides the shared XJC task configuration
+- Some JVM intrinsic flags (SHA, diagnostic) are version-gated in `application.gradle`
 
 ---
 
@@ -96,8 +98,8 @@ All dependency versions are declared centrally in `gradle/dependencies.gradle` v
 
 ```groovy
 dependencies {
-    compile libraries.cassandraDriver
-    compile libraries.jackson_databind
+    implementation libraries.cassandraDriver
+    implementation libraries.jacksonDatabind
 }
 ```
 
