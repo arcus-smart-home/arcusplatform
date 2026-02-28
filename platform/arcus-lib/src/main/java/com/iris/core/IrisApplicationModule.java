@@ -45,6 +45,8 @@ public class IrisApplicationModule extends AbstractModule {
    public static final String NAME_APPLICATION_NAME     = "application.name";
    public static final String NAME_APPLICATION_VERSION  = "application.version";
    public static final String NAME_APPLICATION_DIR      = "application.dir";
+   public static final String NAME_BUILD_TIMESTAMP      = "build.timestamp";
+   public static final String NAME_BUILD_COMMIT         = "build.commit";
    
    private static final Logger logger = LoggerFactory.getLogger(IrisApplicationModule.class);
 
@@ -53,6 +55,8 @@ public class IrisApplicationModule extends AbstractModule {
    private String applicationName = DEFAULT_APPLICATION_NAME;
    private String applicationVersion = "<unknown>";
    private String applicationDir = "";
+   private String buildTimestamp = "";
+   private String buildCommit = "";
 
    @PostConstruct
    public void init() {
@@ -85,6 +89,14 @@ public class IrisApplicationModule extends AbstractModule {
       logger.debug("Application Name Loaded From Properties [{}]", applicationName);
       applicationVersion = props.getProperty(NAME_APPLICATION_VERSION, applicationVersion);
       logger.debug("Application Version Loaded From Properties [{}]", applicationVersion);
+      buildTimestamp = props.getProperty(NAME_BUILD_TIMESTAMP, buildTimestamp);
+      if (!buildTimestamp.isEmpty()) {
+         logger.debug("Build Timestamp Loaded From Properties [{}]", buildTimestamp);
+      }
+      buildCommit = props.getProperty(NAME_BUILD_COMMIT, buildCommit);
+      if (!buildCommit.isEmpty()) {
+         logger.debug("Build Commit Loaded From Properties [{}]", buildCommit);
+      }
       if(props.containsKey(NAME_APPLICATION_DIR)) {
          applicationDir = props.getProperty(NAME_APPLICATION_DIR);
       }
@@ -127,6 +139,14 @@ public class IrisApplicationModule extends AbstractModule {
    public String getApplicationDirectory() {
       return applicationDir;
    }
+
+   public String getBuildTimestamp() {
+      return buildTimestamp;
+   }
+
+   public String getBuildCommit() {
+      return buildCommit;
+   }
    
    @Override
    protected void configure() {
@@ -134,6 +154,8 @@ public class IrisApplicationModule extends AbstractModule {
       bindIfNotInEnvironmentProperty(NAME_APPLICATION_NAME, getApplicationName());
       bindIfNotInEnvironmentProperty(NAME_APPLICATION_VERSION, getApplicationVersion());
       bindIfNotInEnvironmentProperty(NAME_APPLICATION_DIR, getApplicationDirectory());
+      bind(Key.get(String.class, Names.named(NAME_BUILD_TIMESTAMP))).toInstance(getBuildTimestamp());
+      bind(Key.get(String.class, Names.named(NAME_BUILD_COMMIT))).toInstance(getBuildCommit());
       IrisApplicationInfo.setApplicationName(getApplicationName());
       IrisApplicationInfo.setApplicationVersion(getApplicationVersion());
       IrisApplicationInfo.setApplicationDirectory(getApplicationDirectory());
