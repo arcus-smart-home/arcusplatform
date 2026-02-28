@@ -38,6 +38,8 @@ dependencies {
    implementation libraries.groovy
 
    implementation libraries.antlr4
+
+   runtimeOnly 'org.slf4j:slf4j-nop:2.0.17'
 }
 
 // Exclude unused Gradle plugin classes (they reference gradleApi which conflicts with Groovy 2.5)
