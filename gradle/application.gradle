@@ -106,6 +106,15 @@ task createApplicationInfo {
       f << "application.name=" + project.name + "\n"
       f << "application.version=" + platformVersion + "\n"
       f << "build.timestamp=" + new Date() + "\n"
+      def gitCommit = ""
+      try {
+         gitCommit = 'git rev-parse --short HEAD'.execute().text.trim()
+      } catch (Exception e) {
+         // git may not be installed
+      }
+      if (gitCommit) {
+         f << "build.commit=" + gitCommit + "\n"
+      }
    }
 }
 

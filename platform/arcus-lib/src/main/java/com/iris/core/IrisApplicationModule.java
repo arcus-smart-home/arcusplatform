@@ -85,6 +85,14 @@ public class IrisApplicationModule extends AbstractModule {
       logger.debug("Application Name Loaded From Properties [{}]", applicationName);
       applicationVersion = props.getProperty(NAME_APPLICATION_VERSION, applicationVersion);
       logger.debug("Application Version Loaded From Properties [{}]", applicationVersion);
+      String buildTimestamp = props.getProperty("build.timestamp", "");
+      if (!buildTimestamp.isEmpty()) {
+         logger.debug("Build Timestamp Loaded From Properties [{}]", buildTimestamp);
+      }
+      String buildCommit = props.getProperty("build.commit", "");
+      if (!buildCommit.isEmpty()) {
+         logger.debug("Build Commit Loaded From Properties [{}]", buildCommit);
+      }
       if(props.containsKey(NAME_APPLICATION_DIR)) {
          applicationDir = props.getProperty(NAME_APPLICATION_DIR);
       }
