@@ -131,7 +131,7 @@ onZWaveNodeInfo {
 
 onZWaveMessage.battery.report {
    // pass message to generic ZWave Battery Report handler
-   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+   GenericZWaveBattery.handleBatteryReportAcceptValuesOver100(this, DEVICE_NAME, message)
 }
 
 onZWaveMessage.alarm.report {
