@@ -49,6 +49,7 @@ sourceSets {
 dependencies {
 	generator project(':common:arcus-model:capability-generator')
 	generator files(templateDir)
+	generator 'org.slf4j:slf4j-nop:2.0.17'
 
 	api project(':common:arcus-model')
 	implementation netty
