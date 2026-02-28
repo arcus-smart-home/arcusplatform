@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.iris.core.dao.PlaceDAO;
@@ -64,7 +63,7 @@ public class PopulationUtils
    
    public static Set<UUID> validateAndGetPlacesFromRequest(String paramName, MessageBody bodyMsg) {
       List<String> places = AddPlacesRequest.getPlaces(bodyMsg);
-      if(CollectionUtils.isEmpty(places)) {
+      if(places == null || places.isEmpty()) {
          throw new ErrorEventException(Errors.missingParam(paramName));
       }      
       Set<UUID> placeAddresses = null;

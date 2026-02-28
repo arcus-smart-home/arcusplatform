@@ -37,7 +37,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -734,7 +733,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 			predicates.add((m) -> cameraIds.contains(m.getCameraId()));
 		}
 		if(!query.getTags().isEmpty()) {
-			predicates.add((m) -> CollectionUtils.containsAny(query.getTags(), m.getTags()));
+			predicates.add((m) -> !java.util.Collections.disjoint(query.getTags(), m.getTags()));
 		}
 		if(!query.isListDeleted()) {
 			predicates.add((m) -> !m.isDeleted());
@@ -752,7 +751,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 	}
 
 	private Set<UUID> toUuidSet(Set<String> cameras) {
-		if(CollectionUtils.isEmpty(cameras)) {
+		if(cameras == null || cameras.isEmpty()) {
 			return ImmutableSet.of();
 		}
 		

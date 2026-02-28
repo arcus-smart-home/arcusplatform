@@ -37,7 +37,7 @@ import static com.iris.messages.capability.PlaceCapability.ATTR_TZUSESDST;
 import static com.iris.messages.capability.PlaceCapability.ATTR_ZIPCODE;
 import static com.iris.messages.capability.PlaceCapability.ATTR_ZIPPLUS4;
 import static com.iris.messages.model.Place.GEOPRECISION_UNKNOWN;
-import static org.apache.commons.collections.CollectionUtils.containsAny;
+import static java.util.Collections.disjoint;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.HashMap;
@@ -196,7 +196,7 @@ public class PlaceSetAttributesHandler extends AbstractSetAttributesPlatformMess
 
    private void processAddressChanges(Place context, Map<String, Object> changes)
    {
-      if (containsAny(changes.keySet(), ADDRESS_ATTRIBUTES))
+      if (!disjoint(changes.keySet(), ADDRESS_ATTRIBUTES))
       {
          // [ITWO-8686] If streetAddress1 changed and streetAddress2 did not, clear streetAddress2
          if (changes.containsKey(ATTR_STREETADDRESS1) && !changes.containsKey(ATTR_STREETADDRESS2))

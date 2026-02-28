@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.home.graph.v1.HomeGraphApiServiceGrpc.HomeGraphApiServiceBlockingStub;
@@ -140,7 +139,7 @@ public class ReportStateBuilder {
          throw new IllegalStateException(MessageFormat.format("Product Catalog cannot be null [{0}]", this.prodCat));
       }
       
-      if (CollectionUtils.isEmpty(this.payloadDevices)) {
+      if (this.payloadDevices == null || this.payloadDevices.isEmpty()) {
          throw new IllegalStateException(MessageFormat.format("Devices cannot be null or emtpy [{0}]", this.payloadDevices));
       }
       

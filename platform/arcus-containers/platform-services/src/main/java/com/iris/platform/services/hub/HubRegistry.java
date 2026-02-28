@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 
-import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,7 +213,7 @@ public class HubRegistry implements PartitionListener {
       // note a db outage will prevent the hub from being marked online
       // but it should keep retrying as more heartbeats are received
       Map<String, Object> event = hubDao.connected(hubId);
-      if(MapUtils.isNotEmpty(event)) {
+      if(event != null && !event.isEmpty()) {
          logger.debug("Marking hub [{}] online due to heartbeat", hubId);
          // need to load the hub to get the placeid
          Hub hub = hubDao.findById(hubId);
@@ -241,7 +240,7 @@ public class HubRegistry implements PartitionListener {
    private void disconnected(String hubId, UUID placeId) {
       Map<String, Object> event = hubDao.disconnected(hubId);
 
-      if(MapUtils.isNotEmpty(event)) {
+      if(event != null && !event.isEmpty()) {
          Address address = Address.hubService(hubId, HubCapability.NAMESPACE);
          MessageBody vc = MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE, event);
          broadcast(address, placeId, vc);

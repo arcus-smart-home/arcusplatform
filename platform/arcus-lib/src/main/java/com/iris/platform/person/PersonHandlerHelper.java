@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.collections.CollectionUtils;
 
 import com.iris.core.dao.PersonPlaceAssocDAO;
 import com.iris.core.platform.PlatformMessageBus;
@@ -50,7 +49,7 @@ public class PersonHandlerHelper {
 	 */
 	public boolean sendPersonValueChangesToPlaces(PersonPlaceAssocDAO personPlaceAssocDao, PlatformMessageBus platformBus, PlacePopulationCacheManager populationCacheMgr, Address sourceAddress, UUID personId, Map<String, Object> changes) {
 		Set<UUID> placeIds = personPlaceAssocDao.findPlaceIdsByPerson(personId);
-      if(!CollectionUtils.isEmpty(placeIds)) {
+      if(placeIds != null && !placeIds.isEmpty()) {
          placeIds.stream().forEach(placeId -> sendValueChangeEventForPlace(platformBus, populationCacheMgr, sourceAddress, changes, placeId.toString()));
          return true;
       }else{

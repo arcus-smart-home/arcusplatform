@@ -18,7 +18,6 @@ package com.iris.platform.services.account.handlers;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.ImmutableMap;
@@ -92,7 +91,7 @@ public class AccountActivateHandler implements ContextualRequestMessageHandler<A
    private void sendValueChange(Account context)
    {
       Set<UUID> placeIds = context.getPlaceIDs();      
-      if(!CollectionUtils.isEmpty(placeIds)) {
+      if(placeIds != null && !placeIds.isEmpty()) {
          MessageBody msgBody = MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE,
             ImmutableMap.<String, Object>of(AccountCapability.ATTR_STATE, context.getState()));
          Address source = Address.fromString(context.getAddress());
