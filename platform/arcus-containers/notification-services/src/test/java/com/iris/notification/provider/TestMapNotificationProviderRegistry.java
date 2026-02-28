@@ -23,7 +23,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.FieldSetter;
+import java.lang.reflect.Field;
 
 import com.iris.platform.notification.NotificationMethod;
 
@@ -34,12 +34,14 @@ public class TestMapNotificationProviderRegistry {
     private NotificationProvider webhookProvider = Mockito.mock(NotificationProvider.class);
 
     @Before
-    public void setup () throws NoSuchFieldException, SecurityException {
+    public void setup () throws Exception {
         Map<String, NotificationProvider> registryMap = new HashMap<String,NotificationProvider>();
         registryMap.put("LOG", logProvider);
         registryMap.put("WEBHOOK", webhookProvider);
 
-        new FieldSetter(uut, uut.getClass().getDeclaredField("providerRegistry")).set(registryMap);
+        Field field = uut.getClass().getDeclaredField("providerRegistry");
+        field.setAccessible(true);
+        field.set(uut, registryMap);
     }
 
     @Test

@@ -32,8 +32,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.FieldSetter;
-import org.mockito.runners.MockitoJUnitRunner;
+import java.lang.reflect.Field;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -61,7 +61,7 @@ import com.sendgrid.SendGrid;
 import org.slf4j.Logger;
 
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class SendGridEmailProviderTest {
 
    protected Notification notification = new NotificationBuilder().build();
@@ -106,8 +106,8 @@ public class SendGridEmailProviderTest {
 
    @Before
    public void initializeSendGridMock() throws Exception {
-      new FieldSetter(uut, uut.getClass().getDeclaredField("sendGrid")).set(sendGrid);
-      new FieldSetter(uut, uut.getClass().getDeclaredField("logger")).set(logger);
+      setField(uut, "sendGrid", sendGrid);
+      setField(uut, "logger", logger);
       Map<String, String> renderedParts = new HashMap<String, String>();
       renderedParts.put("", expectedEmailBody);
 
@@ -158,7 +158,7 @@ public class SendGridEmailProviderTest {
 
       uut.notifyCustomer(notification);
 
-      Mockito.verify(logger).warn(Mockito.anyString(), Mockito.anyObject(), Mockito.anyObject(), Mockito.anyObject(), Mockito.anyObject());
+      Mockito.verify(logger).warn(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
    }
 
    @Test
@@ -210,6 +210,12 @@ public class SendGridEmailProviderTest {
     
 */
 
+
+   private static void setField(Object target, String fieldName, Object value) throws Exception {
+      Field field = target.getClass().getDeclaredField(fieldName);
+      field.setAccessible(true);
+      field.set(target, value);
+   }
 
    private void validateEmail(Request request, String toName, String toEmail, String message) throws JsonParseException, JsonMappingException, IOException {
       String body = request.getBody();

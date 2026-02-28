@@ -69,7 +69,7 @@ public class TestCallbackRegistration {
       uut.delegate().noargs();
       uut.delegate().someargs("test", false);
       
-      Mockito.verifyZeroInteractions(mock);
+      Mockito.verifyNoInteractions(mock);
    }
    
    public interface TestInterface {
