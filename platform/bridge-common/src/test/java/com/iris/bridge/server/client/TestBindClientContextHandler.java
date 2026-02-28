@@ -25,12 +25,17 @@ import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 
+import java.util.UUID;
+
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.session.UnknownSessionException;
 import org.apache.shiro.session.mgt.SimpleSession;
 import org.apache.shiro.session.mgt.eis.SessionDAO;
+import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.easymock.EasyMock;
+
+import com.iris.security.principal.DefaultPrincipal;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -105,6 +110,7 @@ public class TestBindClientContextHandler extends IrisTestCase {
       session.setId("test");
       session.setExpired(false);
       session.setAttribute(DefaultSubjectContext.AUTHENTICATED_SESSION_KEY, true);
+      session.setAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY, new SimplePrincipalCollection(new DefaultPrincipal("test", UUID.randomUUID()), "irisRealm"));
       
       EasyMock
          .expect(sessionDao.readSession("test"))
@@ -140,6 +146,7 @@ public class TestBindClientContextHandler extends IrisTestCase {
       session.setId("test");
       session.setExpired(false);
       session.setAttribute(DefaultSubjectContext.AUTHENTICATED_SESSION_KEY, true);
+      session.setAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY, new SimplePrincipalCollection(new DefaultPrincipal("test", UUID.randomUUID()), "irisRealm"));
       
       EasyMock
          .expect(sessionDao.readSession("test"))

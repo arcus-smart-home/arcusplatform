@@ -23,8 +23,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import com.iris.util.IrisCollections;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -455,7 +456,7 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 	private Optional<BridgePairingInfo> createBridgePairingInfo(ProductCatalogEntry product, Map<String, Object> form) {
 		BridgePairingInfo info = null;
 		for(Step step: product.getPair()) {
-			if(CollectionUtils.isEmpty(step.getInputs())) {
+			if(IrisCollections.isEmpty(step.getInputs())) {
 				continue;
 			}
 			
@@ -520,7 +521,7 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 	private List<Map<String, Object>> getForm(ProductCatalogEntry product) {
 		List<Map<String,Object>> inputs = new ArrayList<>();
 		for(Step step: product.getPair()) {
-			if(CollectionUtils.isEmpty(step.getInputs())) {
+			if(IrisCollections.isEmpty(step.getInputs())) {
 				continue;
 			}
 			
@@ -596,7 +597,7 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 		List<Map<String,Object>> steps = new ArrayList<>(product.getPair().size());
 		int i = 0;
 		List<Step> resetSteps;
-		if(CollectionUtils.isEmpty(product.getReset()) && PairingProtocol.forProduct(product) == PairingProtocol.ZWAV) {
+		if(IrisCollections.isEmpty(product.getReset()) && PairingProtocol.forProduct(product) == PairingProtocol.ZWAV) {
 			resetSteps = product.getRemoval();
 		}
 		else {

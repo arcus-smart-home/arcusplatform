@@ -20,8 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import com.iris.util.IrisCollections;
 
 import com.google.home.graph.v1.HomeGraphApiServiceGrpc.HomeGraphApiServiceBlockingStub;
 import com.google.home.graph.v1.HomeGraphApiServiceProto.ReportStateAndNotificationDevice;
@@ -140,7 +141,7 @@ public class ReportStateBuilder {
          throw new IllegalStateException(MessageFormat.format("Product Catalog cannot be null [{0}]", this.prodCat));
       }
       
-      if (CollectionUtils.isEmpty(this.payloadDevices)) {
+      if (IrisCollections.isEmpty(this.payloadDevices)) {
          throw new IllegalStateException(MessageFormat.format("Devices cannot be null or emtpy [{0}]", this.payloadDevices));
       }
       
