@@ -22,10 +22,21 @@ sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDirs += ["src/main/java"]
 //sourceSets.test.groovy.srcDirs += ["src/test/java"]
 
+sourceSets {
+	cucumber {
+		groovy.srcDirs = ["src/test/java"]
+		resources.srcDirs = ["src/cucumber/resources"]
+		compileClasspath += sourceSets.main.output + sourceSets.test.output
+		runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+	}
+}
+
 configurations {
 	cucumberRuntime {
 		extendsFrom testImplementation, testRuntimeOnly
 	}
+	cucumberImplementation.extendsFrom testImplementation
+	cucumberRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 dependencies {
@@ -47,7 +58,7 @@ test {
 }
 
 
-task cucumber(type: JavaExec) {
+task cucumber(type: JavaExec, dependsOn: compileCucumberGroovy) {
 	def cmdLineTags = ""
 	if(project.hasProperty("tags")){
 		cmdLineTags="$tags"
@@ -99,7 +110,7 @@ task cucumber(type: JavaExec) {
 	//println cukeArgs
 	//println allJvmArgs
 	mainClass = "cucumber.api.cli.Main"
-	classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+	classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output + sourceSets.cucumber.output
 	args = cukeArgs
 }
 
