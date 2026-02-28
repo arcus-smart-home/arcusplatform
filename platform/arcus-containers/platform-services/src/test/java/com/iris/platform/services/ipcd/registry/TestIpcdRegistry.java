@@ -62,8 +62,8 @@ public class TestIpcdRegistry extends IrisMockTestCase {
    private ExecutorService mockExecutorService;
 
    @Provides @Singleton @Named(IpcdService.PROP_THREADPOOL)
-   public  Executor getExecutor() {
-      return mockExecutorService;
+   public  Executor getExecutor(ExecutorService executorService) {
+      return executorService;
    }
 
    @Inject

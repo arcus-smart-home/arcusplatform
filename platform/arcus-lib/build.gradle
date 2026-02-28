@@ -46,7 +46,6 @@ dependencies {
    api libraries.cassandraDriver
    api libraries.guiceCore
    api libraries.guiceServlet
-   api libraries.guiceMultibindings
    api libraries.shiro
    api libraries.metrics_core
    api libraries.metrics_json

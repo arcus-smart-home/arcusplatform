@@ -23,7 +23,6 @@ dependencies {
    api project(':common:arcus-model:platform-messages')
 
    implementation libraries.slf4jLog4j
-   implementation libraries.commonsCollections
 
    testImplementation project (':platform:arcus-test')
 

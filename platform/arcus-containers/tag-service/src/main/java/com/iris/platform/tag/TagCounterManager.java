@@ -16,7 +16,6 @@
 package com.iris.platform.tag;
 
 import static java.lang.String.format;
-import static org.apache.commons.collections.ListUtils.subtract;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,8 +80,10 @@ public class TagCounterManager
          throw new RuntimeException("Unable to read tag includes at: " + tagIncludesResource.getRepresentation(), e);
       }
 
-      @SuppressWarnings("unchecked")
-      List<String> duplicates = subtract(tagNames, new ArrayList<String>(new HashSet<String>(tagNames)));
+      List<String> duplicates = new ArrayList<>(tagNames);
+      for (String name : new HashSet<>(tagNames)) {
+         duplicates.remove(name);
+      }
       if (!duplicates.isEmpty())
       {
          throw new IllegalStateException(format("Tag includes file at [%s] has duplicates: %s",

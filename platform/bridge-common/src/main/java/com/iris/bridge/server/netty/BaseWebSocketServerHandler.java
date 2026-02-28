@@ -48,10 +48,16 @@ import com.iris.util.MdcContext.MdcContextReference;
 
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.DecoderException;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
@@ -239,17 +245,34 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
 
    @Override
    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-      if (ctx != null) {
-         if (logger.isDebugEnabled()) {
-            if (!(cause instanceof IOException) &&
-               !(cause instanceof SSLException) && 
-               !(cause instanceof RejectedExecutionException) && 
-               !(cause instanceof DecoderException) && 
-               !(cause instanceof SocketException)) {
-               logger.debug("closing connection abnormally due to exception [{}]:", ctx, cause);
-            }
-         }
+      if (ctx == null) {
+         return;
+      }
 
+      boolean isExpected = (cause instanceof IOException) ||
+            (cause instanceof SSLException) ||
+            (cause instanceof RejectedExecutionException) ||
+            (cause instanceof DecoderException) ||
+            (cause instanceof SocketException);
+
+      if (!isExpected) {
+         logger.debug("closing connection abnormally due to exception [{}]:", ctx, cause);
+      }
+
+      // For HTTP connections that haven't been upgraded to WebSocket,
+      // try to send a 500 response so the client gets a proper error
+      // instead of a connection close (which proxies report as 502).
+      if (ctx.channel().isActive() && getWebSocketHandshaker(ctx) == null) {
+         try {
+            FullHttpResponse response = new DefaultFullHttpResponse(
+                  HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+            HttpUtil.setContentLength(response, 0);
+            ctx.channel().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+         } catch (Exception e) {
+            logger.debug("Failed to send error response, closing channel", e);
+            ctx.close();
+         }
+      } else {
          ctx.close();
       }
    }

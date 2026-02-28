@@ -37,7 +37,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -77,6 +76,7 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.errors.NotFoundException;
 import com.iris.platform.PagedResults;
+import com.iris.util.IrisCollections;
 import com.iris.util.IrisUUID;
 import com.iris.video.PlacePurgeRecord;
 import com.iris.video.PlacePurgeRecord.PurgeMode;
@@ -734,7 +734,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 			predicates.add((m) -> cameraIds.contains(m.getCameraId()));
 		}
 		if(!query.getTags().isEmpty()) {
-			predicates.add((m) -> CollectionUtils.containsAny(query.getTags(), m.getTags()));
+			predicates.add((m) -> IrisCollections.containsAny(query.getTags(), m.getTags()));
 		}
 		if(!query.isListDeleted()) {
 			predicates.add((m) -> !m.isDeleted());
@@ -752,7 +752,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 	}
 
 	private Set<UUID> toUuidSet(Set<String> cameras) {
-		if(CollectionUtils.isEmpty(cameras)) {
+		if(IrisCollections.isEmpty(cameras)) {
 			return ImmutableSet.of();
 		}
 		
