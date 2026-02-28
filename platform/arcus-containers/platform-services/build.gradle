@@ -25,7 +25,6 @@ dependencies {
    api project(':common:arcus-model:platform-messages')
    api project(':common:arcus-protocol')
 
-   implementation libraries.commonsCollections
    implementation libraries.httpClient
 
    testImplementation project (':platform:arcus-test')

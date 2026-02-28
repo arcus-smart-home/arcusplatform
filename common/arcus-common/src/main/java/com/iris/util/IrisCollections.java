@@ -372,5 +372,17 @@ public class IrisCollections {
       return map == null || map.isEmpty();
    }
 
+   public static boolean isEmpty(Collection<?> c) {
+      return c == null || c.isEmpty();
+   }
+
+   public static boolean isNotEmpty(Map<?, ?> map) {
+      return map != null && !map.isEmpty();
+   }
+
+   public static boolean containsAny(Collection<?> a, Collection<?> b) {
+      return !java.util.Collections.disjoint(a, b);
+   }
+
 }
 

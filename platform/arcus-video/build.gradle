@@ -27,7 +27,6 @@ dependencies {
    implementation libraries.cassandraDriver
    implementation libraries.azure_storage
    implementation libraries.joda
-   implementation libraries.commonsCollections
 
    testImplementation project(':platform:arcus-test')
 }

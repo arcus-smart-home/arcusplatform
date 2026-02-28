@@ -37,7 +37,7 @@ import static com.iris.messages.capability.PlaceCapability.ATTR_TZUSESDST;
 import static com.iris.messages.capability.PlaceCapability.ATTR_ZIPCODE;
 import static com.iris.messages.capability.PlaceCapability.ATTR_ZIPPLUS4;
 import static com.iris.messages.model.Place.GEOPRECISION_UNKNOWN;
-import static org.apache.commons.collections.CollectionUtils.containsAny;
+import static com.iris.util.IrisCollections.containsAny;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.HashMap;
