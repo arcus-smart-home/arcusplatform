@@ -25,7 +25,7 @@ Topic-specific docs live in `/docs/`:
 |------|----------|
 | [claude-platform.md](docs/claude-platform.md) | Microservices, shared libraries, message flow, Cassandra schema |
 | [claude-common.md](docs/claude-common.md) | Shared libraries, code generation pipeline, capability/protocol definitions |
-| [claude-driver-model.md](docs/claude-driver-model.md) | Driver DSL, lifecycle events, protocol sections (Zigbee/Z-Wave/IPCD/MOCK), compilation |
+| [claude-driver-model.md](docs/claude-driver-model.md) | Driver DSL, lifecycle events, protocol sections (Zigbee/Z-Wave/IPCD/MOCK), compilation, adding new devices |
 | [claude-driver-execution.md](docs/claude-driver-execution.md) | Platform-side execution model: threading, pairing, upgrade, request flow |
 | [claude-reflexes.md](docs/claude-reflexes.md) | Reflex system: concept, matches, actions, hub-side processing, sync |
 | [claude-agent.md](docs/claude-agent.md) | Hub agent modules, startup flow, simulated mode |

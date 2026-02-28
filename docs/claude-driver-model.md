@@ -416,3 +416,27 @@ Examples: `GenericContact.capability`, `GenericZWaveBattery.capability`, `Generi
 | `DeviceService.java` | `platform/arcus-containers/driver-services/` |
 | `*.driver` files | `platform/arcus-containers/driver-services/src/main/resources/` |
 | `generic/*.capability` | same `/resources/generic/` |
+
+---
+
+## Adding a New Device
+
+Adding a new device requires two artifacts and deploying three services.
+
+### Artifacts
+
+1. **Driver file** (`.driver`) — Place in `platform/arcus-containers/driver-services/src/main/resources/`. Uses the Groovy DSL to define metadata, capabilities, protocol handling, and lifecycle callbacks. The `productId` field must match the product catalog entry.
+
+2. **Product catalog entry** — Add a `<product>` element to `platform/arcus-prodcat/src/main/resources/product_catalog.xml` with the matching `id`, screen type, categories, pairing steps, and populations. The `screen` attribute controls which UI is shown (e.g. `"Water Leak"`, `"Contact"`, `"Switch"`).
+
+### Services to Deploy
+
+| Service | What it does | Why it's needed |
+|---------|-------------|-----------------|
+| **`driver-services`** | Loads `.driver` files via `GroovyDriverRegistry` and executes driver logic | Contains the new driver; routes protocol messages to it |
+| **`platform-services`** | Serves the product catalog via Kafka messaging (`ProductCatalogService`) | Clients query products by brand/category; pairing flow looks up product info here |
+| **`client-bridge`** | Exposes product catalog to mobile/web clients via REST API (`ProductCatalogRESTHandler`) | Mobile app needs catalog data to show the new device in the pairing UI |
+
+### Hot Reload
+
+The product catalog can be reloaded without restarting `platform-services` by sending a `ReloadEvent` via Kafka. Driver files are auto-detected on the filesystem by `DriverWatcher` if running outside a JAR, otherwise require a `driver-services` restart.
