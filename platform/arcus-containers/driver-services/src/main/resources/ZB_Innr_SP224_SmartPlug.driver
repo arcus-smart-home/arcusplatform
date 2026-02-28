@@ -1,0 +1,219 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Innr SP 224 Smart Plug
+ *
+ * FACTORY RESET: Press and hold the button on the plug for 10 seconds until the LED starts blinking.
+ *
+ * IDENTIFY: LED on the plug will flash when the Identify command is sent.
+ *
+ * NOTES:
+ *   - This is a simple on/off smart plug with no power metering.
+ *   - The device advertises Level Control (0x0008) but it is non-functional; do not expose dimming.
+ *   - Acts as a Zigbee router/repeater (mains-powered).
+ *   - Uses Silicon Labs chipset.
+ *   - OTA firmware updates are supported.
+ *
+ */
+
+import groovy.transform.Field
+
+driver          "ZBInnrSP224SmartPlug"
+description     "Driver for the Innr SP 224 Smart Plug"
+version         "2.10"
+protocol        "ZIGB"
+deviceTypeHint  "Switch"
+productId       "dee191"
+vendor          "Innr"
+model           "SP 224"
+
+matcher         'ZIGB:vendor': 'innr', 'ZIGB:model': 'SP 224'
+
+capabilities    DevicePower, Switch, Identify, DeviceOta
+
+importCapability 'zigbee/GenericZigbeeDeviceOta'
+importCapability 'zigbee/GenericZigbeeSwitch'
+
+@Field final byte  ENDPOINT    = 1
+@Field final short PROFILE_HA  = 0x0104
+
+// IN Clusters (Endpoint 1):
+//   0x0000     Basic
+//   0x0003     Identify
+//   0x0004     Groups
+//   0x0005     Scenes
+//   0x0006     On/Off
+//   0x0008     Level Control (present but non-functional)
+//   0x0B05     Diagnostics
+//   0x1000     Touchlink Commissioning
+//   0xFC82     Manufacturer Specific (Innr)
+// OUT Clusters (Endpoint 1):
+//   0x000A     Time
+//   0x0019     OTA Upgrade
+
+@Field def dvcEndPoint  = Zigbee.endpoint(ENDPOINT)
+@Field def onOffCluster = dvcEndPoint.OnOff
+@Field def identCluster = dvcEndPoint.Identify
+@Field def otaCluster   = dvcEndPoint.Ota
+
+@Field final short IDENT_PERIOD_SECS = 180
+@Field final int   OFFLINE_TIMEOUT_SECS = 600       // 10 minutes
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability defaults
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Switch.state                     Switch.STATE_OFF
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "Innr SP 224 added."
+
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Switch.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Zigbee.bindEndpoints(onOffCluster.bindServerCluster())
+}
+
+onConnected {
+   log.debug "Innr SP 224 connected."
+
+   Zigbee.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+   GenericZigbeeSwitch.handleOnConnected(this, onOffCluster)
+}
+
+onDisconnected {
+   log.debug "Innr SP 224 disconnected."
+}
+
+onRemoved {
+   log.debug "Innr SP 224 removed."
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Custom event closures
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent(GenericZigbeeSwitch.CNFG_ONOFF_RPT) {
+   GenericZigbeeSwitch.handleOnCfgOnOffReport(this)
+}
+
+onEvent(GenericZigbeeSwitch.DEFERRED_ON_EVENT) {
+   GenericZigbeeSwitch.handleDeferredOnEvent(this, onOffCluster)
+}
+
+onEvent(GenericZigbeeSwitch.READ_SWITCH_EVENT) {
+   GenericZigbeeSwitch.handleReadSwitchEvent(this, onOffCluster)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Attribute Closures
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes() {
+   log.debug "Received setAttribute message: {}", message
+   GenericZigbeeSwitch.handleSetAttributes(this, onOffCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// On/Off Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage.Zcl.onoff.zclreadattributesresponse() {
+   log.debug "Received OnOff Attributes Response: {}", message
+   GenericZigbeeSwitch.handleOnOffMsg(this, onOffCluster, message)
+}
+
+onZigbeeMessage.Zcl.onoff.zclreportattributes() {
+   log.debug "Received OnOff Attributes Report: {}", message
+   GenericZigbeeSwitch.handleOnOffMsg(this, onOffCluster, message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this, "", dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this, "")
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this, "", otaCluster, message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this, "", message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this, "", message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this, "", message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this, "", message)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+   log.debug "Driver received onIdentify.Identify: {}", message
+   identCluster.identifyCmd(IDENT_PERIOD_SECS)
+   sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   log.trace "Driver received zigbee ZCL message: {}", message
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def profile = zclMsg.getProfileId()
+   def clusterId = zclMsg.getClusterId()
+   def msgId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def flags = zclMsg.getFlags()
+   byte[] data = zclMsg.getPayload()
+
+   if (GenericZigbeeSwitch.handleOnZigbeeMessage(this, profile, clusterId, msgId, endpoint, data)) {
+      return
+   }
+
+   // ignore diagnostics cluster responses
+   if (0x0B05 == clusterId) {
+      return
+   }
+
+   log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MsgId:{}, EndPoint:{}, Flags:{}, Data:" + data, profile, clusterId, msgId, endpoint, flags
+}
