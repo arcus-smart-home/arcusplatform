@@ -217,37 +217,312 @@ Pre-configured with:
 - Groovy script engine with compilation customizers
 - Scheduler, Control protocol, and ZWave protocol plugins
 
-### Cucumber BDD Tests (AbstractDriverTestCase)
+### Cucumber BDD Tests
 
-**Location:** `platform/arcus-platform-drivers/driver-tests/src/test/java/com/iris/driver/unit/cucumber/AbstractDriverTestCase.java`
+Cucumber BDD tests are the primary acceptance test framework for device drivers. Feature files written in Gherkin describe driver behavior — how it responds to device messages, platform commands, and lifecycle events. Step definitions in Groovy map the Gherkin to the Arcus driver test infrastructure.
 
-BDD-style driver testing using Cucumber feature files written in Gherkin:
+#### Test Case Architecture
 
-```gherkin
-Feature: Aeon Labs Energy Reader
+**Base class:** `AbstractDriverTestCase` (`platform/arcus-platform-drivers/driver-tests/src/test/java/com/iris/driver/unit/cucumber/AbstractDriverTestCase.java`)
 
-  @ZWave
-  Scenario: Device connected
-    Given the driver is loaded
-    And the device is connected
-    Then the driver should set attribute dev:online to true
+Extends `IrisMockTestCase` with:
+
+| Component | Description |
+|-----------|-------------|
+| `GroovyDriverFactory` | Loads and compiles `.driver` files from classpath |
+| `InMemoryPlatformMessageBus` | Captures platform messages (ValueChange, GetAttributesResponse, etc.) |
+| `InMemoryProtocolMessageBus` | Captures protocol messages (Z-Wave/Zigbee/IPCD commands to device) |
+| `CapturingSchedulerContext` | Captures scheduled/deferred events with delay and data |
+| `PinManagementContext` | Mock PIN validation (valid/invalid) |
+| `DeviceDAO` (mock) | Captures device state saves |
+| `PlatformDeviceDriverContext` | Driver execution context wrapping device + driver |
+| `DefaultDriverExecutor` | Executes driver message handlers |
+
+**Driver path resolution** — searches in order:
+
+1. `src/test/resources/` — test-only drivers
+2. `../../arcus-containers/driver-services/src/main/resources/` — production drivers
+3. `build/drivers/` — compiled drivers
+
+**Driver initialization flow:**
+
+1. `GroovyDriverFactory.load()` compiles the `.driver` file with Arcus Groovy customizers
+2. Device created from driver's base attributes (caps, protocol, drivername, vendor, model)
+3. Device marked `ONLINE` and `PRESENT` to suppress spurious `ValueChange` events
+4. `PlatformDeviceDriverContext` created wrapping device + driver
+5. `DefaultDriverExecutor` created for message dispatch
+6. `DeviceDAO.save()` and `DeviceDAO.updateDriverState()` mocked to capture mutations
+
+#### Protocol-Specific Test Cases
+
+Each protocol has a test case subclass and a command builder:
+
+| Protocol | Test Case | Command Builder | Notes |
+|----------|-----------|----------------|-------|
+| Z-Wave | `ZWaveDriverTestCase` | `ZWaveCommandBuilder` | Uses `ZWaveAllCommandClasses` for command lookup. Default node ID 10. |
+| Zigbee | `ZigbeeDriverTestCase` | `ZigbeeCommandBuilder` | Supports ZCL clusters by name, decimal, or hex (`onoff`, `6`, `0x0006`). Handles attribute read/report/write responses. |
+| IPCD | `IpcdDriverTestCase` | `IpcdCommandBuilder` | Simulates events (`onValueChange`), responses (`GetParameterValuesResponse`), and reports. |
+
+**ZWaveDriverTestCase** validates outbound commands by:
+- Deserializing command class and command from protocol message
+- Matching command class name (e.g., `switch_binary`) and command name (e.g., `report`)
+- Checking send parameters as byte values
+
+**ZigbeeDriverTestCase** validates outbound messages by:
+- Deserializing ZCL message from protocol payload
+- Matching cluster ID and message ID (by name or number)
+- Checking ZCL data types (8/16/32/64-bit, float, string, IEEE address)
+- Supporting `checkReadAttributes()` and `checkWriteAttribute()` for attribute-level validation
+
+**IpcdDriverTestCase** validates outbound commands by:
+- Converting `IpcdCommand` to a map
+- Matching command name (e.g., `SetParameterValues`, `GetDeviceInfo`)
+- Checking parameter values in the command's value map
+
+#### MockGroovyDriverModule
+
+**Location:** `platform/arcus-platform-drivers/driver-tests/src/test/java/com/iris/driver/unit/cucumber/MockGroovyDriverModule.java`
+
+Extends `GroovyDriverModule` to provide test doubles:
+
+| Binding | Description |
+|---------|-------------|
+| `CapturingSchedulerContext` | Captures all `defer()`, `scheduleIn()`, `scheduleRepeating()`, `cancel()` calls into a queue of `CapturedScheduledEvent` objects |
+| `PinManagementContext` | EasyMock mock for `validatePin()` |
+| `OnScheduledClosure` | Binds `onEvent` in driver Groovy environment |
+| `Scheduler` property | Bound to capturing scheduler |
+| `PinManagement` property | Bound to mock pin manager |
+
+`CapturedScheduledEvent` stores: method name, event name, delay (ms), max retries, and data. Test steps poll these to assert scheduled behavior.
+
+#### Step Definitions
+
+**Location:** `platform/arcus-platform-drivers/driver-tests/src/test/java/com/iris/driver/unit/CucumberTestSteps.groovy`
+
+Groovy-based step definitions using Cucumber's `EN` mixin. Protocol-specific test contexts are selected by tags:
+
+```groovy
+Before("@Zigbee") { context = new ZigbeeDriverTestCase(); context.setUp() }
+Before("@ZWave")  { context = new ZWaveDriverTestCase();  context.setUp() }
+Before("@IPCD")   { context = new IpcdDriverTestCase();   context.setUp() }
+After             { context.tearDown() }
 ```
 
-Protocol-specific test case subclasses:
+#### Gherkin Step Reference
 
-| Class | Protocol |
-|-------|----------|
-| `ZWaveDriverTestCase` | Z-Wave |
-| `ZigbeeDriverTestCase` | Zigbee |
-| `IpcdDriverTestCase` | IPCD |
+**Setup Steps (Given):**
 
-Each provides:
-- Driver initialization from Groovy scripts
-- Platform and protocol message buses (in-memory)
-- Device fixture creation and state management
-- `CapturingSchedulerContext` for time-based behavior
-- Protocol-specific command builders (`ZWaveCommandBuilder`, `ZigbeeCommandBuilder`, `IpcdCommandBuilder`)
-- `PinManagement` mock
+| Step | Description |
+|------|-------------|
+| `Given the <file>.driver has been initialized` | Load and initialize driver from file |
+| `Given the capability <ns>:<attr> is <value>` | Set attribute value (fires ValueChange) |
+| `Given the driver attribute <ns>:<attr> is <value>` | Set attribute without ValueChange |
+| `Given the driver variable <name> is <value>` | Set driver variable (number, boolean, null, JSON, date) |
+| `Given the time driver variable <name> is <N> <units> ago` | Set time variable relative to now |
+| `Given the device has endpoint <id>` | Set Zigbee endpoint |
+| `Given the device has tag <tag>` | Add tag to device |
+| `Given the pin <pin> is valid` | Mock PIN validation → success |
+| `Given the pin <pin> is invalid` | Mock PIN validation → failure |
+
+**Trigger Steps (When):**
+
+| Step | Description |
+|------|-------------|
+| `When the device is added` | Fire device added lifecycle event |
+| `When the device is connected` | Fire device connected event |
+| `When the device is disconnected` | Fire device disconnected event |
+| `When the device is removed` | Fire device removed event |
+| `When event <name> triggers` | Fire named scheduled event |
+| `When event <name> triggers with <json>` | Fire scheduled event with data payload |
+| `When a <cmd> command is placed on the platform bus` | Send platform command (no args) |
+| `When a <cmd> command with the value of <ns>:<attr> <value> is placed on the platform bus` | Send command with attribute |
+| `When the capability method <cmd>` | Begin building capability command (must follow with `And send to driver`) |
+| `With capability <ns>:<attr> is <value>` | Add attribute to pending command |
+
+**Protocol message simulation (When):**
+
+| Step | Description |
+|------|-------------|
+| `When the device response with <type> <subType>` | Begin building inbound protocol message |
+| `And with parameter <name> <value>` | Add parameter to message |
+| `And with payload <bytes>` | Set raw payload (comma-separated hex/decimal) |
+| `And with header flags <byte>` | Set ZCL flags |
+| `And with manufacturer code <int>` | Set manufacturer code |
+| `And with endpoint <id>` | Set Zigbee endpoint |
+| `And send to driver` | Dispatch the built message to the driver |
+
+**Assertion Steps (Then):**
+
+| Step | Description |
+|------|-------------|
+| `Then the driver should place a <msgType> message on the platform bus` | Assert platform message sent |
+| `Then the driver should not place a <msgType> message on the platform bus` | Assert platform message NOT sent |
+| `And the message's <ns>:<attr> attribute should be <value>` | Check attribute in last platform message |
+| `And the message's <ns>:<attr> attribute list should be [<list>]` | Check list attribute (order-independent) |
+| `And the message's <ns>:<attr> attribute numeric value should be within delta <d> of <v>` | Fuzzy numeric check |
+| `Then the capability <ns>:<attr> should be <value>` | Assert device attribute value |
+| `Then the numeric capability <ns>:<attr> should be within <pct>% of <value>` | Percentage-based fuzzy check |
+| `Then the driver variable <name> should be <value>` | Assert driver variable value |
+| `Then the driver should send <type> <subType>` | Assert outbound protocol message |
+| `And with parameter <name> <value>` | Check parameter in outbound message |
+| `Then the driver should set timeout at <N> <units>` | Assert offline timeout |
+| `Then the driver should poll <type>.<subType> every <N> <units>` | Assert polling schedule |
+| `Then the driver should schedule event <name>` | Assert event scheduled |
+| `Then the driver should schedule event <name> in <delay> <units>` | Assert event with delay |
+| `Then the driver should schedule event <name> in <delay> <units> with <data>` | Assert event with delay and data |
+| `Then the driver should schedule event <name> every <N> <units> <reps> times` | Assert repeating event |
+| `Then the driver should cancel event <name>` | Assert event cancellation |
+| `Then there should be no more scheduled events` | Assert no pending events |
+| `Then the platform bus should be empty` | Assert no pending platform messages |
+| `Then the protocol bus should be empty` | Assert no pending protocol messages |
+| `Then both busses should be empty` | Assert both buses empty |
+| `Then protocol message count is <N>` | Assert exact protocol message count |
+| `Then nothing should happen` | Assert no messages and no events |
+
+#### Feature File Structure
+
+Feature files use this pattern:
+
+```gherkin
+@Protocol @DeviceTag
+Feature: Descriptive feature name
+
+  Background:
+    Given the <driver-file>.driver has been initialized
+
+  Scenario: Single test case
+    When ...
+    Then ...
+
+  Scenario Outline: Parameterized test
+    When the device response with <type> <subType>
+      And with parameter value <value>
+      And send to driver
+    Then the capability <ns>:<attr> should be <expected>
+
+    Examples:
+      | type          | subType | value | expected |
+      | switch_binary | report  | -1    | ON       |
+      | switch_binary | report  | 0     | OFF      |
+```
+
+**Tags:**
+
+| Tag | Purpose |
+|-----|---------|
+| `@ZWave`, `@Zigbee`, `@IPCD` | **Required** — selects protocol test case |
+| `@Ignore` | Skip scenario |
+| Device-specific: `@Jasco500`, `@AlertMe`, `@GreatStar`, etc. | Filter by device manufacturer/model |
+
+#### Example: Z-Wave Switch Test
+
+```gherkin
+@ZWave @Jasco500
+Feature: Unit Tests for the ZWJasco14288SwitchDriver
+
+  Background:
+    Given the ZW_Jasco_14288_InWallReceptacle.driver has been initialized
+
+  Scenario: Driver reports capabilities to platform
+    When a base:GetAttributes command is placed on the platform bus
+    Then the driver should place a base:GetAttributesResponse message on the platform bus
+      And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'swit', 'indicator']
+      And the message's dev:devtypehint attribute should be Switch
+      And the message's devadv:drivername attribute should be ZWJasco14288InWallReceptacleDriver
+      And the message's devpow:source attribute should be LINE
+    Then both busses should be empty
+
+  Scenario: Device associated
+    When the device is added
+    Then the driver should send configuration set
+      And with parameter param 3
+      And with parameter size 1
+      And with parameter val1 1
+    Then both busses should be empty
+
+  Scenario: Switch value changed
+    When the device response with switch_binary report
+      And with parameter value -1
+      And send to driver
+    Then the platform attribute swit:state should change to ON
+    Then both busses should be empty
+
+  Scenario Outline: Indicator value
+    Given the capability indicator:indicator is <before>
+    When the device response with switch_binary report
+      And with parameter value <value>
+      And send to driver
+    Then the platform attribute indicator:indicator should change to <after>
+
+    Examples:
+      | before | value | after |
+      | ON     | -1    | OFF   |
+      | ON     | 0     | ON    |
+      | OFF    | -1    | ON    |
+```
+
+#### Example: Zigbee Sensor Test
+
+```gherkin
+@Zigbee @AlertMe @Pendant
+Feature: Zigbee AlertMe Care Pendant Driver Test
+
+  Background:
+    Given the ZB_AlertMe_CarePendant.driver has been initialized
+
+  Scenario: Device connected while Present
+    Given the capability pres:presence is PRESENT
+    When the device is connected
+    Then the driver should send 0x00F6 0xFC
+    Then the driver should set timeout at 10 minutes
+
+  Scenario Outline: Device sends Heartbeat with LQI
+    Given the driver variable targetHelpState is -1
+    When the device response with 240 251
+      And with payload 8, 0,0,0,0, 0,0, 0,0, 0, <lqi>, 0, 0
+      And send to driver
+    Then the driver should place a base:ValueChange message on the platform bus
+      And the message's devconn:signal attribute should be <signal>
+
+    Examples:
+      | lqi  | signal |
+      | 0x00 |      0 |
+      | 0x7F |     49 |
+      | 0xFF |    100 |
+```
+
+#### Example: IPCD Plug Test
+
+```gherkin
+@IPCD @GreatStar
+Feature: IPCD GreatStar Indoor Plug Driver Test
+
+  Background:
+    Given the IPCD_GreatStar_Indoor_Plug_2_12.driver has been initialized
+
+  Scenario: Device Added
+    When the device is added
+    Then the driver should schedule event callGPV in 5000 milliseconds
+    Then the driver should schedule event setReport in 10000 milliseconds
+    Then the driver should send GetDeviceInfo command
+
+  Scenario Outline: Platform turns on/off switch
+    When a base:SetAttributes command with the value of swit:state <request> is placed on the platform bus
+    Then protocol message count is 1
+    Then the driver should send SetParameterValues command
+      And with parameter switch.state <command>
+
+    Examples:
+      | request | command |
+      | ON      | ON      |
+      | OFF     | OFF     |
+
+  Scenario: Handle GetParameterValuesResponse
+    When the device sends response GetParameterValuesResponse
+      And with parameter switch.state ON
+      And send to driver
+    Then the capability swit:state should be ON
+```
 
 ### Feature File Organization
 
@@ -268,16 +543,37 @@ platform/arcus-platform-drivers/driver-tests/
 ### Running Cucumber Tests
 
 ```bash
-# Via Gradle (custom task)
+# Run all driver features
 ./gradlew :platform:arcus-platform-drivers:driver-tests:cucumber
 
-# Cucumber args configured in build.gradle
+# Run only Z-Wave tests
+./gradlew :platform:arcus-platform-drivers:driver-tests:cucumber -Ptags="@ZWave"
+
+# Run specific feature files
+./gradlew :platform:arcus-platform-drivers:driver-tests:cucumber -Pfeatures="zw/ZW_Jasco*.feature"
+
+# Run excluding ignored tests (default behavior)
+./gradlew :platform:arcus-platform-drivers:driver-tests:cucumber -Ptags="~@Ignore"
+```
+
+**Gradle task configuration:**
+
+```groovy
+configurations {
+    cucumberRuntime { extendsFrom testImplementation, testRuntimeOnly }
+}
+
 task cucumber(type: JavaExec) {
-    main = "cucumber.api.cli.Main"
+    mainClass = "cucumber.api.cli.Main"
     classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
-    args = cukeArgs
+    args = cukeArgs   // --glue, --plugin, --tags, feature paths
 }
 ```
+
+**Report outputs:**
+- HTML: `build/reports/test-results/cucumber/`
+- JSON: `build/reports/test-results/cucumber.json`
+- JUnit XML: `build/reports/test-results/cucumber.xml`
 
 Feature files are excluded from the standard `test` task:
 
