@@ -52,6 +52,10 @@ public abstract class IrisAbstractApplication {
    private String applicationVersion = "<unknown>";
    @Inject @Named(IrisApplicationModule.NAME_APPLICATION_DIR)
    private String applicationDir = "";
+   @Inject @Named(IrisApplicationModule.NAME_BUILD_TIMESTAMP)
+   private String buildTimestamp = "";
+   @Inject @Named(IrisApplicationModule.NAME_BUILD_COMMIT)
+   private String buildCommit = "";
 
    public static class Arguments {
       @Parameter(
@@ -176,9 +180,11 @@ public abstract class IrisAbstractApplication {
 
          if (app != null) {
             logger.info(
-                  "starting configured application:\n\t{} v{} [application directory: {}]",
+                  "starting configured application:\n\t{} v{} ({}) [built: {}] [application directory: {}]",
                   app.getApplicationName(),
                   app.getApplicationVersion(),
+                  app.buildCommit.isEmpty() ? "unknown" : app.buildCommit,
+                  app.buildTimestamp.isEmpty() ? "unknown" : app.buildTimestamp,
                   app.getApplicationDir()
             );
 

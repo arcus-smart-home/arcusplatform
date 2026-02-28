@@ -23,6 +23,7 @@
     <brand name="Halo Smart Labs"/>
     <brand name="HomePro"/>
     <brand name="Honeywell"/>
+    <brand name="Innr"/>
     <brand name="Iris"/>
     <brand name="Ivee"/>
     <brand name="Keen Home"/>
@@ -5289,6 +5290,25 @@
         <population name="general"/>
         <population name="qa"/>
         <population name="beta"/>
+      </populations>
+    </product>
+    <product name="Smart Plug (SP 224)" shortname="Smart Plug" screen="Switch" description="" manufacturer="Innr" vendor="Innr" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="innr, indoor, module, control, outlet, smart, plug, switch, 120, volt, power, zigbee, sp224" ota="true" protofamily="ZigBee" id="dee191" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert the smart plug into the wall receptacle. Ensure the wall receptacle is powered. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the button on the plug for 10 seconds until the LED starts blinking."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="beta"/>
+        <population name="qa"/>
       </populations>
     </product>
     <product name="Flood and Freeze Sensor" shortname="Flood/Freeze Sensor" screen="Water Leak" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, flood, freeze, water, leak, sensor, temperature, zwave, battery" ota="No" protofamily="Z-Wave" id="f4e351" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
