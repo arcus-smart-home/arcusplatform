@@ -21,8 +21,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import com.iris.util.IrisCollections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,7 +169,7 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
    protected void sendValueChangeEvent(Person context, PlatformMessage request, Map<String, Object> changes)
    {
       Set<UUID> placeIds = personPlaceAssocDao.findPlaceIdsByPerson(context.getId());
-      if(!CollectionUtils.isEmpty(placeIds)) {
+      if(!IrisCollections.isEmpty(placeIds)) {
          placeIds.stream().forEach(placeId -> sendValueChangeEventForPlace(request, changes, placeId.toString()));
       }else{
          logger.warn("This should not happen, but person [{}] has no places associated with it.  Possibly index out of sync", context.getId());

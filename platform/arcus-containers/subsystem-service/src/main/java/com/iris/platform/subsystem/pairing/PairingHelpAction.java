@@ -20,8 +20,9 @@ package com.iris.platform.subsystem.pairing;
 
 import java.util.Optional;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import com.iris.util.IrisCollections;
 
 import com.iris.messages.type.PairingHelpStep;
 import com.iris.prodcat.ProductCatalogEntry;
@@ -98,7 +99,7 @@ public enum PairingHelpAction {
 	FactoryReset("factoryreset", "Factory reset the device.", PairingHelpStep.ACTION_FACTORY_RESET) {
 		@Override
 		public Optional<PairingHelpStep> forProduct(ProductCatalogEntry entry, PairingProtocol protocol) {
-			if(protocol == PairingProtocol.ZWAV || !CollectionUtils.isEmpty(entry.getReset())) {
+			if(protocol == PairingProtocol.ZWAV || !IrisCollections.isEmpty(entry.getReset())) {
 				return super.forProduct(entry, protocol);
 			}
 			else {
