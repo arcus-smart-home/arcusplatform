@@ -24,9 +24,9 @@ import com.google.common.base.Supplier;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.microsoft.azure.storage.StorageCredentials;
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.ConfigurationProvider;
-import com.netflix.governator.configuration.KeyParser;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.KeyParser;
 
 public class VideoConfig extends VideoDaoConfig{
    public static final String VIDEO_STORAGE_TYPE_FS = "fs";

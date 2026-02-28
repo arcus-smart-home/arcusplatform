@@ -37,7 +37,8 @@ public class ContextualEventHandlers {
 
    @SafeVarargs
    public static <T> ContextualEventHandler<T> marshalDispatcher(final ContextualEventHandler<? super T>... handlers) {
-      return marshalDispatcher(Arrays.asList(handlers));
+      Iterable<? extends ContextualEventHandler<? super T>> handlerList = Arrays.asList(handlers);
+      return marshalDispatcher(handlerList);
    }
 
    public static <T> ContextualEventHandler<T> marshalDispatcher(final Iterable<? extends ContextualEventHandler<? super T>> handlers) {

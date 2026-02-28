@@ -38,7 +38,7 @@ import com.iris.messages.errors.Errors;
 import com.iris.util.IrisCollections;
 import com.iris.util.Subscription;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 public abstract class AbstractMessageListener<T extends Message> implements MessageListener<T> {
    private static final Logger logger = LoggerFactory.getLogger(AbstractMessageListener.class);

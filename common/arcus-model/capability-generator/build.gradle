@@ -16,9 +16,9 @@
 // project specific build settings, dependencies, etc.
 
 dependencies {
-    compile project(':common:arcus-model')
+    api project(':common:arcus-model')
 
-    compile libraries.handlebars
-    compile libraries.jcommander
+    implementation libraries.handlebars
+    implementation libraries.jcommander
 }
 

@@ -216,6 +216,7 @@ public class ShiroAuthenticator implements Authenticator {
       // Fallback to JSON decode
       if (username == null && password == null && token == null) {
          ByteBuf content = req.content();
+         content.resetReaderIndex();
          if (content.isReadable()) {
             String json = content.toString(CharsetUtil.UTF_8);
             try {

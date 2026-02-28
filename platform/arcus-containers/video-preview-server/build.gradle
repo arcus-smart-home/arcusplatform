@@ -20,8 +20,8 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName= "com.iris.video.preview.server.VideoPreviewServer"
 
 dependencies {
-   compile project (':platform:arcus-video')
-   compile project (':platform:arcus-security')
+   api project (':platform:arcus-video')
+   api project (':platform:arcus-security')
 }
 
 applicationDefaultJvmArgs = [

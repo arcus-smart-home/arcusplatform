@@ -40,9 +40,9 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.name.Names;
 import com.iris.capability.attribute.transform.AttributeMapTransformModule;
-import com.netflix.governator.annotations.Modules;
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.annotations.Modules;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 @Modules(include = AttributeMapTransformModule.class)
 public abstract class BaseCassandraModule extends AbstractModule {
@@ -232,8 +232,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
         ClusterDestroyer destroyer = new ClusterDestroyer();
         destroyer.cluster = bld.build();
+        destroyer.cluster.register(CassandraHealth.instance());
 
         destroyer.session = destroyer.cluster.connect(keyspace);
+        CassandraHealth.instance().initializeFrom(destroyer.cluster);
 
         if (name == null) {
             bind(ClusterDestroyer.class).toInstance(destroyer);

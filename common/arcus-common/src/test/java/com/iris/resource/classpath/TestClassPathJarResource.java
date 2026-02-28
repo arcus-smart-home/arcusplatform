@@ -35,9 +35,13 @@ import com.iris.resource.ResourceNotFoundException;
 
 public class TestClassPathJarResource {
 
+   // Use a Guava class instead of java.lang.String because JDK 9+ uses jrt: protocol
+   // for system classes, which is not a jar resource.
+   private static final String JAR_CLASS_PATH = "com/google/common/collect/ImmutableList.class";
+
    @Test
    public void testJarClasspath() throws Exception {
-      String path = "java/lang/String.class";
+      String path = JAR_CLASS_PATH;
       ClassLoader loader = TestClassPathResource.class.getClassLoader();
       Resource resource = new ClassPathJarResource(loader, path);
 
@@ -56,17 +60,18 @@ public class TestClassPathJarResource {
 
       try (InputStream is = resource.open()) {
          String content = read(is);
-         assertTrue(content.contains("equalsIgnoreCase"));
+         assertNotNull(content);
+         assertTrue(content.length() > 0);
       }
    }
    
    @Test
    public void testJarClasspathDirectory() throws Exception {
-      String path = "java/lang/String.class";
+      String path = JAR_CLASS_PATH;
       ClassLoader loader = TestClassPathResource.class.getClassLoader();
       // The class loader won't find a directory inside a jar, but we can build a path to one.
       path = loader.getResource(path).toString();
-      path = path.substring(0, path.lastIndexOf("/") + 1); // The full path contains the java version which will change from machine to machine.  Looking up String.class will always give us the right location.
+      path = path.substring(0, path.lastIndexOf("/") + 1);
       Resource resource = new ClassPathJarResource(loader, path);
 
       assertNotNull(resource);
@@ -94,10 +99,10 @@ public class TestClassPathJarResource {
    
    @Test
    public void testNonExistentFile() throws Exception {
-      String path = "java/lang/String.class";
+      String path = JAR_CLASS_PATH;
       ClassLoader loader = TestClassPathResource.class.getClassLoader();
       path = loader.getResource(path).toString();
-      path += "zz"; // The class loader won't find a file that doesn't exist, but we can build a path to one. 
+      path += "zz"; // The class loader won't find a file that doesn't exist, but we can build a path to one.
       Resource resource = new ClassPathJarResource(loader, path);
       
       assertNotNull(resource);

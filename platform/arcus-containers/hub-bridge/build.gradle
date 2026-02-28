@@ -19,19 +19,19 @@ apply from: file("${rootDir}/gradle/container.gradle")
 mainClassName = "com.iris.hubcom.server.HubServer"
 
 dependencies {
-  compile project(':platform:bridge-common')
-  compile project (':platform:arcus-lib')
-  compile project (':platform:arcus-hubsession')
-  compile project (':common:arcus-client')
-  compile project (':common:arcus-common')
-  compile project (':common:arcus-metrics')
-  compile project (':common:arcus-protocol')
-  compile 'org.hdrhistogram:HdrHistogram:2.1.9'
+  api project(':platform:bridge-common')
+  api project (':platform:arcus-lib')
+  api project (':platform:arcus-hubsession')
+  api project (':common:arcus-client')
+  api project (':common:arcus-common')
+  api project (':common:arcus-metrics')
+  api project (':common:arcus-protocol')
+  implementation 'org.hdrhistogram:HdrHistogram:2.1.9'
 
-  testCompile project (':platform:arcus-test')
+  testImplementation project (':platform:arcus-test')
 
-  compile netty
-  compile libraries.commons_lang
+  implementation netty
+  implementation libraries.commons_lang
 }
 
 test {

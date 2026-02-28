@@ -30,7 +30,7 @@ import com.iris.platform.rule.catalog.action.config.LogActionConfig;
 import com.iris.platform.rule.catalog.action.config.SendActionConfig;
 import com.iris.platform.rule.catalog.action.config.SendNotificationActionConfig;
 import com.iris.platform.rule.catalog.action.config.SetAttributeActionConfig;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

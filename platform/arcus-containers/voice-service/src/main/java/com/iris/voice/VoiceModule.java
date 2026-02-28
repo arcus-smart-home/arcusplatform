@@ -43,7 +43,7 @@ import com.iris.voice.google.homegraph.HomeGraphAPI;
 import com.iris.voice.proactive.ProactiveReporter;
 import com.iris.voice.proactive.ProactiveReportingConfig;
 import com.iris.voice.service.VoiceServiceModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.util.HashedWheelTimer;
 

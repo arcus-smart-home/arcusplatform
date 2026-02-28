@@ -20,9 +20,9 @@ configurations {
 }
 
 dependencies {
-    compile project(':common:arcus-model:platform-messages')
-    compile libraries.antlr4_runtime
-    compile libraries.guava
+    api project(':common:arcus-model:platform-messages')
+    api libraries.antlr4_runtime
+    api libraries.guava
 
     antlr4  libraries.antlr4
 }
@@ -46,7 +46,7 @@ task generateSource(dependsOn: antlrOutputDir, type: JavaExec) {
 
     def grammars = fileTree(sourceDir).include('**/*.g4')
 
-    main = 'org.antlr.v4.Tool'
+    mainClass = 'org.antlr.v4.Tool'
     classpath = configurations.antlr4
 
     def files = []
@@ -56,7 +56,7 @@ task generateSource(dependsOn: antlrOutputDir, type: JavaExec) {
 }
 
 task run(dependsOn: compileJava, type: JavaExec) {
-    main = 'com.iris.model.query.Main'
+    mainClass = 'com.iris.model.query.Main'
     classpath = sourceSets.main.runtimeClasspath
 }
 

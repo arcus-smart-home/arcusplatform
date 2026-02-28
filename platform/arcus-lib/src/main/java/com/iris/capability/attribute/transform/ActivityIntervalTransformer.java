@@ -30,7 +30,7 @@ import com.google.inject.Singleton;
 import com.iris.i18n.DBResourceBundleControl;
 import com.iris.i18n.I18NBundle;
 import com.iris.messages.type.ActivityInterval;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 /**
  * 

@@ -87,7 +87,7 @@ import com.iris.protocol.control.DeviceOnlineEvent;
 import com.iris.protocol.zwave.Protocol;
 import com.iris.protocol.zwave.ZWaveExternalProtocol;
 import com.iris.protocol.zwave.ZWaveProtocol;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 import rx.Observable;
 import rx.subjects.ReplaySubject;

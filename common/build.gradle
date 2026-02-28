@@ -20,7 +20,6 @@ buildscript {
       }
 
        mavenCentral()
-       jcenter()
    }
 
    apply from: file("${rootDir}/gradle/buildscript.gradle"), to: buildscript
@@ -32,7 +31,6 @@ repositories {
    }
 
     mavenCentral()
-    jcenter()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +45,7 @@ ext.version_major = version_props.major
 ext.version_minor = version_props.minor
 ext.version_patch = version_props.patch
 ext.version_qualifier = version_props.qualifier
+apply from: file("${rootDir}/gradle/snapshot.gradle")
 
 version = "${version_major}.${version_minor}.${version_patch}${version_qualifier}"
 println "Building ${project.name} v${version}"
@@ -66,6 +65,7 @@ subprojects {
 
    group = 'com.arcussmarthome'
    version = rootProject.version
+   // Common libraries must always target Java 8 so agent (Java 8 toolchain) can consume them
    sourceCompatibility = '1.8'
    targetCompatibility = '1.8'
 
@@ -78,7 +78,7 @@ subprojects {
    }
    
     task sourcesJar(type: Jar, dependsOn: classes) {
-      classifier = 'sources'
+      archiveClassifier = 'sources'
       from sourceSets.main.allSource
     }
 
@@ -88,19 +88,21 @@ subprojects {
 
     dependencies {
         // all sub-project support using eclipse annotations
-        compile libraries.eclipse_annotation
+        api libraries.eclipse_annotation
 
         // all sub-projects use SLF4J for logging
-        compile libraries.slf4jApi
+        api libraries.slf4jApi
 
         // all sub-projects use dropwizard for metrics
-        compile libraries.metrics_core
+        api libraries.metrics_core
 
-        // all sub-projects use junit for unit testing
-        testCompile libraries.junit
-        
-        // all sub-projects use logback during tests
-        testCompile libraries.logback
+        // Java EE APIs removed from JDK 9+
+        api libraries.jaxb_api
+        api libraries.javax_annotation_api
+        api libraries.javax_activation_api
+        runtimeOnly libraries.javax_activation_impl
+
+        // test deps now in gradle/subproject.gradle
     }
 
     configurations.all {
@@ -109,10 +111,9 @@ subprojects {
             cacheChangingModulesFor 60, 'minutes'
             force 'org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0'
             force 'com.google.inject.extensions:guice-multibindings:4.0-beta5'
-            force 'com.netflix.archaius:archaius-core:0.6.5'
-            force 'com.fasterxml.jackson.core:jackson-core:2.5.1'
-            force 'com.fasterxml.jackson.core:jackson-databind:2.5.1'
-            force 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+            force 'com.fasterxml.jackson.core:jackson-core:2.18.6'
+            force 'com.fasterxml.jackson.core:jackson-databind:2.18.6'
+            force 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
         }
     }
 

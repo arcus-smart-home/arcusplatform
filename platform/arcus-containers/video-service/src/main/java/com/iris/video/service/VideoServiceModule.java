@@ -40,7 +40,7 @@ import com.iris.video.service.quota.VideoQuotaEnforcerDeleteOldest;
 import com.iris.video.service.quota.VideoQuotaEnforcerDenyAll;
 import com.iris.video.service.quota.VideoQuotaEnforcerDenyAllRecordings;
 import com.iris.video.service.quota.VideoQuotaEnforcerDisallowNew;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
       KafkaModule.class,

@@ -19,7 +19,7 @@ import com.google.inject.AbstractModule;
 import com.iris.core.dao.file.HubBlacklistDAOModule;
 import com.iris.core.dao.file.PopulationDAOModule;
 import com.iris.platform.history.cassandra.CassandraHistoryDAOModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
       CassandraModule.class,

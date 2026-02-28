@@ -138,7 +138,7 @@ public class LoginDialog {
             lastSessions = recentSessions;
             DefaultComboBoxModel<OculusSession> model = ((DefaultComboBoxModel<OculusSession>) serviceUri.getModel());
             model.removeAllElements();
-            for(OculusSession hau: ServiceLocator.getInstance(SessionController.class).listRecentSessions()) {
+            for(OculusSession hau: recentSessions) {
                model.addElement(hau);
             }
          }

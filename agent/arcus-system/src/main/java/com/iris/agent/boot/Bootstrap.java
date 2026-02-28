@@ -15,29 +15,33 @@
  */
 package com.iris.agent.boot;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import com.google.inject.Stage;
 import com.iris.agent.config.ConfigService;
 import com.iris.agent.lifecycle.LifeCycle;
 import com.iris.agent.lifecycle.LifeCycleService;
-import com.netflix.governator.configuration.AbstractObjectConfigurationProvider;
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.Property;
-import com.netflix.governator.guice.BootstrapBinder;
-import com.netflix.governator.guice.BootstrapModule;
-import com.netflix.governator.guice.LifecycleInjector;
-import com.netflix.governator.guice.LifecycleInjectorBuilder;
+import com.iris.bootstrap.config.AbstractObjectConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.Property;
+import com.iris.bootstrap.guice.IrisLifecycleManager;
+import com.iris.bootstrap.guice.LifecycleModule;
+import com.iris.bootstrap.guice.ModuleResolver;
 
 public class Bootstrap {
    public static Builder builder() {
@@ -45,19 +49,11 @@ public class Bootstrap {
    }
 
    public static final class Builder {
-      private final Set<Class<? extends BootstrapModule>> bootstrapModuleClasses = new HashSet<>();
-      private final Set<BootstrapModule> bootstrapModules = new HashSet<>();
-
+      private final Set<Module> bootstrapModules = new HashSet<>();
       private final Set<Class<? extends Module>> moduleClasses = new HashSet<>();
       private final Set<Module> modules = new HashSet<>();
 
-      public Builder withBootstrapModuleClasses(Collection<Class<? extends BootstrapModule>> bootstrapModules) {
-         Preconditions.checkArgument(bootstrapModules != null, "bootstrap modules cannot be null");
-         this.bootstrapModuleClasses.addAll(bootstrapModules);
-         return this;
-      }
-
-      public Builder withBootstrapModules(Collection<BootstrapModule> bootstrapModules) {
+      public Builder withBootstrapModules(Collection<? extends Module> bootstrapModules) {
          Preconditions.checkArgument(bootstrapModules != null, "bootstrap modules cannot be null");
          this.bootstrapModules.addAll(bootstrapModules);
          return this;
@@ -77,54 +73,53 @@ public class Bootstrap {
 
       public Bootstrap build() {
          Bootstrap bootstrap = new Bootstrap();
-         bootstrap.boostrapModules.addAll(instantiate(bootstrapModuleClasses));
-         bootstrap.boostrapModules.addAll(bootstrapModules);
+         bootstrap.bootstrapModules.addAll(bootstrapModules);
          bootstrap.moduleClasses.addAll(moduleClasses);
          bootstrap.modules.addAll(modules);
          return bootstrap;
       }
    }
 
-   private final Set<BootstrapModule> boostrapModules = new HashSet<>();
+   private final Set<Module> bootstrapModules = new HashSet<>();
    private final Set<Class<? extends Module>> moduleClasses = new HashSet<>();
    private final Set<Module> modules = new HashSet<>();
 
    private Bootstrap() {
    }
 
-   private static <T> Collection<T> instantiate(Iterable<Class<? extends T>> classes) {
-      try {
-         Collection<T> result = new LinkedList<>();
-         for (Class<? extends T> clazz : classes) {
-            result.add(clazz.newInstance());
-         }
-
-         return result;
-      } catch (Exception ex) {
-         throw new RuntimeException(ex);
-      }
-   }
-
    public Injector bootstrap() {
       try {
-         // Construct the injector
-         LifecycleInjectorBuilder builder = LifecycleInjector.builder()
-            .withBootstrapModule(new BootstrapModule() {
-               @Override
-               public void configure(@Nullable BootstrapBinder binder) {
-                  Preconditions.checkNotNull(binder);
-                  binder.bindConfigurationProvider().to(AgentConfigurationProvider.class);
-               }
-            })
-            .withAdditionalBootstrapModules(boostrapModules);
+         List<Module> allModules = new ArrayList<>();
 
-         builder.withAdditionalModuleClasses(moduleClasses);
+         // Lifecycle module must come first
+         allModules.add(new LifecycleModule());
+
+         // Configuration bootstrap module
+         allModules.add(binder -> {
+            binder.bind(ConfigurationProvider.class).to(AgentConfigurationProvider.class);
+         });
+
+         // Add any explicit bootstrap modules
+         allModules.addAll(bootstrapModules);
+
+         // Resolve @Modules annotations and instantiate module classes
+         allModules.addAll(ModuleResolver.resolve(moduleClasses));
+
+         // Add any explicit module instances
          if(!modules.isEmpty()) {
-            builder.withAdditionalModules(modules);
+            allModules.addAll(modules);
          }
 
-         LifecycleInjector inj = builder.build();
-         Injector result = inj.createInjector();
+         Injector result = Guice.createInjector(Stage.PRODUCTION, allModules);
+
+         // Start lifecycle manager: @PostConstruct already invoked during injection,
+         // this triggers the @WarmUp phase
+         try {
+            result.getInstance(IrisLifecycleManager.class).start();
+         } catch (Exception e) {
+            // ignore if not bound
+         }
+
          LifeCycleService.setState(LifeCycle.STARTING_UP, LifeCycle.STARTED);
          return result;
       } catch(Exception ex) {
@@ -174,11 +169,6 @@ public class Bootstrap {
          String cnf = key.getKey(VARS);
          return new ConfigProperty<String>(cnf, defaultValue, String.class);
       }
-
-      @Override
-      public Property<Date> getDateProperty(@Nullable ConfigurationKey key, @Nullable Date defaultValue) {
-         throw new UnsupportedOperationException("date properties are not supported");
-      }
    }
 
    private static final class ConfigProperty<T> extends Property<T> {
@@ -200,4 +190,3 @@ public class Bootstrap {
       }
    }
 }
-

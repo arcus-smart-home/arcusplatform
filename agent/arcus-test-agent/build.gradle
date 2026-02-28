@@ -16,11 +16,11 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(':agent:arcus-hal:arcus-hal-api')
-   compile project(':agent:arcus-system')
+   api project(':agent:arcus-hal:arcus-hal-api')
+   api project(':agent:arcus-system')
    
-   compile libraries.guiceCore
-   compile libraries.commonsIO
-   compile libraries.junit
+   implementation libraries.guiceCore
+   implementation libraries.commonsIO
+   implementation libraries.junit
 }
 

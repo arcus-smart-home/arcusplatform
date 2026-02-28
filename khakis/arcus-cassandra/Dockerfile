@@ -4,54 +4,43 @@ FROM arcus/java
 USER root
 
 # Initial system configuration
-#  python is required to run cqlsh
+#  python3 is required to run cqlsh
 #  unzip is required to unzip the modelmanager jar
 RUN \
     apt-get update && \
     apt-get install -y \
       wget \
-      python \
+      python3 \
       dnsutils \
       unzip && \
-    useradd -M -U -r -s /bin/false cassandra && \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV CASSANDRA_VERSION 3.11.11
+ENV CASSANDRA_VERSION 4.0.15
 
-# Download and install the required version of Apache Cassandra. 
+# Download and install the required version of Apache Cassandra.
 RUN \
     wget https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -O /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     tar xfz /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -C /opt && \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
     rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
-    ln -s /opt/cassandra/bin/cqlsh /usr/bin
+    ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
+    ln -s /opt/cassandra/bin/nodetool /usr/bin
 
 # Add control script
 ADD cassandra-cmd /usr/bin/
 ADD cassandra-provision /usr/bin/
-COPY cassandra-env.sh /opt/cassandra/conf/
-
-# TWCS compiled on 4/6/2017 
-# http://thelastpickle.com/blog/2017/01/10/twcs-part2.html
-# git clone https://github.com/jeffjirsa/twcs/
-# git checkout -t origin/cassandra-2.2
-# Commit Hash: 19081e2b53b2bc273292c2820efd3b9d05226c53
-COPY TimeWindowCompactionStrategy-2.2.5.jar /opt/cassandra/lib/
-
-# Export useful environment variables
 
 # Define working directory.
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
 
-# Expose the Apache Kafka port to the outside
+# Expose Cassandra ports
 # 7000: intra-node communication
 # 7001: TLS intra-node communication
 # 7199: JMX
 # 9042: CQL
-# 9160: thrift service
-EXPOSE 7000 7001 7199 9042 9160
+EXPOSE 7000 7001 7199 9042
 
 # Set the entry point as "cassandra-cmd entry"
 ENTRYPOINT ["/usr/bin/cassandra-cmd", "entry"]

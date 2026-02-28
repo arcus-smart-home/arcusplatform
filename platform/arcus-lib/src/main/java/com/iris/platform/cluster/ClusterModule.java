@@ -33,7 +33,7 @@ import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.platform.cluster.cassandra.CassandraClusterServiceDao;
 import com.iris.platform.cluster.zookeeper.ZookeeperClusterServiceDao;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

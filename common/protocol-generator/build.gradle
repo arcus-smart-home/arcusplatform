@@ -14,22 +14,29 @@
  * limitations under the License.
  */
 // project specific build settings, dependencies, etc.
-apply plugin: 'com.github.jacobono.jaxb'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 // Support for JAXB bindings
 ext.generatedSrcDir = 'src/generated/java'
+ext.xsdDir = "${rootDir}/common/arcus-protocol/src/main/resources/definition/ipcd/schema"
+
+configurations {
+    jaxb
+}
 
 dependencies {
     jaxb 'com.sun.xml.bind:jaxb-xjc:2.2.7-b41'
     jaxb 'com.sun.xml.bind:jaxb-impl:2.2.7-b41'
     jaxb 'javax.xml.bind:jaxb-api:2.2.7'
-    
-    compile libraries.commons_lang
-    compile libraries.handlebars
-    compile libraries.jcommander
+    jaxb 'javax.activation:javax.activation-api:1.2.0'
+
+    implementation libraries.jaxb_api
+    implementation libraries.jaxb_impl
+    implementation libraries.commons_lang
+    implementation libraries.handlebars
+    implementation libraries.jcommander
 }
 
 sourceSets {
@@ -40,12 +47,39 @@ sourceSets {
     }
 }
 
-jaxb {
-   xsdDir = "common/arcus-protocol/src/main/resources/definition/ipcd/schema"
-   episodesDir = "common/arcus-protocol/build/schema"
-   xjc {
-      destinationDir = generatedSrcDir
-   }
+// Replaces the jacobono jaxb plugin (incompatible with Gradle 7+)
+task xjcDefinition(type: JavaExec) {
+    description 'Generate JAXB classes from ipcd-definition.xsd'
+    classpath = configurations.jaxb
+    mainClass = 'com.sun.tools.xjc.XJCFacade'
+
+    def outputDir = file(generatedSrcDir)
+    inputs.file "${xsdDir}/ipcd-definition.xsd"
+    outputs.dir outputDir
+
+    doFirst { outputDir.mkdirs() }
+
+    args = ['-d', outputDir, '-p', 'com.iris.protocol.ipcd.xml.model',
+            "${xsdDir}/ipcd-definition.xsd"]
+}
+
+task xjcAos(type: JavaExec) {
+    description 'Generate JAXB classes from ipcd-aos.xsd'
+    classpath = configurations.jaxb
+    mainClass = 'com.sun.tools.xjc.XJCFacade'
+
+    def outputDir = file(generatedSrcDir)
+    inputs.file "${xsdDir}/ipcd-aos.xsd"
+    outputs.dir outputDir
+
+    doFirst { outputDir.mkdirs() }
+
+    args = ['-d', outputDir, '-p', 'com.iris.protocol.ipcd.aos.xml.model',
+            "${xsdDir}/ipcd-aos.xsd"]
+}
+
+task xjc {
+    dependsOn xjcDefinition, xjcAos
 }
 
 task cleanGeneratedSource(type: Delete) {
@@ -56,5 +90,3 @@ clean.dependsOn cleanGeneratedSource
 
 compileJava.dependsOn xjc
 compileTestJava.dependsOn xjc
-eclipseClasspath.dependsOn xjc
-

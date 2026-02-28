@@ -17,6 +17,6 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-    compile libraries.eclipse_annotation
+    implementation libraries.eclipse_annotation
 }
 

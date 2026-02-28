@@ -16,19 +16,19 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 
 dependencies {
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-common')
+   api project(':common:arcus-model:platform-messages')
 
-   compile libraries.cassandraDriver
-   compile libraries.shiro
-   compile libraries.shiro_guice
-   compile libraries.commons_beanutils
-   compile libraries.javax_annotation_api
-   compile libraries.bouncycastle
+   implementation libraries.cassandraDriver
+   api libraries.shiro
+   api libraries.shiro_guice
+   implementation libraries.commons_beanutils
+   implementation libraries.javax_annotation_api
+   implementation libraries.bouncycastle
 
-   runtime libraries.jaxb_api
-   runtime libraries.jaxb_impl
+   runtimeOnly libraries.jaxb_api
+   runtimeOnly libraries.jaxb_impl
    
-   testCompile project(':platform:arcus-test')
+   testImplementation project(':platform:arcus-test')
 }
 

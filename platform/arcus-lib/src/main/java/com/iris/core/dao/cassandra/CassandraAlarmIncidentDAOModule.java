@@ -18,7 +18,7 @@ package com.iris.core.dao.cassandra;
 import com.google.inject.AbstractModule;
 import com.iris.platform.alarm.incident.AlarmIncidentDAO;
 import com.iris.platform.alarm.incident.CassandraAlarmIncidentDAO;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class})
 public class CassandraAlarmIncidentDAOModule extends AbstractModule {

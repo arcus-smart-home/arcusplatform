@@ -22,15 +22,16 @@ configurations {
 }
 
 dependencies {
-    compile project (':platform:arcus-lib')
-    compile project (':platform:arcus-prodcat')
-    compile project (':common:arcus-common')
-    compile project (':common:arcus-drivers:drivers-common')
-    compile project (':common:arcus-drivers:groovy-bindings')
-    compile project(':common:arcus-model:platform-messages')
-    compile project(':common:arcus-protocol')
+    api project (':platform:arcus-lib')
+    api project (':platform:arcus-prodcat')
+    api project (':common:arcus-common')
+    api project (':common:arcus-drivers:drivers-common')
+    api project (':common:arcus-drivers:groovy-bindings')
+    api project(':common:arcus-model:platform-messages')
+    api project(':common:arcus-protocol')
 
-    testCompile project (':platform:arcus-test')
+    testImplementation project (':platform:arcus-test')
+    testImplementation libraries.groovy
 
     reflexGeneratorRuntime project(':common:arcus-drivers:reflex-generator')
     reflexGeneratorRuntime project(':common:arcus-drivers:groovy-bindings')
@@ -48,15 +49,12 @@ dependencies {
     reflexGeneratorRuntime 'org.hibernate:hibernate-validator:4.1.0.Final'
     reflexGeneratorRuntime 'commons-io:commons-io:2.4'
     reflexGeneratorRuntime 'org.codehaus.jsr166-mirror:jsr166y:1.7.0'
-    reflexGeneratorRuntime 'com.fasterxml.jackson.core:jackson-annotations:2.5.1'
+    reflexGeneratorRuntime 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
     reflexGeneratorRuntime "io.netty:netty-buffer:${netty_version}"
     reflexGeneratorRuntime "io.netty:netty-common:${netty_version}"
     reflexGeneratorRuntime libraries.jcommander
-    reflexGeneratorRuntime libraries.governator
     reflexGeneratorRuntime libraries.jacksonCore
     reflexGeneratorRuntime libraries.jacksonDatabind
-    reflexGeneratorRuntime libraries.jacksonCoreAsl
-    reflexGeneratorRuntime libraries.jacksonMapper
     reflexGeneratorRuntime libraries.slf4jApi
     reflexGeneratorRuntime libraries.guiceCore
     reflexGeneratorRuntime libraries.guiceMultibindings
@@ -92,12 +90,11 @@ task cleanDriversReflexDB(type: Delete) {
    delete "${buildDir}/reflexdb"
 }
 
-task generateDriversReflexDB {
+task generateDriversReflexDB(type: JavaExec) {
     dependsOn ':common:arcus-drivers:reflex-generator:jar' // XXX: this seems wrong, why doesn't this get pulled in above?
     dependsOn cleanDriversReflexDB
 
     description 'Generate the current reflexdb for hub local processing'
-   ant.lifecycleLogLevel = "INFO"
 
    def ver = "${platformVersion}"
 
@@ -108,27 +105,19 @@ task generateDriversReflexDB {
    inputs.files src
    outputs.dir "${buildDir}/driver-classes"
 
-   doLast {
+   // Filter out Gradle distribution jars (from gradleApi()) to avoid Groovy version conflict
+   classpath = configurations.reflexGeneratorRuntime.filter { !it.path.contains('/wrapper/dists/gradle-') }
+   mainClass = 'com.iris.driver.reflex.generator.ReflexGenerator'
 
-      ant.java (fork:true, failonerror: true, classname: "com.iris.driver.reflex.generator.ReflexGenerator") {
-         arg(value: '--output')
-         arg(value: 'none')
-         arg(value: '--version')
-         arg(value: ver)
+   jvmArgs '-Dgroovy.invoke.dynamic=false',
+           '-Dgroovy.dump.bytecode=true',
+           "-Dgroovy.dump.bytecode.path=${buildDir}/driver-classes"
 
-         sysproperty(key:'groovy.invoke.dynamic', value: 'false')
-         sysproperty(key:'groovy.dump.bytecode', value: 'true')
-         sysproperty(key:'groovy.dump.bytecode.path', value: "${buildDir}/driver-classes")
+   args '--output', 'none', '--version', ver
 
-         src.each { driver ->
-            arg(value: driver)
-         }
-
-         configurations.reflexGeneratorRuntime.each { art -> 
-            classpath {
-               pathelement(location: art)
-            }
-         }
+   doFirst {
+      src.each { driver ->
+         args driver
       }
    }
 }
@@ -137,7 +126,7 @@ task generateDriversJar(type: Jar) {
    dependsOn generateDriversReflexDB
 
    from files("${buildDir}/driver-classes")
-   baseName = 'arcus-drivers-compiled'
+   archiveBaseName = 'arcus-drivers-compiled'
    version = project.version
 }
 

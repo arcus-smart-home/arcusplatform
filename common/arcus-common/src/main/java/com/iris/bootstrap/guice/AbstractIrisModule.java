@@ -28,8 +28,8 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.binder.ScopedBindingBuilder;
 import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 /**
  *

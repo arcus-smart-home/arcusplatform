@@ -13,40 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply plugin: "me.champeau.gradle.jmh"
+apply plugin: "me.champeau.jmh"
 
 dependencies {
-	compile project(':common:arcus-client')
-	compile project(":common:arcus-metrics")
-	compile project(':common:arcus-model')
+	api project(':common:arcus-client')
+	api project(":common:arcus-metrics")
+	api project(':common:arcus-model')
 	
 
-	compile libraries.commons_lang
-	compile libraries.commons_math
-	compile libraries.governator
-	compile libraries.gson
-	compile libraries.guice
-	compile libraries.governator
-	compile libraries.governator_api
-	compile libraries.sunrise_sunset_calc
-	compile netty_common
+	api libraries.commonsCodec
+	api libraries.commons_lang
+	api libraries.commons_math
+	api libraries.guava
+	api libraries.gson
+	api libraries.guice
+	implementation libraries.sunrise_sunset_calc
+	implementation netty_common
 
-	runtime libraries.commonsConfig
-	runtime libraries.jacksonCore
-	runtime libraries.jacksonDatabind
-	runtime libraries.jacksonMapper
-	
+	runtimeOnly libraries.commonsConfig
+	runtimeOnly libraries.jacksonCore
+	runtimeOnly libraries.jacksonDatabind
+
 	jmh libraries.jacksonCore
 	jmh libraries.jacksonDatabind
-	jmh libraries.jacksonMapper
 	jmh 'org.msgpack:jackson-dataformat-msgpack:0.8.11'
-	jmh 'com.fasterxml.jackson.module:jackson-module-afterburner:2.7.1'
+	jmh 'com.fasterxml.jackson.module:jackson-module-afterburner:2.18.6'
 }
 
 jmh {
    jmhVersion = '1.13'
-   duplicateClassesStrategy = 'warn'
+   duplicateClassesStrategy = DuplicatesStrategy.WARN
 
-   include = 'PerfGsonSerDe'
+   includes = ['PerfGsonSerDe']
 }
 

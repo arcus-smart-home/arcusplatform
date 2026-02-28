@@ -27,7 +27,7 @@ import com.iris.platform.pairing.PairingDeviceDaoModule;
 import com.iris.platform.rule.RuleDaoModule;
 import com.iris.platform.scheduler.SchedulerDaoModule;
 import com.iris.platform.subsystem.SubsystemDaoModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
       CassandraAccountDAOModule.class,

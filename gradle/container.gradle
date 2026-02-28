@@ -11,8 +11,11 @@ import java.security.MessageDigest
 import groovy.io.FileType
 import java.nio.file.Files;
 
-
 apply from: file("${rootDir}/gradle/application.gradle")
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
+def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
 
 project.ext.dockerGroup = 'arcus'
 project.ext.containerName = "${project.name}.${project.dockerGroup}"
@@ -37,7 +40,7 @@ task uberDistInstall() {
 
    doLast {
       copy {
-         from tarTree(distTar.archivePath)
+         from tarTree(distTar.archiveFile.get().asFile)
          into "${rootDir}/build/uber/"
       }
    }
@@ -76,23 +79,32 @@ task uberDocker {
 }
 
 
-docker {
-   baseImage "arcus/java"
+task createDockerfile(type: DockerfileTask) {
+   destFile = project.file("${buildDir}/docker/Dockerfile")
+   from 'arcus/java'
+   addFile "${applicationName}-${version}.tar.gz", '/'
+   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
+   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
+   defaultCommand '-c', irisConfig
 }
 
-distDocker {
-   tag = project.containerTag;
-   tagVersion = project.dockerVersion;
+task prepareDockerContext(type: Copy) {
+   dependsOn distTar
+   from distTar.archiveFile.get().asFile
+   into "${buildDir}/docker"
+}
 
-   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
-   defaultCommand(['-c', irisConfig])
+task distDocker(type: DockerBuildImageTask) {
+   dependsOn createDockerfile, prepareDockerContext
+   inputDir = project.file("${buildDir}/docker")
+   images.add("${project.containerTag}:${project.dockerVersion}")
 }
 
 task tagDocker(type: Exec) {
    dependsOn "distDocker"
 
-   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+   def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
    if (System.getenv('REGISTRY_NAME')) {
       def registryName = System.getenv("REGISTRY_NAME")
@@ -105,12 +117,12 @@ task tagDocker(type: Exec) {
 task pushDocker(type: Exec) {
    dependsOn "tagDocker"
 
-   def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+   def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+   def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
    if (System.getenv('REGISTRY_NAME')) {
       def registryName = System.getenv("REGISTRY_NAME")
-      commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+      commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${separator}${applicationName}:${project.dockerVersion}"
    } else {
       commandLine 'docker', 'push', "${tag}:${project.dockerVersion}"
    }

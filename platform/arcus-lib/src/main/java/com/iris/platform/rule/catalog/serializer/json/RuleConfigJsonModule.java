@@ -42,7 +42,7 @@ import com.iris.platform.rule.catalog.condition.config.ReferenceFilterConfig;
 import com.iris.platform.rule.catalog.condition.config.ThresholdConfig;
 import com.iris.platform.rule.catalog.condition.config.TimeOfDayConfig;
 import com.iris.platform.rule.catalog.condition.config.ValueChangeConfig;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * Contains the necessary binding for serializing / deserializing

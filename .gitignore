@@ -49,3 +49,4 @@ platform/bridge-common/out/
 tools/arcus-captools/out/
 tools/eye-kat/out/
 tools/oculus/out/
+java*.hprof

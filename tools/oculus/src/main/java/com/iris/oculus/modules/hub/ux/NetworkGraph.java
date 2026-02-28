@@ -74,6 +74,7 @@ public class NetworkGraph {
          graph.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
          graph.setContentPane(content);
          graph.pack();
+         graph.setLocationRelativeTo(null);
          graph.setVisible(true);
          return graph;
       }

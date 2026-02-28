@@ -63,7 +63,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.protocol.ProtocolMessage;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 import ch.qos.logback.classic.pattern.ThrowableProxyConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;

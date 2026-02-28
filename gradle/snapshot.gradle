@@ -1,0 +1,15 @@
+// Auto-detect SNAPSHOT qualifier from git state.
+// If HEAD is an exact tag match, use no qualifier (release build).
+// Otherwise, append -SNAPSHOT to indicate a development build.
+// This overrides the qualifier from version.properties.
+
+def isTagged = false
+try {
+   def proc = 'git describe --exact-match --tags HEAD'.execute(null, rootDir)
+   proc.waitFor()
+   isTagged = (proc.exitValue() == 0)
+} catch (Exception e) {
+   // git not available, default to SNAPSHOT
+}
+
+ext.version_qualifier = isTagged ? '' : '-SNAPSHOT'

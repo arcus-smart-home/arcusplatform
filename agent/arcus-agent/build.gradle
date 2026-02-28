@@ -22,23 +22,22 @@ ext.agentMainManifest = manifest {
 }
 
 dependencies {
-    compile project(":agent:arcus-system");
-    compile project(":agent:arcus-hub-controller");
-    compile project(":agent:arcus-hal:arcus-hal-api");
+    api project(":agent:arcus-system");
+    api project(":agent:arcus-hub-controller");
+    api project(":agent:arcus-hal:arcus-hal-api");
 
-    compile project(":common:arcus-common")
-    compile project(":common:arcus-metrics")
+    api project(":common:arcus-common")
+    api project(":common:arcus-metrics")
 
-    compile libraries.guiceCore
-    compile libraries.governator
+    implementation libraries.guiceCore
 
-    compile libraries.metrics_core
-    compile libraries.metrics_logback
-    compile libraries.logback
+    implementation libraries.metrics_core
+    implementation libraries.metrics_logback
+    implementation libraries.logback
 
-    runtime libraries.commonsConfig
-    runtime libraries.janino
-    compile libraries.slf4jJcl
+    runtimeOnly libraries.commonsConfig
+    runtimeOnly libraries.janino
+    implementation libraries.slf4jJcl
 }
 
 task writeAgentVersion() {

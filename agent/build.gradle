@@ -20,7 +20,6 @@ buildscript {
       }
 
       mavenCentral()
-      jcenter()
    }
 
    apply from: file('../gradle/buildscript.gradle'), to: buildscript
@@ -32,7 +31,6 @@ repositories {
    }
 
    mavenCentral()
-   jcenter()
 }
 
 ext.buildVersion = "${version_major}.${version_minor}.${version_patch}${version_prerelease}"
@@ -41,4 +39,19 @@ println "agent version: ${agentVersion}"
 
 apply from: file("${rootDir}/gradle/deploy.gradle")
 apply from: file("${rootDir}/gradle/version.gradle")
+
+subprojects {
+   afterEvaluate {
+      if (plugins.hasPlugin('java')) {
+         sourceCompatibility = null
+         targetCompatibility = null
+         java {
+            toolchain {
+               languageVersion = JavaLanguageVersion.of(8)
+            }
+         }
+         // test deps now in gradle/subproject.gradle
+      }
+   }
+}
 

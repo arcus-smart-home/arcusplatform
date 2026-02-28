@@ -15,14 +15,16 @@
  */
 package com.iris.bootstrap;
 
+import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import com.google.inject.Stage;
 import com.google.inject.name.Names;
-import com.netflix.governator.configuration.PropertiesConfigurationProvider;
-import com.netflix.governator.guice.BootstrapBinder;
-import com.netflix.governator.guice.BootstrapModule;
-import com.netflix.governator.guice.LifecycleInjector;
-import com.netflix.governator.guice.LifecycleInjectorBuilder;
+import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.PropertiesConfigurationProvider;
+import com.iris.bootstrap.guice.IrisLifecycleManager;
+import com.iris.bootstrap.guice.LifecycleModule;
+import com.iris.bootstrap.guice.ModuleResolver;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,20 +56,20 @@ public class Bootstrap {
 
    public static class Builder {
 
-      private final Set<BootstrapModule> bootstrapModules = new HashSet<>();
+      private final Set<Module> bootstrapModules = new HashSet<>();
       private final Set<Class<? extends Module>> moduleClasses = new HashSet<>();
       private final Set<Module> modules = new HashSet<>();
       private final Set<File> configs = new HashSet<>();
       private final Map<String,String> constants = new HashMap<String,String>();
 
-      public Builder withBootstrapModules(BootstrapModule... modules) {
+      public Builder withBootstrapModules(Module... modules) {
          if(modules != null) {
             return withBootstrapModules(Arrays.asList(modules));
          }
          return this;
       }
 
-      public Builder withBootstrapModules(Collection<BootstrapModule> bootstrapModules) {
+      public Builder withBootstrapModules(Collection<? extends Module> bootstrapModules) {
          if(bootstrapModules  != null) {
             this.bootstrapModules.addAll(bootstrapModules);
          }
@@ -140,9 +143,9 @@ public class Bootstrap {
          }
          return this;
       }
-      
+
       public Builder withConstants(Map<String,String> constants) {
-      	if (constants != null) { 
+      	if (constants != null) {
       		this.constants.putAll(constants);
       	}
       	return this;
@@ -164,7 +167,7 @@ public class Bootstrap {
 
       public Bootstrap build() {
          Bootstrap bootstrap = new Bootstrap();
-         bootstrap.boostrapModules.addAll(bootstrapModules);
+         bootstrap.bootstrapModules.addAll(bootstrapModules);
          bootstrap.moduleClasses.addAll(moduleClasses);
          bootstrap.modules.addAll(modules);
          bootstrap.configs.addAll(configs);
@@ -200,7 +203,7 @@ public class Bootstrap {
    }
 
 
-   private final Set<BootstrapModule> boostrapModules = new HashSet<>();
+   private final Set<Module> bootstrapModules = new HashSet<>();
    private final Set<Class<? extends Module>> moduleClasses = new HashSet<>();
    private final Set<Module> modules = new HashSet<>();
    private final Set<File> configs = new HashSet<>();
@@ -212,31 +215,50 @@ public class Bootstrap {
    public Injector bootstrap() throws BootstrapException {
       try {
          final Properties merged = mergeProperties();
+         final PropertiesConfigurationProvider configProvider = new PropertiesConfigurationProvider(merged);
 
-         LifecycleInjectorBuilder builder = LifecycleInjector.builder()
-            .withBootstrapModule(new BootstrapModule() {
-               @Override
-               public void configure(BootstrapBinder binder) {
-                  Names.bindProperties(binder, merged);
-                  binder.bindConfigurationProvider().toInstance(new PropertiesConfigurationProvider(merged));
-               }
-            })
-            .withAdditionalBootstrapModules(boostrapModules);
-
+         // Resolve all module classes (including @Modules transitive deps)
+         Set<Class<? extends Module>> allModuleClasses = new HashSet<>(moduleClasses);
          if(merged.containsKey(PROP_MODULES)) {
             String [] classnames = StringUtils.split(merged.getProperty(PROP_MODULES));
-            Set<Class<? extends Module>> modules = classnamesToClasses(Arrays.asList(classnames));
-            modules.addAll(moduleClasses);
-            builder.withAdditionalModuleClasses(modules);
-         }
-         else if(!moduleClasses.isEmpty()) {
-            builder.withAdditionalModuleClasses(moduleClasses);
-         }
-         if(!modules.isEmpty()) {
-            builder.withAdditionalModules(modules);
+            allModuleClasses.addAll(classnamesToClasses(Arrays.asList(classnames)));
          }
 
-         return builder.build().createInjector();
+         // Configuration bootstrap module: binds properties and ConfigurationProvider
+         Module configModule = binder -> {
+            Names.bindProperties(binder, merged);
+            binder.bind(ConfigurationProvider.class).toInstance(configProvider);
+         };
+
+         // Create a bootstrap injector to resolve @Inject constructors on Module classes
+         // Uses DEVELOPMENT stage to allow JIT bindings for config classes, other modules, etc.
+         Injector bootstrapInjector = Guice.createInjector(Stage.DEVELOPMENT, configModule);
+
+         List<Module> allModules = new ArrayList<>();
+
+         // Lifecycle module must come first
+         allModules.add(new LifecycleModule());
+
+         // Add configuration bindings
+         allModules.add(configModule);
+
+         // Add any explicit bootstrap modules
+         allModules.addAll(bootstrapModules);
+
+         // Resolve @Modules annotations and instantiate module classes
+         allModules.addAll(ModuleResolver.resolve(allModuleClasses, bootstrapInjector));
+
+         // Add any explicit module instances
+         allModules.addAll(modules);
+
+         // Use PRODUCTION stage to eagerly instantiate singletons (matching Governator behavior)
+         // Note: @PostConstruct is invoked during injection via LifecycleModule.
+         // @WarmUp is deferred to IrisLifecycleManager.start(), which is called by
+         // GuiceServiceLocator.init() after ServiceLocator is available (so @WarmUp
+         // methods can use ServiceLocator).
+         Injector result = Guice.createInjector(Stage.PRODUCTION, allModules);
+
+         return result;
       } catch(Exception e) {
          throw new BootstrapException("Error bootstrapping the injection context", e);
       }
@@ -251,7 +273,7 @@ public class Bootstrap {
             properties.putAll(tmp);
          }
       }
-      
+
       if (constants != null) {
       	properties.putAll(constants);
       }
@@ -271,8 +293,8 @@ public class Bootstrap {
          //termsAndConditions.version - dotted key with the original case
          properties.put(dottedKey, value);
          //termsandconditions.version - dotted key with lowercase
-         properties.put(dottedKey.toLowerCase(), value);         
-         
+         properties.put(dottedKey.toLowerCase(), value);
+
       }
       return properties;
    }
@@ -285,4 +307,3 @@ public class Bootstrap {
       }
    }
 }
-

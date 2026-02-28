@@ -18,26 +18,25 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 
 
 dependencies {
-	compile project(':common:arcus-common')
-	compile project(':common:arcus-model:platform-messages')
+	api project(':common:arcus-common')
+	api project(':common:arcus-model:platform-messages')
 
-	compile libraries.guiceCore
-	compile libraries.guiceServlet
-	compile libraries.guiceMultibindings
-	compile libraries.governator
+	implementation libraries.guiceCore
+	implementation libraries.guiceServlet
+	implementation libraries.guiceMultibindings
 
-	compile libraries.kafka
+	implementation libraries.kafka
 
-	compile libraries.slf4j
+	implementation libraries.slf4j
 
-	compile libraries.apacheCurator
-	compile libraries.junit
-	compile libraries.easymock
-   compile libraries.javax_annotation_api
-	compile "org.hamcrest:hamcrest-all:1.3"
+	implementation libraries.apacheCurator
+	implementation libraries.junit
+	implementation libraries.easymock
+   implementation libraries.javax_annotation_api
+	implementation "org.hamcrest:hamcrest-all:1.3"
 
-	runtime libraries.commonsIO
-	runtime libraries.commonsConfig
-   runtime libraries.jaxb_api
+	runtimeOnly libraries.commonsIO
+	runtimeOnly libraries.commonsConfig
+   runtimeOnly libraries.jaxb_api
 }
 

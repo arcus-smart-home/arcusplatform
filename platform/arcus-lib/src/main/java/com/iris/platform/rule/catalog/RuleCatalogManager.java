@@ -34,7 +34,7 @@ import com.google.inject.name.Named;
 import com.iris.io.Deserializer;
 import com.iris.messages.type.Population;
 import com.iris.resource.Resource;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 /**
  *

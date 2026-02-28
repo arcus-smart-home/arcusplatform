@@ -132,6 +132,7 @@ public class CapabilityResponsePopUp extends BaseComponentWrapper<Window> {
       window.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
       // TODO remember dimensions
       window.setSize(800, 600);
+      window.setLocationRelativeTo(null);
 	   installEscapeCloseOperation(window);
 
 	   response = new JTextPane();

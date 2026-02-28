@@ -34,7 +34,7 @@ import com.iris.messages.capability.HubCapability;
 import com.iris.messages.errors.Errors;
 import com.iris.protocol.ProtocolMessage;
 import com.iris.protocol.zigbee.ZigbeeProtocol;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

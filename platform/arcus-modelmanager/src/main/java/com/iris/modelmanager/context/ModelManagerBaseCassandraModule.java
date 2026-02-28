@@ -24,7 +24,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.BaseCassandraModule;
 import com.iris.core.dao.cassandra.CassandraUtils;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 public abstract class ModelManagerBaseCassandraModule extends BaseCassandraModule
 {

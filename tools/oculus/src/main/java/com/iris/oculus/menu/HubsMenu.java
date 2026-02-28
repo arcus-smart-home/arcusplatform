@@ -92,6 +92,12 @@ public class HubsMenu extends BaseComponentWrapper<JMenu> {
          for(Action action: hubController.createHubActions(model)) {
             add(new JMenuItem(action));
          }
+
+         JMenu playTone = new JMenu("Play Tone");
+         for(Action action: hubController.createPlayToneActions(model)) {
+            playTone.add(new JMenuItem(action));
+         }
+         add(playTone);
       }
 
 

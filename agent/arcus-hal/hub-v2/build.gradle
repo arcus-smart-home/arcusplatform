@@ -19,21 +19,21 @@ apply from: file("${rootDir}/gradle/release.gradle")
 apply plugin: 'application'
 
 dependencies {
-   compile project(":agent:arcus-hal:arcus-hal-api")
-   compile project(":agent:arcus-hal:arcus-hal-common")
+   api project(":agent:arcus-hal:arcus-hal-api")
+   api project(":agent:arcus-hal:arcus-hal-common")
 
-   compile project(":agent:arcus-os")
-   compile project(":agent:arcus-system")
+   api project(":agent:arcus-os")
+   api project(":agent:arcus-system")
 
-   compile libraries.commonsIO
-   compile libraries.apacheCommonsExec
+   implementation libraries.commonsIO
+   implementation libraries.apacheCommonsExec
    
-   compile project(':common:arcus-common')
-   compile project(':common:arcus-model')
-   compile project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-common')
+   api project(':common:arcus-model')
+   api project(':common:arcus-model:platform-messages')
 
-   runtime project(":agent:arcus-agent")
-   runtime project(":agent:arcus-hal:arcus-hal-hub-v2")
+   runtimeOnly project(":agent:arcus-agent")
+   runtimeOnly project(":agent:arcus-hal:arcus-hal-hub-v2")
 }
 
 mainClassName = 'com.iris.agent.IrisAgent'
@@ -45,7 +45,7 @@ task('run-hub-v2', type:JavaExec) {
    description "Runs an Iris Agent using the arcus-hal-hub-v2 settings."
    classpath = files("$projectDir/src/dist/conf") + sourceSets.main.runtimeClasspath
    group "Application"
-   main = 'com.iris.agent.IrisAgent'
+   mainClass = 'com.iris.agent.IrisAgent'
    args '~/.hub-simulated/' // Store files in ~/.hub-simulated
    jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
 }

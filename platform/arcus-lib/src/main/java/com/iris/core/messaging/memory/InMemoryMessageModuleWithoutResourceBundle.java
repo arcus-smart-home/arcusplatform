@@ -24,7 +24,7 @@ import com.iris.capability.attribute.transform.AttributeMapTransformModule;
 import com.iris.core.messaging.MessagesModule;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.protocol.ProtocolMessageBus;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

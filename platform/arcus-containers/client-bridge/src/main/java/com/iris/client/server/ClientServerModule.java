@@ -124,7 +124,7 @@ import com.iris.prodcat.ProductCatalogReloadListener;
 import com.iris.resource.Resource;
 import com.iris.resource.Resources;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;

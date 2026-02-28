@@ -45,7 +45,7 @@ import com.iris.core.template.TemplateModule;
 import com.iris.platform.billing.server.recurly.ClosedInvoiceWebhookHandler;
 import com.iris.platform.billing.server.recurly.RecurlyCallbackHttpHandler;
 import com.iris.platform.billing.server.recurly.WebhookHandler;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  *

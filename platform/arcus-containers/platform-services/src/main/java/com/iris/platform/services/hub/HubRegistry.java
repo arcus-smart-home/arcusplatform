@@ -55,7 +55,7 @@ import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.Partitioner;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.util.ThreadPoolBuilder;
-import com.netflix.governator.annotations.WarmUp;
+import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class HubRegistry implements PartitionListener {

@@ -30,7 +30,7 @@ import com.iris.platform.pairing.handler.DeviceFoundListener;
 import com.iris.platform.pairing.handler.DeviceRemovedListener;
 import com.iris.platform.pairing.handler.HubDeletedListener;
 import com.iris.platform.pairing.handler.PlaceDeletedListener;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * @author tweidlin

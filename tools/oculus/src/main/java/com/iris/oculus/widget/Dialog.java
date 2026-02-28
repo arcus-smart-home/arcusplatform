@@ -61,6 +61,8 @@ public abstract class Dialog<V> extends JDialog {
       this.setMaximumSize(Toolkit.getDefaultToolkit().getScreenSize());
       if (Oculus.isMainWindowSet()) {
          this.setLocationRelativeTo(Oculus.getMainWindow());
+      } else {
+         this.setLocationRelativeTo(null);
       }
       this.notification = new NotificationPanel(EnumSet.noneOf(NotificationFlags.class));
    }

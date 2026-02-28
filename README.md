@@ -14,10 +14,10 @@ Arcus Platform does not contain a UI (beyond oculus, which is in Java). If you w
 * **arcushubos** - Yocto Linux based HubOS Firmware
 
 # High Level Overview
-Please see [Overview](docs/overview.md) for details. At present, local development is tricky to get setup and takes a considerable amount of time to configure. It is instead recommended that you setup Arcus in a container system, for example Kubernetes. See the community effort [arcus-k8](https://github.com/wl-net/arcus-k8) for details.
+Please see [Overview](docs/overview.md) for details. At present, local development is tricky to get setup and takes a considerable amount of time to configure. It is instead recommended that you setup Arcus in a container system, for example Kubernetes. See the community effort [arcus-k8s](https://github.com/wl-net/arcus-k8) for details.
 
 Please see [README.projects](docs/projects.md) for details on the layout of this project. Individual subdirectories may have their own additional documentation.
 
 # Support
 
-Please use http://forum.livingwithiris.com/forum/62-arcus/ for support and general questions.
+Please use GitHub Issues for support and general questions.

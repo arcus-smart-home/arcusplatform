@@ -16,23 +16,19 @@
 apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/application.gradle")
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-
 
 dependencies {
-   compile project(':common:arcus-common')
-   compile project(':platform:arcus-lib:kafka-stream')
+   api project(':common:arcus-common')
+   api project(':platform:arcus-lib:kafka-stream')
 
    // logging
-   compile libraries.slf4j
-   compile libraries.slf4jLog4j
-   compile libraries.logback
+   implementation libraries.slf4j
+   implementation libraries.slf4jLog4j
+   implementation libraries.logback
    
-   compile libraries.jcommander
+   implementation libraries.jcommander
    
-   testCompile libraries.junit
-   testCompile libraries.mockito
+   testImplementation libraries.mockito
 }
 
 mainClassName = 'com.iris.tools.kat.Main'

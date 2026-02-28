@@ -47,6 +47,7 @@ run {
    systemProperty "sun.net.inetaddr.negative.ttl", "5"
    systemProperty "jdk.tls.ephemeralDHKeySize", "2048"
    systemProperty 'kafka.consumerTimeoutMs', '3600000'
+   systemProperty "logback.configurationFile", "/home/andrew/projects/arcus-k8/config/extrafiles/logback.xml"
    environment getLocalProps()
    args '-c', 'src/dist/conf/' + project.name + '.properties'
 }
@@ -54,7 +55,7 @@ run {
 
 startScripts {
    classpath += files('XXX_CONF_PLACEHOLDER_XXX')
-   defaultJvmOpts = [
+   def baseOpts = [
            '-Dsun.net.inetaddr.ttl=10',
            '-Dsun.net.inetaddr.negative.ttl=5',
            "-Djdk.tls.ephemeralDHKeySize=2048",
@@ -64,6 +65,13 @@ startScripts {
            '-XX:StringTableSize=1000003',
            "-Xms${jvmMem}m",
            "-Xmx${jvmMem}m",
+           '-XX:+UseNUMA',
+           '-XX:+UseNUMAInterleaving'
+   ]
+
+   // These intrinsic flags only exist in Java 8
+   if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+      baseOpts.addAll([
            '-XX:+UseMontgomeryMultiplyIntrinsic',
            '-XX:+UseMontgomerySquareIntrinsic',
            '-XX:+UseSquareToLenIntrinsic',
@@ -74,10 +82,11 @@ startScripts {
            '-XX:+UseSHA512Intrinsics',
            '-XX:+UseMulAddIntrinsic',
            '-XX:+UseXmmI2D',
-           '-XX:+UseXmmI2F',
-           '-XX:+UseNUMA',
-           '-XX:+UseNUMAInterleaving'
-   ]
+           '-XX:+UseXmmI2F'
+      ])
+   }
+
+   defaultJvmOpts = baseOpts
 
    doLast {
       def windowsScriptFile = file getWindowsScript()
@@ -88,14 +97,35 @@ startScripts {
 }
 
 task createApplicationInfo {
-   doLast{
-      def f = new File(sourceSets.main.java.outputDir, "META-INF/application.properties");
-      f.delete();
-      f.parentFile.mkdirs();
+   def outputDir = file("${buildDir}/generated-resources/application-info")
+   outputs.dir outputDir
+   doLast {
+      def f = new File(outputDir, "META-INF/application.properties")
+      f.delete()
+      f.parentFile.mkdirs()
       f << "application.name=" + project.name + "\n"
       f << "application.version=" + platformVersion + "\n"
       f << "build.timestamp=" + new Date() + "\n"
    }
 }
 
-classes.dependsOn << createApplicationInfo
+sourceSets.main.output.dir("${buildDir}/generated-resources/application-info", builtBy: 'createApplicationInfo')
+
+task verifyApplicationInfo {
+   description 'Fails the build if META-INF/application.properties is missing from the jar'
+   dependsOn jar
+   doLast {
+      def jarFile = jar.archivePath
+      def found = false
+      new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+         found = zip.getEntry('META-INF/application.properties') != null
+      }
+      if (!found) {
+         throw new GradleException(
+            "META-INF/application.properties is missing from ${jarFile.name}. " +
+            "The createApplicationInfo task may not be wired into the build correctly."
+         )
+      }
+   }
+}
+check.dependsOn verifyApplicationInfo

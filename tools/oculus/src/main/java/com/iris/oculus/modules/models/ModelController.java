@@ -103,6 +103,7 @@ public class ModelController {
          JDialog dialog = new JDialog(null, model.getAddress(), ModalityType.MODELESS);
          dialog.add(new JScrollPane(view.getComponent()));
          dialog.setSize(600, 400);
+         dialog.setLocationRelativeTo(null);
          dialog.addWindowListener(new WindowAdapter() {
             /* (non-Javadoc)
              * @see java.awt.event.WindowAdapter#windowClosed(java.awt.event.WindowEvent)
@@ -176,7 +177,9 @@ public class ModelController {
             attributeWindows.remove(model.getAddress() + ":"  + attributeName);
          }
       });
-      
+
+      window.pack();
+      window.setLocationRelativeTo(null);
       return window;
    }
 }

@@ -19,7 +19,7 @@ import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.platform.alarm.notification.calltree.CallTreeDAO;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={CassandraModule.class, CassandraResourceBundleDAOModule.class })
 public class CassandraNotificationDaoModule extends AbstractIrisModule {

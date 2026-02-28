@@ -22,7 +22,7 @@ import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraModule;
 import com.iris.platform.scheduler.cassandra.CassandraScheduleDao;
 import com.iris.platform.scheduler.cassandra.CassandraSchedulerModelDao;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

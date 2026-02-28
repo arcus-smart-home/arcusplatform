@@ -30,6 +30,7 @@ import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.inject.AbstractModule;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
 import com.iris.info.IrisApplicationInfo;
@@ -38,10 +39,8 @@ import com.iris.resource.azure.AzureResourceModule;
 import com.iris.resource.classpath.ClassPathResourceFactory;
 import com.iris.resource.environment.EnvironmentVariableResourceFactory;
 import com.iris.resource.filesystem.FileSystemResourceFactory;
-import com.netflix.governator.guice.BootstrapBinder;
-import com.netflix.governator.guice.BootstrapModule;
 
-public class IrisApplicationModule implements BootstrapModule {
+public class IrisApplicationModule extends AbstractModule {
    public static final String APPLICATION_PROPS         = "META-INF/application.properties";
    public static final String NAME_APPLICATION_NAME     = "application.name";
    public static final String NAME_APPLICATION_VERSION  = "application.version";
@@ -130,29 +129,29 @@ public class IrisApplicationModule implements BootstrapModule {
    }
    
    @Override
-   public void configure(BootstrapBinder binder) {
+   protected void configure() {
       init();
-      bindIfNotInEnvironmentProperty(binder, NAME_APPLICATION_NAME, getApplicationName());
-      bindIfNotInEnvironmentProperty(binder, NAME_APPLICATION_VERSION, getApplicationVersion());
-      bindIfNotInEnvironmentProperty(binder, NAME_APPLICATION_DIR, getApplicationDirectory());
+      bindIfNotInEnvironmentProperty(NAME_APPLICATION_NAME, getApplicationName());
+      bindIfNotInEnvironmentProperty(NAME_APPLICATION_VERSION, getApplicationVersion());
+      bindIfNotInEnvironmentProperty(NAME_APPLICATION_DIR, getApplicationDirectory());
       IrisApplicationInfo.setApplicationName(getApplicationName());
       IrisApplicationInfo.setApplicationVersion(getApplicationVersion());
       IrisApplicationInfo.setApplicationDirectory(getApplicationDirectory());
-      
+
       FileSystemResourceFactory fs = new FileSystemResourceFactory(getApplicationDirectory());
       Resources.registerDefaultFactory(fs);
       Resources.registerFactory(fs);
       Resources.registerFactory(new ClassPathResourceFactory());
       Resources.registerFactory(new EnvironmentVariableResourceFactory());
-      registerAzureResourceFactory(binder);
+      registerAzureResourceFactory();
    }
-   
-   private void registerAzureResourceFactory(BootstrapBinder binder) {
+
+   private void registerAzureResourceFactory() {
    	try {
    		AzureResourceModule azureResourceModule = new AzureResourceModule();
-   		binder.requestInjection(azureResourceModule);
-   		binder.install(azureResourceModule);
-   		
+   		binder().requestInjection(azureResourceModule);
+   		install(azureResourceModule);
+
    	}catch(Exception e) {
    		logger.warn("Unable to register AzureResourceFactory with Resources", e);
    	}
@@ -160,14 +159,13 @@ public class IrisApplicationModule implements BootstrapModule {
 
 	/*
     * Since all environment properties (-D) get bound automatically to their name.  We don't want to bind these props if they
-    * are already being bound.  Doing so will cause a com.google.inject.CreationException on LifecycleInjectorBuilder.build().createInjector();.
+    * are already being bound.  Doing so will cause a com.google.inject.CreationException.
     * So if we want to override the property value via an environment variable, we won't bind this property.
     */
-   private void bindIfNotInEnvironmentProperty(BootstrapBinder binder, String prop, String value){
+   private void bindIfNotInEnvironmentProperty(String prop, String value){
       String envProp = System.getProperty(prop);
       if(envProp==null){
-         binder
-         .bind(Key.get(String.class, Names.named(prop)))
+         bind(Key.get(String.class, Names.named(prop)))
          .toInstance(value);
       }
       else{

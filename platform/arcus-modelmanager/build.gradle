@@ -44,38 +44,52 @@ def schemas = [ "platform", "video", "history" ]
 
 dependencies {
 
-    compile project (':platform:arcus-lib')
+    api project (':platform:arcus-lib')
 	
-    compile libraries.cassandraDriver
-    compile libraries.commonsCodec
-    compile libraries.commons_lang
-    compile libraries.commonsIO
-    compile libraries.jcommander
-    compile libraries.gson
+    implementation libraries.cassandraDriver
+    implementation libraries.commonsCodec
+    implementation libraries.commons_lang
+    implementation libraries.commonsIO
+    implementation libraries.jcommander
+    implementation libraries.gson
 
     // TODO:  really unclear as to what of the transitive dependencies are actually required to
     // run the embedded server.  it is really annoying
-    testCompile libraries.cassandraUnit
-	 testCompile project (':platform:arcus-test')
+    testImplementation libraries.cassandraUnit
+	 testImplementation project (':platform:arcus-test')
 
-    runtime libraries.logback
+    runtimeOnly libraries.logback
 }   
 
-docker {
-   baseImage "arcus/java"
+apply plugin: 'com.bmuschko.docker-remote-api'
+
+def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
+def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
+
+task createDockerfile(type: DockerfileTask) {
+   destFile = project.file("${buildDir}/docker/Dockerfile")
+   from 'arcus/java'
+   addFile "${applicationName}-${version}.tar.gz", '/'
+   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
+   defaultCommand '-H', "/${applicationName}-${version}/", '-P', 'dev', '-a'
 }
 
-distDocker {
-   tag = "${project.dockerGroup}/${project.applicationName}"
-   tagVersion = dockerVersion
-   
-   defaultCommand(["-H", "/${project.applicationName}-${project.version}/", "-P", "dev", "-a"])
+task prepareDockerContext(type: Copy) {
+   dependsOn distTar
+   from distTar.archiveFile.get().asFile
+   into "${buildDir}/docker"
+}
+
+task distDocker(type: DockerBuildImageTask) {
+   dependsOn createDockerfile, prepareDockerContext
+   inputDir = project.file("${buildDir}/docker")
+   images.add("${project.containerTag}:${dockerVersion}")
 }
 
 task tagDocker(type: Exec) {
     dependsOn "distDocker"
-    def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-    def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+    def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+    def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
     if (System.getenv('REGISTRY_NAME')) {
         def registryName = System.getenv("REGISTRY_NAME")
@@ -88,12 +102,12 @@ task tagDocker(type: Exec) {
 task pushDocker(type: Exec) {
     dependsOn "tagDocker"
 
-    def seperator = System.getenv("REGISTRY_SEPERATOR") ?: "/"
-    def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + seperator + applicationName
+    def separator = System.getenv("REGISTRY_SEPARATOR") ?: "/"
+    def tag = (System.getenv("DOCKER_PREFIX_OVERRIDE") ?: project.dockerGroup) + separator + applicationName
 
     if (System.getenv('REGISTRY_NAME')) {
         def registryName = System.getenv("REGISTRY_NAME")
-        commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${seperator}${applicationName}:${project.dockerVersion}"
+        commandLine 'docker', 'push', "${registryName}/${project.dockerGroup}${separator}${applicationName}:${project.dockerVersion}"
     } else {
         commandLine 'docker', 'push', "${tag}:${project.dockerVersion}"
     }
@@ -138,7 +152,7 @@ schemas.each() { target ->
       systemProperty "modelmanager.home", "${homeDir}"
       systemProperty "modelmanager.schema", "${target}"
 
-      main = "com.iris.modelmanager.ModelManager"
+      mainClass = "com.iris.modelmanager.ModelManager"
 
       environment getLocalProps()
 

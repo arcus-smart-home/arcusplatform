@@ -77,7 +77,7 @@ public class ArgumentResolverFactoryChain<I, R> implements ArgumentResolverFacto
 		
 		public ArgumentResolverFactory<I, R> build() {
 			Preconditions.checkState(!factories.isEmpty(), "Must add at least one factory");
-			return new ArgumentResolverFactoryChain<>(new ArrayList<>(factories));
+			return new ArgumentResolverFactoryChain<I, R>(new ArrayList<>(factories));
 		}
 	}
 }

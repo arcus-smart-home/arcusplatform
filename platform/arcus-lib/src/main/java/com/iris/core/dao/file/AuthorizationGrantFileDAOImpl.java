@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.Closeables;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Singleton;
@@ -99,22 +98,13 @@ public class AuthorizationGrantFileDAOImpl implements AuthorizationGrantDAO {
    }
 
    private List<AuthorizationGrant> loadData() throws IOException {
-      InputStream is = null;
-      Reader reader = null;
-
-      try {
-         is = this.getClass().getClassLoader().getResourceAsStream(RESOURCE);
-         if(is != null) {
-            reader = new InputStreamReader(is, "UTF-8");
+      InputStream is = this.getClass().getClassLoader().getResourceAsStream(RESOURCE);
+      if(is != null) {
+         try (Reader reader = new InputStreamReader(is, "UTF-8")) {
             return Arrays.asList(createGson().fromJson(reader, AuthorizationGrant[].class));
          }
-
-         return Collections.<AuthorizationGrant>emptyList();
-
-      } finally {
-         Closeables.close(reader, true);
-         Closeables.close(is, true);
       }
+      return Collections.<AuthorizationGrant>emptyList();
    }
 
    private Gson createGson() {

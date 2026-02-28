@@ -24,7 +24,7 @@ import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.protocol.ProtocolMessageBus;
 import com.iris.platform.partition.PartitionListener;
 import com.iris.platform.partition.simple.SimplePartitionModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * This creates a statically configured kafka which does not depend on dynamic

@@ -24,7 +24,7 @@ import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
 import com.iris.platform.scheduler.SchedulerDaoModule;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 /**
  * 

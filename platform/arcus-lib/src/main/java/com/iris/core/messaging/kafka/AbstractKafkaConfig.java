@@ -42,9 +42,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.netflix.governator.configuration.ConfigurationKey;
-import com.netflix.governator.configuration.ConfigurationProvider;
-import com.netflix.governator.configuration.KeyParser;
+import com.iris.bootstrap.config.ConfigurationKey;
+import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.KeyParser;
 
 public abstract class AbstractKafkaConfig {
    private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConfig.class);

@@ -26,7 +26,7 @@ import com.google.inject.name.Named;
 import com.iris.platform.partition.PartitionConfig;
 import com.iris.protocol.ipcd.IpcdProtocol;
 import com.iris.util.IrisCollections;
-import com.netflix.governator.configuration.ConfigurationProvider;
+import com.iris.bootstrap.config.ConfigurationProvider;
 
 @Singleton
 public class KafkaConfig extends AbstractKafkaConfig {

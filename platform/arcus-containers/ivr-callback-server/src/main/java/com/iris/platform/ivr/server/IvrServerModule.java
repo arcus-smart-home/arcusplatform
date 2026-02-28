@@ -39,7 +39,7 @@ import com.iris.core.template.TemplateModule;
 import com.iris.platform.notification.audit.CassandraAuditor;
 import com.iris.platform.notification.audit.NotificationAuditor;
 import com.iris.population.PlacePopulationCacheModule;
-import com.netflix.governator.annotations.Modules;
+import com.iris.bootstrap.annotations.Modules;
 
 import io.netty.channel.ChannelInboundHandler;
 

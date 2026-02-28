@@ -28,7 +28,6 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.io.output.WriterOutputStream;
 
-import com.google.common.io.Closeables;
 import com.iris.resource.Resource;
 
 public class XMLUtil {
@@ -44,14 +43,10 @@ public class XMLUtil {
    }
 
    public static <T> T deserializeJAXB(Resource resource, Class<T> clazz) {
-      InputStream is = null;
-      try{
-         is = resource.open();
+      try (InputStream is = resource.open()) {
          return deserializeJAXB(is, clazz);
       }catch (Exception e){
          throw new RuntimeException("Error parsing XML document", e);
-      }finally{
-         Closeables.closeQuietly(is);
       }
    }
 

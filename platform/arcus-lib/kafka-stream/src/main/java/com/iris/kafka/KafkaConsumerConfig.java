@@ -77,7 +77,7 @@ public class KafkaConsumerConfig {
     * @return the host
     */
    public String getHost() {
-      return broker.getHostText();
+      return broker.getHost();
    }
 
    /**
@@ -98,7 +98,7 @@ public class KafkaConsumerConfig {
     * @param port the port to set
     */
    public void setPort(int port) {
-      this.broker = HostAndPort.fromParts(this.broker.getHostText(), port);
+      this.broker = HostAndPort.fromParts(this.broker.getHost(), port);
    }
 
    public List<HostAndPort> getBrokerOverrides() {

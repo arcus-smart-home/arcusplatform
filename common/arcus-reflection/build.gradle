@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 dependencies {
-   compile libraries.guava
+   implementation libraries.guava
 }
 

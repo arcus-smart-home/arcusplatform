@@ -18,59 +18,60 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/jaxb.gradle")
 
 dependencies {
-   compile project (':platform:arcus-info')
+   api project (':platform:arcus-info')
    // TODO should really be a runtime dependency
-   compile project (':platform:arcus-log')
-   compile project (':platform:arcus-security')
-   compile project (':platform:arcus-prodcat')
-   compile project (':platform:arcus-rules')
-   compile project (':common:arcus-client')
-   compile project (':common:arcus-common')
-   compile project (':common:arcus-metrics')
-   compile project (':common:arcus-drivers:drivers-common')
-   compile project(':common:arcus-model:platform-messages')
-   compile project(':common:arcus-protocol')
+   api project (':platform:arcus-log')
+   api project (':platform:arcus-security')
+   api project (':platform:arcus-prodcat')
+   api project (':platform:arcus-rules')
+   api project (':common:arcus-client')
+   api project (':common:arcus-common')
+   api project (':common:arcus-metrics')
+   api project (':common:arcus-drivers:drivers-common')
+   api project(':common:arcus-model:platform-messages')
+   api project(':common:arcus-protocol')
 
-   compile dependencies.create(libraries.easymock) { transitive false }
+   implementation dependencies.create(libraries.easymock) { transitive false }
 
    // anything that depends on arcus-lib should be capable of
    // handling jvm metrics
-   compile libraries.metrics_jvm
+   api libraries.metrics_jvm
 
-   compile libraries.prometheus_dropwizard
-   compile libraries.prometheus_servlet
-   compile libraries.jetty_servlet
+   api libraries.prometheus_dropwizard
+   api libraries.prometheus_servlet
+   api libraries.jetty_servlet
 
-   compile libraries.zookeeper
-   compile libraries.kafka
-   compile libraries.cassandraDriver
-   compile libraries.guiceCore
-   compile libraries.guiceServlet
-   compile libraries.guiceMultibindings
-   compile libraries.governator
-   compile libraries.shiro
-   compile libraries.metrics_core
-   compile libraries.metrics_json
-   compile libraries.handlebars
-   compile libraries.opencsv
-   compile libraries.joda
+   api libraries.zookeeper
+   api libraries.kafka
+   api libraries.cassandraDriver
+   api libraries.guiceCore
+   api libraries.guiceServlet
+   api libraries.guiceMultibindings
+   api libraries.shiro
+   api libraries.metrics_core
+   api libraries.metrics_json
+   api libraries.handlebars
+   implementation libraries.opencsv
+   api libraries.joda
 
-   compile libraries.jcommander
+   implementation libraries.jcommander
 
    // TODO need a custom scope for this, providedCompile is part of war plugin
-   compile libraries.javaxServlet
+   api libraries.javaxServlet
 
-   compile libraries.azure_storage
-   compile libraries.commons_beanutils
+   implementation libraries.azure_storage
+   implementation libraries.commons_beanutils
+   api libraries.bouncycastle
+   implementation libraries.slf4jJul
 
-   runtime libraries.jacksonCore
-   runtime libraries.jacksonMapper
-   runtime libraries.commonsConfig
-   runtime libraries.jaxb_impl
-   runtime libraries.javax_activation_api
-   runtime libraries.javax_activation_impl
+   runtimeOnly libraries.jacksonCore
+   runtimeOnly libraries.jacksonDatabind
+   runtimeOnly libraries.commonsConfig
+   runtimeOnly libraries.jaxb_impl
+   runtimeOnly libraries.javax_activation_api
+   runtimeOnly libraries.javax_activation_impl
    
-   testCompile project (':platform:arcus-test')
+   testImplementation project (':platform:arcus-test')
 }
 
 test {

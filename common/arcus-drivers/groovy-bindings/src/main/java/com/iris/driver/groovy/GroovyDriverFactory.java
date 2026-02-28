@@ -118,9 +118,10 @@ public class GroovyDriverFactory {
 
                Class<?> cls = engine.getGroovyClassLoader().loadClass(clsname,false,false,true);
                script = InvokerHelper.createScript(cls, binding);
+               logger.debug("loaded precompiled driver class: {}", clsname);
             }
          } catch (ClassNotFoundException ex) {
-            // ignore
+            logger.warn("precompiled class not found for driver {}, falling back to source compilation", driver);
          } catch (Exception ex) {
             logger.info("failed to load precompiled class:", ex);
          }
@@ -194,9 +195,10 @@ public class GroovyDriverFactory {
 
                   Class<?> cls = engine.getGroovyClassLoader().loadClass(clsname,false,false,true);
                   capabilityScript = InvokerHelper.createScript(cls, binding);
+                  logger.debug("loaded precompiled capability class: {}", clsname);
                }
             } catch (ClassNotFoundException ex) {
-               // ignore
+               logger.warn("precompiled class not found for capability {}, falling back to source compilation", capabilityName);
             } catch (Exception ex) {
                logger.info("failed to load precompiled capability class:", ex);
             }
