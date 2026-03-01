@@ -32,9 +32,10 @@ import com.iris.bridge.server.http.HttpSender;
 import com.iris.bridge.server.http.annotation.HttpGet;
 import com.iris.bridge.server.http.impl.HttpResource;
 import com.iris.bridge.server.http.impl.auth.AlwaysAllow;
+import com.iris.core.dao.cassandra.CassandraHealth;
 
 /**
- * 
+ *
  */
 @Singleton
 @HttpGet("/check")
@@ -45,11 +46,11 @@ public class CheckPage extends HttpResource {
       super(alwaysAllow, new HttpSender(CheckPage.class, metrics));
    }
 
-   /* (non-Javadoc)
-    * @see com.iris.bridge.server.http.impl.HttpResource#respond(io.netty.handler.codec.http.FullHttpRequest, io.netty.channel.ChannelHandlerContext)
-    */
    @Override
    public FullHttpResponse respond(FullHttpRequest req, ChannelHandlerContext ctx) throws Exception {
+      if (!CassandraHealth.instance().isHealthy()) {
+         return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE);
+      }
       return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
    }
    

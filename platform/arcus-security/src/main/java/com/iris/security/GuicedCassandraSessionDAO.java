@@ -273,7 +273,11 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
          	logger.warn("Session not found for SessionId: {}", sessionId);
             return null;
          }
-         logger.warn("Error loading session {}", sessionId, e);
+         if(cause instanceof com.datastax.driver.core.exceptions.NoHostAvailableException) {
+            logger.warn("Error loading session {}: {}", sessionId, cause.getMessage());
+         } else {
+            logger.warn("Error loading session {}", sessionId, e);
+         }
       }
       catch(Exception e) {
          logger.warn("Error loading session {}", sessionId, e);
