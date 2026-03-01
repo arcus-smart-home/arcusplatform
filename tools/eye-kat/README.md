@@ -1,5 +1,9 @@
 A command line tool intended to allow filtering by time range across all of the pertinent topics.
 
+**NOTE:** eye-kat and its `kafka-stream` library depend on Kafka 0.10.0.0 and use the
+old `SimpleConsumer` API (`kafka.api.*`, `kafka.javaapi.*`) which was removed in Kafka 2.0.
+These need to be rewritten to use the modern `KafkaConsumer` API to work with Kafka 2.8.2+.
+
 Still very beta, but some sample commands:
 
 Starting from the last 10 minutes tail the platform topic
