@@ -65,6 +65,15 @@ public class CassandraHealth implements Host.StateListener {
    }
 
    /**
+    * Allows external components (e.g. ClusterService heartbeat) to
+    * report Cassandra health based on actual query success/failure.
+    */
+   public void setHealthy(boolean healthy) {
+      active = true;
+      this.healthy = healthy;
+   }
+
+   /**
     * Seeds the live host set from the cluster's current metadata and
     * stores a session reference for probe queries.
     * Safe to call multiple times (e.g. from multiple keyspace modules).
