@@ -300,8 +300,10 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
 
    protected void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) {
       try {
+         logger.info("[{} {}]", req.getMethod(), req.getUri());
+
          if (!req.getDecoderResult().isSuccess()) {
-            logger.warn("Error handling request: [{} {}] - Bad Request", req.getMethod(), req.getUri());
+            logger.warn("[{} {}] 400 - Bad Request", req.getMethod(), req.getUri());
             metrics.incBadHttpRequestCounter();
             metrics.incErrorHttpRequestCounter();
             httpSender.sendError(ctx, HttpSender.STATUS_BAD_REQUEST, req);
@@ -320,7 +322,7 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
             }
          }
 
-         logger.debug("Error handling request: [{} {}] - Not Found", req.getMethod(), req.getUri());
+         logger.debug("[{} {}] 404 - Not Found", req.getMethod(), req.getUri());
          metrics.incNotFoundHttpRequestCounter();
          metrics.incErrorHttpRequestCounter();
          httpSender.sendError(ctx, HttpSender.STATUS_NOT_FOUND, req);
@@ -340,17 +342,17 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
             else if (ex.getStatusCode() == HttpSender.STATUS_BAD_REQUEST) {
                metrics.incBadHttpRequestCounter();
             }
-            if (ex.getStatusCode() == HttpSender.STATUS_NOT_FOUND) {
-               logger.debug("Error handling request: [{} {}]", req.getMethod(), req.getUri(), ex);
+            if (ex.getStatusCode() >= 500) {
+               logger.warn("[{} {}] {}", req.getMethod(), req.getUri(), ex.getStatusCode(), ex);
             } else {
-               logger.warn("Error handling request: [{} {}]", req.getMethod(), req.getUri(), ex);
+               logger.debug("[{} {}] {}", req.getMethod(), req.getUri(), ex.getStatusCode());
             }
             metrics.incErrorHttpRequestCounter();
             httpSender.sendError(ctx, ex.getStatusCode(), req);
          }
       }
       catch(Exception e) {
-         logger.warn("Error handling request: [{} {}]", req.getMethod(), req.getUri(), e);
+         logger.warn("[{} {}] 500 - Unexpected error", req.getMethod(), req.getUri(), e);
          httpSender.sendError(ctx, HttpSender.STATUS_SERVER_ERROR, req);
       }
    }
