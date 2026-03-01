@@ -124,7 +124,8 @@ public abstract class BaseCassandraModule extends AbstractModule {
                 .addContactPoints(parseContactPoints(contactPoints))
                 .withPort(port)
                 .withoutJMXReporting()
-                .withTimestampGenerator(new ThreadLocalMonotonicTimestampGenerator());
+                .withTimestampGenerator(new ThreadLocalMonotonicTimestampGenerator())
+                .withReconnectionPolicy(new com.datastax.driver.core.policies.ExponentialReconnectionPolicy(1000, 30000));
 
         String username = CassandraUtils.getUsername(config, name);
         String password = CassandraUtils.getPassword(config, name);
