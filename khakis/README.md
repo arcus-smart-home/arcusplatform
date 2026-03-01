@@ -10,13 +10,13 @@ Running the following command on the console will build all of the docker
 images required for the Arcus Platform.
 
 ```
-./bin/build.sh
+./khakis/bin/build.sh
 ```
 
 To build a specific image, pass it as an argument:
 
 ```
-./bin/build.sh arcus-cassandra
+./khakis/bin/build.sh arcus-cassandra
 ```
 
 Docker caches intermediate images to speed up image creation, so running this
@@ -33,7 +33,7 @@ You can also build via gradle, which will tag the images with the version from `
 Running the following command will start the Zookeeper, Kafka, and Cassandra containers:
 
 ```
-./bin/start.sh
+./khakis/bin/start.sh
 ```
 
 There are several environment variables that control container configuration:
@@ -50,45 +50,27 @@ There are several environment variables that control container configuration:
 ## Stopping the Arcus infrastructure containers
 
 ```
-./bin/stop.sh
+./khakis/bin/stop.sh
 ```
 
 To stop a specific container:
 
 ```
-./bin/stop.sh eyeris-cassandra
+./khakis/bin/stop.sh eyeris-cassandra
 ```
 
 ## Connecting to a running container
 
 ```
-./bin/connect.sh <container-name> [command]
+./khakis/bin/connect.sh <container-name> [command]
 ```
 
 If a command is not given then the script will start a bash shell by default. For example:
 
 ```
-./bin/connect.sh eyeris-cassandra cqlsh
+./khakis/bin/connect.sh eyeris-cassandra cqlsh
 ```
 
-## Versioning
+## Versioning, Tagging, and Pushing
 
-If you invoke `./bin/build.sh` to build your containers, the version will be `latest`, however if you utilize `./gradlew :khakis:distDocker`, the version will be set based on `version.properties`, e.g. `2019.10.0`.
-
-The version can be adjusted by changing `version.properties`, but you should probably use the gradle `branchRelease` and `tagRelease` targets instead.
-
-## Pushing docker containers
-
-`./khakis/bin/tag.sh` and `./khakis/bin/push.sh` accept two environment variables which change the path of the image to tag or push.
-
-* `REGISTRY_SEPARATOR` - Controls the separator between image names, e.g. `arcus/java` or `arcus-java`. For Google Container Registry (gcr) this can be `/`, but for DockerHub this will need to be `-`.
-* `REGISTRY_NAME` - Specifies where to push the container to, e.g. `gcr.io/YOURPROJECT` or your DockerHub account name.
-
-First tag:
-```
-REGISTRY_SEPARATOR='/' REGISTRY_NAME=gcr.io/arcus-238802 ./khakis/bin/tag.sh
-```
-Then push:
-```
-REGISTRY_SEPARATOR='/' REGISTRY_NAME=gcr.io/arcus-238802 ./khakis/bin/push.sh
-```
+See [docs/RELEASING.md](../docs/RELEASING.md) for the full release workflow, including how to build, tag, and push Docker images.
