@@ -172,8 +172,8 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
             currentId + 1, // update idSequence to next value
             currentId,     // set this row's id to the current id
             encode( copy.getAttributes() ),
-            copy.getModified(),
-            copy.getCreated(),
+            copy.getModified() != null ? copy.getModified().toInstant() : null,
+            copy.getCreated() != null ? copy.getCreated().toInstant() : null,
             copy.getPlaceId(),
             copy.getProtocolAddress().getRepresentation(),
             currentId > 0 ? currentId : null
@@ -201,7 +201,7 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
       Preconditions.checkState(entity.getId() != null, "Attempting to update a pairing device model with a create date but no secondary id");
       try(Context ctx = Metrics.updateTimer.time()) {
          Date modified = new Date();
-         BoundStatement bs = updateIf.bind( encode( entity.getAttributes() ), modified, entity.getPlaceId(), entity.getProtocolAddress().getRepresentation() );
+         BoundStatement bs = updateIf.bind( encode( entity.getAttributes() ), modified.toInstant(), entity.getPlaceId(), entity.getProtocolAddress().getRepresentation() );
          if(!session().execute( bs ).wasApplied()) {
             throw new NotFoundException(entity.getAddress());
          }

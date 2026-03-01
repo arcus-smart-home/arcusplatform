@@ -173,7 +173,7 @@ public class CassandraScheduleDao implements ScheduleDao {
     */
    @Override
    public PartitionOffset completeOffset(PartitionOffset offset) {
-      Statement<?> statement = upsertOffset.bind(IrisApplicationInfo.getContainerName(), offset.getOffset(), offset.getPartition().getId());
+      Statement<?> statement = upsertOffset.bind(IrisApplicationInfo.getContainerName(), offset.getOffset().toInstant(), offset.getPartition().getId());
       session.execute(statement);
       return offset.getNextPartitionOffset();
    }
@@ -184,7 +184,7 @@ public class CassandraScheduleDao implements ScheduleDao {
    @Override
    public Stream<ScheduledCommand> streamByPartitionOffset(PartitionOffset offset) {
       // TODO enable multi-threaded streaming
-      Statement<?> statement = streamCommandsByOffset.bind(offset.getPartition().getId(), offset.getOffset());
+      Statement<?> statement = streamCommandsByOffset.bind(offset.getPartition().getId(), offset.getOffset().toInstant());
       ResultSet rs = session.execute(statement);
       return CassandraQueryExecutor.streamOptional(rs, rowToCommand);
    }
@@ -258,8 +258,8 @@ public class CassandraScheduleDao implements ScheduleDao {
       PartitionOffset offset = getPartitionOffsetFor(placeId, scheduledTime);
       Statement<?> statement = deleteCommand.bind(
             offset.getPartition().getId(),
-            offset.getOffset(),
-            scheduledTime,
+            offset.getOffset().toInstant(),
+            scheduledTime.toInstant(),
             schedulerAddress.getRepresentation()
       );
       session.execute(statement);

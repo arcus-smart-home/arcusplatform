@@ -90,15 +90,15 @@ public class PlacePurgeRecordingTable extends VideoTable {
 	}
 
 	public BoundStatement insert(Date deleteTime, UUID placeId, PurgeMode mode) {
-		return insert.bind(deleteTime, placeId, mode.name());
+		return insert.bind(deleteTime.toInstant(), placeId, mode.name());
 	}
 
 	public BoundStatement selectBy(Date deleteTime) {
-		return selectByDeleteTime.bind(deleteTime);
+		return selectByDeleteTime.bind(deleteTime.toInstant());
 	}
 
 	public BoundStatement deleteBy(Date deleteTime) {
-		return deleteByDeleteTime.bind(deleteTime);
+		return deleteByDeleteTime.bind(deleteTime.toInstant());
 	}
 
 	public PlacePurgeRecord buildEntity(Row row) {

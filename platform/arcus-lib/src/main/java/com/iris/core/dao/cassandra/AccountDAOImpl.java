@@ -143,7 +143,7 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
       }
       values.add(subIDs);
       values.add(entity.getOwner());
-      values.add(entity.getTrialEnd());
+      values.add(entity.getTrialEnd() != null ? entity.getTrialEnd().toInstant() : null);
 
       return values;
    }

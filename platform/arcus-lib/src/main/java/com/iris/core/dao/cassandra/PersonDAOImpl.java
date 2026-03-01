@@ -269,20 +269,20 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       values.add(entity.getAccountId());
       values.add(entity.getFirstName());
       values.add(entity.getLastName());
-      values.add(entity.getTermsAgreed());
-      values.add(entity.getPrivacyPolicyAgreed());
+      values.add(entity.getTermsAgreed() != null ? entity.getTermsAgreed().toInstant() : null);
+      values.add(entity.getPrivacyPolicyAgreed() != null ? entity.getPrivacyPolicyAgreed().toInstant() : null);
       values.add(entity.getEmail());
-      values.add(entity.getEmailVerified());
+      values.add(entity.getEmailVerified() != null ? entity.getEmailVerified().toInstant() : null);
       values.add(entity.getMobileNumber());
-      values.add(entity.getMobileVerified());
+      values.add(entity.getMobileVerified() != null ? entity.getMobileVerified().toInstant() : null);
       values.add(entity.getMobileNotificationEndpoints());
       values.add(entity.getCurrPlace());
       values.add(entity.getCurrPlaceMethod());
       values.add(entity.getCurrLocation());
-      values.add(entity.getCurrLocationTime());
+      values.add(entity.getCurrLocationTime() != null ? entity.getCurrLocationTime().toInstant() : null);
       values.add(entity.getCurrLocationMethod());
-      values.add(entity.getConsentOffersPromotions());
-      values.add(entity.getConsentStatement());
+      values.add(entity.getConsentOffersPromotions() != null ? entity.getConsentOffersPromotions().toInstant() : null);
+      values.add(entity.getConsentStatement() != null ? entity.getConsentStatement().toInstant() : null);
 
       if(entity.getSecurityAnswers() != null) {
          Map<String,String> securityAnswers = new HashMap<>(entity.getSecurityAnswers());
@@ -799,7 +799,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       }
 
       List<String> hashAndSalt = generateHashAndSalt(password);
-      BoundStatement update = updatePassword.bind(hashAndSalt.get(0), hashAndSalt.get(1), new Date().toInstant(), parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser());
+      BoundStatement update = updatePassword.bind(hashAndSalt.get(0), hashAndSalt.get(1), java.time.Instant.now(), parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser());
       ResultSet rs = session.execute(update);
       return rs.wasApplied();
    }
@@ -840,7 +840,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    private void insertLoginIndex(String email, UUID id, String password) {
       ParsedEmail parsed = ParsedEmail.parse(email);
       List<String> hashAndSalt = generateHashAndSalt(password);
-      BoundStatement boundStatement = insertLogin.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser(), hashAndSalt.get(0), hashAndSalt.get(1), id, null, new Date().toInstant());
+      BoundStatement boundStatement = insertLogin.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser(), hashAndSalt.get(0), hashAndSalt.get(1), id, null, java.time.Instant.now());
       ResultSet rs = session.execute(boundStatement);
       if(!rs.wasApplied()) {
          throw new EmailInUseException(email);

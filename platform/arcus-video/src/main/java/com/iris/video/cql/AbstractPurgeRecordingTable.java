@@ -87,11 +87,11 @@ public abstract class AbstractPurgeRecordingTable extends VideoTable{
 	}
 
 	public BoundStatement selectPurgeableRows(int partitionId) {
-		return select.bind(METADATA_DATE, partitionId);
+		return select.bind(METADATA_DATE.toInstant(), partitionId);
 	}
 
 	public BoundStatement selectByDeleteTimeAndPartition(Date purgeTime, int partitionId) {
-		return select.bind(purgeTime, partitionId);
+		return select.bind(purgeTime.toInstant(), partitionId);
 	}
 
 	public Stream<PurgeRecord> streamSelectByDeleteTimeAndPartition(Date purgeTime, int partitionId) {
@@ -103,15 +103,15 @@ public abstract class AbstractPurgeRecordingTable extends VideoTable{
 
 
 	public BoundStatement deletePurgeEntry(Date purgeTime, int partitionId, UUID recordingId) {
-		return deleteByTimeAndPartitionAndRecordingId.bind(purgeTime, partitionId, recordingId);
+		return deleteByTimeAndPartitionAndRecordingId.bind(purgeTime.toInstant(), partitionId, recordingId);
 	}
 
 
 	public Statement<?> delete(Date purgeTime, int partitionId) throws Exception {
       UUID purgeTimeUuid = getPurgeTimeUUID(purgeTime);
       BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
-      batch.addStatement(deleteByTimeAndPartition.bind(purgeTime, partitionId));
-      batch.addStatement(deleteByTimeAndPartitionAndRecordingId.bind(METADATA_DATE, partitionId, purgeTimeUuid));
+      batch.addStatement(deleteByTimeAndPartition.bind(purgeTime.toInstant(), partitionId));
+      batch.addStatement(deleteByTimeAndPartitionAndRecordingId.bind(METADATA_DATE.toInstant(), partitionId, purgeTimeUuid));
 
       return batch.build();
    }

@@ -102,7 +102,7 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 					event.getActiveDevices(),
 					event.getInactivateDevices(),
 					event.getPlaceId(),
-					timeBucket
+					timeBucket.toInstant()
 			);
 			session.execute( bs );
 		}
@@ -117,7 +117,7 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 			public Iterator<ActivityEvent> iterator() {
 				return new Iterator<ActivityEvent>() {
 					final Context c = activitySystemReadTimer.time();
-					Iterator<Row> it = session.execute(listByRange.bind(placeId, startBucket, endBucket)).iterator();
+					Iterator<Row> it = session.execute(listByRange.bind(placeId, startBucket.toInstant(), endBucket.toInstant())).iterator();
 					boolean needsOneMore = true;
 					Row oneMore = null;
 
@@ -158,7 +158,7 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 						}
 
 						needsOneMore = false;
-						BoundStatement bs = listByRange.bind(placeId, new Date(System.currentTimeMillis() - rowTtlMs), startBucket);
+						BoundStatement bs = listByRange.bind(placeId, new Date(System.currentTimeMillis() - rowTtlMs).toInstant(), startBucket.toInstant());
 						bs = bs.setPageSize(1);
 						oneMore = session.execute( bs ).one();
 						c.stop();

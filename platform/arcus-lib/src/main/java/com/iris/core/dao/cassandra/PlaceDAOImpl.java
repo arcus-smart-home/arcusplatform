@@ -270,7 +270,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       values.add(entity.getAddrRDI());
       values.add(entity.getAddrCounty());
       values.add(entity.getAddrCountyFIPS());
-      values.add(entity.getLastServiceLevelChange());
+      values.add(entity.getLastServiceLevelChange() != null ? entity.getLastServiceLevelChange().toInstant() : null);
       values.add(entity.getServiceLevel() != null ? entity.getServiceLevel().name() : null);
       values.add(entity.getServiceAddons());
       values.add(entity.getPopulation());

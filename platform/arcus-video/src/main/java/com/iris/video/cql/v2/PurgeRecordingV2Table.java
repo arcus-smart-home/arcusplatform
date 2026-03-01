@@ -69,15 +69,15 @@ public class PurgeRecordingV2Table extends AbstractPurgeRecordingTable {
 
 	public BoundStatement insertPurgeEntry(Date purgeTime, int partitionId, UUID recordingId, UUID placeId, String storage, boolean purgePreview) {
 		if(purgePreview) {
-			return insert.bind(purgeTime, partitionId, recordingId, placeId, storage+PURGE_PREVIEW_SUFFIX);
+			return insert.bind(purgeTime.toInstant(), partitionId, recordingId, placeId, storage+PURGE_PREVIEW_SUFFIX);
 		}else{
-			return insert.bind(purgeTime, partitionId, recordingId, placeId, storage);
+			return insert.bind(purgeTime.toInstant(), partitionId, recordingId, placeId, storage);
 		}
 	}
 
 	public BoundStatement insertPurgeAt(Date purgeTime, int partitionId) {
 		UUID purgeTimeUuid = getPurgeTimeUUID(purgeTime);
-		return insert.bind(METADATA_DATE, partitionId, purgeTimeUuid, purgeTimeUuid, "");
+		return insert.bind(METADATA_DATE.toInstant(), partitionId, purgeTimeUuid, purgeTimeUuid, "");
 	}
 
 

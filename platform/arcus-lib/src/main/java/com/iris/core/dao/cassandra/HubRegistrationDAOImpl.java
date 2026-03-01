@@ -101,15 +101,15 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 	protected List<Object> getValues(HubRegistration entity) {
 		List<Object> values = new LinkedList<Object>();
 		  //Note this needs to be same order as defined in COLUMN_ORDER
-	      values.add(entity.getLastConnected());
+	      values.add(entity.getLastConnected() != null ? entity.getLastConnected().toInstant() : null);
 	      values.add(entity.getState()!=null?entity.getState().name():null);
-	      values.add(entity.getUpgradeRequestTime());
+	      values.add(entity.getUpgradeRequestTime() != null ? entity.getUpgradeRequestTime().toInstant() : null);
 	      values.add(entity.getFirmwareVersion());
 	      values.add(entity.getTargetVersion());
 	      values.add(entity.getUpgradeErrorCode());
 	      values.add(entity.getUpgradeErrorMessage());
 	      values.add(entity.getDownloadProgress());
-	      values.add(entity.getUpgradeErrorTime());
+	      values.add(entity.getUpgradeErrorTime() != null ? entity.getUpgradeErrorTime().toInstant() : null);
 	      log.trace("HubRegistration:Values = [{}]", values );
 	      return values;
 	}
