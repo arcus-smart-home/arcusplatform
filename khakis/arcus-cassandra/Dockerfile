@@ -9,7 +9,7 @@ USER root
 #  gosu is used to drop privileges at runtime
 RUN \
     apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
       wget \
       python3 \
       dnsutils \

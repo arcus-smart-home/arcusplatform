@@ -6,7 +6,7 @@ ARG JAVA_VERSION=11
 ADD sources.list /etc/apt/
 
 # Setup the default locale to be UTF-8
-RUN apt-get update && apt-get install -y locales ca-certificates wget && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends locales ca-certificates wget && rm -rf /var/lib/apt/lists/* \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # Install Java and some utilities
@@ -15,7 +15,7 @@ RUN \
     wget -qO /etc/apt/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public && \
     echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
-    apt-get install -y temurin-${JAVA_VERSION}-jre \
+    apt-get install -y --no-install-recommends temurin-${JAVA_VERSION}-jre \
         procps less locales && \
     apt-get remove -y wget && \
     apt-get clean && \
