@@ -80,6 +80,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         ConfigurationKey propKeyspace = toKey(CassandraConstants.CASSANDRA_KEYSPACE_PROP, CassandraConstants.CASSANDRA_X_KEYSPACE_PROP, name);
 
         ConfigurationKey useSsl = toKey(CassandraConstants.CASSANDRA_SSL_PROP, CassandraConstants.CASSANDRA_X_SSL_PROP, name);
+        ConfigurationKey localDc = toKey(CassandraConstants.CASSANDRA_LOCAL_DC_PROP, CassandraConstants.CASSANDRA_X_LOCAL_DC_PROP, name);
 
         ConfigurationKey poolCore = toKey(CassandraConstants.CASSANDRA_POOL_CONN_CORE_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_CORE_PROP, name);
         ConfigurationKey poolMax = toKey(CassandraConstants.CASSANDRA_POOL_CONN_MAX_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_MAX_PROP, name);
@@ -170,9 +171,11 @@ public abstract class BaseCassandraModule extends AbstractModule {
         }
 
         // Build session
+        String datacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
         CqlSessionBuilder sessionBuilder = CqlSession.builder()
                 .withConfigLoader(configBuilder.build())
                 .addContactPoints(parseContactPoints(contactPoints, port))
+                .withLocalDatacenter(datacenter)
                 .withKeyspace(keyspace)
                 .withNodeStateListener(CassandraHealth.instance());
 
