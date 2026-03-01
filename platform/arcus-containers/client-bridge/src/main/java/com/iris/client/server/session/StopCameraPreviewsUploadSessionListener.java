@@ -18,8 +18,6 @@ package com.iris.client.server.session;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -36,7 +34,6 @@ import com.iris.messages.service.SessionService;
 
 @Singleton
 public class StopCameraPreviewsUploadSessionListener implements SessionListener {
-   private static final Logger logger = LoggerFactory.getLogger(StopCameraPreviewsUploadSessionListener.class);
 
    private final PlatformMessageBus bus;
    private final HubDAO hubDao;
@@ -70,11 +67,7 @@ public class StopCameraPreviewsUploadSessionListener implements SessionListener 
             Address.platformService(SessionService.NAMESPACE),
             Address.fromString(hub.getAddress()),
             null);
-      try {
-         bus.send(msg);
-      } catch(Exception e) {
-         logger.debug("Failed to send StopCameraPreviewsUpload during shutdown", e);
-      }
+      bus.send(msg);
    }
 
 }
