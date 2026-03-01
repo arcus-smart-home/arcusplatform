@@ -320,7 +320,7 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
             }
          }
 
-         logger.warn("Error handling request: [{} {}] - Not Found", req.getMethod(), req.getUri());
+         logger.debug("Error handling request: [{} {}] - Not Found", req.getMethod(), req.getUri());
          metrics.incNotFoundHttpRequestCounter();
          metrics.incErrorHttpRequestCounter();
          httpSender.sendError(ctx, HttpSender.STATUS_NOT_FOUND, req);
@@ -340,7 +340,11 @@ public class BaseWebSocketServerHandler extends SimpleChannelInboundHandler<Obje
             else if (ex.getStatusCode() == HttpSender.STATUS_BAD_REQUEST) {
                metrics.incBadHttpRequestCounter();
             }
-            logger.warn("Error handling request: [{} {}]", req.getMethod(), req.getUri(), ex);
+            if (ex.getStatusCode() == HttpSender.STATUS_NOT_FOUND) {
+               logger.debug("Error handling request: [{} {}]", req.getMethod(), req.getUri(), ex);
+            } else {
+               logger.warn("Error handling request: [{} {}]", req.getMethod(), req.getUri(), ex);
+            }
             metrics.incErrorHttpRequestCounter();
             httpSender.sendError(ctx, ex.getStatusCode(), req);
          }
