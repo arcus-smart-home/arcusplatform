@@ -135,6 +135,11 @@ public abstract class BaseCassandraModule extends AbstractModule {
             configBuilder.withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, qfetch);
         }
 
+        // Request timeout: driver 4.x defaults to 2s (reference.conf), but driver 3.x
+        // defaulted to 12s. Secondary index queries (partitioned reads) need the longer
+        // timeout since they fan out to all nodes.
+        configBuilder.withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(12));
+
         // Connection pool
         Integer pcore = getConfig(poolCore, Integer.class, null);
         Integer pmax = getConfig(poolMax, Integer.class, null);

@@ -274,9 +274,18 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
 
    protected void loadRulesByPartition(PlatformPartition partition) {
       try(Timer.Context context = partitionLoadTimer.time()) {
+         logger.info("Loading rules for partition [{}]...", partition.getId());
+         long[] count = { 0 };
          placeDao
             .streamByPartitionId(partition.getId())
-            .forEach((place) -> registry.start(place.getId()));
+            .forEach((place) -> {
+               count[0]++;
+               registry.start(place.getId());
+            });
+         logger.info("Loaded rules for [{}] places in partition [{}]", count[0], partition.getId());
+      }
+      catch(Exception e) {
+         logger.warn("Error loading rules for partition [{}]", partition.getId(), e);
       }
    }
 
