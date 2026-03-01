@@ -26,6 +26,8 @@ public interface ApiKeyDAO {
 
    List<ApiKey> findByPlace(UUID placeId);
 
+   String findLabelById(UUID id);
+
    ApiKey findByKeyHash(String keyHash);
 
    void delete(UUID placeId, UUID id, String keyHash);

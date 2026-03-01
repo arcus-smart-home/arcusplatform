@@ -39,12 +39,14 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
 
    private static final String API_KEY_TABLE = "api_key";
    private static final String API_KEY_BY_HASH_TABLE = "api_key_by_hash";
+   private static final String API_KEY_BY_ID_TABLE = "api_key_by_id";
 
    private static final Timer saveTimer = DaoMetrics.upsertTimer(ApiKeyDAO.class, "save");
    private static final Timer findByPlaceTimer = DaoMetrics.readTimer(ApiKeyDAO.class, "findByPlace");
    private static final Timer findByKeyHashTimer = DaoMetrics.readTimer(ApiKeyDAO.class, "findByKeyHash");
    private static final Timer deleteTimer = DaoMetrics.deleteTimer(ApiKeyDAO.class, "delete");
    private static final Timer deleteForPlaceTimer = DaoMetrics.deleteTimer(ApiKeyDAO.class, "deleteForPlace");
+   private static final Timer findLabelByIdTimer = DaoMetrics.readTimer(ApiKeyDAO.class, "findLabelById");
    private static final Timer updateLastUsedTimer = DaoMetrics.upsertTimer(ApiKeyDAO.class, "updateLastUsed");
 
    private static class Cols {
@@ -68,6 +70,9 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private final PreparedStatement deleteApiKey;
    private final PreparedStatement deleteApiKeyByHash;
    private final PreparedStatement deleteAllForPlace;
+   private final PreparedStatement insertApiKeyById;
+   private final PreparedStatement findLabelById;
+   private final PreparedStatement deleteApiKeyById;
    private final PreparedStatement updateLastUsedByHash;
 
    @Inject
@@ -80,6 +85,12 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       this.deleteApiKey = prepareDeleteApiKey();
       this.deleteApiKeyByHash = prepareDeleteApiKeyByHash();
       this.deleteAllForPlace = prepareDeleteAllForPlace();
+      this.insertApiKeyById = session.prepare(
+            "INSERT INTO " + API_KEY_BY_ID_TABLE + " (id, placeId, label) VALUES (?, ?, ?)");
+      this.findLabelById = session.prepare(
+            "SELECT label FROM " + API_KEY_BY_ID_TABLE + " WHERE id = ?");
+      this.deleteApiKeyById = session.prepare(
+            "DELETE FROM " + API_KEY_BY_ID_TABLE + " WHERE id = ?");
       this.updateLastUsedByHash = prepareUpdateLastUsed();
    }
 
@@ -93,6 +104,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       BatchStatement batch = new BatchStatement();
       batch.add(bindInsert(insertApiKey, key));
       batch.add(bindInsert(insertApiKeyByHash, key));
+      batch.add(new BoundStatement(insertApiKeyById).bind(key.getId(), key.getPlaceId(), key.getLabel()));
 
       try (Context ctxt = saveTimer.time()) {
          session.execute(batch);
@@ -121,6 +133,16 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    }
 
    @Override
+   public String findLabelById(UUID id) {
+      Preconditions.checkNotNull(id, "id must not be null");
+      BoundStatement stmt = new BoundStatement(findLabelById).bind(id);
+      try (Context ctxt = findLabelByIdTimer.time()) {
+         Row row = session.execute(stmt).one();
+         return row == null ? null : row.getString(Cols.LABEL);
+      }
+   }
+
+   @Override
    public void delete(UUID placeId, UUID id, String keyHash) {
       Preconditions.checkNotNull(placeId, "placeId must not be null");
       Preconditions.checkNotNull(id, "id must not be null");
@@ -129,6 +151,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       BatchStatement batch = new BatchStatement();
       batch.add(new BoundStatement(deleteApiKey).bind(placeId, id));
       batch.add(new BoundStatement(deleteApiKeyByHash).bind(keyHash));
+      batch.add(new BoundStatement(deleteApiKeyById).bind(id));
 
       try (Context ctxt = deleteTimer.time()) {
          session.execute(batch);
@@ -145,6 +168,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
             BatchStatement batch = new BatchStatement();
             for (ApiKey key : keys) {
                batch.add(new BoundStatement(deleteApiKeyByHash).bind(key.getKeyHash()));
+               batch.add(new BoundStatement(deleteApiKeyById).bind(key.getId()));
             }
             batch.add(new BoundStatement(deleteAllForPlace).bind(placeId));
             session.execute(batch);

@@ -47,9 +47,11 @@ public class ApiKeyPrincipal implements Principal, Serializable {
       return "apikey:" + label;
    }
 
+   public static final String ACTOR_NAMESPACE = "apikey";
+
    @Override
    public UUID getUserId() {
-      return personId;
+      return keyId;
    }
 
    public UUID getKeyId() {

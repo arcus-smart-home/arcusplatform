@@ -45,4 +45,18 @@
       </cl:cql>
    </cl:changeset>
 
+   <cl:changeset identifier="createApiKeyByIdTable" author="arcus">
+      <cl:description>Create api_key_by_id table for looking up key label by id (used by history service)</cl:description>
+      <cl:tracking>API-KEY-003</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS api_key_by_id (
+            id uuid,
+            placeId uuid,
+            label varchar,
+            PRIMARY KEY (id)
+         )</cl:update>
+         <cl:rollback>DROP TABLE api_key_by_id</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
 </cl:changelog>
