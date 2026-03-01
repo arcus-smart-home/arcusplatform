@@ -78,17 +78,33 @@ public class TcpHealthCheck implements StartupListener {
    }
    
    protected boolean doListen() throws IOException {
-      ServerSocket server = new ServerSocket(healthCheckPort);
-      server.setSoTimeout(1000);
-      server.setReuseAddress(true);
-      logger.info("Health check listening at tcp://0.0.0.0:{}", healthCheckPort);
+      ServerSocket server = null;
+      boolean wasHealthy = false;
       try {
          while(!Thread.interrupted()) {
+            boolean healthy = CassandraHealth.instance().isHealthy();
+            if (healthy && server == null) {
+               server = new ServerSocket(healthCheckPort);
+               server.setSoTimeout(1000);
+               server.setReuseAddress(true);
+               if (!wasHealthy) {
+                  logger.info("Health check listening at tcp://0.0.0.0:{}", healthCheckPort);
+               }
+               wasHealthy = true;
+            } else if (!healthy && server != null) {
+               logger.warn("Cassandra unhealthy, closing health check port");
+               IOUtils.closeQuietly(server);
+               server = null;
+            }
+
+            if (server == null) {
+               try { Thread.sleep(1000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+               continue;
+            }
+
             try {
                Socket client = server.accept();
-               if (CassandraHealth.instance().isHealthy()) {
-                  client.getOutputStream().write(RESPONSE);
-               }
+               client.getOutputStream().write(RESPONSE);
                client.close();
             }
             catch(SocketTimeoutException e) {

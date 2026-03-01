@@ -34,6 +34,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.StartupListener;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.iris.core.dao.cassandra.CassandraHealth;
 import com.iris.platform.cluster.exception.ClusterIdLostException;
 
 /**
@@ -88,7 +90,11 @@ public class ClusterService implements StartupListener {
       executor.shutdownNow();
       ClusterServiceRecord record = recordRef.get();
       if(record != null) {
-         clusterServiceDao.deregister(record);
+         try {
+            clusterServiceDao.deregister(record);
+         } catch(Exception e) {
+            logger.debug("Failed to deregister cluster membership during shutdown", e);
+         }
       }
    }
    
@@ -124,16 +130,22 @@ public class ClusterService implements StartupListener {
          if(record == null) {
             return;
          }
-         
+
          record = clusterServiceDao.heartbeat(this.recordRef.get());
          this.recordRef.set(record);
+         CassandraHealth.instance().setHealthy(true);
       }
       catch(ClusterIdLostException e) {
          onDeregistered();
          logger.warn("Attempting to reserve a new cluster id");
          tryRegister(0);
       }
+      catch(NoHostAvailableException e) {
+         CassandraHealth.instance().setHealthy(false);
+         logger.warn("Error updating heartbeat table: {}", e.getMessage());
+      }
       catch(Exception e) {
+         CassandraHealth.instance().setHealthy(false);
          logger.warn("Error updating heartbeat table", e);
       }
    }

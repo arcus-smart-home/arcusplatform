@@ -27,6 +27,7 @@ import com.iris.capability.util.Addresses;
 import com.iris.io.json.JSON;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
+import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.PlaceService;
 
@@ -79,7 +80,11 @@ public abstract class RESTHandler extends HttpResource {
 		   assertValidRequest(req, ctx);
 			response = doHandle(request, ctx);
 		} catch (Throwable th) {
-			LOGGER.error("Error handling client message", th);
+			if (th instanceof ErrorEventException) {
+				LOGGER.debug("Error handling client message", th);
+			} else {
+				LOGGER.error("Error handling client message", th);
+			}
 			response = Errors.fromException(th);
 			status = overrideErrorResponseStatus(th);
 			if(status == null) {
