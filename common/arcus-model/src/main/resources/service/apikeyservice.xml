@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:service name="ApiKeyService"
+           namespace="apikey"
+           version="1.0"
+           xmlns:s="http://www.arcussmarthome.com/schema/service/1.0.0">
+
+   <s:description>
+   Service for managing API keys that allow programmatic access to a place.
+   </s:description>
+
+   <s:methods>
+
+      <s:method
+         name="Create"
+         description="Creates a new API key for the specified place. The raw key is returned only once."
+         isRESTful="false">
+
+         <s:parameter
+            name="placeId"
+            type="string"
+            description="The place to create the API key for"
+            optional="false"/>
+
+         <s:parameter
+            name="label"
+            type="string"
+            description="A human-readable label for this API key"
+            optional="false"/>
+
+         <s:parameter
+            name="permissions"
+            type="set&lt;string&gt;"
+            description="The set of Shiro wildcard permissions to grant to this key"
+            optional="false"/>
+
+         <s:return name="id" type="string" description="The UUID of the created API key"/>
+         <s:return name="key" type="string" description="The raw API key. This is the only time it will be returned."/>
+
+      </s:method>
+
+      <s:method
+         name="ListKeys"
+         description="Lists all API keys for the specified place. Secrets are never returned."
+         isRESTful="false">
+
+         <s:parameter
+            name="placeId"
+            type="string"
+            description="The place to list API keys for"
+            optional="false"/>
+
+         <s:return name="keys" type="list&lt;map&lt;string&gt;&gt;" description="List of API key metadata (id, label, keyPrefix, permissions, created, lastUsed)"/>
+
+      </s:method>
+
+      <s:method
+         name="Revoke"
+         description="Revokes an API key, permanently disabling it."
+         isRESTful="false">
+
+         <s:parameter
+            name="placeId"
+            type="string"
+            description="The place the API key belongs to"
+            optional="false"/>
+
+         <s:parameter
+            name="id"
+            type="string"
+            description="The UUID of the API key to revoke"
+            optional="false"/>
+
+      </s:method>
+
+   </s:methods>
+
+</s:service>
