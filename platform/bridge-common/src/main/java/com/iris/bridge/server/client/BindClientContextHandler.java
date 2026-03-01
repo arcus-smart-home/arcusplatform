@@ -75,6 +75,11 @@ public class BindClientContextHandler extends ChannelInboundHandlerAdapter {
             Client.bind(ctx.channel(), registry.load(sessionId));
             BridgeMdcUtil.bindHttpContext(registry, ctx.channel(), (FullHttpRequest) msg);
          }
+         catch(com.datastax.driver.core.exceptions.NoHostAvailableException ex) {
+            logger.warn("Exception while retrieving client session: {}", ex.getMessage());
+            requestAuthorizer.handleFailedAuth(ctx, (FullHttpRequest) msg);
+            return;
+         }
          catch(Exception ex) {
             logger.warn("Exception while retrieving client session", ex);
             requestAuthorizer.handleFailedAuth(ctx, (FullHttpRequest) msg);

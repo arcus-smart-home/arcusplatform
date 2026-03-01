@@ -234,10 +234,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         }
 
         ClusterDestroyer destroyer = new ClusterDestroyer();
-        destroyer.cluster = bld.build();
-        destroyer.cluster.register(CassandraHealth.instance());
-
-        destroyer.session = connectWithRetry(destroyer.cluster, keyspace);
+        destroyer.cluster = connectWithRetry(bld, keyspace, destroyer);
         CassandraHealth.instance().initializeFrom(destroyer.cluster, destroyer.session);
 
         if (name == null) {
@@ -253,15 +250,20 @@ public abstract class BaseCassandraModule extends AbstractModule {
     private static final long INITIAL_RETRY_DELAY_MS = 2000;
     private static final long MAX_RETRY_DELAY_MS = 30000;
 
-    private static Session connectWithRetry(Cluster cluster, String keyspace) {
+    private static Cluster connectWithRetry(Cluster.Builder bld, String keyspace, ClusterDestroyer destroyer) {
         long delay = INITIAL_RETRY_DELAY_MS;
         for (int attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
+            Cluster cluster = bld.build();
+            cluster.register(CassandraHealth.instance());
             try {
-                return cluster.connect(keyspace);
-            } catch (NoHostAvailableException e) {
+                destroyer.session = cluster.connect(keyspace);
+                destroyer.cluster = cluster;
+                return cluster;
+            } catch (Exception e) {
+                cluster.close();
                 if (attempt == MAX_CONNECT_RETRIES) {
                     LOGGER.error("Failed to connect to Cassandra after {} attempts, giving up", MAX_CONNECT_RETRIES);
-                    throw e;
+                    throw new RuntimeException("Failed to connect to Cassandra", e);
                 }
                 LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s...",
                         attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay));
@@ -274,7 +276,6 @@ public abstract class BaseCassandraModule extends AbstractModule {
                 delay = Math.min(delay * 2, MAX_RETRY_DELAY_MS);
             }
         }
-        // unreachable
         throw new IllegalStateException("Failed to connect to Cassandra");
     }
 
