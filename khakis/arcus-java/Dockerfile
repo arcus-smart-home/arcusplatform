@@ -16,7 +16,7 @@ RUN \
     echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
     apt-get install -y temurin-${JAVA_VERSION}-jre \
-        procps less tcpdump vim locales && \
+        procps less locales && \
     apt-get remove -y wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
