@@ -49,7 +49,7 @@ public class ApiKeyPrincipal implements Principal, Serializable {
 
    @Override
    public UUID getUserId() {
-      return keyId;
+      return personId;
    }
 
    public UUID getKeyId() {

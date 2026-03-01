@@ -66,9 +66,9 @@ public class ApiServerModule extends AbstractIrisModule {
       bind(BridgeServerTlsContext.class).to(BridgeServerTlsContextImpl.class);
       bind(BridgeServerTrustManagerFactory.class).to(NullTrustManagerFactoryImpl.class);
       bind(PlatformBusService.class).to(IrisNettyPlatformBusServiceImpl.class).asEagerSingleton();
-      bindSetOf(PlatformBusListener.class)
-            .addBinding()
-            .to(IrisNettyPlatformBusListener.class);
+      Multibinder<PlatformBusListener> plBindings = bindSetOf(PlatformBusListener.class);
+      plBindings.addBinding().to(IrisNettyPlatformBusListener.class);
+      plBindings.addBinding().to(ApiKeyRevocationListener.class);
       bind(new TypeLiteral<DeviceMessageHandler<String>>(){}).to(IrisNettyMessageHandler.class);
 
       // Use API key authenticator instead of ShiroAuthenticator

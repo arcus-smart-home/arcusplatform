@@ -20,13 +20,16 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
+import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
@@ -37,14 +40,17 @@ import com.iris.security.apikey.ApiKey;
 public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Place> {
 
    public static final String MESSAGE_TYPE = "apikey:Revoke";
+   public static final String EVENT_API_KEY_REVOKED = "apikey:Revoked";
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
+   private final PlatformMessageBus bus;
 
    @Inject
-   public RevokeApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
+   public RevokeApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao, PlatformMessageBus bus) {
       this.apiKeyDao = apiKeyDao;
       this.accountDao = accountDao;
+      this.bus = bus;
    }
 
    @Override
@@ -85,6 +91,9 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       apiKeyDao.delete(context.getId(), keyId, existing.getKeyHash());
 
+      // Broadcast revocation so api-bridge instances can disconnect active sessions
+      emitApiKeyRevoked(context, keyId);
+
       return MessageBody.buildMessage("apikey:RevokeResponse", java.util.Collections.emptyMap());
    }
 
@@ -102,5 +111,15 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
       if (!Objects.equals(actorId, account.getOwner())) {
          throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "only the account owner can manage API keys");
       }
+   }
+
+   private void emitApiKeyRevoked(Place place, UUID keyId) {
+      MessageBody body = MessageBody.buildMessage(EVENT_API_KEY_REVOKED,
+            ImmutableMap.of("keyId", keyId.toString()));
+      PlatformMessage event = PlatformMessage.buildBroadcast(body, Address.fromString(place.getAddress()))
+            .withPlaceId(place.getId())
+            .withPopulation(place.getPopulation())
+            .create();
+      bus.send(event);
    }
 }
