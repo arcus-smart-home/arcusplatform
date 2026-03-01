@@ -61,16 +61,18 @@ dependencies {
     runtimeOnly libraries.logback
 }   
 
-apply plugin: 'com.bmuschko.docker-remote-api'
-
-def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
-
-task createDockerfile(type: DockerfileTask) {
-   destFile = project.file("${buildDir}/docker/Dockerfile")
-   from 'arcus/java'
-   addFile "${applicationName}-${version}.tar.gz", '/'
-   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
-   defaultCommand '-H', "/${applicationName}-${version}/", '-P', 'dev', '-a'
+task createDockerfile {
+   def dockerFile = project.file("${buildDir}/docker/Dockerfile")
+   outputs.file dockerFile
+   doLast {
+      dockerFile.parentFile.mkdirs()
+      dockerFile.text = """\
+FROM arcus/java
+ADD ${applicationName}-${version}.tar.gz /
+ENTRYPOINT ["/${applicationName}-${version}/bin/${applicationName}"]
+CMD ["-H", "/${applicationName}-${version}/", "-P", "dev", "-a"]
+"""
+   }
 }
 
 task prepareDockerContext(type: Copy) {
