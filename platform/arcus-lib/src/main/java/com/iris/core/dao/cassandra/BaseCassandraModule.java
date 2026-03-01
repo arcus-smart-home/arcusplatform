@@ -217,8 +217,8 @@ public abstract class BaseCassandraModule extends AbstractModule {
                     LOGGER.error("Failed to connect to Cassandra after {} attempts, giving up", MAX_CONNECT_RETRIES);
                     throw new RuntimeException("Failed to connect to Cassandra", e);
                 }
-                LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s...",
-                        attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay));
+                LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s: {}",
+                        attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay), e.getMessage());
                 try {
                     Thread.sleep(delay);
                 } catch (InterruptedException ie) {
