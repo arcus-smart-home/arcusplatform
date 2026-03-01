@@ -20,12 +20,12 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -41,19 +41,19 @@ public class UpdateIpcdStateColumns implements ExecutionCommand {
    }
 
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE_STATES);
 
-      BoundStatement select = session.prepare(SELECT).bind();
-      select.setConsistencyLevel(ConsistencyLevel.ALL);
+      BoundStatement select = session.prepare(SELECT).bind()
+            .setConsistencyLevel(DefaultConsistencyLevel.ALL);
       ResultSet rs = context.getSession().execute(select);
       for(Row row: rs) {
          String protocolAddress = row.getString("protocoladdress");
-         UUID placeId = row.getUUID("placeid");
-         BoundStatement bs = new BoundStatement(update);
-         bs.setString("connState", "ONLINE");
-         bs.setString("registrationState", placeId == null ? "UNREGISTERED" : "REGISTERED");
-         bs.setString("protocolAddress", protocolAddress);
+         UUID placeId = row.getUuid("placeid");
+         BoundStatement bs = update.bind()
+               .setString("connState", "ONLINE")
+               .setString("registrationState", placeId == null ? "UNREGISTERED" : "REGISTERED")
+               .setString("protocolAddress", protocolAddress);
          session.execute(bs);
       }
    }
@@ -63,4 +63,3 @@ public class UpdateIpcdStateColumns implements ExecutionCommand {
    }
 
 }
-

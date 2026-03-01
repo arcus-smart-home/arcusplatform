@@ -18,43 +18,43 @@ package com.iris.video.cql;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.iris.video.VideoDaoConfig;
 
 public class Table {
 	private static final ConcurrentHashMap<Key, Object> Cache = new ConcurrentHashMap<>();
-	
+
 	@SuppressWarnings("unchecked")
-	public static <T> T get(Session session, String ts, Class<T> tableType) {
+	public static <T> T get(CqlSession session, String ts, Class<T> tableType) {
 		return (T) Cache.computeIfAbsent(new Key(session, ts, tableType), (k) -> newInstance(session, ts, tableType, null));
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	public static <T> T get(Session session, String ts, Class<T> tableType, VideoDaoConfig config) {
+	public static <T> T get(CqlSession session, String ts, Class<T> tableType, VideoDaoConfig config) {
 		return (T) Cache.computeIfAbsent(new Key(session, ts, tableType), (k) -> newInstance(session, ts, tableType, config));
 	}
-	
-	private static <T> T newInstance(Session session, String ts, Class<T> tableType, VideoDaoConfig config) {
+
+	private static <T> T newInstance(CqlSession session, String ts, Class<T> tableType, VideoDaoConfig config) {
 		try{
 			if(config != null) {
-				return tableType.getConstructor(String.class, Session.class, VideoDaoConfig.class).newInstance(ts, session, config);
+				return tableType.getConstructor(String.class, CqlSession.class, VideoDaoConfig.class).newInstance(ts, session, config);
 			}else{
-				return tableType.getConstructor(String.class, Session.class).newInstance(ts, session);
+				return tableType.getConstructor(String.class, CqlSession.class).newInstance(ts, session);
 			}
 		}catch(NoSuchMethodException e) {
-			throw new IllegalArgumentException("Must have a public constructor that takes a Session object as the only argument. " + tableType + " does not.", e);
+			throw new IllegalArgumentException("Must have a public constructor that takes a CqlSession object as the only argument. " + tableType + " does not.", e);
 		}catch (Exception e) {
 			throw new IllegalArgumentException("Unable to create instance of " + tableType, e);
 		}
 	}
-	
+
 	private static class Key {
-		final WeakReference<Session> sessionRef;
+		final WeakReference<CqlSession> sessionRef;
 		final Class<?> tableType;
 		final String tableSpace;
-		
-		Key(Session session, String ts, Class<?> tableType) {
-			this.sessionRef = new WeakReference<Session>(session);
+
+		Key(CqlSession session, String ts, Class<?> tableType) {
+			this.sessionRef = new WeakReference<CqlSession>(session);
 			this.tableType = tableType;
 			this.tableSpace = ts;
 		}
@@ -78,9 +78,9 @@ public class Table {
 			if (getClass() != obj.getClass())
 				return false;
 			Key other = (Key) obj;
-			Session session = sessionRef.get();
+			CqlSession session = sessionRef.get();
 			if (session == null) {
-				Session otherSession = sessionRef.get();
+				CqlSession otherSession = sessionRef.get();
 				if (otherSession != null)
 					return false;
 			} else if (!session.equals(other.sessionRef.get()))
@@ -97,8 +97,7 @@ public class Table {
 				return false;
 			return true;
 		}
-		
-		
+
+
 	}
 }
-

@@ -33,15 +33,13 @@ ext.libraries << [
 		openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
 
 // Cassandra
-		cassandraDriver: dependencies.create("com.datastax.cassandra:cassandra-driver-core:3.11.5:shaded") {
-			exclude group: "com.codahale.metrics" // interferes with platform dropwizard metrics
+		cassandraDriver: dependencies.create("com.datastax.oss:java-driver-core:4.17.0") {
+			exclude group: "io.dropwizard.metrics"
 			exclude group: "io.netty"
 		},
-
-		cassandraUnit: dependencies.create("org.cassandraunit:cassandra-unit:2.0.2.2") {
-			exclude group: "org.slf4j", module: "slf4j-log4j12"
-			exclude group: "log4j", module: "log4j"
-			exclude group: "io.netty", module: "netty-all"
+		cassandraDriverQueryBuilder: dependencies.create("com.datastax.oss:java-driver-query-builder:4.17.0") {
+			exclude group: "io.dropwizard.metrics"
+			exclude group: "io.netty"
 		},
 
 

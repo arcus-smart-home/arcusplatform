@@ -15,26 +15,26 @@
  */
 package com.iris.modelmanager.engine;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.iris.modelmanager.changelog.dao.ChangeSetDAO;
 import com.iris.modelmanager.context.ManagerContext;
 import com.iris.modelmanager.version.dao.VersionHistoryDAO;
 
 public class ExecutionContext {
 
-   private final Session session;
+   private final CqlSession session;
    private final ManagerContext managerContext;
    private final ChangeSetDAO changesetDao;
    private final VersionHistoryDAO historyDao;
 
-   public ExecutionContext(Session session, ManagerContext managerContext) {
+   public ExecutionContext(CqlSession session, ManagerContext managerContext) {
       this.session = session;
       this.managerContext = managerContext;
       this.changesetDao = new ChangeSetDAO(this.session);
       this.historyDao = new VersionHistoryDAO(this.session);
    }
 
-   public Session getSession() {
+   public CqlSession getSession() {
       return session;
    }
 
@@ -50,4 +50,3 @@ public class ExecutionContext {
       return historyDao;
    }
 }
-

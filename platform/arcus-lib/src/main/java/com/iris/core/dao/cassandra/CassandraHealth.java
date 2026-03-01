@@ -15,19 +15,23 @@
  */
 package com.iris.core.dao.cassandra;
 
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.metadata.Node;
+import com.datastax.oss.driver.api.core.metadata.NodeState;
+import com.datastax.oss.driver.api.core.metadata.NodeStateListener;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Tracks Cassandra host availability using the DataStax driver's
- * {@link Host.StateListener} interface. When all known hosts are down,
+ * {@link NodeStateListener} interface. When all known hosts are down,
  * {@link #isHealthy()} returns false, which causes TCP health checks
  * to stop reporting ONLINE so that K8s can restart the pod.
  *
@@ -36,14 +40,19 @@ import com.datastax.driver.core.Host;
  * Services that don't use Cassandra are unaffected — isHealthy()
  * returns true until the first cluster is registered.
  */
-public class CassandraHealth implements Host.StateListener {
+public class CassandraHealth implements NodeStateListener {
    private static final Logger logger = LoggerFactory.getLogger(CassandraHealth.class);
    private static final CassandraHealth INSTANCE = new CassandraHealth();
 
-   private final Set<InetAddress> upHosts = ConcurrentHashMap.newKeySet();
+   private final Set<InetSocketAddress> upHosts = ConcurrentHashMap.newKeySet();
    private volatile boolean active = false;
 
    private CassandraHealth() {}
+
+   @Override
+   public void close() {
+      // nothing to close
+   }
 
    public static CassandraHealth instance() {
       return INSTANCE;
@@ -58,13 +67,16 @@ public class CassandraHealth implements Host.StateListener {
    }
 
    /**
-    * Seeds the live host set from the cluster's current metadata.
+    * Seeds the live host set from the session's current metadata.
     * Safe to call multiple times (e.g. from multiple keyspace modules).
     */
-   public void initializeFrom(Cluster cluster) {
-      for (Host host : cluster.getMetadata().getAllHosts()) {
-         if (host.isUp()) {
-            upHosts.add(host.getAddress());
+   public void initializeFrom(CqlSession session) {
+      for (Node node : session.getMetadata().getNodes().values()) {
+         if (node.getState() == NodeState.UP) {
+            InetSocketAddress addr = resolveAddress(node);
+            if (addr != null) {
+               upHosts.add(addr);
+            }
          }
       }
       active = true;
@@ -72,50 +84,60 @@ public class CassandraHealth implements Host.StateListener {
    }
 
    @Override
-   public void onAdd(Host host) {
-      if (host.isUp()) {
-         upHosts.add(host.getAddress());
-         logger.info("Cassandra host added (up): {}, live hosts: {}", host.getAddress(), upHosts.size());
-      } else {
-         logger.info("Cassandra host added (down): {}", host.getAddress());
+   public void onUp(@NonNull Node node) {
+      InetSocketAddress addr = resolveAddress(node);
+      if (addr != null) {
+         upHosts.add(addr);
+         logger.info("Cassandra host up: {}, live hosts: {}", addr, upHosts.size());
       }
    }
 
    @Override
-   public void onUp(Host host) {
-      upHosts.add(host.getAddress());
-      logger.info("Cassandra host up: {}, live hosts: {}", host.getAddress(), upHosts.size());
-   }
-
-   @Override
-   public void onDown(Host host) {
-      upHosts.remove(host.getAddress());
+   public void onDown(@NonNull Node node) {
+      InetSocketAddress addr = resolveAddress(node);
+      if (addr != null) {
+         upHosts.remove(addr);
+      }
       int remaining = upHosts.size();
       if (remaining == 0) {
          logger.error("All Cassandra hosts are down! Health check will report unhealthy.");
       } else {
-         logger.warn("Cassandra host down: {}, live hosts: {}", host.getAddress(), remaining);
+         logger.warn("Cassandra host down: {}, live hosts: {}", addr, remaining);
       }
    }
 
    @Override
-   public void onRemove(Host host) {
-      upHosts.remove(host.getAddress());
+   public void onAdd(@NonNull Node node) {
+      if (node.getState() == NodeState.UP) {
+         InetSocketAddress addr = resolveAddress(node);
+         if (addr != null) {
+            upHosts.add(addr);
+            logger.info("Cassandra host added (up): {}, live hosts: {}", addr, upHosts.size());
+         }
+      } else {
+         logger.info("Cassandra host added (down): {}", resolveAddress(node));
+      }
+   }
+
+   @Override
+   public void onRemove(@NonNull Node node) {
+      InetSocketAddress addr = resolveAddress(node);
+      if (addr != null) {
+         upHosts.remove(addr);
+      }
       int remaining = upHosts.size();
       if (remaining == 0) {
          logger.error("All Cassandra hosts removed! Health check will report unhealthy.");
       } else {
-         logger.warn("Cassandra host removed: {}, live hosts: {}", host.getAddress(), remaining);
+         logger.warn("Cassandra host removed: {}, live hosts: {}", addr, remaining);
       }
    }
 
-   @Override
-   public void onRegister(Cluster cluster) {
-      // no-op
-   }
-
-   @Override
-   public void onUnregister(Cluster cluster) {
-      // no-op
+   private static InetSocketAddress resolveAddress(Node node) {
+      Object endpoint = node.getEndPoint().resolve();
+      if (endpoint instanceof InetSocketAddress) {
+         return (InetSocketAddress) endpoint;
+      }
+      return null;
    }
 }

@@ -15,6 +15,7 @@
  */
 package com.iris.core.protocol.ipcd.cassandra;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -22,12 +23,12 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ColumnDefinitions;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Objects;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -46,7 +47,7 @@ import com.iris.protocol.ipcd.message.model.Device;
 
 @Singleton
 public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement findById;
    private final PreparedStatement update;
    private final PreparedStatement insert;
@@ -61,7 +62,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
    private final Partitioner partitioner;
 
    @Inject
-   public CassandraIpcdDeviceDao(Session session, Partitioner partitioner) {
+   public CassandraIpcdDeviceDao(CqlSession session, Partitioner partitioner) {
       this.session = session;
 
       this.findById = CassandraQueryBuilder.select(IpcdDeviceTable.NAME)
@@ -174,9 +175,9 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
             device.getAccountId(),
             device.getPlaceId(),
             device.getDriverAddress(),
-            device.getCreated(),
-            device.getModified(),
-            device.getLastConnected(),
+            toInstant(device.getCreated()),
+            toInstant(device.getModified()),
+            toInstant(device.getLastConnected()),
             device.getVendor(),
             device.getModel(),
             device.getSn(),
@@ -197,9 +198,9 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
             device.getAccountId(),
             device.getPlaceId(),
             device.getDriverAddress(),
-            device.getCreated(),
-            device.getModified(),
-            device.getLastConnected(),
+            toInstant(device.getCreated()),
+            toInstant(device.getModified()),
+            toInstant(device.getLastConnected()),
             device.getVendor(),
             device.getModel(),
             device.getSn(),
@@ -219,12 +220,12 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
    private IpcdDevice toIpcdDevice(Row row) {
       IpcdDevice ipcdDevice = new IpcdDevice();
       ipcdDevice.setProtocolAddress(row.getString(IpcdDeviceTable.Columns.PROTOCOL_ADDRESS));
-      ipcdDevice.setAccountId(row.getUUID(IpcdDeviceTable.Columns.ACCOUNT_ID));
-      ipcdDevice.setPlaceId(row.getUUID(IpcdDeviceTable.Columns.PLACE_ID));
+      ipcdDevice.setAccountId(row.getUuid(IpcdDeviceTable.Columns.ACCOUNT_ID));
+      ipcdDevice.setPlaceId(row.getUuid(IpcdDeviceTable.Columns.PLACE_ID));
       ipcdDevice.setDriverAddress(row.getString(IpcdDeviceTable.Columns.DRIVER_ADDRESS));
-      ipcdDevice.setCreated(row.getTimestamp(IpcdDeviceTable.Columns.CREATED));
-      ipcdDevice.setModified(row.getTimestamp(IpcdDeviceTable.Columns.MODIFIED));
-      ipcdDevice.setLastConnected(row.getTimestamp(IpcdDeviceTable.Columns.LAST_CONNECTED));
+      ipcdDevice.setCreated(row.isNull(IpcdDeviceTable.Columns.CREATED) ? null : Date.from(row.getInstant(IpcdDeviceTable.Columns.CREATED)));
+      ipcdDevice.setModified(row.isNull(IpcdDeviceTable.Columns.MODIFIED) ? null : Date.from(row.getInstant(IpcdDeviceTable.Columns.MODIFIED)));
+      ipcdDevice.setLastConnected(row.isNull(IpcdDeviceTable.Columns.LAST_CONNECTED) ? null : Date.from(row.getInstant(IpcdDeviceTable.Columns.LAST_CONNECTED)));
       ipcdDevice.setVendor(row.getString(IpcdDeviceTable.Columns.VENDOR));
       ipcdDevice.setModel(row.getString(IpcdDeviceTable.Columns.MODEL));
       ipcdDevice.setSn(row.getString(IpcdDeviceTable.Columns.SN));
@@ -263,8 +264,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
    }
 
    private void claim(String protocolAddress, UUID accountId, UUID placeId) throws IpcdDaoException {
-      BoundStatement stmt = new BoundStatement(claim);
-      stmt.bind(
+      BoundStatement stmt = claim.bind(
             accountId,
             placeId,
             partitioner.getPartitionForPlaceId(placeId).getId(),
@@ -279,8 +279,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
    @Override
    public void completeRegistration(String protocolAddress, UUID placeId, String driverAddress) throws IpcdDaoException {
-      BoundStatement stmt = new BoundStatement(completeRegistration);
-      stmt.bind(
+      BoundStatement stmt = completeRegistration.bind(
             driverAddress,
             IpcdDevice.RegistrationState.REGISTERED.name(),
             protocolAddress,
@@ -293,8 +292,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
    @Override
    public void clearRegistration(String protocolAddress, UUID placeId) throws IpcdDaoException {
-      BoundStatement stmt = new BoundStatement(unregister);
-      stmt.bind(
+      BoundStatement stmt = unregister.bind(
             null,
             null,
             0,
@@ -310,8 +308,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
    @Override
    public void forceRegistration(String protocolAddress, UUID accountId, UUID placeId, String driverAddress) {
-      BoundStatement stmt = new BoundStatement(forceRegistration);
-      stmt.bind(
+      BoundStatement stmt = forceRegistration.bind(
             accountId,
             placeId,
             partitioner.getPartitionForPlaceId(placeId).getId(),
@@ -325,8 +322,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
    @Override
    public void delete(String protocolAddress, UUID placeId) throws IpcdDaoException {
-      BoundStatement stmt = new BoundStatement(delete);
-      stmt.bind(
+      BoundStatement stmt = delete.bind(
             protocolAddress,
             placeId
       );
@@ -337,8 +333,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
    @Override
    public void offline(String protocolAddress) {
-      BoundStatement stmt = new BoundStatement(offline);
-      stmt.bind(IpcdDevice.ConnState.OFFLINE.name(), protocolAddress);
+      BoundStatement stmt = offline.bind(IpcdDevice.ConnState.OFFLINE.name(), protocolAddress);
       session.execute(stmt);
    }
 
@@ -350,7 +345,7 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
 
          if(colDef.contains(IpcdDeviceTable.Columns.PLACE_ID)) {
             // if the returned row contains a place id, the place id didn't match
-            UUID actualPlaceId = r.getUUID(IpcdDeviceTable.Columns.PLACE_ID);
+            UUID actualPlaceId = r.getUuid(IpcdDeviceTable.Columns.PLACE_ID);
             if(!Objects.equal(requiredPlace, actualPlaceId)) {
                throw new PlaceMismatchException(requiredPlace, actualPlaceId);
             }
@@ -361,6 +356,10 @@ public class CassandraIpcdDeviceDao implements IpcdDeviceDao {
          }
          throw new DeviceNotFoundException(protocolAddress);
       }
+   }
+
+   private static Instant toInstant(Date date) {
+      return date == null ? null : date.toInstant();
    }
 }
 

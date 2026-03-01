@@ -15,14 +15,13 @@
  */
 package com.iris.modelmanager.changelog.dao;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.Status;
 import com.iris.modelmanager.changelog.CQLCommand;
 import com.iris.modelmanager.changelog.ChangeSet;
@@ -37,11 +36,11 @@ public class ChangeSetDAO {
 
    private static final String FIND_APPLIED = "SELECT * FROM changeset WHERE status=?";
 
-   private final Session session;
+   private final CqlSession session;
    private PreparedStatement upsertStatement;
    private PreparedStatement findApplied;
 
-   public ChangeSetDAO(Session session) {
+   public ChangeSetDAO(CqlSession session) {
       this.session = session;
    }
 
@@ -52,8 +51,7 @@ public class ChangeSetDAO {
          upsertStatement = this.session.prepare(UPSERT_STATEMENT);
       }
 
-      BoundStatement boundStatement = new BoundStatement(upsertStatement);
-      this.session.execute(boundStatement.bind(
+      this.session.execute(upsertStatement.bind(
             changeset.getUniqueIdentifier(),
             changeset.getAuthor(),
             changeset.getIdentifier(),
@@ -76,8 +74,7 @@ public class ChangeSetDAO {
          findApplied = this.session.prepare(FIND_APPLIED);
       }
 
-      BoundStatement boundStatement = new BoundStatement(findApplied);
-      List<Row> rows = this.session.execute(boundStatement.bind(Status.APPLIED.toString())).all();
+      List<Row> rows = this.session.execute(findApplied.bind(Status.APPLIED.toString())).all();
       List<ChangeSet> changesets = new LinkedList<ChangeSet>();
       for(Row r : rows) {
          changesets.add(buildChangeSet(r));
@@ -93,7 +90,7 @@ public class ChangeSetDAO {
       cs.setIdentifier(row.getString("identifier"));
       cs.setSource(row.getString("source"));
       cs.setStatus(Status.valueOf(row.getString("status")));
-      cs.setTimestamp(row.getTimestamp("timestamp"));
+      cs.setTimestamp(row.isNull("timestamp") ? null : Date.from(row.getInstant("timestamp")));
       cs.setTracking(row.getString("tracking"));
       cs.setVersion(row.getString("version"));
       return cs;
@@ -125,4 +122,3 @@ public class ChangeSetDAO {
       return sb.toString();
    }
 }
-

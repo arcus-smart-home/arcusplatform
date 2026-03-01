@@ -20,8 +20,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -39,22 +39,21 @@ public class RemoveAlarmSubsystem implements ExecutionCommand {
 
    @Override
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      
+
    }
 
    @Override
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       doExecute(context);
    }
-   
+
    protected void doExecute(ExecutionContext context) throws CommandExecutionException {
       PreparedStatement stmt = context.getSession().prepare(SUSPEND_ALARMSUBSYSTEM);
 
       for(Row row: context.getSession().execute(SELECT_PLACE)) {
-   		UUID placeId = row.getUUID("id");
+   		UUID placeId = row.getUuid("id");
       	logger.debug("Disabling for place [{}]", placeId);
    		context.getSession().execute( stmt.bind(placeId) );
       }
    }
 }
-

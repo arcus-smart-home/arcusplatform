@@ -24,10 +24,10 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.collect.ImmutableMap;
 import com.iris.capability.definition.AttributeDefinition;
 import com.iris.capability.definition.DefinitionRegistry;
@@ -40,21 +40,21 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
    private static final Logger logger = LoggerFactory.getLogger(BaseModelDao.class);
 
    private final DefinitionRegistry registry;
-   private final Session session;
-   
+   private final CqlSession session;
+
    public BaseModelDao(
          DefinitionRegistry registry,
-         Session session
+         CqlSession session
    ) {
       this.registry = registry;
       this.session = session;
    }
-   
+
    protected DefinitionRegistry registry() {
       return registry;
    }
-   
-   protected Session session() {
+
+   protected CqlSession session() {
       return session;
    }
 
@@ -64,19 +64,19 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
       ResultSet rs = session().execute( stmt );
       return Optional.ofNullable( rs.one() ).map( this::toModel );
    }
-   
+
    protected List<M> list(BoundStatement stmt) {
       ResultSet rs = session().execute( stmt );
       List<M> results = new ArrayList<>(rs.getAvailableWithoutFetching());
       rs.forEach(
-         (row) -> 
+         (row) ->
             Optional
                .ofNullable( toModel(row) )
                .ifPresent( results::add )
       );
       return results;
    }
-   
+
    protected Map<String, Object> decode(Map<String, String> encoded) {
       if(encoded == null) {
          return ImmutableMap.of();
@@ -123,7 +123,7 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
    		logger.trace("Ignoring private attribute [{}]", attributeName);
    		return TypeMarker.object();
    	}
-   	
+
       NamespacedKey key = NamespacedKey.parse(attributeName);
       AttributeDefinition ad = registry.getAttribute(key.getNamedRepresentation());
       if(ad == null) {
@@ -131,7 +131,7 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
             logger.warn("Unrecognized attribute [{}] may lose type information when deserialized", attributeName);
          }
 
-         return TypeMarker.object(); 
+         return TypeMarker.object();
       }
       return TypeMarker.wrap(ad.getType().getJavaType());
    }
@@ -141,9 +141,8 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
     * @param name
     * @return
     */
-   protected static final Object remove(String name) { 
-      return null; 
+   protected static final Object remove(String name) {
+      return null;
    }
 
 }
-

@@ -15,9 +15,7 @@
  */
 package com.iris.core.dao.cassandra;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.put;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.putAll;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -29,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -41,22 +39,21 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.Utils;
@@ -216,7 +213,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    private final HubAttributesPersistenceFilter filter = new HubAttributesPersistenceFilter();
 
    @Inject
-   public HubDAOImpl(Session session, Partitioner partitioner, CapabilityRegistry registry) {
+   public HubDAOImpl(CqlSession session, Partitioner partitioner, CapabilityRegistry registry) {
       super(session, TABLE, COLUMN_ORDER);
 
       streamByPartition =
@@ -256,7 +253,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
             .ifExists()
             .prepare(session);
 
-      connected = 
+      connected =
              CassandraQueryBuilder
                 .update(TABLE)
                 .addColumns(
@@ -269,7 +266,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
                 .ifClause(HubEntityColumns.STATE + " = '" + HubCapability.STATE_DOWN + "'")
                 .prepare(session);
 
-      disconnected = 
+      disconnected =
             CassandraQueryBuilder
                .update(TABLE)
                .addColumns(
@@ -293,8 +290,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
    @Override
-   protected List<Statement> prepareIndexInserts(String id, Hub entity) {
-      List<Statement> indexInserts = new ArrayList<>();
+   protected List<Statement<?>> prepareIndexInserts(String id, Hub entity) {
+      List<Statement<?>> indexInserts = new ArrayList<>();
       addMacAddrIndexInsert(indexInserts, id, entity);
       addAccountIndexInsert(indexInserts, id, entity);
       addPlaceIndexInsert(indexInserts, id, entity);
@@ -302,9 +299,9 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
    @Override
-   protected List<Statement> prepareIndexUpdates(Hub entity) {
+   protected List<Statement<?>> prepareIndexUpdates(Hub entity) {
       Hub currentHub = findById(entity.getId());
-      List<Statement> statements = new ArrayList<>();
+      List<Statement<?>> statements = new ArrayList<>();
       if (currentHub == null) {
          statements.addAll(prepareIndexInserts(entity.getId(), entity));
       }
@@ -325,8 +322,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
    @Override
-   protected List<Statement> prepareIndexDeletes(Hub entity) {
-      List<Statement> indexDeletes = new ArrayList<>();
+   protected List<Statement<?>> prepareIndexDeletes(Hub entity) {
+      List<Statement<?>> indexDeletes = new ArrayList<>();
       addMacAddrIndexDelete(indexDeletes, entity);
       addAccountIndexDelete(indexDeletes, entity);
       addPlaceIndexDelete(indexDeletes, entity);
@@ -375,8 +372,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    @Override
    protected void populateEntity(Row row, Hub entity) {
       entity.setState(row.getString(HubEntityColumns.STATE));
-      entity.setAccount(row.getUUID(HubEntityColumns.ACCOUNT_ID));
-      entity.setPlace(row.getUUID(HubEntityColumns.PLACE_ID));
+      entity.setAccount(row.getUuid(HubEntityColumns.ACCOUNT_ID));
+      entity.setPlace(row.getUuid(HubEntityColumns.PLACE_ID));
       entity.setCaps(row.getSet(HubEntityColumns.CAPS, String.class));
       entity.setName(row.getString(HubEntityColumns.NAME));
       entity.setVendor(row.getString(HubEntityColumns.VENDOR));
@@ -390,9 +387,9 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       entity.setAgentver(row.getString(HubEntityColumns.AGENT_VER));
       entity.setBootloaderVer(row.getString(HubEntityColumns.BOOTLOADER_VER));
       entity.setRegistrationState(row.getString(HubEntityColumns.REGISTRATIONSTATE));
-      entity.setLastDeviceAddRemove(row.getUUID(HubEntityColumns.LAST_DEVICE_ADD_REMOVE));
-      entity.setLastReset(row.getUUID(HubEntityColumns.LAST_RESET));
-      entity.setDisallowCell(row.getBool(HubEntityColumns.DISALLOW_CELL));
+      entity.setLastDeviceAddRemove(row.getUuid(HubEntityColumns.LAST_DEVICE_ADD_REMOVE));
+      entity.setLastReset(row.getUuid(HubEntityColumns.LAST_RESET));
+      entity.setDisallowCell(row.getBoolean(HubEntityColumns.DISALLOW_CELL));
       entity.setDisallowCellReason(row.getString(HubEntityColumns.DISALLOW_CELL_REASON));
 
    }
@@ -422,10 +419,10 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    public Set<String> findHubIdsByAccount(UUID accountId) {
       Set<String> hubIds = new HashSet<String>();
       if (accountId != null) {
-         BoundStatement boundStatement = new BoundStatement(findIdsByAccount);
+         BoundStatement boundStatement = findIdsByAccount.bind(accountId);
          ResultSet resultSet;
          try(Context ctxt = findHubIdsByAccountTimer.time()) {
-        	 resultSet = session.execute(boundStatement.bind(accountId));
+        	 resultSet = session.execute(boundStatement);
          }
 
          List<Row> rows = resultSet.all();
@@ -441,9 +438,9 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       if(placeId == null) {
          return null;
       }
-      BoundStatement boundStatement = new BoundStatement(findIdForPlace);
+      BoundStatement boundStatement = findIdForPlace.bind(placeId);
       try(Context ctxt = findHubForPlaceTimer.time()) {
-    	  Row row = session.execute(boundStatement.bind(placeId)).one();
+    	  Row row = session.execute(boundStatement).one();
     	  if(row == null) {
     		  return null;
     	  }
@@ -476,27 +473,22 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       Calendar snapped = snappedMinutes(now, snapTo);
       Calendar dayHour = DateUtils.truncate(snapped, Calendar.HOUR);
       hubSimIdMap.forEach((h,s) -> {
-         BoundStatement stmt = new BoundStatement(insertCellBackupTime);
-         stmt.setTimestamp(CellBackupCol.dayhour.name(), dayHour.getTime());
-         stmt.setInt(CellBackupCol.minute.name(), snapped.get(Calendar.MINUTE));
-         stmt.setString(CellBackupCol.hubid.name(), h);
-         stmt.setString(CellBackupCol.simid.name(), s);
+         BoundStatement stmt = insertCellBackupTime.bind()
+            .setInstant(CellBackupCol.dayhour.name(), dayHour.getTime().toInstant())
+            .setInt(CellBackupCol.minute.name(), snapped.get(Calendar.MINUTE))
+            .setString(CellBackupCol.hubid.name(), h)
+            .setString(CellBackupCol.simid.name(), s);
          // not sure we really care about the result here
          final Context ctxt = insertCellBackupTimesTimer.time();
-         Futures.addCallback(session.executeAsync(stmt), new FutureCallback<ResultSet>() {
-            @Override
-            public void onSuccess(ResultSet result) {
-               ctxt.stop();
-               if(!result.wasApplied()) {
-                  hubInsertCellBackupFailure.inc();
-               }
-            }
-            @Override
-            public void onFailure(Throwable t) {
-               ctxt.stop();
+         CompletionStage<AsyncResultSet> future = session.executeAsync(stmt);
+         future.whenComplete((result, throwable) -> {
+            ctxt.stop();
+            if (throwable != null) {
+               hubInsertCellBackupFailure.inc();
+            } else if (!result.wasApplied()) {
                hubInsertCellBackupFailure.inc();
             }
-         }, MoreExecutors.directExecutor());
+         });
       });
    }
 
@@ -513,7 +505,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    @Override
    public Map<String, Object> connected(String hubId) {
       Date ts = new Date();
-      BoundStatement bs = connected.bind(HubCapability.STATE_NORMAL, JSON.toJson(HubConnectionCapability.STATE_ONLINE), JSON.toJson(ts), ts, hubId);
+      BoundStatement bs = connected.bind(HubCapability.STATE_NORMAL, JSON.toJson(HubConnectionCapability.STATE_ONLINE), JSON.toJson(ts), ts.toInstant(), hubId);
       Address hubAddress = Address.hubService(hubId, HubCapability.NAMESPACE);
       try(Context ctx = connectedTimer.time()) {
          ResultSet rs = session.execute(bs);
@@ -539,7 +531,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    @Override
    public Map<String, Object> disconnected(String hubId) {
       Date ts = new Date();
-      BoundStatement bs = disconnected.bind(HubCapability.STATE_DOWN, JSON.toJson(HubConnectionCapability.STATE_OFFLINE), JSON.toJson(ts), ts, hubId);
+      BoundStatement bs = disconnected.bind(HubCapability.STATE_DOWN, JSON.toJson(HubConnectionCapability.STATE_OFFLINE), JSON.toJson(ts), ts.toInstant(), hubId);
       try(Context ctx = disconnectedTimer.time()) {
          ResultSet rs = session.execute(bs);
          if( !rs.wasApplied() ) {
@@ -555,10 +547,10 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
 
 	private void updateDisallowCell(String hubId, boolean disallow, String reason) {
       Preconditions.checkNotNull(hubId, "hubId is required");
-      BoundStatement stmt = new BoundStatement(updateCellDisallow);
-      stmt.setBool(HubEntityColumns.DISALLOW_CELL, disallow);
-      stmt.setString(HubEntityColumns.DISALLOW_CELL_REASON, reason);
-      stmt.setString(HubEntityColumns.ID, hubId);
+      BoundStatement stmt = updateCellDisallow.bind()
+         .setBoolean(HubEntityColumns.DISALLOW_CELL, disallow)
+         .setString(HubEntityColumns.DISALLOW_CELL_REASON, reason)
+         .setString(HubEntityColumns.ID, hubId);
       try(Context ctxt = updateDisallowCellTimer.time()) {
          session.execute(stmt);
       }
@@ -579,41 +571,49 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
 
       Map<String, Object> filtered = filter.filter(attrs);
       Map<String, String> attributesAsStrings = new HashMap<>();
-      Update update = QueryBuilder.update(TABLE);
-      update.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-      update.where(eq(BaseEntityColumns.ID, hubId));
 
-      filtered.forEach((k,v) -> {
-         if(v == null) {
-            update.with(put(ATTRIBUTES_COLUMN, k, null));
+      // Build the update CQL dynamically since we need conditional null handling
+      StringBuilder cql = new StringBuilder("UPDATE ").append(TABLE).append(" SET ");
+      List<Object> values = new ArrayList<>();
+      boolean first = true;
+
+      for (Map.Entry<String, Object> entry : filtered.entrySet()) {
+         if (entry.getValue() == null) {
+            if (!first) cql.append(", ");
+            cql.append(ATTRIBUTES_COLUMN).append("['").append(entry.getKey().replace("'", "''")).append("'] = null");
+            first = false;
          } else {
-            attributesAsStrings.put(k, JSON.toJson(v));
+            attributesAsStrings.put(entry.getKey(), JSON.toJson(entry.getValue()));
          }
-      });
+      }
 
-      update.with(putAll(ATTRIBUTES_COLUMN, attributesAsStrings));
+      if (!first) cql.append(", ");
+      cql.append(ATTRIBUTES_COLUMN).append(" = ").append(ATTRIBUTES_COLUMN).append(" + ?");
+      values.add(attributesAsStrings);
+      first = false;
+
+      cql.append(" WHERE ").append(BaseEntityColumns.ID).append(" = ?");
+      values.add(hubId);
+
+      Statement<?> updateStmt = session.prepare(cql.toString()).bind(values.toArray())
+            .setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
+
       final Context ctxt = updateAttributesTimer.time();
-      Futures.addCallback(session.executeAsync(update), new FutureCallback<ResultSet>() {
-         @Override
-         public void onSuccess(ResultSet result) {
-            ctxt.stop();
-            if(!result.wasApplied()) {
-               hubUpdateAttributesFailure.inc();
-            }
-         }
-         @Override
-         public void onFailure(Throwable t) {
-            ctxt.stop();
+      CompletionStage<AsyncResultSet> future = session.executeAsync(updateStmt);
+      future.whenComplete((result, throwable) -> {
+         ctxt.stop();
+         if (throwable != null) {
+            hubUpdateAttributesFailure.inc();
+         } else if (!result.wasApplied()) {
             hubUpdateAttributesFailure.inc();
          }
-      }, MoreExecutors.directExecutor());
+      });
    }
 
    @Override
    public ModelEntity findHubModel(String id) {
       try(Context ctxt = findHubModelTimer.time()) {
-         BoundStatement boundStatement = new BoundStatement(findById);
-         boundStatement.bind(id);
+         BoundStatement boundStatement = findById.bind(id);
          Row r = session.execute(boundStatement).one();
          return toModel(r);
       }
@@ -625,8 +625,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
          return null;
       }
       try(Context ctxt = findHubModelForPlaceTimer.time()) {
-         BoundStatement boundStatement = new BoundStatement(findIdForPlace);
-         Row row = session.execute(boundStatement.bind(placeId)).one();
+         BoundStatement boundStatement = findIdForPlace.bind(placeId);
+         Row row = session.execute(boundStatement).one();
          if(row == null) {
             return null;
          }
@@ -642,8 +642,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       Map<String, Object> attributes = toAttributes(r);
 
       ModelEntity entity = new ModelEntity(attributes);
-      entity.setCreated(r.getTimestamp(BaseEntityColumns.CREATED));
-      entity.setModified(r.getTimestamp(BaseEntityColumns.MODIFIED));
+      entity.setCreated(r.isNull(BaseEntityColumns.CREATED) ? null : Date.from(r.getInstant(BaseEntityColumns.CREATED)));
+      entity.setModified(r.isNull(BaseEntityColumns.MODIFIED) ? null : Date.from(r.getInstant(BaseEntityColumns.MODIFIED)));
       return entity;
    }
 
@@ -670,8 +670,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
 
       // hub attributes
       Utils.setIf(HubCapability.ATTR_ID, id, model);
-      Utils.setIf(HubCapability.ATTR_ACCOUNT, Utils.coerceToString(r.getUUID(HubEntityColumns.ACCOUNT_ID)), model);
-      Utils.setIf(HubCapability.ATTR_PLACE, Utils.coerceToString(r.getUUID(HubEntityColumns.PLACE_ID)), model);
+      Utils.setIf(HubCapability.ATTR_ACCOUNT, Utils.coerceToString(r.getUuid(HubEntityColumns.ACCOUNT_ID)), model);
+      Utils.setIf(HubCapability.ATTR_PLACE, Utils.coerceToString(r.getUuid(HubEntityColumns.PLACE_ID)), model);
       setOrDefault(HubCapability.ATTR_NAME, r.getString(HubEntityColumns.NAME), "My Hub", model);
       Utils.setIf(HubCapability.ATTR_VENDOR, r.getString(HubEntityColumns.VENDOR), model);
       Utils.setIf(HubCapability.ATTR_MODEL, r.getString(HubEntityColumns.MODEL), model);
@@ -687,8 +687,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       Utils.setIf(HubAdvancedCapability.ATTR_MFGINFO, r.getString(HubEntityColumns.MFG_INFO), model);
       Utils.setIf(HubAdvancedCapability.ATTR_BOOTLOADERVER, r.getString(HubEntityColumns.BOOTLOADER_VER), model);
       Utils.setIf(HubAdvancedCapability.ATTR_FIRMWAREGROUP, r.getString(HubEntityColumns.FIRMWARE_GROUP), model);
-      Utils.setIf(HubAdvancedCapability.ATTR_LASTRESET, Utils.coerceToString(r.getUUID(HubEntityColumns.LAST_RESET)), model);
-      Utils.setIf(HubAdvancedCapability.ATTR_LASTDEVICEADDREMOVE, Utils.coerceToString(r.getUUID(HubEntityColumns.LAST_DEVICE_ADD_REMOVE)), model);
+      Utils.setIf(HubAdvancedCapability.ATTR_LASTRESET, Utils.coerceToString(r.getUuid(HubEntityColumns.LAST_RESET)), model);
+      Utils.setIf(HubAdvancedCapability.ATTR_LASTDEVICEADDREMOVE, Utils.coerceToString(r.getUuid(HubEntityColumns.LAST_DEVICE_ADD_REMOVE)), model);
 
       return model;
    }
@@ -794,48 +794,48 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    					.prepare(session);
    }
 
-   private void addMacAddrIndexInsert(List<Statement> statements, String id, Hub entity) {
+   private void addMacAddrIndexInsert(List<Statement<?>> statements, String id, Hub entity) {
       if(!StringUtils.isBlank(entity.getMac())) {
          ParsedMacAddr parsed = ParsedMacAddr.parse(entity.getMac());
-         statements.add(new BoundStatement(insertMacAddrIdx).bind(parsed.macAddr_0_7, parsed.macAddr, id));
+         statements.add(insertMacAddrIdx.bind(parsed.macAddr_0_7, parsed.macAddr, id));
       }
    }
 
-   private void addAccountIndexInsert(List<Statement> statements, String id, Hub entity) {
+   private void addAccountIndexInsert(List<Statement<?>> statements, String id, Hub entity) {
       if (entity.getAccount() != null) {
-         statements.add(new BoundStatement(insertAccountIdx).bind(entity.getAccount(), entity.getId()));
+         statements.add(insertAccountIdx.bind(entity.getAccount(), entity.getId()));
       }
    }
 
-   private void addPlaceIndexInsert(List<Statement> statements, String id, Hub entity) {
+   private void addPlaceIndexInsert(List<Statement<?>> statements, String id, Hub entity) {
       if (entity.getPlace() != null) {
-         statements.add(new BoundStatement(insertPlaceIdx).bind(entity.getPlace(), entity.getId()));
+         statements.add(insertPlaceIdx.bind(entity.getPlace(), entity.getId()));
       }
    }
 
-   private void addMacAddrIndexDelete(List<Statement> statements, Hub entity) {
+   private void addMacAddrIndexDelete(List<Statement<?>> statements, Hub entity) {
       if(!StringUtils.isBlank(entity.getMac())) {
          ParsedMacAddr parsed = ParsedMacAddr.parse(entity.getMac());
-         statements.add(new BoundStatement(deleteMacAddrIdx).bind(parsed.macAddr_0_7, parsed.macAddr));
+         statements.add(deleteMacAddrIdx.bind(parsed.macAddr_0_7, parsed.macAddr));
       }
    }
 
-   private void addAccountIndexDelete(List<Statement> statements, Hub entity) {
+   private void addAccountIndexDelete(List<Statement<?>> statements, Hub entity) {
       if(entity.getAccount() != null) {
-         statements.add(new BoundStatement(deleteAccountIdx).bind(entity.getId(), entity.getAccount()));
+         statements.add(deleteAccountIdx.bind(entity.getId(), entity.getAccount()));
       }
    }
 
-   private void addPlaceIndexDelete(List<Statement> statements, Hub entity) {
+   private void addPlaceIndexDelete(List<Statement<?>> statements, Hub entity) {
       if(entity.getPlace() != null) {
-         statements.add(new BoundStatement(deletePlaceIdx).bind(entity.getId(), entity.getPlace()));
+         statements.add(deletePlaceIdx.bind(entity.getId(), entity.getPlace()));
       }
    }
 
    private String findIdByMacAddr(String macAddr) {
       ParsedMacAddr parsed = ParsedMacAddr.parse(macAddr);
-      BoundStatement boundStatement = new BoundStatement(findIdByMacAddr);
-      Row row = session.execute(boundStatement.bind(parsed.macAddr_0_7, parsed.macAddr)).one();
+      BoundStatement boundStatement = findIdByMacAddr.bind(parsed.macAddr_0_7, parsed.macAddr);
+      Row row = session.execute(boundStatement).one();
       return row == null ? null : row.getString("hubId");
    }
 
@@ -858,4 +858,3 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
 }
-

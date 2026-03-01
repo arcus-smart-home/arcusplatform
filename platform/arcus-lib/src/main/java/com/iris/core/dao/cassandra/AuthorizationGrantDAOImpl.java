@@ -21,20 +21,25 @@ import java.util.stream.Collectors;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BatchableStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.AuthorizationGrantDAO;
 import com.iris.core.dao.metrics.DaoMetrics;
 import com.iris.security.authz.AuthorizationGrant;
+
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.*;
+import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 
 @Singleton
 public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
@@ -58,7 +63,7 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
 		public static final String PLACE_NAME = "placeName";
 	}
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement upsert;
    private final PreparedStatement upsertByPlace;
    private final PreparedStatement findForEntity;
@@ -69,7 +74,7 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
    private final PreparedStatement removeForEntity;
 
    @Inject
-   public AuthorizationGrantDAOImpl(Session session) {
+   public AuthorizationGrantDAOImpl(CqlSession session) {
       this.session = session;
       upsert = prepareUpsert();
       upsertByPlace = prepareUpsertByPlace();
@@ -89,22 +94,22 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
       Preconditions.checkNotNull(grant.getPlaceId(), "place id must not be null");
 
       // uses upsert semantics where an insert statement will update the existing row if it already exists
-      BatchStatement batch = new BatchStatement();
-      batch.add(bindUpsert(upsert, grant));
-      batch.add(bindUpsert(upsertByPlace, grant));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement(bindUpsert(upsert, grant));
+      batch.addStatement(bindUpsert(upsertByPlace, grant));
 
       try(Context ctxt = upsertTimer.time()) {
-    	  this.session.execute(batch);
+    	  this.session.execute(batch.build());
       }
    }
 
    private BoundStatement bindUpsert(PreparedStatement upsert, AuthorizationGrant grant) {
-      BoundStatement boundStatement = new BoundStatement(upsert)
-         .setUUID(Cols.ENTITY_ID, grant.getEntityId())
-         .setUUID(Cols.PLACE_ID, grant.getPlaceId())
-         .setUUID(Cols.ACCOUNT_ID, grant.getAccountId())
-         .setBool(Cols.ACCOUNT_OWNER, grant.isAccountOwner())
-         .setSet(Cols.PERMISSIONS, grant.getPermissions())
+      BoundStatement boundStatement = upsert.bind()
+         .setUuid(Cols.ENTITY_ID, grant.getEntityId())
+         .setUuid(Cols.PLACE_ID, grant.getPlaceId())
+         .setUuid(Cols.ACCOUNT_ID, grant.getAccountId())
+         .setBoolean(Cols.ACCOUNT_OWNER, grant.isAccountOwner())
+         .setSet(Cols.PERMISSIONS, grant.getPermissions(), String.class)
          .setString(Cols.PLACE_NAME, grant.getPlaceName());
       return boundStatement;
    }
@@ -113,11 +118,11 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
    public List<AuthorizationGrant> findForEntity(UUID entityId) {
       Preconditions.checkNotNull(entityId, "entity id must not be null");
 
-      BoundStatement boundStatement = new BoundStatement(findForEntity);
+      BoundStatement boundStatement = findForEntity.bind(entityId);
       List<Row> rows;
 
       try(Context ctxt = findForEntityTimer.time()) {
-    	  rows = session.execute(boundStatement.bind(entityId)).all();
+    	  rows = session.execute(boundStatement).all();
       }
 
       return rows.stream().map((r) -> { return buildFromRow(r); }).collect(Collectors.toList());
@@ -127,9 +132,9 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
    public List<AuthorizationGrant> findForPlace(UUID placeId) {
       Preconditions.checkNotNull(placeId, "place id must not be null");
 
-      BoundStatement boundStatement = new BoundStatement(findForPlace);
+      BoundStatement boundStatement = findForPlace.bind(placeId);
       try(Context ctxt = findForPlaceTimer.time()) {
-         List<Row> rows = session.execute(boundStatement.bind(placeId)).all();
+         List<Row> rows = session.execute(boundStatement).all();
          return rows.stream().map((r) -> { return buildFromRow(r); }).collect(Collectors.toList());
       }
    }
@@ -139,12 +144,12 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
       Preconditions.checkNotNull(entityId, "entity id must not be null");
       Preconditions.checkNotNull(placeId, "place id must not be null");
 
-      BatchStatement stmt = new BatchStatement();
-      stmt.add(new BoundStatement(removeGrant).bind(entityId, placeId));
-      stmt.add(new BoundStatement(removeGrantFromPlace).bind(entityId, placeId));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement((BatchableStatement<?>) removeGrant.bind(entityId, placeId));
+      batch.addStatement((BatchableStatement<?>) removeGrantFromPlace.bind(entityId, placeId));
 
       try(Context ctxt = removeGrantTimer.time()) {
-    	  session.execute(stmt);
+    	  session.execute(batch.build());
       }
    }
 
@@ -152,13 +157,14 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
    public void removeGrantsForEntity(UUID entityId) {
       try(Context ctxt = removeGrantsForEntityTimer.time()) {
          List<AuthorizationGrant> grants = findForEntity(entityId);
-         Statement statement = QueryBuilder.delete().from("authorization_grant_by_place")
-               .where(QueryBuilder.in("placeId", grants.stream().map(AuthorizationGrant::getPlaceId).collect(Collectors.toList())))
-               .and(QueryBuilder.eq("entityId", entityId));
-         BatchStatement batch = new BatchStatement();
-         batch.add(statement);
-         batch.add(new BoundStatement(removeForEntity).bind(entityId));
-         session.execute(batch);
+         Statement<?> statement = deleteFrom("authorization_grant_by_place")
+               .whereColumn("placeId").in(grants.stream().map(g -> literal(g.getPlaceId())).collect(Collectors.toList()))
+               .whereColumn("entityId").isEqualTo(literal(entityId))
+               .build();
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         batch.addStatement((BatchableStatement<?>) statement);
+         batch.addStatement((BatchableStatement<?>) removeForEntity.bind(entityId));
+         session.execute(batch.build());
       }
    }
 
@@ -166,14 +172,15 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
    public void removeForPlace(UUID placeId) {
       try(Context ctxt = removeForPlaceTimer.time()) {
          List<AuthorizationGrant> grants = findForPlace(placeId);
-         Statement statement = QueryBuilder.delete().from(AUTHORIZATION_GRANT_TABLE)
-               .where(QueryBuilder.in(Cols.ENTITY_ID, grants.stream().map(AuthorizationGrant::getEntityId).collect(Collectors.toList())))
-               .and(QueryBuilder.eq(Cols.PLACE_ID, placeId));
-         statement.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-         BatchStatement batch = new BatchStatement();
-         batch.add(statement);
-         batch.add(new BoundStatement(removeForPlace).bind(placeId));
-         session.execute(batch);
+         Statement<?> statement = deleteFrom(AUTHORIZATION_GRANT_TABLE)
+               .whereColumn(Cols.ENTITY_ID).in(grants.stream().map(g -> literal(g.getEntityId())).collect(Collectors.toList()))
+               .whereColumn(Cols.PLACE_ID).isEqualTo(literal(placeId))
+               .build()
+               .setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         batch.addStatement((BatchableStatement<?>) statement);
+         batch.addStatement((BatchableStatement<?>) removeForPlace.bind(placeId));
+         session.execute(batch.build());
       }
    }
 
@@ -244,13 +251,12 @@ public class AuthorizationGrantDAOImpl implements AuthorizationGrantDAO {
 
    private AuthorizationGrant buildFromRow(Row row) {
       AuthorizationGrant grant = new AuthorizationGrant();
-      grant.setEntityId(row.getUUID(Cols.ENTITY_ID));
-      grant.setPlaceId(row.getUUID(Cols.PLACE_ID));
-      grant.setAccountId(row.getUUID(Cols.ACCOUNT_ID));
-      grant.setAccountOwner(row.getBool(Cols.ACCOUNT_OWNER));
+      grant.setEntityId(row.getUuid(Cols.ENTITY_ID));
+      grant.setPlaceId(row.getUuid(Cols.PLACE_ID));
+      grant.setAccountId(row.getUuid(Cols.ACCOUNT_ID));
+      grant.setAccountOwner(row.getBoolean(Cols.ACCOUNT_OWNER));
       grant.setPlaceName(row.getString(Cols.PLACE_NAME));
       grant.addPermissions(row.getSet(Cols.PERMISSIONS, String.class));
       return grant;
    }
 }
-

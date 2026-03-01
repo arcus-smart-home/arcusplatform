@@ -21,10 +21,10 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
@@ -46,28 +46,28 @@ public class PlacePurgeRecordingTable extends VideoTable {
       ) WITH COMPACT STORAGE
         AND CLUSTERING ORDER BY (placeid ASC);
 	 */
-	
+
 	public static final String TABLE_NAME = "place_purge_recording";
 	private static final Logger logger = LoggerFactory.getLogger(PlacePurgeRecordingTable.class);
-	
+
 	public static final String COL_PLACEID = "placeid";
 	public static final String COL_DELETE_TIME = "deletetime";
 	public static final String COL_MODE = "mode";
 	private static final String[] COLUMNS = {COL_DELETE_TIME, COL_PLACEID, COL_MODE};
-	
+
 	protected final PreparedStatement insert;
 	protected final PreparedStatement deleteByDeleteTime;
 	protected final PreparedStatement selectByDeleteTime;
-	
+
 	@Inject
-	public PlacePurgeRecordingTable(String ts, Session session, VideoDaoConfig config) {
+	public PlacePurgeRecordingTable(String ts, CqlSession session, VideoDaoConfig config) {
 		super(ts, session);
 		this.deleteByDeleteTime =
 				CassandraQueryBuilder
 					.delete(getTableName())
 					.where(COL_DELETE_TIME + " = ?")
 					.prepare(session);
-		this.insert = 
+		this.insert =
 				CassandraQueryBuilder
 				.insert(getTableName())
 				.addColumns(getTableColumns())
@@ -78,8 +78,8 @@ public class PlacePurgeRecordingTable extends VideoTable {
 				.addColumns(getTableColumns())
 				.where(COL_DELETE_TIME + " = ?")
 				.prepare(session);
-	}	
-	
+	}
+
 	@Override
 	public String getTable() {
 		return TABLE_NAME;
@@ -88,26 +88,25 @@ public class PlacePurgeRecordingTable extends VideoTable {
 	protected String[] getTableColumns() {
 		return COLUMNS;
 	}
-	
+
 	public BoundStatement insert(Date deleteTime, UUID placeId, PurgeMode mode) {
 		return insert.bind(deleteTime, placeId, mode.name());
 	}
-	
+
 	public BoundStatement selectBy(Date deleteTime) {
 		return selectByDeleteTime.bind(deleteTime);
 	}
-	
+
 	public BoundStatement deleteBy(Date deleteTime) {
 		return deleteByDeleteTime.bind(deleteTime);
 	}
-	
+
 	public PlacePurgeRecord buildEntity(Row row) {
 		PurgeMode mode = PurgeMode.ALL;
 		if(!row.isNull(COL_MODE)) {
 			mode = PurgeMode.valueOf(row.getString(COL_MODE));
 		}
-		return new PlacePurgeRecord(row.getUUID(COL_PLACEID), row.getTimestamp(COL_DELETE_TIME), mode);
-		
+		return new PlacePurgeRecord(row.getUuid(COL_PLACEID), row.isNull(COL_DELETE_TIME) ? null : Date.from(row.getInstant(COL_DELETE_TIME)), mode);
+
 	}
 }
-

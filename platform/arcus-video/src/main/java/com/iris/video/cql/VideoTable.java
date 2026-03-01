@@ -15,21 +15,21 @@
  */
 package com.iris.video.cql;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 
 public abstract class VideoTable {
 	private final String tableSpace;
-	protected final Session session;
-	
-	public VideoTable(String ts, Session session) {
+	protected final CqlSession session;
+
+	public VideoTable(String ts, CqlSession session) {
 		this.tableSpace = ts;
 		this.session = session;
 	}
-	
+
 	public String getTableSpace() {
 		return this.tableSpace;
 	}
-	
+
 	/**
 	 * Return the full table name with the table space prefix
 	 * @return
@@ -37,9 +37,8 @@ public abstract class VideoTable {
 	public String getTableName() {
 		return tableSpace + "." + getTable();
 	}
-	
-	public abstract String getTable();	//table name without the table space prefix
-	
-	
-}
 
+	public abstract String getTable();	//table name without the table space prefix
+
+
+}

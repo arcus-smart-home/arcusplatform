@@ -17,14 +17,13 @@ package com.iris.video.cql.v2;
 
 import java.util.UUID;
 
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
-import com.datastax.driver.core.policies.LoggingRetryPolicy;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.iris.video.cql.VideoConstants;
+
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.*;
 
 /**
  * CREATE TABLE place_recording_index_2 (
@@ -34,7 +33,7 @@ import com.iris.video.cql.VideoConstants;
             recordingid timeuuid,
             expiration timestamp,
             size bigint,
-            PRIMARY KEY ((placeid, field), expiration, value, recordingid) 
+            PRIMARY KEY ((placeid, field), expiration, value, recordingid)
          )
          WITH CLUSTERING ORDER BY (expiration DESC, value DESC,recordingid DESC)
  *
@@ -46,45 +45,50 @@ public class PlaceRecordingIndexV2Table extends AbstractPlaceRecordingIndexV2Tab
 	public static final String COL_EXPIRATION = "expiration";
 
 	private static final String[] COLUMNS = {COL_PLACEID, COL_FIELD, COL_EXPIRATION, COL_VALUE, COL_RECORDINGID, COL_SIZE};
-	
+
 
 
 	@Inject
-	public PlaceRecordingIndexV2Table(String ts, Session session) {
+	public PlaceRecordingIndexV2Table(String ts, CqlSession session) {
 		super(ts, session);
-		
-	}	
-	
-	private Statement doInsert(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds, String fieldName, String value, Long size) {
-		Statement insert = QueryBuilder.insertInto(getTableSpace(), TABLE_NAME).using(QueryBuilder.ttl((int)actualTtlInSeconds))
-				.values(COLUMNS, new Object[]{placeId, fieldName, expiration, value, recordingId, size})
-				.setRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE))			
-				;
+
+	}
+
+	private Statement<?> doInsert(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds, String fieldName, String value, Long size) {
+		SimpleStatement insert = insertInto(getTableSpace(), TABLE_NAME)
+				.value(COLUMNS[0], literal(placeId))
+				.value(COLUMNS[1], literal(fieldName))
+				.value(COLUMNS[2], literal(expiration))
+				.value(COLUMNS[3], literal(value))
+				.value(COLUMNS[4], literal(recordingId))
+				.value(COLUMNS[5], literal(size))
+				.usingTtl((int)actualTtlInSeconds)
+				.build();
 		return insert;
 	}
-	
-	public Statement insertDeleted(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds) {
-		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.DELETED.id, "", null);
-		
-	}
-	
 
-	public Statement insertCamera(UUID placeId, UUID recordingId, UUID cameraId, long expiration, long actualTtlInSeconds) {
+	public Statement<?> insertDeleted(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds) {
+		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.DELETED.id, "", null);
+
+	}
+
+
+	public Statement<?> insertCamera(UUID placeId, UUID recordingId, UUID cameraId, long expiration, long actualTtlInSeconds) {
 		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.CAMERA.id, cameraId.toString(), null);
 	}
 
-	public Statement insertTag(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds, String tag) {
+	public Statement<?> insertTag(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds, String tag) {
 		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.TAG.id, tag, null);
 	}
-	
 
-	public Statement insertVideo(UUID placeId, UUID recordingId, Type type, long expiration, long actualTtlInSeconds) {
+
+	public Statement<?> insertVideo(UUID placeId, UUID recordingId, Type type, long expiration, long actualTtlInSeconds) {
 		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.TYPE.id, type.id, null);
 	}
-	
-	public Statement insertRecording(UUID placeId, UUID recordingId, long size, long expiration, long actualTtlInSeconds) {
+
+	public Statement<?> insertRecording(UUID placeId, UUID recordingId, long size, long expiration, long actualTtlInSeconds) {
 		return doInsert(placeId, recordingId, expiration, actualTtlInSeconds, Field.TYPE.id, Type.RECORDING.id, size);
-		
+
 	}
 
 
@@ -105,7 +109,6 @@ public class PlaceRecordingIndexV2Table extends AbstractPlaceRecordingIndexV2Tab
 	public String getTable() {
 		return TABLE_NAME;
 	}
-	
+
 
 }
-

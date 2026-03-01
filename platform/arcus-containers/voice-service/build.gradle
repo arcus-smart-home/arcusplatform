@@ -21,12 +21,13 @@ dependencies {
    api project(':platform:arcus-alexa')
    api project(':platform:arcus-google')
    implementation libraries.httpClient
+   implementation libraries.cassandraDriverQueryBuilder
    
    implementation 'io.netty:netty-tcnative-boringssl-static:2.0.75.Final'
    implementation 'com.google.auth:google-auth-library-oauth2-http:0.10.0'
    implementation 'com.google.api.grpc:googleapis-common-protos:0.0.3'
    implementation 'io.grpc:grpc-netty-shaded:1.10.0'
-   implementation 'io.grpc:grpc-protobuf:1.10.0' // 1.10 uses guava version 19.  Newer versions use 20 which isn't compatable with older versions of the cassandra driver.
+   implementation 'io.grpc:grpc-protobuf:1.10.0'
    implementation 'io.grpc:grpc-stub:1.10.0'
    implementation 'io.grpc:grpc-auth:1.10.0'
 

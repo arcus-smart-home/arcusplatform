@@ -40,14 +40,13 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -217,7 +216,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    private String questionsAesSecret;
 
    @Inject
-   public PersonDAOImpl(Session session, AES aes, PersonPlaceAssocDAO personPlaceAssocDAO) {
+   public PersonDAOImpl(CqlSession session, AES aes, PersonPlaceAssocDAO personPlaceAssocDAO) {
       super(session, TABLE, COLUMN_ORDER, READ_ONLY_COLUMN_ORDER);
       insertLogin = prepareInsertLogin();
       findLoginByEmail = prepareFindLoginByEmail();
@@ -306,13 +305,13 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
    @Override
    protected void populateEntity(Row row, Person entity) {
-      entity.setAccountId(row.getUUID(PersonEntityColumns.ACCOUNT_ID));
+      entity.setAccountId(row.getUuid(PersonEntityColumns.ACCOUNT_ID));
       entity.setCurrLocation(row.getString(PersonEntityColumns.CURRENT_LOCATION));
       entity.setCurrLocationMethod(row.getString(PersonEntityColumns.CURRENT_LOCATION_METHOD));
-      entity.setCurrLocationTime(row.getTimestamp(PersonEntityColumns.CURRENT_LOCATION_TIME));
-      entity.setCurrPlace(row.getUUID(PersonEntityColumns.CURRENT_PLACE));
+      entity.setCurrLocationTime(row.isNull(PersonEntityColumns.CURRENT_LOCATION_TIME) ? null : Date.from(row.getInstant(PersonEntityColumns.CURRENT_LOCATION_TIME)));
+      entity.setCurrPlace(row.getUuid(PersonEntityColumns.CURRENT_PLACE));
       entity.setCurrPlaceMethod(row.getString(PersonEntityColumns.CURRENT_PLACE_METHOD));
-      entity.setEmailVerified(row.getTimestamp(PersonEntityColumns.EMAIL_VERIFIED));
+      entity.setEmailVerified(row.isNull(PersonEntityColumns.EMAIL_VERIFIED) ? null : Date.from(row.getInstant(PersonEntityColumns.EMAIL_VERIFIED)));
       entity.setMobileNotificationEndpoints(row.getList(PersonEntityColumns.MOBILE_NOTIFICATION_ENDPOINTS, String.class));
       String mobileNumberStr = row.getString(PersonEntityColumns.MOBILE_NUMBER);
       try {
@@ -320,12 +319,12 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          if(phone != null) {
          	entity.setMobileNumber(PhoneNumbers.format(phone, PhoneNumberFormat.PARENS));
          }
-      }catch(IllegalArgumentException e) {      	
+      }catch(IllegalArgumentException e) {
       	logger.warn("Error retrieving person's mobile number from DB.", e);
       	//TODO - what do we with existing invalid phone numbers since we have not validated them until now?
       	entity.setMobileNumber(mobileNumberStr);
       }
-      entity.setMobileVerified(row.getTimestamp(PersonEntityColumns.MOBILE_VERIFIED));
+      entity.setMobileVerified(row.isNull(PersonEntityColumns.MOBILE_VERIFIED) ? null : Date.from(row.getInstant(PersonEntityColumns.MOBILE_VERIFIED)));
       entity.setFirstName(row.getString(PersonEntityColumns.FIRST_NAME));
       entity.setLastName(row.getString(PersonEntityColumns.LAST_NAME));
 
@@ -356,10 +355,10 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          }
       }
 
-      entity.setTermsAgreed(row.getTimestamp(PersonEntityColumns.TERMS_AGREED));
-      entity.setPrivacyPolicyAgreed(row.getTimestamp(PersonEntityColumns.PRIVACY_POLICY_AGREED));
-      entity.setConsentOffersPromotions(row.getTimestamp(PersonEntityColumns.CONSENT_OFFERSPROMOTIONS));
-      entity.setConsentStatement(row.getTimestamp(PersonEntityColumns.CONSENT_STATEMENT));
+      entity.setTermsAgreed(row.isNull(PersonEntityColumns.TERMS_AGREED) ? null : Date.from(row.getInstant(PersonEntityColumns.TERMS_AGREED)));
+      entity.setPrivacyPolicyAgreed(row.isNull(PersonEntityColumns.PRIVACY_POLICY_AGREED) ? null : Date.from(row.getInstant(PersonEntityColumns.PRIVACY_POLICY_AGREED)));
+      entity.setConsentOffersPromotions(row.isNull(PersonEntityColumns.CONSENT_OFFERSPROMOTIONS) ? null : Date.from(row.getInstant(PersonEntityColumns.CONSENT_OFFERSPROMOTIONS)));
+      entity.setConsentStatement(row.isNull(PersonEntityColumns.CONSENT_STATEMENT) ? null : Date.from(row.getInstant(PersonEntityColumns.CONSENT_STATEMENT)));
 
       Map<String,String> securityAnswers = row.getMap(PersonEntityColumns.SECURITY_ANSWERS, String.class, String.class);
       if(securityAnswers != null && !securityAnswers.isEmpty()) {
@@ -368,7 +367,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          entity.setSecurityAnswers(securityAnswers);
       }
 
-      entity.setHasLogin(row.getBool(PersonEntityColumns.HAS_LOGIN));
+      entity.setHasLogin(row.getBoolean(PersonEntityColumns.HAS_LOGIN));
       entity.setEmail(row.getString(PersonEntityColumns.EMAIL));
       entity.setEmailVerificationToken(row.getString(PersonEntityColumns.EMAIL_VERIFICATION_TOKEN));
    }
@@ -378,7 +377,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Person copy = entity.copy();
       copy.setId(id);
       copy = super.doInsert(id, copy);
-      session.execute(new BoundStatement(initMobileDeviceSequence).bind(id));
+      session.execute(initMobileDeviceSequence.bind(id));
       return copy;
    }
 
@@ -397,7 +396,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
             deleteLoginIndex(copy.getEmail());
          }
       }
-      session.execute(new BoundStatement(initMobileDeviceSequence).bind(id));
+      session.execute(initMobileDeviceSequence.bind(id));
       return copy;
    }
 
@@ -430,7 +429,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Preconditions.checkArgument(person.getId() == null, "can't create a person with an existing id");
       Preconditions.checkNotNull(password, "password may not be null for a credentialed user");
       validateAndFormatMobileNumber(person);
-      
+
       UUID id = nextId(person);
       return doInsert(id, person, password);
    }
@@ -443,7 +442,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Preconditions.checkArgument(person.getId() == null, "can't create a person with an existing id");
       Preconditions.checkArgument(person.getCreated() == null, "can't create a person with a created date");
       validateAndFormatMobileNumber(person);
-      
+
       Person copy = person.copy();
       copy.setHasLogin(false);
       return super.save(copy);
@@ -459,7 +458,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Preconditions.checkNotNull(person.getCreated(), "can't update a non-persisted person");
       return super.save(person);
    }
-      
+
 
    @Override
    public Person findByEmail(String email) {
@@ -477,7 +476,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       if(entity.getHasLogin()) {
          deleteLoginIndex(entity.getEmail());
       }
-      session.execute(new BoundStatement(deleteMobileDevices).bind(entity.getId()));
+      session.execute(deleteMobileDevices.bind(entity.getId()));
       super.delete(entity);
    }
 
@@ -523,9 +522,9 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       Login login = new Login();
       login.setPassword(row.getString(LoginColumns.PASSWORD));
       login.setPasswordSalt(row.getString(LoginColumns.PASSWORD_SALT));
-      login.setUserId(row.getUUID(LoginColumns.USERID));
+      login.setUserId(row.getUuid(LoginColumns.USERID));
       login.setUsername(username);
-      login.setLastPasswordChange(row.getTimestamp(LoginColumns.LAST_PASS_CHANGE));
+      login.setLastPasswordChange(row.isNull(LoginColumns.LAST_PASS_CHANGE) ? null : Date.from(row.getInstant(LoginColumns.LAST_PASS_CHANGE)));
       return login;
    }
 
@@ -539,13 +538,13 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          String token = TokenUtil.randomTokenString(TOKEN_LENGTH);
 
          ParsedEmail parsed = ParsedEmail.parse(email);
-         Statement stmt = QueryBuilder.update("login")
-               .using(QueryBuilder.ttl(tokenTTLMinutes * 60))
-               .with(QueryBuilder.set(LoginColumns.RESET_TOKEN, token))
-               .where(QueryBuilder.eq(LoginColumns.DOMAIN, parsed.getDomain()))
-               .and(QueryBuilder.eq(LoginColumns.USER_0_3, parsed.getUser_0_3()))
-               .and(QueryBuilder.eq(LoginColumns.USER, parsed.getUser()));
-         session.execute(stmt);
+         // Build the TTL update using raw CQL since 4.x QueryBuilder doesn't support USING TTL directly
+         String cql = "UPDATE login USING TTL " + (tokenTTLMinutes * 60) +
+               " SET " + LoginColumns.RESET_TOKEN + " = ?" +
+               " WHERE " + LoginColumns.DOMAIN + " = ?" +
+               " AND " + LoginColumns.USER_0_3 + " = ?" +
+               " AND " + LoginColumns.USER + " = ?";
+         session.execute(session.prepare(cql).bind(token, parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser()));
          return token.toString();
       }
    }
@@ -567,8 +566,8 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       ParsedEmail parsed = ParsedEmail.parse(email);
 
       try(Context ctxt = resetPasswordTimer.time()) {
-         BoundStatement boundStatement = new BoundStatement(findLoginByEmail);
-         Row row = session.execute(boundStatement.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser())).one();
+         BoundStatement boundStatement = findLoginByEmail.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser());
+         Row row = session.execute(boundStatement).one();
 
          if(row == null) {
             return FAILURE;
@@ -581,12 +580,12 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
          boolean succeeded = updatePassword(parsed, password);
 
          if(succeeded) {
-            Statement stmt = QueryBuilder.update("login")
-                  .with(QueryBuilder.set(LoginColumns.RESET_TOKEN, null))
-                  .where(QueryBuilder.eq(LoginColumns.DOMAIN, parsed.getDomain()))
-                  .and(QueryBuilder.eq(LoginColumns.USER_0_3, parsed.getUser_0_3()))
-                  .and(QueryBuilder.eq(LoginColumns.USER, parsed.getUser()));
-            session.execute(stmt);
+            // Clear the reset token
+            String cql = "UPDATE login SET " + LoginColumns.RESET_TOKEN + " = null" +
+                  " WHERE " + LoginColumns.DOMAIN + " = ?" +
+                  " AND " + LoginColumns.USER_0_3 + " = ?" +
+                  " AND " + LoginColumns.USER + " = ?";
+            session.execute(session.prepare(cql).bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser()));
          }
 
          return succeeded ? SUCCESS : FAILURE;
@@ -612,11 +611,11 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
          boolean isCurrentPlace = Objects.equal(person.getCurrPlace(), placeId);
 
-         Statement updateStatement = isCurrentPlace ?
-            new BoundStatement(updatePinAtPlaceAndPin2)
-               .bind(modified, placeId.toString(), encryptedNewPin, encryptedNewPin, person.getId()) :
-            new BoundStatement(updatePinAtPlace)
-               .bind(modified, placeId.toString(), encryptedNewPin, person.getId());
+         Statement<?> updateStatement = isCurrentPlace ?
+            updatePinAtPlaceAndPin2
+               .bind(modified.toInstant(), placeId.toString(), encryptedNewPin, encryptedNewPin, person.getId()) :
+            updatePinAtPlace
+               .bind(modified.toInstant(), placeId.toString(), encryptedNewPin, person.getId());
 
          session.execute(updateStatement);
 
@@ -670,9 +669,9 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
          boolean isCurrentPlace = Objects.equal(person.getCurrPlace(), placeId);
 
-         Statement deleteStatement = isCurrentPlace ?
-            new BoundStatement(updatePinAtPlaceAndPin2).bind(modified, placeId.toString(), null, null, person.getId()) :
-            new BoundStatement(updatePinAtPlace).bind(modified, placeId.toString(), null, person.getId());
+         Statement<?> deleteStatement = isCurrentPlace ?
+            updatePinAtPlaceAndPin2.bind(modified.toInstant(), placeId.toString(), null, null, person.getId()) :
+            updatePinAtPlace.bind(modified.toInstant(), placeId.toString(), null, person.getId());
 
          session.execute(deleteStatement);
 
@@ -707,18 +706,18 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
       String password = row.getString(LoginColumns.PASSWORD);
       String password_salt = row.getString(LoginColumns.PASSWORD_SALT);
-      UUID userId = row.getUUID(LoginColumns.USERID);
-      Date lastPassChange = row.getTimestamp(LoginColumns.LAST_PASS_CHANGE);
-      BoundStatement insert = new BoundStatement(insertLogin)
+      UUID userId = row.getUuid(LoginColumns.USERID);
+      Date lastPassChange = row.isNull(LoginColumns.LAST_PASS_CHANGE) ? null : Date.from(row.getInstant(LoginColumns.LAST_PASS_CHANGE));
+      BoundStatement insert = insertLogin.bind()
          .setString(LoginColumns.DOMAIN, newParsedEmail.getDomain())
          .setString(LoginColumns.USER_0_3, newParsedEmail.getUser_0_3())
          .setString(LoginColumns.USER, newParsedEmail.getUser())
          .setString(LoginColumns.PASSWORD, password)
          .setString(LoginColumns.PASSWORD_SALT, password_salt)
-         .setUUID(LoginColumns.USERID, userId)
+         .setUuid(LoginColumns.USERID, userId)
          // changing the email invalidates the reset token
          .setString(LoginColumns.RESET_TOKEN, null)
-         .setTimestamp(LoginColumns.LAST_PASS_CHANGE, lastPassChange);
+         .setInstant(LoginColumns.LAST_PASS_CHANGE, lastPassChange == null ? null : lastPassChange.toInstant());
 
       Person copy = person.copy();
       copy.setModified(new Date());
@@ -753,27 +752,27 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    @Override
    public void setUpdateFlag(UUID personId, boolean updateFlag) {
       Preconditions.checkArgument(personId != null, "The person id cannot be null");
-      BoundStatement statement = new BoundStatement(setUpdateFlag);
+      BoundStatement statement = setUpdateFlag.bind(updateFlag, personId);
       try(Context ctxt = setUpdateFlagTimer.time()) {
-         session.execute(statement.bind(updateFlag, personId));
+         session.execute(statement);
       }
    }
 
    @Override
    public boolean getUpdateFlag(UUID personId) {
       Preconditions.checkArgument(personId != null, "The person id cannot be null");
-      BoundStatement statement = new BoundStatement(getUpdateFlag);
+      BoundStatement statement = getUpdateFlag.bind(personId);
       ResultSet resultSet;
       try(Context ctxt = getUpdateFlagTimer.time()) {
-         resultSet = session.execute(statement.bind(personId));
+         resultSet = session.execute(statement);
       }
       Row row = resultSet.one();
-      return row.getBool(UPDATEFLAG);
+      return row.getBoolean(UPDATEFLAG);
    }
 
    private BoundStatement bindUpdate(Person person, String currentEmail) {
       List<Object> values = new ArrayList<Object>(COLUMN_ORDER.length + 5);
-      values.add(person.getModified());
+      values.add(person.getModified() == null ? null : person.getModified().toInstant());
       values.add(person.getTags());
       values.add(person.getImages());
       values.addAll(getValues(person));
@@ -782,13 +781,13 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
       // use an optimistic update to prevent inadvertently changing the
       // email address and corrupting the index
-      BoundStatement bs = new BoundStatement(updatePersonOptimistic);
-      return bs.bind(values.toArray());
+      BoundStatement bs = updatePersonOptimistic.bind(values.toArray());
+      return bs;
    }
 
    private BoundStatement bindDeleteLogin(ParsedEmail parsed) {
       return
-         new BoundStatement(deleteIndex)
+         deleteIndex.bind()
             .setString(LoginColumns.DOMAIN, parsed.getDomain())
             .setString(LoginColumns.USER_0_3, parsed.getUser_0_3())
             .setString(LoginColumns.USER, parsed.getUser());   }
@@ -800,8 +799,8 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       }
 
       List<String> hashAndSalt = generateHashAndSalt(password);
-      BoundStatement update = new BoundStatement(updatePassword);
-      ResultSet rs = session.execute(update.bind(hashAndSalt.get(0), hashAndSalt.get(1), new Date(), parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser()));
+      BoundStatement update = updatePassword.bind(hashAndSalt.get(0), hashAndSalt.get(1), new Date().toInstant(), parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser());
+      ResultSet rs = session.execute(update);
       return rs.wasApplied();
    }
 
@@ -824,7 +823,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
    @Override
    protected UUID getIdFromRow(Row row) {
-      return row.getUUID(BaseEntityColumns.ID);
+      return row.getUuid(BaseEntityColumns.ID);
    }
 
    @Override
@@ -834,15 +833,15 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
    private Row findLoginRowByUsername(String username) {
       ParsedEmail parsed = ParsedEmail.parse(username);
-      BoundStatement boundStatement = new BoundStatement(findLoginByEmail);
-      return session.execute(boundStatement.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser())).one();
+      BoundStatement boundStatement = findLoginByEmail.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser());
+      return session.execute(boundStatement).one();
    }
 
    private void insertLoginIndex(String email, UUID id, String password) {
       ParsedEmail parsed = ParsedEmail.parse(email);
       List<String> hashAndSalt = generateHashAndSalt(password);
-      BoundStatement boundStatement = new BoundStatement(insertLogin);
-      ResultSet rs = session.execute(boundStatement.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser(), hashAndSalt.get(0), hashAndSalt.get(1), id, null, new Date()));
+      BoundStatement boundStatement = insertLogin.bind(parsed.getDomain(), parsed.getUser_0_3(), parsed.getUser(), hashAndSalt.get(0), hashAndSalt.get(1), id, null, new Date().toInstant());
+      ResultSet rs = session.execute(boundStatement);
       if(!rs.wasApplied()) {
          throw new EmailInUseException(email);
       }
@@ -875,7 +874,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    @Override
    public Stream<Person> streamAll() {
       try(Context ctxt = streamAllTimer.time()) {
-         Iterator<Row> rows = session.execute(new BoundStatement(findAllPeople)).iterator();
+         Iterator<Row> rows = session.execute(findAllPeople.bind()).iterator();
          Iterator<Person> result = Iterators.transform(rows, (row) -> buildEntity(row));
          Spliterator<Person> stream = Spliterators.spliteratorUnknownSize(result, Spliterator.IMMUTABLE | Spliterator.NONNULL);
          return StreamSupport.stream(stream, false);
@@ -884,7 +883,6 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
    private PreparedStatement prepareOptimisticUpdate() {
    	PreparedStatement stmt = session.prepare(OPTIMISTIC_UPDATE);
-   	stmt.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
    	return stmt;
    }
 
@@ -995,7 +993,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       queryBuilder.addColumns(BASE_COLUMN_ORDER).addColumns(COLUMN_ORDER).addColumns(READ_ONLY_COLUMN_ORDER);
       return selectNonEntityColumns(queryBuilder);
    }
-   
+
    private void validateAndFormatMobileNumber(Person person) {
    	//Validate and format phone number
    	PhoneNumber phone1 = PhoneNumbers.fromString(person.getMobileNumber());
@@ -1021,4 +1019,3 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       }
    }
 }
-

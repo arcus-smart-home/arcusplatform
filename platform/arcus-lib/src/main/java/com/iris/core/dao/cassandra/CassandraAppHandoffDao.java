@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package com.iris.core.dao.cassandra;
 
@@ -25,13 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BatchStatement.Type;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.Utils;
@@ -45,9 +46,9 @@ import com.iris.security.dao.AppHandoffDao;
 @Singleton
 public class CassandraAppHandoffDao implements AppHandoffDao {
 	private static final Logger logger = LoggerFactory.getLogger(CassandraAppHandoffDao.class);
-	
+
 	private static final String TABLE = "app_handoff_token";
-	
+
 	private static enum Column {
 		handoffToken,
 		personId,
@@ -55,21 +56,21 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 		url,
 		username
 	}
-	
+
 	private static final Timer newToken = DaoMetrics.insertTimer(AppHandoffDao.class, "newToken");
 	private static final Timer validateToken = DaoMetrics.readTimer(AppHandoffDao.class, "validateToken");
 
 	private final int tokenLength;
-	private final Session session;
+	private final CqlSession session;
 	private final PreparedStatement selectToken;
 	private final PreparedStatement insertToken;
 	private final PreparedStatement updateToken;
 	private final PreparedStatement clearToken;
-	
+
 	@Inject
 	public CassandraAppHandoffDao(
 			CassandraAppHandoffConfig config,
-			Session session
+			CqlSession session
 	) {
 		this.tokenLength = config.getTokenLength();
 		this.session = session;
@@ -79,7 +80,7 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 				.addColumns(Column.values())
 				.addWhereColumnEquals(Column.handoffToken)
 				.prepare(session);
-		this.insertToken = 
+		this.insertToken =
 			CassandraQueryBuilder
 				.insert(TABLE)
 				.addColumns(Column.values())
@@ -105,10 +106,10 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 	public String newToken(SessionHandoff handoff) {
 		String token = Utils.randomTokenString(tokenLength);
 		try(Timer.Context ctx = newToken.time()) {
-			BatchStatement batch = new BatchStatement(Type.LOGGED);
-			batch.add( insertToken.bind(token, handoff.getPersonId(), handoff.getIp(), handoff.getUrl(), handoff.getUsername()) );
-			batch.add( updateToken.bind(token, handoff.getPersonId()) );
-			session.execute( batch );
+			BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+			batch.addStatement( insertToken.bind(token, handoff.getPersonId(), handoff.getIp(), handoff.getUrl(), handoff.getUsername()) );
+			batch.addStatement( updateToken.bind(token, handoff.getPersonId()) );
+			session.execute( batch.build() );
 			return token;
 		}
 	}
@@ -118,7 +119,7 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 		try(Timer.Context ctx = validateToken.time()) {
 			BoundStatement bs = selectToken.bind( token );
 			ResultSet result = session.execute( bs );
-			if(result.isExhausted()) {
+			if(result.getAvailableWithoutFetching() == 0) {
 				logger.debug("No token exists for [{}]", token);
 				return Optional.empty();
 			}
@@ -136,7 +137,7 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 
 	private SessionHandoff translate(Row one) {
 		SessionHandoff handoff = new SessionHandoff();
-		handoff.setPersonId(one.getUUID(Column.personId.name()));
+		handoff.setPersonId(one.getUuid(Column.personId.name()));
 		handoff.setUrl(one.getString(Column.url.name()));
 		handoff.setIp(one.getString(Column.ip.name()));
 		handoff.setUsername(one.getString(Column.username.name()));
@@ -144,4 +145,3 @@ public class CassandraAppHandoffDao implements AppHandoffDao {
 	}
 
 }
-

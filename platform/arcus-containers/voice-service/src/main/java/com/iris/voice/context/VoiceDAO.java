@@ -15,9 +15,8 @@
  */
 package com.iris.voice.context;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.add;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.remove;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.update;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,12 +25,12 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -52,12 +51,12 @@ public class VoiceDAO {
 
    private enum Columns { googlehome, voiceAssistants, id, partitionid }
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement streamPlacesByPartition;
    private final PreparedStatement readAssistants;
 
    @Inject
-   public VoiceDAO(Session session) {
+   public VoiceDAO(CqlSession session) {
       this.session = session;
 
       streamPlacesByPartition = CassandraQueryBuilder.select(TABLE)
@@ -73,39 +72,41 @@ public class VoiceDAO {
 
    public Stream<UUID> streamPlacesByPartition(PlatformPartition partition) {
       try(Timer.Context ctxt = streamPlacesByPartitionTimer.time()) {
-         ResultSet rs = session.execute(new BoundStatement(streamPlacesByPartition).bind(partition.getId()));
+         ResultSet rs = session.execute(streamPlacesByPartition.bind(partition.getId()));
          return StreamSupport.stream(rs.spliterator(), false)
                .filter(row ->
                   (!row.getSet(Columns.voiceAssistants.name(), String.class).isEmpty()) ||
-                  (!row.isNull(Columns.googlehome.name()) && row.getBool(Columns.googlehome.name()))
+                  (!row.isNull(Columns.googlehome.name()) && row.getBoolean(Columns.googlehome.name()))
                )
-               .map((r) -> r.getUUID(Columns.id.name()));
+               .map((r) -> r.getUuid(Columns.id.name()));
       }
    }
 
    public void recordAssistant(UUID placeId, String assistant) {
       try(Timer.Context ctxt = recordEnabledAssistantTimer.time()) {
-         session.execute(QueryBuilder
-            .update(TABLE)
-            .with(add(Columns.voiceAssistants.name(), assistant))
-            .where(eq(Columns.id.name(), placeId))
+         session.execute(
+            update(TABLE)
+               .appendSetElement(Columns.voiceAssistants.name(), literal(assistant))
+               .whereColumn(Columns.id.name()).isEqualTo(literal(placeId))
+               .build()
          );
       }
    }
 
    public void removeAssistant(UUID placeId, String assistant) {
       try(Timer.Context ctxt = removeAssistantTimer.time()) {
-         session.execute(QueryBuilder
-            .update(TABLE)
-            .with(remove(Columns.voiceAssistants.name(), assistant))
-            .where(eq(Columns.id.name(), placeId))
+         session.execute(
+            update(TABLE)
+               .removeSetElement(Columns.voiceAssistants.name(), literal(assistant))
+               .whereColumn(Columns.id.name()).isEqualTo(literal(placeId))
+               .build()
          );
       }
    }
 
    public Set<String> readAssistants(UUID placeId) {
       try(Timer.Context ctxt = readAssistantsTimer.time()) {
-         ResultSet rs = session.execute(new BoundStatement(readAssistants).bind(placeId));
+         ResultSet rs = session.execute(readAssistants.bind(placeId));
          Row r = rs.one();
          if(r == null) {
             return ImmutableSet.of();
@@ -113,7 +114,7 @@ public class VoiceDAO {
 
          // read repair google home
          Set<String> authorizations = new HashSet<>(r.getSet(Columns.voiceAssistants.name(), String.class));
-         if(!r.isNull(Columns.googlehome.name()) && r.getBool(Columns.googlehome.name()) && !authorizations.contains(StartPlaceRequest.ASSISTANT_GOOGLE)) {
+         if(!r.isNull(Columns.googlehome.name()) && r.getBoolean(Columns.googlehome.name()) && !authorizations.contains(StartPlaceRequest.ASSISTANT_GOOGLE)) {
             recordAssistant(placeId, StartPlaceRequest.ASSISTANT_GOOGLE);
             authorizations.add(StartPlaceRequest.ASSISTANT_GOOGLE);
          }
@@ -121,4 +122,3 @@ public class VoiceDAO {
       }
    }
 }
-

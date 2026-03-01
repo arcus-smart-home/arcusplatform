@@ -23,11 +23,13 @@ import java.util.UUID;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.PreferencesDAO;
@@ -53,7 +55,7 @@ public class PreferencesDAOImpl implements PreferencesDAO
       public static final String PREFS = "prefs";
    }
 
-   private final Session session;
+   private final CqlSession session;
 
    private final PreparedStatement saveStatement;
    private final PreparedStatement mergeStatement;
@@ -63,7 +65,7 @@ public class PreferencesDAOImpl implements PreferencesDAO
    private final PreparedStatement deletePrefStatement;
 
    @Inject
-   public PreferencesDAOImpl(Session session)
+   public PreferencesDAOImpl(CqlSession session)
    {
       this.session = session;
 
@@ -109,10 +111,10 @@ public class PreferencesDAOImpl implements PreferencesDAO
    {
       Map<String, String> encodedPrefs = encodeAttributesToJson(prefs);
 
-      BoundStatement boundStatement = new BoundStatement(saveStatement)
-         .setUUID(Cols.PERSON_ID, personId)
-         .setUUID(Cols.PLACE_ID, placeId)
-         .setMap(Cols.PREFS, encodedPrefs);
+      BoundStatement boundStatement = saveStatement.bind()
+         .setUuid(Cols.PERSON_ID, personId)
+         .setUuid(Cols.PLACE_ID, placeId)
+         .setMap(Cols.PREFS, encodedPrefs, String.class, String.class);
 
       try (Context context = saveTimer.time())
       {
@@ -125,31 +127,31 @@ public class PreferencesDAOImpl implements PreferencesDAO
    {
       Map<String, String> encodedPrefs = encodeAttributesToJson(prefs);
 
-      BatchStatement batchStatement = new BatchStatement();
+      BatchStatementBuilder batchBuilder = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       for (Map.Entry<String, String> encodedPref : encodedPrefs.entrySet())
       {
-         BoundStatement boundStatement = new BoundStatement(mergeStatement)
+         BoundStatement boundStatement = mergeStatement.bind()
             .setString(0, encodedPref.getKey())
             .setString(1, encodedPref.getValue())
-            .setUUID(Cols.PERSON_ID, personId)
-            .setUUID(Cols.PLACE_ID, placeId);
+            .setUuid(Cols.PERSON_ID, personId)
+            .setUuid(Cols.PLACE_ID, placeId);
 
-         batchStatement.add(boundStatement);
+         batchBuilder.addStatement(boundStatement);
       }
 
       try (Context context = mergeTimer.time())
       {
-         session.execute(batchStatement);
+         session.execute(batchBuilder.build());
       }
    }
 
    @Override
    public Map<String, Object> findById(UUID personId, UUID placeId)
    {
-      BoundStatement boundStatement = new BoundStatement(findByIdStatement)
-         .setUUID(Cols.PERSON_ID, personId)
-         .setUUID(Cols.PLACE_ID, placeId);
+      BoundStatement boundStatement = findByIdStatement.bind()
+         .setUuid(Cols.PERSON_ID, personId)
+         .setUuid(Cols.PLACE_ID, placeId);
 
       Row row;
 
@@ -171,8 +173,8 @@ public class PreferencesDAOImpl implements PreferencesDAO
    @Override
    public void deleteForPerson(UUID personId)
    {
-      BoundStatement boundStatement = new BoundStatement(deleteForPersonStatement)
-         .setUUID(Cols.PERSON_ID, personId);
+      BoundStatement boundStatement = deleteForPersonStatement.bind()
+         .setUuid(Cols.PERSON_ID, personId);
 
       try (Context context = deleteForPersonTimer.time())
       {
@@ -183,9 +185,9 @@ public class PreferencesDAOImpl implements PreferencesDAO
    @Override
    public void delete(UUID personId, UUID placeId)
    {
-      BoundStatement boundStatement = new BoundStatement(deleteStatement)
-         .setUUID(Cols.PERSON_ID, personId)
-         .setUUID(Cols.PLACE_ID, placeId);
+      BoundStatement boundStatement = deleteStatement.bind()
+         .setUuid(Cols.PERSON_ID, personId)
+         .setUuid(Cols.PLACE_ID, placeId);
 
       try (Context context = deleteTimer.time())
       {
@@ -196,10 +198,10 @@ public class PreferencesDAOImpl implements PreferencesDAO
    @Override
    public void deletePref(UUID personId, UUID placeId, String prefKey)
    {
-      BoundStatement boundStatement = new BoundStatement(deletePrefStatement)
+      BoundStatement boundStatement = deletePrefStatement.bind()
          .setString(0, prefKey)
-         .setUUID(Cols.PERSON_ID, personId)
-         .setUUID(Cols.PLACE_ID, placeId);
+         .setUuid(Cols.PERSON_ID, personId)
+         .setUuid(Cols.PLACE_ID, placeId);
 
       try (Context context = deletePrefTimer.time())
       {
@@ -207,4 +209,3 @@ public class PreferencesDAOImpl implements PreferencesDAO
       }
    }
 }
-

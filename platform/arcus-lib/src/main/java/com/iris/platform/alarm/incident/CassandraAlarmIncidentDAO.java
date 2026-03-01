@@ -15,6 +15,8 @@
  */
 package com.iris.platform.alarm.incident;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,11 +27,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -69,7 +71,7 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
    @Inject(optional = true)
    private int incidentTtl = (int) TimeUnit.DAYS.toSeconds(30);
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement findById;
    private final PreparedStatement listByPlace;
    private final PreparedStatement listByPlaceBefore;
@@ -79,7 +81,7 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
    private final PreparedStatement delete;
 
    @Inject
-   public CassandraAlarmIncidentDAO(Session session) {
+   public CassandraAlarmIncidentDAO(CqlSession session) {
       this.session = session;
       findById = 
             select()
@@ -130,7 +132,7 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
    @Override
    public AlarmIncident latest(UUID placeId) {
       BoundStatement bs = listByPlace.bind(placeId);
-      bs.setFetchSize(1);
+      bs = bs.setPageSize(1);
       return buildIncident(session.execute(bs).one());
    }
 
@@ -149,33 +151,29 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
    @Override
    public void upsert(AlarmIncident incident) {
       PreparedStatement pStmt = incident.isCleared() ? upsertWithTtl : upsert;
-      BoundStatement bound = new BoundStatement(pStmt);
-      bound.setUUID(Column.placeid.name(), incident.getPlaceId());
-      bound.setUUID(Column.incidentid.name(), incident.getId());
-      bound.setString(Column.alertstate.name(), incident.getAlertState().name());
-      if(incident.getPlatformAlertState() == null) {
-         bound.setString(Column.platformstate.name(), incident.getAlertState().name());
-      }
-      else {
-         bound.setString(Column.platformstate.name(), incident.getPlatformAlertState().name());
-      }
-      if(incident.getHubAlertState() == null) {
-         bound.setToNull(Column.hubstate.name());
-      }
-      else {
-         bound.setString(Column.hubstate.name(), incident.getHubAlertState().name());
-      }
-      bound.setSet(Column.activealerts.name(), incident.getActiveAlerts());
-      bound.setSet(Column.additionalalerts.name(), incident.getAdditionalAlerts().stream().map(AlertType::name).collect(Collectors.toSet()));
-      bound.setString(Column.alert.name(), incident.getAlert().name());
-      bound.setString(Column.cancelledby.name(), incident.getCancelledBy() == null ? null : incident.getCancelledBy().getRepresentation());
-      bound.setTimestamp(Column.prealertendtime.name(), incident.getPrealertEndTime());
-      bound.setTimestamp(Column.endtime.name(), incident.getEndTime());
-      bound.setString(Column.monitoringstate.name(), incident.getMonitoringState().name());
-      bound.setList(Column.tracker.name(), incident.getTracker().stream().map((te) -> JSON.toJson(te.toMap())).collect(Collectors.toList()));
-      bound.setBool(Column.mockincident.name(), incident.isMockIncident());
-      bound.setBool(Column.monitored.name(), incident.isMonitored());
-      bound.setBool(Column.confirmed.name(),  incident.isConfirmed());
+      BoundStatement bound = pStmt.bind()
+         .setUuid(Column.placeid.name(), incident.getPlaceId())
+         .setUuid(Column.incidentid.name(), incident.getId())
+         .setString(Column.alertstate.name(), incident.getAlertState().name())
+         .setString(Column.platformstate.name(),
+               incident.getPlatformAlertState() == null
+                  ? incident.getAlertState().name()
+                  : incident.getPlatformAlertState().name())
+         .setString(Column.hubstate.name(),
+               incident.getHubAlertState() == null
+                  ? null
+                  : incident.getHubAlertState().name())
+         .setSet(Column.activealerts.name(), incident.getActiveAlerts(), UUID.class)
+         .setSet(Column.additionalalerts.name(), incident.getAdditionalAlerts().stream().map(AlertType::name).collect(Collectors.toSet()), String.class)
+         .setString(Column.alert.name(), incident.getAlert().name())
+         .setString(Column.cancelledby.name(), incident.getCancelledBy() == null ? null : incident.getCancelledBy().getRepresentation())
+         .setInstant(Column.prealertendtime.name(), toInstant(incident.getPrealertEndTime()))
+         .setInstant(Column.endtime.name(), toInstant(incident.getEndTime()))
+         .setString(Column.monitoringstate.name(), incident.getMonitoringState().name())
+         .setList(Column.tracker.name(), incident.getTracker().stream().map((te) -> JSON.toJson(te.toMap())).collect(Collectors.toList()), String.class)
+         .setBoolean(Column.mockincident.name(), incident.isMockIncident())
+         .setBoolean(Column.monitored.name(), incident.isMonitored())
+         .setBoolean(Column.confirmed.name(),  incident.isConfirmed());
       session.execute(bound);
    }
 
@@ -191,16 +189,14 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
             break;
          case DISPATCHED: required = AlarmIncident.MonitoringState.DISPATCHING; break;
       }
-      BoundStatement bound = new BoundStatement(updateMonitoringState);
-      bound.bind(state.name(), placeId, incidentId, required.name());
+      BoundStatement bound = updateMonitoringState.bind(state.name(), placeId, incidentId, required.name());
       ResultSet rs = session.execute(bound);
       return rs.wasApplied();
    }
 
    @Override
    public void delete(UUID placeId, UUID incidentId) {
-      BoundStatement bound = new BoundStatement(delete);
-      bound.bind(placeId, incidentId);
+      BoundStatement bound = delete.bind(placeId, incidentId);
       session.execute(bound);
    }
 
@@ -213,17 +209,17 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
          AlarmIncident.Builder builder = AlarmIncident.builder()
             .withAlert(AlertType.valueOf(r.getString(Column.alert.name())))
             .withMonitoringState(AlarmIncident.MonitoringState.valueOf(r.getString(Column.monitoringstate.name())))
-            .withId(r.getUUID(Column.incidentid.name()))
+            .withId(r.getUuid(Column.incidentid.name()))
             .withAlertState(AlarmIncident.AlertState.valueOf(r.getString(Column.alertstate.name())))
-            .withPrealertEndTime(r.getTimestamp(Column.prealertendtime.name()))
-            .withEndTime(r.getTimestamp(Column.endtime.name()))
-            .withPlaceId(r.getUUID(Column.placeid.name()))
-            .withMonitored(r.getBool(Column.monitored.name()))
-            .withMockIncident(r.getBool(Column.mockincident.name()))
+            .withPrealertEndTime(r.isNull(Column.prealertendtime.name()) ? null : Date.from(r.getInstant(Column.prealertendtime.name())))
+            .withEndTime(r.isNull(Column.endtime.name()) ? null : Date.from(r.getInstant(Column.endtime.name())))
+            .withPlaceId(r.getUuid(Column.placeid.name()))
+            .withMonitored(r.getBoolean(Column.monitored.name()))
+            .withMockIncident(r.getBoolean(Column.mockincident.name()))
             .addActiveAlertIds(r.getSet(Column.activealerts.name(), UUID.class))
             .addAdditionalAlerts(r.getSet(Column.additionalalerts.name(), String.class).stream().map(AlertType::valueOf).collect(Collectors.toSet()))
             .addTrackerEvents(events)
-            .withConfirmed(r.getBool(Column.confirmed.name()));
+            .withConfirmed(r.getBoolean(Column.confirmed.name()));
          
          if(!r.isNull(Column.cancelledby.name())) {
             builder.withCancelledBy(Address.fromString(r.getString(Column.cancelledby.name())));
@@ -242,6 +238,10 @@ public class CassandraAlarmIncidentDAO implements AlarmIncidentDAO {
          return null;
       }
    }
-   
+
+   private static Instant toInstant(Date date) {
+      return date == null ? null : date.toInstant();
+   }
+
 }
 

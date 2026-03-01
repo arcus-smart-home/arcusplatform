@@ -43,22 +43,13 @@ import org.apache.shiro.util.ByteSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 
 /**
- * Realm that allows authentication and authorization via Cassandra calls.  The default queries suggest a potential schema
- * for retrieving the user's password for authentication, and querying for a user's roles and permissions.  The
- * default queries can be overridden by setting the query properties of the realm.
- * <p>
- * If the default implementation
- * of authentication and authorization cannot handle your schema, this class can be subclassed and the
- * appropriate methods overridden. (usually {@link #doGetAuthenticationInfo(org.apache.shiro.authc.AuthenticationToken)},
- * {@link #getRoleNamesForUser(com.datastax.driver.core.Session, String)}, and/or {@link #getPermissions(com.datastax.driver.core.Session, java.util.Collection)}
- * <p>
- * This realm supports caching by extending from {@link org.apache.shiro.realm.AuthorizingRealm}.
+ * Realm that allows authentication and authorization via Cassandra calls.
  *
  * @since 0.2
  *
@@ -67,51 +58,19 @@ import com.datastax.driver.core.Row;
 @Deprecated
 public class IrisRealm extends AuthorizingRealm {
 
-   //TODO - complete JavaDoc
-
-    /*--------------------------------------------
-    |             C O N S T A N T S             |
-    ============================================*/
-   /**
-    * The default query used to retrieve account data for the user.
-    */
    protected static final String DEFAULT_AUTHENTICATION_QUERY = "select password from login where domain = ? and user_0_3 = ? and user = ?";
-
-   /**
-    * The default query used to retrieve account data for the user when {@link #saltStyle} is COLUMN.
-    */
    protected static final String DEFAULT_SALTED_AUTHENTICATION_QUERY = "select password, password_salt from login where domain = ? and user_0_3 = ? and user = ?";
-
-   /**
-    * The default query used to retrieve the roles that apply to a user.
-    */
    protected static final String DEFAULT_USER_ROLES_QUERY = "select role_names from user_roles where user = ?";
-
-   /**
-    * The default query used to retrieve permissions that apply to a particular role.
-    */
    protected static final String DEFAULT_PERMISSIONS_QUERY = "select permission_names from role_permissions where role_name = ?";
 
    private static final Logger log = LoggerFactory.getLogger(IrisRealm.class);
 
-   /**
-    * Password hash salt configuration. <ul>
-    * <li>NO_SALT - password hashes are not salted.</li>
-    * <li>CRYPT - password hashes are stored in unix crypt format.</li>
-    * <li>COLUMN - salt is in a separate column in the database.</li>
-    * <li>EXTERNAL - salt is not stored in the database. {@link #getSaltForUser(String)} will be called
-    * to get the salt</li></ul>
-    */
    public enum SaltStyle {
       NO_SALT, CRYPT, COLUMN, EXTERNAL
    }
 
-   /*--------------------------------------------
-   |    I N S T A N C E   V A R I A B L E S    |
-   ============================================*/
    private String keyspaceName;
-   private Cluster cluster; //created during init
-   protected com.datastax.driver.core.Session cassandraSession;
+   protected CqlSession cassandraSession;
 
    protected String authenticationQuery = DEFAULT_AUTHENTICATION_QUERY;
    private PreparedStatement preparedAuthenticationQuery;
@@ -126,27 +85,12 @@ public class IrisRealm extends AuthorizingRealm {
 
    protected SaltStyle saltStyle = SaltStyle.COLUMN;
 
-   /*--------------------------------------------
-   |         C O N S T R U C T O R S           |
-   ============================================*/
    @Override
    protected void onInit() {
       super.onInit();
-      cassandraSession = cluster.connect(keyspaceName);
       preparedAuthenticationQuery = cassandraSession.prepare(authenticationQuery);
       preparedUserRolesQuery = cassandraSession.prepare(userRolesQuery);
       preparedPermissionsQuery = cassandraSession.prepare(permissionsQuery);
-   }
-
-   /*--------------------------------------------
-   |  A C C E S S O R S / M O D I F I E R S    |
-   ============================================*/
-   public Cluster getCluster() {
-      return cluster;
-   }
-
-   public void setCluster(Cluster cluster) {
-      this.cluster = cluster;
    }
 
    public String getKeyspaceName() {
@@ -157,13 +101,7 @@ public class IrisRealm extends AuthorizingRealm {
       this.keyspaceName = keyspaceName;
    }
 
-   /**
-    * Sets the cassandraSession that should be used to retrieve connections used by this realm.
-    *
-    * @param cassandraSession
-    *       the CQL cassandraSession.
-    */
-   public void setSession(com.datastax.driver.core.Session cassandraSession) {
+   public void setSession(CqlSession cassandraSession) {
       this.cassandraSession = cassandraSession;
 
       // session changed, re-prepare queries
@@ -172,17 +110,6 @@ public class IrisRealm extends AuthorizingRealm {
       preparedPermissionsQuery = cassandraSession.prepare(permissionsQuery);
    }
 
-   /**
-    * Overrides the default query used to retrieve a user's password during authentication.  When using the default
-    * implementation, this query must take the user's username as a single parameter and return a single result
-    * with the user's password as the first column.  If you require a solution that does not match this query
-    * structure, you can override {@link #doGetAuthenticationInfo(org.apache.shiro.authc.AuthenticationToken)} or
-    * just {@link #getPasswordForUser(com.datastax.driver.core.Session, String)}
-    *
-    * @param authenticationQuery
-    *       the query to use for authentication.
-    * @see #DEFAULT_AUTHENTICATION_QUERY
-    */
    public void setAuthenticationQuery(String authenticationQuery) {
       this.authenticationQuery = authenticationQuery;
       if (cassandraSession != null) {
@@ -190,17 +117,6 @@ public class IrisRealm extends AuthorizingRealm {
       }
    }
 
-   /**
-    * Overrides the default query used to retrieve a user's roles during authorization.  When using the default
-    * implementation, this query must take the user's username as a single parameter and return a row
-    * per role with a single column containing the role name.  If you require a solution that does not match this query
-    * structure, you can override {@link #doGetAuthorizationInfo(PrincipalCollection)} or just
-    * {@link #getRoleNamesForUser(com.datastax.driver.core.Session, String)}
-    *
-    * @param userRolesQuery
-    *       the query to use for retrieving a user's roles.
-    * @see #DEFAULT_USER_ROLES_QUERY
-    */
    public void setUserRolesQuery(String userRolesQuery) {
       this.userRolesQuery = userRolesQuery;
       if (cassandraSession != null) {
@@ -208,22 +124,6 @@ public class IrisRealm extends AuthorizingRealm {
       }
    }
 
-   /**
-    * Overrides the default query used to retrieve a user's permissions during authorization.  When using the default
-    * implementation, this query must take a role name as the single parameter and return a row
-    * per permission with three columns containing the fully qualified name of the permission class, the permission
-    * name, and the permission actions (in that order).  If you require a solution that does not match this query
-    * structure, you can override {@link #doGetAuthorizationInfo(org.apache.shiro.subject.PrincipalCollection)} or just
-    * {@link #getPermissions(com.datastax.driver.core.Session, java.util.Collection)}</p>
-    * <p>
-    * <b>Permissions are only retrieved if you set {@link #permissionsLookupEnabled} to true.  Otherwise,
-    * this query is ignored.</b>
-    *
-    * @param permissionsQuery
-    *       the query to use for retrieving permissions for a role.
-    * @see #DEFAULT_PERMISSIONS_QUERY
-    * @see #setPermissionsLookupEnabled(boolean)
-    */
    public void setPermissionsQuery(String permissionsQuery) {
       this.permissionsQuery = permissionsQuery;
       if (cassandraSession != null) {
@@ -231,24 +131,10 @@ public class IrisRealm extends AuthorizingRealm {
       }
    }
 
-   /**
-    * Enables lookup of permissions during authorization.  The default is "false" - meaning that only roles
-    * are associated with a user.  Set this to true in order to lookup roles <b>and</b> permissions.
-    *
-    * @param permissionsLookupEnabled
-    *       true if permissions should be looked up during authorization, or false if only
-    *       roles should be looked up.
-    */
    public void setPermissionsLookupEnabled(boolean permissionsLookupEnabled) {
       this.permissionsLookupEnabled = permissionsLookupEnabled;
    }
 
-   /**
-    * Sets the salt style.  See {@link #saltStyle}.
-    *
-    * @param saltStyleStr
-    *       new SaltStyle to set.
-    */
    public void setSaltStyle(String saltStyleStr) {
       SaltStyle saltStyle = SaltStyle.valueOf(saltStyleStr);
       this.saltStyle = saltStyle;
@@ -260,16 +146,11 @@ public class IrisRealm extends AuthorizingRealm {
       }
    }
 
-    /*--------------------------------------------
-    |               M E T H O D S               |
-    ============================================*/
-
    @Override
    protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
       UsernamePasswordToken upToken = (UsernamePasswordToken) token;
       String username = upToken.getUsername();
 
-      // Null username is invalid
       if (username == null) {
          throw new AccountException("Null usernames are not allowed by this realm.");
       }
@@ -283,9 +164,7 @@ public class IrisRealm extends AuthorizingRealm {
                password = getPasswordForUser(cassandraSession, username)[0];
                break;
             case CRYPT:
-               // TODO: separate password and hash from getPasswordForUser[0]
                throw new ConfigurationException("Not implemented yet");
-               //break;
             case COLUMN:
                String[] queryResults = getPasswordForUser(cassandraSession, username);
                password = queryResults[0];
@@ -303,7 +182,6 @@ public class IrisRealm extends AuthorizingRealm {
          info = new SimpleAuthenticationInfo(username, password.toCharArray(), getName());
 
          if (salt != null) {
-
             info.setCredentialsSalt(ByteSource.Util.bytes(Base64.decode(salt)));
          }
 
@@ -313,14 +191,13 @@ public class IrisRealm extends AuthorizingRealm {
             log.error(message, e);
          }
 
-         // Rethrow any SQL errors as an authentication exception
          throw new AuthenticationException(message, e);
       }
 
       return info;
    }
 
-   private String[] getPasswordForUser(com.datastax.driver.core.Session cassandraSession, String username) throws SQLException {
+   private String[] getPasswordForUser(CqlSession cassandraSession, String username) throws SQLException {
       String[] result;
       boolean returningSeparatedSalt = false;
       switch (saltStyle) {
@@ -335,8 +212,8 @@ public class IrisRealm extends AuthorizingRealm {
       }
 
       ParsedEmail parsedEmail = ParsedEmail.parse(username);
-      BoundStatement boundStatement = new BoundStatement(preparedAuthenticationQuery);
-      Row row = cassandraSession.execute(boundStatement.bind(parsedEmail.getDomain(), parsedEmail.getUser_0_3(), parsedEmail.getUser())).one();
+      BoundStatement boundStatement = preparedAuthenticationQuery.bind(parsedEmail.getDomain(), parsedEmail.getUser_0_3(), parsedEmail.getUser());
+      Row row = cassandraSession.execute(boundStatement).one();
 
       if (row == null) {
          return result;
@@ -350,15 +227,8 @@ public class IrisRealm extends AuthorizingRealm {
       return result;
    }
 
-   /**
-    * This implementation of the interface expects the principals collection to return a String username keyed off of
-    * this realm's {@link #getName() name}
-    *
-    * @see #getAuthorizationInfo(org.apache.shiro.subject.PrincipalCollection)
-    */
    @Override
    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
-      //null usernames are invalid
       if (principals == null) {
          throw new AuthorizationException("PrincipalCollection method argument cannot be null.");
       }
@@ -368,7 +238,6 @@ public class IrisRealm extends AuthorizingRealm {
       Set<String> roleNames;
       Set<String> permissions = null;
       try {
-         // Retrieve roles and permissions from database
          roleNames = getRoleNamesForUser(cassandraSession, username);
          if (permissionsLookupEnabled) {
             permissions = getPermissions(cassandraSession, roleNames);
@@ -379,7 +248,6 @@ public class IrisRealm extends AuthorizingRealm {
             log.error(message, e);
          }
 
-         // Rethrow any SQL errors as an authorization exception
          throw new AuthorizationException(message, e);
       }
 
@@ -389,21 +257,20 @@ public class IrisRealm extends AuthorizingRealm {
 
    }
 
-   protected Set<String> getRoleNamesForUser(com.datastax.driver.core.Session cassandraSession, String username) throws SQLException {
+   protected Set<String> getRoleNamesForUser(CqlSession cassandraSession, String username) throws SQLException {
       ParsedEmail parsedEmail = ParsedEmail.parse(username);
-      BoundStatement boundStatement = new BoundStatement(preparedUserRolesQuery);
-      Row row = cassandraSession.execute(boundStatement.bind(parsedEmail.getDomain(), parsedEmail.getUser_0_3(), parsedEmail.getUser())).one();
+      BoundStatement boundStatement = preparedUserRolesQuery.bind(parsedEmail.getDomain(), parsedEmail.getUser_0_3(), parsedEmail.getUser());
+      Row row = cassandraSession.execute(boundStatement).one();
       Set<String> roleNames = row.getSet("role_names", String.class);
       return roleNames;
    }
 
-   protected Set<String> getPermissions(com.datastax.driver.core.Session cassandraSession, Collection<String> roleNames) throws SQLException {
+   protected Set<String> getPermissions(CqlSession cassandraSession, Collection<String> roleNames) throws SQLException {
       Set<String> permissions = new LinkedHashSet<String>();
       for (String roleName : roleNames) {
-         BoundStatement boundStatement = new BoundStatement(preparedPermissionsQuery);
-         Row row = cassandraSession.execute(boundStatement.bind(roleName)).one();
+         BoundStatement boundStatement = preparedPermissionsQuery.bind(roleName);
+         Row row = cassandraSession.execute(boundStatement).one();
          Set<String> thesePermissions = row.getSet("permission_names", String.class);
-         // Add the permission to the set of permissions
          permissions.addAll(thesePermissions);
       }
 
@@ -414,4 +281,3 @@ public class IrisRealm extends AuthorizingRealm {
       return username;
    }
 }
-

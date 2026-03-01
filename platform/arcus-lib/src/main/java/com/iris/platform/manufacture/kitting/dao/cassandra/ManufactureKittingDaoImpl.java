@@ -19,11 +19,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
@@ -37,18 +37,18 @@ public class ManufactureKittingDaoImpl implements ManufactureKittingDao {
 	public final static String TABLE = "manufacture_kit";
 
 	enum KitColumns { hubid, type, devices };
-		
-	private final Session session;
+
+	private final CqlSession session;
 
 	private final PreparedStatement createKit;
 	private final PreparedStatement deleteKit;
 	private final PreparedStatement getKit;
-	
-	
-	@Inject 
-	public ManufactureKittingDaoImpl(Session session) {
+
+
+	@Inject
+	public ManufactureKittingDaoImpl(CqlSession session) {
 		this.session = session;
-		
+
 		createKit = CassandraQueryBuilder
 						.insert(TABLE)
 						.addColumns(KitColumns.values())
@@ -63,41 +63,39 @@ public class ManufactureKittingDaoImpl implements ManufactureKittingDao {
 					.addWhereColumnEquals(KitColumns.hubid)
 					.prepare(session);
 	}
-	
+
 	@Override
 	public void createKit(Kit kit) {
-		BoundStatement bound = new BoundStatement(createKit);		
-		bound.setString(KitColumns.hubid.name(), kit.getHubId());
-		bound.setString(KitColumns.type.name(), kit.getType());
-		bound.setList(KitColumns.devices.name(), convertToString(kit.getDevices()));
+		BoundStatement bound = createKit.bind();
+		bound = bound.setString(KitColumns.hubid.name(), kit.getHubId());
+		bound = bound.setString(KitColumns.type.name(), kit.getType());
+		bound = bound.setList(KitColumns.devices.name(), convertToString(kit.getDevices()), String.class);
 		session.execute(bound);
 	}
 
 	@Override
 	public void deleteKit(String hubId) {
-		BoundStatement bound = new BoundStatement(deleteKit);
-		bound.bind(hubId);
+		BoundStatement bound = deleteKit.bind(hubId);
 		session.execute(bound);
 	}
 
 	@Override
 	@Nullable
 	public Kit getKit(String hubId) {
-		BoundStatement bound = new BoundStatement(getKit);
-		bound.bind(hubId);
+		BoundStatement bound = getKit.bind(hubId);
 		ResultSet results = session.execute(bound);
 		Row row = results.one();
 		if (row == null) return null;
-		
+
 		List<String> deviceStrings = row.getList(KitColumns.devices.name(), String.class);
 		List<KitDevice> devices = convertFromString(deviceStrings);
-		
+
 		Kit kit = Kit.builder()
 						.withHubId(row.getString(KitColumns.hubid.name()))
 						.withType(row.getString(KitColumns.type.name()))
 						.withDevices(devices)
 						.build();
-		
+
 		return kit;
 	}
 
@@ -107,7 +105,7 @@ public class ManufactureKittingDaoImpl implements ManufactureKittingDao {
 				.map(dev -> JSON.fromJson(dev, KitDevice.class))
 				.collect(Collectors.toList());
 	}
-	
+
 	List<String> convertToString(List<KitDevice> devices) {
 		return devices
 				.stream()
@@ -115,4 +113,3 @@ public class ManufactureKittingDaoImpl implements ManufactureKittingDao {
 				.collect(Collectors.toList());
 	}
 }
-

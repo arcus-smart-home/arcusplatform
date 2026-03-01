@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 
 public class Profile {
 
@@ -29,13 +29,13 @@ public class Profile {
    private String username;
    private String password;
    private String keyspace;
-   private ConsistencyLevel consistencyLevel;
+   private DefaultConsistencyLevel consistencyLevel;
 
    void setNodes(List<String> nodes) {
       this.nodes = Collections.unmodifiableList(nodes);
    }
-   
-   void setConsistencyLevel(ConsistencyLevel consistencyLevel) {
+
+   void setConsistencyLevel(DefaultConsistencyLevel consistencyLevel) {
    	this.consistencyLevel = consistencyLevel;
    }
 
@@ -66,8 +66,8 @@ public class Profile {
    public List<String> getNodes() {
       return nodes;
    }
-   
-   public ConsistencyLevel getConsistencyLevel() {
+
+   public DefaultConsistencyLevel getConsistencyLevel() {
    	return consistencyLevel;
    }
 
@@ -87,4 +87,3 @@ public class Profile {
       return keyspace;
    }
 }
-

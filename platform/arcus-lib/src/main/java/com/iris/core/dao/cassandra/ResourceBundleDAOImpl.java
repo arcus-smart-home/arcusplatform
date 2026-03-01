@@ -27,11 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -49,12 +51,12 @@ public class ResourceBundleDAOImpl implements ResourceBundleDAO {
    private static final String DEFAULT_LANGUAGE = "en";
    private static final Logger logger = LoggerFactory.getLogger(ResourceBundleDAOImpl.class);
 
-   private Session session;
+   private CqlSession session;
    private PreparedStatement loadBundleStmt;
    private PreparedStatement saveBundleStmt;
 
    @Inject
-   public ResourceBundleDAOImpl(Session session) {
+   public ResourceBundleDAOImpl(CqlSession session) {
       this.session = session;
       loadBundleStmt = session.prepare(LOAD_BUNDLE);
       saveBundleStmt = session.prepare(SAVE_BUNDLE);
@@ -71,9 +73,9 @@ public class ResourceBundleDAOImpl implements ResourceBundleDAO {
          logger.warn("Attempt to load bundle with a locale that does not specify a language, falling back to the default of {}", locale);
       }
 
-      BoundStatement boundStatement = new BoundStatement(loadBundleStmt);
-      boundStatement.setString("bundle", bundleName);
-      boundStatement.setString("locale", sanitizeLocale(locale));
+      BoundStatement boundStatement = loadBundleStmt.bind()
+            .setString("bundle", bundleName)
+            .setString("locale", sanitizeLocale(locale));
 
       try(Timer.Context ctxt = loadBundleTimer.time()) {
          List<Row> rows = session.execute(boundStatement).all();
@@ -94,14 +96,14 @@ public class ResourceBundleDAOImpl implements ResourceBundleDAO {
       }
 
       localizedValues = new HashMap<String,String>(localizedValues);
-      final BatchStatement batch = new BatchStatement();
+      final BatchStatementBuilder batchBuilder = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       localizedValues.forEach((k,v) -> {
-         batch.add(new BoundStatement(saveBundleStmt).bind(bundleName, sanitizeLocale(locale), k, v));
+         batchBuilder.addStatement(saveBundleStmt.bind(bundleName, sanitizeLocale(locale), k, v));
       });
 
       try(Timer.Context ctxt = saveBundleTimer.time()) {
-         session.execute(batch);
+         session.execute(batchBuilder.build());
       }
 
       // make sure the cache is flushed for the bundle

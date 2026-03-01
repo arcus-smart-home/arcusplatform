@@ -28,12 +28,12 @@ import java.util.stream.Collectors;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.core.IrisApplicationModule;
@@ -62,7 +62,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
    private final long timeoutMs;
 
    private final Clock clock;
-   private final Session session;
+   private final CqlSession session;
    private final int members;
    private final String host;
    private final String service;
@@ -73,7 +73,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
    @Inject
    public CassandraClusterServiceDao(
          Clock clock,
-         Session session,
+         CqlSession session,
          PartitionConfig config,
          ClusterConfig clusterConfig,
          @Named(IrisApplicationModule.NAME_APPLICATION_NAME) String service
@@ -96,7 +96,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
                      ClusterServiceTable.Columns.CLUSTER_ID
                )
                .ifNotExists()
-               .withConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+               .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM)
                .prepare(session);
       // NOTE: if we moved used a ttl onto the heartbeat field we could
       //       change the conditional to heartbeat == null and have cassandra manage the timeout
@@ -114,7 +114,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
                .addWhereColumnEquals(ClusterServiceTable.Columns.SERVICE)
                .addWhereColumnEquals(ClusterServiceTable.Columns.CLUSTER_ID)
                .ifClause(ClusterServiceTable.Columns.HEARTBEAT + " < ?")
-               .withConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+               .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM)
                .prepare(session);
 
       this.delete =
@@ -123,7 +123,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
                .addWhereColumnEquals(ClusterServiceTable.Columns.SERVICE)
                .addWhereColumnEquals(ClusterServiceTable.Columns.CLUSTER_ID)
                .ifClause(ClusterServiceTable.Columns.HEARTBEAT + " = ?")
-               .withConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+               .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM)
                .prepare(session)
                ;
 
@@ -134,7 +134,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
                .addWhereColumnEquals(ClusterServiceTable.Columns.SERVICE)
                .addWhereColumnEquals(ClusterServiceTable.Columns.CLUSTER_ID)
                .ifClause(ClusterServiceTable.Columns.HOST + " = ? AND " + ClusterServiceTable.Columns.REGISTERED + " = ?")
-               .withConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+               .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM)
                .prepare(session)
                ;
       this.listByService =
@@ -142,7 +142,7 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
                .select(ClusterServiceTable.NAME)
                .addColumns(ClusterServiceTable.Columns.ALL)
                .addWhereColumnEquals(ClusterServiceTable.Columns.SERVICE)
-               .withConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM)
+               .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM)
                .prepare(session)
                ;
    }
@@ -265,11 +265,11 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
       record.setHost(row.getString(ClusterServiceTable.Columns.HOST));
       record.setService(row.getString(ClusterServiceTable.Columns.SERVICE));
       record.setMemberId(row.getInt(ClusterServiceTable.Columns.CLUSTER_ID));
-      Date registered = row.getTimestamp(ClusterServiceTable.Columns.REGISTERED);
+      Date registered = row.isNull(ClusterServiceTable.Columns.REGISTERED) ? null : Date.from(row.getInstant(ClusterServiceTable.Columns.REGISTERED));
       if(registered != null) {
          record.setRegistered(registered.toInstant());
       }
-      Date heartbeat = row.getTimestamp(ClusterServiceTable.Columns.HEARTBEAT);
+      Date heartbeat = row.isNull(ClusterServiceTable.Columns.HEARTBEAT) ? null : Date.from(row.getInstant(ClusterServiceTable.Columns.HEARTBEAT));
       if(heartbeat != null) {
          record.setLastHeartbeat(heartbeat.toInstant());
       }
@@ -288,4 +288,3 @@ public class CassandraClusterServiceDao implements ClusterServiceDao {
    }
 
 }
-

@@ -25,6 +25,7 @@ dependencies {
    implementation netty
 
    implementation libraries.cassandraDriver
+   implementation libraries.cassandraDriverQueryBuilder
    implementation libraries.azure_storage
    implementation libraries.joda
 

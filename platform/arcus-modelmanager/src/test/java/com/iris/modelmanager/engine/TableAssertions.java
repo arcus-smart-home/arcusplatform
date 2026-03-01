@@ -18,7 +18,7 @@ package com.iris.modelmanager.engine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import com.datastax.driver.core.ResultSet;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 
 public class TableAssertions {
 
@@ -39,4 +39,3 @@ public class TableAssertions {
       }
    }
 }
-

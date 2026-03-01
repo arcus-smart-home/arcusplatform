@@ -32,10 +32,10 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Function;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -68,7 +68,7 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
    @Inject
    public CassandraSubsystemDao(
          DefinitionRegistry registry,
-         Session session
+         CqlSession session
    ) {
       super(registry, session);
       this.findById =
@@ -248,8 +248,8 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
    protected ModelEntity toModel(Row row) {
       Map<String, String> attributes = row.getMap(Columns.ATTRIBUTES, String.class, String.class);
       ModelEntity model = new ModelEntity( decode( attributes ) );
-      model.setCreated( row.getTimestamp(Columns.CREATED) );
-      model.setModified( row.getTimestamp(Columns.MODIFIED) );
+      model.setCreated( row.isNull(Columns.CREATED) ? null : Date.from(row.getInstant(Columns.CREATED)) );
+      model.setModified( row.isNull(Columns.MODIFIED) ? null : Date.from(row.getInstant(Columns.MODIFIED)) );
       return model;
    }
 
@@ -289,4 +289,3 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
    }
 
 }
-

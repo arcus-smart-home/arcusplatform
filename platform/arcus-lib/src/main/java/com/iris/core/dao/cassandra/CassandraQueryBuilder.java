@@ -25,11 +25,11 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.google.common.base.Preconditions;
 
 /**
@@ -43,12 +43,11 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
    protected String whereClause;
    protected String ifClause;
    protected String limitClause;
-   protected ConsistencyLevel consistency = ConsistencyLevel.LOCAL_QUORUM;
-   protected RetryPolicy retryPolicy;
+   protected DefaultConsistencyLevel consistency = DefaultConsistencyLevel.LOCAL_QUORUM;
    protected boolean usingTimestamp = false;
    protected boolean allowFiltering = false;
    private CassandraPreparedBuilder preparedBuilder = CassandraPreparedBuilder.STANDARD;
-   
+
    CassandraQueryBuilder(String table) {
       this.table = table;
    }
@@ -112,7 +111,7 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
          sb.append(" WHERE ").append(whereClause);
       }
    }
-   
+
    protected void appendSetClause(StringBuilder sb) {
    	if (!columns.isEmpty() || !StringUtils.isEmpty(setString)) {
    		sb.append(" SET ");
@@ -128,13 +127,13 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
    		}
    	}
    }
-   
+
    protected void appendLimitClause(StringBuilder sb) {
       if (limitClause != null && !limitClause.isEmpty()) {
          sb.append(" LIMIT " + limitClause );
       }
    }
-   
+
    protected void appendIfClause(StringBuilder sb) {
       if(ifClause == null) {
          return;
@@ -142,29 +141,29 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
 
       sb.append(" IF ").append(ifClause);
    }
-   
+
    protected void appendTtlClause(StringBuilder sb, long ttlSec) {
       if(ttlSec < 0) {
          return;
       }
-      
+
       sb.append(" USING TTL ").append(ttlSec);
    }
-   
+
    protected void appendUsingTimestamp(StringBuilder sb, long ttlSec) {
    	if(!usingTimestamp) {
    		return;
    	}
-   	
+
    	if(ttlSec < 0) {
    		sb.append(" USING TIMESTAMP ?");
    	}
    	else {
    		sb.append(" AND TIMESTAMP ?");
    	}
-   	
+
    }
-   
+
    protected void appendAllowFiltering(StringBuilder sb) {
    	if(!allowFiltering) {
    		return;
@@ -217,66 +216,71 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
       whereClause = clause;
       return ths();
    }
-   
+
    public B boundLimit() {
    	limitClause = "?";
    	return ths();
    }
-   
+
    public B limit(String clause) {
       limitClause = clause;
       return ths();
    }
-   
+
    public B limit(int limit) {
       return limit(Integer.toString(limit));
    }
-   
+
    public B addWhereColumnEquals(String whereColumn) {
       Preconditions.checkArgument(whereClause == null, "Can't specify both whereColumns and where clause");
       whereColumns.add(whereColumn);
       return ths();
    }
-   
+
    public B addWhereColumnEquals(Enum<?> whereColumn) {
       Preconditions.checkArgument(whereClause == null, "Can't specify both whereColumns and where clause");
       whereColumns.add(whereColumn.name());
       return ths();
    }
-   
-   public B withConsistencyLevel(ConsistencyLevel consistency) {
+
+   public B withConsistencyLevel(DefaultConsistencyLevel consistency) {
       this.consistency = consistency;
       return ths();
    }
-   
+
    public B withDefaultRetryPolicy() {
-      this.retryPolicy = null;
       return ths();
    }
-   
-   public B withRetryPolicy(RetryPolicy retryPolicy) {
-      this.retryPolicy = retryPolicy;
-      return ths();
-   }
-   
+
    public B usingTimestamp() {
    	this.usingTimestamp = true;
    	return ths();
    }
-   
+
    public B allowFiltering() {
    	this.allowFiltering = true;
    	return ths();
    }
-   
+
    public abstract StringBuilder toQuery();
-   
-   public PreparedStatement prepare(Session session) {
-      return preparedBuilder.prepare(session, toQuery().toString(), consistency, retryPolicy);
+
+   public PreparedStatement prepare(CqlSession session) {
+      return preparedBuilder.prepare(session, toQuery().toString());
    }
 
-   public ResultSet execute(Session session, Object... values) {
-      return session.execute( prepare(session).bind(values) );
+   /**
+    * Binds the given values to a prepared statement and applies the configured consistency level.
+    */
+   public BoundStatement bind(PreparedStatement ps, Object... values) {
+      BoundStatement bs = ps.bind(values);
+      if (consistency != null) {
+         bs = bs.setConsistencyLevel(consistency);
+      }
+      return bs;
+   }
+
+   public ResultSet execute(CqlSession session, Object... values) {
+      return session.execute(bind(prepare(session), values));
    }
 
    public static class CassandraInsertBuilder extends CassandraQueryBuilder<CassandraInsertBuilder> {
@@ -285,12 +289,12 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
       CassandraInsertBuilder(String table) {
          super(table);
       }
-      
+
       public CassandraInsertBuilder ifNotExists() {
          ifClause = "NOT EXISTS";
          return ths();
       }
-      
+
       public CassandraInsertBuilder withTtlSec(long ttlSec) {
          this.ttlSec = ttlSec;
          return this;
@@ -315,7 +319,7 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
          appendIfClause(sb);
          appendTtlClause(sb, ttlSec);
          appendUsingTimestamp(sb, ttlSec);
-         
+
          return sb;
       }
 
@@ -323,33 +327,33 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
 
    public static class CassandraUpdateBuilder extends CassandraQueryBuilder<CassandraUpdateBuilder> {
       private long ttlSec = -1;
-      
+
       CassandraUpdateBuilder(String table) {
          super(table);
       }
-      
+
       public CassandraUpdateBuilder set(String clause) {
       	Preconditions.checkArgument(setString == null, "Only one set clause may be specified");
       	setString = clause;
       	return ths();
       }
-      
+
       public CassandraUpdateBuilder ifClause(String clause) {
          Preconditions.checkArgument(ifClause == null, "Only one if clause may be specified");
          ifClause = clause;
          return ths();
       }
-      
+
       public CassandraUpdateBuilder withTtlSec(long ttlSec) {
          this.ttlSec = ttlSec;
          return this;
       }
-      
+
       public CassandraUpdateBuilder ifExists() {
          ifClause = "EXISTS";
          return this;
-      }   
-      
+      }
+
       public StringBuilder toQuery() {
          StringBuilder sb = new StringBuilder("UPDATE ").append(getTable());
          appendTtlClause(sb, ttlSec);
@@ -389,18 +393,18 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
       CassandraDeleteBuilder(String table) {
          super(table);
       }
-      
+
       public CassandraDeleteBuilder ifExists() {
          Preconditions.checkArgument(ifClause == null, "Only one if clause may be specified");
          return ifClause("EXISTS");
       }
-      
+
       public CassandraDeleteBuilder ifClause(String clause) {
          Preconditions.checkArgument(ifClause == null, "Only one if clause may be specified");
          ifClause = clause;
          return ths();
       }
-      
+
       public StringBuilder toQuery() {
          StringBuilder sb = new StringBuilder("DELETE ");
          // This provides support for deletion of individual entries from map columns
@@ -434,4 +438,3 @@ public abstract class CassandraQueryBuilder<B extends CassandraQueryBuilder<B>> 
    }
 
 }
-

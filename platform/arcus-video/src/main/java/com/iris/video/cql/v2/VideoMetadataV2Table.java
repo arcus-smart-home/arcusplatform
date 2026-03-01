@@ -20,18 +20,18 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
-import com.datastax.driver.core.policies.LoggingRetryPolicy;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
 import com.iris.video.cql.MetadataAttribute;
 import com.iris.video.cql.VideoConstants;
+
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.*;
 
 /**
  * CREATE TABLE recording_metadata_v2 (
@@ -39,23 +39,23 @@ import com.iris.video.cql.VideoConstants;
             expiration timestamp,
             field text,
             value text,
-            PRIMARY KEY ((recordingid), expiration, field) 
+            PRIMARY KEY ((recordingid), expiration, field)
          )
  *
  */
 @Singleton
 public class VideoMetadataV2Table extends AbstractVideoMetadataV2Table {
 	private static final Logger logger = LoggerFactory.getLogger(VideoMetadataV2Table.class);
-	
+
 	public static final String TABLE_NAME = "recording_metadata_v2";
 
 	public static final String COL_EXPIRATION = "expiration";
-	private static final String[] COLUMNS = {COL_RECORDINGID, COL_EXPIRATION, COL_FIELD, COL_VALUE};		
+	private static final String[] COLUMNS = {COL_RECORDINGID, COL_EXPIRATION, COL_FIELD, COL_VALUE};
 
 	protected final PreparedStatement deleteField;
-	
+
 	@Inject
-	public VideoMetadataV2Table(String ts, Session session) {
+	public VideoMetadataV2Table(String ts, CqlSession session) {
 		super(ts, session);
 		this.deleteField =
 				CassandraQueryBuilder
@@ -65,7 +65,7 @@ public class VideoMetadataV2Table extends AbstractVideoMetadataV2Table {
 					.addWhereColumnEquals(COL_FIELD)
 					.prepare(session);
 	}
-	
+
 	@Override
 	protected String[] getTableColumns() {
 		return COLUMNS;
@@ -75,26 +75,32 @@ public class VideoMetadataV2Table extends AbstractVideoMetadataV2Table {
 		return deleteField.bind(recordingId, expiration, attribute.name().toLowerCase());
 	}
 
-	public Statement insertTag(UUID recordingId, long expiration, long actualTtlInSeconds, String tag) {
+	public Statement<?> insertTag(UUID recordingId, long expiration, long actualTtlInSeconds, String tag) {
 		return doInsertField(recordingId, expiration, actualTtlInSeconds, VideoConstants.ATTR_TAG_PREFIX + tag, "null");
 	}
-	
-	
-	public Statement insertField(UUID recordingId, long expiration, long actualTtlInSeconds, MetadataAttribute attribute, String value) {
-		Statement insert = QueryBuilder.insertInto(getTableSpace(), TABLE_NAME).using(QueryBuilder.ttl((int)actualTtlInSeconds))
-				.values(COLUMNS, new Object[]{recordingId, expiration, attribute.name().toLowerCase(), value})
-				.setRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE))			
-				;
-		return insert;		
-	}
-	
 
-	private Statement doInsertField(UUID recordingId, long expiration, long actualTtlInSeconds, String attributeName, String value) {
-		Statement insert = QueryBuilder.insertInto(getTableSpace(), TABLE_NAME).using(QueryBuilder.ttl((int)actualTtlInSeconds))
-				.values(COLUMNS, new Object[]{recordingId, expiration, attributeName, value})
-				.setRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE))			
-				;
-		return insert;		
+
+	public Statement<?> insertField(UUID recordingId, long expiration, long actualTtlInSeconds, MetadataAttribute attribute, String value) {
+		SimpleStatement insert = insertInto(getTableSpace(), TABLE_NAME)
+				.value(COLUMNS[0], literal(recordingId))
+				.value(COLUMNS[1], literal(expiration))
+				.value(COLUMNS[2], literal(attribute.name().toLowerCase()))
+				.value(COLUMNS[3], literal(value))
+				.usingTtl((int)actualTtlInSeconds)
+				.build();
+		return insert;
+	}
+
+
+	private Statement<?> doInsertField(UUID recordingId, long expiration, long actualTtlInSeconds, String attributeName, String value) {
+		SimpleStatement insert = insertInto(getTableSpace(), TABLE_NAME)
+				.value(COLUMNS[0], literal(recordingId))
+				.value(COLUMNS[1], literal(expiration))
+				.value(COLUMNS[2], literal(attributeName))
+				.value(COLUMNS[3], literal(value))
+				.usingTtl((int)actualTtlInSeconds)
+				.build();
+		return insert;
 	}
 
 	public BoundStatement deleteTag(UUID recordingId, String tag) {
@@ -107,4 +113,3 @@ public class VideoMetadataV2Table extends AbstractVideoMetadataV2Table {
 	}
 
 }
-

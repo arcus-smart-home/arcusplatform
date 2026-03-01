@@ -15,6 +15,7 @@
  */
 package com.iris.modelmanager.engine;
 
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -24,10 +25,12 @@ import javax.xml.stream.XMLStreamException;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.InvalidQueryException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.iris.modelmanager.Status;
 import com.iris.modelmanager.changelog.ChangeLog;
 import com.iris.modelmanager.changelog.ChangeLogSet;
@@ -119,11 +122,9 @@ public class ExecutionEngine {
          System.out.println("...Done!");
 
       } finally {
-         Session session = context.getSession();
+         CqlSession session = context.getSession();
          if(session != null) {
-            Cluster cluster = session.getCluster();
             session.close();
-            cluster.close();
          }
       }
    }
@@ -186,20 +187,24 @@ public class ExecutionEngine {
       }
    }
 
-   private Session createSession(Profile profile) {
-   	QueryOptions options = new QueryOptions();
-   	options.setConsistencyLevel(profile.getConsistencyLevel());
-      Cluster.Builder builder = Cluster.builder();
-      builder.addContactPoints(profile.getNodes().toArray(new String[0]));
-      builder.withPort(profile.getPort());
-      builder.withQueryOptions(options);
+   private CqlSession createSession(Profile profile) {
+      ProgrammaticDriverConfigLoaderBuilder configBuilder = DriverConfigLoader.programmaticBuilder();
+      configBuilder.withString(DefaultDriverOption.REQUEST_CONSISTENCY, profile.getConsistencyLevel().name());
+
+      CqlSessionBuilder builder = CqlSession.builder();
+      builder.withConfigLoader(configBuilder.build());
+
+      for(String node : profile.getNodes()) {
+         builder.addContactPoint(new InetSocketAddress(node, profile.getPort()));
+      }
+      builder.withLocalDatacenter("datacenter1");
 
       if(!StringUtils.isBlank(profile.getUsername()) && !StringUtils.isBlank(profile.getPassword())) {
-         builder.withCredentials(profile.getUsername(), profile.getPassword());
+         builder.withAuthCredentials(profile.getUsername(), profile.getPassword());
       }
 
-      Cluster cluster = builder.build();
-      Session session = cluster.connect(profile.getKeyspace());
+      builder.withKeyspace(profile.getKeyspace());
+      CqlSession session = builder.build();
       return session;
    }
 
@@ -213,4 +218,3 @@ public class ExecutionEngine {
       return ChangeLogSet.fromChangesets(appliedSets);
    }
 }
-

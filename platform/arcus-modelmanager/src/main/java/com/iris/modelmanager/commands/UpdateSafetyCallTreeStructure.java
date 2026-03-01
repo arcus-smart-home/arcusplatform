@@ -22,10 +22,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -65,16 +64,16 @@ public class UpdateSafetyCallTreeStructure implements ExecutionCommand {
       }
    }
 
-   private void updateToCallTreeEntry(Session session) {
+   private void updateToCallTreeEntry(CqlSession session) {
       PreparedStatement peopleForPlaceStmt = session.prepare(loadPeopleForPlace);
       PreparedStatement updateStmt = session.prepare(updateCallTree);
 
       List<Row> safetySubsystems = listAllSafetySubsystems(session);
       safetySubsystems.forEach((r) -> {
          if(isOldCallTree(r)) {
-            List<String> allPeople = getAddressesForPeopleAtPlace(r.getUUID("placeid"), session, peopleForPlaceStmt);
+            List<String> allPeople = getAddressesForPeopleAtPlace(r.getUuid("placeid"), session, peopleForPlaceStmt);
             List<String> currentCallTree = getCurrentCallTree(r);
-            session.execute(new BoundStatement(updateStmt).bind(createNewCallTree(currentCallTree, allPeople), r.getUUID("placeid"), "subsafety"));
+            session.execute(updateStmt.bind(createNewCallTree(currentCallTree, allPeople), r.getUuid("placeid"), "subsafety"));
          }
       });
    }
@@ -89,22 +88,22 @@ public class UpdateSafetyCallTreeStructure implements ExecutionCommand {
       return true;
    }
 
-   private void rollbackFromCallTreeEntry(Session session) {
+   private void rollbackFromCallTreeEntry(CqlSession session) {
       PreparedStatement updateStmt = session.prepare(updateCallTree);
 
       List<Row> safetySubsystems = listAllSafetySubsystems(session);
       safetySubsystems.forEach((r) -> {
          if(!isOldCallTree(r)) {
             List<Map<String,Object>> currentCallTree = getCallTreeEntries(r);
-            session.execute(new BoundStatement(updateStmt).bind(
+            session.execute(updateStmt.bind(
                   serializeOldCallTree(transformToOld(currentCallTree)),
-                  r.getUUID("placeid"),
+                  r.getUuid("placeid"),
                   "subsafety"));
          }
       });
    }
 
-   private List<Row> listAllSafetySubsystems(Session session) {
+   private List<Row> listAllSafetySubsystems(CqlSession session) {
       return session.execute(loadSubsystems).all().stream()
             .filter((r) -> { return r.getString("namespace").equals("subsafety"); })
             .collect(Collectors.toList());
@@ -118,10 +117,10 @@ public class UpdateSafetyCallTreeStructure implements ExecutionCommand {
       return serializeCallTree(callTree);
    }
 
-   private List<String> getAddressesForPeopleAtPlace(UUID place, Session session, PreparedStatement stmt) {
-      List<Row> rows = session.execute(new BoundStatement(stmt).bind(place)).all();
+   private List<String> getAddressesForPeopleAtPlace(UUID place, CqlSession session, PreparedStatement stmt) {
+      List<Row> rows = session.execute(stmt.bind(place)).all();
       return rows.stream()
-            .map((r) -> { return "SERV:person:" + r.getUUID("entityid").toString(); })
+            .map((r) -> { return "SERV:person:" + r.getUuid("entityid").toString(); })
             .collect(Collectors.toList());
    }
 
@@ -153,4 +152,3 @@ public class UpdateSafetyCallTreeStructure implements ExecutionCommand {
       return gson.toJson(callTree, oldCallTreeType);
    }
 }
-

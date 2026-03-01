@@ -45,11 +45,10 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TypeCodec;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -76,9 +75,9 @@ public final class VideoUtil {
 
    public static final String TAG_BACKFILLED = "BACKFILL";
    public static final String TAG_V2         = "V2";
-   
+
    public static final Address SERVICE_ADDRESS = Address.platformService(VideoService.NAMESPACE);
-   
+
    private VideoUtil() {
    }
 
@@ -100,7 +99,7 @@ public final class VideoUtil {
          return Address.platformService(personId, PersonCapability.NAMESPACE);
       }
    }
-   
+
    public static UUID timeUUIDForRecording() {
       UUID original = IrisUUID.timeUUID();
 
@@ -181,7 +180,7 @@ public final class VideoUtil {
    public static Date getPurgeTimestamp(long delay, TimeUnit unit) {
    	return getPurgeTimestamp(System.currentTimeMillis(), delay, unit);
    }
-   
+
    public static Date getPurgeTimestamp(long startTime, long delay, TimeUnit unit) {
       long ms = TimeUnit.MILLISECONDS.convert(delay, unit);
 
@@ -330,7 +329,7 @@ public final class VideoUtil {
    public static boolean isFavoritedTag(String prefix, String tag) {
       return (prefix+VideoConstants.TAG_FAVORITE).equals(tag);
    }
-   
+
    public static VideoRecording recMaterializeRecording(ResultSet results, UUID recId) {
       UUID camId = null;
       UUID plcId = null;
@@ -355,7 +354,7 @@ public final class VideoUtil {
          rows++;
          double ts = row.getDouble(0);
          long bo = row.getLong(1);
-         ByteBuffer bl = row.getBytes(2);
+         ByteBuffer bl = row.isNull(2) ? null : row.getByteBuffer(2);
 
          if (ts == VideoConstants.REC_TS_START) {
             if (bo == RecordingTableField.STORAGE.bo()) {
@@ -428,7 +427,7 @@ public final class VideoUtil {
          VIDEO_NO_PLACE.inc();
          throw new RuntimeException("recording has no place");
       }
-      
+
       if(expiration > 0 && new Date(expiration).before(new Date())) {
       	VIDEO_DOESNT_EXIST.inc();
       	throw new RuntimeException("recording already expired");
@@ -451,7 +450,7 @@ public final class VideoUtil {
       if(audioCodec == null) {
          audioCodec = AudioCodec.NONE;
       }
-      
+
       return new VideoRecording(recId, camId, accId, plcId, expiration, perId, storage, width, height, bandwidth, framerate, duration, size, videoCodec, audioCodec, iframes);
    }
 
@@ -460,51 +459,51 @@ public final class VideoUtil {
 	/////////////////////////////////////////////////////////////////////////////
 
 	public static ByteBuffer toblob(String value) {
-		return TypeCodec.varchar().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.TEXT.encode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static ByteBuffer toblob(UUID value) {
-		return TypeCodec.uuid().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.UUID.encode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static ByteBuffer toblob(int value) {
-		return TypeCodec.cint().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.INT.encode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static ByteBuffer toblob(long value) {
-		return TypeCodec.bigint().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.BIGINT.encode(value, ProtocolVersion.DEFAULT);
 	}
-	
+
 	public static ByteBuffer toblob(Date value) {
-		return TypeCodec.timestamp().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.TIMESTAMP.encode(value.toInstant(), ProtocolVersion.DEFAULT);
 	}
 
 	public static ByteBuffer toblob(double value) {
-		return TypeCodec.cdouble().serialize(value, ProtocolVersion.V3);
+		return TypeCodecs.DOUBLE.encode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static String tostr(ByteBuffer value) {
-		return (String) TypeCodec.varchar().deserialize(value, ProtocolVersion.V3);
+		return TypeCodecs.TEXT.decode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static UUID touuid(ByteBuffer value) {
-		return (UUID) TypeCodec.uuid().deserialize(value, ProtocolVersion.V3);
+		return TypeCodecs.UUID.decode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static int toint(ByteBuffer value) {
-		return (int) TypeCodec.cint().deserialize(value, ProtocolVersion.V3);
+		return TypeCodecs.INT.decode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static long tolong(ByteBuffer value) {
-		return (long) TypeCodec.bigint().deserialize(value, ProtocolVersion.V3);
+		return TypeCodecs.BIGINT.decode(value, ProtocolVersion.DEFAULT);
 	}
 
 	public static double todouble(ByteBuffer value) {
-		return (double) TypeCodec.cdouble().deserialize(value, ProtocolVersion.V3);
+		return TypeCodecs.DOUBLE.decode(value, ProtocolVersion.DEFAULT);
 	}
-	
+
 	public static Date toDate(ByteBuffer value) {
-		return (Date) TypeCodec.timestamp().deserialize(value, ProtocolVersion.V3);
+		return Date.from(TypeCodecs.TIMESTAMP.decode(value, ProtocolVersion.DEFAULT));
 	}
 
 	public static ByteBuffer toblob(Enum<?> e) {
@@ -516,12 +515,12 @@ public final class VideoUtil {
 		return Enum.valueOf(clazz, val);
 	}
 
-	
+
 	 public static void recUpdateRecording(ResultSet results, VideoRecording recording) throws Exception {
 	      for (Row row : results) {
 	         double ts = row.getDouble(0);
 	         long bo = row.getLong(1);
-	         ByteBuffer bl = row.getBytes(2);
+	         ByteBuffer bl = row.isNull(2) ? null : row.getByteBuffer(2);
 
 	         if (ts == VideoConstants.REC_TS_END) {
 	            if (bo == RecordingTableField.DURATION.bo()) {
@@ -536,7 +535,7 @@ public final class VideoUtil {
 	         }
 	      }
 	   }
-   
+
 
 	 @SuppressWarnings("unchecked")
 	 public static Iterator<UUID> intersection(Iterator<UUID>... iterators) {
@@ -553,7 +552,7 @@ public final class VideoUtil {
 				return filters.get(0);
 			}
 		}
-		
+
 		@SuppressWarnings("unchecked")
 		public static Iterator<UUID> union(Iterator<UUID>... iterators) {
 			List<PeekingIterator<UUID>> filters = new ArrayList<>(iterators.length);
@@ -569,7 +568,7 @@ public final class VideoUtil {
 				return filters.get(0);
 			}
 		}
-		
+
 		public static Iterator<Row> difference(Iterator<Row> delegate, Iterator<Row> subtract) {
 			if(delegate == null) {
 				return ImmutableSet.<Row>of().iterator();
@@ -579,12 +578,12 @@ public final class VideoUtil {
 			}
 			return new DifferenceIterator(delegate, subtract);
 		}
-		
+
 		private static int compare(UUID timeUUID1, UUID timeUUID2) {
 			return IrisUUID.descTimeUUIDComparator().compare(timeUUID1, timeUUID2);
 		}
-		
-		
+
+
 		/**
 		 * Combines a collection of sorted iterators so that each value
 		 * is returned once and only once, maintaining ordering.
@@ -594,12 +593,12 @@ public final class VideoUtil {
 		private static class UnionIterator implements Iterator<UUID> {
 			private UUID currentId;
 			private Collection<PeekingIterator<UUID>> iterators;
-			
+
 			public UnionIterator(Collection<PeekingIterator<UUID>> iterators) {
 				this.iterators = iterators;
 				this.advance();
 			}
-			
+
 			private void advance() {
 				UUID latestTs = IrisUUID.minTimeUUID();
 				Iterator<UUID> nextIt = null;
@@ -628,12 +627,12 @@ public final class VideoUtil {
 					currentId = nextIt.next();
 				}
 			}
-			
+
 			@Override
 			public boolean hasNext() {
 				return currentId != null;
 			}
-			
+
 			@Override
 			public UUID next() {
 				if(currentId == null) {
@@ -649,7 +648,7 @@ public final class VideoUtil {
 
 		/**
 		 * Combines a collection of sorted iterators so that each value
-		 * that exists in _every_ delegate iterator is returned once and only once, 
+		 * that exists in _every_ delegate iterator is returned once and only once,
 		 * maintaining ordering.
 		 * @author tweidlin
 		 *
@@ -657,15 +656,15 @@ public final class VideoUtil {
 		private static class IntersectionIterator implements Iterator<UUID> {
 			private UUID currentId;
 			private Collection<PeekingIterator<UUID>> iterators;
-			
+
 			public IntersectionIterator(Collection<PeekingIterator<UUID>> iterators) {
 				this.iterators = iterators;
 				this.advance();
 			}
-			
+
 			private void advance() {
 				currentId = null;
-				
+
 				UUID nextId = null;
 				int matches = 0;
 				while(matches < iterators.size()) {
@@ -693,12 +692,12 @@ public final class VideoUtil {
 				}
 				currentId = nextId;
 			}
-			
+
 			@Override
 			public boolean hasNext() {
 				return currentId != null;
 			}
-			
+
 			@Override
 			public UUID next() {
 				if(currentId == null) {
@@ -711,30 +710,30 @@ public final class VideoUtil {
 				}
 			}
 		}
-		
+
 		private static class DifferenceIterator implements Iterator<Row> {
 			private Row next;
 			private UUID nextToSkip;
 			private Iterator<Row> delegate;
 			private Iterator<Row> subtract;
-			
+
 			public DifferenceIterator(Iterator<Row> delegate, Iterator<Row> subtract) {
 				this.delegate = delegate;
 				this.subtract = subtract;
 				this.nextToSkip = nextToSkip();
 				this.advance();
 			}
-			
+
 			private UUID nextToSkip() {
-				return subtract.hasNext() ? subtract.next().getUUID(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID) : null;
+				return subtract.hasNext() ? subtract.next().getUuid(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID) : null;
 			}
-			
+
 			private void advance() {
 				next = null;
-				
+
 				while(delegate.hasNext()) {
 					Row row = delegate.next();
-					UUID id = row.getUUID(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID);
+					UUID id = row.getUuid(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID);
 					int comp = nextToSkip == null ? 1 : compare(id, nextToSkip);
 					while(comp < 0 && subtract.hasNext()) {
 						nextToSkip = nextToSkip();
@@ -753,12 +752,12 @@ public final class VideoUtil {
 					}
 				}
 			}
-			
+
 			@Override
 			public boolean hasNext() {
 				return next != null;
 			}
-			
+
 			@Override
 			public Row next() {
 				if(next == null) {
@@ -772,5 +771,4 @@ public final class VideoUtil {
 			}
 		}
 }
-
 

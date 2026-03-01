@@ -15,7 +15,11 @@
  */
 package com.iris.modelmanager.commands;
 
-import com.datastax.driver.core.*;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.Utils;
@@ -62,12 +66,12 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
       // TODO: Add this elsewhere?
       Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE);
 
       ResultSet rs = context.getSession().execute(SELECT);
       for (Row row : rs) {
-         UUID id = row.getUUID("id");
+         UUID id = row.getUuid("id");
          // Handle Security Questions
          Map<String, String> oldQuestions = row.getMap("securityAnswers", String.class, String.class);
          logger.debug("Re-encrypting security answers for [{}]...", id);
@@ -103,4 +107,3 @@ public class MigrateCryptoLibrary implements ExecutionCommand {
    }
 
 }
-

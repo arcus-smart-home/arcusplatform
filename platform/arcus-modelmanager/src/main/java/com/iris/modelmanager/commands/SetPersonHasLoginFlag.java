@@ -19,10 +19,11 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -37,15 +38,15 @@ public class SetPersonHasLoginFlag implements ExecutionCommand {
 
       List<Row> rows = context.getSession().execute("SELECT id, email FROM person").all();
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
-            .setBool("hasLogin", !StringUtils.isBlank(r.getString("email")))
-            .setUUID("id", r.getUUID("id")));
+         batch.addStatement(stmt.bind()
+            .setBoolean("hasLogin", !StringUtils.isBlank(r.getString("email")))
+            .setUuid("id", r.getUuid("id")));
       });
 
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 
    @Override
@@ -53,14 +54,13 @@ public class SetPersonHasLoginFlag implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
       List<Row> rows = context.getSession().execute("SELECT id FROM person").all();
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setToNull("hasLogin")
-            .setUUID("id", r.getUUID("id")));
+            .setUuid("id", r.getUuid("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 }
-

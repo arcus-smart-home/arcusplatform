@@ -15,17 +15,17 @@
  */
 package com.iris.core.dao.cassandra;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.iris.messages.model.BaseEntity;
 
-public abstract class ChangesBaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> extends BaseCassandraCRUDDao<I, T> {	
+public abstract class ChangesBaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> extends BaseCassandraCRUDDao<I, T> {
 	private final ChangeTracker<T>[] trackers;
-	
-	protected ChangesBaseCassandraCRUDDao(Session session, String table, String[] columns, ChangeTracker<T>[] trackers) {
+
+	protected ChangesBaseCassandraCRUDDao(CqlSession session, String table, String[] columns, ChangeTracker<T>[] trackers) {
 	   super(session, table, columns);
 	   this.trackers = trackers;
    }
-	
+
 	@Override
    protected T doUpdate(T entity) {
 	   // Have to check to see if the value has changed.
@@ -39,4 +39,3 @@ public abstract class ChangesBaseCassandraCRUDDao<I, T extends BaseEntity<I, T>>
 	   return super.doUpdate(entity);
    }
 }
-

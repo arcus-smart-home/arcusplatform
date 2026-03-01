@@ -18,10 +18,8 @@ package com.iris.core.dao.cassandra;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.cache.CacheBuilder;
 import com.iris.bootstrap.ServiceLocator;
 
@@ -34,25 +32,20 @@ public enum CassandraPreparedBuilder {
       this.factory = factory;
    }
 
-   public PreparedStatement prepare(Session session, String query, ConsistencyLevel consistency, RetryPolicy retryPolicy) {
-      return factory.prepare(session,query,consistency,retryPolicy);
+   public PreparedStatement prepare(CqlSession session, String query) {
+      return factory.prepare(session, query);
    }
 
    private interface PreparedStatementFactory {
-      PreparedStatement prepare(Session session, String query, ConsistencyLevel consistency, RetryPolicy retryPolicy);
+      PreparedStatement prepare(CqlSession session, String query);
    }
 
    private static enum StandardPreparedStatementFactory implements PreparedStatementFactory {
       INSTANCE;
 
       @Override
-      public PreparedStatement prepare(Session session, String query, ConsistencyLevel consistency, RetryPolicy retryPolicy) {
-         PreparedStatement ps = session.prepare(query);
-         ps.setConsistencyLevel(consistency);
-         if(retryPolicy != null) {
-            ps.setRetryPolicy(retryPolicy);
-         }
-         return ps;
+      public PreparedStatement prepare(CqlSession session, String query) {
+         return session.prepare(query);
       }
    }
 
@@ -64,14 +57,14 @@ public enum CassandraPreparedBuilder {
       }
 
       @Override
-      public PreparedStatement prepare(Session session, String query, ConsistencyLevel consistency, RetryPolicy retryPolicy) {
+      public PreparedStatement prepare(CqlSession session, String query) {
          PreparedStatement result = cache.get(query);
-         if (result != null && result.getConsistencyLevel() == consistency) {
+         if (result != null) {
             return result;
          }
 
-         PreparedStatement newPrepared = StandardPreparedStatementFactory.INSTANCE.prepare(session,query,consistency, retryPolicy);
-         PreparedStatement existingPrepared = cache.putIfAbsent(query,newPrepared);
+         PreparedStatement newPrepared = session.prepare(query);
+         PreparedStatement existingPrepared = cache.putIfAbsent(query, newPrepared);
          return (existingPrepared != null) ? existingPrepared : newPrepared;
       }
    }
@@ -87,4 +80,3 @@ public enum CassandraPreparedBuilder {
       }
    }
 }
-

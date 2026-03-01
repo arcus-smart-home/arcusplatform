@@ -53,9 +53,6 @@ dependencies {
     implementation libraries.jcommander
     implementation libraries.gson
 
-    // TODO:  really unclear as to what of the transitive dependencies are actually required to
-    // run the embedded server.  it is really annoying
-    testImplementation libraries.cassandraUnit
 	 testImplementation project (':platform:arcus-test')
 
     runtimeOnly libraries.logback

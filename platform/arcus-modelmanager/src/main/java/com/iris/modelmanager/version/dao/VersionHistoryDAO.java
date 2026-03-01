@@ -15,11 +15,13 @@
  */
 package com.iris.modelmanager.version.dao;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import java.util.Date;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.Status;
 import com.iris.modelmanager.version.VersionHistory;
 
@@ -29,11 +31,11 @@ public class VersionHistoryDAO {
    private static final String INSERT = "INSERT INTO versionhistory (id, version, timestamp, status, username) VALUES (?, ?, ?, ?, ?)";
    private static final String FIND_LATEST = "SELECT * FROM versionhistory WHERE id=? AND status=? LIMIT 1";
 
-   private final Session session;
+   private final CqlSession session;
    private PreparedStatement insert;
    private PreparedStatement findLatest;
 
-   public VersionHistoryDAO(Session session) {
+   public VersionHistoryDAO(CqlSession session) {
       this.session = session;
    }
 
@@ -44,15 +46,14 @@ public class VersionHistoryDAO {
          insert = this.session.prepare(INSERT);
       }
 
-      BoundStatement boundStatement = new BoundStatement(insert);
-      boundStatement.setConsistencyLevel(ConsistencyLevel.ALL);
-      session.execute(boundStatement.bind(
+      BoundStatement boundStatement = insert.bind(
             IDENTIFIER,
             history.getVersion(),
             history.getTimestamp(),
             history.getStatus().toString(),
             history.getUsername()
-      ));
+      ).setConsistencyLevel(DefaultConsistencyLevel.ALL);
+      session.execute(boundStatement);
    }
 
    public VersionHistory findLatest() {
@@ -62,8 +63,7 @@ public class VersionHistoryDAO {
          findLatest = this.session.prepare(FIND_LATEST);
       }
 
-      BoundStatement boundStatement = new BoundStatement(findLatest);
-      Row row = session.execute(boundStatement.bind(IDENTIFIER, Status.APPLIED.toString())).one();
+      Row row = session.execute(findLatest.bind(IDENTIFIER, Status.APPLIED.toString())).one();
 
       if(row == null) {
          return null;
@@ -75,10 +75,9 @@ public class VersionHistoryDAO {
    private VersionHistory buildVersionHistory(Row row) {
       VersionHistory history = new VersionHistory();
       history.setStatus(Status.valueOf(row.getString("status")));
-      history.setTimestamp(row.getTimestamp("timestamp"));
+      history.setTimestamp(row.isNull("timestamp") ? null : Date.from(row.getInstant("timestamp")));
       history.setUsername(row.getString("username"));
       history.setVersion(row.getString("version"));
       return history;
    }
 }
-

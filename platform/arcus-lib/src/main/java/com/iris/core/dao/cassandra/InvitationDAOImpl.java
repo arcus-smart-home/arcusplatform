@@ -22,22 +22,24 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select.Selection;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BatchableStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -48,6 +50,8 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.type.Invitation;
 import com.iris.util.TokenUtil;
+
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.*;
 
 @Singleton
 public class InvitationDAOImpl implements InvitationDAO {
@@ -94,7 +98,7 @@ public class InvitationDAOImpl implements InvitationDAO {
    @Inject(optional = true)
    private int tokenRetries = 2;
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement insert;
    private final PreparedStatement insertPlaceIdx;
    private final PreparedStatement insertPersonIdx;
@@ -109,7 +113,7 @@ public class InvitationDAOImpl implements InvitationDAO {
    private final PreparedStatement deletePlaceIdx;
 
    @Inject
-   public InvitationDAOImpl(Session session) {
+   public InvitationDAOImpl(CqlSession session) {
       this.session = session;
       insert = prepareInsert(session);
       insertPlaceIdx = prepareInsertPlaceIdx(session);
@@ -125,7 +129,7 @@ public class InvitationDAOImpl implements InvitationDAO {
       deletePlaceIdx = prepareDeletePlaceIdx(session);
    }
 
-   private PreparedStatement prepareInsert(Session session) {
+   private PreparedStatement prepareInsert(CqlSession session) {
       return CassandraQueryBuilder.insert(TABLE)
             .addColumns(Column.names())
             .withTtlSec(TTL)
@@ -133,76 +137,76 @@ public class InvitationDAOImpl implements InvitationDAO {
             .prepare(session);
    }
 
-   private PreparedStatement prepareInsertPlaceIdx(Session session) {
+   private PreparedStatement prepareInsertPlaceIdx(CqlSession session) {
       return CassandraQueryBuilder.insert(TABLE_PLACE_IDX)
             .addColumns(Column.placeId.name(), Column.code.name())
             .withTtlSec(TTL)
             .prepare(session);
    }
 
-   private PreparedStatement prepareInsertPersonIdx(Session session) {
+   private PreparedStatement prepareInsertPersonIdx(CqlSession session) {
       return CassandraQueryBuilder.insert(TABLE_PERSON_IDX)
             .addColumns(Column.inviteeId.name(), Column.code.name())
             .withTtlSec(TTL)
             .prepare(session);
    }
 
-   private PreparedStatement prepareAcceptExistingPerson(Session session) {
+   private PreparedStatement prepareAcceptExistingPerson(CqlSession session) {
       return CassandraQueryBuilder.update(TABLE)
             .addColumn(Column.accepted.name())
             .addWhereColumnEquals(Column.code.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareAccept(Session session) {
+   private PreparedStatement prepareAccept(CqlSession session) {
       return CassandraQueryBuilder.update(TABLE)
             .addColumns(Column.accepted.name(), Column.inviteeId.name())
             .addWhereColumnEquals(Column.code.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareReject(Session session) {
+   private PreparedStatement prepareReject(CqlSession session) {
       return CassandraQueryBuilder.update(TABLE)
             .addColumns(Column.rejected.name(), Column.rejectReason.name())
             .addWhereColumnEquals(Column.code.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareSelect(Session session) {
+   private PreparedStatement prepareSelect(CqlSession session) {
       return CassandraQueryBuilder.select(TABLE)
             .addColumns(Column.names())
             .addWhereColumnEquals(Column.code.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareSelectCodesForPerson(Session session) {
+   private PreparedStatement prepareSelectCodesForPerson(CqlSession session) {
       return CassandraQueryBuilder.select(TABLE_PERSON_IDX)
             .addColumn(Column.code.name())
             .addWhereColumnEquals(Column.inviteeId.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareSelectCodesForPlace(Session session) {
+   private PreparedStatement prepareSelectCodesForPlace(CqlSession session) {
       return CassandraQueryBuilder.select(TABLE_PLACE_IDX)
             .addColumn(Column.code.name())
             .addWhereColumnEquals(Column.placeId.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareDelete(Session session) {
+   private PreparedStatement prepareDelete(CqlSession session) {
       return CassandraQueryBuilder.delete(TABLE)
             .addWhereColumnEquals(Column.code.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareDeletePersonIdx(Session session) {
+   private PreparedStatement prepareDeletePersonIdx(CqlSession session) {
       return CassandraQueryBuilder.delete(TABLE_PERSON_IDX)
             .addWhereColumnEquals(Column.code.name())
             .addWhereColumnEquals(Column.inviteeId.name())
             .prepare(session);
    }
 
-   private PreparedStatement prepareDeletePlaceIdx(Session session) {
+   private PreparedStatement prepareDeletePlaceIdx(CqlSession session) {
       return CassandraQueryBuilder.delete(TABLE_PLACE_IDX)
             .addWhereColumnEquals(Column.code.name())
             .addWhereColumnEquals(Column.placeId.name())
@@ -217,32 +221,32 @@ public class InvitationDAOImpl implements InvitationDAO {
          for(int i = 0; i < tokenRetries; i++) {
             String token = generateToken();
             Date created = new Date();
-            BoundStatement stmt = new BoundStatement(insert);
-            stmt.setString(Column.code.name(), token);
-            stmt.setUUID(Column.placeId.name(), UUID.fromString(invitation.getPlaceId()));
-            stmt.setString(Column.placeName.name(), invitation.getPlaceName());
-            stmt.setString(Column.streetAddress1.name(), invitation.getStreetAddress1());
-            stmt.setString(Column.streetAddress2.name(), invitation.getStreetAddress2());
-            stmt.setString(Column.city.name(), invitation.getCity());
-            stmt.setString(Column.stateProv.name(), invitation.getStateProv());
-            stmt.setString(Column.zipCode.name(), invitation.getZipCode());
-            stmt.setUUID(Column.inviteeId.name(), invitation.getInviteeId() == null ? null : UUID.fromString(invitation.getInviteeId()));
-            stmt.setString(Column.inviteeEmail.name(), invitation.getInviteeEmail().toLowerCase());
-            stmt.setString(Column.inviteeFirstName.name(), invitation.getInviteeFirstName());
-            stmt.setString(Column.inviteeLastName.name(), invitation.getInviteeLastName());
-            stmt.setUUID(Column.invitorId.name(), UUID.fromString(invitation.getInvitorId()));
-            stmt.setString(Column.invitorFirstName.name(), invitation.getInvitorFirstName());
-            stmt.setString(Column.invitorLastName.name(), invitation.getInvitorLastName());
-            stmt.setUUID(Column.placeOwnerId.name(), UUID.fromString(invitation.getPlaceOwnerId()));
-            stmt.setString(Column.placeOwnerFirstName.name(), invitation.getPlaceOwnerFirstName());
-            stmt.setString(Column.placeOwnerLastName.name(), invitation.getPlaceOwnerLastName());
-            stmt.setTimestamp(Column.created.name(), created);
-            stmt.setTimestamp(Column.accepted.name(), null);
-            stmt.setTimestamp(Column.rejected.name(), null);
-            stmt.setString(Column.rejectReason.name(), invitation.getRejectReason());
-            stmt.setString(Column.relationship.name(), invitation.getRelationship());
-            stmt.setString(Column.invitationText.name(), invitation.getInvitationText());
-            stmt.setString(Column.personalizedGreeting.name(), invitation.getPersonalizedGreeting());
+            BoundStatement stmt = insert.bind()
+               .setString(Column.code.name(), token)
+               .setUuid(Column.placeId.name(), UUID.fromString(invitation.getPlaceId()))
+               .setString(Column.placeName.name(), invitation.getPlaceName())
+               .setString(Column.streetAddress1.name(), invitation.getStreetAddress1())
+               .setString(Column.streetAddress2.name(), invitation.getStreetAddress2())
+               .setString(Column.city.name(), invitation.getCity())
+               .setString(Column.stateProv.name(), invitation.getStateProv())
+               .setString(Column.zipCode.name(), invitation.getZipCode())
+               .setUuid(Column.inviteeId.name(), invitation.getInviteeId() == null ? null : UUID.fromString(invitation.getInviteeId()))
+               .setString(Column.inviteeEmail.name(), invitation.getInviteeEmail().toLowerCase())
+               .setString(Column.inviteeFirstName.name(), invitation.getInviteeFirstName())
+               .setString(Column.inviteeLastName.name(), invitation.getInviteeLastName())
+               .setUuid(Column.invitorId.name(), UUID.fromString(invitation.getInvitorId()))
+               .setString(Column.invitorFirstName.name(), invitation.getInvitorFirstName())
+               .setString(Column.invitorLastName.name(), invitation.getInvitorLastName())
+               .setUuid(Column.placeOwnerId.name(), UUID.fromString(invitation.getPlaceOwnerId()))
+               .setString(Column.placeOwnerFirstName.name(), invitation.getPlaceOwnerFirstName())
+               .setString(Column.placeOwnerLastName.name(), invitation.getPlaceOwnerLastName())
+               .setInstant(Column.created.name(), created.toInstant())
+               .setInstant(Column.accepted.name(), null)
+               .setInstant(Column.rejected.name(), null)
+               .setString(Column.rejectReason.name(), invitation.getRejectReason())
+               .setString(Column.relationship.name(), invitation.getRelationship())
+               .setString(Column.invitationText.name(), invitation.getInvitationText())
+               .setString(Column.personalizedGreeting.name(), invitation.getPersonalizedGreeting());
             ResultSet rs = session.execute(stmt);
             if(rs.wasApplied()) {
                insertIndexes(invitation.getPlaceId(), invitation.getInviteeId(), token);
@@ -257,22 +261,21 @@ public class InvitationDAOImpl implements InvitationDAO {
    }
 
    private void insertIndexes(String placeId, String inviteeId, String token) {
-      BatchStatement batch = new BatchStatement();
-      BoundStatement placeIdx = new BoundStatement(insertPlaceIdx);
-      placeIdx.setUUID(Column.placeId.name(), UUID.fromString(placeId));
-      placeIdx.setString(Column.code.name(), token);
-      batch.add(placeIdx);
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      BoundStatement placeIdx = insertPlaceIdx.bind()
+         .setUuid(Column.placeId.name(), UUID.fromString(placeId))
+         .setString(Column.code.name(), token);
+      batch.addStatement(placeIdx);
       if(inviteeId != null) {
-         batch.add(bindInsertPersonIdx(UUID.fromString(inviteeId), token));
+         batch.addStatement(bindInsertPersonIdx(UUID.fromString(inviteeId), token));
       }
-      session.execute(batch);
+      session.execute(batch.build());
    }
 
-   private Statement bindInsertPersonIdx(UUID inviteeId, String token) {
-      BoundStatement personIdx = new BoundStatement(insertPersonIdx);
-      personIdx.setUUID(Column.inviteeId.name(), inviteeId);
-      personIdx.setString(Column.code.name(), token);
-      return personIdx;
+   private BoundStatement bindInsertPersonIdx(UUID inviteeId, String token) {
+      return insertPersonIdx.bind()
+         .setUuid(Column.inviteeId.name(), inviteeId)
+         .setString(Column.code.name(), token);
    }
 
    @Override
@@ -280,9 +283,9 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(code, "code is required");
 
       try(Context timer = acceptTimer.time()) {
-         BoundStatement stmt = new BoundStatement(acceptExistingPerson);
-         stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setTimestamp(Column.accepted.name(), new Date());
+         BoundStatement stmt = acceptExistingPerson.bind()
+            .setString(Column.code.name(), StringUtils.lowerCase(code))
+            .setInstant(Column.accepted.name(), new Date().toInstant());
          session.execute(stmt);
       }
    }
@@ -293,14 +296,14 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(inviteeId, "inviteeId is required");
 
       try(Context timer = acceptWithInviteeTimer.time()) {
-         BatchStatement batch = new BatchStatement();
-         BoundStatement stmt = new BoundStatement(accept);
-         stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setTimestamp(Column.accepted.name(), new Date());
-         stmt.setUUID(Column.inviteeId.name(), inviteeId);
-         batch.add(stmt);
-         batch.add(bindInsertPersonIdx(inviteeId, code));
-         session.execute(batch);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         BoundStatement stmt = accept.bind()
+            .setString(Column.code.name(), StringUtils.lowerCase(code))
+            .setInstant(Column.accepted.name(), new Date().toInstant())
+            .setUuid(Column.inviteeId.name(), inviteeId);
+         batch.addStatement(stmt);
+         batch.addStatement(bindInsertPersonIdx(inviteeId, code));
+         session.execute(batch.build());
       }
    }
 
@@ -309,10 +312,10 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(code, "code is required");
 
       try(Context timer = rejectTimer.time()) {
-         BoundStatement stmt = new BoundStatement(reject);
-         stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
-         stmt.setTimestamp(Column.rejected.name(), new Date());
-         stmt.setString(Column.rejectReason.name(), reason);
+         BoundStatement stmt = reject.bind()
+            .setString(Column.code.name(), StringUtils.lowerCase(code))
+            .setInstant(Column.rejected.name(), new Date().toInstant())
+            .setString(Column.rejectReason.name(), reason);
          session.execute(stmt);
       }
    }
@@ -322,8 +325,8 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(code, "code is required");
 
       try(Context timer = findTimer.time()) {
-         BoundStatement stmt = new BoundStatement(select);
-         stmt.setString(Column.code.name(), StringUtils.lowerCase(code));
+         BoundStatement stmt = select.bind()
+            .setString(Column.code.name(), StringUtils.lowerCase(code));
          return build(session.execute(stmt).one());
       }
    }
@@ -333,9 +336,11 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(inviteeId, "inviteeId is required");
 
       try(Context timer = pendingForInviteeTimer.time()) {
-         BoundStatement stmt = new BoundStatement(selectCodesForPerson);
-         stmt.setUUID(Column.inviteeId.name(), inviteeId);
-         return listByIndex(stmt, (r) -> { return r.getTimestamp(Column.accepted.name()) == null && r.getTimestamp(Column.rejected.name()) == null; });
+         BoundStatement stmt = selectCodesForPerson.bind()
+            .setUuid(Column.inviteeId.name(), inviteeId);
+         return listByIndex(stmt, (r) -> {
+            return (r.isNull(Column.accepted.name())) && (r.isNull(Column.rejected.name()));
+         });
       }
    }
 
@@ -344,8 +349,8 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(placeId, "placeId is required");
 
       try(Context timer = listForPlaceTimer.time()) {
-         BoundStatement stmt = new BoundStatement(selectCodesForPlace);
-         stmt.setUUID(Column.placeId.name(), placeId);
+         BoundStatement stmt = selectCodesForPlace.bind()
+            .setUuid(Column.placeId.name(), placeId);
          return listByIndex(stmt, (r) -> { return true; });
       }
    }
@@ -357,38 +362,36 @@ public class InvitationDAOImpl implements InvitationDAO {
       Preconditions.checkNotNull(invitation, "invitation is required");
 
       try(Context timer = cancelTimer.time()) {
-         BatchStatement stmt = new BatchStatement();
-         BoundStatement tblDel = new BoundStatement(delete);
-         tblDel.setString(Column.code.name(), invitation.getCode());
-         stmt.add(tblDel);
-         BoundStatement placeIdxDel = new BoundStatement(deletePlaceIdx);
-         placeIdxDel.setString(Column.code.name(), invitation.getCode());
-         placeIdxDel.setUUID(Column.placeId.name(), UUID.fromString(invitation.getPlaceId()));
-         stmt.add(placeIdxDel);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         BoundStatement tblDel = delete.bind()
+            .setString(Column.code.name(), invitation.getCode());
+         batch.addStatement(tblDel);
+         BoundStatement placeIdxDel = deletePlaceIdx.bind()
+            .setString(Column.code.name(), invitation.getCode())
+            .setUuid(Column.placeId.name(), UUID.fromString(invitation.getPlaceId()));
+         batch.addStatement(placeIdxDel);
          if(invitation.getInviteeId() != null) {
-            BoundStatement personIdxDel = new BoundStatement(deletePersonIdx);
-            personIdxDel.setString(Column.code.name(), invitation.getCode());
-            personIdxDel.setUUID(Column.inviteeId.name(), UUID.fromString(invitation.getInviteeId()));
-            stmt.add(personIdxDel);
+            BoundStatement personIdxDel = deletePersonIdx.bind()
+               .setString(Column.code.name(), invitation.getCode())
+               .setUuid(Column.inviteeId.name(), UUID.fromString(invitation.getInviteeId()));
+            batch.addStatement(personIdxDel);
          }
-         session.execute(stmt);
+         session.execute(batch.build());
       }
    }
 
-   private List<Invitation> listByIndex(Statement idxStmt, Predicate<Row> filter) {
+   private List<Invitation> listByIndex(Statement<?> idxStmt, Predicate<Row> filter) {
       final List<String> codes = new ArrayList<>();
       session.execute(idxStmt).forEach((r) -> { codes.add(r.getString(Column.code.name())); });
       if(codes.isEmpty()) {
          return Collections.emptyList();
       }
-      Selection sel = QueryBuilder.select();
-      for(Column c : Column.values()) {
-         sel.column(c.name());
-      }
-      Statement getInvites = sel
-            .from(TABLE)
-            .where(QueryBuilder.in(Column.code.name(), codes.toArray()))
-            .setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+      // Build a select with IN clause using the 4.x QueryBuilder
+      Statement<?> getInvites = selectFrom(TABLE)
+            .columns(Column.names())
+            .whereColumn(Column.code.name()).in(codes.stream().map(c -> literal(c)).collect(Collectors.toList()))
+            .build()
+            .setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
       List<Invitation> invitations = new ArrayList<>(codes.size());
       session.execute(getInvites).forEach((r) -> { if(filter.test(r)) { invitations.add(build(r)); } });
       return invitations;
@@ -399,28 +402,28 @@ public class InvitationDAOImpl implements InvitationDAO {
          return null;
       }
       Invitation invitation = new Invitation();
-      invitation.setAccepted(r.getTimestamp(Column.accepted.name()));
+      invitation.setAccepted(r.isNull(Column.accepted.name()) ? null : Date.from(r.getInstant(Column.accepted.name())));
       invitation.setCity(r.getString(Column.city.name()));
       invitation.setCode(r.getString(Column.code.name()));
-      invitation.setCreated(r.getTimestamp(Column.created.name()));
+      invitation.setCreated(r.isNull(Column.created.name()) ? null : Date.from(r.getInstant(Column.created.name())));
       invitation.setInvitationText(r.getString(Column.invitationText.name()));
       invitation.setInviteeEmail(r.getString(Column.inviteeEmail.name()));
       invitation.setInviteeFirstName(r.getString(Column.inviteeFirstName.name()));
 
-      UUID inviteeId = r.getUUID(Column.inviteeId.name());
+      UUID inviteeId = r.getUuid(Column.inviteeId.name());
       invitation.setInviteeId(inviteeId == null ? null : inviteeId.toString());
 
       invitation.setInviteeLastName(r.getString(Column.inviteeLastName.name()));
       invitation.setInvitorFirstName(r.getString(Column.invitorFirstName.name()));
-      invitation.setInvitorId(r.getUUID(Column.invitorId.name()).toString());
+      invitation.setInvitorId(r.getUuid(Column.invitorId.name()).toString());
       invitation.setInvitorLastName(r.getString(Column.invitorLastName.name()));
       invitation.setPersonalizedGreeting(r.getString(Column.personalizedGreeting.name()));
-      invitation.setPlaceId(r.getUUID(Column.placeId.name()).toString());
+      invitation.setPlaceId(r.getUuid(Column.placeId.name()).toString());
       invitation.setPlaceName(r.getString(Column.placeName.name()));
       invitation.setPlaceOwnerFirstName(r.getString(Column.placeOwnerFirstName.name()));
-      invitation.setPlaceOwnerId(r.getUUID(Column.placeOwnerId.name()).toString());
+      invitation.setPlaceOwnerId(r.getUuid(Column.placeOwnerId.name()).toString());
       invitation.setPlaceOwnerLastName(r.getString(Column.placeOwnerLastName.name()));
-      invitation.setRejected(r.getTimestamp(Column.rejected.name()));
+      invitation.setRejected(r.isNull(Column.rejected.name()) ? null : Date.from(r.getInstant(Column.rejected.name())));
       invitation.setRejectReason(r.getString(Column.rejectReason.name()));
       invitation.setRelationship(r.getString(Column.relationship.name()));
       invitation.setStateProv(r.getString(Column.stateProv.name()));
@@ -436,4 +439,3 @@ public class InvitationDAOImpl implements InvitationDAO {
    }
 
 }
-

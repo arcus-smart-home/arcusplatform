@@ -17,10 +17,11 @@ package com.iris.modelmanager.commands;
 
 import java.util.List;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -35,16 +36,16 @@ public class SetAccountOwner implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
 
       List<Row> rows = context.getSession().execute("SELECT * FROM authorization_grant").all();
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       rows.forEach((r) -> {
-         if(r.getBool("accountowner")) {
-            batch.add(new BoundStatement(stmt)
-               .setUUID("owner", r.getUUID("entityId"))
-               .setUUID("id", r.getUUID("accountid")));
+         if(r.getBoolean("accountowner")) {
+            batch.addStatement(stmt.bind()
+               .setUuid("owner", r.getUuid("entityId"))
+               .setUuid("id", r.getUuid("accountid")));
          }
       });
 
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 
    @Override
@@ -52,13 +53,12 @@ public class SetAccountOwner implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
 
       List<Row> rows = context.getSession().execute("SELECT id FROM account").all();
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setToNull("owner")
-            .setUUID("id", r.getUUID("id")));
+            .setUuid("id", r.getUuid("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 }
-

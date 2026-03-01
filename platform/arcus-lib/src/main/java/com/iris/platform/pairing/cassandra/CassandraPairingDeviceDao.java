@@ -25,11 +25,11 @@ import java.util.UUID;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.iris.capability.definition.DefinitionRegistry;
@@ -53,9 +53,9 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
    private final PreparedStatement deleteByPlaceAndProtocolAddress;
    private final PreparedStatement findSequenceIdByPlace;
    private final PlacePopulationCacheManager populationCacheMgr;
-   
+
    @Inject
-   public CassandraPairingDeviceDao(DefinitionRegistry registry, Session session, PlacePopulationCacheManager populationCacheMgr) {
+   public CassandraPairingDeviceDao(DefinitionRegistry registry, CqlSession session, PlacePopulationCacheManager populationCacheMgr) {
       super(registry, session);
       this.listByPlace =
          CassandraQueryBuilder
@@ -63,7 +63,7 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
             .addColumns(PairingDeviceTable.Column.values())
             .addWhereColumnEquals(PairingDeviceTable.Column.placeId)
             .prepare(session);
-      this.findByPlaceAndProtocolAddress = 
+      this.findByPlaceAndProtocolAddress =
          CassandraQueryBuilder
             .select(PairingDeviceTable.NAME)
             .addColumns(PairingDeviceTable.Column.values())
@@ -122,7 +122,7 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
    @Override
    @Nullable
    public PairingDevice findById(UUID placeId, int contextId) {
-      return 
+      return
          listByPlace(placeId)
             .stream()
             .filter((m) -> contextId == m.getContextId())
@@ -171,11 +171,11 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
       BoundStatement bs = upsertIfSequenceIs.bind(
             currentId + 1, // update idSequence to next value
             currentId,     // set this row's id to the current id
-            encode( copy.getAttributes() ), 
-            copy.getModified(), 
-            copy.getCreated(), 
-            copy.getPlaceId(), 
-            copy.getProtocolAddress().getRepresentation(), 
+            encode( copy.getAttributes() ),
+            copy.getModified(),
+            copy.getCreated(),
+            copy.getPlaceId(),
+            copy.getProtocolAddress().getRepresentation(),
             currentId > 0 ? currentId : null
       );
       ResultSet rs = session().execute( bs );
@@ -236,13 +236,12 @@ public class CassandraPairingDeviceDao extends BaseModelDao<PairingDevice> imple
       // construct with attributes so those fields aren't marked as dirty
       // the existence of the mock attribute indicates this is a mock or not
       PairingDevice entity = attributes.containsKey(PairingDeviceMockCapability.ATTR_TARGETPRODUCTADDRESS) ? new PairingDeviceMock(attributes) : new PairingDevice(attributes);
-      entity.setId( row.getUUID(PairingDeviceTable.Column.placeId.name()), row.getInt(PairingDeviceTable.Column.sequenceId.name()) );
+      entity.setId( row.getUuid(PairingDeviceTable.Column.placeId.name()), row.getInt(PairingDeviceTable.Column.sequenceId.name()) );
       entity.setProtocolAddress( (DeviceProtocolAddress) Address.fromString( row.getString(PairingDeviceTable.Column.protocolAddress.name()) ) );
-      entity.setModified( row.getTimestamp(PairingDeviceTable.Column.modified.name()) );
-      entity.setCreated( row.getTimestamp(PairingDeviceTable.Column.created.name()) );
+      entity.setModified( row.isNull(PairingDeviceTable.Column.modified.name()) ? null : Date.from(row.getInstant(PairingDeviceTable.Column.modified.name())) );
+      entity.setCreated( row.isNull(PairingDeviceTable.Column.created.name()) ? null : Date.from(row.getInstant(PairingDeviceTable.Column.created.name())) );
       entity.setPopulation(populationCacheMgr.getPopulationByPlaceId(entity.getPlaceId()));
       return entity;
    }
 
 }
-

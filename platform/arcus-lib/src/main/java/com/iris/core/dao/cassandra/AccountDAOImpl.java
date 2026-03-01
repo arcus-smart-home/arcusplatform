@@ -15,6 +15,7 @@
  */
 package com.iris.core.dao.cassandra;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,10 +30,10 @@ import java.util.stream.StreamSupport;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.collect.Iterators;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -98,7 +99,7 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
    private final PreparedStatement listAll;
 
    @Inject
-   public AccountDAOImpl(Session session) {
+   public AccountDAOImpl(CqlSession session) {
       super(session, TABLE, COLUMN_ORDER);
 
       listPaged =
@@ -154,9 +155,9 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
 
    @Override
    protected void populateEntity(Row row, Account entity) {
-      entity.setBillable(row.getBool(AccountEntityColumns.BILLABLE));
+      entity.setBillable(row.getBoolean(AccountEntityColumns.BILLABLE));
       entity.setState(row.getString(AccountEntityColumns.STATE));
-      entity.setTaxExempt(row.getBool(AccountEntityColumns.TAX_EXEMPT));
+      entity.setTaxExempt(row.getBoolean(AccountEntityColumns.TAX_EXEMPT));
       entity.setBillingFirstName(row.getString(AccountEntityColumns.BILLING_FIRST_NAME));
       entity.setBillingLastName(row.getString(AccountEntityColumns.BILLING_LAST_NAME));
       entity.setBillingCCType(row.getString(AccountEntityColumns.BILLING_CC_TYPE));
@@ -167,7 +168,7 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
       entity.setBillingState(row.getString(AccountEntityColumns.BILLING_STATE));
       entity.setBillingZip(row.getString(AccountEntityColumns.BILLING_ZIP));
       entity.setBillingZipPlusFour(row.getString(AccountEntityColumns.BILLING_ZIP_PLUS4));
-      
+
       Set<UUID> placeIDs = row.getSet(AccountEntityColumns.PLACE_IDS, UUID.class);
       entity.setPlaceIDs(placeIDs == null || placeIDs.isEmpty() ? null : placeIDs);
 
@@ -181,8 +182,8 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
       	}
       }
       entity.setSubscriptionIDs(subIDs);
-      entity.setOwner(row.getUUID(AccountEntityColumns.OWNER));
-      entity.setTrialEnd(row.getTimestamp(AccountEntityColumns.TRIAL_END));
+      entity.setOwner(row.getUuid(AccountEntityColumns.OWNER));
+      entity.setTrialEnd(row.isNull(AccountEntityColumns.TRIAL_END) ? null : Date.from(row.getInstant(AccountEntityColumns.TRIAL_END)));
    }
 
    @Override
@@ -196,7 +197,7 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
 
    @Override
   protected UUID getIdFromRow(Row row) {
-      return row.getUUID(BaseEntityColumns.ID);
+      return row.getUuid(BaseEntityColumns.ID);
    }
 
    @Override
@@ -270,11 +271,10 @@ public class AccountDAOImpl extends BaseCassandraCRUDDao<UUID, Account> implemen
    @Override
    public Stream<Account> streamAll() {
       try(Context ctxt = streamAllTimer.time()) {
-         Iterator<Row> rows = session.execute(new BoundStatement(listAll)).iterator();
+         Iterator<Row> rows = session.execute(listAll.bind()).iterator();
          Iterator<Account> result = Iterators.transform(rows, (row) -> buildEntity(row));
          Spliterator<Account> stream = Spliterators.spliteratorUnknownSize(result, Spliterator.IMMUTABLE | Spliterator.NONNULL);
          return StreamSupport.stream(stream, false);
       }
    }
 }
-

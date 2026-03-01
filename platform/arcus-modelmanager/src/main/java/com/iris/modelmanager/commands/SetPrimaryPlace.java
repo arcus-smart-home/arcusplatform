@@ -15,16 +15,18 @@
  */
 package com.iris.modelmanager.commands;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -38,19 +40,26 @@ public class SetPrimaryPlace implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
 
       List<Row> rows = context.getSession().execute("SELECT id, accountid, created FROM place").all();
-      List<Row> ordered = rows.stream().sorted((r1, r2) -> r1.getTimestamp("created").compareTo(r2.getTimestamp("created"))).collect(Collectors.toList());
+      List<Row> ordered = rows.stream().sorted((r1, r2) -> {
+         Date d1 = r1.isNull("created") ? null : Date.from(r1.getInstant("created"));
+         Date d2 = r2.isNull("created") ? null : Date.from(r2.getInstant("created"));
+         if(d1 == null && d2 == null) return 0;
+         if(d1 == null) return -1;
+         if(d2 == null) return 1;
+         return d1.compareTo(d2);
+      }).collect(Collectors.toList());
       Set<UUID> accountsSeen = new HashSet<>();
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       ordered.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
-            .setBool("is_primary", !accountsSeen.contains(r.getUUID("accountid")))
-            .setUUID("id", r.getUUID("id")));
-         accountsSeen.add(r.getUUID("accountid"));
+         batch.addStatement(stmt.bind()
+            .setBoolean("is_primary", !accountsSeen.contains(r.getUuid("accountid")))
+            .setUuid("id", r.getUuid("id")));
+         accountsSeen.add(r.getUuid("accountid"));
       });
 
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 
    @Override
@@ -58,14 +67,13 @@ public class SetPrimaryPlace implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
       List<Row> rows = context.getSession().execute("SELECT id FROM place").all();
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setToNull("is_primary")
-            .setUUID("id", r.getUUID("id")));
+            .setUuid("id", r.getUuid("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 }
-

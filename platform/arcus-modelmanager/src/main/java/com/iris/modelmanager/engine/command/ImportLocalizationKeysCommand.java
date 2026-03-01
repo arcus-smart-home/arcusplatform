@@ -25,10 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FilenameUtils;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.iris.modelmanager.engine.ExecutionContext;
 
 
@@ -65,32 +67,32 @@ public class ImportLocalizationKeysCommand implements ExecutionCommand {
       return FilenameUtils.getExtension(u.getFile()).equalsIgnoreCase("properties");
    }
 
-   private void upsertBundle(Session session, PreparedStatement stmt, URL u) throws IOException {
+   private void upsertBundle(CqlSession session, PreparedStatement stmt, URL u) throws IOException {
       BundleLocalePair bundleLocale = BundleLocalePair.parse(u.getFile());
 
       try(InputStream is = u.openStream()) {
          Properties props = new Properties();
          props.load(is);
-         BatchStatement batch = new BatchStatement();
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
          final AtomicInteger counter = new AtomicInteger();
          props.entrySet().forEach((e) -> {
             if( counter.incrementAndGet() <= BATCH_SIZE_LIMIT ) {
-               batch.add(bindLocalizationKey(stmt, bundleLocale.bundle, bundleLocale.locale.toString(), (String) e.getKey(), (String) e.getValue()));
+               batch.addStatement(bindLocalizationKey(stmt, bundleLocale.bundle, bundleLocale.locale.toString(), (String) e.getKey(), (String) e.getValue()));
             } else {
-               session.execute(batch);
-               batch.clear();
-               batch.add(bindLocalizationKey(stmt, bundleLocale.bundle, bundleLocale.locale.toString(), (String) e.getKey(), (String) e.getValue()));
+               session.execute(batch.build());
+               batch.clearStatements();
+               batch.addStatement(bindLocalizationKey(stmt, bundleLocale.bundle, bundleLocale.locale.toString(), (String) e.getKey(), (String) e.getValue()));
                counter.set(1);
             }
          });
          if(counter.get() > 0) {
-            session.execute(batch);
+            session.execute(batch.build());
          }
       }
    }
 
    private BoundStatement bindLocalizationKey(PreparedStatement stmt, String bundle, String locale, String key, String value) {
-      return new BoundStatement(stmt)
+      return stmt.bind()
          .setString("bundle", bundle)
          .setString("locale", locale)
          .setString("key", key)
@@ -118,4 +120,3 @@ public class ImportLocalizationKeysCommand implements ExecutionCommand {
    }
 
 }
-

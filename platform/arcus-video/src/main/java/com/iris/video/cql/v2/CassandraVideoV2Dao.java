@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -45,15 +46,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BatchStatement.Type;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -62,10 +64,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.metrics.DaoMetrics;
@@ -111,7 +113,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 	private static final Timer PurgeTimer       = DaoMetrics.deleteTimer(VideoDao.class, "purge");
 	
 	private static final StorageUsed ZeroStorageUsed = new StorageUsed(0, System.currentTimeMillis());
-	private final Session session;
+	private final CqlSession session;
 	private final VideoDaoConfig config;
 	private final VideoMetadataV2Table recordingMetadataTable;
 	private final PlaceRecordingIndexV2Table placeRecordingIndex;
@@ -123,7 +125,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 	private final PlacePurgeRecordingTable purgePinnedRecordingTable;
 	
 	@Inject
-	public CassandraVideoV2Dao(Session session, VideoDaoConfig config) {
+	public CassandraVideoV2Dao(CqlSession session, VideoDaoConfig config) {
 		this.session = session;
 		this.config = config;
 		this.recordingMetadataTable = Table.get(session, config.getTableSpace(), VideoMetadataV2Table.class);
@@ -138,89 +140,89 @@ public class CassandraVideoV2Dao implements VideoDao {
 	
 	@Override
 	public void insert(VideoMetadata metadata) {
-		BatchStatement stmt = new BatchStatement(Type.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
-		
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
+
 		UUID placeId = metadata.getPlaceId();
 		UUID recordingId = metadata.getRecordingId();
 		UUID personId = metadata.getPersonId();
-		
+
 		// Recording Metadata Table Mutations
 		long expiration = metadata.getExpiration();
 		Date purgeAt = new Date(expiration);
 		//Make sure expiration value matches with delete time since we add a delay + round to the next hour when calculating the delete time
 		//Therefore, the expiration time will be a little longer than what is defined for the service level.
 		long actualTtlInSec = VideoV2Util.createActualTTL(recordingId, expiration);
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.NAME, metadata.getName()));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PLACEID, String.valueOf(metadata.getPlaceId())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.ACCOUNTID, String.valueOf(metadata.getAccountId())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.CAMERAID, String.valueOf(metadata.getCameraId())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.NAME, metadata.getName()));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PLACEID, String.valueOf(metadata.getPlaceId())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.ACCOUNTID, String.valueOf(metadata.getAccountId())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.CAMERAID, String.valueOf(metadata.getCameraId())));
 
 		if (personId != null) {
-			stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PERSONID, String.valueOf(personId)));
+			stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PERSONID, String.valueOf(personId)));
 		}
 
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.WIDTH, String.valueOf(metadata.getWidth())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.HEIGHT, String.valueOf(metadata.getHeight())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.BANDWIDTH, String.valueOf(metadata.getBandwidth())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.FRAMERATE, String.valueOf(metadata.getFramerate())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PRECAPTURE, String.valueOf(metadata.getPrecapture())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.LOCATION, String.valueOf(metadata.getLoc())));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.TYPE, metadata.isStream() ? VideoMetadataV2Table.ATTR_TYPE_STREAM : VideoMetadataV2Table.ATTR_TYPE_RECORDING));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.EXPIRATION, String.valueOf(expiration)));		   
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.DELETED_TIME, String.valueOf(purgeAt.getTime())));
-		
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.WIDTH, String.valueOf(metadata.getWidth())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.HEIGHT, String.valueOf(metadata.getHeight())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.BANDWIDTH, String.valueOf(metadata.getBandwidth())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.FRAMERATE, String.valueOf(metadata.getFramerate())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.PRECAPTURE, String.valueOf(metadata.getPrecapture())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.LOCATION, String.valueOf(metadata.getLoc())));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.TYPE, metadata.isStream() ? VideoMetadataV2Table.ATTR_TYPE_STREAM : VideoMetadataV2Table.ATTR_TYPE_RECORDING));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.EXPIRATION, String.valueOf(expiration)));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.DELETED_TIME, String.valueOf(purgeAt.getTime())));
+
 		int partitionId = VideoDao.calculatePartitionId(recordingId, config.getPurgePartitions());
 		metadata.setDeletionPartition(partitionId);
-      stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.DELETED_PARTITION, String.valueOf(partitionId)));
-      
+      stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.DELETED_PARTITION, String.valueOf(partitionId)));
+
 		if(metadata.getVideoCodec() != null) {
-			stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.VIDEO_CODEC, metadata.getVideoCodec().name()));
+			stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.VIDEO_CODEC, metadata.getVideoCodec().name()));
 		}
 
 		if(metadata.getAudioCodec() != null) {
-			stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.AUDIO_CODEC, metadata.getAudioCodec().name()));
+			stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSec, MetadataAttribute.AUDIO_CODEC, metadata.getAudioCodec().name()));
 		}
 
 		// Recording Table Mutations
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.STORAGE, toblob(metadata.getLoc())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.ACCOUNT, toblob(metadata.getAccountId())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.PLACE, toblob(metadata.getPlaceId())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.CAMERA, toblob(metadata.getCameraId())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.EXPIRATION, toblob(expiration)));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.STORAGE, toblob(metadata.getLoc())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.ACCOUNT, toblob(metadata.getAccountId())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.PLACE, toblob(metadata.getPlaceId())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.CAMERA, toblob(metadata.getCameraId())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.EXPIRATION, toblob(expiration)));
 
 		if (metadata.getPersonId() != null) {
-			stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.PERSON, toblob(metadata.getPersonId())));
+			stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.PERSON, toblob(metadata.getPersonId())));
 		}
 
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.WIDTH, toblob(metadata.getWidth())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.HEIGHT, toblob(metadata.getHeight())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.BANDWIDTH,toblob(metadata.getBandwidth())));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.FRAMERATE,toblob(metadata.getFramerate())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.WIDTH, toblob(metadata.getWidth())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.HEIGHT, toblob(metadata.getHeight())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.BANDWIDTH,toblob(metadata.getBandwidth())));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.FRAMERATE,toblob(metadata.getFramerate())));
 
 		if(metadata.getVideoCodec() != null) {
-			stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.VIDEO_CODEC, toblob(metadata.getVideoCodec())));
+			stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.VIDEO_CODEC, toblob(metadata.getVideoCodec())));
 		}
 
 		if(metadata.getAudioCodec() != null) {
-			stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.AUDIO_CODEC, toblob(metadata.getAudioCodec())));
+			stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSec, RecordingTableField.AUDIO_CODEC, toblob(metadata.getAudioCodec())));
 		}
 
 		// Recording Metadata Index Mutations
-		stmt.add(placeRecordingIndex.insertCamera(placeId, recordingId, metadata.getCameraId(), expiration, actualTtlInSec));
-		stmt.add(placeRecordingIndex.insertVideo(placeId, recordingId, metadata.isStream() ? PlaceRecordingIndexV2Table.Type.STREAM : PlaceRecordingIndexV2Table.Type.RECORDING, expiration, actualTtlInSec));
-		
-		// Purge table		
-		addPurgeStatements(stmt, placeId, recordingId, purgeAt, partitionId, metadata.getLoc(), !metadata.isStream());	
-		VideoV2Util.executeAndUpdateTimer(session, stmt, InsertVideoTimer);		
+		stmt.addStatement(placeRecordingIndex.insertCamera(placeId, recordingId, metadata.getCameraId(), expiration, actualTtlInSec));
+		stmt.addStatement(placeRecordingIndex.insertVideo(placeId, recordingId, metadata.isStream() ? PlaceRecordingIndexV2Table.Type.STREAM : PlaceRecordingIndexV2Table.Type.RECORDING, expiration, actualTtlInSec));
+
+		// Purge table
+		addPurgeStatements(stmt, placeId, recordingId, purgeAt, partitionId, metadata.getLoc(), !metadata.isStream());
+		VideoV2Util.executeAndUpdateTimer(session, stmt.build(), InsertVideoTimer);
 	}
 
 	@Override
 	public ListenableFuture<?> insertIFrame(UUID recordingId, double tsInSeconds, long frameByteOffset, long frameByteSize, long ttlInSeconds) {
-		Statement stmt = recordingTable.insertIFrame(recordingId, ttlInSeconds, tsInSeconds, frameByteOffset, toblob(frameByteSize));
+		Statement<?> stmt = recordingTable.insertIFrame(recordingId, ttlInSeconds, tsInSeconds, frameByteOffset, toblob(frameByteSize));
 		long startTime = System.nanoTime();
-		ListenableFuture<?> result = session.executeAsync(stmt);
-		result.addListener(() -> InsertFrameTimer.update(System.nanoTime() - startTime, TimeUnit.NANOSECONDS), MoreExecutors.directExecutor());
-		return result;
+		CompletionStage<AsyncResultSet> future = session.executeAsync(stmt);
+		future.whenCompleteAsync((r, e) -> InsertFrameTimer.update(System.nanoTime() - startTime, TimeUnit.NANOSECONDS), MoreExecutors.directExecutor());
+		return toListenableFuture(future);
 	}
 
 	@Override
@@ -230,11 +232,11 @@ public class CassandraVideoV2Dao implements VideoDao {
 		}
 		long expiration = VideoV2Util.createExpirationFromTTL(recordingId, ttlInSeconds);
 		long actualTtlInSeconds = VideoV2Util.createActualTTL(recordingId, expiration);
-		BatchStatement stmt = new BatchStatement();
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.LOGGED);
 		for (Map.Entry<String,Object> entry : attributes.entrySet()) {
 			switch (entry.getKey()) {
 			case RecordingCapability.ATTR_NAME:
-				stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.NAME, (String) entry.getValue()));
+				stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.NAME, (String) entry.getValue()));
 				break;
 
 			default:
@@ -244,7 +246,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 		}
 
 		long startTime = System.nanoTime();
-		if(!session.execute(stmt).wasApplied()) {
+		if(!session.execute(stmt.build()).wasApplied()) {
 			throw new NotFoundException(Address.platformService(recordingId, "recording"));
 		}
 		UpdateVideoTimer.update(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
@@ -278,59 +280,60 @@ public class CassandraVideoV2Dao implements VideoDao {
 	private ListenableFuture<Set<String>> removeFavoriteTags(UUID placeId, UUID recordingId, Set<String> tags) {
 		VideoMetadata metadata = findByPlaceAndId(placeId, recordingId);
 		if(metadata != null && metadata.getTags().contains(VideoConstants.TAG_FAVORITE)) {
-			BatchStatement stmt = new BatchStatement(BatchStatement.Type.LOGGED);
-			addStatementsForRemoveFromFavoriteTables(stmt, metadata);	
-			return Futures.transformAsync(
-					VideoV2Util.executeAsyncAndUpdateTimer(session, stmt, RemoveTagsTimer),
-	            (AsyncFunction<ResultSet, Set<String>>) input -> {
+			BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.LOGGED);
+			addStatementsForRemoveFromFavoriteTables(stmt, metadata);
+			CompletionStage<AsyncResultSet> future = VideoV2Util.executeAsyncAndUpdateTimer(session, stmt.build(), RemoveTagsTimer);
+			CompletionStage<Set<String>> resultFuture = future.thenApplyAsync(
+	            input -> {
 	            	Set<String> expectedTags = new HashSet<>(metadata.getTags());
 	   				expectedTags.removeAll(tags);
-	               return Futures.immediateFuture(expectedTags);
+	               return expectedTags;
 	            },
 	            MoreExecutors.directExecutor()
 	         );
+			return toListenableFuture(resultFuture);
 		}else{
 			logger.warn("Can not removeFavoriteTags.  Either recording id [{}] is invalid or video does not contain Favorite tag [{}]", recordingId, metadata.getTags());
 			return Futures.immediateFuture(ImmutableSet.<String>of());
-			
+
 		}
 	}
 	
-	private void addStatementsForRemoveFromFavoriteTables(BatchStatement stmt, VideoMetadata metadata) {
+	private void addStatementsForRemoveFromFavoriteTables(BatchStatementBuilder stmt, VideoMetadata metadata) {
 		UUID placeId = metadata.getPlaceId();
 		UUID recordingId = metadata.getRecordingId();
 		//Delete placeRecordingIndexFavorite
 		for(String tag: metadata.getTags()) {
-			stmt.add(placeRecordingIndexFavorite.deleteTag(placeId, recordingId, tag));
+			stmt.addStatement(placeRecordingIndexFavorite.deleteTag(placeId, recordingId, tag));
 		}
-		stmt.add(placeRecordingIndexFavorite.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.RECORDING));
-		stmt.add(placeRecordingIndexFavorite.deleteCamera(placeId, recordingId, metadata.getCameraId()));
+		stmt.addStatement(placeRecordingIndexFavorite.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.RECORDING));
+		stmt.addStatement(placeRecordingIndexFavorite.deleteCamera(placeId, recordingId, metadata.getCameraId()));
 		if(metadata.isDeleted()) {
-			stmt.add(placeRecordingIndexFavorite.deleteDeleted(placeId, recordingId));
+			stmt.addStatement(placeRecordingIndexFavorite.deleteDeleted(placeId, recordingId));
 		}
 		//Delete metadata
-		stmt.add(recordingMetadataFavoriteTable.deleteRecording(recordingId));
+		stmt.addStatement(recordingMetadataFavoriteTable.deleteRecording(recordingId));
 		//Delete recording
-		stmt.add(recordingFavoriteTable.deleteRecording(recordingId));
+		stmt.addStatement(recordingFavoriteTable.deleteRecording(recordingId));
 		//Add to purge table
 		Date purgeAt = null;
 		if(metadata.getDeletionTime() != null && metadata.getDeletionTime().before(new Date())) {
 			//already expired
-			purgeAt = VideoUtil.getPurgeTimestamp(config.getPurgeDelay(), TimeUnit.MILLISECONDS); 
+			purgeAt = VideoUtil.getPurgeTimestamp(config.getPurgeDelay(), TimeUnit.MILLISECONDS);
 		}else{
 			purgeAt = metadata.getDeletionTime();
-		}	 
+		}
 		addPurgeStatements(stmt, placeId, recordingId, purgeAt, metadata.getDeletionPartition(), metadata.getLoc(), true);
 	}
 	
 	
 	private void removeNonFavoriteTags(UUID placeId, UUID recordingId, Set<String> tags) {
-		BatchStatement stmt = new BatchStatement(BatchStatement.Type.LOGGED);
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.LOGGED);
 		for(String tag: tags) {
-			stmt.add(recordingMetadataTable.deleteTag(recordingId, tag));
-			stmt.add(placeRecordingIndex.deleteTag(placeId, recordingId, tag));
+			stmt.addStatement(recordingMetadataTable.deleteTag(recordingId, tag));
+			stmt.addStatement(placeRecordingIndex.deleteTag(placeId, recordingId, tag));
 		}
-		executeAndUpdateTimer(session, stmt, RemoveTagsTimer);
+		executeAndUpdateTimer(session, stmt.build(), RemoveTagsTimer);
 	}
 
 	@Override
@@ -341,31 +344,33 @@ public class CassandraVideoV2Dao implements VideoDao {
 	}
 	
 	private void complete(UUID placeId, UUID recordingId, long expiration, long actualTtlInSeconds, double duration, long size) {
-		BatchStatement stmt = new BatchStatement(Type.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
-		stmt.setRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE);
-		
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
+
 		addDurationAndSizeStatements(stmt, placeId, recordingId, duration, size, expiration, actualTtlInSeconds);
 		// Recording Metadata Index Mutations
-		stmt.add(placeRecordingIndex.insertRecording(placeId, recordingId, size, expiration, actualTtlInSeconds));
+		stmt.addStatement(placeRecordingIndex.insertRecording(placeId, recordingId, size, expiration, actualTtlInSeconds));
 
-		executeAndUpdateTimer(session, stmt, CompleteTimer);		
+		BatchStatement builtStmt = stmt.build();
+		builtStmt = builtStmt.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE);
+		executeAndUpdateTimer(session, builtStmt, CompleteTimer);
 	}
 
 	@Override
 	public void completeAndDelete(UUID placeId, UUID recordingId, double duration, long size, Date purgeTime, int purgePartitionId, long ttlInSeconds) {
-		BatchStatement stmt = new BatchStatement(Type.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
-		stmt.setRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE);
-		
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.UNLOGGED); // recording will be atomic, and place_recording will be atomic, but they will be independently atomic to save performance
+
 		addDurationAndSizeStatements(stmt, placeId, recordingId, duration, size, ttlInSeconds);
 		addDeleteStatements(stmt, placeId, recordingId, false, purgeTime, purgePartitionId);
-		executeAndUpdateTimer(session, stmt, CompleteTimer);	
+		BatchStatement builtStmt = stmt.build();
+		builtStmt = builtStmt.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE);
+		executeAndUpdateTimer(session, builtStmt, CompleteTimer);
 	}
 
 
 	@Override
 	public ListenableFuture<?> delete(UUID placeId, UUID recordingId, boolean isFavorite, Date purgeTime, int purgePartitionId) {
-		
-		BatchStatement stmt = new BatchStatement(Type.UNLOGGED);
+
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.UNLOGGED);
 
 		addDeleteStatements(stmt, placeId, recordingId, isFavorite, purgeTime, purgePartitionId);
 		// Add to Purge table if it's favorite
@@ -377,9 +382,9 @@ public class CassandraVideoV2Dao implements VideoDao {
 		}
 
 		long startTime = System.nanoTime();
-		ResultSetFuture result = session.executeAsync(stmt);
-		result.addListener(() -> DeleteTimer.update(System.nanoTime() - startTime, TimeUnit.NANOSECONDS), MoreExecutors.directExecutor());
-		return result;
+		CompletionStage<AsyncResultSet> future = session.executeAsync(stmt.build());
+		future.whenCompleteAsync((r, e) -> DeleteTimer.update(System.nanoTime() - startTime, TimeUnit.NANOSECONDS), MoreExecutors.directExecutor());
+		return toListenableFuture(future);
 	}
 	
 	@Override
@@ -408,13 +413,9 @@ public class CassandraVideoV2Dao implements VideoDao {
 	private VideoMetadata retrieveMetadataFrom(AbstractVideoMetadataV2Table table, UUID recordingId, boolean repair) {
 		BoundStatement bs = table.selectRecording(recordingId);
 		ResultSet rs = session.execute(bs);
-		VideoMetadata datum = null;
-		if(!rs.isExhausted()) {
-			//found it in table
-			datum = Iterables.getFirst( table.materialize(rs), null );
-			if(repair) {
-				repairIfNeeded(datum);
-			}
+		VideoMetadata datum = Iterables.getFirst( table.materialize(rs), null );
+		if(datum != null && repair) {
+			repairIfNeeded(datum);
 		}
 		return datum;
 	}
@@ -509,7 +510,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 	private VideoRecording retrieveVideoRecordingFromTable(AbstractRecordingV2Table table, UUID recordingId) {
 		BoundStatement select = table.select(recordingId);
 		ResultSet rs = session.execute(select);
-		if(rs.isExhausted()) {
+		if(!rs.iterator().hasNext()) {
 			return null;
 		}else{
 			return VideoUtil.recMaterializeRecording(rs, recordingId);
@@ -522,7 +523,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 		if(metadata != null && metadata.isInProgress()) {
 			try {
 				ResultSet rs = session.execute(recordingTable.select(metadata.getRecordingId()));
-				if(rs.isExhausted()) {
+				if(!rs.iterator().hasNext()) {
 					logger.warn("Can't load recording data for recording [{}]", metadata);
 					return;
 				}
@@ -546,44 +547,45 @@ public class CassandraVideoV2Dao implements VideoDao {
 
 	
 
-	private void addDurationAndSizeStatements(BatchStatement stmt, UUID placeId, UUID recordingId, double duration, long size, long ttlInSeconds) {
+	private void addDurationAndSizeStatements(BatchStatementBuilder stmt, UUID placeId, UUID recordingId, double duration, long size, long ttlInSeconds) {
 		long expiration = VideoV2Util.createExpirationFromTTL(recordingId, ttlInSeconds);
 		long actualTtlInSeconds = VideoV2Util.createActualTTL(recordingId, expiration);
 		addDurationAndSizeStatements(stmt, placeId, recordingId, duration, size, expiration, actualTtlInSeconds);
 	}
-	
-	private void addDurationAndSizeStatements(BatchStatement stmt, UUID placeId, UUID recordingId, double duration, long size, long expiration, long actualTtlInSeconds) {
+
+	private void addDurationAndSizeStatements(BatchStatementBuilder stmt, UUID placeId, UUID recordingId, double duration, long size, long expiration, long actualTtlInSeconds) {
 		// Recording Metadata Table Mutations
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.DURATION, String.valueOf(duration)));
-		stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.SIZE, String.valueOf(size)));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.DURATION, String.valueOf(duration)));
+		stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.SIZE, String.valueOf(size)));
 
 		// Recording Table Mutations
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSeconds, RecordingTableField.DURATION, toblob(duration)));
-		stmt.add(recordingTable.insertField(recordingId, expiration, actualTtlInSeconds, RecordingTableField.SIZE, toblob(size)));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSeconds, RecordingTableField.DURATION, toblob(duration)));
+		stmt.addStatement(recordingTable.insertField(recordingId, expiration, actualTtlInSeconds, RecordingTableField.SIZE, toblob(size)));
 
 	}
 
-	private void addDeleteStatements(BatchStatement stmt, UUID placeId, UUID recordingId, boolean isFavorite, Date purgeTime, int purgePartitionId) {
+	private void addDeleteStatements(BatchStatementBuilder stmt, UUID placeId, UUID recordingId, boolean isFavorite, Date purgeTime, int purgePartitionId) {
 		boolean expired = false;
 		long expiration = 0;
 		if(isFavorite) {
 			//check to see if data in the normal table has expired
 			BoundStatement bs = recordingMetadataTable.selectRecording(recordingId);
 			ResultSet rs = session.execute(bs);
-			if(!rs.isExhausted()) {
-				expiration = rs.one().getLong(VideoMetadataV2Table.COL_EXPIRATION);
+			Row row = rs.one();
+			if(row != null) {
+				expiration = row.getLong(VideoMetadataV2Table.COL_EXPIRATION);
 			}else{
 				expired = true;
 			}
 		}
-		if(!expired) {					
-			long actualTtlInSeconds = VideoV2Util.createActualTTL(recordingId, expiration);		
+		if(!expired) {
+			long actualTtlInSeconds = VideoV2Util.createActualTTL(recordingId, expiration);
 			// Recording metadata Table Mutations
-			stmt.add(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.DELETED, Boolean.TRUE.toString()));
+			stmt.addStatement(recordingMetadataTable.insertField(recordingId, expiration, actualTtlInSeconds, MetadataAttribute.DELETED, Boolean.TRUE.toString()));
 			// Recording Place Index Mutations
-			stmt.add(placeRecordingIndex.insertDeleted(placeId, recordingId, expiration, actualTtlInSeconds));
-			stmt.add(placeRecordingIndex.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.RECORDING));
-			stmt.add(placeRecordingIndex.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.STREAM));					
+			stmt.addStatement(placeRecordingIndex.insertDeleted(placeId, recordingId, expiration, actualTtlInSeconds));
+			stmt.addStatement(placeRecordingIndex.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.RECORDING));
+			stmt.addStatement(placeRecordingIndex.deleteVideo(placeId, recordingId, PlaceRecordingIndexV2Table.Type.STREAM));
 		}
 
 	}
@@ -801,8 +803,8 @@ public class CassandraVideoV2Dao implements VideoDao {
 	
 	private void addFavoriteTags(UUID placeId, UUID recordingId, Set<String> tags, long ttlInSeconds) {
 		//Get metadata and copy from recording_metadata_v2 to recording_metadata_v2_favorite
-		BatchStatement insertStmt = new BatchStatement(Type.UNLOGGED);
-		ArrayList<Statement> placeRecordingIndexFavoriteInserts = new ArrayList<Statement>();
+		BatchStatementBuilder insertStmt = BatchStatement.builder(DefaultBatchType.UNLOGGED);
+		ArrayList<Statement<?>> placeRecordingIndexFavoriteInserts = new ArrayList<Statement<?>>();
 		boolean deleted = false;
 		BoundStatement metadataSelect = recordingMetadataTable.selectRecording(recordingId);
 		Iterator<Row> metadataRs = session.execute(metadataSelect).iterator();
@@ -814,7 +816,7 @@ public class CassandraVideoV2Dao implements VideoDao {
 			MetadataAttribute curField = MetadataAttribute.valueOf(curRow.getString(VideoMetadataV2Table.COL_FIELD).toUpperCase());
 			String curValue = curRow.getString(VideoMetadataV2Table.COL_VALUE);
 			//copy the current row to the favorite table
-			insertStmt.add(recordingMetadataFavoriteTable.insertField(recordingId, curField, curValue));
+			insertStmt.addStatement(recordingMetadataFavoriteTable.insertField(recordingId, curField, curValue));
 			//reconstruct placeRecordingIndexV2 table from metadata because query by recordingId alone for place_recording_index_v2 is not possible
 			if(MetadataAttribute.CAMERAID.equals(curField)) {
 				placeRecordingIndexFavoriteInserts.add(placeRecordingIndexFavorite.insertCamera(placeId, recordingId, curValue));
@@ -830,51 +832,53 @@ public class CassandraVideoV2Dao implements VideoDao {
 				purgeTime = new Date(Long.valueOf(curValue));
 				if(purgeTime.before(new Date())) {
 					deleted = true;
-					logger.warn("can not add favorite tag to a deleted video [{}] for place [{}]", recordingId, placeId);					
+					logger.warn("can not add favorite tag to a deleted video [{}] for place [{}]", recordingId, placeId);
 				}
 			}else if(MetadataAttribute.DELETED_PARTITION.equals(curField)) {
 				partitionId = Integer.valueOf(curValue);
 			}
 		}
-		
+
 		if(!deleted) {
-			insertStmt.addAll(placeRecordingIndexFavoriteInserts);
+			for(Statement<?> s : placeRecordingIndexFavoriteInserts) {
+				insertStmt.addStatement(s);
+			}
 			//add the statements for the new tags
 			for(String tag: tags) {
-				insertStmt.add(recordingMetadataFavoriteTable.insertTag(recordingId, tag));
-				insertStmt.add(placeRecordingIndexFavorite.insertTag(placeId, recordingId, tag));
+				insertStmt.addStatement(recordingMetadataFavoriteTable.insertTag(recordingId, tag));
+				insertStmt.addStatement(placeRecordingIndexFavorite.insertTag(placeId, recordingId, tag));
 			}
 			//add the statements for recording
 			BoundStatement recordingSelect = recordingTable.select(recordingId);
 			session.execute(recordingSelect).forEach(curRecordingRow -> {
 				double ts = curRecordingRow.getDouble(RecordingV2Table.COL_TS);
 	         long bo = curRecordingRow.getLong(RecordingV2Table.COL_BO);
-	         ByteBuffer bl = curRecordingRow.getBytes(RecordingV2Table.COL_BL);
-	         insertStmt.add(recordingFavoriteTable.insertIFrame(recordingId, ts, bo, bl));
+	         ByteBuffer bl = curRecordingRow.getByteBuffer(RecordingV2Table.COL_BL);
+	         insertStmt.addStatement(recordingFavoriteTable.insertIFrame(recordingId, ts, bo, bl));
 			});
 			//add the statements for removing from purge table
-			insertStmt.add(purgeTable.deletePurgeEntry(purgeTime, partitionId, recordingId));
-			VideoV2Util.executeBatchWithLimit(session, insertStmt, config.getCreateFavoriteVideoBatchSize(), InsertFavoriteVideoTimer);			
+			insertStmt.addStatement(purgeTable.deletePurgeEntry(purgeTime, partitionId, recordingId));
+			VideoV2Util.executeBatchWithLimit(session, insertStmt.build(), config.getCreateFavoriteVideoBatchSize(), InsertFavoriteVideoTimer);
 		}
-		
+
 	}
 	
 	
 
 	private void addNonFavoriteTags(UUID placeId, UUID recordingId, Set<String> tags, long ttlInSeconds) {
-		BatchStatement stmt = new BatchStatement(BatchStatement.Type.LOGGED);	
+		BatchStatementBuilder stmt = BatchStatement.builder(DefaultBatchType.LOGGED);
 		long expiration = VideoV2Util.createExpirationFromTTL(recordingId, ttlInSeconds);
 		long actualTtlInSeconds = VideoV2Util.createActualTTL(recordingId, expiration);
 		for(String tag: tags) {
-			stmt.add(recordingMetadataTable.insertTag(recordingId, expiration, actualTtlInSeconds, tag));
-			stmt.add(placeRecordingIndex.insertTag(placeId, recordingId, expiration, actualTtlInSeconds, tag));
+			stmt.addStatement(recordingMetadataTable.insertTag(recordingId, expiration, actualTtlInSeconds, tag));
+			stmt.addStatement(placeRecordingIndex.insertTag(placeId, recordingId, expiration, actualTtlInSeconds, tag));
 		}
-		executeAndUpdateTimer(session, stmt, AddTagsTimer);
+		executeAndUpdateTimer(session, stmt.build(), AddTagsTimer);
 	}
 	
-	private void addPurgeStatements(BatchStatement stmt, UUID placeId, UUID recordingId, Date purgeTime, int purgePartitionId, String fileLocation, boolean purgePreview) {
-		stmt.add(purgeTable.insertPurgeEntry(purgeTime, purgePartitionId, recordingId, placeId, fileLocation, purgePreview));
-		stmt.add(purgeTable.insertPurgeAt(purgeTime, purgePartitionId));
+	private void addPurgeStatements(BatchStatementBuilder stmt, UUID placeId, UUID recordingId, Date purgeTime, int purgePartitionId, String fileLocation, boolean purgePreview) {
+		stmt.addStatement(purgeTable.insertPurgeEntry(purgeTime, purgePartitionId, recordingId, placeId, fileLocation, purgePreview));
+		stmt.addStatement(purgeTable.insertPurgeAt(purgeTime, purgePartitionId));
 	}
 
 	/**
@@ -1143,11 +1147,20 @@ public class CassandraVideoV2Dao implements VideoDao {
 		Iterator<VideoMetadata> result = Iterators.transform(recordingIds, (r) -> fetchVideoMetadata(r, predicate));
       Spliterator<VideoMetadata> stream = Spliterators.spliteratorUnknownSize(result, Spliterator.IMMUTABLE | Spliterator.NONNULL);
       return StreamSupport.stream(stream, false);
-		
+
 	}
 
-	
-	
-	
+	private static <T> ListenableFuture<T> toListenableFuture(CompletionStage<T> stage) {
+		SettableFuture<T> future = SettableFuture.create();
+		stage.whenComplete((result, error) -> {
+			if (error != null) {
+				future.setException(error);
+			} else {
+				future.set(result);
+			}
+		});
+		return future;
+	}
+
 }
 
