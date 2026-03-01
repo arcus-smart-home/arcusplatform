@@ -66,15 +66,15 @@ kafka_init() {
 
     if [[ -n ${KAFKA_PROTOCOL_VERSION} ]] ; then
         echo "inter.broker.protocol.version=${KAFKA_PROTOCOL_VERSION}" >> $KAFKA_HOME/config/server.properties
-    else 
-        echo "inter.broker.protocol.version=0.10.0.1" >> $KAFKA_HOME/config/server.properties
-    fi 
+    else
+        echo "inter.broker.protocol.version=2.8" >> $KAFKA_HOME/config/server.properties
+    fi
 
     if [[ -n ${KAFKA_LOG_MESSAGE_VERSION} ]] ; then
         echo "log.message.format.version=${KAFKA_LOG_MESSAGE_VERSION}" >> $KAFKA_HOME/config/server.properties
-    else 
-        echo "log.message.format.version=0.10.0.1" >> $KAFKA_HOME/config/server.properties
-    fi 
+    else
+        echo "log.message.format.version=2.8" >> $KAFKA_HOME/config/server.properties
+    fi
 
     if [[ -n ${KAFKA_LOG_SEGMENT_BYTES} ]] ; then
         echo "log.segment.bytes=${KAFKA_LOG_SEGMENT_BYTES}" >> $KAFKA_HOME/config/server.properties
