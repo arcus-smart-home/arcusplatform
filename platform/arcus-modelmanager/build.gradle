@@ -64,7 +64,6 @@ dependencies {
 apply plugin: 'com.bmuschko.docker-remote-api'
 
 def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
-def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
 
 task createDockerfile(type: DockerfileTask) {
    destFile = project.file("${buildDir}/docker/Dockerfile")
@@ -80,10 +79,9 @@ task prepareDockerContext(type: Copy) {
    into "${buildDir}/docker"
 }
 
-task distDocker(type: DockerBuildImageTask) {
+task distDocker(type: Exec) {
    dependsOn createDockerfile, prepareDockerContext
-   inputDir = project.file("${buildDir}/docker")
-   images.add("${project.containerTag}:${dockerVersion}")
+   commandLine 'docker', 'build', '-t', "${project.containerTag}:${dockerVersion}", "${buildDir}/docker"
 }
 
 task tagDocker(type: Exec) {
