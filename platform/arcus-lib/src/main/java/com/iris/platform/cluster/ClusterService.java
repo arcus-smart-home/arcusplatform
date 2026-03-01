@@ -90,7 +90,11 @@ public class ClusterService implements StartupListener {
       executor.shutdownNow();
       ClusterServiceRecord record = recordRef.get();
       if(record != null) {
-         clusterServiceDao.deregister(record);
+         try {
+            clusterServiceDao.deregister(record);
+         } catch(Exception e) {
+            logger.debug("Failed to deregister cluster membership during shutdown", e);
+         }
       }
    }
    
