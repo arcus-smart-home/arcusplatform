@@ -322,11 +322,11 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
             BoundStatement entityQuery = findById.bind(indexTableRowId);
 
             CompletionStage<U> entityFuture = session.executeAsync(entityQuery)
-               .thenApply(asyncRs -> {
-                  // Convert AsyncResultSet to a single-row ResultSet-like access
+               .thenApplyAsync(asyncRs -> {
                   Row row = asyncRs.one();
                   if (row == null) return null;
-                  // We need a ResultSet for the transform function - execute synchronously
+                  // Re-execute synchronously for the ResultSet-based transform;
+                  // must run off the driver I/O thread to avoid deadlock
                   return entityTransform.apply(session.execute(entityQuery));
                });
 
