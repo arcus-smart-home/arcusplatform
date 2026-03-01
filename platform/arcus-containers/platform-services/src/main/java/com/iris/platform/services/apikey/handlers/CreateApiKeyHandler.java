@@ -16,6 +16,8 @@
 package com.iris.platform.services.apikey.handlers;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,12 +26,14 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
 import com.iris.security.apikey.ApiKeyGenerator;
@@ -38,12 +42,15 @@ import com.iris.security.apikey.ApiKeyGenerator;
 public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Place> {
 
    public static final String MESSAGE_TYPE = "apikey:Create";
+   public static final int MAX_KEYS_PER_PLACE = 10;
 
    private final ApiKeyDAO apiKeyDao;
+   private final AccountDAO accountDao;
 
    @Inject
-   public CreateApiKeyHandler(ApiKeyDAO apiKeyDao) {
+   public CreateApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
       this.apiKeyDao = apiKeyDao;
+      this.accountDao = accountDao;
    }
 
    @Override
@@ -54,6 +61,8 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
    @SuppressWarnings("unchecked")
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
+      requireAccountOwner(context, msg);
+
       MessageBody body = msg.getValue();
 
       String label = (String) body.getAttributes().get("label");
@@ -78,6 +87,13 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
          throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "permissions must not be empty");
       }
 
+      // Enforce per-place key limit
+      List<ApiKey> existing = apiKeyDao.findByPlace(context.getId());
+      if (existing.size() >= MAX_KEYS_PER_PLACE) {
+         throw new ErrorEventException("apikey.limit_reached",
+               "Maximum of " + MAX_KEYS_PER_PLACE + " API keys per place");
+      }
+
       String rawKey = ApiKeyGenerator.generate();
       String keyPrefix = ApiKeyGenerator.extractPrefix(rawKey);
       String keyHash = ApiKeyGenerator.hashKey(rawKey);
@@ -90,7 +106,7 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       apiKey.setLabel(label);
       apiKey.setKeyPrefix(keyPrefix);
       apiKey.setKeyHash(keyHash);
-      apiKey.setPersonId(UUID.fromString(msg.getActor().getId().toString()));
+      apiKey.setPersonId((UUID) msg.getActor().getId());
       apiKey.setAccountId(context.getAccount());
       apiKey.setPermissions(permissions);
       apiKey.setCreated(new Date());
@@ -104,5 +120,21 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
                   "key", rawKey
             )
       );
+   }
+
+   private void requireAccountOwner(Place place, PlatformMessage msg) {
+      if (msg.getActor() == null) {
+         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "actor is required");
+      }
+
+      Account account = accountDao.findById(place.getAccount());
+      if (account == null) {
+         throw new ErrorEventException(Errors.CODE_NOT_FOUND, "account not found");
+      }
+
+      UUID actorId = (UUID) msg.getActor().getId();
+      if (!Objects.equals(actorId, account.getOwner())) {
+         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "only the account owner can manage API keys");
+      }
    }
 }

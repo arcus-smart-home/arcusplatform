@@ -15,18 +15,21 @@
  */
 package com.iris.platform.services.apikey.handlers;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
 
@@ -36,10 +39,12 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
    public static final String MESSAGE_TYPE = "apikey:Revoke";
 
    private final ApiKeyDAO apiKeyDao;
+   private final AccountDAO accountDao;
 
    @Inject
-   public RevokeApiKeyHandler(ApiKeyDAO apiKeyDao) {
+   public RevokeApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
       this.apiKeyDao = apiKeyDao;
+      this.accountDao = accountDao;
    }
 
    @Override
@@ -49,6 +54,8 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
+      requireAccountOwner(context, msg);
+
       MessageBody body = msg.getValue();
 
       String idStr = (String) body.getAttributes().get("id");
@@ -79,5 +86,21 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
       apiKeyDao.delete(context.getId(), keyId, existing.getKeyHash());
 
       return MessageBody.buildMessage("apikey:RevokeResponse", java.util.Collections.emptyMap());
+   }
+
+   private void requireAccountOwner(Place place, PlatformMessage msg) {
+      if (msg.getActor() == null) {
+         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "actor is required");
+      }
+
+      Account account = accountDao.findById(place.getAccount());
+      if (account == null) {
+         throw new ErrorEventException(Errors.CODE_NOT_FOUND, "account not found");
+      }
+
+      UUID actorId = (UUID) msg.getActor().getId();
+      if (!Objects.equals(actorId, account.getOwner())) {
+         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "only the account owner can manage API keys");
+      }
    }
 }
