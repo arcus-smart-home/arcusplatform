@@ -22,9 +22,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.channel.ChannelHandler.Sharable;
 
 import java.util.Set;
@@ -74,6 +77,11 @@ public class BindClientContextHandler extends ChannelInboundHandlerAdapter {
             logger.debug("Extracted Session Id in BindClientContext: {}", sessionId);
             Client.bind(ctx.channel(), registry.load(sessionId));
             BridgeMdcUtil.bindHttpContext(registry, ctx.channel(), (FullHttpRequest) msg);
+         }
+         catch(com.datastax.oss.driver.api.core.AllNodesFailedException ex) {
+            logger.warn("Exception while retrieving client session: {}", ex.getMessage());
+            ctx.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE));
+            return;
          }
          catch(Exception ex) {
             logger.warn("Exception while retrieving client session", ex);

@@ -243,7 +243,7 @@ public class Bridge10ChannelInitializer extends ChannelInitializer<SocketChannel
                   metrics.onHandshakeSuccess(startTimeNs);
 
                   SSLSession session = engine.getSession();
-                  logger.info("ssl handler finished: protocol={}, cipher={}", session.getProtocol(), session.getCipherSuite());
+                  logger.debug("ssl handler finished: protocol={}, cipher={}", session.getProtocol(), session.getCipherSuite());
                }
                else {
                   metrics.onHandshakeFailure(startTimeNs);

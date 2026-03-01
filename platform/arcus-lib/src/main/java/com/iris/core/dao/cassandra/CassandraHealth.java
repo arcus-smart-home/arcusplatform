@@ -30,10 +30,11 @@ import com.datastax.oss.driver.api.core.metadata.NodeStateListener;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
- * Tracks Cassandra host availability using the DataStax driver's
- * {@link NodeStateListener} interface. When all known hosts are down,
- * {@link #isHealthy()} returns false, which causes TCP health checks
- * to stop reporting ONLINE so that K8s can restart the pod.
+ * Tracks Cassandra health. The primary health signal comes from
+ * {@link com.iris.platform.cluster.ClusterService} which calls
+ * {@link #setHealthy(boolean)} on each heartbeat cycle. The
+ * {@link NodeStateListener} callbacks provide supplementary logging
+ * of host topology changes.
  *
  * This is a static singleton so it works across multiple Cassandra
  * modules (different keyspaces) without Guice binding conflicts.
@@ -46,6 +47,7 @@ public class CassandraHealth implements NodeStateListener {
 
    private final Set<InetSocketAddress> upHosts = ConcurrentHashMap.newKeySet();
    private volatile boolean active = false;
+   private volatile boolean healthy = true;
 
    private CassandraHealth() {}
 
@@ -63,7 +65,16 @@ public class CassandraHealth implements NodeStateListener {
     * Always returns true for services that don't use Cassandra.
     */
    public boolean isHealthy() {
-      return !active || !upHosts.isEmpty();
+      return !active || healthy;
+   }
+
+   /**
+    * Allows external components (e.g. ClusterService heartbeat) to
+    * report Cassandra health based on actual query success/failure.
+    */
+   public void setHealthy(boolean healthy) {
+      active = true;
+      this.healthy = healthy;
    }
 
    /**
@@ -100,7 +111,7 @@ public class CassandraHealth implements NodeStateListener {
       }
       int remaining = upHosts.size();
       if (remaining == 0) {
-         logger.error("All Cassandra hosts are down! Health check will report unhealthy.");
+         logger.error("All Cassandra hosts are down");
       } else {
          logger.warn("Cassandra host down: {}, live hosts: {}", addr, remaining);
       }
@@ -127,7 +138,7 @@ public class CassandraHealth implements NodeStateListener {
       }
       int remaining = upHosts.size();
       if (remaining == 0) {
-         logger.error("All Cassandra hosts removed! Health check will report unhealthy.");
+         logger.error("All Cassandra hosts removed");
       } else {
          logger.warn("Cassandra host removed: {}, live hosts: {}", addr, remaining);
       }

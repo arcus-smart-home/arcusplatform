@@ -16,7 +16,10 @@
 package com.iris.util;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
@@ -34,6 +37,9 @@ import com.iris.capability.key.NamespacedKey;
 
 public class IrisAttributeLookup {
    private static final Logger log = LoggerFactory.getLogger(IrisAttributeLookup.class);
+
+   /** Capability namespaces removed from the codebase but still present in database rows. */
+   private static final Set<String> DEPRECATED_NAMESPACES = new HashSet<>(Arrays.asList("hubhue", "hubsercomm"));
 
    private IrisAttributeLookup() {
    }
@@ -56,7 +62,12 @@ public class IrisAttributeLookup {
       AttributeType type = type(name);
       if (type == null) {
          if (!name.startsWith("_")) {
-            log.warn("unrecognized attribute [{}]: type information may be wrong", name);
+            String namespace = NamespacedKey.parse(name).getNamespace();
+            if (DEPRECATED_NAMESPACES.contains(namespace)) {
+               log.trace("ignoring deprecated attribute [{}]", name);
+            } else {
+               log.warn("unrecognized attribute [{}]: type information may be wrong", name);
+            }
          }
 
          return value;

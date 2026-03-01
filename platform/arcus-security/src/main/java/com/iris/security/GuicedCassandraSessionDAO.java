@@ -269,13 +269,20 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
       catch(UncheckedExecutionException e) {
          Throwable cause = e.getCause();
          if(cause == NO_SESSION_EXCEPTION || cause instanceof NullPointerException) {
-         	logger.warn("Session not found for SessionId: {}", sessionId);
+         	logger.warn("Session not found");
+            logger.trace("Session not found for sessionId: {}", sessionId);
             return null;
          }
-         logger.warn("Error loading session {}", sessionId, e);
+         if(cause instanceof com.datastax.oss.driver.api.core.AllNodesFailedException) {
+            logger.warn("Error loading session: {}", cause.getMessage());
+            throw e;
+         }
+         logger.warn("Error loading session", e);
+         logger.trace("Error loading session {}", sessionId, e);
       }
       catch(Exception e) {
-         logger.warn("Error loading session {}", sessionId, e);
+         logger.warn("Error loading session", e);
+         logger.trace("Error loading session {}", sessionId, e);
       }
       return null;
    }

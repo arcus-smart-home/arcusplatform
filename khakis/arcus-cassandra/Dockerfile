@@ -27,9 +27,10 @@ RUN \
     ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
     ln -s /opt/cassandra/bin/nodetool /usr/bin
 
-# Add control script
+# Add control script and logging configuration
 ADD cassandra-cmd /usr/bin/
 ADD cassandra-provision /usr/bin/
+ADD logback.xml /opt/apache-cassandra-${CASSANDRA_VERSION}/conf/logback.xml
 
 # Define working directory.
 WORKDIR /data

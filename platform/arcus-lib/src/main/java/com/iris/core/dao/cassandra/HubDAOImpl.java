@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
@@ -87,6 +88,9 @@ import com.iris.util.TypeMarker;
 @Singleton
 public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements HubDAO {
    private static final Logger log = LoggerFactory.getLogger(HubDAOImpl.class);
+
+   /** Capability namespaces removed from the codebase but still present in Cassandra hub rows. */
+   private static final Set<String> DEPRECATED_NAMESPACES = new HashSet<>(Arrays.asList("hubhue", "hubsercomm"));
 
    private static final Timer findByMacAddrTimer = DaoMetrics.readTimer(HubDAO.class, "findByMacAddr");
    private static final Timer findHubIdsByAccountTimer = DaoMetrics.readTimer(HubDAO.class, "findHubIdsByAccount");
@@ -708,12 +712,16 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       NamespacedKey name = NamespacedKey.parse(attributeName);
       CapabilityDefinition capability = registry.getCapabilityDefinitionByNamespace(name.getNamespace());
       if(capability == null) {
-         log.warn("Unable to find capability namespace [{}]", name.getNamespace());
+         if(DEPRECATED_NAMESPACES.contains(name.getNamespace())) {
+            log.trace("Ignoring deprecated capability namespace [{}]", name.getNamespace());
+         } else {
+            log.warn("Unable to find capability namespace [{}]", name.getNamespace());
+         }
          return null;
       }
       AttributeDefinition attribute = capability.getAttributes().get(name.getNamedRepresentation());
       if(attribute == null) {
-         log.warn("Unable to find attribute [{}]", name.getNamedRepresentation());
+         log.debug("Unable to find attribute [{}]", name.getNamedRepresentation());
          return null;
       }
       if(name.isInstanced()) {

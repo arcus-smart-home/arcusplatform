@@ -12,11 +12,6 @@ import groovy.io.FileType
 import java.nio.file.Files;
 
 apply from: file("${rootDir}/gradle/application.gradle")
-apply plugin: 'com.bmuschko.docker-remote-api'
-
-def DockerfileTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.Dockerfile')
-def DockerBuildImageTask = project.buildscript.classLoader.loadClass('com.bmuschko.gradle.docker.tasks.image.DockerBuildImage')
-
 project.ext.dockerGroup = 'arcus'
 project.ext.containerName = "${project.name}.${project.dockerGroup}"
 project.ext.containerTag = "${project.dockerGroup}/${project.name}"
@@ -79,13 +74,19 @@ task uberDocker {
 }
 
 
-task createDockerfile(type: DockerfileTask) {
-   destFile = project.file("${buildDir}/docker/Dockerfile")
-   from 'arcus/java'
-   addFile "${applicationName}-${version}.tar.gz", '/'
-   entryPoint "/${applicationName}-${version}/bin/${applicationName}"
-   def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
-   defaultCommand '-c', irisConfig
+task createDockerfile {
+   def dockerFile = project.file("${buildDir}/docker/Dockerfile")
+   outputs.file dockerFile
+   doLast {
+      dockerFile.parentFile.mkdirs()
+      def irisConfig = '/' + applicationName + '-' + version + '/conf/' + applicationName + '.properties'
+      dockerFile.text = """\
+FROM arcus/java
+ADD ${applicationName}-${version}.tar.gz /
+ENTRYPOINT ["/${applicationName}-${version}/bin/${applicationName}"]
+CMD ["-c", "${irisConfig}"]
+"""
+   }
 }
 
 task prepareDockerContext(type: Copy) {
@@ -94,10 +95,9 @@ task prepareDockerContext(type: Copy) {
    into "${buildDir}/docker"
 }
 
-task distDocker(type: DockerBuildImageTask) {
+task distDocker(type: Exec) {
    dependsOn createDockerfile, prepareDockerContext
-   inputDir = project.file("${buildDir}/docker")
-   images.add("${project.containerTag}:${project.dockerVersion}")
+   commandLine 'docker', 'build', '-t', "${project.containerTag}:${project.dockerVersion}", "${buildDir}/docker"
 }
 
 task tagDocker(type: Exec) {

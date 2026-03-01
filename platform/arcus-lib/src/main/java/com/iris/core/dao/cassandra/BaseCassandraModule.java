@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
 import javax.net.ssl.SSLContext;
@@ -190,7 +191,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         }
 
         SessionDestroyer destroyer = new SessionDestroyer();
-        destroyer.session = sessionBuilder.build();
+        destroyer.session = connectWithRetry(sessionBuilder, keyspace);
         CassandraHealth.instance().initializeFrom(destroyer.session);
 
         if (name == null) {
@@ -200,6 +201,34 @@ public abstract class BaseCassandraModule extends AbstractModule {
             bind(SessionDestroyer.class).annotatedWith(Names.named(name)).toInstance(destroyer);
             bind(CqlSession.class).annotatedWith(Names.named(name)).toInstance(destroyer.session);
         }
+    }
+
+    private static final int MAX_CONNECT_RETRIES = 10;
+    private static final long INITIAL_RETRY_DELAY_MS = 2000;
+    private static final long MAX_RETRY_DELAY_MS = 30000;
+
+    private static CqlSession connectWithRetry(CqlSessionBuilder builder, String keyspace) {
+        long delay = INITIAL_RETRY_DELAY_MS;
+        for (int attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
+            try {
+                return builder.build();
+            } catch (Exception e) {
+                if (attempt == MAX_CONNECT_RETRIES) {
+                    LOGGER.error("Failed to connect to Cassandra after {} attempts, giving up", MAX_CONNECT_RETRIES);
+                    throw new RuntimeException("Failed to connect to Cassandra", e);
+                }
+                LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s...",
+                        attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay));
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while waiting for Cassandra", ie);
+                }
+                delay = Math.min(delay * 2, MAX_RETRY_DELAY_MS);
+            }
+        }
+        throw new IllegalStateException("Failed to connect to Cassandra");
     }
 
     protected String getName() {
