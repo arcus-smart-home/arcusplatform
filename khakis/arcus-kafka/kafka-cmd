@@ -141,7 +141,11 @@ kafka_start() {
     export KAFKA_HEAP_OPTS="-Xmx${KAFKA_HSIZE}m -Xms${KAFKA_HSIZE}m"
     export KAFKA_JVM_PERFORMANCE_OPTS="-server  -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -Djava.awt.headless=true"
 
-    echo "Starting Apache Kafka Server ($KAFKA_HEAP_OPTS)..."
+    # Set the Kafka log level (default: WARN)
+    local LOG_LEVEL="${KAFKA_LOG4J_ROOT_LOGLEVEL:-WARN}"
+    sed -i "s/^log4j.rootLogger=.*$/log4j.rootLogger=${LOG_LEVEL}, stdout/" "${KAFKA_HOME}/config/log4j.properties"
+
+    echo "Starting Apache Kafka Server ($KAFKA_HEAP_OPTS, log level $LOG_LEVEL)..."
     exec "${KAFKA_HOME}/bin/kafka-server-start.sh" "${KAFKA_HOME}/config/server.properties"
 }
 
