@@ -50,7 +50,6 @@ import com.iris.bridge.server.ssl.BridgeServerTlsContext;
 import com.iris.bridge.server.ssl.BridgeServerTlsContextImpl;
 import com.iris.bridge.server.ssl.BridgeServerTrustManagerFactory;
 import com.iris.bridge.server.ssl.NullTrustManagerFactoryImpl;
-import com.iris.netty.bus.IrisNettyPlatformBusListener;
 import com.iris.netty.bus.IrisNettyPlatformBusServiceImpl;
 import com.iris.netty.security.IrisNettyAuthorizationContextLoader;
 import com.iris.netty.server.netty.IrisNettyCORSChannelInitializer;
@@ -72,7 +71,7 @@ public class ApiServerModule extends AbstractIrisModule {
       bind(BridgeServerTrustManagerFactory.class).to(NullTrustManagerFactoryImpl.class);
       bind(PlatformBusService.class).to(IrisNettyPlatformBusServiceImpl.class).asEagerSingleton();
       Multibinder<PlatformBusListener> plBindings = bindSetOf(PlatformBusListener.class);
-      plBindings.addBinding().to(IrisNettyPlatformBusListener.class);
+      plBindings.addBinding().to(ApiPlatformBusListener.class);
       plBindings.addBinding().to(ApiKeyRevocationListener.class);
 
       // Use ApiMessageHandler instead of IrisNettyMessageHandler to avoid
