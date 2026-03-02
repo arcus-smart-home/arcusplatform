@@ -36,5 +36,5 @@ public interface ApiKeyDAO {
 
    void deleteForPlace(UUID placeId);
 
-   void updateLastUsed(String keyHash, java.util.Date lastUsed);
+   void updateLastUsed(UUID placeId, UUID id, String keyHash, java.util.Date lastUsed);
 }

@@ -78,6 +78,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private final PreparedStatement expireApiKey;
    private final PreparedStatement expireApiKeyByHash;
    private final PreparedStatement updateLastUsedByHash;
+   private final PreparedStatement updateLastUsedByPlace;
 
    @Inject
    public ApiKeyDAOImpl(Session session) {
@@ -100,6 +101,8 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       this.expireApiKeyByHash = session.prepare(
             "UPDATE " + API_KEY_BY_HASH_TABLE + " SET " + Cols.EXPIRES_AT + " = ? WHERE " + Cols.KEY_HASH + " = ?");
       this.updateLastUsedByHash = prepareUpdateLastUsed();
+      this.updateLastUsedByPlace = session.prepare(
+            "UPDATE " + API_KEY_TABLE + " SET " + Cols.LAST_USED + " = ? WHERE " + Cols.PLACE_ID + " = ? AND " + Cols.ID + " = ?");
    }
 
    @Override
@@ -201,10 +204,17 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    }
 
    @Override
-   public void updateLastUsed(String keyHash, Date lastUsed) {
+   public void updateLastUsed(UUID placeId, UUID id, String keyHash, Date lastUsed) {
+      Preconditions.checkNotNull(placeId, "placeId must not be null");
+      Preconditions.checkNotNull(id, "id must not be null");
       Preconditions.checkNotNull(keyHash, "keyHash must not be null");
+
+      BatchStatement batch = new BatchStatement();
+      batch.add(new BoundStatement(updateLastUsedByHash).bind(lastUsed, keyHash));
+      batch.add(new BoundStatement(updateLastUsedByPlace).bind(lastUsed, placeId, id));
+
       try (Context ctxt = updateLastUsedTimer.time()) {
-         session.execute(new BoundStatement(updateLastUsedByHash).bind(lastUsed, keyHash));
+         session.execute(batch);
       }
    }
 

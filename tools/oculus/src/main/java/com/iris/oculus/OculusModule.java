@@ -45,6 +45,7 @@ import com.iris.oculus.modules.apikey.ApiKeyController;
 import com.iris.oculus.modules.apikey.ApiKeySection;
 import com.iris.oculus.modules.behaviors.BehaviorSection;
 import com.iris.oculus.modules.capability.CapabilityController;
+import com.iris.oculus.modules.capability.PermissionBrowserSection;
 import com.iris.oculus.modules.dashboard.DashboardController;
 import com.iris.oculus.modules.dashboard.DashboardSection;
 import com.iris.oculus.modules.device.DeviceController;
@@ -152,6 +153,7 @@ public class OculusModule extends AbstractIrisModule {
       bind(IncidentSection.class);
       bind(PairingDeviceSection.class);
       bind(ApiKeySection.class);
+      bind(PermissionBrowserSection.class);
 
       bindListToInstancesOf(OculusSection.class);
    }

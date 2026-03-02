@@ -76,9 +76,9 @@ public class ApiKeyRealm extends AuthenticatingRealm {
 
       ApiKeyRealmMetrics.incAuthSuccess();
 
-      // Update lastUsed asynchronously (best-effort)
+      // Update lastUsed (best-effort)
       try {
-         apiKeyDao.updateLastUsed(keyHash, new Date());
+         apiKeyDao.updateLastUsed(apiKey.getPlaceId(), apiKey.getId(), keyHash, new Date());
       } catch (Exception e) {
          logger.debug("Failed to update lastUsed for API key {}", apiKey.getId(), e);
       }

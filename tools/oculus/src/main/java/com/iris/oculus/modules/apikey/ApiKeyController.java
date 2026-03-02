@@ -94,7 +94,7 @@ public class ApiKeyController extends SessionAwareController {
    }
 
    public void reload() {
-      if (!isSessionActive() || unsupported) {
+      if (!isSessionActive()) {
          return;
       }
       ApiKeyService.ListKeysRequest request = new ApiKeyService.ListKeysRequest();
@@ -104,6 +104,7 @@ public class ApiKeyController extends SessionAwareController {
       ClientFuture<ClientEvent> result = IrisClientFactory.getClient().request(request);
       result
          .onSuccess((event) -> {
+            unsupported = false;
             ApiKeyService.ListKeysResponse response = new ApiKeyService.ListKeysResponse(event);
             List<Map<String, String>> loaded = response.getKeys();
             keys = loaded != null ? new ArrayList<>(loaded) : new ArrayList<>();
