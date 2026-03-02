@@ -57,6 +57,7 @@ public class ApiPlatformBusListener extends IrisNettyPlatformBusListener {
    @Override
    public void onMessage(ClientToken ct, PlatformMessage msg) {
       if (ct != null && AccountCapability.ListPlacesResponse.NAME.equals(msg.getMessageType())) {
+         logger.debug("Intercepted ListPlacesResponse for ct={}, type={}", ct, msg.getMessageType());
          Session session = sessionRegistry.getSession(ct);
          if (session != null && session.getActivePlace() != null) {
             msg = filterListPlaces(msg, session.getActivePlace());
