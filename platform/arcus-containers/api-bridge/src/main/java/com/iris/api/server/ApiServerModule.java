@@ -20,6 +20,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
+import com.google.inject.name.Names;
 import com.iris.api.server.auth.ApiKeyAuthenticator;
 import com.iris.api.server.auth.ApiKeyAuthorizationContextLoader;
 import com.iris.api.server.session.ApiKeySessionListener;
@@ -29,8 +30,12 @@ import com.iris.bridge.bus.PlatformBusService;
 import com.iris.bridge.metrics.BridgeMetrics;
 import com.iris.bridge.server.BridgeConfigModule;
 import com.iris.bridge.server.config.BridgeServerConfig;
+import com.iris.bridge.server.http.RequestAuthorizer;
 import com.iris.bridge.server.http.RequestHandler;
+import com.iris.bridge.server.http.RequestMatcher;
 import com.iris.bridge.server.http.handlers.CheckPage;
+import com.iris.bridge.server.http.impl.auth.SessionAuth;
+import com.iris.bridge.server.http.impl.matcher.WebSocketUpgradeMatcher;
 import com.iris.bridge.server.message.DeviceMessageHandler;
 import com.iris.bridge.server.netty.Authenticator;
 import com.iris.bridge.server.netty.WebSocketServerHandlerProvider;
@@ -82,6 +87,10 @@ public class ApiServerModule extends AbstractIrisModule {
       // Session listeners
       Multibinder<SessionListener> slBindings = Multibinder.newSetBinder(binder(), SessionListener.class);
       slBindings.addBinding().to(ApiKeySessionListener.class);
+
+      // Required by WebSocketServerHandlerProvider and IrisNettyCORSChannelInitializer
+      bind(RequestMatcher.class).annotatedWith(Names.named("WebSocketUpgradeMatcher")).to(WebSocketUpgradeMatcher.class);
+      bind(RequestAuthorizer.class).annotatedWith(Names.named("SessionAuthorizer")).to(SessionAuth.class);
 
       bind(ChannelInboundHandler.class).toProvider(WebSocketServerHandlerProvider.class);
       bind(new TypeLiteral<ChannelInitializer<SocketChannel>>(){})
