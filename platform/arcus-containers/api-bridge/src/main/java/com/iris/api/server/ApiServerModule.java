@@ -52,7 +52,6 @@ import com.iris.bridge.server.ssl.NullTrustManagerFactoryImpl;
 import com.iris.netty.bus.IrisNettyPlatformBusListener;
 import com.iris.netty.bus.IrisNettyPlatformBusServiceImpl;
 import com.iris.netty.security.IrisNettyAuthorizationContextLoader;
-import com.iris.netty.server.message.IrisNettyMessageHandler;
 import com.iris.netty.server.netty.IrisNettyCORSChannelInitializer;
 
 import io.netty.channel.ChannelInboundHandler;
@@ -74,7 +73,11 @@ public class ApiServerModule extends AbstractIrisModule {
       Multibinder<PlatformBusListener> plBindings = bindSetOf(PlatformBusListener.class);
       plBindings.addBinding().to(IrisNettyPlatformBusListener.class);
       plBindings.addBinding().to(ApiKeyRevocationListener.class);
-      bind(new TypeLiteral<DeviceMessageHandler<String>>(){}).to(IrisNettyMessageHandler.class);
+
+      // Use ApiMessageHandler instead of IrisNettyMessageHandler to avoid
+      // pulling in ClientRequestDispatcher and its UI-oriented handlers
+      // (SetActivePlace, GetPreferences, etc.)
+      bind(new TypeLiteral<DeviceMessageHandler<String>>(){}).to(ApiMessageHandler.class);
 
       // Use API key authenticator instead of ShiroAuthenticator
       bind(Authenticator.class).to(ApiKeyAuthenticator.class);
