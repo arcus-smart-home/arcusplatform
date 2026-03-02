@@ -28,6 +28,7 @@ import com.iris.bootstrap.ServiceLocator;
 import com.iris.bridge.server.BridgeServer;
 import com.iris.bridge.server.ServerRunner;
 import com.iris.bridge.server.cluster.ClusterAwareServerModule;
+import com.iris.bridge.server.http.health.HttpHealthCheckModule;
 import com.iris.core.IrisAbstractApplication;
 import com.iris.core.dao.cassandra.CassandraDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
@@ -56,6 +57,7 @@ public class ApiServer extends BridgeServer {
             CassandraDAOModule.class,
             ApiBridgeSecurityModule.class,
             AuthzModule.class,
+            HttpHealthCheckModule.class,
             MetricsTopicReporterBuilderModule.class,
             MetricsExporterBuilderModule.class
       );
