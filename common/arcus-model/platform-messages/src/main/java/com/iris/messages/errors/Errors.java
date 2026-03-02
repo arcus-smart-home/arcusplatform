@@ -58,7 +58,6 @@ public abstract class Errors {
    // TODO should these be put in more specific error classes?
    public static final String CODE_DRIVER_NOT_SUPPORTED     = "DriverNotSupported";
 
-   public static final String CODE_UNAUTHORIZED              = "unauthorized";
    public static final String CODE_SERVICE_UNAVAILABLE      = "service.unavailable";
 
    private static final ErrorEvent GENERIC = ErrorEvent.fromCode(CODE_GENERIC, "Oops. I'm not sure what happened, but you might want to try again.");

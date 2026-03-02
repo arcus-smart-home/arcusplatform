@@ -29,6 +29,7 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.security.authz.AuthzUtil;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
@@ -103,7 +104,7 @@ public class DeleteApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       UUID actorId = (UUID) msg.getActor().getId();
       if (!Objects.equals(actorId, account.getOwner())) {
-         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "only the account owner can manage API keys");
+         throw new ErrorEventException(AuthzUtil.UNAUTHORIZED_CODE, "only the account owner can manage API keys");
       }
    }
 }
