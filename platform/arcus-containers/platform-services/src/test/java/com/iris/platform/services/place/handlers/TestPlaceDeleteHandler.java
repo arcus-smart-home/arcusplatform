@@ -265,6 +265,8 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
          EasyMock.expectLastCall();
       }
       EasyMock.expect(authGrantDao.findForPlace(place.getId())).andReturn(grants);
+      apiKeyDao.deleteForPlace(place.getId());
+      EasyMock.expectLastCall();
       authGrantDao.removeForPlace(place.getId());
       EasyMock.expectLastCall();
       placeDao.delete(place);

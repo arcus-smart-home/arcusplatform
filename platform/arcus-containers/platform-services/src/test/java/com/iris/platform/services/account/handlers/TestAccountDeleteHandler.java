@@ -218,11 +218,13 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
       if (Boolean.TRUE.equals(deleteLogin)) {
     	  EasyMock.expect(personPlaceAssocDao.listPlaceAccessForPerson(person.getId())).andReturn(ImmutableList.<PlaceAccessDescriptor>of());
       }
+      apiKeyDao.deleteForPlace(place.getId());
+      EasyMock.expectLastCall();
       authGrantDao.removeForPlace(place.getId());
       EasyMock.expectLastCall();
       placeDao.delete(place);
       EasyMock.expectLastCall();
-      
+
       if(Boolean.TRUE.equals(deleteLogin)) {
       	preferencesDao.deleteForPerson(account.getOwner());
       	EasyMock.expectLastCall();
