@@ -105,7 +105,7 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    private void requireAccountOwner(Place place, PlatformMessage msg) {
       if (msg.getActor() == null) {
-         throw new ErrorEventException(Errors.CODE_UNAUTHORIZED, "actor is required");
+         throw new ErrorEventException(Errors.CODE_INVALID_REQUEST, "actor is required");
       }
 
       Account account = accountDao.findById(place.getAccount());
