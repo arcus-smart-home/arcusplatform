@@ -36,6 +36,7 @@ import com.iris.bridge.server.http.RequestMatcher;
 import com.iris.bridge.server.http.handlers.CheckPage;
 import com.iris.bridge.server.http.impl.matcher.WebSocketUpgradeMatcher;
 import com.iris.api.server.auth.ApiKeySessionAuth;
+import com.iris.bridge.server.client.BindClientContextHandler;
 import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.message.DeviceMessageHandler;
 import com.iris.bridge.server.netty.Authenticator;
@@ -78,6 +79,9 @@ public class ApiServerModule extends AbstractIrisModule {
       // pulling in ClientRequestDispatcher and its UI-oriented handlers
       // (SetActivePlace, GetPreferences, etc.)
       bind(new TypeLiteral<DeviceMessageHandler<String>>(){}).to(ApiMessageHandler.class);
+
+      // Skip cookie/session extraction — api-bridge authenticates via Bearer token
+      bind(BindClientContextHandler.class).to(ApiBindClientContextHandler.class);
 
       // Use API key authenticator instead of ShiroAuthenticator (no ShiroModule)
       bind(Authenticator.class).to(ApiKeyAuthenticator.class);
