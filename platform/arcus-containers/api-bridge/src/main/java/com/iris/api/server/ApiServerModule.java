@@ -36,6 +36,7 @@ import com.iris.bridge.server.http.RequestMatcher;
 import com.iris.bridge.server.http.handlers.CheckPage;
 import com.iris.bridge.server.http.impl.auth.SessionAuth;
 import com.iris.bridge.server.http.impl.matcher.WebSocketUpgradeMatcher;
+import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.message.DeviceMessageHandler;
 import com.iris.bridge.server.netty.Authenticator;
 import com.iris.bridge.server.netty.WebSocketServerHandlerProvider;
@@ -44,7 +45,7 @@ import com.iris.bridge.server.session.DefaultSessionRegistryImpl;
 import com.iris.bridge.server.session.SessionFactory;
 import com.iris.bridge.server.session.SessionListener;
 import com.iris.bridge.server.session.SessionRegistry;
-import com.iris.bridge.server.shiro.ShiroModule;
+import com.iris.bridge.server.shiro.ShiroClientRegistry;
 import com.iris.bridge.server.ssl.BridgeServerTlsContext;
 import com.iris.bridge.server.ssl.BridgeServerTlsContextImpl;
 import com.iris.bridge.server.ssl.BridgeServerTrustManagerFactory;
@@ -61,7 +62,7 @@ import io.netty.channel.socket.SocketChannel;
 public class ApiServerModule extends AbstractIrisModule {
 
    @Inject
-   public ApiServerModule(BridgeConfigModule bridge, ShiroModule shiro) {
+   public ApiServerModule(BridgeConfigModule bridge) {
    }
 
    @Override
@@ -79,8 +80,9 @@ public class ApiServerModule extends AbstractIrisModule {
       // (SetActivePlace, GetPreferences, etc.)
       bind(new TypeLiteral<DeviceMessageHandler<String>>(){}).to(ApiMessageHandler.class);
 
-      // Use API key authenticator instead of ShiroAuthenticator
+      // Use API key authenticator instead of ShiroAuthenticator (no ShiroModule)
       bind(Authenticator.class).to(ApiKeyAuthenticator.class);
+      bind(ClientFactory.class).to(ShiroClientRegistry.class);
       bind(SessionFactory.class).to(DefaultSessionFactoryImpl.class);
       bind(SessionRegistry.class).to(DefaultSessionRegistryImpl.class);
 
