@@ -82,8 +82,16 @@ public class ApiPlatformBusListener extends IrisNettyPlatformBusListener {
          return msg;
       }
 
+      // account:ListPlacesResponse uses full Place attribute maps with "base:id",
+      // person:ListAvailablePlacesResponse uses PlaceAccessDescriptor maps with "placeId"
       List<Map<String, Object>> filtered = places.stream()
-            .filter(p -> activePlace.equals(Objects.toString(p.get("base:id"), null)))
+            .filter(p -> {
+               String id = Objects.toString(p.get("base:id"), null);
+               if (id == null) {
+                  id = Objects.toString(p.get("placeId"), null);
+               }
+               return activePlace.equals(id);
+            })
             .collect(Collectors.toList());
 
       if (filtered.size() == places.size()) {
