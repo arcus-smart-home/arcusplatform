@@ -15,8 +15,10 @@
  */
 package com.iris.platform.services.apikey;
 
+import com.google.inject.Inject;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
+import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.model.Place;
@@ -24,11 +26,22 @@ import com.iris.platform.services.apikey.handlers.CreateApiKeyHandler;
 import com.iris.platform.services.apikey.handlers.DeleteApiKeyHandler;
 import com.iris.platform.services.apikey.handlers.ListApiKeysHandler;
 import com.iris.platform.services.apikey.handlers.RevokeApiKeyHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApiKeyServiceModule extends AbstractIrisModule {
 
+   private static final Logger logger = LoggerFactory.getLogger(ApiKeyServiceModule.class);
+
+   @Inject(optional = true) @Named("apikey.service.enabled")
+   private boolean enabled = true;
+
    @Override
    protected void configure() {
+      if (!enabled) {
+         logger.info("API key service is disabled");
+         return;
+      }
       Multibinder<ContextualRequestMessageHandler<Place>> handlerBinder =
             bindSetOf(new TypeLiteral<ContextualRequestMessageHandler<Place>>() {});
       handlerBinder.addBinding().to(CreateApiKeyHandler.class);
