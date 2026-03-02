@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.iris.core.dao.AccountDAO;
+import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
 import com.iris.core.dao.PersonDAO;
 import com.iris.core.dao.PlaceDAO;
@@ -57,6 +58,7 @@ import com.iris.test.Modules;
 
 @Mocks({
    AccountDAO.class,
+   ApiKeyDAO.class,
    PlaceDAO.class,
    PersonDAO.class,
    AuthorizationGrantDAO.class,
@@ -72,6 +74,7 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
    private static final Address clientAddress = Address.clientAddress("test", "test");
 
    @Inject AccountDAO accountDao;
+   @Inject ApiKeyDAO apiKeyDao;
    @Inject PlaceDAO placeDao;
    @Inject PersonDAO personDao;
    @Inject AuthorizationGrantDAO authGrantDao;
@@ -136,6 +139,7 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
             placeDao,
             personDao,
             authGrantDao,
+            apiKeyDao,
             preferencesDao,
             subUpdater,
             new PersonDeleter(accountDao, personDao, placeDao, authGrantDao, preferencesDao, bus, mockPopulationCacheMgr),
