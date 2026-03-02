@@ -30,6 +30,8 @@ public interface ApiKeyDAO {
 
    ApiKey findByKeyHash(String keyHash);
 
+   void expire(UUID placeId, UUID id, String keyHash, java.util.Date expiresAt);
+
    void delete(UUID placeId, UUID id, String keyHash);
 
    void deleteForPlace(UUID placeId);

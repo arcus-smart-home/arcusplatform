@@ -111,6 +111,16 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       apiKey.setPermissions(permissions);
       apiKey.setCreated(new Date());
 
+      // Optional expiration
+      Object expiresAtObj = body.getAttributes().get("expiresAt");
+      if (expiresAtObj instanceof Number) {
+         Date expiresAt = new Date(((Number) expiresAtObj).longValue());
+         if (!expiresAt.after(new Date())) {
+            throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "expiresAt must be in the future");
+         }
+         apiKey.setExpiresAt(expiresAt);
+      }
+
       apiKeyDao.save(apiKey);
 
       return MessageBody.buildMessage(

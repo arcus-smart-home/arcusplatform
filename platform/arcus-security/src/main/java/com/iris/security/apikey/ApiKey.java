@@ -33,6 +33,7 @@ public class ApiKey {
    private final Set<String> permissions = new HashSet<>();
    private Date created;
    private Date lastUsed;
+   private Date expiresAt;
 
    public UUID getId() {
       return id;
@@ -117,11 +118,24 @@ public class ApiKey {
       this.lastUsed = lastUsed;
    }
 
+   public Date getExpiresAt() {
+      return expiresAt;
+   }
+
+   public void setExpiresAt(Date expiresAt) {
+      this.expiresAt = expiresAt;
+   }
+
+   public boolean isExpired() {
+      return expiresAt != null && new Date().after(expiresAt);
+   }
+
    @Override
    public String toString() {
       return "ApiKey [id=" + id + ", placeId=" + placeId + ", label=" + label
             + ", keyPrefix=" + keyPrefix + ", personId=" + personId
             + ", accountId=" + accountId + ", permissions=" + permissions
-            + ", created=" + created + ", lastUsed=" + lastUsed + "]";
+            + ", created=" + created + ", lastUsed=" + lastUsed
+            + ", expiresAt=" + expiresAt + "]";
    }
 }

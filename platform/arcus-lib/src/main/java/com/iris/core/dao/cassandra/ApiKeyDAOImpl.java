@@ -46,6 +46,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private static final Timer findByKeyHashTimer = DaoMetrics.readTimer(ApiKeyDAO.class, "findByKeyHash");
    private static final Timer deleteTimer = DaoMetrics.deleteTimer(ApiKeyDAO.class, "delete");
    private static final Timer deleteForPlaceTimer = DaoMetrics.deleteTimer(ApiKeyDAO.class, "deleteForPlace");
+   private static final Timer expireTimer = DaoMetrics.upsertTimer(ApiKeyDAO.class, "expire");
    private static final Timer findLabelByIdTimer = DaoMetrics.readTimer(ApiKeyDAO.class, "findLabelById");
    private static final Timer updateLastUsedTimer = DaoMetrics.upsertTimer(ApiKeyDAO.class, "updateLastUsed");
 
@@ -60,6 +61,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       public static final String PERMISSIONS = "permissions";
       public static final String CREATED = "created";
       public static final String LAST_USED = "lastUsed";
+      public static final String EXPIRES_AT = "expiresAt";
    }
 
    private final Session session;
@@ -73,6 +75,8 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private final PreparedStatement insertApiKeyById;
    private final PreparedStatement findLabelById;
    private final PreparedStatement deleteApiKeyById;
+   private final PreparedStatement expireApiKey;
+   private final PreparedStatement expireApiKeyByHash;
    private final PreparedStatement updateLastUsedByHash;
 
    @Inject
@@ -91,6 +95,10 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
             "SELECT label FROM " + API_KEY_BY_ID_TABLE + " WHERE id = ?");
       this.deleteApiKeyById = session.prepare(
             "DELETE FROM " + API_KEY_BY_ID_TABLE + " WHERE id = ?");
+      this.expireApiKey = session.prepare(
+            "UPDATE " + API_KEY_TABLE + " SET " + Cols.EXPIRES_AT + " = ? WHERE " + Cols.PLACE_ID + " = ? AND " + Cols.ID + " = ?");
+      this.expireApiKeyByHash = session.prepare(
+            "UPDATE " + API_KEY_BY_HASH_TABLE + " SET " + Cols.EXPIRES_AT + " = ? WHERE " + Cols.KEY_HASH + " = ?");
       this.updateLastUsedByHash = prepareUpdateLastUsed();
    }
 
@@ -139,6 +147,22 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       try (Context ctxt = findLabelByIdTimer.time()) {
          Row row = session.execute(stmt).one();
          return row == null ? null : row.getString(Cols.LABEL);
+      }
+   }
+
+   @Override
+   public void expire(UUID placeId, UUID id, String keyHash, Date expiresAt) {
+      Preconditions.checkNotNull(placeId, "placeId must not be null");
+      Preconditions.checkNotNull(id, "id must not be null");
+      Preconditions.checkNotNull(keyHash, "keyHash must not be null");
+      Preconditions.checkNotNull(expiresAt, "expiresAt must not be null");
+
+      BatchStatement batch = new BatchStatement();
+      batch.add(new BoundStatement(expireApiKey).bind(expiresAt, placeId, id));
+      batch.add(new BoundStatement(expireApiKeyByHash).bind(expiresAt, keyHash));
+
+      try (Context ctxt = expireTimer.time()) {
+         session.execute(batch);
       }
    }
 
@@ -195,7 +219,8 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
             .setUUID(Cols.ACCOUNT_ID, key.getAccountId())
             .setSet(Cols.PERMISSIONS, key.getPermissions())
             .setTimestamp(Cols.CREATED, key.getCreated())
-            .setTimestamp(Cols.LAST_USED, key.getLastUsed());
+            .setTimestamp(Cols.LAST_USED, key.getLastUsed())
+            .setTimestamp(Cols.EXPIRES_AT, key.getExpiresAt());
    }
 
    private ApiKey buildFromRow(Row row) {
@@ -210,6 +235,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       key.setPermissions(row.getSet(Cols.PERMISSIONS, String.class));
       key.setCreated(row.getTimestamp(Cols.CREATED));
       key.setLastUsed(row.getTimestamp(Cols.LAST_USED));
+      key.setExpiresAt(row.getTimestamp(Cols.EXPIRES_AT));
       return key;
    }
 
@@ -225,6 +251,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
             .addColumn(Cols.PERMISSIONS)
             .addColumn(Cols.CREATED)
             .addColumn(Cols.LAST_USED)
+            .addColumn(Cols.EXPIRES_AT)
             .prepare(session);
    }
 
@@ -243,7 +270,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private CassandraQueryBuilder addAllColumns(CassandraQueryBuilder qb) {
       qb.addColumns(
             Cols.PLACE_ID, Cols.ID, Cols.LABEL, Cols.KEY_PREFIX, Cols.KEY_HASH,
-            Cols.PERSON_ID, Cols.ACCOUNT_ID, Cols.PERMISSIONS, Cols.CREATED, Cols.LAST_USED
+            Cols.PERSON_ID, Cols.ACCOUNT_ID, Cols.PERMISSIONS, Cols.CREATED, Cols.LAST_USED, Cols.EXPIRES_AT
       );
       return qb;
    }

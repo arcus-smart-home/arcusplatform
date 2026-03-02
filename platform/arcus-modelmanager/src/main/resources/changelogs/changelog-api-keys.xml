@@ -18,6 +18,7 @@
             permissions set&lt;varchar&gt;,
             created timestamp,
             lastUsed timestamp,
+            expiresAt timestamp,
             PRIMARY KEY (placeId, id)
          )</cl:update>
          <cl:rollback>DROP TABLE api_key</cl:rollback>
@@ -39,6 +40,7 @@
             permissions set&lt;varchar&gt;,
             created timestamp,
             lastUsed timestamp,
+            expiresAt timestamp,
             PRIMARY KEY (keyHash)
          )</cl:update>
          <cl:rollback>DROP TABLE api_key_by_hash</cl:rollback>

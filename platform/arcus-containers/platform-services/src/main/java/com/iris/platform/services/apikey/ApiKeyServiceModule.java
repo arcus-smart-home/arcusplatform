@@ -21,6 +21,7 @@ import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.model.Place;
 import com.iris.platform.services.apikey.handlers.CreateApiKeyHandler;
+import com.iris.platform.services.apikey.handlers.DeleteApiKeyHandler;
 import com.iris.platform.services.apikey.handlers.ListApiKeysHandler;
 import com.iris.platform.services.apikey.handlers.RevokeApiKeyHandler;
 
@@ -33,5 +34,6 @@ public class ApiKeyServiceModule extends AbstractIrisModule {
       handlerBinder.addBinding().to(CreateApiKeyHandler.class);
       handlerBinder.addBinding().to(ListApiKeysHandler.class);
       handlerBinder.addBinding().to(RevokeApiKeyHandler.class);
+      handlerBinder.addBinding().to(DeleteApiKeyHandler.class);
    }
 }

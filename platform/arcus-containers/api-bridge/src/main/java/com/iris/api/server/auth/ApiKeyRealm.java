@@ -68,6 +68,12 @@ public class ApiKeyRealm extends AuthenticatingRealm {
          throw new IncorrectCredentialsException("Invalid API key");
       }
 
+      if (apiKey.isExpired()) {
+         ApiKeyRealmMetrics.incAuthFailed();
+         logger.info("Rejected expired API key [{}], label [{}]", apiKey.getId(), apiKey.getLabel());
+         throw new IncorrectCredentialsException("API key has expired");
+      }
+
       ApiKeyRealmMetrics.incAuthSuccess();
 
       // Update lastUsed asynchronously (best-effort)
