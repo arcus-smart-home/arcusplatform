@@ -15,18 +15,24 @@
  */
 package com.iris.api.server.session;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionListener;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.io.json.JSON;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
 import com.iris.messages.MessageConstants;
+import com.iris.messages.model.Place;
+import com.iris.messages.model.PlaceDescriptor;
 import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.apikey.ApiKeyPrincipal;
 import com.iris.security.principal.Principal;
@@ -36,8 +42,11 @@ public class ApiKeySessionListener implements SessionListener {
 
    private static final Logger logger = LoggerFactory.getLogger(ApiKeySessionListener.class);
 
+   private final PlaceDAO placeDao;
+
    @Inject
-   public ApiKeySessionListener() {
+   public ApiKeySessionListener(PlaceDAO placeDao) {
+      this.placeDao = placeDao;
    }
 
    @Override
@@ -61,13 +70,27 @@ public class ApiKeySessionListener implements SessionListener {
 
       logger.info("API key session created for key '{}' on place {}", apiKeyPrincipal.getLabel(), apiKeyPrincipal.getPlaceId());
 
+      String placeId = apiKeyPrincipal.getPlaceId().toString();
+      String accountId = apiKeyPrincipal.getAccountId().toString();
+
+      String placeName = "";
+      Place place = placeDao.findById(apiKeyPrincipal.getPlaceId());
+      if (place != null) {
+         placeName = place.getName();
+      }
+
+      PlaceDescriptor descriptor = new PlaceDescriptor(placeId, placeName, accountId, PlaceDescriptor.ROLE_OWNER);
+
+      Map<String, Object> entries = new HashMap<>();
+      entries.put("personId", apiKeyPrincipal.getPersonId().toString());
+      entries.put("places", Collections.singleton(descriptor));
+      entries.put("placeId", placeId);
+      entries.put("keyId", apiKeyPrincipal.getKeyId().toString());
+      entries.put("label", apiKeyPrincipal.getLabel());
+
       MessageBody body = MessageBody.buildMessage(
             MessageConstants.MSG_SESSION_CREATED,
-            ImmutableMap.of(
-                  "placeId", apiKeyPrincipal.getPlaceId().toString(),
-                  "keyId", apiKeyPrincipal.getKeyId().toString(),
-                  "label", apiKeyPrincipal.getLabel()
-            )
+            entries
       );
 
       ClientMessage msg = ClientMessage.builder().withPayload(body).create();
