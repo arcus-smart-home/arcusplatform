@@ -44,6 +44,7 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    public static final String MESSAGE_TYPE = "apikey:Create";
    public static final int MAX_KEYS_PER_PLACE = 10;
+   public static final int MAX_LABEL_LENGTH = 64;
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
@@ -66,9 +67,12 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       MessageBody body = msg.getValue();
 
-      String label = (String) body.getAttributes().get("label");
-      if (StringUtils.isBlank(label)) {
+      String label = StringUtils.trimToNull((String) body.getAttributes().get("label"));
+      if (label == null) {
          throw new ErrorEventException(Errors.CODE_MISSING_PARAM, "label is required");
+      }
+      if (label.length() > MAX_LABEL_LENGTH) {
+         throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "label must be " + MAX_LABEL_LENGTH + " characters or less");
       }
 
       Object permsObj = body.getAttributes().get("permissions");

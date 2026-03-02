@@ -72,7 +72,7 @@ public class ObjectNameCache {
    public static final String UNKNOWN_PERSON_NAME = "Someone";
    public static final String UNKNOWN_RULE_NAME   = "UNKNOWN_RULE";
    public static final String UNKNOWN_SCENE_NAME  = "UNKNOWN_SCENE";
-   public static final String UNKNOWN_API_KEY_NAME = "API Key";
+   public static final String UNKNOWN_API_KEY_NAME = "an API key";
 
    private final Cache<Address, String> names;
 
@@ -255,7 +255,7 @@ public class ObjectNameCache {
 	   if (label == null) {
 		   throw new NotFoundException(apiKeyAddress);
 	   }
-	   return label;
+	   return "API key '" + label + "'";
    }
 
    protected String loadPerson(Address personAddress) {
