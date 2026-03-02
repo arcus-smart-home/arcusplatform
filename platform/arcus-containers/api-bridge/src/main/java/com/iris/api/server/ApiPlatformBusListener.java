@@ -32,6 +32,7 @@ import com.iris.bridge.server.session.SessionRegistry;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.AccountCapability;
+import com.iris.messages.capability.PersonCapability;
 import com.iris.netty.bus.IrisNettyPlatformBusListener;
 import com.iris.netty.server.message.IrisNettyMessageUtil;
 import com.iris.security.authz.Authorizer;
@@ -56,8 +57,8 @@ public class ApiPlatformBusListener extends IrisNettyPlatformBusListener {
 
    @Override
    public void onMessage(ClientToken ct, PlatformMessage msg) {
-      if (ct != null && AccountCapability.ListPlacesResponse.NAME.equals(msg.getMessageType())) {
-         logger.debug("Intercepted ListPlacesResponse for ct={}, type={}", ct, msg.getMessageType());
+      if (ct != null && isPlacesListResponse(msg.getMessageType())) {
+         logger.debug("Intercepted {} for ct={}", msg.getMessageType(), ct);
          Session session = sessionRegistry.getSession(ct);
          if (session != null && session.getActivePlace() != null) {
             msg = filterListPlaces(msg, session.getActivePlace());
@@ -66,9 +67,17 @@ public class ApiPlatformBusListener extends IrisNettyPlatformBusListener {
       super.onMessage(ct, msg);
    }
 
+   private static boolean isPlacesListResponse(String messageType) {
+      return AccountCapability.ListPlacesResponse.NAME.equals(messageType)
+            || PersonCapability.ListAvailablePlacesResponse.NAME.equals(messageType);
+   }
+
    @SuppressWarnings("unchecked")
    private PlatformMessage filterListPlaces(PlatformMessage msg, String activePlace) {
-      List<Map<String, Object>> places = AccountCapability.ListPlacesResponse.getPlaces(msg.getValue());
+      // Both account:ListPlacesResponse and person:ListAvailablePlacesResponse
+      // use "places" as the attribute key
+      List<Map<String, Object>> places = (List<Map<String, Object>>)
+            msg.getValue().getAttributes().get("places");
       if (places == null || places.isEmpty()) {
          return msg;
       }
@@ -81,11 +90,12 @@ public class ApiPlatformBusListener extends IrisNettyPlatformBusListener {
          return msg;
       }
 
-      logger.debug("Filtered ListPlaces from {} to {} places for active place {}", places.size(), filtered.size(), activePlace);
+      logger.debug("Filtered {} from {} to {} places for active place {}",
+            msg.getMessageType(), places.size(), filtered.size(), activePlace);
 
       MessageBody body = MessageBody.buildMessage(
-            AccountCapability.ListPlacesResponse.NAME,
-            Collections.singletonMap(AccountCapability.ListPlacesResponse.ATTR_PLACES, filtered));
+            msg.getMessageType(),
+            Collections.singletonMap("places", filtered));
 
       return PlatformMessage.builder(msg)
             .withPayload(body)
