@@ -34,8 +34,8 @@ import com.iris.bridge.server.http.RequestAuthorizer;
 import com.iris.bridge.server.http.RequestHandler;
 import com.iris.bridge.server.http.RequestMatcher;
 import com.iris.bridge.server.http.handlers.CheckPage;
-import com.iris.bridge.server.http.impl.auth.SessionAuth;
 import com.iris.bridge.server.http.impl.matcher.WebSocketUpgradeMatcher;
+import com.iris.api.server.auth.ApiKeySessionAuth;
 import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.message.DeviceMessageHandler;
 import com.iris.bridge.server.netty.Authenticator;
@@ -95,7 +95,7 @@ public class ApiServerModule extends AbstractIrisModule {
 
       // Required by WebSocketServerHandlerProvider and IrisNettyCORSChannelInitializer
       bind(RequestMatcher.class).annotatedWith(Names.named("WebSocketUpgradeMatcher")).to(WebSocketUpgradeMatcher.class);
-      bind(RequestAuthorizer.class).annotatedWith(Names.named("SessionAuthorizer")).to(SessionAuth.class);
+      bind(RequestAuthorizer.class).annotatedWith(Names.named("SessionAuthorizer")).to(ApiKeySessionAuth.class);
 
       bind(ChannelInboundHandler.class).toProvider(WebSocketServerHandlerProvider.class);
       bind(new TypeLiteral<ChannelInitializer<SocketChannel>>(){})
