@@ -102,7 +102,7 @@ public class ApiKeySessionAuth implements RequestAuthorizer {
             logger.debug("API key authentication succeeded during WebSocket upgrade for {}", client.getPrincipalName());
             return true;
          } catch (AuthenticationException e) {
-            logger.debug("API key authentication failed during WebSocket upgrade", e);
+            logger.debug("API key authentication failed during WebSocket upgrade: {}", e.getMessage());
             metrics.incAuthorizationFailedCounter();
             return false;
          }

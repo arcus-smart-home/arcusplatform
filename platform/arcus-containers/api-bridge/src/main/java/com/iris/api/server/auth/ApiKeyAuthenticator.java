@@ -102,7 +102,7 @@ public class ApiKeyAuthenticator implements Authenticator {
             return response;
          } catch (AuthenticationException e) {
             metrics.incAuthenticationFailedCounter();
-            logger.debug("API key authentication failed", e);
+            logger.debug("API key authentication failed: {}", e.getMessage());
             return createErrorResponse();
          }
       } finally {
