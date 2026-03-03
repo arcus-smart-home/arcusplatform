@@ -15,18 +15,20 @@
  */
 package com.iris.core.dao.cassandra;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -64,7 +66,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       public static final String EXPIRES_AT = "expiresAt";
    }
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement insertApiKey;
    private final PreparedStatement insertApiKeyByHash;
    private final PreparedStatement findByPlace;
@@ -81,7 +83,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    private final PreparedStatement updateLastUsedByPlace;
 
    @Inject
-   public ApiKeyDAOImpl(Session session) {
+   public ApiKeyDAOImpl(CqlSession session) {
       this.session = session;
       this.insertApiKey = prepareInsert(API_KEY_TABLE);
       this.insertApiKeyByHash = prepareInsert(API_KEY_BY_HASH_TABLE);
@@ -112,20 +114,20 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       Preconditions.checkNotNull(key.getPlaceId(), "placeId must not be null");
       Preconditions.checkNotNull(key.getKeyHash(), "keyHash must not be null");
 
-      BatchStatement batch = new BatchStatement();
-      batch.add(bindInsert(insertApiKey, key));
-      batch.add(bindInsert(insertApiKeyByHash, key));
-      batch.add(new BoundStatement(insertApiKeyById).bind(key.getId(), key.getPlaceId(), key.getLabel()));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement(bindInsert(insertApiKey, key));
+      batch.addStatement(bindInsert(insertApiKeyByHash, key));
+      batch.addStatement(insertApiKeyById.bind(key.getId(), key.getPlaceId(), key.getLabel()));
 
       try (Context ctxt = saveTimer.time()) {
-         session.execute(batch);
+         session.execute(batch.build());
       }
    }
 
    @Override
    public List<ApiKey> findByPlace(UUID placeId) {
       Preconditions.checkNotNull(placeId, "placeId must not be null");
-      BoundStatement stmt = new BoundStatement(findByPlace).bind(placeId);
+      BoundStatement stmt = findByPlace.bind(placeId);
       try (Context ctxt = findByPlaceTimer.time()) {
          return session.execute(stmt).all().stream()
                .map(this::buildFromRow)
@@ -136,7 +138,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    @Override
    public ApiKey findByKeyHash(String keyHash) {
       Preconditions.checkNotNull(keyHash, "keyHash must not be null");
-      BoundStatement stmt = new BoundStatement(findByKeyHash).bind(keyHash);
+      BoundStatement stmt = findByKeyHash.bind(keyHash);
       try (Context ctxt = findByKeyHashTimer.time()) {
          Row row = session.execute(stmt).one();
          return row == null ? null : buildFromRow(row);
@@ -146,7 +148,7 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    @Override
    public String findLabelById(UUID id) {
       Preconditions.checkNotNull(id, "id must not be null");
-      BoundStatement stmt = new BoundStatement(findLabelById).bind(id);
+      BoundStatement stmt = findLabelById.bind(id);
       try (Context ctxt = findLabelByIdTimer.time()) {
          Row row = session.execute(stmt).one();
          return row == null ? null : row.getString(Cols.LABEL);
@@ -154,18 +156,18 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
    }
 
    @Override
-   public void expire(UUID placeId, UUID id, String keyHash, Date expiresAt) {
+   public void expire(UUID placeId, UUID id, String keyHash, Instant expiresAt) {
       Preconditions.checkNotNull(placeId, "placeId must not be null");
       Preconditions.checkNotNull(id, "id must not be null");
       Preconditions.checkNotNull(keyHash, "keyHash must not be null");
       Preconditions.checkNotNull(expiresAt, "expiresAt must not be null");
 
-      BatchStatement batch = new BatchStatement();
-      batch.add(new BoundStatement(expireApiKey).bind(expiresAt, placeId, id));
-      batch.add(new BoundStatement(expireApiKeyByHash).bind(expiresAt, keyHash));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement(expireApiKey.bind(expiresAt, placeId, id));
+      batch.addStatement(expireApiKeyByHash.bind(expiresAt, keyHash));
 
       try (Context ctxt = expireTimer.time()) {
-         session.execute(batch);
+         session.execute(batch.build());
       }
    }
 
@@ -175,13 +177,13 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       Preconditions.checkNotNull(id, "id must not be null");
       Preconditions.checkNotNull(keyHash, "keyHash must not be null");
 
-      BatchStatement batch = new BatchStatement();
-      batch.add(new BoundStatement(deleteApiKey).bind(placeId, id));
-      batch.add(new BoundStatement(deleteApiKeyByHash).bind(keyHash));
-      batch.add(new BoundStatement(deleteApiKeyById).bind(id));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement(deleteApiKey.bind(placeId, id));
+      batch.addStatement(deleteApiKeyByHash.bind(keyHash));
+      batch.addStatement(deleteApiKeyById.bind(id));
 
       try (Context ctxt = deleteTimer.time()) {
-         session.execute(batch);
+         session.execute(batch.build());
       }
    }
 
@@ -192,60 +194,60 @@ public class ApiKeyDAOImpl implements ApiKeyDAO {
       try (Context ctxt = deleteForPlaceTimer.time()) {
          List<ApiKey> keys = findByPlace(placeId);
          if (!keys.isEmpty()) {
-            BatchStatement batch = new BatchStatement();
+            BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
             for (ApiKey key : keys) {
-               batch.add(new BoundStatement(deleteApiKeyByHash).bind(key.getKeyHash()));
-               batch.add(new BoundStatement(deleteApiKeyById).bind(key.getId()));
+               batch.addStatement(deleteApiKeyByHash.bind(key.getKeyHash()));
+               batch.addStatement(deleteApiKeyById.bind(key.getId()));
             }
-            batch.add(new BoundStatement(deleteAllForPlace).bind(placeId));
-            session.execute(batch);
+            batch.addStatement(deleteAllForPlace.bind(placeId));
+            session.execute(batch.build());
          }
       }
    }
 
    @Override
-   public void updateLastUsed(UUID placeId, UUID id, String keyHash, Date lastUsed) {
+   public void updateLastUsed(UUID placeId, UUID id, String keyHash, Instant lastUsed) {
       Preconditions.checkNotNull(placeId, "placeId must not be null");
       Preconditions.checkNotNull(id, "id must not be null");
       Preconditions.checkNotNull(keyHash, "keyHash must not be null");
 
-      BatchStatement batch = new BatchStatement();
-      batch.add(new BoundStatement(updateLastUsedByHash).bind(lastUsed, keyHash));
-      batch.add(new BoundStatement(updateLastUsedByPlace).bind(lastUsed, placeId, id));
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+      batch.addStatement(updateLastUsedByHash.bind(lastUsed, keyHash));
+      batch.addStatement(updateLastUsedByPlace.bind(lastUsed, placeId, id));
 
       try (Context ctxt = updateLastUsedTimer.time()) {
-         session.execute(batch);
+         session.execute(batch.build());
       }
    }
 
    private BoundStatement bindInsert(PreparedStatement ps, ApiKey key) {
-      return new BoundStatement(ps)
-            .setUUID(Cols.PLACE_ID, key.getPlaceId())
-            .setUUID(Cols.ID, key.getId())
+      return ps.bind()
+            .setUuid(Cols.PLACE_ID, key.getPlaceId())
+            .setUuid(Cols.ID, key.getId())
             .setString(Cols.LABEL, key.getLabel())
             .setString(Cols.KEY_PREFIX, key.getKeyPrefix())
             .setString(Cols.KEY_HASH, key.getKeyHash())
-            .setUUID(Cols.PERSON_ID, key.getPersonId())
-            .setUUID(Cols.ACCOUNT_ID, key.getAccountId())
-            .setSet(Cols.PERMISSIONS, key.getPermissions())
-            .setTimestamp(Cols.CREATED, key.getCreated())
-            .setTimestamp(Cols.LAST_USED, key.getLastUsed())
-            .setTimestamp(Cols.EXPIRES_AT, key.getExpiresAt());
+            .setUuid(Cols.PERSON_ID, key.getPersonId())
+            .setUuid(Cols.ACCOUNT_ID, key.getAccountId())
+            .setSet(Cols.PERMISSIONS, key.getPermissions(), String.class)
+            .setInstant(Cols.CREATED, key.getCreated())
+            .setInstant(Cols.LAST_USED, key.getLastUsed())
+            .setInstant(Cols.EXPIRES_AT, key.getExpiresAt());
    }
 
    private ApiKey buildFromRow(Row row) {
       ApiKey key = new ApiKey();
-      key.setPlaceId(row.getUUID(Cols.PLACE_ID));
-      key.setId(row.getUUID(Cols.ID));
+      key.setPlaceId(row.getUuid(Cols.PLACE_ID));
+      key.setId(row.getUuid(Cols.ID));
       key.setLabel(row.getString(Cols.LABEL));
       key.setKeyPrefix(row.getString(Cols.KEY_PREFIX));
       key.setKeyHash(row.getString(Cols.KEY_HASH));
-      key.setPersonId(row.getUUID(Cols.PERSON_ID));
-      key.setAccountId(row.getUUID(Cols.ACCOUNT_ID));
+      key.setPersonId(row.getUuid(Cols.PERSON_ID));
+      key.setAccountId(row.getUuid(Cols.ACCOUNT_ID));
       key.setPermissions(row.getSet(Cols.PERMISSIONS, String.class));
-      key.setCreated(row.getTimestamp(Cols.CREATED));
-      key.setLastUsed(row.getTimestamp(Cols.LAST_USED));
-      key.setExpiresAt(row.getTimestamp(Cols.EXPIRES_AT));
+      key.setCreated(row.getInstant(Cols.CREATED));
+      key.setLastUsed(row.getInstant(Cols.LAST_USED));
+      key.setExpiresAt(row.getInstant(Cols.EXPIRES_AT));
       return key;
    }
 

@@ -15,7 +15,7 @@
  */
 package com.iris.api.server.auth;
 
-import java.util.Date;
+import java.time.Instant;
 
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -78,7 +78,7 @@ public class ApiKeyRealm extends AuthenticatingRealm {
 
       // Update lastUsed (best-effort)
       try {
-         apiKeyDao.updateLastUsed(apiKey.getPlaceId(), apiKey.getId(), keyHash, new Date());
+         apiKeyDao.updateLastUsed(apiKey.getPlaceId(), apiKey.getId(), keyHash, Instant.now());
       } catch (Exception e) {
          logger.debug("Failed to update lastUsed for API key {}", apiKey.getId(), e);
       }

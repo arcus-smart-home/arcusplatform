@@ -15,6 +15,7 @@
  */
 package com.iris.core.dao;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,11 +31,11 @@ public interface ApiKeyDAO {
 
    ApiKey findByKeyHash(String keyHash);
 
-   void expire(UUID placeId, UUID id, String keyHash, java.util.Date expiresAt);
+   void expire(UUID placeId, UUID id, String keyHash, Instant expiresAt);
 
    void delete(UUID placeId, UUID id, String keyHash);
 
    void deleteForPlace(UUID placeId);
 
-   void updateLastUsed(UUID placeId, UUID id, String keyHash, java.util.Date lastUsed);
+   void updateLastUsed(UUID placeId, UUID id, String keyHash, Instant lastUsed);
 }

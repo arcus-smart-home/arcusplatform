@@ -15,7 +15,7 @@
  */
 package com.iris.platform.services.apikey.handlers;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -96,7 +96,7 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
       }
 
       // Expire the key immediately rather than deleting, preserving audit trail
-      apiKeyDao.expire(context.getId(), keyId, existing.getKeyHash(), new Date());
+      apiKeyDao.expire(context.getId(), keyId, existing.getKeyHash(), Instant.now());
 
       // Broadcast revocation so api-bridge instances can disconnect active sessions
       emitApiKeyRevoked(context, keyId);
