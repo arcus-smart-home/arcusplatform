@@ -15,6 +15,7 @@
  */
 package com.iris.bridge.server.shiro;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
@@ -111,6 +112,12 @@ public class ShiroAuthenticator implements Authenticator {
    @Override
    public FullHttpResponse authenticateRequest(Channel channel, FullHttpRequest req) {
       AuthenticationToken token = extractToken(channel, req);
+      if (token == null) {
+         logger.warn("Could not extract authentication token from request - Content-Type: [{}], body bytes: {}",
+               req.headers().get("Content-Type"), req.content().readableBytes());
+         metrics.incAuthenticationFailedCounter();
+         return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
+      }
       return authenticateRequest(channel, token, null);
    }
 
@@ -183,6 +190,9 @@ public class ShiroAuthenticator implements Authenticator {
       String password = null;
 
       // the body here is username/password DON'T LOG THE CONTENTS
+      // Reset reader index in case an upstream handler consumed the content
+      req.content().resetReaderIndex();
+
       HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), req);
 
       List<InterfaceHttpData> datas = decoder.getBodyHttpDatas();
