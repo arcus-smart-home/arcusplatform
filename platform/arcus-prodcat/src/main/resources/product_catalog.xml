@@ -4293,6 +4293,29 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="f8e032" name="Scene Controller (Zen32)" shortname="Scene Controller" screen="Switch" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,scene,controller,switch,button,wall,zwave,zen32" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the ZEN32 is wired and powered on."/>
+        <step2 type="text" img="" text="Tap the upper paddle on the main button 3 times quickly. The LED will flash rapidly and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Tap the upper paddle on the main button 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Tap the upper paddle of the main button quickly 10 times."/>
+        <step2 type="text" img="" text="The LED indicator will start blinking and the switch will reset to factory defaults."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d4e156" name="Water Leak Sensor" shortname="Water Leak Sensor" screen="Water Leak" description="" manufacturer="Dome" vendor="Dome" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR14250" batteryprimnum="1" keywords="dome, safety, moisture, water, leak, sensor" ota="No" protofamily="Z-Wave" added="2017-04-24T07:50:30-0400" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Water"/>

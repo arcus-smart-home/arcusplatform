@@ -94,7 +94,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 0
             And with parameter scenenumber 1
             And send to driver
-        Then the platform attribute but:state.up should change to PRESSED
+        Then the capability but:state.up should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
 
     @button
@@ -104,7 +104,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 1
             And with parameter scenenumber 1
             And send to driver
-        Then the platform attribute but:state.up should change to RELEASED
+        Then the capability but:state.up should be RELEASED
             And the driver should place a base:ValueChange message on the platform bus
 
     @button
@@ -114,7 +114,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 0
             And with parameter scenenumber 2
             And send to driver
-        Then the platform attribute but:state.down should change to PRESSED
+        Then the capability but:state.down should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
 
     @button
@@ -124,7 +124,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 1
             And with parameter scenenumber 2
             And send to driver
-        Then the platform attribute but:state.down should change to RELEASED
+        Then the capability but:state.down should be RELEASED
             And the driver should place a base:ValueChange message on the platform bus
 
     @button
@@ -134,7 +134,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 3
             And with parameter scenenumber 1
             And send to driver
-        Then the platform attribute but:state.up should change to PRESSED
+        Then the capability but:state.up should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
 
     @button
@@ -144,7 +144,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN34 Remote Switch dri
             And with parameter properties1 2
             And with parameter scenenumber 2
             And send to driver
-        Then the platform attribute but:state.down should change to PRESSED
+        Then the capability but:state.down should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
 
 

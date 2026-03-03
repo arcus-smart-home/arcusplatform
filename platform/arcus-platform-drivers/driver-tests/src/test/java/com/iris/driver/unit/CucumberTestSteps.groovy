@@ -96,7 +96,7 @@ Given(~/^the (.+) has been initialized$/) { String driverScriptResource ->
  * 		Given the capability devpow:battery is 100
  *      Given the driver attribute devconn:state is ONLINE
  */
-Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { String namespace, String attributeName, String attributeValue ->
+Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { namespace, attributeName, attributeValue ->
 	// lookup for the attribute definition
 	logger.trace(" initializing "+namespace+":"+attributeName + " to "+attributeValue);
 	CapabilityDefinition capability = ClasspathDefinitionRegistry.instance().getCapability(namespace);
@@ -700,11 +700,25 @@ Then(~/^nothing (?:else )?should happen$/) { ->
  */
 /* deprecated - TBD :: Replace with STEP : ASSERT_CAPABILITY*/
 Then(~/^the (?:device|platform|driver) attribute (.+) should (?:change to|be|equal) (.+)$/) { String attributeName, String value ->
-	def attributeDef = ClasspathDefinitionRegistry.instance().getAttribute(attributeName)
-	if(attributeDef == null) {
-		throw new IllegalArgumentException("Unrecognized attribute " + attributeName);
+	def isInstance = attributeName.contains(":") && attributeName.substring(attributeName.indexOf(":")+1).contains(".")
+	def lookupName = attributeName
+	def instanceId = null
+	if(isInstance) {
+		def afterColon = attributeName.substring(attributeName.indexOf(":")+1)
+		def dotIdx = afterColon.indexOf(".")
+		instanceId = afterColon.substring(dotIdx+1)
+		lookupName = attributeName.substring(0, attributeName.indexOf(":")+1) + afterColon.substring(0, dotIdx)
 	}
-	def attributeKey = AttributeKey.createType(attributeName, attributeDef.type.javaType)
+	def attributeDef = ClasspathDefinitionRegistry.instance().getAttribute(lookupName)
+	if(attributeDef == null) {
+		throw new IllegalArgumentException("Unrecognized attribute " + lookupName);
+	}
+	def attributeKey
+	if(isInstance) {
+		attributeKey = AttributeKey.createType(lookupName, attributeDef.type.javaType).instance(instanceId)
+	} else {
+		attributeKey = AttributeKey.createType(attributeName, attributeDef.type.javaType)
+	}
 	Object expectedValue;
 	try {
 		expectedValue = JSON.fromJson(value, Object.class)
