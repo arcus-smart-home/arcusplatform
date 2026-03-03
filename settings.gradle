@@ -63,6 +63,7 @@ include 'platform:arcus-containers:rule-service'
 include 'platform:arcus-containers:scheduler-service'
 include 'platform:arcus-containers:subsystem-service'
 include 'platform:arcus-containers:metrics-server'
+include 'platform:arcus-containers:api-bridge'
 
 // Optional modules — disabled by default for self-hosted deployment.
 // Enable with: ./gradlew build -PenableVoice -PenableVideo -PenableBilling -PenableAnalytics

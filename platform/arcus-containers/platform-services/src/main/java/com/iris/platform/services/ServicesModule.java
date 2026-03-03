@@ -32,6 +32,7 @@ import com.iris.platform.services.mobiledevice.MobileDeviceServiceModule;
 import com.iris.platform.services.person.PersonServiceModule;
 import com.iris.platform.services.place.PlaceServiceModule;
 import com.iris.platform.services.population.PopulationServiceModule;
+import com.iris.platform.services.apikey.ApiKeyServiceModule;
 import com.iris.platform.services.productcatalog.ProductCatalogServiceModule;
 import com.iris.platform.subsystem.SubsystemDaoModule;
 import com.iris.population.PlacePopulationCacheModule;
@@ -54,7 +55,8 @@ import com.iris.bootstrap.annotations.Modules;
       PopulationServiceModule.class,
       ProductCatalogServiceModule.class,
       IntraServiceModule.class,
-      PlacePopulationCacheModule.class
+      PlacePopulationCacheModule.class,
+      ApiKeyServiceModule.class
 })
 public class ServicesModule extends AbstractIrisModule {
    @Override

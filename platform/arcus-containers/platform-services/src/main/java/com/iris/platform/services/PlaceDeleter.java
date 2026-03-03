@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
+import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
 import com.iris.core.dao.PersonDAO;
 import com.iris.core.dao.PlaceDAO;
@@ -58,6 +59,7 @@ public class PlaceDeleter {
    private final PlaceDAO placeDao;
    private final PersonDAO personDao;
    private final AuthorizationGrantDAO grantDao;
+   private final ApiKeyDAO apiKeyDao;
    private final PreferencesDAO preferencesDao;
    private final SubscriptionUpdater subscriptionUpdater;
    private final PersonDeleter personDeleter;
@@ -69,6 +71,7 @@ public class PlaceDeleter {
          PlaceDAO placeDao,
          PersonDAO personDao,
          AuthorizationGrantDAO grantDao,
+         ApiKeyDAO apiKeyDao,
          PreferencesDAO preferencesDao,
          SubscriptionUpdater subscriptionUpdater,
          PersonDeleter personDeleter,
@@ -78,6 +81,7 @@ public class PlaceDeleter {
       this.placeDao = placeDao;
       this.personDao = personDao;
       this.grantDao = grantDao;
+      this.apiKeyDao = apiKeyDao;
       this.preferencesDao = preferencesDao;
       this.subscriptionUpdater = subscriptionUpdater;
       this.personDeleter = personDeleter;
@@ -102,6 +106,7 @@ public class PlaceDeleter {
       }
       Person ownerPerson = account!=null?personDao.findById(account.getOwner()):null;
       removePeopleAndSendNotification(account, place, sendNotification, ownerPerson);
+      apiKeyDao.deleteForPlace(place.getId());
       grantDao.removeForPlace(place.getId());
       placeDao.delete(place);
       emitDeletedEvent(place);

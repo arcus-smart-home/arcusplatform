@@ -22,6 +22,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.cassandra.CassandraAlarmIncidentDAOModule;
+import com.iris.core.dao.cassandra.CassandraApiKeyDAOModule;
 import com.iris.core.dao.cassandra.CassandraAuthorizationGrantDAOModule;
 import com.iris.core.dao.cassandra.CassandraDeviceDAOModule;
 import com.iris.core.dao.cassandra.CassandraHubDAOModule;
@@ -47,7 +48,8 @@ import com.iris.bootstrap.annotations.Modules;
       CassandraHubDAOModule.class,
       CassandraPersonDAOModule.class,
       CassandraAuthorizationGrantDAOModule.class,
-      RuleDaoModule.class
+      RuleDaoModule.class,
+      CassandraApiKeyDAOModule.class
 })
 public class HistoryServiceModule extends AbstractIrisModule {
    
