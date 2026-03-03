@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+import com.iris.platform.rule.catalog.selector.InstanceSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.ListSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.PresenceSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.SelectorType;
@@ -114,6 +115,36 @@ public class TestSelectorProcessor {
       assertEquals("name", processor.getName());
       PresenceSelectorGenerator generator = (PresenceSelectorGenerator) processor.getSelectorGenerator();
       assertNotNull(generator);
+   }
+
+   @Test
+   public void testInstanceType() throws Exception {
+      String xml = "<selector name='button' type='" + SelectorProcessor.TYPE_INSTANCE + "' capability='but' />";
+      SAXTagHandlers.parse(xml, SelectorProcessor.TAG, processor);
+      assertEquals("button", processor.getName());
+      InstanceSelectorGenerator generator = (InstanceSelectorGenerator) processor.getSelectorGenerator();
+      assertNotNull(generator);
+   }
+
+   @Test
+   public void testInstanceTypeWithDependsOn() throws Exception {
+      String xml = "<selector name='button' type='" + SelectorProcessor.TYPE_INSTANCE + "' capability='but' depends-on='device' />";
+      SAXTagHandlers.parse(xml, SelectorProcessor.TAG, processor);
+      assertEquals("button", processor.getName());
+      InstanceSelectorGenerator generator = (InstanceSelectorGenerator) processor.getSelectorGenerator();
+      assertNotNull(generator);
+   }
+
+   @Test
+   public void testInstanceTypeMissingCapability() {
+      try {
+         String xml = "<selector name='button' type='" + SelectorProcessor.TYPE_INSTANCE + "' />";
+         SAXTagHandlers.parse(xml, SelectorProcessor.TAG, processor);
+         fail();
+      }
+      catch(ValidationException e) {
+         // expected
+      }
    }
 
 }

@@ -61,6 +61,7 @@
       <c:method name="Resolve" description="Resolves the parameters for the template at a given place">
          <c:parameters>
             <c:parameter name="placeId" type="string" description="The platform-owned identifier for the place at which to resovle the template parameters" optional="false"/>
+            <c:parameter name="selections" type="map&lt;string&gt;" description="Previously selected values keyed by selector name, used for dependent selector resolution" optional="true"/>
          </c:parameters>
          <c:return name="selectors" type="map&lt;Object&gt;" description="The resolved selectors for the rule template"/>
       </c:method>

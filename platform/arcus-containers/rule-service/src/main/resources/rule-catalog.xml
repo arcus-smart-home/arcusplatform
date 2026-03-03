@@ -153,6 +153,137 @@
 			</selectors>
 		</template>
 
+		<!-- Multi-button remote templates (for devices with instanced buttons like ZEN34) -->
+
+		<template id="mb-notify" keywords="button,remote" tags="note, but"
+			added="2026-03-02T00:00:00" modified="2026-03-02T00:00:00"
+			name="Multi-Button Notification"
+			description="Notify someone when a button on a multi-button remote is pressed."
+			premium="false">
+			<populations>
+				<population name="general" /> <population name="qa" /> <population name="beta" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+				<category name="Notifications" />
+			</categories>
+			<description>When ${button} on ${device} is pressed then send ${person} a message via ${method}.</description>
+			<conditions>
+				<attribute-value-change attribute="but:state:${button}" new="PRESSED" query="base:address == '${device}'"/>
+			</conditions>
+			<actions>
+				<notify to="${person}" priority="${method}" key="rule.bd1116.button.pressed">
+					<parameters>
+						<parameter name="button">
+							<attribute-value address="${device}" attribute="dev:name" />
+						</parameter>
+						<parameter name="time">
+							<datetime-value type="datetime" />
+						</parameter>
+						<parameter name="_ruleName">
+                            <constant-value value="${_ruleName}" />
+                        </parameter>
+					</parameters>
+				</notify>
+			</actions>
+			<selectors>
+				<selector type="device" name="device" query="has but" />
+				<selector type="instance" name="button" capability="but" depends-on="device" />
+				<selector type="person" name="person" />
+				<selector type="constant" name="method">
+					<options>
+						<option label="Push Notification" value="medium" />
+						<option label="Email" value="low" />
+					</options>
+				</selector>
+			</selectors>
+		</template>
+
+		<template id="mb-toggle" keywords="button,remote" tags="swit, but"
+			added="2026-03-02T00:00:00" modified="2026-03-02T00:00:00"
+			name="Multi-Button Switch Control"
+			description="Turn a device on or off by pressing a button on a multi-button remote."
+			premium="false">
+			<populations>
+				<population name="general" /> <population name="qa" /> <population name="beta" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+			</categories>
+			<description>When ${button} on ${device} is pressed then toggle state of ${switch}.</description>
+			<satisfiable-if>
+				<satisfiable query="base:caps contains 'swit'" />
+			</satisfiable-if>
+			<conditions>
+				<attribute-value-change attribute="but:state:${button}" query="base:address == '${device}'" new="PRESSED" />
+			</conditions>
+			<actions>
+				<device-query var="address" query="base:address == '${switch}' and swit:state == 'ON'">
+					<set-attribute to="${address}" name="swit:state" value="OFF" />
+				</device-query>
+				<device-query var="address" query="base:address == '${switch}' and swit:state != 'ON'">
+					<set-attribute to="${address}" name="swit:state" value="ON" />
+				</device-query>
+			</actions>
+			<selectors>
+				<selector type="device" name="device" query="has but" />
+				<selector type="instance" name="button" capability="but" depends-on="device" />
+				<selector type="device" name="switch" query="base:caps contains 'swit'" />
+			</selectors>
+		</template>
+
+		<template id="mb-scene" keywords="button,remote" tags="scene, but"
+			added="2026-03-02T00:00:00" modified="2026-03-02T00:00:00"
+			name="Multi-Button Scene"
+			description="Run a scene when a button on a multi-button remote is pressed."
+			premium="false">
+			<populations>
+				<population name="general" /> <population name="qa" /> <population name="beta" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+				<category name="Scene" />
+			</categories>
+			<description>When ${button} on ${device} is pressed then run ${scene}.</description>
+			<conditions>
+				<attribute-value-change attribute="but:state:${button}" new="PRESSED" query="base:address == '${device}'"/>
+			</conditions>
+			<actions>
+				<send to="${scene}" method="scene:Fire" />
+			</actions>
+			<selectors>
+				<selector type="device" name="device" query="has but" />
+				<selector type="instance" name="button" capability="but" depends-on="device" />
+				<selector type="scene" name="scene" />
+			</selectors>
+		</template>
+
+		<template id="mb-chime" keywords="button,remote" tags="hubchime, but"
+			added="2026-03-02T00:00:00" modified="2026-03-02T00:00:00"
+			name="Multi-Button Chime"
+			description="Chime the hub when a button on a multi-button remote is pressed."
+			premium="false">
+			<populations>
+				<population name="general" /> <population name="qa" /> <population name="beta" />
+			</populations>
+			<categories>
+				<category name="Buttons &amp; Fobs" />
+			</categories>
+			<description>When ${button} on ${device} is pressed, chime the hub.</description>
+			<conditions>
+				<attribute-value-change attribute="but:state:${button}" query="base:address == '${device}'" new="PRESSED" />
+			</conditions>
+			<actions>
+				<device-query var="address" query="base:caps contains 'hubchime'">
+					<send to="${address}" method="hubchime:chime" />
+				</device-query>
+			</actions>
+			<selectors>
+				<selector type="device" name="device" query="has but" />
+				<selector type="instance" name="button" capability="but" depends-on="device" />
+			</selectors>
+		</template>
+
       <template id="3502e4" keywords="lock" tags="doorlock,pres"
          added="2015-08-11T00:00:00" modified="2015-08-11T00:00:00"
          name="Lock Up When I Leave"
@@ -3424,7 +3555,7 @@
             </device-query>
          </actions>
          <selectors>
-            <selector type="device" name="button" query="dev:productId = 'bca135' OR dev:productId = 'bbf1cf'" />
+            <selector type="device" name="button" query="but:state is supported" />
          </selectors>
       </template>
 

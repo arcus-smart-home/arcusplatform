@@ -28,20 +28,21 @@ import java.util.List;
 public class ListSelector implements Selector {
    public static final String TYPE = "selector";
    private List<Option> options = new ArrayList<>();
+   private String dependsOn;
 
    public ListSelector() {
-      
+
    }
-   
+
    @Override
    public SelectorType getType() {
       return SelectorType.LIST;
    }
-   
+
    public List<Option> getOptions() {
       return options;
    }
-   
+
    public void setOptions(Collection<Option> options) {
       if(options == null) {
          this.options = new ArrayList<>();
@@ -49,6 +50,14 @@ public class ListSelector implements Selector {
       else {
          this.options = new ArrayList<>(options);
       }
+   }
+
+   public String getDependsOn() {
+      return dependsOn;
+   }
+
+   public void setDependsOn(String dependsOn) {
+      this.dependsOn = dependsOn;
    }
 }
 
