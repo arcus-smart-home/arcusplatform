@@ -29,6 +29,7 @@ import com.iris.billing.client.BillingClient;
 import com.iris.billing.client.model.RecurlyError;
 import com.iris.billing.exception.RecurlyAPIErrorException;
 import com.iris.core.dao.AccountDAO;
+import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
 import com.iris.core.dao.PersonDAO;
 import com.iris.core.dao.PersonPlaceAssocDAO;
@@ -58,6 +59,7 @@ import com.iris.test.Modules;
 
 @Mocks({
    AccountDAO.class,
+   ApiKeyDAO.class,
    PersonDAO.class,
    AuthorizationGrantDAO.class,
    PreferencesDAO.class,
@@ -73,6 +75,7 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
    private static final Address clientAddress = Address.clientAddress("test", "test");
 
    @Inject AccountDAO accountDao;
+   @Inject ApiKeyDAO apiKeyDao;
    @Inject PersonDAO personDao;
    @Inject AuthorizationGrantDAO authGrantDao;
    @Inject PreferencesDAO preferencesDao;
@@ -111,6 +114,7 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
             placeDao,
             personDao,
             authGrantDao,
+            apiKeyDao,
             preferencesDao,
             subUpdater,
             new PersonDeleter(accountDao, personDao, placeDao, authGrantDao, preferencesDao, bus, mockPopulationCacheMgr),
@@ -214,11 +218,13 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
       if (Boolean.TRUE.equals(deleteLogin)) {
     	  EasyMock.expect(personPlaceAssocDao.listPlaceAccessForPerson(person.getId())).andReturn(ImmutableList.<PlaceAccessDescriptor>of());
       }
+      apiKeyDao.deleteForPlace(place.getId());
+      EasyMock.expectLastCall();
       authGrantDao.removeForPlace(place.getId());
       EasyMock.expectLastCall();
       placeDao.delete(place);
       EasyMock.expectLastCall();
-      
+
       if(Boolean.TRUE.equals(deleteLogin)) {
       	preferencesDao.deleteForPerson(account.getOwner());
       	EasyMock.expectLastCall();

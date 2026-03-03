@@ -21,6 +21,7 @@ import com.iris.messages.address.Address;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.capability.RuleCapability;
+import com.iris.security.apikey.ApiKeyPrincipal;
 
 public class MessageContext {
 	
@@ -118,6 +119,11 @@ public class MessageContext {
 	public boolean actorIsRule() {
 		if (actorAddress == null) return false;
 		return (actorAddress.getGroup().equals(RuleCapability.NAMESPACE));
+	}
+
+	public boolean actorIsApiKey() {
+		if (actorAddress == null) return false;
+		return (actorAddress.getGroup().equals(ApiKeyPrincipal.ACTOR_NAMESPACE));
 	}
 	
 	public boolean subjectIsDevice() {

@@ -69,6 +69,7 @@ public class Bridge10ChannelInitializer extends ChannelInitializer<SocketChannel
    public static final String FILTER_SSL = "tls";
    public static final String FILTER_ENCODER = "encoder";
    public static final String FILTER_DECODER = "decoder";
+   public static final String FILTER_DECOMPRESSOR = "decompressor";
    public static final String FILTER_HTTP_AGGREGATOR = "aggregator";
    public static final String FILTER_HANDLER = "handler";
    public static final String IDLE_STATE_HANDLER = "idleStateHandler";
@@ -256,6 +257,7 @@ public class Bridge10ChannelInitializer extends ChannelInitializer<SocketChannel
 
       pipeline.addLast(FILTER_ENCODER, new HttpResponseEncoder());
       pipeline.addLast(FILTER_DECODER, new HttpRequestDecoder());
+      pipeline.addLast(FILTER_DECOMPRESSOR, new io.netty.handler.codec.http.HttpContentDecompressor());
       pipeline.addLast(FILTER_HTTP_AGGREGATOR, new HttpObjectAggregator(65536));
       if (bindClientHandler != null) {
          pipeline.addLast("bind-client-context", bindClientHandler);

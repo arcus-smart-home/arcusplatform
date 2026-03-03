@@ -41,8 +41,11 @@ import com.iris.oculus.menu.SessionMenu;
 import com.iris.oculus.menu.WindowsMenu;
 import com.iris.oculus.modules.account.AccountController;
 import com.iris.oculus.modules.account.AccountSection;
+import com.iris.oculus.modules.apikey.ApiKeyController;
+import com.iris.oculus.modules.apikey.ApiKeySection;
 import com.iris.oculus.modules.behaviors.BehaviorSection;
 import com.iris.oculus.modules.capability.CapabilityController;
+import com.iris.oculus.modules.capability.CapabilityBrowserSection;
 import com.iris.oculus.modules.dashboard.DashboardController;
 import com.iris.oculus.modules.dashboard.DashboardSection;
 import com.iris.oculus.modules.device.DeviceController;
@@ -129,6 +132,8 @@ public class OculusModule extends AbstractIrisModule {
          .asEagerSingleton();
       bind(PairingDeviceController.class)
          .asEagerSingleton();
+      bind(ApiKeyController.class)
+         .asEagerSingleton();
       bind(CapabilityController.class)
       	.asEagerSingleton();
 
@@ -147,6 +152,8 @@ public class OculusModule extends AbstractIrisModule {
       bind(BehaviorSection.class);
       bind(IncidentSection.class);
       bind(PairingDeviceSection.class);
+      bind(ApiKeySection.class);
+      bind(CapabilityBrowserSection.class);
 
       bindListToInstancesOf(OculusSection.class);
    }

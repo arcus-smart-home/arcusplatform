@@ -29,6 +29,7 @@ import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.capability.RuleCapability;
 import com.iris.messages.capability.SceneCapability;
+import com.iris.security.apikey.ApiKeyPrincipal;
 import com.iris.messages.model.CompositeId;
 import com.iris.metrics.IrisMetricSet;
 import com.iris.metrics.IrisMetrics;
@@ -128,8 +129,10 @@ public abstract class BaseHistoryAppender implements HistoryAppender {
     	  return cache.getPersonName(message.getActor());
       } else if (message.getActor() != null && message.getActor().getGroup().equals(RuleCapability.NAMESPACE)) {
     	  return cache.getRuleName(message.getActor());
-      }	  else if (message.getActor() != null && message.getActor().getGroup().equals(SceneCapability.NAMESPACE)) {
+      } else if (message.getActor() != null && message.getActor().getGroup().equals(SceneCapability.NAMESPACE)) {
     	  return cache.getSceneName(message.getActor());
+      } else if (message.getActor() != null && message.getActor().getGroup().equals(ApiKeyPrincipal.ACTOR_NAMESPACE)) {
+    	  return cache.getApiKeyName(message.getActor());
       }
       // TODO subsystems
       return "";

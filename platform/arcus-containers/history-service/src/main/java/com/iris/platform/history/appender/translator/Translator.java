@@ -97,10 +97,10 @@ public abstract class Translator {
 		if (!StringUtils.isEmpty(matchResults.getFoundInstance())) {
 			key += ".inst";
 		}
-		if (!StringUtils.isEmpty(context.getActorName()) && (context.actorIsPerson())) {
+		if (!StringUtils.isEmpty(context.getActorName()) && (context.actorIsPerson() || context.actorIsApiKey())) {
 			key += ".pers";
 			if (!StringUtils.isEmpty(context.getMethodName())) {
-				key += ".meth";	
+				key += ".meth";
 			}
 		} else if (!StringUtils.isEmpty(context.getActorName()) && context.actorIsRule()) {
 			key += ".rule";

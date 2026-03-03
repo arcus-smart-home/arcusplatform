@@ -52,6 +52,8 @@ import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.model.Place;
 import com.iris.messages.model.ServiceAddon;
 import com.iris.messages.model.ServiceLevel;
+import com.iris.platform.address.updater.AddressUpdater;
+import com.iris.platform.address.updater.SmartyStreetsAddressUpdater;
 import com.iris.platform.address.validation.smartystreets.DetailedStreetAddress;
 import com.iris.platform.address.validation.smartystreets.HttpSmartyStreetsClient;
 import com.iris.platform.address.validation.smartystreets.SmartyStreetsClient;
@@ -92,6 +94,7 @@ public class TestAddPlaceHandler extends BillingTestCase {
          protected void configure()
          {
             bind(SmartyStreetsClient.class).to(HttpSmartyStreetsClient.class);
+            bind(AddressUpdater.class).to(SmartyStreetsAddressUpdater.class);
          }
       });
 

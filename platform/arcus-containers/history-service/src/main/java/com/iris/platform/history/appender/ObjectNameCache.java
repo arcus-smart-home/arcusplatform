@@ -30,6 +30,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.DeviceDAO;
 import com.iris.core.dao.HubDAO;
 import com.iris.core.dao.PersonDAO;
@@ -45,6 +46,7 @@ import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.capability.RuleCapability;
 import com.iris.messages.capability.SceneCapability;
 import com.iris.messages.errors.NotFoundException;
+import com.iris.security.apikey.ApiKeyPrincipal;
 import com.iris.messages.model.Device;
 import com.iris.messages.model.Hub;
 import com.iris.messages.model.Person;
@@ -70,6 +72,7 @@ public class ObjectNameCache {
    public static final String UNKNOWN_PERSON_NAME = "Someone";
    public static final String UNKNOWN_RULE_NAME   = "UNKNOWN_RULE";
    public static final String UNKNOWN_SCENE_NAME  = "UNKNOWN_SCENE";
+   public static final String UNKNOWN_API_KEY_NAME = "an API key";
 
    private final Cache<Address, String> names;
 
@@ -79,6 +82,7 @@ public class ObjectNameCache {
    private final PersonDAO personDao;
    private final RuleDao ruleDao;
    private final SceneDao sceneDao;
+   private final ApiKeyDAO apiKeyDao;
 
    /**
     *
@@ -91,7 +95,8 @@ public class ObjectNameCache {
          PersonDAO personDao,
          RuleDao ruleDao,
          HistoryAppenderConfig config,
-         SceneDao sceneDao
+         SceneDao sceneDao,
+         ApiKeyDAO apiKeyDao
    ) {
       names =
             CacheBuilder
@@ -106,6 +111,7 @@ public class ObjectNameCache {
       this.personDao = personDao;
       this.ruleDao = ruleDao;
       this.sceneDao = sceneDao;
+      this.apiKeyDao = apiKeyDao;
    }
 
    public void update(PlatformMessage message) {
@@ -198,17 +204,28 @@ public class ObjectNameCache {
 	   }
    }
    
+   public String getApiKeyName(Address apiKeyAddress) {
+	   try {
+		   return names.get(apiKeyAddress, () -> loadApiKey(apiKeyAddress));
+	   } catch (ExecutionException|UncheckedExecutionException e) {
+	         logger.warn("Unable to determine API key name", e);
+	         return UNKNOWN_API_KEY_NAME;
+	   }
+   }
+
    public String getName(Address address) {
 	   if (address.getGroup().equals(DeviceCapability.NAMESPACE)) {
 		   return getDeviceName(address);
 	   } else if (address.getGroup().equals(HubCapability.NAMESPACE) || address.isHubAddress()) {
-		   return getHubName(address);		   
+		   return getHubName(address);
 	   } else if (address.getGroup().equals(PersonCapability.NAMESPACE)) {
 		   return getPersonName(address);
 	   } else if (address.getGroup().equals(RuleCapability.NAMESPACE)) {
 		   return getRuleName(address);
 	   } else if (address.getGroup().equals(SceneCapability.NAMESPACE)) {
 			   return getSceneName(address);
+	   } else if (address.getGroup().equals(ApiKeyPrincipal.ACTOR_NAMESPACE)) {
+		   return getApiKeyName(address);
 	   }
 	   return "";
    }
@@ -233,6 +250,14 @@ public class ObjectNameCache {
 	   return scene.getName();
    }
    
+   protected String loadApiKey(Address apiKeyAddress) {
+	   String label = apiKeyDao.findLabelById((UUID) apiKeyAddress.getId());
+	   if (label == null) {
+		   throw new NotFoundException(apiKeyAddress);
+	   }
+	   return "API key '" + label + "'";
+   }
+
    protected String loadPerson(Address personAddress) {
 	   Person person = personDao.findById((UUID) personAddress.getId());
 	   if (person == null) {

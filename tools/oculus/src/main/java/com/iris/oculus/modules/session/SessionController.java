@@ -443,7 +443,7 @@ public class SessionController {
                promptLogin("Unable to login.\nDetails: " + e.getMessage() + "", result);
             });
       p.onFailure((e) -> op.cancel(true));
-      result.onCompletion((e) -> p.complete());
+      op.onCompletion((e) -> p.complete());
    }
 
    protected void doChangePassword(ChangePasswordInfo credentials, SettableClientFuture<Void> result) {
