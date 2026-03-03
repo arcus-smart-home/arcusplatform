@@ -35,6 +35,9 @@ import com.iris.core.platform.PlatformModule;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.platform.address.updater.AddressUpdater;
+import com.iris.platform.address.updater.NoopAddressUpdater;
+import com.iris.platform.address.updater.SmartyStreetsAddressUpdater;
 import com.iris.platform.address.validation.AddressValidator;
 import com.iris.platform.address.validation.NoopAddressValidator;
 import com.iris.platform.address.validation.smartystreets.SmartyStreetsValidator;
@@ -97,16 +100,18 @@ public class PlatformServicesModule extends AbstractModule {
 
 		switch (addressValidator) {
            default:
-              logger.warn("unknown address validator {}: using default instead");
+              logger.warn("unknown address validator {}: using default instead", addressValidator);
               // fall through
            case "default":
            case "smartystreets":
-              logger.info("using smartystreets address validator");
+              logger.info("using smartystreets address validator and updater");
               bind(AddressValidator.class).to(SmartyStreetsValidator.class);
+              bind(AddressUpdater.class).to(SmartyStreetsAddressUpdater.class);
               break;
            case "noop":
-              logger.warn("using noop address validator");
+              logger.warn("using noop address validator and updater");
               bind(AddressValidator.class).to(NoopAddressValidator.class);
+              bind(AddressUpdater.class).to(NoopAddressUpdater.class);
               break;
         }
    }

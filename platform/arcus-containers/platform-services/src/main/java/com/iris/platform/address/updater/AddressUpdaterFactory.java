@@ -19,21 +19,20 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.messages.model.Place;
-import com.iris.messages.model.ServiceLevel;
 
 @Singleton
 public class AddressUpdaterFactory {
 
-   private final SmartyStreetsAddressUpdater smartyStreetsAddressUpdater;
+   private final AddressUpdater addressUpdater;
 
    @Inject
-   public AddressUpdaterFactory(SmartyStreetsAddressUpdater smartyStreetsAddressUpdater) {
-      this.smartyStreetsAddressUpdater = smartyStreetsAddressUpdater;
+   public AddressUpdaterFactory(AddressUpdater addressUpdater) {
+      this.addressUpdater = addressUpdater;
    }
 
    public AddressUpdater updaterFor(Place place) {
       Preconditions.checkNotNull(place);
-      return smartyStreetsAddressUpdater;
+      return addressUpdater;
    }
 }
 
