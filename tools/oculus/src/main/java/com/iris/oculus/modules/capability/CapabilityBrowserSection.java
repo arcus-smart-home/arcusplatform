@@ -38,20 +38,20 @@ import com.iris.capability.definition.MethodDefinition;
 import com.iris.capability.definition.ServiceDefinition;
 import com.iris.oculus.OculusSection;
 
-public class PermissionBrowserSection implements OculusSection {
+public class CapabilityBrowserSection implements OculusSection {
    private static final String[] COLUMNS = { "Namespace", "Name", "Type" };
 
    private final DefinitionRegistry registry;
    private List<Entry> entries;
 
    @Inject
-   public PermissionBrowserSection(DefinitionRegistry registry) {
+   public CapabilityBrowserSection(DefinitionRegistry registry) {
       this.registry = registry;
    }
 
    @Override
    public String getName() {
-      return "Permissions";
+      return "Capabilities";
    }
 
    @Override

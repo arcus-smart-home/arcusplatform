@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -167,6 +168,16 @@ public class ApiKeySection implements OculusSection {
          this.hasExecutable = hasExecutable;
       }
 
+      NamespaceEntry merge(NamespaceEntry other) {
+         return new NamespaceEntry(
+               namespace,
+               displayName,
+               hasReadable || other.hasReadable,
+               hasWritable || other.hasWritable,
+               hasExecutable || other.hasExecutable
+         );
+      }
+
       @Override
       public String toString() {
          return namespace + " \u2014 " + displayName;
@@ -174,7 +185,7 @@ public class ApiKeySection implements OculusSection {
    }
 
    private List<NamespaceEntry> buildNamespaceEntries() {
-      List<NamespaceEntry> entries = new ArrayList<>();
+      Map<String, NamespaceEntry> byNamespace = new LinkedHashMap<>();
 
       for (CapabilityDefinition cap : registry.getCapabilities()) {
          boolean readable = false;
@@ -184,14 +195,19 @@ public class ApiKeySection implements OculusSection {
             if (attr.isWritable()) writable = true;
          }
          boolean executable = !cap.getMethods().isEmpty();
-         entries.add(new NamespaceEntry(cap.getNamespace(), cap.getName(), readable, writable, executable));
+         byNamespace.merge(cap.getNamespace(),
+               new NamespaceEntry(cap.getNamespace(), cap.getName(), readable, writable, executable),
+               NamespaceEntry::merge);
       }
 
       for (ServiceDefinition svc : registry.getServices()) {
          boolean executable = !svc.getMethods().isEmpty();
-         entries.add(new NamespaceEntry(svc.getNamespace(), svc.getName(), false, false, executable));
+         byNamespace.merge(svc.getNamespace(),
+               new NamespaceEntry(svc.getNamespace(), svc.getName(), false, false, executable),
+               NamespaceEntry::merge);
       }
 
+      List<NamespaceEntry> entries = new ArrayList<>(byNamespace.values());
       entries.sort(Comparator.comparing(e -> e.namespace.toLowerCase()));
       return entries;
    }
