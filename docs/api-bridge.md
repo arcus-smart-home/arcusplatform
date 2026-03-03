@@ -6,7 +6,7 @@ Each API key is scoped to a single place and carries a fixed set of permissions.
 
 ## API Key Management
 
-API keys are managed by sending messages to the place service (`base:place`). Only the account owner can create, revoke, or delete keys.
+API keys are managed by sending messages to the place service (`base:place`). Only the account owner can create, revoke, and list keys.
 
 ### Create
 
@@ -51,10 +51,6 @@ Send `apikey:ListKeys` to the place address. Returns all keys for the place with
 ### Revoke
 
 Send `apikey:Revoke` with the key's `id`. This sets `expiresAt` to the current time, immediately expiring the key. All active WebSocket sessions using the revoked key are disconnected. The key record is preserved for auditing.
-
-### Delete
-
-Send `apikey:Delete` with the key's `id`. The key must be revoked first — attempting to delete an active key returns an error.
 
 ## Authentication
 
@@ -141,4 +137,4 @@ Default configuration (`api-bridge.properties`):
 - **Place isolation** — a key can only access resources within its assigned place. The active place is locked at session creation and cannot be changed.
 - **Immediate revocation** — revoking a key disconnects all active sessions using it across all api-bridge instances (via platform bus event).
 - **Per-place limits** — maximum 10 keys per place to prevent abuse.
-- **Account owner only** — only the account owner can create, revoke, or delete API keys.
+- **Account owner only** — only the account owner can create, revoke, and list API keys.
