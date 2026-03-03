@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.permission.WildcardPermission;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -90,6 +91,17 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       if (permissions.isEmpty()) {
          throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "permissions must not be empty");
+      }
+
+      for (String perm : permissions) {
+         if (StringUtils.isBlank(perm)) {
+            throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "permission strings must not be blank");
+         }
+         try {
+            new WildcardPermission(perm);
+         } catch (IllegalArgumentException e) {
+            throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "invalid permission format: " + perm);
+         }
       }
 
       // Enforce per-place key limit
