@@ -36,6 +36,7 @@ nav:
   - Drivers: driver.md
   - Client Bridge Protocol: client-bridge-protocol.md
   - Cassandra Schema: cassandra.md
+  - Alarm State Machine: alarm.md
   - Security: security.md
   - Troubleshooting: troubleshooting.md
   - Java 11 Upgrade: JAVA11_UPGRADE.md
