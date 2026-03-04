@@ -50,3 +50,5 @@ tools/arcus-captools/out/
 tools/eye-kat/out/
 tools/oculus/out/
 java*.hprof
+site/
+.venv/
