@@ -35,6 +35,7 @@ nav:
   - Hub: hub.md
   - Drivers: driver.md
   - Client Bridge Protocol: client-bridge-protocol.md
+  - Cassandra Schema: cassandra.md
   - Security: security.md
   - Troubleshooting: troubleshooting.md
   - Java 11 Upgrade: JAVA11_UPGRADE.md
