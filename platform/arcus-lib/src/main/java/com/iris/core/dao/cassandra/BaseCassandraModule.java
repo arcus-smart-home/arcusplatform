@@ -313,7 +313,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         return CassandraUtils.toKey(simpleProp, namedProp, name);
     }
 
-    private static List<InetAddress> parseContactPoints(String commaDelimitedList) {
+    protected static List<InetAddress> parseContactPoints(String commaDelimitedList) {
         List<InetAddress> contactPoints = new ArrayList<>();
 
         String[] cps = commaDelimitedList.split(",");

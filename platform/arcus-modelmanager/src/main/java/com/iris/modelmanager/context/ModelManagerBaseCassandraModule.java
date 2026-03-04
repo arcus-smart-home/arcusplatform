@@ -15,11 +15,10 @@
  */
 package com.iris.modelmanager.context;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.BaseCassandraModule;
@@ -39,10 +38,9 @@ public abstract class ModelManagerBaseCassandraModule extends BaseCassandraModul
         profile.setKeyspace(getKeyspace());
 
         if(StringUtils.isNotBlank(getContactPoints())) {
-            String[] nodeList = getContactPoints().split(",");
-            profile.setNodes(Arrays.asList(nodeList));
+            profile.setNodes(parseContactPoints(getContactPoints()));
         }else{
-            profile.setNodes(ImmutableList.<String>of());
+            profile.setNodes(Collections.emptyList());
         }
 
         profile.setUsername(CassandraUtils.getUsername(getConfig(), getName()));
