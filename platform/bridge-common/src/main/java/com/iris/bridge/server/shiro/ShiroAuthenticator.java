@@ -234,7 +234,7 @@ public class ShiroAuthenticator implements Authenticator {
                username = contents.get("username");
                password = contents.get("password");
                token = contents.get("token");
-               isPublic = "true".equalsIgnoreCase("public");
+               isPublic = "true".equalsIgnoreCase(contents.get("public"));
             }
             catch(JsonSyntaxException e) {
                // not JSON
