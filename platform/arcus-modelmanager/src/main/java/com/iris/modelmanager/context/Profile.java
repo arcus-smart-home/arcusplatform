@@ -15,6 +15,7 @@
  */
 package com.iris.modelmanager.context;
 
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,14 +25,14 @@ import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 
 public class Profile {
 
-   private List<String> nodes;
+   private List<InetAddress> nodes;
    private int port;
    private String username;
    private String password;
    private String keyspace;
    private DefaultConsistencyLevel consistencyLevel;
 
-   void setNodes(List<String> nodes) {
+   void setNodes(List<InetAddress> nodes) {
       this.nodes = Collections.unmodifiableList(nodes);
    }
 
@@ -63,7 +64,7 @@ public class Profile {
       this.keyspace = keyspace;
    }
 
-   public List<String> getNodes() {
+   public List<InetAddress> getNodes() {
       return nodes;
    }
 

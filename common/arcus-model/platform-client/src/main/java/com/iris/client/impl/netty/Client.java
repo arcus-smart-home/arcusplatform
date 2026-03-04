@@ -28,6 +28,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -203,6 +204,7 @@ public class Client {
 
             ch.pipeline()
               .addLast("http-codec", new HttpClientCodec())
+              .addLast("decompressor", new HttpContentDecompressor())
               .addLast("aggregator", new HttpObjectAggregator(maxResponseSize))
               .addLast("ws-handler", new WebsocketClient(new WebsocketClientHandshaker(websocket.getUri(), headers, websocket.getMaxFrameSize())))
               .addLast("iris-text-handler", new TextChannelHandler(websocket.getTextHandler()));

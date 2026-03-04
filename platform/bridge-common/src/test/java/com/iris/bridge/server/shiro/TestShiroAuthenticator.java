@@ -682,6 +682,72 @@ public class TestShiroAuthenticator extends IrisTestCase {
       verify();
    }
 
+   @Test
+   public void testExtractTokenJsonPublicTrue() throws Exception {
+      replay();
+
+      DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.POST,
+            "http://localhost/client",
+            Unpooled.wrappedBuffer("{\"username\":\"joe\",\"password\":\"password\",\"public\":\"true\"}".getBytes("UTF-8"))
+      );
+
+      org.apache.shiro.authc.AuthenticationToken token = authenticator.extractToken(channel, request);
+      assertNotNull(token);
+      assertTrue(token instanceof org.apache.shiro.authc.UsernamePasswordToken);
+      org.apache.shiro.authc.UsernamePasswordToken upToken = (org.apache.shiro.authc.UsernamePasswordToken) token;
+      assertEquals("joe", upToken.getUsername());
+      assertFalse("public=true should set rememberMe to false", upToken.isRememberMe());
+
+      verify();
+   }
+
+   @Test
+   public void testExtractTokenJsonPublicNotSet() throws Exception {
+      replay();
+
+      DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.POST,
+            "http://localhost/client",
+            Unpooled.wrappedBuffer("{\"username\":\"joe\",\"password\":\"password\"}".getBytes("UTF-8"))
+      );
+
+      org.apache.shiro.authc.AuthenticationToken token = authenticator.extractToken(channel, request);
+      assertNotNull(token);
+      assertTrue(token instanceof org.apache.shiro.authc.UsernamePasswordToken);
+      org.apache.shiro.authc.UsernamePasswordToken upToken = (org.apache.shiro.authc.UsernamePasswordToken) token;
+      assertEquals("joe", upToken.getUsername());
+      assertTrue("no public field should default rememberMe to true", upToken.isRememberMe());
+
+      verify();
+   }
+
+   @Test
+   public void testExtractTokenFormEncodedPublicTrue() throws Exception {
+      replay();
+
+      String formBody = "user=joe&password=password&public=true";
+      DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.POST,
+            "http://localhost/client",
+            Unpooled.wrappedBuffer(formBody.getBytes("UTF-8"))
+      );
+      request.headers().set("Content-Type", "application/x-www-form-urlencoded");
+      request.headers().set("Content-Length", formBody.length());
+
+      org.apache.shiro.authc.AuthenticationToken token = authenticator.extractToken(channel, request);
+      assertNotNull(token);
+      assertTrue(token instanceof org.apache.shiro.authc.UsernamePasswordToken);
+      org.apache.shiro.authc.UsernamePasswordToken upToken = (org.apache.shiro.authc.UsernamePasswordToken) token;
+      assertEquals("joe", upToken.getUsername());
+      assertFalse("public=true should set rememberMe to false", upToken.isRememberMe());
+
+      verify();
+   }
+
    protected void assertCookieSet(FullHttpResponse response) {
       Cookie cookie = ClientCookieDecoder.STRICT.decode(response.headers().get("Set-Cookie"));
       assertEquals("session-id", cookie.value());

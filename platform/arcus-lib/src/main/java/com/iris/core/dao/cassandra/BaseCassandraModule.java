@@ -179,7 +179,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         String datacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
         CqlSessionBuilder sessionBuilder = CqlSession.builder()
                 .withConfigLoader(configBuilder.build())
-                .addContactPoints(parseContactPoints(contactPoints, port))
+                .addContactPoints(parseContactPointsWithPort(contactPoints, port))
                 .withLocalDatacenter(datacenter)
                 .withKeyspace(keyspace)
                 .withNodeStateListener(CassandraHealth.instance());
@@ -273,8 +273,8 @@ public abstract class BaseCassandraModule extends AbstractModule {
         return CassandraUtils.toKey(simpleProp, namedProp, name);
     }
 
-    private static List<InetSocketAddress> parseContactPoints(String commaDelimitedList, int port) {
-        List<InetSocketAddress> contactPoints = new ArrayList<>();
+    protected static List<InetAddress> parseContactPoints(String commaDelimitedList) {
+        List<InetAddress> contactPoints = new ArrayList<>();
 
         String[] cps = commaDelimitedList.split(",");
         for (int i = 0; i < cps.length; i++) {
@@ -283,7 +283,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
                 LOGGER.debug("{} resolves to: {}", cps[i], addrs);
 
                 for (InetAddress addr : addrs) {
-                    contactPoints.add(new InetSocketAddress(addr, port));
+                    contactPoints.add(addr);
                 }
             } catch (UnknownHostException ex) {
                 // ignore so we can use any working addresses
@@ -295,6 +295,15 @@ public abstract class BaseCassandraModule extends AbstractModule {
             throw new RuntimeException("Unable to configure Cassandra cluster, the hosts specified in cassandra.contactPoints could not be resolved");
         }
 
+        return contactPoints;
+    }
+
+    private static List<InetSocketAddress> parseContactPointsWithPort(String commaDelimitedList, int port) {
+        List<InetAddress> addrs = parseContactPoints(commaDelimitedList);
+        List<InetSocketAddress> contactPoints = new ArrayList<>();
+        for (InetAddress addr : addrs) {
+            contactPoints.add(new InetSocketAddress(addr, port));
+        }
         return contactPoints;
     }
 

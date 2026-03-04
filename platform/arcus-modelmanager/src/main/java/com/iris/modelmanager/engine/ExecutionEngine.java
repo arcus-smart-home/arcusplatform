@@ -15,6 +15,7 @@
  */
 package com.iris.modelmanager.engine;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Date;
@@ -194,7 +195,7 @@ public class ExecutionEngine {
       CqlSessionBuilder builder = CqlSession.builder();
       builder.withConfigLoader(configBuilder.build());
 
-      for(String node : profile.getNodes()) {
+      for(InetAddress node : profile.getNodes()) {
          builder.addContactPoint(new InetSocketAddress(node, profile.getPort()));
       }
       builder.withLocalDatacenter("datacenter1");

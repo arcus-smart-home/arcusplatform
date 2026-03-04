@@ -105,8 +105,8 @@ public class ResetPasswordRESTHandler extends HttpResource {
       String password = PersonService.ResetPasswordRequest.getPassword(body);
       Person person = personDao.findByEmail(email);
 
-      Errors.assertValidRequest(password.length() < MAX_PASSWORD_LENGTH, "New password is too long.");
-      Errors.assertValidRequest(password.length() > MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+      Errors.assertValidRequest(password != null && password.length() >= MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+      Errors.assertValidRequest(password.length() <= MAX_PASSWORD_LENGTH, "New password is too long.");
 
       if(person == null) {
          return error(CODE_PERSON_NOT_FOUND, PERSON_NOT_FOUND_MSG);

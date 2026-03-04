@@ -103,8 +103,8 @@ public class ChangePasswordRESTHandler extends HttpResource {
       String newPassword = PersonService.ChangePasswordRequest.getNewPassword(clientMessage.getPayload());
       String emailAddress = PersonService.ChangePasswordRequest.getEmailAddress(clientMessage.getPayload());
 
-      Errors.assertValidRequest(newPassword.length() < MAX_PASSWORD_LENGTH, "New password is too long.");
-      Errors.assertValidRequest(newPassword.length() > MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+      Errors.assertValidRequest(newPassword != null && newPassword.length() >= MIN_PASSWORD_LENGTH, "New password is missing or too short.");
+      Errors.assertValidRequest(newPassword.length() <= MAX_PASSWORD_LENGTH, "New password is too long.");
 
       MessageBody responseBody;
       HttpResponseStatus status;
