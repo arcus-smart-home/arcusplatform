@@ -41,7 +41,7 @@ The agent runs on Iris Hub v2/v3 hardware, managing ZigBee and Z-Wave radios, ex
 | `arcus-gateway` | Netty WebSocket client — hub-to-platform connectivity with dual-interface failover |
 | `arcus-router` | Async message routing with address-based dispatch (`LinkedTransferQueue`) |
 | `arcus-hub-controller` | Hub device attributes, capabilities, and top-level message dispatch |
-| `arcus-reflex-controller` | Local rule/automation execution (reflexes) — see [claude-reflexes.md](claude-reflexes.md) |
+| `arcus-reflex-controller` | Local rule/automation execution (reflexes) — see [reflexes.md](reflexes.md) |
 | `arcus-alarm-controller` | Hub-local security/safety alarm state machine |
 | `arcus-zigbee-controller` | ZigBee protocol (zsmartsystems 1.2.4) — stub, under development |
 | `arcus-zw-controller` | Z-Wave protocol (Z/IP engine) |
@@ -326,7 +326,7 @@ On startup, the Hub Controller checks for factory reset flag files, soft reset f
 
 **`ReflexController.java`** (`arcus-reflex-controller/.../reflex/ReflexController.java`)
 
-The Reflex Controller enables hub-local device processing. It intercepts device messages at the router level and, when possible, handles them locally without requiring cloud connectivity. See [claude-reflexes.md](claude-reflexes.md) for full details on the reflex system.
+The Reflex Controller enables hub-local device processing. It intercepts device messages at the router level and, when possible, handles them locally without requiring cloud connectivity. See [reflexes.md](reflexes.md) for full details on the reflex system.
 
 ### Local Processing Decision Gate
 

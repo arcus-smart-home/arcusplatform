@@ -129,7 +129,7 @@ Groovy DSL scripts in `driver-services/src/main/resources/`.
 - `IPCD_` — Iris Protocol for Communication and Devices
 - `MOCK_` — Test/simulator drivers
 
-See [claude-driver-model.md](claude-driver-model.md) and [claude-driver-execution.md](claude-driver-execution.md) for full details.
+See [driver-model.md](driver-model.md) and [driver-execution.md](driver-execution.md) for full details.
 
 ---
 

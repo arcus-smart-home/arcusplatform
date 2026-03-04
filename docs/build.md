@@ -244,7 +244,7 @@ The reflex generator uses `groovy.dump.bytecode=true` to produce class files fro
 **Source:** Capability XML definitions
 **Generators:** HTML, JavaScript/Backbone, Swift, Objective-C
 
-See [claude-tools.md](claude-tools.md#arcus-captools) for details.
+See [tools.md](tools.md#arcus-captools) for details.
 
 ---
 

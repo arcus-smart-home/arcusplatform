@@ -61,27 +61,25 @@ Key configuration scopes (Gradle 7):
 
 - Capabilities are defined in XML (`common/arcus-model/src/main/resources/capability/`)
   and code-generated into Java classes. Don't edit generated files.
-- Device drivers use a Groovy DSL — see `docs/claude-driver-model.md`.
-- Subsystems extend `BaseSubsystem` — see `docs/claude-subsystems.md`.
+- Device drivers use a Groovy DSL — see `docs/driver-model.md`.
+- Subsystems extend `BaseSubsystem` — see `docs/subsystems.md`.
 - Platform request handlers extend `MessageHandler` and are registered via Guice.
 
 ## Detailed Docs
 
-In-depth documentation is in `docs/claude-*.md`:
-
 | Topic | File |
 |-------|------|
-| Platform services | `docs/claude-platform.md` |
-| Common libraries & codegen | `docs/claude-common.md` |
-| Driver DSL | `docs/claude-driver-model.md` |
-| Driver execution | `docs/claude-driver-execution.md` |
-| Reflex system | `docs/claude-reflexes.md` |
-| Hub agent | `docs/claude-agent.md` |
-| Build system | `docs/claude-build.md` |
-| Docker infra | `docs/claude-khakis.md` |
-| Hub bridge | `docs/claude-hub-bridge.md` |
-| Subsystems | `docs/claude-subsystems.md` |
-| Rules engine | `docs/claude-rules.md` |
-| Scheduler | `docs/claude-scheduler.md` |
-| Testing | `docs/claude-testing.md` |
-| Tools | `docs/claude-tools.md` |
+| Platform services | `docs/platform-services.md` |
+| Common libraries & codegen | `docs/common.md` |
+| Driver DSL | `docs/driver-model.md` |
+| Driver execution | `docs/driver-execution.md` |
+| Reflex system | `docs/reflexes.md` |
+| Hub agent | `docs/agent.md` |
+| Build system | `docs/build.md` |
+| Docker infra | `docs/khakis.md` |
+| Hub bridge | `docs/hub-bridge.md` |
+| Subsystems | `docs/subsystems.md` |
+| Rules engine | `docs/rules.md` |
+| Scheduler | `docs/scheduler.md` |
+| Testing | `docs/testing.md` |
+| Tools | `docs/tools.md` |

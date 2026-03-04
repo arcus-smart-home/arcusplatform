@@ -2,7 +2,7 @@
 
 Device drivers are Groovy DSL scripts that bridge platform capabilities to physical device protocols. Each driver is a `.driver` file compiled at startup by `driver-services` using `GroovyDriverFactory`.
 
-See [claude-driver-execution.md](claude-driver-execution.md) for how the platform loads, executes, and manages driver lifecycle at runtime.
+See [driver-execution.md](driver-execution.md) for how the platform loads, executes, and manages driver lifecycle at runtime.
 
 ---
 
