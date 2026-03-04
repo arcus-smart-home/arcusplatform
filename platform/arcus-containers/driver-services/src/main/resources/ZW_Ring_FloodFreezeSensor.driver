@@ -1,0 +1,158 @@
+/*
+ * Copyright 2020 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Ring Alarm Flood & Freeze Sensor
+ *
+ * ISSUES/NOTES:
+ *   Detects water leaks and freezing temperatures.
+ *   Freeze detection is via Notification V8 (Heat Alarm type 0x04, event 0x04)
+ *   at a fixed 40F threshold. The device does NOT support Sensor Multilevel;
+ *   it cannot report continuous temperature readings.
+ *   No dedicated "Freeze" capability in Arcus; freeze alerts are logged
+ *   and users can create rules based on the LeakH2O state.
+ *
+ * FACTORY RESET:
+ *
+ * PAIR:
+ *   Open the sensor's battery cover.
+ *   Remove the battery, replacing quickly.
+ *
+ * UNPAIR:
+ *   Open the sensor's battery cover.
+ *   Press the tamper switch.
+ *
+ * Command Classes:
+ *   0x71  (113) Alarm (Notification V8)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ */
+import groovy.transform.Field
+
+driver          "ZWRingFloodFreezeSensor"
+description     "Driver for a Ring Alarm Flood & Freeze Sensor"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Water Leak"
+productId       "f4e351"
+vendor          "RING"
+model           "4SF1S70EN0"
+
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0501, 'ZWAV:ProductId': 0x0101
+
+capabilities    DevicePower, LeakH2O
+
+importCapability 'zwave/GenericZWaveBattery'
+
+
+def final String DEVICE_NAME = "Ring Flood & Freeze Sensor"
+
+def final int OFFLINE_TIMEOUT_SECS       = 11400        // 190 minutes
+def final int BATTERY_POLL_SEC           = 86400        // Ask for battery level every 24 hours
+
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+}
+
+LeakH2O {
+   LeakH2O.state LeakH2O.STATE_SAFE
+}
+
+
+ZWave {
+    match reflex {
+        on alarm.report, notificationtype: 0x05, event: 0x02
+        set LeakH2O.state, LeakH2O.STATE_LEAK
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x05, event: 0x00
+        set LeakH2O.state, LeakH2O.STATE_SAFE
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} added", DEVICE_NAME
+	LeakH2O.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+	vars.'CURRENT_NAME' = DEVICE_NAME
+	log.debug "{} connected", DEVICE_NAME
+
+	// set recommended offline timeout interval
+	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+	ZWave.poll(BATTERY_POLL_SEC, ZWave.battery.get)
+}
+
+onDisconnected {
+	log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+	log.debug "{} removed", DEVICE_NAME
+}
+
+onZWaveNodeInfo {
+	log.debug "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.battery.report {
+   // pass message to generic ZWave Battery Report handler
+   GenericZWaveBattery.handleBatteryReportAcceptValuesOver100(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+	def alarmType = message.command.get('alarmtype')
+	def alarmLevel = message.command.get('alarmlevel')
+	def notificationStatus = message.command.get('notificationstatus')
+	def notificationType = message.command.get('notificationtype')
+	def event = message.command.get('event')
+	log.trace "Alarm Report: alarmType={}, alarmLevel={}, event={}, notificationType={}, notificationStatus={}", alarmType, alarmLevel, event, notificationType, notificationStatus
+
+	// Notification Type 0x04 = Heat Alarm
+	if (4 == notificationType) {
+		if (4 == event) {
+			log.warn "{} FREEZE ALERT: under-heat / freezing condition detected (below 40F)", DEVICE_NAME
+		} else if (0 == event) {
+			log.info "{} freeze alert cleared", DEVICE_NAME
+		}
+	}
+	// Water leak notifications (type 0x05) are handled by reflex match above
+}
+
+onZWaveMessage.wake_up.notification {
+	log.trace "{} wakeup notification", DEVICE_NAME
+}

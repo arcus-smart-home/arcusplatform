@@ -44,109 +44,32 @@ Once complete, reboot the hub or restart the hub agent, and it should use the up
 
 ### Hub authentication
 
-the hub authenticates based on the Hub ID (derived from the mac address), which can be derived with the following:
+The hub authenticates using a Hub ID derived from its wired network MAC address. The hub reads its MAC from hardware (in `IrisHalImpl`) and converts it to a hub ID at startup.
 
-```
-class Main {
- 	public static long macToLong(String mac) {
-		int length = mac.length();
-      if (length == 12) {
-         return (hexDigitValue(mac.charAt(0)) << 44L) |
-                (hexDigitValue(mac.charAt(1)) << 40L) |
-                (hexDigitValue(mac.charAt(2)) << 36L) |
-                (hexDigitValue(mac.charAt(3)) << 32L) |
-                (hexDigitValue(mac.charAt(4)) << 28L) |
-                (hexDigitValue(mac.charAt(5)) << 24L) |
-                (hexDigitValue(mac.charAt(6)) << 20L) |
-                (hexDigitValue(mac.charAt(7)) << 16L) |
-                (hexDigitValue(mac.charAt(8)) << 12L) |
-                (hexDigitValue(mac.charAt(9)) <<  8L) |
-                (hexDigitValue(mac.charAt(10)) << 4L) |
-                hexDigitValue(mac.charAt(11));
-      }
+#### Hub ID format
 
-      if (length == 17) {
-         return (hexDigitValue(mac.charAt(0)) << 44L) |
-                (hexDigitValue(mac.charAt(1)) << 40L) |
-                (hexDigitValue(mac.charAt(3)) << 36L) |
-                (hexDigitValue(mac.charAt(4)) << 32L) |
-                (hexDigitValue(mac.charAt(6)) << 28L) |
-                (hexDigitValue(mac.charAt(7)) << 24L) |
-                (hexDigitValue(mac.charAt(9)) << 20L) |
-                (hexDigitValue(mac.charAt(10)) << 16L) |
-                (hexDigitValue(mac.charAt(12)) << 12L) |
-                (hexDigitValue(mac.charAt(13)) <<  8L) |
-                (hexDigitValue(mac.charAt(15)) << 4L) |
-                hexDigitValue(mac.charAt(16));
-      }
+Hub IDs follow the pattern `AAA-DDDD` (3 alpha characters, a dash, 4 decimal digits), e.g. `LWW-1107`.
 
-      throw new RuntimeException("invalid mac format: " + mac);
-   }
+#### MAC to Hub ID algorithm
 
-    private static long hexDigitValue(char ch) {
-       switch (ch) {
-       case '0': return 0;
-       case '1': return 1;
-       case '2': return 2;
-       case '3': return 3;
-       case '4': return 4;
-       case '5': return 5;
-       case '6': return 6;
-       case '7': return 7;
-       case '8': return 8;
-       case '9': return 9;
-       case 'a': case 'A': return 10;
-       case 'b': case 'B': return 11;
-       case 'c': case 'C': return 12;
-       case 'd': case 'D': return 13;
-       case 'e': case 'E': return 14;
-       case 'f': case 'F': return 15;
-       default: throw new RuntimeException("not a hex digit: " + ch);
-       }
-    }
+Implemented in `common/arcus-common/src/main/java/com/iris/util/HubID.java` (with MAC parsing in `MACAddress.java`):
 
-    private static final char[] ALLOWED_CHARS = "ABCDEFGHJKLNPQRSTUVWXYZ".toCharArray();
-    private static final long ALLOWED_SIZE = ALLOWED_CHARS.length;
+1. Parse the 6-byte MAC address into a 48-bit long (accepts `00:16:A2:05:FE:06` or `0016A205FE06` formats)
+2. Right-shift by 1 bit (`mac >> 1`)
+3. Extract the 4-digit numeric suffix: `shifted % 10000`, zero-padded
+4. Divide the remainder by 10000, then extract 3 alpha characters by repeatedly taking `remainder % 23` and indexing into the alphabet `ABCDEFGHJKLNPQRSTUVWXYZ` (23 characters — `I`, `M`, `O` are excluded to avoid visual confusion with `1`, `N`, `0`)
 
-    public static String fromMac(String mac) {
-       return fromMac(macToLong(mac));
-    }
+#### Examples
 
-    public static String fromMac(long mac) {
-       long macl = mac >> 1;
-       long digits = (macl % 10000L) & 0xFFFF;
-       long remainder = (macl / 10000L);
-       int index;
-       index = (int) (remainder % ALLOWED_SIZE);
-       char thd = ALLOWED_CHARS[index];
-       remainder = remainder / ALLOWED_SIZE;
-       index = (int) (remainder % ALLOWED_SIZE);
-       char snd = ALLOWED_CHARS[index];
-       remainder = remainder / ALLOWED_SIZE;
-       index = (int) (remainder % ALLOWED_SIZE);
-       char fst = ALLOWED_CHARS[index];
+| MAC Address          | Hub ID     |
+|----------------------|------------|
+| `00:16:A2:05:FE:06`  | `LWW-1107` |
+| `A0:19:B2:B0:00:00`  | `HFH-2672` |
 
-       StringBuilder bld = new StringBuilder(8);
-       bld.append(fst);
-       bld.append(snd);
-       bld.append(thd);
-       bld.append('-');
+#### Notes
 
-       if (digits < 10) bld.append("000").append(digits);
-       else if (digits < 100) bld.append("00").append(digits);
-       else if (digits < 1000) bld.append("0").append(digits);
-       else bld.append(digits);
-
-       return bld.toString();
-    }
-
-
-  public static void main(String[] args) {
-    System.out.println("Hello world!");
-    System.out.println(fromMac("<INSERT MAC>"));
-  }
-}
-```
+- The mapping is one-way and deterministic but **not reversible** — the right-shift discards 1 bit, so two adjacent MAC addresses can produce the same hub ID.
+- The key filename for hub certificates (in `/var/volatile/tmp/mfg/keys/`) is also based on the MAC address.
 
 ## Iris Hub specific things
 

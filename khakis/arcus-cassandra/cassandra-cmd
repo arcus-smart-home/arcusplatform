@@ -161,12 +161,15 @@ cassandra_setup() {
 ################################################################################
 
 cassandra_start() {
+    # TODO: remove this chown in a future release once all volumes have been migrated
+    chown -R arcus:arcus /data
+
     if [ -z "${EYERIS_CASSANDRA_INIT}" ] && [ -z "${CASSANDRA_SINGLE_NODE}" ]; then
         echo "Starting Apache Cassandra Server..."
-        exec "${CASSANDRA_HOME}/bin/cassandra" "-fR"
+        exec gosu arcus "${CASSANDRA_HOME}/bin/cassandra" "-f"
      else
         echo "Initializing fresh Apache Cassandra Server..."
-        exec "${CASSANDRA_HOME}/bin/cassandra" "-fR" "-Dcassandra.auto_bootstrap=false"
+        exec gosu arcus "${CASSANDRA_HOME}/bin/cassandra" "-f" "-Dcassandra.auto_bootstrap=false"
     fi
 }
 

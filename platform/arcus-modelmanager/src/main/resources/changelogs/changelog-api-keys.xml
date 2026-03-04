@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="api-keys"
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="createApiKeyTable" author="arcus">
+      <cl:description>Create api_key table partitioned by placeId for listing keys per place</cl:description>
+      <cl:tracking>API-KEY-001</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS api_key (
+            placeId uuid,
+            id uuid,
+            label varchar,
+            keyPrefix varchar,
+            keyHash varchar,
+            personId uuid,
+            accountId uuid,
+            permissions set&lt;varchar&gt;,
+            created timestamp,
+            lastUsed timestamp,
+            expiresAt timestamp,
+            PRIMARY KEY (placeId, id)
+         )</cl:update>
+         <cl:rollback>DROP TABLE api_key</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="createApiKeyByHashTable" author="arcus">
+      <cl:description>Create api_key_by_hash table for authentication lookup by key hash</cl:description>
+      <cl:tracking>API-KEY-002</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS api_key_by_hash (
+            keyHash varchar,
+            id uuid,
+            placeId uuid,
+            label varchar,
+            keyPrefix varchar,
+            personId uuid,
+            accountId uuid,
+            permissions set&lt;varchar&gt;,
+            created timestamp,
+            lastUsed timestamp,
+            expiresAt timestamp,
+            PRIMARY KEY (keyHash)
+         )</cl:update>
+         <cl:rollback>DROP TABLE api_key_by_hash</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="createApiKeyByIdTable" author="arcus">
+      <cl:description>Create api_key_by_id table for looking up key label by id (used by history service)</cl:description>
+      <cl:tracking>API-KEY-003</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS api_key_by_id (
+            id uuid,
+            placeId uuid,
+            label varchar,
+            PRIMARY KEY (id)
+         )</cl:update>
+         <cl:rollback>DROP TABLE api_key_by_id</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

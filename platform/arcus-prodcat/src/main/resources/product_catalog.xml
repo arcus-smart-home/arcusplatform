@@ -5311,5 +5311,25 @@
         <population name="qa"/>
       </populations>
     </product>
+    <product name="Flood and Freeze Sensor" shortname="Flood/Freeze Sensor" screen="Water Leak" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, flood, freeze, water, leak, sensor, temperature, zwave, battery" ota="No" protofamily="Z-Wave" id="f4e351" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
+      <categories>
+        <category name="Water"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Open the sensor's battery cover."/>
+        <step2 type="text" img="" text="Remove the battery, then replace it quickly. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Open the battery cover and press the tamper switch."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="beta"/>
+        <population name="qa"/>
+      </populations>
+    </product>
   </products>
 </prodcat>

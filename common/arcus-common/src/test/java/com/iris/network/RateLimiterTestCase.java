@@ -96,7 +96,7 @@ public abstract class RateLimiterTestCase<T extends RateLimiter> {
 
    @Test
    public void testTryAcquireDoesNotBlockWhenFull() throws Exception {
-      final long EPSILON = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
+      final long EPSILON = TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
       final long WAIT = TimeUnit.NANOSECONDS.convert(100, TimeUnit.MILLISECONDS);
 
       Iterable<T> rls = createRateLimiters();

@@ -15,6 +15,10 @@
  */
 package com.iris.client.server.rest;
 
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.metrics.BridgeMetrics;
@@ -23,12 +27,13 @@ import com.iris.bridge.server.http.annotation.HttpPost;
 import com.iris.bridge.server.http.impl.HttpResource;
 import com.iris.bridge.server.http.impl.auth.AlwaysAllow;
 import com.iris.bridge.server.netty.BridgeHeaders;
-import com.iris.bridge.server.session.Session;
 import com.iris.io.json.JSON;
 import com.iris.messages.ClientMessage;
-import com.iris.messages.MessageConstants;
+import com.iris.messages.MessageBody;
+import com.iris.messages.address.Address;
 import com.iris.messages.service.SessionService;
-import com.iris.netty.server.message.LogHandler;
+import com.iris.messages.service.SessionService.LogRequest;
+import com.iris.messages.service.SessionService.LogResponse;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -43,31 +48,38 @@ import io.netty.util.CharsetUtil;
 @Singleton
 @HttpPost("/" + SessionService.NAMESPACE + "/Log")
 public class SessionLogRESTHandler extends HttpResource {
-   private Session session;
-   private LogHandler handler;
+   private static final Logger sessionLogger = LoggerFactory.getLogger("session");
 
    @Inject
-   public SessionLogRESTHandler(BridgeMetrics metrics, AlwaysAllow alwaysAllow, LogHandler handler) {
+   public SessionLogRESTHandler(BridgeMetrics metrics, AlwaysAllow alwaysAllow) {
       super(alwaysAllow, new HttpSender(SessionLogRESTHandler.class, metrics));
-      this.handler = handler;
    }
 
    @Override
    public FullHttpResponse respond(FullHttpRequest httpRequest, ChannelHandlerContext ctx) throws Exception {
       String requestJson = httpRequest.content().toString(CharsetUtil.UTF_8);
       ClientMessage requestMessage = JSON.fromJson(requestJson, ClientMessage.class);
-      ClientMessage responseMessage = handler.handle(requestMessage, session);
+
+      MessageBody requestBody = requestMessage.getPayload();
+      String category = StringUtils.defaultIfEmpty(LogRequest.getCategory(requestBody), "[notset]");
+      String code = StringUtils.defaultIfEmpty(LogRequest.getCode(requestBody), "[notset]");
+      String message = StringUtils.defaultIfEmpty(LogRequest.getMessage(requestBody), "[none]");
+
+      sessionLogger.info("SessionLogMessage client:rest person:[none] place:[notset] category:{} code:{} message:{}",
+         category, code, message);
+
+      ClientMessage responseMessage = ClientMessage.builder()
+         .withPayload(LogResponse.instance())
+         .withCorrelationId(requestMessage.getCorrelationId())
+         .withSource(Address.platformService(SessionService.NAMESPACE).getRepresentation())
+         .create();
+
       FullHttpResponse httpResponse = new DefaultFullHttpResponse(
-            HttpVersion.HTTP_1_1, 
-            getStatus(responseMessage), 
+            HttpVersion.HTTP_1_1,
+            HttpResponseStatus.OK,
             Unpooled.copiedBuffer(JSON.toJson(responseMessage), CharsetUtil.UTF_8)
       );
       httpResponse.headers().set(HttpHeaderNames.CONTENT_TYPE, BridgeHeaders.CONTENT_TYPE_JSON_UTF8);
       return httpResponse;
    }
-
-   private HttpResponseStatus getStatus(ClientMessage message) {
-      return MessageConstants.MSG_ERROR.equals(message.getType()) ? HttpResponseStatus.INTERNAL_SERVER_ERROR : HttpResponseStatus.OK;
-   }
 }
-

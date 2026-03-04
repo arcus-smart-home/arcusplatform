@@ -39,6 +39,8 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.errors.Errors;
+import com.iris.security.apikey.ApiKeyPrincipal;
+import com.iris.security.principal.Principal;
 import com.iris.messages.service.SessionService;
 import com.iris.messages.service.VideoService;
 import com.iris.metrics.IrisMetrics;
@@ -102,7 +104,11 @@ public class IrisNettyMessageHandler implements DeviceMessageHandler<String> {
             return null;
          }  
 
-         Address actor = Address.platformService(session.getAuthorizationContext().getPrincipal().getUserId(), PersonCapability.NAMESPACE);
+         Principal principal = session.getAuthorizationContext().getPrincipal();
+         String actorNamespace = (principal instanceof ApiKeyPrincipal)
+               ? ApiKeyPrincipal.ACTOR_NAMESPACE
+               : PersonCapability.NAMESPACE;
+         Address actor = Address.platformService(principal.getUserId(), actorNamespace);
          PlatformMessage platformMessage = null;
          
          try {

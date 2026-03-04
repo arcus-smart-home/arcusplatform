@@ -40,8 +40,10 @@ task cleanJaxb {
 }
 
 task excuteJaxbGeneration() {
-   doLast {
+   inputs.dir DEFAULT_SCHEMA_DIR
+   outputs.dir DEFAULT_DESTINATION_DIR
 
+   doLast {
       jaxbRuns.each {
          it()
          xjcAnt()

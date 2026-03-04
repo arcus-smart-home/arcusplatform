@@ -17,6 +17,7 @@ package com.iris.platform.history.appender;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
+import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.DeviceDAO;
 import com.iris.core.dao.HubDAO;
 import com.iris.core.dao.PersonDAO;
@@ -41,7 +42,7 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.UUID;
 
-@Mocks({PersonDAO.class, PlaceDAO.class, DeviceDAO.class, HubDAO.class, RuleDao.class, SceneDao.class})
+@Mocks({PersonDAO.class, PlaceDAO.class, DeviceDAO.class, HubDAO.class, RuleDao.class, SceneDao.class, ApiKeyDAO.class})
 public class TestObjectNameCache extends IrisMockTestCase {
 
    @Inject ObjectNameCache cache;

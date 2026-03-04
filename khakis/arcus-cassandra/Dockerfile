@@ -6,13 +6,15 @@ USER root
 # Initial system configuration
 #  python3 is required to run cqlsh
 #  unzip is required to unzip the modelmanager jar
+#  gosu is used to drop privileges at runtime
 RUN \
     apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
       wget \
       python3 \
       dnsutils \
-      unzip && \
+      unzip \
+      gosu && \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
@@ -27,13 +29,17 @@ RUN \
     ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
     ln -s /opt/cassandra/bin/nodetool /usr/bin
 
-# Add control script
+# Add control script and logging configuration
 ADD cassandra-cmd /usr/bin/
 ADD cassandra-provision /usr/bin/
+ADD logback.xml /opt/apache-cassandra-${CASSANDRA_VERSION}/conf/logback.xml
 
 # Define working directory.
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
+
+# Own the install and data dirs so we can run as non-root
+RUN chown -R arcus:arcus /opt/apache-cassandra-${CASSANDRA_VERSION} /data
 
 # Expose Cassandra ports
 # 7000: intra-node communication

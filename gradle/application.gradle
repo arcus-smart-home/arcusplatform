@@ -99,6 +99,7 @@ startScripts {
 task createApplicationInfo {
    def outputDir = file("${buildDir}/generated-resources/application-info")
    outputs.dir outputDir
+   outputs.upToDateWhen { false }
    doLast {
       def f = new File(outputDir, "META-INF/application.properties")
       f.delete()
@@ -106,6 +107,15 @@ task createApplicationInfo {
       f << "application.name=" + project.name + "\n"
       f << "application.version=" + platformVersion + "\n"
       f << "build.timestamp=" + new Date() + "\n"
+      def gitCommit = ""
+      try {
+         gitCommit = 'git rev-parse --short HEAD'.execute().text.trim()
+      } catch (Exception e) {
+         // git may not be installed
+      }
+      if (gitCommit) {
+         f << "build.commit=" + gitCommit + "\n"
+      }
    }
 }
 

@@ -14,20 +14,6 @@
  * limitations under the License.
  */
 
-plugins {
-    id("com.gradle.enterprise") version("3.15")
-}
-
-gradleEnterprise {
-    if (System.getenv("CI") != null) {
-        buildScan {
-            publishAlways()
-            termsOfServiceUrl = "https://gradle.com/terms-of-service"
-            termsOfServiceAgree = "yes"
-        }
-    }
-}
-
 include 'common:arcus-client'
 include 'common:arcus-common'
 include 'common:arcus-metrics'
@@ -77,6 +63,7 @@ include 'platform:arcus-containers:rule-service'
 include 'platform:arcus-containers:scheduler-service'
 include 'platform:arcus-containers:subsystem-service'
 include 'platform:arcus-containers:metrics-server'
+include 'platform:arcus-containers:api-bridge'
 
 // Optional modules — disabled by default for self-hosted deployment.
 // Enable with: ./gradlew build -PenableVoice -PenableVideo -PenableBilling -PenableAnalytics

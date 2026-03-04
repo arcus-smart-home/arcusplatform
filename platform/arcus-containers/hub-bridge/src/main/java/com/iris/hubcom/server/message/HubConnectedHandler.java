@@ -207,7 +207,9 @@ public class HubConnectedHandler extends DirectMessageHandler {
       String firmwareVersion = HubAdvancedCapability.getOsver(request);
       String agentVersion = HubAdvancedCapability.getAgentver(request);
 
-      log.info("{} firmware versions: model={}, hwVer={}, osVer={}, agentVer={}", hub.getId(), hub.getModel(), hardwareVersion, firmwareVersion, agentVersion);
+      String connType = HubNetworkCapability.getType(request);
+      log.info("{} connected: model={}, conn={}, remoteIp={}, hwVer={}, osVer={}, agentVer={}",
+            hub.getId(), hub.getModel(), connType, session.getChannel().remoteAddress(), hardwareVersion, firmwareVersion, agentVersion);
 
       if (firmwareVersion == null || firmwareVersion.equalsIgnoreCase("unknown")) {
          log.warn("Hub [{}] firmware version is unkown.");

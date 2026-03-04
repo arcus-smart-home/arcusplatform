@@ -15,6 +15,7 @@
  */
 package com.iris.modelmanager.engine;
 
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -190,7 +191,7 @@ public class ExecutionEngine {
    	QueryOptions options = new QueryOptions();
    	options.setConsistencyLevel(profile.getConsistencyLevel());
       Cluster.Builder builder = Cluster.builder();
-      builder.addContactPoints(profile.getNodes().toArray(new String[0]));
+      builder.addContactPoints(profile.getNodes().toArray(new InetAddress[0]));
       builder.withPort(profile.getPort());
       builder.withQueryOptions(options);
 

@@ -100,11 +100,13 @@ public class TagHandler extends BaseClientRequestHandler
       Address clientAddress = Address.fromString(messageUtil.buildId(session.getClientToken().getRepresentation()));
       Address personAddress = personId == null ? null : Address.platformService(personId, PersonCapability.NAMESPACE);
 
-      tagBus.send(PlatformMessage.buildEvent(eventBody, clientAddress)
+      PlatformMessage.Builder msgBuilder = PlatformMessage.buildEvent(eventBody, clientAddress)
          .withPlaceId(placeId)
-         .withPopulation(populationCacheMgr.getPopulationByPlaceId(UUID.fromString(placeId)))
-         .withActor(personAddress)
-         .create());
+         .withActor(personAddress);
+      if (placeId != null) {
+         msgBuilder.withPopulation(populationCacheMgr.getPopulationByPlaceId(UUID.fromString(placeId)));
+      }
+      tagBus.send(msgBuilder.create());
 
       return TagResponse.instance();
    }
