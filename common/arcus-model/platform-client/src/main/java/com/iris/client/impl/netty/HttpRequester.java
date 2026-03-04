@@ -29,6 +29,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.ssl.JdkSslClientContext;
@@ -263,6 +264,7 @@ public class HttpRequester {
          pipeline.addLast(new IdleStateHandler(IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS, IDLE_TIMEOUT_SECONDS));
          pipeline.addLast(new HttpIdleStateHandler());
          pipeline.addLast(new HttpClientCodec());
+         pipeline.addLast(new HttpContentDecompressor());
          pipeline.addLast(new HttpObjectAggregator(maxResponseSize));
          pipeline.addLast(new HttpClientHandler());
       }
