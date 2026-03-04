@@ -1,0 +1,51 @@
+site_name: Arcus Platform
+site_description: Open-source home automation and control system
+repo_url: https://github.com/wl-net/arcusplatform
+repo_name: wl-net/arcusplatform
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Projects: projects.md
+  - Platform: platform.md
+  - Hub: hub.md
+  - Drivers: driver.md
+  - Client Bridge Protocol: client-bridge-protocol.md
+  - Security: security.md
+  - Troubleshooting: troubleshooting.md
+  - Java 11 Upgrade: JAVA11_UPGRADE.md
+  - Eye-Kat: eye-kat.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - toc:
+      permalink: true
