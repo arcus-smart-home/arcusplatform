@@ -25,14 +25,6 @@
 | `tag-service` | User-defined device tagging/labeling |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |
 
-**Voice Assistant Services:**
-
-| Service | Purpose |
-|---------|---------|
-| `voice-service` | Cloud voice assistant protocol handling |
-| `alexa-bridge` | Amazon Alexa skill integration |
-| `google-bridge` | Google Home integration |
-
 **Video Services:**
 
 | Service | Purpose |
@@ -65,8 +57,7 @@
 | `arcus-rules` | Rule compilation and evaluation framework |
 | `arcus-alarm` | Alarm state machine, incident tracking, call tree/escalation |
 | `arcus-video` | Video recording/streaming management, cloud storage integration |
-| `arcus-voice-bridge` | Common code for Alexa/Google integration |
-| `arcus-oauth` | OAuth 2.0 authentication and session management |
+| `arcus-oauth` | OAuth 2.0 server library (authorization, token, revocation endpoints) |
 | `arcus-security` | Shiro-based authentication/authorization with Cassandra-backed DAOs |
 | `arcus-subscriptions` | User subscription plans, feature entitlements, billing integration |
 | `arcus-hubsession` | WebSocket session management for hub connections |
