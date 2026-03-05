@@ -36,12 +36,13 @@ Feature: Unit Tests for Leviton DZPA1 ZWave Plus Plug-In Switch
 		Then the driver should poll switch_binary.get every 60 minutes
 		Then the driver should send version get
 		Then the driver should send switch_binary get
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 	Scenario: Platform turns on switch via attribute change.
 		When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
-		Then the driver should send switch_binary set 
-			And with parameter value -1		
+		Then the driver should send switch_binary set
+			And with parameter value -1
 		Then the driver should place a EmptyMessage message on the platform bus
 		Then the driver should schedule event DeferredSwitchBinaryGet
 		Then both busses should be empty

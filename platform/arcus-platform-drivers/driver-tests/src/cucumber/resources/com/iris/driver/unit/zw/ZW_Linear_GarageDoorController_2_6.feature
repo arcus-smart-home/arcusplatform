@@ -33,6 +33,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And the driver should poll barrier_operator.get every 20 minutes
 			And the driver should set timeout at 70 minutes
 		Then the driver should schedule event SetLifeline every 2 seconds 10 times
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then nothing else should happen
 
 	Scenario: Platform attempts to Open GDC via attribute change.

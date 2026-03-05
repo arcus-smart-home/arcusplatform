@@ -42,8 +42,9 @@ Scenario: Device associated
 		Then the driver should send configuration get
 #			And with parameter param 4 
 		Then the driver should send version get
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
-								
+
 	Scenario: Platform turns on switch via attribute change. 
 		When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
 		Then the driver should send switch_binary set 

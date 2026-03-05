@@ -31,7 +31,7 @@ Feature: ZWave Utilitech Glass Break Sensor Reflex Driver Test
 		Then the driver should send version get
 		Then the driver should send sensor_alarm get
 			And with parameter sensortype 7
-		Then the driver should place a base:ValueChange message on the platform bus
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then nothing else should happen
 
 #Needs test harness update

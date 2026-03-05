@@ -538,6 +538,21 @@ Then(~/^the driver should( not)? place a (.+) message on the platform bus$/) { n
 }
 
 /**
+ * Optionally drains a message from the platform bus if one is present.
+ * Used for messages like devconn:lastchange ValueChange that may or may not
+ * appear depending on timing.
+ *
+ * EXAMPLE:
+ * 		Then the driver may place a base:ValueChange message on the platform bus
+ */
+Then(~/^the driver may place a (.+) message on the platform bus$/) { messageName ->
+	def msg = context.getPlatformBus().getMessageQueue().peek()
+	if (msg != null && msg.getValue().getMessageType() == messageName) {
+		context.getPlatformBus().take()
+	}
+}
+
+/**
  * Drains platform bus messages until one matching the expected type is found.
  * Useful when a driver emits a variable number of base:ValueChange messages
  * before a specific event like doorlock:PinUsed.

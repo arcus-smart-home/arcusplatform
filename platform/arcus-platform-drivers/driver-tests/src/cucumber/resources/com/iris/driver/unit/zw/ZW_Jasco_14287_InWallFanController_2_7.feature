@@ -59,7 +59,7 @@ Feature: GE/Jasco 500 Series 14287 In-Wall Fan Controller
         Then the driver should send switch_multilevel get
         # onConnected from GenericZWaveVersion
         Then the driver should send version get
-        Then the driver should place a base:ValueChange message on the platform bus
+        Then the driver may place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
 

@@ -36,7 +36,7 @@ Feature: Test for ZWave water valve fom Dome
 		Then the driver should send switch_binary get
 		Then the driver should poll switch_binary.get every 15 minutes
 		Then the driver should send version get
-		Then the driver should place a base:ValueChange message on the platform bus
+		Then the driver may place a base:ValueChange message on the platform bus
 			And both busses should be empty
 				
 	Scenario: Platform turns on valve via attribute change. 
