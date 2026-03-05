@@ -20,6 +20,7 @@ package com.iris.common.rule;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 import org.junit.Assert;
 
@@ -40,10 +41,11 @@ public class RuleFixtures {
     * @return
     */
    public static Calendar time(int hours, int minutes, int seconds) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
       calendar.set(Calendar.HOUR_OF_DAY, hours);
       calendar.set(Calendar.MINUTE, minutes);
       calendar.set(Calendar.SECOND, seconds);
+      calendar.set(Calendar.MILLISECOND, 0);
       return calendar;
    }
 
@@ -53,7 +55,7 @@ public class RuleFixtures {
     * @return
     */
    public static Calendar day(int dayOfWeek) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
       calendar.set(Calendar.DAY_OF_WEEK, dayOfWeek);
       return calendar;
    }
