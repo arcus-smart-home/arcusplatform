@@ -266,7 +266,7 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
                .addColumn(Columns.MODIFIED)
                .usePreparedStatementCache()
                ;
-      values.add(timestamp);
+      values.add(timestamp.toInstant());
 
       attributes.forEach((attribute) -> {
          builder.addColumn(Columns.ATTRIBUTES + "[?]");
