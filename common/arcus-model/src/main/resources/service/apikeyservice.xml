@@ -72,6 +72,25 @@
 
       </s:method>
 
+      <s:method
+         name="Delete"
+         description="Deletes a revoked API key. The key must be revoked before it can be deleted."
+         isRESTful="false">
+
+         <s:parameter
+            name="placeId"
+            type="string"
+            description="The place the API key belongs to"
+            optional="false"/>
+
+         <s:parameter
+            name="id"
+            type="string"
+            description="The UUID of the API key to delete"
+            optional="false"/>
+
+      </s:method>
+
    </s:methods>
 
 </s:service>

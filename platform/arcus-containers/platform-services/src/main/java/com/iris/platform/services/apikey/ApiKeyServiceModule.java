@@ -23,6 +23,7 @@ import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.model.Place;
 import com.iris.platform.services.apikey.handlers.CreateApiKeyHandler;
+import com.iris.platform.services.apikey.handlers.DeleteApiKeyHandler;
 import com.iris.platform.services.apikey.handlers.ListApiKeysHandler;
 import com.iris.platform.services.apikey.handlers.RevokeApiKeyHandler;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ public class ApiKeyServiceModule extends AbstractIrisModule {
       Multibinder<ContextualRequestMessageHandler<Place>> handlerBinder =
             bindSetOf(new TypeLiteral<ContextualRequestMessageHandler<Place>>() {});
       handlerBinder.addBinding().to(CreateApiKeyHandler.class);
+      handlerBinder.addBinding().to(DeleteApiKeyHandler.class);
       handlerBinder.addBinding().to(ListApiKeysHandler.class);
       handlerBinder.addBinding().to(RevokeApiKeyHandler.class);
    }
