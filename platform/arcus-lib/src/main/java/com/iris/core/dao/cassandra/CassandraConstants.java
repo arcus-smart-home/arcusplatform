@@ -30,6 +30,8 @@ public interface CassandraConstants {
    public final static String CASSANDRA_PROTOVER_PROP = "cassandra.protocol.version";
    public final static String CASSANDRA_SSL_PROP = "cassandra.use.ssl";
    public final static String CASSANDRA_LOADBALANCINGPOLICY = "cassandra.loadbalancingpolicy";
+   public final static String CASSANDRA_LOCAL_DC_PROP = "cassandra.local.datacenter";
+   public final static String CASSANDRA_LOCAL_DC_DEFAULT = "datacenter1";
 
    public final static String CASSANDRA_POOL_CONN_CORE_PROP = "cassandra.pool.connections.core";
    public final static String CASSANDRA_POOL_CONN_MAX_PROP = "cassandra.pool.connections.max";
@@ -55,6 +57,7 @@ public interface CassandraConstants {
    public final static String CASSANDRA_X_PROTOVER_PROP = "cassandra.%s.protocol.version";
    public final static String CASSANDRA_X_SSL_PROP = "cassandra.%s.use.ssl";
    public final static String CASSANDRA_X_LOADBALANCINGPOLICY = "cassandra.%s.loadbalancingpolicy";
+   public final static String CASSANDRA_X_LOCAL_DC_PROP = "cassandra.%s.local.datacenter";
 
    public final static String CASSANDRA_X_POOL_CONN_CORE_PROP = "cassandra.%s.pool.connections.core";
    public final static String CASSANDRA_X_POOL_CONN_MAX_PROP = "cassandra.%s.pool.connections.max";

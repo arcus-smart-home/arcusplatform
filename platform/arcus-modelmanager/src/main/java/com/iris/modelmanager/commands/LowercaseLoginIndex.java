@@ -18,18 +18,18 @@ package com.iris.modelmanager.commands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
 
 public class LowercaseLoginIndex implements ExecutionCommand {
    private static final Logger logger = LoggerFactory.getLogger(LowercaseLoginIndex.class);
-   
+
    private static final String SELECT = "SELECT * FROM login";
    private static final String INSERT_LOGIN =
          "INSERT INTO login (domain, user_0_3, user, password, password_salt, personid) " +
@@ -43,10 +43,10 @@ public class LowercaseLoginIndex implements ExecutionCommand {
    }
 
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement insert = session.prepare(INSERT_LOGIN);
       PreparedStatement delete = session.prepare(DELETE_LOGIN);
-      
+
       ResultSet rs = context.getSession().execute(SELECT);
       for(Row row: rs) {
          String domain = row.getString("domain");
@@ -60,12 +60,12 @@ public class LowercaseLoginIndex implements ExecutionCommand {
             // TODO async this?
             logger.debug("Converting [{}] to lower case", user);
             BoundStatement bs = insert.bind(
-                  domain.toLowerCase(), 
-                  user_0_3.toLowerCase(), 
+                  domain.toLowerCase(),
+                  user_0_3.toLowerCase(),
                   user.toLowerCase(),
                   row.getString("password"),
                   row.getString("password_salt"),
-                  row.getUUID("personid")
+                  row.getUuid("personid")
             );
             if(session.execute(bs).wasApplied()) {
                session.execute( delete.bind(domain, user_0_3, user) );
@@ -76,9 +76,8 @@ public class LowercaseLoginIndex implements ExecutionCommand {
          }
       }
    }
-   
+
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       logger.warn("Rollback is not supported for {}", this);
    }
 }
-

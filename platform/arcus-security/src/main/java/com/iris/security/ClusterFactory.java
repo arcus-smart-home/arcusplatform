@@ -17,9 +17,9 @@
  */
 package com.iris.security;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Host;
-import com.datastax.driver.core.Metadata;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.util.Destroyable;
 import org.apache.shiro.util.Factory;
@@ -27,22 +27,20 @@ import org.apache.shiro.util.Initializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Obtains and returns a Cassandra Driver {@link com.datastax.driver.core.Cluster} object to be used for acquiring Cassandra Driver
- * {@link com.datastax.driver.core.Session} instances to perform CQL3 queries.
+ * Obtains and returns a Cassandra Driver {@link CqlSession} object to be used for performing CQL3 queries.
  *
  * @since 2013-06-09
  */
-public class ClusterFactory implements Factory<Cluster>, Initializable, Destroyable {
+public class ClusterFactory implements Factory<CqlSession>, Initializable, Destroyable {
 
    private static final Logger LOG = LoggerFactory.getLogger(ClusterFactory.class);
 
-   private String embeddedCassandraConfigPath; //null means don't start embedded cassandra
-
-   private Cluster cluster;
+   private CqlSession session;
 
    private Set<String> contactPoints;
    private int port;
@@ -51,14 +49,6 @@ public class ClusterFactory implements Factory<Cluster>, Initializable, Destroya
       this.contactPoints = new HashSet<String>();
       this.contactPoints.add("localhost");
       this.port = 9042; //cassandra default
-   }
-
-   public String getEmbeddedCassandraConfigPath() {
-      return embeddedCassandraConfigPath;
-   }
-
-   public void setEmbeddedCassandraConfigPath(String embeddedCassandraConfigPath) {
-      this.embeddedCassandraConfigPath = embeddedCassandraConfigPath;
    }
 
    public Set<String> getContactPoints() {
@@ -77,19 +67,15 @@ public class ClusterFactory implements Factory<Cluster>, Initializable, Destroya
       this.port = port;
    }
 
-   protected boolean isEmbedded() {
-      return this.embeddedCassandraConfigPath != null;
-   }
-
-   public Cluster getInstance() {
-      if (cluster == null) {
+   public CqlSession getInstance() {
+      if (session == null) {
          init();
       }
-      return cluster;
+      return session;
    }
 
    public void init() throws ShiroException {
-      if (cluster == null) {
+      if (session == null) {
          try {
             doInit();
          } catch (Exception e) {
@@ -99,45 +85,40 @@ public class ClusterFactory implements Factory<Cluster>, Initializable, Destroya
    }
 
    protected void doInit() throws Exception {
-      if (cluster == null) {
-         //if (isEmbedded()) {
-         //    EmbeddedCassandraServerHelper.startEmbeddedCassandra(this.embeddedCassandraConfigPath);
-         //}
-         cluster = createCluster();
+      if (session == null) {
+         session = createSession();
       }
    }
 
-   protected Cluster createCluster() {
-      Cluster.Builder builder = Cluster.builder();
+   protected CqlSession createSession() {
+      com.datastax.oss.driver.api.core.CqlSessionBuilder builder = CqlSession.builder();
 
       if (this.contactPoints != null && !this.contactPoints.isEmpty()) {
-         String[] values = new String[this.contactPoints.size()];
-         this.contactPoints.toArray(values);
-         builder.addContactPoints(values);
+         for (String cp : this.contactPoints) {
+            builder.addContactPoint(new InetSocketAddress(cp, this.port));
+         }
       }
 
-      builder.withPort(this.port);
+      CqlSession session = builder.build();
 
-      Cluster cluster = builder.build();
+      Metadata metadata = session.getMetadata();
 
-      Metadata metadata = cluster.getMetadata();
-
-      LOG.info("Connected to Cassandra cluster: " + metadata.getClusterName());
-      for (Host host : metadata.getAllHosts()) {
+      LOG.info("Connected to Cassandra cluster: " + metadata.getClusterName().orElse("unknown"));
+      for (Node node : metadata.getNodes().values()) {
          LOG.info("DataCenter: {}, Rack: {}, Host: {}",
-                  new Object[]{host.getDatacenter(), host.getRack(), host.getAddress()});
+                  new Object[]{node.getDatacenter(), node.getRack(), node.getEndPoint()});
       }
 
-      return cluster;
+      return session;
    }
 
    public void destroy() throws Exception {
       try {
-         if (cluster != null) {
-            cluster.close();
+         if (session != null) {
+            session.close();
          }
       } finally {
-         cluster = null;
+         session = null;
       }
    }
 }

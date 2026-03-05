@@ -28,12 +28,12 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
 import com.iris.core.dao.metrics.DaoMetrics;
@@ -44,28 +44,28 @@ import com.iris.platform.rule.PlaceEntity;
  *
  */
 public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
-   protected static PreparedStatement listByPlaceStatement(Session session, String type) {
+   protected static PreparedStatement listByPlaceStatement(CqlSession session, String type) {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder.select(RuleEnvironmentTable.NAME)
       				.addWhereColumnEquals(RuleEnvironmentTable.Column.PLACE_ID.columnName())
       				.where(RuleEnvironmentTable.Column.TYPE.columnName() + " = '" + type + "'");
       return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
    }
 
-   protected static PreparedStatement findByIdStatement(Session session, String type) {
+   protected static PreparedStatement findByIdStatement(CqlSession session, String type) {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder.select(RuleEnvironmentTable.NAME)
       				.where(whereIdEq(type));
       return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
    }
 
 
-   protected static PreparedStatement currentSequenceNumberStatement(Session session, String sequenceFieldName) {
+   protected static PreparedStatement currentSequenceNumberStatement(CqlSession session, String sequenceFieldName) {
       return CassandraQueryBuilder.select("place")
       				.addColumn(sequenceFieldName)
       				.addWhereColumnEquals("id")
       				.prepare(session);
    }
 
-   protected static PreparedStatement incrementSequenceIf(Session session, String sequenceFieldName) {
+   protected static PreparedStatement incrementSequenceIf(CqlSession session, String sequenceFieldName) {
       return CassandraQueryBuilder.update("place")
       				.addColumn(sequenceFieldName)
       				.addWhereColumnEquals("id")
@@ -74,7 +74,7 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
 
    }
 
-   protected static PreparedStatement deleteByIdStatement(Session session, String type) {
+   protected static PreparedStatement deleteByIdStatement(CqlSession session, String type) {
       return CassandraQueryBuilder.delete(RuleEnvironmentTable.NAME)
       				.where(whereIdEq(type))
       				.prepare(session);
@@ -87,7 +87,7 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
                + "AND " + RuleEnvironmentTable.Column.ID + " = ?";
    }
 
-   protected final Session session;
+   protected final CqlSession session;
    protected final PlaceDaoMetrics metrics;
 
    private final String sequenceName;
@@ -99,7 +99,7 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
 
    private final int maxRetries = 3;
 
-   public BaseRuleEnvironmentDaoImpl(Session session, String type) {
+   public BaseRuleEnvironmentDaoImpl(CqlSession session, String type) {
       this.session = session;
       this.metrics = new PlaceDaoMetrics(getClass());
       this.sequenceName = type + "Sequence";
@@ -158,7 +158,7 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
 
    protected abstract T buildEntity(Row row);
 
-   protected Statement prepareInsert(T bean, Date ts) {
+   protected Statement<?> prepareInsert(T bean, Date ts) {
       int id = nextId(bean.getPlaceId());
       bean.setId(new ChildId(bean.getPlaceId(), id));
       bean.setCreated(ts);
@@ -167,13 +167,13 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
       return prepareUpsert(bean, ts);
    }
 
-   protected Statement prepareUpdate(T bean, Date ts) {
+   protected Statement<?> prepareUpdate(T bean, Date ts) {
       bean.setModified(ts);
 
       return prepareUpsert(bean, ts);
    }
 
-   protected abstract Statement prepareUpsert(T bean, Date ts);
+   protected abstract Statement<?> prepareUpsert(T bean, Date ts);
 
    public List<T> listByPlace(UUID placeId) {
       Preconditions.checkNotNull(placeId, "placeId may not be null");
@@ -211,7 +211,7 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
 
       boolean insert = !bean.isPersisted();
       Context c;
-      Statement stmt;
+      Statement<?> stmt;
 
       if(insert) {
          c = metrics.startDaoCreateTimer();
@@ -304,4 +304,3 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
    }
 
 }
-

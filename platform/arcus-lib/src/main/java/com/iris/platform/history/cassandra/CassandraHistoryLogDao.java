@@ -22,10 +22,10 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.inject.Inject;
@@ -51,7 +51,7 @@ import com.iris.platform.history.cassandra.HistoryTable.DetailedSubsystemTable;
 @Singleton
 public class CassandraHistoryLogDao implements HistoryLogDAO {
    private static final Logger logger = LoggerFactory.getLogger(CassandraHistoryLogDao.class);
-   private final Session session;
+   private final CqlSession session;
    private final CriticalPlaceTable criticalPlaceTable;
    private final DetailedPlaceTable detailedPlaceTable;
    private final DetailedPersonTable detailedPersonTable;
@@ -63,7 +63,7 @@ public class CassandraHistoryLogDao implements HistoryLogDAO {
 
    @Inject
    public CassandraHistoryLogDao(
-         @Named(CassandraHistory.NAME) Session session,
+         @Named(CassandraHistory.NAME) CqlSession session,
          CriticalPlaceTable criticalPlaceTable,
          DetailedPlaceTable detailedPlaceTable,
          DetailedPersonTable detailedPersonTable,
@@ -194,7 +194,7 @@ public class CassandraHistoryLogDao implements HistoryLogDAO {
          Predicate<HistoryLogEntry> filter
    ) {
       List<HistoryLogEntry> result = new ArrayList<>(limit);
-      select.setFetchSize(limit + 1);
+      select = select.setPageSize(limit + 1);
       ResultSet rs = session.execute( select );
       Row row = rs.one();
       for(int i=0; i<MAX_PROCESSED_ROWS && row != null && result.size() < limit; i++) {
@@ -213,7 +213,7 @@ public class CassandraHistoryLogDao implements HistoryLogDAO {
          return PagedResults.newPage(result); 
       }
       else {
-         return PagedResults.newPage(result, row.getUUID(Columns.TIMESTAMP).toString());
+         return PagedResults.newPage(result, row.getUuid(Columns.TIMESTAMP).toString());
       }
    }
 
@@ -223,38 +223,38 @@ public class CassandraHistoryLogDao implements HistoryLogDAO {
       switch(type) {
       case CRITICAL_PLACE_LOG:
       case DETAILED_PLACE_LOG:
-         event.setId(row.getUUID(Columns.PLACE_ID));
+         event.setId(row.getUuid(Columns.PLACE_ID));
          break;
       case DETAILED_PERSON_LOG:
-         event.setId(row.getUUID(Columns.PERSON_ID));
+         event.setId(row.getUuid(Columns.PERSON_ID));
          break;
       case DETAILED_DEVICE_LOG:
-         event.setId(row.getUUID(Columns.DEVICE_ID));
+         event.setId(row.getUuid(Columns.DEVICE_ID));
          break;
       case DETAILED_HUB_LOG:
           event.setId(row.getString(Columns.HUB_ID));
           break;
       case DETAILED_RULE_LOG:
          ChildId id = new ChildId(
-               row.getUUID(Columns.PLACE_ID),
+               row.getUuid(Columns.PLACE_ID),
                row.getInt(Columns.RULE_ID)
          );
          event.setId(id);
          break;
       case DETAILED_SUBSYSTEM_LOG:
          SubsystemId subsystemId = new SubsystemId(
-               row.getUUID(Columns.PLACE_ID),
+               row.getUuid(Columns.PLACE_ID),
                row.getString(Columns.SUBSYSTEM)
          );
          event.setId(subsystemId);
          break;
       case DETAILED_ALARM_LOG:
-      	event.setId(row.getUUID(Columns.INCIDENT_ID));
+      	event.setId(row.getUuid(Columns.INCIDENT_ID));
       	break;
       default:
          throw new IllegalArgumentException("Unsupported log type:" + event.getType());
       }
-      event.setTimestamp(row.getUUID(Columns.TIMESTAMP));
+      event.setTimestamp(row.getUuid(Columns.TIMESTAMP));
       event.setMessageKey(row.getString(Columns.MESSAGE_KEY));
       event.setValues(row.getList(Columns.PARAMS, String.class));
       event.setSubjectAddress(row.getString(Columns.SUBJECT_ADDRESS));

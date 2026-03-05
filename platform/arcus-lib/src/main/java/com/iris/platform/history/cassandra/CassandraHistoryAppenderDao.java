@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -48,7 +48,7 @@ import com.iris.util.IrisUUID;
 @Singleton
 public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
    private static final Logger logger = LoggerFactory.getLogger(CassandraHistoryAppenderDao.class);
-   
+
    private static final Timer criticalPlaceLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "critical.place");
    private static final Timer detailedPlaceLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "detailed.place");
    private static final Timer detailedDeviceLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "detailed.device");
@@ -57,8 +57,8 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
    private static final Timer detailedRuleLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "detailed.rule");
    private static final Timer detailedSubsystemLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "detailed.subsystem");
    private static final Timer detailedAlarmLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "detailed.alarm");
-   
-   private final Session session;
+
+   private final CqlSession session;
    private final CriticalPlaceTable criticalPlaceTable;
    private final DetailedPlaceTable detailedPlaceTable;
    private final DetailedPersonTable detailedPersonTable;
@@ -67,12 +67,12 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
    private final DetailedRuleTable detailedRuleTable;
    private final DetailedSubsystemTable detailedSubsystemTable;
    private final DetailedAlarmTable detailedAlarmTable;
-   
+
    private final AtomicLong nextId = new AtomicLong(0);
 
    @Inject
    public CassandraHistoryAppenderDao(
-         @Named(CassandraHistory.NAME) Session session,
+         @Named(CassandraHistory.NAME) CqlSession session,
          CriticalPlaceTable criticalPlaceTable,
          DetailedPlaceTable detailedPlaceTable,
          DetailedPersonTable detailedPersonTable,
@@ -110,7 +110,7 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
       PreparedStatement stmt;
 
       Context metricsTimer = null;
-      
+
       try{
          switch (event.getType()) {
          case CRITICAL_PLACE_LOG:
@@ -121,7 +121,7 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
          case DETAILED_PLACE_LOG:
             stmt = detailedPlaceTable.insert();
             values.add(event.getId());
-            metricsTimer = detailedPlaceLogTimer.time(); 
+            metricsTimer = detailedPlaceLogTimer.time();
             break;
          case DETAILED_PERSON_LOG:
             stmt = detailedPersonTable.insert();
@@ -169,7 +169,7 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
             values.add(event.getNonNullValues());
          }
          values.add(event.getSubjectAddress());
-         
+
          session.execute(stmt.bind(values.toArray()));
 
       }finally{
@@ -191,4 +191,3 @@ public class CassandraHistoryAppenderDao implements HistoryAppenderDAO {
 	}
 
 }
-

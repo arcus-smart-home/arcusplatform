@@ -15,8 +15,8 @@
  */
 package com.iris.security.apikey;
 
+import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -31,9 +31,9 @@ public class ApiKey {
    private String keyPrefix;
    private String keyHash;
    private final Set<String> permissions = new HashSet<>();
-   private Date created;
-   private Date lastUsed;
-   private Date expiresAt;
+   private Instant created;
+   private Instant lastUsed;
+   private Instant expiresAt;
 
    public UUID getId() {
       return id;
@@ -102,32 +102,32 @@ public class ApiKey {
       }
    }
 
-   public Date getCreated() {
+   public Instant getCreated() {
       return created;
    }
 
-   public void setCreated(Date created) {
+   public void setCreated(Instant created) {
       this.created = created;
    }
 
-   public Date getLastUsed() {
+   public Instant getLastUsed() {
       return lastUsed;
    }
 
-   public void setLastUsed(Date lastUsed) {
+   public void setLastUsed(Instant lastUsed) {
       this.lastUsed = lastUsed;
    }
 
-   public Date getExpiresAt() {
+   public Instant getExpiresAt() {
       return expiresAt;
    }
 
-   public void setExpiresAt(Date expiresAt) {
+   public void setExpiresAt(Instant expiresAt) {
       this.expiresAt = expiresAt;
    }
 
    public boolean isExpired() {
-      return expiresAt != null && new Date().after(expiresAt);
+      return expiresAt != null && Instant.now().isAfter(expiresAt);
    }
 
    @Override

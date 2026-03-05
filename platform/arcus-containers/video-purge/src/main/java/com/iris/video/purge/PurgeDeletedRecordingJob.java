@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -243,7 +243,7 @@ public class PurgeDeletedRecordingJob implements PurgeJob  {
                   return totalPurgeRows;
                }
 
-               UUID purgeTimeUuid = row.getUUID(2);
+               UUID purgeTimeUuid = row.getUuid(2);
                Date purgeTime = new Date(IrisUUID.timeof(purgeTimeUuid));
                if (purgeTime.after(now)) {
                   log.info("purge time of {} is after {}, done processing partition {}", purgeTime, now, partitionId);

@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
@@ -43,7 +43,7 @@ import com.iris.platform.scene.SceneDefinition;
 @Singleton
 public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> implements SceneDao {
    static final String TYPE = "scene";
-   
+
    private static final String [] UPSERT_COLUMNS = new String [] {
       Column.CREATED.columnName(),
       Column.MODIFIED.columnName(),
@@ -58,14 +58,14 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       SceneColumn.LAST_FIRE_STATE.columnName(),
       SceneColumn.ENABLED.columnName()
    };
-   
+
    private final PreparedStatement upsert;
    private final BeanAttributesTransformer<SceneDefinition> transformer;
 
    @Inject
-   public SceneDaoImpl(Session session, BeanAttributesTransformer<SceneDefinition> transformer) {
+   public SceneDaoImpl(CqlSession session, BeanAttributesTransformer<SceneDefinition> transformer) {
       super(session, TYPE);
-      
+
       this.transformer = transformer;
       this.upsert =
                CassandraQueryBuilder
@@ -74,23 +74,23 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
                   .where(whereIdEq(TYPE))
                   .prepare(session);
    }
-   
+
    protected SceneDefinition buildEntity(Row row) {
       SceneDefinition sd = new SceneDefinition();
-      sd.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
+      sd.setPlaceId(row.getUuid(Column.PLACE_ID.columnName()));
       sd.setSequenceId(row.getInt(Column.ID.columnName()));
-      sd.setCreated(row.getTimestamp(Column.CREATED.columnName()));
-      sd.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
+      sd.setCreated(row.isNull(Column.CREATED.columnName()) ? null : Date.from(row.getInstant(Column.CREATED.columnName())));
+      sd.setModified(row.isNull(Column.MODIFIED.columnName()) ? null : Date.from(row.getInstant(Column.MODIFIED.columnName())));
       sd.setName(row.getString(Column.NAME.columnName()));
       sd.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       sd.setTags(row.getSet(Column.TAGS.columnName(), String.class));
       sd.setLastFireState(row.getString(SceneColumn.LAST_FIRE_STATE.columnName()));
-      sd.setLastFireTime(row.getTimestamp(SceneColumn.LAST_FIRE_TIME.columnName()));
-      sd.setSatisfiable(row.getBool(SceneColumn.SATISFIABLE.columnName()));
-      sd.setNotification(row.getBool(SceneColumn.NOTIFICATION.columnName()));
+      sd.setLastFireTime(row.isNull(SceneColumn.LAST_FIRE_TIME.columnName()) ? null : Date.from(row.getInstant(SceneColumn.LAST_FIRE_TIME.columnName())));
+      sd.setSatisfiable(row.getBoolean(SceneColumn.SATISFIABLE.columnName()));
+      sd.setNotification(row.getBoolean(SceneColumn.NOTIFICATION.columnName()));
       sd.setTemplate(row.getString(SceneColumn.TEMPLATE.columnName()));
-      sd.setEnabled(row.getBool(SceneColumn.ENABLED.columnName()));
-      ByteBuffer action = row.getBytes(SceneColumn.ACTION.columnName());
+      sd.setEnabled(row.getBoolean(SceneColumn.ENABLED.columnName()));
+      ByteBuffer action = row.isNull(SceneColumn.ACTION.columnName()) ? null : row.getByteBuffer(SceneColumn.ACTION.columnName());
       if(action != null) {
          byte [] array = new byte[action.remaining()];
          action.get(array);
@@ -99,27 +99,27 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       return sd;
    }
 
-   protected Statement prepareUpsert(SceneDefinition sd, Date ts) {
+   protected Statement<?> prepareUpsert(SceneDefinition sd, Date ts) {
       BoundStatement bs = upsert.bind();
-      bs.setUUID(Column.PLACE_ID.columnName(), sd.getPlaceId());
-      bs.setInt(Column.ID.columnName(), sd.getSequenceId());
-      bs.setTimestamp(Column.CREATED.columnName(), sd.getCreated());
-      bs.setTimestamp(Column.MODIFIED.columnName(), sd.getModified());
-      bs.setString(Column.NAME.columnName(), sd.getName());
-      bs.setString(Column.DESCRIPTION.columnName(), sd.getDescription());
-      bs.setSet(Column.TAGS.columnName(), sd.getTags());
-      bs.setString(SceneColumn.TEMPLATE.columnName(), sd.getTemplate());
-      bs.setBool(SceneColumn.SATISFIABLE.columnName(), sd.isSatisfiable());
-      bs.setBool(SceneColumn.NOTIFICATION.columnName(), sd.isNotification());
-      bs.setTimestamp(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime());
-      bs.setString(SceneColumn.LAST_FIRE_STATE.columnName(), sd.getLastFireState());
-      bs.setBool(SceneColumn.ENABLED.columnName(),sd.isEnabled());
+      bs = bs.setUuid(Column.PLACE_ID.columnName(), sd.getPlaceId());
+      bs = bs.setInt(Column.ID.columnName(), sd.getSequenceId());
+      bs = bs.setInstant(Column.CREATED.columnName(), sd.getCreated() == null ? null : sd.getCreated().toInstant());
+      bs = bs.setInstant(Column.MODIFIED.columnName(), sd.getModified() == null ? null : sd.getModified().toInstant());
+      bs = bs.setString(Column.NAME.columnName(), sd.getName());
+      bs = bs.setString(Column.DESCRIPTION.columnName(), sd.getDescription());
+      bs = bs.setSet(Column.TAGS.columnName(), sd.getTags(), String.class);
+      bs = bs.setString(SceneColumn.TEMPLATE.columnName(), sd.getTemplate());
+      bs = bs.setBoolean(SceneColumn.SATISFIABLE.columnName(), sd.isSatisfiable());
+      bs = bs.setBoolean(SceneColumn.NOTIFICATION.columnName(), sd.isNotification());
+      bs = bs.setInstant(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime() == null ? null : sd.getLastFireTime().toInstant());
+      bs = bs.setString(SceneColumn.LAST_FIRE_STATE.columnName(), sd.getLastFireState());
+      bs = bs.setBoolean(SceneColumn.ENABLED.columnName(),sd.isEnabled());
 
       if(sd.getAction() != null) {
-         bs.setBytes(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(sd.getAction()));
+         bs = bs.setByteBuffer(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(sd.getAction()));
       }
       else {
-         bs.setBytes(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(new byte [] {}));
+         bs = bs.setByteBuffer(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(new byte [] {}));
       }
       return bs;
    }
@@ -143,9 +143,9 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       SceneDefinition sd = transformer.transform(model.toMap());
       sd.setCreated(model.getCreated());
       sd.setModified(sd.getModified());
-      
+
       save(sd);
-      
+
       ModelEntity entity = new ModelEntity(transformer.transform(sd));
       entity.setId(sd.getId().getRepresentation());
       entity.setCreated(sd.getCreated());
@@ -153,4 +153,3 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       return entity;
    }
 }
-

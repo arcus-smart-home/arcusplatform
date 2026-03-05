@@ -18,7 +18,7 @@ package com.iris.notification.provider.metrics;
 import org.junit.Test;
 
 import com.codahale.metrics.Counter;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.inject.Inject;
 import com.iris.metrics.IrisMetricSet;
 import com.iris.metrics.IrisMetrics;
@@ -26,7 +26,7 @@ import com.iris.platform.notification.audit.CassandraAuditor;
 import com.iris.test.IrisMockTestCase;
 import com.iris.test.Mocks;
 
-@Mocks({ Session.class })
+@Mocks({ CqlSession.class })
 public class GcmApnsMetricsInitializationTest extends IrisMockTestCase {
 
    @Inject

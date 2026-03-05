@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
@@ -32,23 +34,22 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BatchableStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.iris.core.dao.CRUDDao;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder.CassandraInsertBuilder;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder.CassandraUpdateBuilder;
@@ -79,7 +80,7 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
    private final String table;
    private final String[] columns;
    private final String[] readOnlyColumns;
-   protected final Session session;
+   protected final CqlSession session;
    private final PreparedStatement insert;
    private final PreparedStatement update;
    protected final PreparedStatement findById;
@@ -91,7 +92,7 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
    private final Timer deleteTimer;
    private final long ttl;	//TTL value in seconds
 
-   protected BaseCassandraCRUDDao(Session session, String table, String[] columns) {
+   protected BaseCassandraCRUDDao(CqlSession session, String table, String[] columns) {
       this(session, table, columns, new String[0]);
    }
 
@@ -104,22 +105,22 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
     * @param columns
     * @param readOnlyColumns
     */
-   protected BaseCassandraCRUDDao(Session session, String table, String[] columns, String[] readOnlyColumns) {
+   protected BaseCassandraCRUDDao(CqlSession session, String table, String[] columns, String[] readOnlyColumns) {
 	   this(session, table, columns, readOnlyColumns, 0);
    }
-   
-   protected BaseCassandraCRUDDao(Session session, String table, String[] columns, String[] readOnlyColumns, long ttl) {
+
+   protected BaseCassandraCRUDDao(CqlSession session, String table, String[] columns, String[] readOnlyColumns, long ttl) {
 	   this.ttl = ttl;
 	   this.findByIdTimer = DaoMetrics.readTimer(getClass(), "findById");
 	   this.insertTimer = DaoMetrics.insertTimer(getClass(), "save");
 	   this.updateTimer = DaoMetrics.insertTimer(getClass(), "save");
 	   this.deleteTimer = DaoMetrics.deleteTimer(getClass(), "delete");
-	
+
 	   this.table = table;
 	   this.columns = columns;
 	   this.readOnlyColumns = readOnlyColumns;
 	   this.session = session;
-	
+
 	   this.insert = prepareInsert();
 	   this.update = prepareUpdate();
 	   this.findById = prepareFindById();
@@ -133,12 +134,12 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 		   .addColumns(columns);
       if(this.ttl > 0) {
     	  builder.withTtlSec(this.ttl);
-      }           
+      }
 	  return builder.prepare(session);
    }
 
    private PreparedStatement prepareUpdate() {
-	   CassandraUpdateBuilder builder = 
+	   CassandraUpdateBuilder builder =
             CassandraQueryBuilder
                .update(table)
                .addColumn(BaseEntityColumns.MODIFIED)
@@ -148,7 +149,7 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
                .addWhereColumnEquals(BaseEntityColumns.ID);
 	   if(this.ttl > 0) {
     	  builder.withTtlSec(this.ttl);
-	   }  
+	   }
 	   return builder.prepare(session);
    }
 
@@ -188,20 +189,20 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 
       List<Object> allValues = new LinkedList<Object>();
       allValues.add(id);
-      allValues.add(created);
-      allValues.add(created); // modified date
+      allValues.add(created.toInstant());
+      allValues.add(created.toInstant()); // modified date
       allValues.add(entity.getTags());
       allValues.add(entity.getImages());
       allValues.addAll(getValues(entity));
 
-      Statement statement = new BoundStatement(insert).bind(allValues.toArray());
+      Statement<?> statement = insert.bind(allValues.toArray());
 
-      List<Statement> indexInserts = prepareIndexInserts(id, entity);
+      List<Statement<?>> indexInserts = prepareIndexInserts(id, entity);
       if(!indexInserts.isEmpty()) {
-         BatchStatement batch = new BatchStatement();
-         batch.add(statement);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         batch.addStatement((BatchableStatement<?>) statement);
          addToBatch(batch, indexInserts);
-         statement = batch;
+         statement = batch.build();
       }
 
       try(Context ctxt = insertTimer.time()) {
@@ -215,29 +216,29 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
       return copy;
    }
 
-   protected List<Statement> prepareIndexInserts(I id, T entity) {
-      return Collections.<Statement> emptyList();
+   protected List<Statement<?>> prepareIndexInserts(I id, T entity) {
+      return Collections.emptyList();
    }
 
    protected T doUpdate(T entity) {
       Date modified = new Date();
 
       List<Object> allValues = new LinkedList<Object>();
-      allValues.add(modified);
+      allValues.add(modified.toInstant());
       allValues.add(entity.getTags());
       allValues.add(entity.getImages());
       allValues.addAll(getValues(entity));
       allValues.add(entity.getId());
 
-      Statement statement = new BoundStatement(update).bind(allValues.toArray());
+      Statement<?> statement = update.bind(allValues.toArray());
 
       // TODO - implement smarter indexing
-      List<Statement> indexUpdateStatements = prepareIndexUpdates(entity);
+      List<Statement<?>> indexUpdateStatements = prepareIndexUpdates(entity);
       if(!indexUpdateStatements.isEmpty()) {
-         BatchStatement batch = new BatchStatement();
-         batch.add(statement);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         batch.addStatement((BatchableStatement<?>) statement);
          addToBatch(batch, indexUpdateStatements);
-         statement = batch;
+         statement = batch.build();
       }
 
       try(Context ctxt = updateTimer.time()) {
@@ -249,14 +250,14 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
       return copy;
    }
 
-   protected List<Statement> prepareIndexUpdates(T entity) {
-      return Collections.<Statement>emptyList();
+   protected List<Statement<?>> prepareIndexUpdates(T entity) {
+      return Collections.emptyList();
    }
 
    // TODO push this down to CrudDao?
    protected PagedResults<T> doList(BoundStatement select, int limit) {
       List<T> result = new ArrayList<>(limit);
-      select.setFetchSize(limit + 1);
+      select = select.setPageSize(limit + 1);
 
       ResultSet rs = session.execute( select );
       Row row = rs.one();
@@ -291,7 +292,7 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
     */
    protected abstract List<Object> getValues(T entity);
 
-   protected <U> List<U> listByAssociation(Statement associationQuery,
+   protected <U> List<U> listByAssociation(Statement<?> associationQuery,
       com.google.common.base.Function<Row, I> entityIdTransform,
       com.google.common.base.Function<ResultSet, U> entityTransform, long asyncTimeoutMs)
    {
@@ -312,25 +313,39 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
    protected <U> List<U> listByIdsAsync(Iterable<I> ids, com.google.common.base.Function<ResultSet, U> entityTransform,
       long asyncTimeoutMs)
    {
-      List<ListenableFuture<U>> entityFutures = new ArrayList<>();
+      List<CompletableFuture<U>> entityFutures = new ArrayList<>();
 
       try
       {
          for (I indexTableRowId : ids)
          {
-            BoundStatement entityQuery = new BoundStatement(findById).bind(indexTableRowId);
+            BoundStatement entityQuery = findById.bind(indexTableRowId);
 
-            ResultSetFuture entityResultSetFuture = session.executeAsync(entityQuery);
+            CompletionStage<U> entityFuture = session.executeAsync(entityQuery)
+               .thenApplyAsync(asyncRs -> {
+                  Row row = asyncRs.one();
+                  if (row == null) return null;
+                  // Re-execute synchronously for the ResultSet-based transform;
+                  // must run off the driver I/O thread to avoid deadlock
+                  return entityTransform.apply(session.execute(entityQuery));
+               });
 
-            entityFutures.add(Futures.transform(entityResultSetFuture, entityTransform, MoreExecutors.directExecutor()));
+            entityFutures.add(entityFuture.toCompletableFuture());
          }
 
-         return Futures
-            .successfulAsList(entityFutures)
-            .get(asyncTimeoutMs, MILLISECONDS)
-            .stream()
-            .filter(java.util.Objects::nonNull)
-            .collect(Collectors.toList());
+         List<U> results = new ArrayList<>();
+         for (CompletableFuture<U> future : entityFutures) {
+            try {
+               U result = future.get(asyncTimeoutMs, MILLISECONDS);
+               if (result != null) {
+                  results.add(result);
+               }
+            } catch (ExecutionException e) {
+               // Skip failed futures (matching Futures.successfulAsList behavior)
+               logger.warn("Failed to load entity", e.getCause());
+            }
+         }
+         return results;
       }
       catch (InterruptedException e)
       {
@@ -338,26 +353,11 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 
          throw new RuntimeException("Interrupted while executing query", e);
       }
-      catch (ExecutionException e)
-      {
-         Throwable cause = e.getCause();
-
-         if (cause instanceof Error)
-         {
-            throw (Error) cause;
-         }
-
-         if (cause instanceof RuntimeException)
-         {
-            throw (RuntimeException) cause;
-         }
-
-         // TODO DaoException?
-         throw new RuntimeException("Error executing query", cause);
-      }
       catch (TimeoutException e)
       {
-         Futures.allAsList(entityFutures).cancel(true);
+         for (CompletableFuture<U> future : entityFutures) {
+            future.cancel(true);
+         }
 
          throw new RuntimeException("Query timed out", e);
       }
@@ -370,11 +370,11 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
          return null;
       }
 
-      BoundStatement boundStatement = new BoundStatement(findById);
+      BoundStatement boundStatement = findById.bind(id);
 
       Row row;
     	try(Context ctxt = findByIdTimer.time()) {
-    		row = session.execute(boundStatement.bind(id)).one();
+    		row = session.execute(boundStatement).one();
     	}
 
       if(row == null) {
@@ -390,22 +390,22 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
          return;
       }
 
-      Statement statement = new BoundStatement(delete).bind(entity.getId());
+      Statement<?> statement = delete.bind(entity.getId());
 
-      List<Statement> indexDeletes = prepareIndexDeletes(entity);
+      List<Statement<?>> indexDeletes = prepareIndexDeletes(entity);
       if(!indexDeletes.isEmpty()) {
-         BatchStatement batch = new BatchStatement();
-         batch.add(statement);
+         BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+         batch.addStatement((BatchableStatement<?>) statement);
          addToBatch(batch, indexDeletes);
-         statement = batch;
+         statement = batch.build();
       }
       try(Context ctxt = deleteTimer.time()) {
     	  session.execute(statement);
       }
    }
 
-   protected List<Statement> prepareIndexDeletes(T entity) {
-      return Collections.<Statement>emptyList();
+   protected List<Statement<?>> prepareIndexDeletes(T entity) {
+      return Collections.emptyList();
    }
 
    protected final T buildEntity(Row row) {
@@ -417,8 +417,8 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
 
    protected final void populateBaseEntity(Row row, T entity) {
       entity.setId(getIdFromRow(row));
-      Date created = row.getTimestamp(BaseEntityColumns.CREATED);
-      Date modified = row.getTimestamp(BaseEntityColumns.MODIFIED);
+      Date created = row.isNull(BaseEntityColumns.CREATED) ? null : Date.from(row.getInstant(BaseEntityColumns.CREATED));
+      Date modified = row.isNull(BaseEntityColumns.MODIFIED) ? null : Date.from(row.getInstant(BaseEntityColumns.MODIFIED));
       Set<String> tags = row.getSet(BaseEntityColumns.TAGS, String.class);
       if(created == null) {
       	logger.debug("Repairing entity [{}] from [{}] with null created date", entity.getId(), getClass());
@@ -453,10 +453,9 @@ public abstract class BaseCassandraCRUDDao<I, T extends BaseEntity<I, T>> implem
     */
    protected abstract void populateEntity(Row row, T entity);
 
-   private void addToBatch(BatchStatement batch, List<Statement> statements) {
-      for(Statement statement : statements) {
-         batch.add(statement);
+   private void addToBatch(BatchStatementBuilder batch, List<Statement<?>> statements) {
+      for(Statement<?> statement : statements) {
+         batch.addStatement((BatchableStatement<?>) statement);
       }
    }
 }
-

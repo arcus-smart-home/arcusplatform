@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package com.iris.core.dao.cassandra;
 
@@ -33,16 +33,16 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.iris.platform.PagedResults;
 
 /**
- * 
+ *
  */
 public class CassandraQueryExecutor {
    private static final Logger log =
@@ -69,14 +69,14 @@ public class CassandraQueryExecutor {
       }
       return results;
    }
-   
-   public static <T> PagedResults<T> page(Session session, BoundStatement statement, int limit, Function<Row, T> transformer, String tokenColumn) {
-   	return page(session, statement, limit, transformer, (row) -> row.getUUID(tokenColumn).toString());
+
+   public static <T> PagedResults<T> page(CqlSession session, BoundStatement statement, int limit, Function<Row, T> transformer, String tokenColumn) {
+   	return page(session, statement, limit, transformer, (row) -> row.getUuid(tokenColumn).toString());
    }
-   
-   public static <T> PagedResults<T> page(Session session, BoundStatement statement, int limit, Function<Row, T> transformer, Function<Row, String> token) {
+
+   public static <T> PagedResults<T> page(CqlSession session, BoundStatement statement, int limit, Function<Row, T> transformer, Function<Row, String> token) {
       List<T> results = new ArrayList<>(limit);
-      statement.setFetchSize(limit + 1);
+      statement = statement.setPageSize(limit + 1);
       ResultSet rs = session.execute( statement );
       Row row = rs.one();
       while(row != null && results.size() < limit) {
@@ -90,7 +90,7 @@ public class CassandraQueryExecutor {
          row = rs.one();
       }
       if(row == null) {
-         return PagedResults.newPage(results); 
+         return PagedResults.newPage(results);
       }
       else {
          return PagedResults.newPage(results, token.apply(row));
@@ -100,39 +100,43 @@ public class CassandraQueryExecutor {
    public static <G,V> Stream<V> streamWithGrouping(ResultSet rs, Function<Row,G> extractor, Function<G,V> factory, BiConsumer<Row,V> aggregator) {
       final GroupingState<G,V> state = new GroupingState<>(factory, aggregator);
       Spliterator<Row> spliterator = Spliterators.spliteratorUnknownSize(rs.iterator(), Spliterator.ORDERED);
-      return StreamSupport.stream(spliterator, false).map((Function<Row, V>) (row) -> {
+      // Track whether the iterator has more elements for the "final row" detection
+      final Iterator<Row> iter = rs.iterator();
+      return StreamSupport.stream(
+         Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED), false
+      ).map((Function<Row, V>) (row) -> {
          G group = extractor.apply(row);
-         return rs.isExhausted()
+         return !iter.hasNext()
             ? state.emitFinal(row, group)
             : state.emitIfNewGroup(row, group);
       }).filter((val) -> val != null);
    }
-   
+
    public static <T> Stream<T> stream(ResultSet rs, Function<Row, T> transformer) {
-      return 
+      return
             doStream(rs, transformer)
                .peek(Preconditions::checkNotNull);
    }
 
    public static <T> Stream<T> streamOptional(ResultSet rs, Function<Row, Optional<T>> transformer) {
-      return 
+      return
             doStream(rs, transformer)
                .filter(Optional::isPresent)
                .map(Optional::get);
-               
+
    }
-   
+
    public static <T> Stream<T> stream(Iterator<Row> rowIterator, Function<Row, T> transformer) {
-	  return 
+	  return
 	        doStream(rowIterator, transformer)
 	        	.peek(Preconditions::checkNotNull);
-	               
-   } 
+
+   }
 
    private static <T> Stream<T> doStream(ResultSet rs, Function<Row, T> transformer) {
 	   return doStream(rs.iterator(), transformer);
    }
-   
+
    private static <T> Stream<T> doStream(Iterator<Row> rowIterator, Function<Row, T> transformer) {
       Spliterator<Row> spliterator = Spliterators.spliteratorUnknownSize(rowIterator, Spliterator.ORDERED);
       // TODO enable multi-threaded streaming
@@ -179,4 +183,3 @@ public class CassandraQueryExecutor {
       }
    }
 }
-

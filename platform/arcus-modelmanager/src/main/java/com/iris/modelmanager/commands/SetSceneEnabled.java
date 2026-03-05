@@ -25,11 +25,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.io.json.JSON;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
@@ -53,16 +52,15 @@ public class SetSceneEnabled implements ExecutionCommand {
 
       Set<UUID> premiumPlaces = rows.stream()
             .filter(r -> r.getString("servicelevel") != null && r.getString("servicelevel").equals("PREMIUM"))
-            .map(row -> row.getUUID("id"))
+            .map(row -> row.getUuid("id"))
             .collect(Collectors.toSet());
 
       ResultSet rs = context.getSession().execute(SELECT_RULEENVIRONMENT);
-      BatchStatement batch = new BatchStatement();
       for (Row row : rs){
          int id = row.getInt("id");
          String type = row.getString("type");
-         UUID place = row.getUUID("placeid");
-         ByteBuffer actionBytes = row.getBytes("action");
+         UUID place = row.getUuid("placeid");
+         ByteBuffer actionBytes = row.getByteBuffer("action");
          if (!"scene".equals(type)) {
             continue;
 
@@ -80,11 +78,11 @@ public class SetSceneEnabled implements ExecutionCommand {
          if (premiumPlaces.contains(place) && hasAction) {
             sceneenabled = true;
          }
-         BoundStatement statement = new BoundStatement(stmt)
-               .setBool("sceneenabled", sceneenabled)
+         BoundStatement statement = stmt.bind()
+               .setBoolean("sceneenabled", sceneenabled)
                .setInt("id", id)
                .setString("type", type)
-               .setUUID("placeid", place);
+               .setUuid("placeid", place);
          context.getSession().execute(statement);
       }
 
@@ -111,4 +109,3 @@ public class SetSceneEnabled implements ExecutionCommand {
       logger.warn("Rollback is not supported for {}", this);
    }
 }
-

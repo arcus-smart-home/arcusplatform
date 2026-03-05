@@ -24,10 +24,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -61,7 +61,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_place_critical";
 
       @Inject
-      public CriticalPlaceTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public CriticalPlaceTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -72,13 +72,13 @@ public abstract class HistoryTable<I> {
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.PLACE_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.PLACE_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -90,7 +90,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_place_detailed";
 
       @Inject
-      public DetailedPlaceTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedPlaceTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -101,13 +101,13 @@ public abstract class HistoryTable<I> {
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.PLACE_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.PLACE_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -119,7 +119,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_person_detailed";
 
       @Inject
-      public DetailedPersonTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedPersonTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -130,13 +130,13 @@ public abstract class HistoryTable<I> {
                   .select(TABLE_NAME)
                   .addColumns(Columns.PERSON_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.PERSON_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.PERSON_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.PERSON_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -148,7 +148,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_rule_detailed";
 
       @Inject
-      public DetailedRuleTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedRuleTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -160,13 +160,13 @@ public abstract class HistoryTable<I> {
                   .addColumns(Columns.PLACE_ID, Columns.RULE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.PLACE_ID)
                   .addWhereColumnEquals(Columns.RULE_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.RULE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.PLACE_ID + "= ? AND " + Columns.RULE_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -206,7 +206,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_subsys_detailed";
 
       @Inject
-      public DetailedSubsystemTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedSubsystemTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -218,13 +218,13 @@ public abstract class HistoryTable<I> {
                   .addColumns(Columns.PLACE_ID, Columns.SUBSYSTEM, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.PLACE_ID)
                   .addWhereColumnEquals(Columns.SUBSYSTEM)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.PLACE_ID, Columns.SUBSYSTEM, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.PLACE_ID + "= ? AND " + Columns.SUBSYSTEM + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -264,7 +264,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_device_detailed";
 
       @Inject
-      public DetailedDeviceTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedDeviceTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -275,13 +275,13 @@ public abstract class HistoryTable<I> {
                   .select(TABLE_NAME)
                   .addColumns(Columns.DEVICE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.DEVICE_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.DEVICE_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.DEVICE_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -293,7 +293,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_hub_detailed";
 
       @Inject
-      public DetailedHubTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedHubTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                   .insert(TABLE_NAME)
@@ -304,13 +304,13 @@ public abstract class HistoryTable<I> {
                   .select(TABLE_NAME)
                   .addColumns(Columns.HUB_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .addWhereColumnEquals(Columns.HUB_ID)
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session),
                CassandraQueryBuilder
                   .select(TABLE_NAME)
                   .addColumns(Columns.HUB_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                   .where(Columns.HUB_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                  .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                  .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                   .prepare(session)
          );
       }
@@ -322,7 +322,7 @@ public abstract class HistoryTable<I> {
       public static final String TABLE_NAME = "histlog_alarm_detailed";
 
       @Inject
-      public DetailedAlarmTable(@Named(CassandraHistory.NAME) Session session, HistoryAppenderConfig config) {
+      public DetailedAlarmTable(@Named(CassandraHistory.NAME) CqlSession session, HistoryAppenderConfig config) {
          super(
                CassandraQueryBuilder
                      .insert(TABLE_NAME)
@@ -333,13 +333,13 @@ public abstract class HistoryTable<I> {
                      .select(TABLE_NAME)
                      .addColumns(Columns.INCIDENT_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                      .addWhereColumnEquals(Columns.INCIDENT_ID)
-                     .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                     .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                      .prepare(session),
                CassandraQueryBuilder
                      .select(TABLE_NAME)
                      .addColumns(Columns.INCIDENT_ID, Columns.TIMESTAMP, Columns.MESSAGE_KEY, Columns.PARAMS, Columns.SUBJECT_ADDRESS)
                      .where(Columns.INCIDENT_ID + " = ? AND " + Columns.TIMESTAMP + " <= ?")
-                     .withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+                     .withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
                      .prepare(session)
          );
       }
@@ -374,7 +374,7 @@ public abstract class HistoryTable<I> {
       }
       return listByIdBefore(id, IrisUUID.timeUUID(before, Long.MAX_VALUE));
    }
-   
+
    public BoundStatement listByIdBefore(I id, @Nullable UUID before) {
       if(before == null) {
          return listById(id);
@@ -383,4 +383,3 @@ public abstract class HistoryTable<I> {
    }
 
 }
-

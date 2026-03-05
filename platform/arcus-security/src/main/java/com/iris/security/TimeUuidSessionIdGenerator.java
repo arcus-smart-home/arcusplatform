@@ -15,7 +15,7 @@
  */
 package com.iris.security;
 
-import com.datastax.driver.core.utils.UUIDs;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.session.mgt.eis.SessionIdGenerator;
 
@@ -28,6 +28,6 @@ import java.io.Serializable;
 public class TimeUuidSessionIdGenerator  implements SessionIdGenerator {
 
    public Serializable generateId(Session session) {
-      return UUIDs.timeBased();
+      return Uuids.timeBased();
    }
 }

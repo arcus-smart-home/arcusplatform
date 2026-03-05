@@ -16,6 +16,7 @@
 package com.iris.core.dao.cassandra;
 
 import static com.iris.util.TimeZones.getOffsetAsHours;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -46,14 +48,13 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select.Selection;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
@@ -176,7 +177,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
    private final LocationService locationService;
 
    @Inject
-   public PlaceDAOImpl(Session session, Partitioner partitioner, LocationService locationService) {
+   public PlaceDAOImpl(CqlSession session, Partitioner partitioner, LocationService locationService) {
       super(session, TABLE, COLUMN_ORDER, changeTrackers);
       this.partitioner = partitioner;
       this.locationService = locationService;
@@ -207,7 +208,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
             .addColumns(PlaceEntityColumns.ACCOUNT_ID)
             .addWhereColumnEquals("partitionId")
             .prepare(session);
-      
+
       streamPlaceAndAccountAndServiceLevelByPartitionId = CassandraQueryBuilder.select(TABLE)
             .addColumns(BaseEntityColumns.ID)
             .addColumns(PlaceEntityColumns.ACCOUNT_ID)
@@ -219,7 +220,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
             .addColumns(PlaceEntityColumns.ACCOUNT_ID)
             .addWhereColumnEquals(BaseEntityColumns.ID)
             .prepare(session);
-      
+
       getPopulationById = CassandraQueryBuilder.select(TABLE)
             .addColumns(PlaceEntityColumns.POPULATION)
             .addWhereColumnEquals(BaseEntityColumns.ID)
@@ -269,13 +270,13 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       values.add(entity.getAddrRDI());
       values.add(entity.getAddrCounty());
       values.add(entity.getAddrCountyFIPS());
-      values.add(entity.getLastServiceLevelChange());
+      values.add(entity.getLastServiceLevelChange() != null ? entity.getLastServiceLevelChange().toInstant() : null);
       values.add(entity.getServiceLevel() != null ? entity.getServiceLevel().name() : null);
       values.add(entity.getServiceAddons());
       values.add(entity.getPopulation());
       values.add(entity.isPrimary());
       values.add(partitioner.getPartitionForPlaceId(entity.getId()).getId());
-      
+
       return values;
    }
 
@@ -286,9 +287,9 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
 
    @Override
    protected void populateEntity(Row row, Place entity) {
-      entity.setCreated(row.getTimestamp(BaseEntityColumns.CREATED));
-      entity.setModified(row.getTimestamp(BaseEntityColumns.MODIFIED));
-      entity.setAccount(row.getUUID(PlaceEntityColumns.ACCOUNT_ID));
+      entity.setCreated(row.isNull(BaseEntityColumns.CREATED) ? null : Date.from(row.getInstant(BaseEntityColumns.CREATED)));
+      entity.setModified(row.isNull(BaseEntityColumns.MODIFIED) ? null : Date.from(row.getInstant(BaseEntityColumns.MODIFIED)));
+      entity.setAccount(row.getUuid(PlaceEntityColumns.ACCOUNT_ID));
       entity.setName(row.getString(PlaceEntityColumns.NAME));
       entity.setState(row.getString(PlaceEntityColumns.STATE));
       entity.setStreetAddress1(row.getString(PlaceEntityColumns.STREET_ADDRESS_1));
@@ -300,9 +301,9 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       entity.setTzId(row.getString(PlaceEntityColumns.TZ_ID));
       entity.setTzName(row.getString(PlaceEntityColumns.TZ_NAME));
       entity.setTzOffset(row.getDouble(PlaceEntityColumns.TZ_OFFSET));
-      entity.setTzUsesDST(row.getBool(PlaceEntityColumns.TZ_USES_DST));
+      entity.setTzUsesDST(row.getBoolean(PlaceEntityColumns.TZ_USES_DST));
       entity.setCountry(row.getString(PlaceEntityColumns.COUNTRY));
-      entity.setAddrValidated(row.getBool(PlaceEntityColumns.ADDR_VALIDATED));
+      entity.setAddrValidated(row.getBoolean(PlaceEntityColumns.ADDR_VALIDATED));
       entity.setAddrType(row.getString(PlaceEntityColumns.ADDR_TYPE));
       entity.setAddrZipType(row.getString(PlaceEntityColumns.ADDR_ZIP_TYPE));
       entity.setAddrLatitude(row.getDouble(PlaceEntityColumns.ADDR_LATITUDE));
@@ -311,7 +312,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       entity.setAddrRDI(row.getString(PlaceEntityColumns.ADDR_RDI));
       entity.setAddrCounty(row.getString(PlaceEntityColumns.ADDR_COUNTY));
       entity.setAddrCountyFIPS(row.getString(PlaceEntityColumns.ADDR_COUNTY_FIPS));
-      entity.setLastServiceLevelChange(row.getTimestamp(PlaceEntityColumns.LAST_SERVICE_LEVEL_CHANGE));
+      entity.setLastServiceLevelChange(row.isNull(PlaceEntityColumns.LAST_SERVICE_LEVEL_CHANGE) ? null : Date.from(row.getInstant(PlaceEntityColumns.LAST_SERVICE_LEVEL_CHANGE)));
       String serviceLevel = row.getString(PlaceEntityColumns.SERVICE_LEVEL);
       if(serviceLevel != null) {
          entity.setServiceLevel(ServiceLevel.valueOf(serviceLevel));
@@ -320,7 +321,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       entity.setServiceAddons(addons == null || addons.isEmpty() ? null : addons);
       String population = row.getString(PlaceEntityColumns.POPULATION);
       entity.setPopulation(StringUtils.isEmpty(population)?Population.NAME_GENERAL:population);
-      entity.setPrimary(row.getBool(PlaceEntityColumns.PRIMARY));
+      entity.setPrimary(row.getBoolean(PlaceEntityColumns.PRIMARY));
 
       populateMissingLocationData(entity);
    }
@@ -359,7 +360,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
 
 	@Override
    protected UUID getIdFromRow(Row row) {
-      return row.getUUID(BaseEntityColumns.ID);
+      return row.getUuid(BaseEntityColumns.ID);
    }
 
    @Override
@@ -397,16 +398,16 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
          BoundStatement bs = streamPlaceAndAccountByPartitionId.bind(partitionId);
          ResultSet rs = session.execute(bs);
          return stream(rs, (row) -> {
-            return ImmutableMap.of(row.getUUID(BaseEntityColumns.ID), row.getUUID(PlaceEntityColumns.ACCOUNT_ID));
+            return ImmutableMap.of(row.getUuid(BaseEntityColumns.ID), row.getUuid(PlaceEntityColumns.ACCOUNT_ID));
          });
       }
    }
-   
+
    @Override
 	public Stream<Triple<UUID, UUID, ServiceLevel>> streamPlaceAndAccountAndServiceLevelByPartitionId(int partitionId) {
    	try(Context ctxt = streamPlaceAndAccountAndServiceLevelByPartitionIdTimer.time()) {
          BoundStatement bs = streamPlaceAndAccountAndServiceLevelByPartitionId.bind(partitionId);
-         //bs.setConsistencyLevel(ConsistencyLevel.LOCAL_ONE);
+         //bs.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE);
          ResultSet rs = session.execute(bs);
          return stream(rs, (row) -> {
          	ServiceLevel s = ServiceLevel.BASIC;
@@ -414,22 +415,22 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
          	if(StringUtils.isNotBlank(fromDb)) {
          		s = ServiceLevel.valueOf(fromDb);
          	}
-            return new ImmutableTriple<>(row.getUUID(BaseEntityColumns.ID), row.getUUID(PlaceEntityColumns.ACCOUNT_ID), s);
+            return new ImmutableTriple<>(row.getUuid(BaseEntityColumns.ID), row.getUuid(PlaceEntityColumns.ACCOUNT_ID), s);
          });
       }
 	}
 
 
-   
+
 
 	@Override
    public UUID getAccountById(UUID placeId) {
       BoundStatement bs = getAccountById.bind(placeId);
       ResultSet rs = session.execute(bs);
       Row row = rs.one();
-      return (row != null) ? row.getUUID(PlaceEntityColumns.ACCOUNT_ID) : null;
+      return (row != null) ? row.getUuid(PlaceEntityColumns.ACCOUNT_ID) : null;
    }
-   
+
    @Override
    @Nullable
 	public String getPopulationById(UUID placeId) {
@@ -438,7 +439,7 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       Row row = rs.one();
       return (row != null) ? row.getString(PlaceEntityColumns.POPULATION) : null;
 	}
-   
+
    @Override
    @Nullable
    public ServiceLevel getServiceLevelById(UUID placeId) {
@@ -460,14 +461,18 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
       }
 
       List<Row> rows;
-      Selection sel = QueryBuilder.select();
-      for(String c : BASE_COLUMN_ORDER) { sel.column(c); }
-      for(String c : COLUMN_ORDER) { sel.column(c); }
+      // Build select with IN clause using 4.x QueryBuilder
+      String[] allColumns = new String[BASE_COLUMN_ORDER.length + COLUMN_ORDER.length];
+      System.arraycopy(BASE_COLUMN_ORDER, 0, allColumns, 0, BASE_COLUMN_ORDER.length);
+      System.arraycopy(COLUMN_ORDER, 0, allColumns, BASE_COLUMN_ORDER.length, COLUMN_ORDER.length);
+
+      Statement<?> stmt = selectFrom(TABLE)
+            .columns(allColumns)
+            .whereColumn(BaseEntityColumns.ID).in(placeIDs.stream().map(id -> literal(id)).collect(Collectors.toList()))
+            .build();
+
     	try(Context ctxt = findByPlaceIDInTimer.time()) {
-    		rows = session.execute(
-	    						sel.from(TABLE)
-	    						.where(QueryBuilder.in(BaseEntityColumns.ID, placeIDs.toArray()))
-    						).all();
+    		rows = session.execute(stmt).all();
     	}
 
     	// Return empty List here?
@@ -489,22 +494,22 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
    @Override
    public void setUpdateFlag(UUID placeId, boolean updateFlag) {
       Preconditions.checkArgument(placeId != null, "The place id cannot be null");
-      BoundStatement statement = new BoundStatement(setUpdateFlag);
+      BoundStatement statement = setUpdateFlag.bind(updateFlag, placeId);
       try(Context ctxt = setUpdateFlagTimer.time()) {
-         session.execute(statement.bind(updateFlag, placeId));
+         session.execute(statement);
       }
    }
 
    @Override
    public boolean getUpdateFlag(UUID placeId) {
       Preconditions.checkArgument(placeId != null, "The place id cannot be null");
-      BoundStatement statement = new BoundStatement(getUpdateFlag);
+      BoundStatement statement = getUpdateFlag.bind(placeId);
       ResultSet resultSet;
       try(Context ctxt = getUpdateFlagTimer.time()) {
-         resultSet = session.execute(statement.bind(placeId));
+         resultSet = session.execute(statement);
       }
       Row row = resultSet.one();
-      return row.getBool(UPDATEFLAG);
+      return row.getBoolean(UPDATEFLAG);
    }
 
    @Override
@@ -660,8 +665,6 @@ public class PlaceDAOImpl extends ChangesBaseCassandraCRUDDao<UUID, Place> imple
 
 	}
 
-	
-	
+
 
 }
-

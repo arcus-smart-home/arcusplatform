@@ -17,52 +17,48 @@ package com.iris.video.cql.v2;
 
 import java.util.UUID;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
-import com.datastax.driver.core.policies.LoggingRetryPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.inject.Inject;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
 import com.iris.video.cql.VideoTable;
 
 public abstract class AbstractRecordingV2Table extends VideoTable{
-	
+
    public static final String COL_RECORDINGID = "recordingid";
    public static final String COL_TS = "ts";
    public static final String COL_BO = "bo";
    public static final String COL_BL = "bl";
-   
+
 	protected final PreparedStatement selectByRecordingId;
 	protected final PreparedStatement deleteRecording;
 
 	@Inject
-	public AbstractRecordingV2Table(String ts, Session session) {
+	public AbstractRecordingV2Table(String ts, CqlSession session) {
 		super(ts, session);
 		this.selectByRecordingId = CassandraQueryBuilder
 					.select(getTableName())
 					.addColumns(getTableColumns())
 					.addWhereColumnEquals(COL_RECORDINGID)
 					.prepare(session);
-				
+
 		this.deleteRecording =
 				CassandraQueryBuilder
 					.delete(getTableName())
 					.addWhereColumnEquals(COL_RECORDINGID)
-					.withRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE))
 					.prepare(session);
 	}
 	protected abstract String[] getTableColumns() ;
-	
+
 	public BoundStatement select(UUID recordingId) {
 		return selectByRecordingId.bind(recordingId);
-	}	
+	}
 
 	public BoundStatement deleteRecording(UUID recordingId) {
 		return deleteRecording.bind(recordingId);
 	}
-	
-	
+
+
 
 }
-

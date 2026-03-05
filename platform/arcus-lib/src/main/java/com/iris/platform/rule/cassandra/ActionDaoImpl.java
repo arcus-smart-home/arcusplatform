@@ -24,11 +24,11 @@ import java.util.UUID;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -58,12 +58,12 @@ public class ActionDaoImpl
       ActionColumn.ACTION.columnName()
    };
 
-   private final Session session;
+   private final CqlSession session;
 
    private final PreparedStatement updateLastExecution;
    private final PreparedStatement upsert;
 
-   private static PreparedStatement upsertStatement(Session session) {
+   private static PreparedStatement upsertStatement(CqlSession session) {
       return CassandraQueryBuilder.update(RuleEnvironmentTable.NAME)
       				.addColumns(UPSERT_COLUMNS)
       				.where(whereIdEq(TYPE))
@@ -71,7 +71,7 @@ public class ActionDaoImpl
    }
 
    // TODO move this to a different table?
-   private static PreparedStatement updateLastExecutionStatement(Session session) {
+   private static PreparedStatement updateLastExecutionStatement(CqlSession session) {
       return CassandraQueryBuilder.update(RuleEnvironmentTable.NAME)
       				.addColumn(ActionColumn.LAST_EXECUTED.columnName())
       				.where(whereIdEq(TYPE))
@@ -79,7 +79,7 @@ public class ActionDaoImpl
    }
 
    @Inject
-   public ActionDaoImpl(Session session) {
+   public ActionDaoImpl(CqlSession session) {
       super(session, TYPE);
       this.session = session;
 
@@ -89,16 +89,16 @@ public class ActionDaoImpl
 
    protected ActionDefinition buildEntity(Row row) {
       ActionDefinition ad = new ActionDefinition();
-      ad.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
+      ad.setPlaceId(row.getUuid(Column.PLACE_ID.columnName()));
       ad.setSequenceId(row.getInt(Column.ID.columnName()));
-      ad.setCreated(row.getTimestamp(Column.CREATED.columnName()));
-      ad.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
-      ad.setLastExecuted(row.getTimestamp(ActionColumn.LAST_EXECUTED.columnName()));
+      ad.setCreated(row.isNull(Column.CREATED.columnName()) ? null : Date.from(row.getInstant(Column.CREATED.columnName())));
+      ad.setModified(row.isNull(Column.MODIFIED.columnName()) ? null : Date.from(row.getInstant(Column.MODIFIED.columnName())));
+      ad.setLastExecuted(row.isNull(ActionColumn.LAST_EXECUTED.columnName()) ? null : Date.from(row.getInstant(ActionColumn.LAST_EXECUTED.columnName())));
       ad.setName(row.getString(Column.NAME.columnName()));
       ad.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       ad.setTags(row.getSet(Column.TAGS.columnName(), String.class));
 
-      ByteBuffer action = row.getBytes(ActionColumn.ACTION.columnName());
+      ByteBuffer action = row.isNull(ActionColumn.ACTION.columnName()) ? null : row.getByteBuffer(ActionColumn.ACTION.columnName());
       if(action != null) {
          byte [] array = new byte[action.remaining()];
          action.get(array);
@@ -107,17 +107,17 @@ public class ActionDaoImpl
       return ad;
    }
 
-   protected Statement prepareUpsert(ActionDefinition ad, Date ts) {
+   protected Statement<?> prepareUpsert(ActionDefinition ad, Date ts) {
       // note this method does not update lastExecuted
       BoundStatement bs = upsert.bind();
-      bs.setUUID(Column.PLACE_ID.columnName(), ad.getPlaceId());
-      bs.setInt(Column.ID.columnName(), ad.getSequenceId());
-      bs.setTimestamp(Column.CREATED.columnName(), ad.getCreated());
-      bs.setTimestamp(Column.MODIFIED.columnName(), ad.getModified());
-      bs.setString(Column.NAME.columnName(), ad.getName());
-      bs.setString(Column.DESCRIPTION.columnName(), ad.getDescription());
-      bs.setSet(Column.TAGS.columnName(), ad.getTags());
-      bs.setBytes(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(ad.getAction()));
+      bs = bs.setUuid(Column.PLACE_ID.columnName(), ad.getPlaceId());
+      bs = bs.setInt(Column.ID.columnName(), ad.getSequenceId());
+      bs = bs.setInstant(Column.CREATED.columnName(), ad.getCreated() == null ? null : ad.getCreated().toInstant());
+      bs = bs.setInstant(Column.MODIFIED.columnName(), ad.getModified() == null ? null : ad.getModified().toInstant());
+      bs = bs.setString(Column.NAME.columnName(), ad.getName());
+      bs = bs.setString(Column.DESCRIPTION.columnName(), ad.getDescription());
+      bs = bs.setSet(Column.TAGS.columnName(), ad.getTags(), String.class);
+      bs = bs.setByteBuffer(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(ad.getAction()));
       return bs;
    }
 
@@ -138,4 +138,3 @@ public class ActionDaoImpl
       static final Timer updateLastExecTimer = DaoMetrics.updateTimer(ActionDao.class, "updateLastExecutionTime");
    }
 }
-

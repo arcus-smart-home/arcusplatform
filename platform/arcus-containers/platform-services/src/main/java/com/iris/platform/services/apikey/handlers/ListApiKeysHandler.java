@@ -67,9 +67,9 @@ public class ListApiKeysHandler implements ContextualRequestMessageHandler<Place
       map.put("label", key.getLabel());
       map.put("keyPrefix", key.getKeyPrefix());
       map.put("permissions", key.getPermissions());
-      map.put("created", key.getCreated() != null ? key.getCreated().getTime() : null);
-      map.put("lastUsed", key.getLastUsed() != null ? key.getLastUsed().getTime() : null);
-      map.put("expiresAt", key.getExpiresAt() != null ? key.getExpiresAt().getTime() : null);
+      map.put("created", key.getCreated() != null ? key.getCreated().toEpochMilli() : null);
+      map.put("lastUsed", key.getLastUsed() != null ? key.getLastUsed().toEpochMilli() : null);
+      map.put("expiresAt", key.getExpiresAt() != null ? key.getExpiresAt().toEpochMilli() : null);
       map.put("expired", key.isExpired());
       return map;
    }

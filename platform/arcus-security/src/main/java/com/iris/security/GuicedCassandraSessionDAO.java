@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.time.ZoneId;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.ShiroException;
@@ -44,11 +43,12 @@ import org.apache.shiro.util.Initializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -75,11 +75,11 @@ import com.iris.security.principal.PrincipalCollectionTypeAdapter;
 public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Initializable, Destroyable {
    private static final Logger logger = LoggerFactory.getLogger(GuicedCassandraSessionDAO.class);
    private static final NoSessionException NO_SESSION_EXCEPTION = new NoSessionException();
-  
-   private static final ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_QUORUM;
-   
+
+   private static final DefaultConsistencyLevel consistencyLevel = DefaultConsistencyLevel.LOCAL_QUORUM;
+
    public static final String TABLE_NAME = "sessions";
-   
+
    public static final class Columns {
    	public static final String ID = "id";
    	public static final String START = "start_ts";
@@ -90,26 +90,26 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    	public static final String HOST = "host";
    	public static final String SERIALIZED = "serialized_value";
    	public static final String ATTRIBUTES = "attributes";
-   	
+
    	public static List<String> VALUES = ImmutableList.of(ID, START, STOP, LAST_ACCESS, TIMEOUT, EXPIRED, HOST, SERIALIZED, ATTRIBUTES);
    }
-   
+
    private Serializer<SimpleSession> serializer;
 
-   private final com.datastax.driver.core.Session cassandraSession; //acquired during init();
+   private final CqlSession cassandraSession;
    private final Gson gson;
-   
+
    @Inject(optional=true) @Named("session.cache.timeoutMs")
    private long sessionCacheTimeoutMs = TimeUnit.MINUTES.toMillis(5);
 
    private Cache<Serializable, Session> sessionCache;
-   
+
    private final PreparedStatement deletePreparedStatement;
    private final PreparedStatement savePreparedStatement;
    private final PreparedStatement readPreparedStatement;
 
    @Inject
-   public GuicedCassandraSessionDAO(com.datastax.driver.core.Session cassandraSession) {
+   public GuicedCassandraSessionDAO(CqlSession cassandraSession) {
       GsonFactory gsonFactory = new GsonFactory(
             ImmutableSet.of(),
             ImmutableSet.of(),
@@ -120,7 +120,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
       this.setSessionIdGenerator(new TimeUuidSessionIdGenerator());
       this.serializer = new DefaultSerializer<SimpleSession>();
       this.cassandraSession = cassandraSession;
-      this.sessionCache = 
+      this.sessionCache =
             CacheBuilder
                .newBuilder()
                .concurrencyLevel(32)
@@ -137,15 +137,15 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    }
 
    private PreparedStatement prepareReadStatement() {
-      String query = 
-            "SELECT " + StringUtils.join(Columns.VALUES, ',') + " " + 
-            "FROM " + TABLE_NAME + " " + 
+      String query =
+            "SELECT " + StringUtils.join(Columns.VALUES, ',') + " " +
+            "FROM " + TABLE_NAME + " " +
             "WHERE " + Columns.ID + " = ?";
       return cassandraSession.prepare(query);
    }
 
    private PreparedStatement prepareSaveStatement() {
-      String query = 
+      String query =
             "UPDATE " + TABLE_NAME + " USING TTL ? " +
             "SET " +
             Columns.START + " = ?, " +
@@ -182,9 +182,8 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
 
    @Override
    public void delete(Session session) {
-      BoundStatement bs = new BoundStatement(this.deletePreparedStatement);
-      bs.bind(session.getId());
-      bs.setConsistencyLevel(consistencyLevel);
+      BoundStatement bs = deletePreparedStatement.bind(session.getId());
+      bs = bs.setConsistencyLevel(consistencyLevel);
       cassandraSession.execute(bs);
       sessionCache.invalidate(session.getId());
    }
@@ -193,7 +192,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    public Collection<Session> getActiveSessions() {
       return Collections.emptyList();
    }
-   
+
    @Override
    protected Serializable doCreate(Session session) {
       SimpleSession ss = assertSimpleSession(session);
@@ -274,7 +273,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
             logger.trace("Session not found for sessionId: {}", sessionId);
             return null;
          }
-         if(cause instanceof com.datastax.driver.core.exceptions.NoHostAvailableException) {
+         if(cause instanceof com.datastax.oss.driver.api.core.AllNodesFailedException) {
             logger.warn("Error loading session: {}", cause.getMessage());
             throw e;
          }
@@ -287,12 +286,11 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
       }
       return null;
    }
-      
+
    private Session doCassandraReadSession(Serializable sessionId) {
       UUID id = toUuid(sessionId);
-      BoundStatement bs = new BoundStatement(this.readPreparedStatement);
-      bs.bind(id);
-      bs.setConsistencyLevel(consistencyLevel);
+      BoundStatement bs = readPreparedStatement.bind(id);
+      bs = bs.setConsistencyLevel(consistencyLevel);
 
       ResultSet results = cassandraSession.execute(bs);
 
@@ -305,7 +303,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
 
       throw NO_SESSION_EXCEPTION;
    }
-   
+
    private boolean isExpired(Session session) {
    	if(session.getLastAccessTime() == null) {
    		return false;
@@ -314,12 +312,12 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
 	}
 
 	private Session hydrateSession(UUID id, Row row) {
-   	UUID rowId = row.getUUID(Columns.ID);
+   	UUID rowId = row.getUuid(Columns.ID);
    	if (id.equals(rowId)) {
-   		Date start = row.getTimestamp(Columns.START);
+   		Date start = row.isNull(Columns.START) ? null : Date.from(row.getInstant(Columns.START));
    		// If this is null, then the row is a tombstone.
    		if (start != null) {
-   			ByteBuffer buffer = row.getBytes(Columns.SERIALIZED);
+   			ByteBuffer buffer = row.isNull(Columns.SERIALIZED) ? null : row.getByteBuffer(Columns.SERIALIZED);
    			// If the buffer has anything, then it is an old style serialized session.
    			if (buffer != null && buffer.remaining() > 0) {
    				byte[] bytes = new byte[buffer.remaining()];
@@ -328,12 +326,12 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    			}
    			else {
    				// New style session. Read the fields and create a session.
-                Date stop = row.getTimestamp(Columns.STOP);
-                Date lastAccess = row.getTimestamp(Columns.LAST_ACCESS);
+                Date stop = row.isNull(Columns.STOP) ? null : Date.from(row.getInstant(Columns.STOP));
+                Date lastAccess = row.isNull(Columns.LAST_ACCESS) ? null : Date.from(row.getInstant(Columns.LAST_ACCESS));
    				long timeout = row.getLong(Columns.TIMEOUT);
-   				boolean expired = row.getBool(Columns.EXPIRED);
+   				boolean expired = row.getBoolean(Columns.EXPIRED);
    				String host = row.getString(Columns.HOST);
-   				
+
    				// Read the attributes
    				Map<String, String> serialized_attrs = row.getMap(Columns.ATTRIBUTES, String.class, String.class);
    				Map<Object, Object> attributes = new HashMap<>();
@@ -343,7 +341,7 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    						attributes.put(entry.getKey(), deserializeAttribute(entry.getKey(), json));
    					}
    				}
-   				
+
    				// Create and populate the session.
    				SimpleSession session = new SimpleSession();
    				session.setId(rowId);
@@ -354,14 +352,14 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
    				session.setExpired(expired);
    				session.setHost(host);
    				session.setAttributes(attributes);
-   				
+
    				return session;
    			}
    		}
    	}
    	return null;
    }
-   
+
    private Object deserializeAttribute(String key, String json) {
    	if (key.equals(DefaultSubjectContext.AUTHENTICATED_SESSION_KEY)) {
    		return gson.fromJson(json, Boolean.class);
@@ -375,12 +373,10 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
 
    //In CQL, insert and update are effectively the same, so we can use a single query for both:
    protected void save(SimpleSession ss) {
-   	
+
       //Cassandra TTL values are in seconds, so we need to convert from Shiro's millis:
       int timeoutInSeconds = (int)(ss.getTimeout() / 1000);
 
-      BoundStatement bs = new BoundStatement(this.savePreparedStatement);
-      
       Map<String,String> attributes = new HashMap<>();
       for (Object key : ss.getAttributeKeys()) {
       	if (key instanceof String) {
@@ -396,23 +392,23 @@ public class GuicedCassandraSessionDAO extends AbstractSessionDAO implements Ini
       		logger.error("Session attributes with non-string keys are not supported. Session {}: Key {}", ss.getId(), key);
       	}
       }
-          
-      // FIXME if isExpired() == true we should just delete the row...
-      bs.bind(
+
+      // Convert Date to Instant for driver 4.x timestamp columns
+      BoundStatement bs = savePreparedStatement.bind(
             timeoutInSeconds,
-            ss.getStartTimestamp(),
-            ss.getStopTimestamp(),
-            ss.getLastAccessTime(),
+            ss.getStartTimestamp() != null ? ss.getStartTimestamp().toInstant() : null,
+            ss.getStopTimestamp() != null ? ss.getStopTimestamp().toInstant() : null,
+            ss.getLastAccessTime() != null ? ss.getLastAccessTime().toInstant() : null,
             ss.getTimeout(),
             ss.isExpired(),
             ss.getHost(),
             attributes,
-            null,
+            (ByteBuffer) null,
             ss.getId()
       );
-      bs.setConsistencyLevel(consistencyLevel);
-      
-      cassandraSession.execute(bs);      
+      bs = bs.setConsistencyLevel(consistencyLevel);
+
+      cassandraSession.execute(bs);
       sessionCache.put(ss.getId(), ss);
    }
 

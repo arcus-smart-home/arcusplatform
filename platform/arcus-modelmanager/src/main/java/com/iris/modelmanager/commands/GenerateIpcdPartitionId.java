@@ -24,12 +24,12 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -53,11 +53,11 @@ public class GenerateIpcdPartitionId implements ExecutionCommand {
    }
 
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement update = session.prepare(UPSERT_PARTITIONID);
 
-      BoundStatement select = session.prepare(SELECT).bind();
-      select.setConsistencyLevel(ConsistencyLevel.ALL);
+      BoundStatement select = session.prepare(SELECT).bind()
+            .setConsistencyLevel(DefaultConsistencyLevel.ALL);
       ResultSet rs = context.getSession().execute(select);
       int count = 0;
       int [] devsPerPartition = new int[partitionCount];
@@ -65,7 +65,7 @@ public class GenerateIpcdPartitionId implements ExecutionCommand {
       long startTimeNs = System.nanoTime();
       for(Row row: rs) {
          String protocolAddress = row.getString("protocoladdress");
-         UUID placeId = row.getUUID("placeid");
+         UUID placeId = row.getUuid("placeid");
          int partitionId;
          if(placeId == null) {
             partitionId = 0;
@@ -91,4 +91,3 @@ public class GenerateIpcdPartitionId implements ExecutionCommand {
       logger.warn("Rollback is not supported for {}", this);
    }
 }
-

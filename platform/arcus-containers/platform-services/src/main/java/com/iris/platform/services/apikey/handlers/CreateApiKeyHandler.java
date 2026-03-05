@@ -15,7 +15,7 @@
  */
 package com.iris.platform.services.apikey.handlers;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -126,13 +126,13 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       apiKey.setPersonId((UUID) msg.getActor().getId());
       apiKey.setAccountId(context.getAccount());
       apiKey.setPermissions(permissions);
-      apiKey.setCreated(new Date());
+      apiKey.setCreated(Instant.now());
 
       // Optional expiration
       Object expiresAtObj = body.getAttributes().get("expiresAt");
       if (expiresAtObj instanceof Number) {
-         Date expiresAt = new Date(((Number) expiresAtObj).longValue());
-         if (!expiresAt.after(new Date())) {
+         Instant expiresAt = Instant.ofEpochMilli(((Number) expiresAtObj).longValue());
+         if (!expiresAt.isAfter(Instant.now())) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "expiresAt must be in the future");
          }
          apiKey.setExpiresAt(expiresAt);

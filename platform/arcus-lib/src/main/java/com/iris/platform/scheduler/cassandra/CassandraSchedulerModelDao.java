@@ -24,30 +24,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -101,7 +100,7 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
    @Inject
    public CassandraSchedulerModelDao(
          DefinitionRegistry registry,
-         Session session
+         CqlSession session
    ) {
       super(registry, session);
       this.listByAddress =
@@ -184,21 +183,25 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
             return ImmutableList.of();
          }
 
-         List<ListenableFuture<ModelEntity>> modelFutures = new ArrayList<>(schedulerIds.size());
+         List<CompletionStage<AsyncResultSet>> resultFutures = new ArrayList<>(schedulerIds.size());
          for(UUID schedulerId: schedulerIds) {
-            ResultSetFuture resultFuture = session().executeAsync( findById.bind(schedulerId) );
-            ListenableFuture<ModelEntity> modelFuture = Futures.transform(
-                  resultFuture,
-                  (Function<ResultSet, ModelEntity>) (result) -> toModel(result.one(), includeWeekdays),
-                  MoreExecutors.directExecutor()
-            );
-            modelFutures.add(modelFuture);
+            CompletionStage<AsyncResultSet> resultFuture = session().executeAsync( findById.bind(schedulerId) );
+            resultFutures.add(resultFuture);
          }
+
+         List<ModelEntity> models = new ArrayList<>(schedulerIds.size());
+         List<Throwable> errors = new ArrayList<>();
+         CompletableFuture<?>[] allFutures = resultFutures.stream()
+               .map(cf -> cf.thenApply(asyncRs -> toModel(asyncRs.one(), includeWeekdays))
+                     .toCompletableFuture()
+                     .thenAccept(model -> { if(model != null) synchronized(models) { models.add(model); } })
+                     .exceptionally(ex -> { synchronized(errors) { errors.add(ex); } return null; }))
+               .toArray(CompletableFuture[]::new);
+
          try {
-            return Futures.successfulAsList(modelFutures).get(asyncTimeoutMs, TimeUnit.MILLISECONDS);
+            CompletableFuture.allOf(allFutures).get(asyncTimeoutMs, TimeUnit.MILLISECONDS);
          }
          catch(TimeoutException e) {
-            Futures.allAsList(modelFutures).cancel(true);
             throw new DaoException("Request timed out", e);
          }
          catch (InterruptedException e) {
@@ -207,6 +210,7 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
          catch (ExecutionException e) {
             throw new DaoException(e.getCause());
          }
+         return models;
       }
    }
 
@@ -280,7 +284,7 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
 	      }
 	      return model;
 	  }
-      
+
    }
 
    /* (non-Javadoc)
@@ -389,8 +393,8 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
    protected ModelEntity toModel(Row row, boolean includeWeekdays) {
       Map<String, String> attributes = row.getMap(Columns.ATTRIBUTES, String.class, String.class);
       ModelEntity model = new ModelEntity( decode( attributes ) );
-      model.setCreated( row.getTimestamp(Columns.CREATED) );
-      model.setModified( row.getTimestamp(Columns.MODIFIED) );
+      model.setCreated( row.isNull(Columns.CREATED) ? null : Date.from(row.getInstant(Columns.CREATED)) );
+      model.setModified( row.isNull(Columns.MODIFIED) ? null : Date.from(row.getInstant(Columns.MODIFIED)) );
       if(!includeWeekdays && model.getInstances() != null) {
     	  //Remove WeeklyScheduleCapability instance data to reduce size of the model
     	  Map<String, Set<String>> instances = model.getInstances();
@@ -408,7 +412,7 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
       }
       return model;
    }
-   
+
    protected ModelEntity toModel(Row row) {
       return toModel(row, true);
    }
@@ -547,4 +551,3 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
       static final Timer deleteTimer = DaoMetrics.deleteTimer(SchedulerModelDao.class, "delete");
   }
 }
-

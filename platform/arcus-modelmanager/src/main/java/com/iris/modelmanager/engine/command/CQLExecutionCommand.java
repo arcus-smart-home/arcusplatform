@@ -15,9 +15,9 @@
  */
 package com.iris.modelmanager.engine.command;
 
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.exceptions.QueryExecutionException;
-import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.servererrors.QueryExecutionException;
+import com.datastax.oss.driver.api.core.servererrors.QueryValidationException;
 import com.iris.modelmanager.changelog.CQLCommand;
 import com.iris.modelmanager.context.Operation;
 import com.iris.modelmanager.engine.ExecutionContext;
@@ -40,7 +40,7 @@ public class CQLExecutionCommand implements ExecutionCommand {
       executeCommand(context.getSession(), Operation.ROLLBACK);
    }
 
-   private void executeCommand(Session session, Operation operation) throws CommandExecutionException {
+   private void executeCommand(CqlSession session, Operation operation) throws CommandExecutionException {
       try {
          if(operation == Operation.UPGRADE) {
             session.execute(command.getUpdateCql());
@@ -53,4 +53,3 @@ public class CQLExecutionCommand implements ExecutionCommand {
    }
 
 }
-

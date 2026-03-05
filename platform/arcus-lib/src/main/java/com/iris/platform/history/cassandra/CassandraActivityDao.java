@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -42,7 +42,7 @@ import com.iris.platform.history.HistoryAppenderDAO;
 public class CassandraActivityDao implements HistoryActivityDAO {
    private static final Timer activitySystemLogTimer = DaoMetrics.insertTimer(HistoryAppenderDAO.class, "activity.subsystem");
    private static final Timer activitySystemReadTimer = DaoMetrics.readTimer(HistoryAppenderDAO.class, "activity.subsystem");
-   
+
 	public static final String TABLE_NAME = "histlog_care_activity";
 	public static final int COLUMN_COUNT = 3;
 
@@ -53,22 +53,22 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 		public static final String DEACTIVATED_DEVICES = "deactivatedDevices";
 	}
 
-	private final Session session;
+	private final CqlSession session;
 	private final PreparedStatement upsert;
 	private final PreparedStatement listByRange;
-	
+
 	private final int bucketSizeMs;
 	private final long rowTtlMs;
-	
+
 	@Inject
 	public CassandraActivityDao(
-			@Named(CassandraHistory.NAME) Session session, 
+			@Named(CassandraHistory.NAME) CqlSession session,
 			HistoryAppenderConfig config
 	) {
 		this.bucketSizeMs = (int) TimeUnit.SECONDS.toMillis(config.getActivityBucketSizeSec());
 		this.rowTtlMs = TimeUnit.HOURS.toMillis(config.getActivitySubsysTtlHours());
 		this.session = session;
-		this.upsert = 
+		this.upsert =
 				CassandraQueryBuilder
 					.update(TABLE_NAME)
 					.set(
@@ -82,13 +82,13 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 					.withTtlSec(TimeUnit.HOURS.toSeconds(config.getActivitySubsysTtlHours()))
 					.usingTimestamp()
 					.prepare(session);
-		
+
 		this.listByRange =
 				CassandraQueryBuilder
 					.select(TABLE_NAME)
 					.addColumns(Columns.PLACE_ID, Columns.TIME, Columns.ACTIVE_DEVICES, Columns.DEACTIVATED_DEVICES)
 					.where(Columns.PLACE_ID + " = ? AND " + Columns.TIME + " >= ? AND " + Columns.TIME + " < ?")
-					.withConsistencyLevel(ConsistencyLevel.LOCAL_ONE)
+					.withConsistencyLevel(DefaultConsistencyLevel.LOCAL_ONE)
 					.prepare(session);
 
 	}
@@ -102,7 +102,7 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 					event.getActiveDevices(),
 					event.getInactivateDevices(),
 					event.getPlaceId(),
-					timeBucket
+					timeBucket.toInstant()
 			);
 			session.execute( bs );
 		}
@@ -116,11 +116,11 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 			@Override
 			public Iterator<ActivityEvent> iterator() {
 				return new Iterator<ActivityEvent>() {
-					final Context c = activitySystemReadTimer.time();   
-					Iterator<Row> it = session.execute(listByRange.bind(placeId, startBucket, endBucket)).iterator();
+					final Context c = activitySystemReadTimer.time();
+					Iterator<Row> it = session.execute(listByRange.bind(placeId, startBucket.toInstant(), endBucket.toInstant())).iterator();
 					boolean needsOneMore = true;
 					Row oneMore = null;
-					
+
 					@Override
 					public boolean hasNext() {
 						if(it.hasNext()) {
@@ -142,8 +142,8 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 							}
 							return event;
 						}
-						tryOneMore(); 
-						
+						tryOneMore();
+
 						if(oneMore == null) {
 							throw new NoSuchElementException();
 						}
@@ -151,15 +151,15 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 						oneMore = null;
 						return event;
 					}
-					
+
 					private void tryOneMore() {
 						if(!needsOneMore) {
 							return;
 						}
-						
+
 						needsOneMore = false;
-						BoundStatement bs = listByRange.bind(placeId, new Date(System.currentTimeMillis() - rowTtlMs), startBucket);
-						bs.setFetchSize(1);
+						BoundStatement bs = listByRange.bind(placeId, new Date(System.currentTimeMillis() - rowTtlMs).toInstant(), startBucket.toInstant());
+						bs = bs.setPageSize(1);
 						oneMore = session.execute( bs ).one();
 						c.stop();
 					}
@@ -167,11 +167,11 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 			}
 		};
 	}
-	
+
 	protected ActivityEvent transform(Row row) {
 		ActivityEvent event = new ActivityEvent();
-		event.setTimestamp(row.getTimestamp(Columns.TIME));
-		event.setPlaceId(row.getUUID(Columns.PLACE_ID));
+		event.setTimestamp(row.isNull(Columns.TIME) ? null : Date.from(row.getInstant(Columns.TIME)));
+		event.setPlaceId(row.getUuid(Columns.PLACE_ID));
 		event.setActiveDevices(row.getSet(Columns.ACTIVE_DEVICES, String.class));
 		event.setInactiveDevices(row.getSet(Columns.DEACTIVATED_DEVICES, String.class));
 		return event;
@@ -185,4 +185,3 @@ public class CassandraActivityDao implements HistoryActivityDAO {
 	}
 
 }
-

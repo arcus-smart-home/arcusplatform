@@ -24,7 +24,6 @@ import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.iris.modelmanager.resource.ClasspathResourceLocator;
 import com.iris.modelmanager.resource.HomeDirectoryResourceLocator;
 import com.iris.modelmanager.resource.ResourceLocator;
@@ -35,7 +34,7 @@ public class ManagerContext {
    private static final String PROFILES_DIRECTORY = "profiles";
    private static final String DEFAULT_CHANGELOG = "changelog-master.xml";
 
-   
+
    public static class Builder {
 
       private final ManagerContext context = new ManagerContext();
@@ -80,7 +79,7 @@ public class ManagerContext {
                ? new ClasspathResourceLocator()
                : new HomeDirectoryResourceLocator(new File(homeDirectoryStr));
 
-         context.resourceLocator = resourceLocator;   
+         context.resourceLocator = resourceLocator;
          context.profile = profile;
          return context;
       }
@@ -146,4 +145,3 @@ public class ManagerContext {
       return auto;
    }
 }
-

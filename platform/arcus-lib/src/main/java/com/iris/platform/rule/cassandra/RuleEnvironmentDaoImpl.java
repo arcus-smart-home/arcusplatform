@@ -30,10 +30,10 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
@@ -54,13 +54,13 @@ import com.iris.platform.scene.SceneDefinition;
 public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
    private static final Logger logger = LoggerFactory.getLogger(RuleEnvironmentDaoImpl.class);
 
-   protected static PreparedStatement streamAll(Session session) {
+   protected static PreparedStatement streamAll(CqlSession session) {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder
                .select(RuleEnvironmentTable.NAME);
       return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
    }
 
-   protected static PreparedStatement listByPlaceStatement(Session session) {
+   protected static PreparedStatement listByPlaceStatement(CqlSession session) {
       CassandraQueryBuilder queryBuilder =
             CassandraQueryBuilder
                .select(RuleEnvironmentTable.NAME)
@@ -68,7 +68,7 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
       return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
    }
 
-   protected static PreparedStatement deleteByPlaceStatement(Session session) {
+   protected static PreparedStatement deleteByPlaceStatement(CqlSession session) {
       return
             CassandraQueryBuilder
                .delete(RuleEnvironmentTable.NAME)
@@ -78,7 +78,7 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
 
    private final RuleEnvironmentDaoMetrics metrics = new RuleEnvironmentDaoMetrics();
 
-   private final Session session;
+   private final CqlSession session;
    private final ActionDaoImpl actionDao;
    private final RuleDaoImpl ruleDao;
    private final SceneDaoImpl sceneDao;
@@ -88,7 +88,7 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
    private final PreparedStatement deleteByPlace;
 
    @Inject
-   public RuleEnvironmentDaoImpl(Session session, ActionDao actionDao, RuleDao ruleDao, SceneDao sceneDao) {
+   public RuleEnvironmentDaoImpl(CqlSession session, ActionDao actionDao, RuleDao ruleDao, SceneDao sceneDao) {
       this.session = session;
       try {
          this.actionDao = (ActionDaoImpl) actionDao;
@@ -176,13 +176,13 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
             }
          }
 
-         UUID placeId = row.getUUID(Column.PLACE_ID.columnName());
+         UUID placeId = row.getUuid(Column.PLACE_ID.columnName());
          RuleEnvironmentAggregator aggregator = new RuleEnvironmentAggregator(placeId);
          while(row != null && Objects.equal(aggregator.placeId, placeId)) {
             aggregator.addRow(row);
             if(delegate.hasNext()) {
                row = delegate.next();
-               placeId = row.getUUID(Column.PLACE_ID.columnName());
+               placeId = row.getUuid(Column.PLACE_ID.columnName());
             }
             else {
                row = null;
@@ -251,4 +251,3 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
       }
    }
 }
-

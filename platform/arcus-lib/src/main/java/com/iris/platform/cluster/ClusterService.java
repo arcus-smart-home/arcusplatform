@@ -34,7 +34,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.StartupListener;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.iris.core.dao.cassandra.CassandraHealth;
 import com.iris.platform.cluster.exception.ClusterIdLostException;
 
@@ -140,7 +140,7 @@ public class ClusterService implements StartupListener {
          logger.warn("Attempting to reserve a new cluster id");
          tryRegister(0);
       }
-      catch(NoHostAvailableException e) {
+      catch(AllNodesFailedException e) {
          CassandraHealth.instance().setHealthy(false);
          logger.warn("Error updating heartbeat table: {}", e.getMessage());
       }

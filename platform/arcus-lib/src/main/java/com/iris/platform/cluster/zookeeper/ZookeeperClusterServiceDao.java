@@ -103,11 +103,10 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
     }
 
     private ClusterServiceRecord tryInsert(int memberId, Instant heartbeat) {
-        Date ts = new Date(heartbeat.toEpochMilli());
         ClusterServiceRecord csr = new ClusterServiceRecord();
         csr.setHost(host);
-        csr.setRegistered(ts.toInstant());
-        csr.setLastHeartbeat(ts.toInstant());
+        csr.setRegistered(heartbeat);
+        csr.setLastHeartbeat(heartbeat);
         csr.setService(service);
         csr.setMemberId(memberId);
 

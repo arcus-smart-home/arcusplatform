@@ -15,9 +15,7 @@
  */
 package com.iris.core.dao.cassandra;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.putAll;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -38,17 +36,19 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.Delete;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
-import com.datastax.driver.core.utils.Bytes;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.delete.Delete;
+import com.datastax.oss.driver.api.querybuilder.delete.DeleteSelection;
+import com.datastax.oss.driver.api.querybuilder.update.Update;
+import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
+import com.datastax.oss.driver.api.querybuilder.update.Assignment;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -65,6 +65,7 @@ import com.iris.core.dao.metrics.DaoMetrics;
 import com.iris.core.driver.DeviceDriverStateHolder;
 import com.iris.device.attributes.AttributeKey;
 import com.iris.device.attributes.AttributeMap;
+import com.iris.device.attributes.AttributeValue;
 import com.iris.device.model.AttributeDefinition;
 import com.iris.device.model.CapabilityDefinition;
 import com.iris.io.Deserializer;
@@ -203,15 +204,15 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    private PreparedStatement findIdsByPlace;
 
    @Inject(optional = true) @Named("dao.device.readconsistency")
-   private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
+   private DefaultConsistencyLevel readConsistency = DefaultConsistencyLevel.LOCAL_QUORUM;
    @Inject(optional = true) @Named("dao.device.writeconsistency")
-   private ConsistencyLevel writeConsistency = ConsistencyLevel.LOCAL_QUORUM;
+   private DefaultConsistencyLevel writeConsistency = DefaultConsistencyLevel.LOCAL_QUORUM;
    @Inject(optional = true) @Named("dao.device.asynctimeoutms")
    private long asyncTimeoutMs = 30000;
 
 
    @Inject
-   public DeviceDAOImpl(Session session, CapabilityRegistry registry) {
+   public DeviceDAOImpl(CqlSession session, CapabilityRegistry registry) {
       super(session, TABLE, COLUMN_ORDER);
       this.registry = registry;
 
@@ -334,7 +335,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
    @Override
    protected void populateEntity(Row row, Device entity) {
-      entity.setAccount(row.getUUID(DeviceEntityColumns.ACCOUNT_ID));
+      entity.setAccount(row.getUuid(DeviceEntityColumns.ACCOUNT_ID));
       entity.setAddress(row.getString(DeviceEntityColumns.DRIVER_ADDRESS));
       entity.setProtocolAddress(row.getString(DeviceEntityColumns.PROTOCOL_ADDRESS));
 
@@ -357,7 +358,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       DriverId driverId = new DriverId(row.getString(DeviceEntityColumns.DRIVER_NAME), version == null ? Version.UNVERSIONED : Version.fromRepresentation(version));
       entity.setDriverId(driverId);
       entity.setState(row.getString(DeviceEntityColumns.STATE));
-      entity.setPlace(row.getUUID(DeviceEntityColumns.PLACE_ID));
+      entity.setPlace(row.getUuid(DeviceEntityColumns.PLACE_ID));
       entity.setCaps(row.getSet(DeviceEntityColumns.CAPS, String.class));
       entity.setDevtypehint(row.getString(DeviceEntityColumns.DEVTYPEHINT));
       entity.setName(row.getString(DeviceEntityColumns.NAME));
@@ -366,12 +367,14 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       entity.setModel(row.getString(DeviceEntityColumns.MODEL));
       entity.setProductId(row.getString(DeviceEntityColumns.PRODUCTID));
       entity.setSubprotocol(row.getString(DeviceEntityColumns.SUBPROTOCOL));
-      ByteBuffer buf = row.getBytes(DeviceEntityColumns.PROTOCOL_ATTRS);
+      ByteBuffer buf = row.isNull(DeviceEntityColumns.PROTOCOL_ATTRS) ? null : row.getByteBuffer(DeviceEntityColumns.PROTOCOL_ATTRS);
       if (buf != null) {
-         entity.setProtocolAttributes(bytesToProtocolAttributes(Bytes.getArray(buf)));
+         byte[] bytes = new byte[buf.remaining()];
+         buf.get(bytes);
+         entity.setProtocolAttributes(bytesToProtocolAttributes(bytes));
       }
       entity.setDegradedCode(row.getString(DeviceEntityColumns.DEGRADED));
-      entity.setHubLocal(row.getBool(DeviceEntityColumns.HUBLOCAL));
+      entity.setHubLocal(row.getBoolean(DeviceEntityColumns.HUBLOCAL));
    }
 
    private Map<String, Object> toAttributes(Row row, boolean includeTombstoned) {
@@ -408,14 +411,14 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       // device attributes
       setIf(DeviceCapability.ATTR_DEVTYPEHINT, row.getString(DeviceEntityColumns.DEVTYPEHINT), model);
       setOrDefault(DeviceCapability.ATTR_NAME, row.getString(DeviceEntityColumns.NAME), DFLT_NAME, model);
-      setIf(DeviceCapability.ATTR_ACCOUNT, coerceToString(row.getUUID(DeviceEntityColumns.ACCOUNT_ID)), model);
-      setIf(DeviceCapability.ATTR_PLACE, coerceToString(row.getUUID(DeviceEntityColumns.PLACE_ID)), model);
+      setIf(DeviceCapability.ATTR_ACCOUNT, coerceToString(row.getUuid(DeviceEntityColumns.ACCOUNT_ID)), model);
+      setIf(DeviceCapability.ATTR_PLACE, coerceToString(row.getUuid(DeviceEntityColumns.PLACE_ID)), model);
       setIf(DeviceCapability.ATTR_MODEL, row.getString(DeviceEntityColumns.MODEL), model);
       setIf(DeviceCapability.ATTR_VENDOR, row.getString(DeviceEntityColumns.VENDOR), model);
       setIf(DeviceCapability.ATTR_PRODUCTID, row.getString(DeviceEntityColumns.PRODUCTID), model);
 
       // device advanced attributes
-      setIf(DeviceAdvancedCapability.ATTR_ADDED, row.getTimestamp(BaseEntityColumns.CREATED), model);
+      setIf(DeviceAdvancedCapability.ATTR_ADDED, row.isNull(BaseEntityColumns.CREATED) ? null : Date.from(row.getInstant(BaseEntityColumns.CREATED)), model);
       setIf(DeviceAdvancedCapability.ATTR_DRIVERNAME, row.getString(DeviceEntityColumns.DRIVER_NAME), model);
 
       String version = row.getString(DeviceEntityColumns.DRIVER_VERSION2);
@@ -441,7 +444,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       setIf(DeviceAdvancedCapability.ATTR_DEGRADED, degraded != null && !Device.DEGRADED_CODE_NONE.equals(degraded), model);
       setIf(DeviceAdvancedCapability.ATTR_DEGRADEDCODE, degraded, model);
 
-      setOrDefault(DeviceAdvancedCapability.ATTR_HUBLOCAL, row.getBool(DeviceEntityColumns.HUBLOCAL), false, model);
+      setOrDefault(DeviceAdvancedCapability.ATTR_HUBLOCAL, row.getBoolean(DeviceEntityColumns.HUBLOCAL), false, model);
 
       return model;
    }
@@ -458,8 +461,8 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       }
 
       ModelEntity entity = new ModelEntity(attributes);
-      entity.setCreated(row.getTimestamp(BaseEntityColumns.CREATED));
-      entity.setModified(row.getTimestamp(BaseEntityColumns.MODIFIED));
+      entity.setCreated(row.isNull(BaseEntityColumns.CREATED) ? null : Date.from(row.getInstant(BaseEntityColumns.CREATED)));
+      entity.setModified(row.isNull(BaseEntityColumns.MODIFIED) ? null : Date.from(row.getInstant(BaseEntityColumns.MODIFIED)));
       return entity;
    }
 
@@ -479,10 +482,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
       try (Context timerContext = findByHubIdTimer.time())
       {
-         Statement associationQuery = findByHubId.bind(hubId);
+         Statement<?> associationQuery = findByHubId.bind(hubId);
 
          Function<Row, UUID> entityIdTransform =
-            row -> row.getUUID("devid");
+            row -> row.getUuid("devid");
 
          Function<ResultSet, Device> entityTransform =
             resultSet -> {
@@ -496,15 +499,15 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
    @Override
    public Device findByProtocolAddress(String protocolAddress) {
-      BoundStatement boundStatement = new BoundStatement(findByProtocolAddr);
+      BoundStatement boundStatement = findByProtocolAddr.bind(protocolAddress);
       try(Context ctxt = findByProtocolAddressTimer.time()) {
-    	  Row row = session.execute(boundStatement.bind(protocolAddress)).one();
+    	  Row row = session.execute(boundStatement).one();
 
     	  if (row == null) {
     		  return null;
     	  }
 
-    	  UUID deviceId = row.getUUID("id");
+    	  UUID deviceId = row.getUuid("id");
     	  return findById(deviceId);
       }
    }
@@ -515,10 +518,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
          return Collections.<Map<String, Object>>emptyList();
       }
 
-      BoundStatement boundStatement = new BoundStatement(findByAccountId);
+      BoundStatement boundStatement = findByAccountId.bind(accountId);
       ResultSet results;
       try(Context ctxt = listDeviceAttributesByAccountIdTimer.time()) {
-    	  results = session.execute(boundStatement.bind(accountId));
+    	  results = session.execute(boundStatement);
       }
       List<Map<String, Object>> devices = new LinkedList<>();
       for(Row row:  results) {
@@ -538,10 +541,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
             return Collections.<Map<String, Object>>emptyList();
          }
 
-         Statement associationQuery = findIdsByPlace.bind(placeId);
+         Statement<?> associationQuery = findIdsByPlace.bind(placeId);
 
          Function<Row, UUID> entityIdTransform =
-            row -> row.getUUID("devid");
+            row -> row.getUuid("devid");
 
          Function<ResultSet, Map<String, Object>> entityTransform =
             resultSet -> toAttributes(resultSet.one(), includeTombstoned);
@@ -554,10 +557,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    public List<Device> listDevicesByPlaceId(UUID placeId, boolean includeTombstoned) {
       try (Context timerContext = listDevicesByPlaceIdTimer.time())
       {
-         Statement associationQuery = findIdsByPlace.bind(placeId);
+         Statement<?> associationQuery = findIdsByPlace.bind(placeId);
 
          Function<Row, UUID> entityIdTransform =
-            row -> row.getUUID("devid");
+            row -> row.getUuid("devid");
 
          Function<ResultSet, Device> entityTransform =
             resultSet -> {
@@ -577,10 +580,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
       try (Context timerContext = streamDeviceModelByPlaceIdTimer.time())
       {
-         Statement associationQuery = findIdsByPlace.bind(placeId);
+         Statement<?> associationQuery = findIdsByPlace.bind(placeId);
 
          Function<Row, UUID> entityIdTransform =
-            row -> row.getUUID("devid");
+            row -> row.getUuid("devid");
 
          Function<ResultSet, ModelEntity> entityTransform =
             resultSet -> toModel(resultSet.one(), includeTombstoned);
@@ -595,7 +598,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
          return null;
       }
       try(Context ctxt = modelByIdTimer.time()) {
-         BoundStatement stmt = new BoundStatement(findById).bind(id);
+         BoundStatement stmt = findById.bind(id);
          Row r = session.execute(stmt).one();
          if(r == null) {
             return null;
@@ -612,8 +615,8 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    }
 
    @Override
-   protected List<Statement> prepareIndexInserts(UUID id, Device entity) {
-      List<Statement> indexInserts = new ArrayList<>();
+   protected List<Statement<?>> prepareIndexInserts(UUID id, Device entity) {
+      List<Statement<?>> indexInserts = new ArrayList<>();
       addHubIdIndexInsert(indexInserts, id, entity);
       addProtocolAddressIndexInsert(indexInserts, id, entity);
       addPlaceIndexInsert(indexInserts, id, entity);
@@ -621,12 +624,12 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    }
 
    @Override
-   protected List<Statement> prepareIndexUpdates(Device entity) {
+   protected List<Statement<?>> prepareIndexUpdates(Device entity) {
       Device currentDevice = findById(entity.getId());
       if(currentDevice == null) {
          return prepareIndexInserts(entity.getId(), entity);
       }
-      List<Statement> statements = new ArrayList<>();
+      List<Statement<?>> statements = new ArrayList<>();
       if(!StringUtils.equals(entity.getProtocolAddress(), currentDevice.getProtocolAddress())) {
          addProtocolAddressIndexDelete(statements, currentDevice);
          addProtocolAddressIndexInsert(statements, entity.getId(), entity);
@@ -642,48 +645,48 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    }
 
    @Override
-   protected List<Statement> prepareIndexDeletes(Device entity) {
+   protected List<Statement<?>> prepareIndexDeletes(Device entity) {
       log.info("Deleting Device {}", entity);
-      List<Statement> indexDeletes = new ArrayList<>();
+      List<Statement<?>> indexDeletes = new ArrayList<>();
       addProtocolAddressIndexDelete(indexDeletes, entity);
       addHubIdIndexDelete(indexDeletes, entity);
       addPlaceIndexDelete(indexDeletes, entity);
       return indexDeletes;
    }
 
-   private void addHubIdIndexInsert(List<Statement> statements, UUID id, Device entity) {
+   private void addHubIdIndexInsert(List<Statement<?>> statements, UUID id, Device entity) {
       if(!StringUtils.isBlank(entity.getHubId())) {
-         statements.add(new BoundStatement(insertHubIndex).bind(entity.getHubId(), id));
+         statements.add(insertHubIndex.bind(entity.getHubId(), id));
       }
    }
 
-   private void addHubIdIndexDelete(List<Statement> statements, Device entity) {
+   private void addHubIdIndexDelete(List<Statement<?>> statements, Device entity) {
       if(!StringUtils.isBlank(entity.getHubId())) {
-         statements.add(new BoundStatement(deleteHubIndex).bind(entity.getHubId(), entity.getId()));
+         statements.add(deleteHubIndex.bind(entity.getHubId(), entity.getId()));
       }
    }
 
-   private void addProtocolAddressIndexInsert(List<Statement> statements, UUID id, Device entity) {
+   private void addProtocolAddressIndexInsert(List<Statement<?>> statements, UUID id, Device entity) {
       if(!StringUtils.isBlank(entity.getProtocolAddress())) {
-         statements.add(new BoundStatement(insertProtocolAddrIndex).bind(id, entity.getProtocolAddress()));
+         statements.add(insertProtocolAddrIndex.bind(id, entity.getProtocolAddress()));
       }
    }
 
-   private void addProtocolAddressIndexDelete(List<Statement> statements, Device entity) {
+   private void addProtocolAddressIndexDelete(List<Statement<?>> statements, Device entity) {
       if(!StringUtils.isBlank(entity.getProtocolAddress())) {
-         statements.add(new BoundStatement(deleteProtocolAddrIndex).bind(entity.getProtocolAddress()));
+         statements.add(deleteProtocolAddrIndex.bind(entity.getProtocolAddress()));
       }
    }
 
-   private void addPlaceIndexInsert(List<Statement> statements, UUID id, Device entity) {
+   private void addPlaceIndexInsert(List<Statement<?>> statements, UUID id, Device entity) {
       if(entity.getPlace() != null) {
-         statements.add(new BoundStatement(insertPlaceIndex).bind(entity.getPlace(), id));
+         statements.add(insertPlaceIndex.bind(entity.getPlace(), id));
       }
    }
 
-   private void addPlaceIndexDelete(List<Statement> statements, Device entity) {
+   private void addPlaceIndexDelete(List<Statement<?>> statements, Device entity) {
       if(entity.getPlace() != null) {
-         statements.add(new BoundStatement(deletePlaceIndex).bind(entity.getId(), entity.getPlace()));
+         statements.add(deletePlaceIndex.bind(entity.getId(), entity.getPlace()));
       }
    }
 
@@ -692,10 +695,10 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       Preconditions.checkNotNull(device, "device cannot be null");
       Preconditions.checkNotNull(device.getId(), "device must have an id");
 
-      BoundStatement bound = new BoundStatement(loadState);
+      BoundStatement bound = loadState.bind(device.getId());
       Row r;
       try(Context ctxt = loadDriverStateTimer.time()) {
-         r = session.execute(bound.bind(device.getId())).one();
+         r = session.execute(bound).one();
       }
 
       if(r == null) {
@@ -716,9 +719,11 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
 
       Map<String,Object> variables = new HashMap<>();
-      ByteBuffer buf = r.getBytes(NonEntityColumns.VARIABLES);
+      ByteBuffer buf = r.isNull(NonEntityColumns.VARIABLES) ? null : r.getByteBuffer(NonEntityColumns.VARIABLES);
       if (buf != null) {
-         variables = SerializationUtils.deserialize(Bytes.getArray(buf));
+         byte[] bytes = new byte[buf.remaining()];
+         buf.get(bytes);
+         variables = SerializationUtils.deserialize(bytes);
       }
 
       return new DeviceDriverStateHolder(attributes, variables);
@@ -744,22 +749,35 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       Preconditions.checkNotNull(device, "device cannot be null");
       Preconditions.checkNotNull(device.getId(), "device must have an id");
 
-      Delete.Selection deleteSelection = QueryBuilder.delete();
-
+      // Build a list of attribute keys to delete from the map
+      List<String> keysToDelete = new ArrayList<>();
       attributeKeys.stream()
          .filter(key -> !isStrictColumn(key))
-         .forEach((key) -> { deleteSelection.mapElt(NonEntityColumns.ATTRIBUTES, key.getName()); });
+         .forEach((key) -> { keysToDelete.add(key.getName()); });
 
-      Delete delete = deleteSelection.from(TABLE);
-      delete.where(eq(BaseEntityColumns.ID, device.getId()));
+      if (keysToDelete.isEmpty()) {
+         return;
+      }
+
+      // Build delete statement using QueryBuilder
+      // We need to delete map elements from attributes column
+      // CQL: DELETE attributes['key1'], attributes['key2'] FROM device WHERE id = ?
+      StringBuilder cql = new StringBuilder("DELETE ");
+      for (int i = 0; i < keysToDelete.size(); i++) {
+         if (i > 0) cql.append(", ");
+         cql.append(NonEntityColumns.ATTRIBUTES).append("['").append(keysToDelete.get(i).replace("'", "''")).append("']");
+      }
+      cql.append(" FROM ").append(TABLE);
+      cql.append(" WHERE ").append(BaseEntityColumns.ID).append(" = ?");
+
       try(Context ctxt = removeAttributesTimer.time()) {
-         session.execute(delete);
+         session.execute(session.prepare(cql.toString()).bind(device.getId()));
       }
    }
 
    @Override
    protected UUID getIdFromRow(Row row) {
-      return row.getUUID(BaseEntityColumns.ID);
+      return row.getUuid(BaseEntityColumns.ID);
    }
 
    @Override
@@ -791,14 +809,18 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       Preconditions.checkNotNull(device.getId(), "device must have an id");
 
       Map<String,String> attributesAsStrings = new HashMap<>();
-      Update update = QueryBuilder.update(TABLE);
-      update.where(eq(BaseEntityColumns.ID, device.getId()));
+
+      // We need to build a CQL statement dynamically since the 4.x QueryBuilder is immutable
+      // and we need conditional logic for building the update
+      StringBuilder cql = new StringBuilder("UPDATE ").append(TABLE).append(" SET ");
+      List<Object> values = new ArrayList<>();
+      boolean needsComma = false;
 
       // allow entries defined in ATTR_TO_COLUMN_MAP to be
       // edited here, however this call is mainly intended for
       // drivers, so any updates to other columns which are not
       // allowed fail fast
-      List<Object> values = new ArrayList<>();
+      List<Object> nullKeyValues = new ArrayList<>();
       if(state.getAttributes() != null) {
          state.getAttributes().entries().forEach((value) -> {
             AttributeKey<?> attributeKey = value.getKey();
@@ -811,14 +833,13 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
                if(columnName.equals(BaseEntityColumns.IMAGES)) {
                   val = convertImageMap((Map<String,String>) val);
                }
-
-               update.with(set(columnName, val));
+               // These will be handled as literal values in the CQL string
+               // We'll add them to a separate list for column SET clauses
             }
             else {
                if(value.getValue() == null) {
                   if(!replace) {
-                     update.with(set(NonEntityColumns.ATTRIBUTES + "[?]", null));
-                     values.add(attributeKey.getName());
+                     nullKeyValues.add(attributeKey.getName());
                   }
                }
                else {
@@ -828,19 +849,68 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
          });
       }
 
+      // Build the actual CQL update using string-based approach (matching original behavior)
+      // The original code used QueryBuilder to build an Update, then called session.execute(update.toString(), values.toArray())
+      // We replicate that approach for compatibility
+      StringBuilder updateCql = new StringBuilder("UPDATE ").append(TABLE).append(" SET ");
+      List<Object> updateValues = new ArrayList<>();
+      boolean first = true;
+
+      if(state.getAttributes() != null) {
+         for(AttributeValue<?> value : state.getAttributes().entries()) {
+            AttributeKey<?> attributeKey = value.getKey();
+            if(isStrictColumn(attributeKey)) {
+               String columnName = ATTR_TO_COLUMN_MAP.get(attributeKey.getName());
+               if(columnName == null) {
+                  throw new IllegalArgumentException("Attempted to modify core property '" + value.getKey() + "' via update or replace attributes.  This property may not be updated from a driver.");
+               }
+               Object val = value.getValue();
+               if(columnName.equals(BaseEntityColumns.IMAGES)) {
+                  val = convertImageMap((Map<String,String>) val);
+               }
+               if(!first) updateCql.append(", ");
+               updateCql.append(columnName).append(" = ?");
+               updateValues.add(val);
+               first = false;
+            }
+            else {
+               if(value.getValue() == null) {
+                  if(!replace) {
+                     if(!first) updateCql.append(", ");
+                     updateCql.append(NonEntityColumns.ATTRIBUTES).append("[?] = null");
+                     updateValues.add(attributeKey.getName());
+                     first = false;
+                  }
+               }
+            }
+         }
+      }
+
       if(state.getVariables().size() > 0) {
          HashMap<String,Object> vars = new HashMap<String,Object>(state.getVariables());
          ByteBuffer buffer = ByteBuffer.wrap(SerializationUtils.serialize(vars));
-         update.with(set(NonEntityColumns.VARIABLES, buffer));
+         if(!first) updateCql.append(", ");
+         updateCql.append(NonEntityColumns.VARIABLES).append(" = ?");
+         updateValues.add(buffer);
+         first = false;
       }
 
       if(replace) {
-         update.with(set(NonEntityColumns.ATTRIBUTES, attributesAsStrings));
+         if(!first) updateCql.append(", ");
+         updateCql.append(NonEntityColumns.ATTRIBUTES).append(" = ?");
+         updateValues.add(attributesAsStrings);
+         first = false;
       } else {
-         update.with(putAll(NonEntityColumns.ATTRIBUTES, attributesAsStrings));
+         if(!first) updateCql.append(", ");
+         updateCql.append(NonEntityColumns.ATTRIBUTES).append(" = ").append(NonEntityColumns.ATTRIBUTES).append(" + ?");
+         updateValues.add(attributesAsStrings);
+         first = false;
       }
 
-      session.execute(update.toString(), values.toArray());
+      updateCql.append(" WHERE ").append(BaseEntityColumns.ID).append(" = ?");
+      updateValues.add(device.getId());
+
+      session.execute(session.prepare(updateCql.toString()).bind(updateValues.toArray()));
    }
 
    private Map<String,UUID> convertImageMap(Map<String,String> images) {
@@ -964,4 +1034,3 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
    }
 
 }
-

@@ -30,12 +30,15 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BatchableStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.inject.Inject;
@@ -57,7 +60,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
    private static final Timer findWithTokenTimer = DaoMetrics.readTimer(MobileDeviceDAO.class, "findWithToken");
    private static final Timer streamAllTimer = DaoMetrics.readTimer(MobileDeviceDAO.class, "streamAll");
 
-   private final Session session;
+   private final CqlSession session;
 
    private final PreparedStatement personCurrentMobileQuery;
    private final PreparedStatement personUpdateCurrentMobile;
@@ -74,7 +77,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
    private final PreparedStatement streamAll;
 
    @Inject
-   public MobileDeviceDAOImpl(Session session) {
+   public MobileDeviceDAOImpl(CqlSession session) {
       this.session = session;
       personCurrentMobileQuery = prepareCurrentMobileCountStatement();
       personUpdateCurrentMobile = prepareUpdateCurrentMobileStatement();
@@ -127,7 +130,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
          // Remove Old Owner Mobile Device and NotificationToken
          if (toDelete != null){
             // delete old md
-            session.execute(new BoundStatement(deleteStatement).bind(toDelete.getPersonId(), toDelete.getDeviceIndex()));
+            session.execute(deleteStatement.bind(toDelete.getPersonId(), toDelete.getDeviceIndex()));
             // delete old token in side table
             executeTokenIndexDelete(toDelete);
             saveResult.setOwnerChangedForId(toDelete.getPersonId());
@@ -148,7 +151,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
          device.setLastLocationTime(new Date());
       }
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       addUpsertToBatch(batch, device);
 
       // only update the token if it exists already
@@ -161,13 +164,13 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
          addTokenIndexInsertToBatch(batch, device); // insert the new row
       }
 
-      session.execute(batch);
+      session.execute(batch.build());
       MobileDeviceSaveResult saveResult = new MobileDeviceSaveResult(device);
       return saveResult;
    }
 
-   private void addUpsertToBatch(BatchStatement batch, MobileDevice device) {
-      batch.add(mobileDeviceUpsert(device));
+   private void addUpsertToBatch(BatchStatementBuilder batch, MobileDevice device) {
+      batch.addStatement(mobileDeviceUpsert(device));
    }
 
    private void executeUpsert(MobileDevice device) {
@@ -175,10 +178,10 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
    }
 
    private BoundStatement mobileDeviceUpsert(MobileDevice device) {
-      return new BoundStatement(upsertStatement)
-      .setUUID("personId", device.getPersonId())
+      return upsertStatement.bind()
+      .setUuid("personId", device.getPersonId())
       .setInt("deviceIndex", device.getDeviceIndex())
-      .setTimestamp("associated", device.getAssociated())
+      .setInstant("associated", device.getAssociated() == null ? null : device.getAssociated().toInstant())
       .setString("osType", device.getOsType())
       .setString("osVersion", device.getOsVersion())
       .setString("formFactor", device.getFormFactor())
@@ -190,26 +193,26 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       .setString("notificationToken", device.getNotificationToken())
       .setDouble("lastLatitude", device.getLastLatitude())
       .setDouble("lastLongitude", device.getLastLongitude())
-      .setTimestamp("lastLocationTime", device.getLastLocationTime())
+      .setInstant("lastLocationTime", device.getLastLocationTime() == null ? null : device.getLastLocationTime().toInstant())
       .setString("name", device.getName())
       .setString("appVersion", device.getAppVersion());
    }
 
-   private void addTokenIndexDeleteToBatch(BatchStatement batch, MobileDevice device) {
+   private void addTokenIndexDeleteToBatch(BatchStatementBuilder batch, MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         batch.add(new BoundStatement(deleteTokenIndex).bind(device.getNotificationToken()));
+         batch.addStatement(deleteTokenIndex.bind(device.getNotificationToken()));
       }
    }
 
-   private void addTokenIndexInsertToBatch(BatchStatement batch, MobileDevice device) {
+   private void addTokenIndexInsertToBatch(BatchStatementBuilder batch, MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         batch.add(new BoundStatement(insertTokenIndex).bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
+         batch.addStatement(insertTokenIndex.bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
       }
    }
 
    private boolean tryTokenIndexUpdateForDevice(MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         ResultSet rs = session.execute(new BoundStatement(optimisticUpdateTokenIndex).bind(device.getPersonId(), device.getDeviceIndex(), device.getNotificationToken()));
+         ResultSet rs = session.execute(optimisticUpdateTokenIndex.bind(device.getPersonId(), device.getDeviceIndex(), device.getNotificationToken()));
          return rs.wasApplied();
       }
 
@@ -218,7 +221,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
 
    private boolean tryTokenIndexInsertForDevice(MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         ResultSet rs = session.execute(new BoundStatement(optimisticInsertTokenIndex).bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
+         ResultSet rs = session.execute(optimisticInsertTokenIndex.bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
          return rs.wasApplied();
       }
 
@@ -227,20 +230,20 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
 
    private void executeTokenIndexDelete(MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         session.execute(new BoundStatement(deleteTokenIndex).bind(device.getNotificationToken()));
+         session.execute(deleteTokenIndex.bind(device.getNotificationToken()));
       }
    }
 
    private void executeTokenIndexInsert(MobileDevice device) {
       if (!StringUtils.isBlank(device.getNotificationToken())){
-         session.execute(new BoundStatement(insertTokenIndex).bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
+         session.execute(insertTokenIndex.bind(device.getNotificationToken(), device.getPersonId(), device.getDeviceIndex()));
       }
    }
 
    private int incCount(UUID personId) {
-      int currentId = session.execute(new BoundStatement(personCurrentMobileQuery).bind(personId)).one().getInt("mobileDeviceSequence");
+      int currentId = session.execute(personCurrentMobileQuery.bind(personId)).one().getInt("mobileDeviceSequence");
       int nextId = currentId + 1;
-      ResultSet rs = currentId == 0 ? session.execute(new BoundStatement(initialPersonUpdateCurrentMobile).bind(nextId, personId)) : session.execute(new BoundStatement(personUpdateCurrentMobile).bind(nextId,
+      ResultSet rs = currentId == 0 ? session.execute(initialPersonUpdateCurrentMobile.bind(nextId, personId)) : session.execute(personUpdateCurrentMobile.bind(nextId,
             personId, currentId));
       // TODO: should we try multiple times?
       if (!rs.wasApplied()){
@@ -253,10 +256,10 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
    public void delete(MobileDevice device) {
       if (device != null){
          try(Context ctxt = deleteTimer.time()){
-            BatchStatement batch = new BatchStatement();
-            batch.add(new BoundStatement(deleteStatement).bind(device.getPersonId(), device.getDeviceIndex()));
+            BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
+            batch.addStatement(deleteStatement.bind(device.getPersonId(), device.getDeviceIndex()));
             addTokenIndexDeleteToBatch(batch, device);
-            session.execute(batch);
+            session.execute(batch.build());
          }
       }
    }
@@ -266,27 +269,26 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       Preconditions.checkNotNull(personId, "The person ID cannot be null");
 
       try(Context ctxt = findOneTimer.time()) {
-         Row row = session.execute(new BoundStatement(findOneQuery).bind(personId, instance)).one();
+         Row row = session.execute(findOneQuery.bind(personId, instance)).one();
          return row == null ? null : createMobileDevice(row);
       }
    }
 
    private MobileDevice createMobileDevice(Row row) {
       MobileDevice device = new MobileDevice();
-      device.setAssociated(row.getTimestamp("associated"));
+      device.setAssociated(row.isNull("associated") ? null : Date.from(row.getInstant("associated")));
       device.setDeviceIdentifier(row.getString("deviceIdentifier"));
       device.setDeviceIndex(row.getInt("deviceIndex"));
       device.setDeviceModel(row.getString("deviceModel"));
       device.setDeviceVendor(row.getString("deviceVendor"));
       device.setFormFactor(row.getString("formFactor"));
       device.setLastLatitude(row.getDouble("lastLatitude"));
-      device.setLastLocationTime(row.getTimestamp("lastLocationTime"));
+      device.setLastLocationTime(row.isNull("lastLocationTime") ? null : Date.from(row.getInstant("lastLocationTime")));
       device.setLastLongitude(row.getDouble("lastLongitude"));
-      device.setLastLocationTime(row.getTimestamp("lastLocationTime"));
       device.setNotificationToken(row.getString("notificationToken"));
       device.setOsType(row.getString("osType"));
       device.setOsVersion(row.getString("osVersion"));
-      device.setPersonId(row.getUUID("personId"));
+      device.setPersonId(row.getUuid("personId"));
       device.setPhoneNumber(row.getString("phoneNumber"));
       device.setResolution(row.getString("resolution"));
       device.setName(row.getString("name"));
@@ -305,7 +307,7 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       Preconditions.checkNotNull(personId, "Person must be saved and have an identifier");
 
       try(Context ctxt = listForPersonTimer.time()){
-         List<Row> rows = session.execute(new BoundStatement(listForPersonQuery).bind(personId)).all();
+         List<Row> rows = session.execute(listForPersonQuery.bind(personId)).all();
          return rows.stream().map((r) -> {
             return createMobileDevice(r);
          }).collect(Collectors.toList());
@@ -319,11 +321,11 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       }
 
       try(Context ctxt = findWithTokenTimer.time()){
-         Row row = session.execute(new BoundStatement(getPersonAndIdForToken).bind(token)).one();
+         Row row = session.execute(getPersonAndIdForToken.bind(token)).one();
          if (row == null){
             return null;
          }
-         UUID personId = row.getUUID("personId");
+         UUID personId = row.getUuid("personId");
          int deviceIndex = row.getInt("deviceIndex");
          return findOne(personId, deviceIndex);
       }
@@ -468,4 +470,3 @@ public class MobileDeviceDAOImpl implements MobileDeviceDAO {
       return StreamSupport.stream(stream, false);
    }
 }
-

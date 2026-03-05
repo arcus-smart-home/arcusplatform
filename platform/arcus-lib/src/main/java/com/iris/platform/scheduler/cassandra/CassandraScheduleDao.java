@@ -30,12 +30,12 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -62,7 +62,7 @@ public class CassandraScheduleDao implements ScheduleDao {
    private final long defaultExpirationTimeMs;
 
    // injected services
-   private final Session session;
+   private final CqlSession session;
    private final Partitioner partitioner;
 
    // queries
@@ -81,7 +81,7 @@ public class CassandraScheduleDao implements ScheduleDao {
    @Inject
    public CassandraScheduleDao(
          SchedulerConfig config,
-         Session session,
+         CqlSession session,
          Partitioner partitioner
    ) {
       this.session = session;
@@ -173,7 +173,7 @@ public class CassandraScheduleDao implements ScheduleDao {
     */
    @Override
    public PartitionOffset completeOffset(PartitionOffset offset) {
-      Statement statement = upsertOffset.bind(IrisApplicationInfo.getContainerName(), offset.getOffset(), offset.getPartition().getId());
+      Statement<?> statement = upsertOffset.bind(IrisApplicationInfo.getContainerName(), offset.getOffset().toInstant(), offset.getPartition().getId());
       session.execute(statement);
       return offset.getNextPartitionOffset();
    }
@@ -184,7 +184,7 @@ public class CassandraScheduleDao implements ScheduleDao {
    @Override
    public Stream<ScheduledCommand> streamByPartitionOffset(PartitionOffset offset) {
       // TODO enable multi-threaded streaming
-      Statement statement = streamCommandsByOffset.bind(offset.getPartition().getId(), offset.getOffset());
+      Statement<?> statement = streamCommandsByOffset.bind(offset.getPartition().getId(), offset.getOffset().toInstant());
       ResultSet rs = session.execute(statement);
       return CassandraQueryExecutor.streamOptional(rs, rowToCommand);
    }
@@ -212,11 +212,11 @@ public class CassandraScheduleDao implements ScheduleDao {
       PartitionOffset offset = getPartitionOffsetFor(placeId, scheduledTime);
 
       BoundStatement statement = upsertCommand.bind();
-      statement.setInt(ScheduledEventTable.Columns.PARTITION_ID, offset.getPartition().getId());
-      statement.setTimestamp(ScheduledEventTable.Columns.TIME_BUCKET, offset.getOffset());
-      statement.setTimestamp(ScheduledEventTable.Columns.SCHEDULED_TIME, scheduledTime);
-      statement.setUUID(ScheduledEventTable.Columns.PLACE_ID, placeId);
-      statement.setString(ScheduledEventTable.Columns.SCHEDULER, schedulerAddress.getRepresentation());
+      statement = statement.setInt(ScheduledEventTable.Columns.PARTITION_ID, offset.getPartition().getId());
+      statement = statement.setInstant(ScheduledEventTable.Columns.TIME_BUCKET, offset.getOffset().toInstant());
+      statement = statement.setInstant(ScheduledEventTable.Columns.SCHEDULED_TIME, scheduledTime.toInstant());
+      statement = statement.setUuid(ScheduledEventTable.Columns.PLACE_ID, placeId);
+      statement = statement.setString(ScheduledEventTable.Columns.SCHEDULER, schedulerAddress.getRepresentation());
 
       session.execute(statement);
       ScheduledCommand command = new ScheduledCommand();
@@ -256,10 +256,10 @@ public class CassandraScheduleDao implements ScheduleDao {
    @Override
    public void unschedule(UUID placeId, Address schedulerAddress, Date scheduledTime) {
       PartitionOffset offset = getPartitionOffsetFor(placeId, scheduledTime);
-      Statement statement = deleteCommand.bind(
+      Statement<?> statement = deleteCommand.bind(
             offset.getPartition().getId(),
-            offset.getOffset(),
-            scheduledTime,
+            offset.getOffset().toInstant(),
+            scheduledTime.toInstant(),
             schedulerAddress.getRepresentation()
       );
       session.execute(statement);
@@ -269,7 +269,7 @@ public class CassandraScheduleDao implements ScheduleDao {
       PlatformPartition partition = partitioner.getPartitionById(row.getInt(SchedulerOffsetTable.Columns.PARTITION_ID));
       PartitionOffset offset = new PartitionOffset(
             partition,
-            row.getTimestamp(SchedulerOffsetTable.Columns.LAST_EXECUTED_BUCKET),
+            row.isNull(SchedulerOffsetTable.Columns.LAST_EXECUTED_BUCKET) ? null : Date.from(row.getInstant(SchedulerOffsetTable.Columns.LAST_EXECUTED_BUCKET)),
             windowSizeMs
       );
       return offset;
@@ -278,15 +278,15 @@ public class CassandraScheduleDao implements ScheduleDao {
    protected Optional<ScheduledCommand> rowToCommand(Row row) {
       try {
          ScheduledCommand command = new ScheduledCommand();
-         command.setPlaceId(row.getUUID(ScheduledEventTable.Columns.PLACE_ID));
-         command.setScheduledTime(row.getTimestamp(ScheduledEventTable.Columns.SCHEDULED_TIME));
+         command.setPlaceId(row.getUuid(ScheduledEventTable.Columns.PLACE_ID));
+         command.setScheduledTime(row.isNull(ScheduledEventTable.Columns.SCHEDULED_TIME) ? null : Date.from(row.getInstant(ScheduledEventTable.Columns.SCHEDULED_TIME)));
          command.setSchedulerAddress(Address.fromString(row.getString(ScheduledEventTable.Columns.SCHEDULER)));
-         command.setExpirationTime(row.getTimestamp(ScheduledEventTable.Columns.EXPIRES_AT));
+         command.setExpirationTime(row.isNull(ScheduledEventTable.Columns.EXPIRES_AT) ? null : Date.from(row.getInstant(ScheduledEventTable.Columns.EXPIRES_AT)));
 
          PlatformPartition partition = partitioner.getPartitionById(row.getInt(SchedulerOffsetTable.Columns.PARTITION_ID));
          PartitionOffset offset = new PartitionOffset(
                partition,
-               row.getTimestamp(ScheduledEventTable.Columns.TIME_BUCKET),
+               row.isNull(ScheduledEventTable.Columns.TIME_BUCKET) ? null : Date.from(row.getInstant(ScheduledEventTable.Columns.TIME_BUCKET)),
                windowSizeMs
          );
          command.setOffset(offset);
@@ -300,4 +300,3 @@ public class CassandraScheduleDao implements ScheduleDao {
    }
 
 }
-

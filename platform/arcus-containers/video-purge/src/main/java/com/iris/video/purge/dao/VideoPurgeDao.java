@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.datastax.driver.core.ResultSet;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.iris.video.VideoMetadata;
 import com.iris.video.cql.AbstractPurgeRecordingTable.PurgeRecord;
 

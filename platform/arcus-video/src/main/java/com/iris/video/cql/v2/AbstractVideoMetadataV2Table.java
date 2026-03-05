@@ -23,14 +23,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.policies.DowngradingConsistencyRetryPolicy;
-import com.datastax.driver.core.policies.LoggingRetryPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.inject.Inject;
@@ -48,18 +46,18 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 
 	public static final String COL_RECORDINGID = "recordingid";
 	public static final String COL_FIELD = "field";
-	public static final String COL_VALUE = "value";	
-	
-	
-	
+	public static final String COL_VALUE = "value";
+
+
+
 	public static final String ATTR_TYPE_STREAM = "s";
 	public static final String ATTR_TYPE_RECORDING = "r";
-	
+
 	protected final PreparedStatement selectByRecordingId;
 	protected final PreparedStatement deleteRecording;
-	
+
 	@Inject
-	public AbstractVideoMetadataV2Table(String ts, Session session) {
+	public AbstractVideoMetadataV2Table(String ts, CqlSession session) {
 		super(ts, session);
 		this.selectByRecordingId =
 				CassandraQueryBuilder
@@ -71,17 +69,16 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 				CassandraQueryBuilder
 					.delete(getTableName())
 					.addWhereColumnEquals(COL_RECORDINGID)
-					.withRetryPolicy(new LoggingRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE))
 					.prepare(session);
 	}
-	
+
 	abstract protected String[] getTableColumns() ;
 
-	
+
 
 	public BoundStatement selectRecording(UUID recordingId) {
 		return selectByRecordingId.bind(recordingId);
-	}	
+	}
 
 
 	/**
@@ -89,10 +86,10 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 	 * @param recordingId
 	 * @return
 	 */
-	public Statement deleteRecording(UUID recordingId) {
+	public Statement<?> deleteRecording(UUID recordingId) {
 		return deleteRecording.bind(recordingId);
 	}
-	
+
 	public Iterable<VideoMetadata> materialize(ResultSet rs) {
 		return () -> new MetadataIterator(rs);
 	}
@@ -109,74 +106,74 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 				if(StringUtils.isEmpty(value)) {
 					return;
 				}
-				
+
 				switch(attribute) {
 				case ACCOUNTID:
 					metadata.setAccountId(UUID.fromString(value));
 					break;
-					
+
 				case BANDWIDTH:
 					metadata.setBandwidth(Integer.valueOf(value));
 					break;
-					
+
 				case CAMERAID:
 					metadata.setCameraId(UUID.fromString(value));
 					break;
-					
+
 				case DELETED_PARTITION:
 					metadata.setDeletionPartition(Integer.valueOf(value));
 					break;
-				
+
 				case DELETED_TIME:
 					metadata.setDeletionTime(new Date(Long.valueOf(value)));
 					break;
 				case DELETED:
 					metadata.setDeleted(Boolean.valueOf(value));
-					break;	
+					break;
 				case DURATION:
 					metadata.setDuration(Double.valueOf(value));
 					break;
-					
+
 				case FRAMERATE:
 					metadata.setFramerate(Double.valueOf(value));
 					break;
-					
+
 				case HEIGHT:
 					metadata.setHeight(Integer.valueOf(value));
 					break;
-					
+
 				case IMG:
 					// FIXME add image
 					break;
-					
+
 				case LOCATION:
 					metadata.setLoc(value);
 					break;
-					
+
 				case NAME:
 					metadata.setName(value);
 					break;
-					
+
 				case PERSONID:
 					metadata.setPersonId(UUID.fromString(value));
 					break;
-					
+
 				case PLACEID:
 					metadata.setPlaceId(UUID.fromString(value));
 					break;
-				
+
 				case PRECAPTURE:
 					metadata.setPrecapture(Double.valueOf(value));
 					break;
-					
+
 				case SIZE:
 					metadata.setSize(Long.valueOf(value));
 					break;
-					
+
 				case TYPE:
 					metadata.setStream(ATTR_TYPE_STREAM.equals(value));
 					break;
-					
+
 				case WIDTH:
 					metadata.setWidth(Integer.valueOf(value));
 					break;
@@ -187,7 +184,7 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 					metadata.setAudioCodec(AudioCodec.valueOf(value));
 					break;
 				case EXPIRATION:
-					metadata.setExpiration( Long.valueOf(value)) ;					
+					metadata.setExpiration( Long.valueOf(value)) ;
 					break;
 				default:
 					logger.warn("Unrecognized attribute [{}]", attribute);
@@ -198,10 +195,10 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 			logger.warn("Unrecognized field [{}]", field, e);
 		}
 	}
-	
+
 	private class MetadataIterator implements Iterator<VideoMetadata> {
 		private PeekingIterator<Row> delegate;
-		
+
 		MetadataIterator(ResultSet rs) {
 			this.delegate = Iterators.peekingIterator(rs.iterator());
 		}
@@ -215,9 +212,9 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 		public VideoMetadata next() {
 			VideoMetadata metadata = new VideoMetadata();
 			Row first = delegate.next();
-			metadata.setRecordingId(first.getUUID(COL_RECORDINGID));
+			metadata.setRecordingId(first.getUuid(COL_RECORDINGID));
 			accumulate(first, metadata);
-			while(delegate.hasNext() && metadata.getRecordingId().equals( delegate.peek().getUUID(COL_RECORDINGID) )) {
+			while(delegate.hasNext() && metadata.getRecordingId().equals( delegate.peek().getUuid(COL_RECORDINGID) )) {
 				accumulate(delegate.next(), metadata);
 			}
 			if(metadata.getVideoCodec() == null) {
@@ -235,4 +232,3 @@ public abstract class AbstractVideoMetadataV2Table extends VideoTable{
 	}
 
 }
-

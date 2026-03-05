@@ -15,13 +15,14 @@
  */
 package com.iris.modelmanager.commands;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -36,26 +37,27 @@ public class UpdateAccountTrialEnd implements ExecutionCommand {
       PreparedStatement stmt = context.getSession().prepare(update);
 
       List<Row> rows = context.getSession().execute("SELECT id, created FROM account").all();
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
-         .setTimestamp("trialEnd", new Date(r.getTimestamp("created").getTime() + TRIAL_MS))
-         .setUUID("id", r.getUUID("id")));
+         Instant created = r.getInstant("created");
+         Instant trialEnd = created == null ? null : Instant.ofEpochMilli(created.toEpochMilli() + TRIAL_MS);
+         batch.addStatement(stmt.bind()
+         .setInstant("trialEnd", trialEnd)
+         .setUuid("id", r.getUuid("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 
    @Override
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       PreparedStatement stmt = context.getSession().prepare(update);
       List<Row> rows = context.getSession().execute("SELECT id FROM account").all();
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setToNull("trialEnd")
-            .setUUID("id", r.getUUID("id")));
+            .setUuid("id", r.getUuid("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 }
-

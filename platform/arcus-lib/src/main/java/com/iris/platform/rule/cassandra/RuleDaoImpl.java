@@ -25,12 +25,12 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
@@ -78,14 +78,14 @@ public class RuleDaoImpl
    private final PreparedStatement upsert;
    private final PreparedStatement updateVariables;
 
-   private static PreparedStatement upsertStatement(Session session) {
+   private static PreparedStatement upsertStatement(CqlSession session) {
       return CassandraQueryBuilder.update(RuleEnvironmentTable.NAME)
       				.addColumns(UPSERT_COLUMNS)
       				.where(whereIdEq(TYPE))
       				.prepare(session);
    }
 
-   private static PreparedStatement updateVariables(Session session) {
+   private static PreparedStatement updateVariables(CqlSession session) {
       return CassandraQueryBuilder.update(RuleEnvironmentTable.NAME)
       				.addColumn(RuleColumn.VARIABLES.columnName())
       				.where(whereIdEq(TYPE))
@@ -94,7 +94,7 @@ public class RuleDaoImpl
    }
 
    @Inject
-   public RuleDaoImpl(Session session) {
+   public RuleDaoImpl(CqlSession session) {
       super(session, TYPE);
 
       this.upsert = upsertStatement(session);
@@ -126,15 +126,15 @@ public class RuleDaoImpl
          definition=stateful;
       }
 
-      definition.setPlaceId(row.getUUID(Column.PLACE_ID.columnName()));
+      definition.setPlaceId(row.getUuid(Column.PLACE_ID.columnName()));
       definition.setSequenceId(row.getInt(Column.ID.columnName()));
-      definition.setCreated(row.getTimestamp(Column.CREATED.columnName()));
-      definition.setModified(row.getTimestamp(Column.MODIFIED.columnName()));
+      definition.setCreated(row.isNull(Column.CREATED.columnName()) ? null : Date.from(row.getInstant(Column.CREATED.columnName())));
+      definition.setModified(row.isNull(Column.MODIFIED.columnName()) ? null : Date.from(row.getInstant(Column.MODIFIED.columnName())));
       definition.setName(row.getString(Column.NAME.columnName()));
       definition.setDescription(row.getString(Column.DESCRIPTION.columnName()));
       definition.setTags(row.getSet(Column.TAGS.columnName(), String.class));
-      definition.setDisabled(row.getBool(RuleColumn.DISABLED.columnName()));
-      definition.setSuspended(row.getBool(RuleColumn.SUSPENDED.columnName()));
+      definition.setDisabled(row.getBoolean(RuleColumn.DISABLED.columnName()));
+      definition.setSuspended(row.getBoolean(RuleColumn.SUSPENDED.columnName()));
 
       String template = row.getString(RuleColumn.TEMPLATE2.columnName());
       if(template == null) {
@@ -154,32 +154,32 @@ public class RuleDaoImpl
    }
 
    @Override
-   protected Statement prepareUpsert(RuleDefinition definition, Date ts) {
+   protected Statement<?> prepareUpsert(RuleDefinition definition, Date ts) {
       // note this method does not update lastExecuted
       BoundStatement bs = upsert.bind();
-      bs.setUUID(Column.PLACE_ID.columnName(), definition.getPlaceId());
-      bs.setInt(Column.ID.columnName(), definition.getSequenceId());
-      bs.setTimestamp(Column.CREATED.columnName(), definition.getCreated());
-      bs.setTimestamp(Column.MODIFIED.columnName(), definition.getModified());
-      bs.setString(Column.NAME.columnName(), definition.getName());
-      bs.setString(Column.DESCRIPTION.columnName(), definition.getDescription());
-      bs.setSet(Column.TAGS.columnName(), definition.getTags());
-      bs.setBool(RuleColumn.DISABLED.columnName(), definition.isDisabled());
-      bs.setBool(RuleColumn.SUSPENDED.columnName(), definition.isSuspended());
-      bs.setString(RuleColumn.TEMPLATE2.columnName(), definition.getRuleTemplate());
-      bs.setString(RuleColumn.VARIABLES.columnName(), JSON.toJson(definition.getVariables()));
+      bs = bs.setUuid(Column.PLACE_ID.columnName(), definition.getPlaceId());
+      bs = bs.setInt(Column.ID.columnName(), definition.getSequenceId());
+      bs = bs.setInstant(Column.CREATED.columnName(), definition.getCreated() == null ? null : definition.getCreated().toInstant());
+      bs = bs.setInstant(Column.MODIFIED.columnName(), definition.getModified() == null ? null : definition.getModified().toInstant());
+      bs = bs.setString(Column.NAME.columnName(), definition.getName());
+      bs = bs.setString(Column.DESCRIPTION.columnName(), definition.getDescription());
+      bs = bs.setSet(Column.TAGS.columnName(), definition.getTags(), String.class);
+      bs = bs.setBoolean(RuleColumn.DISABLED.columnName(), definition.isDisabled());
+      bs = bs.setBoolean(RuleColumn.SUSPENDED.columnName(), definition.isSuspended());
+      bs = bs.setString(RuleColumn.TEMPLATE2.columnName(), definition.getRuleTemplate());
+      bs = bs.setString(RuleColumn.VARIABLES.columnName(), JSON.toJson(definition.getVariables()));
 
       if((definition instanceof StatefulRuleDefinition)) {
          StatefulRuleDefinition stateful = (StatefulRuleDefinition)definition;
-         bs.setString(RuleColumn.ACTIONCONFIG.columnName(), JSON.toJson(stateful.getAction()));
-         bs.setString(RuleColumn.CONDITIONCONFIG.columnName(),JSON.toJson(stateful.getCondition()));
-         bs.setToNull(RuleColumn.EXPRESSIONS.columnName());
+         bs = bs.setString(RuleColumn.ACTIONCONFIG.columnName(), JSON.toJson(stateful.getAction()));
+         bs = bs.setString(RuleColumn.CONDITIONCONFIG.columnName(),JSON.toJson(stateful.getCondition()));
+         bs = bs.setToNull(RuleColumn.EXPRESSIONS.columnName());
       }
 
       if((definition instanceof LegacyRuleDefinition)) {
-         bs.setToNull(RuleColumn.ACTIONCONFIG.columnName());
-         bs.setToNull(RuleColumn.CONDITIONCONFIG.columnName());
-         bs.setString(RuleColumn.EXPRESSIONS.columnName(), JSON.toJson(((LegacyRuleDefinition) definition).getExpressions()));
+         bs = bs.setToNull(RuleColumn.ACTIONCONFIG.columnName());
+         bs = bs.setToNull(RuleColumn.CONDITIONCONFIG.columnName());
+         bs = bs.setString(RuleColumn.EXPRESSIONS.columnName(), JSON.toJson(((LegacyRuleDefinition) definition).getExpressions()));
       }
 
       return bs;
@@ -188,10 +188,10 @@ public class RuleDaoImpl
    @Override
    public void updateVariables(CompositeId<UUID, Integer> id, Map<String, Object> variables, Date modified) {
       BoundStatement bs = updateVariables.bind();
-      bs.setUUID(Column.PLACE_ID.columnName(), id.getPrimaryId());
-      bs.setInt(Column.ID.columnName(), id.getSecondaryId());
-      bs.setString(RuleColumn.VARIABLES.columnName(), JSON.toJson(variables));
-      bs.setTimestamp(Column.MODIFIED.columnName(),modified);
+      bs = bs.setUuid(Column.PLACE_ID.columnName(), id.getPrimaryId());
+      bs = bs.setInt(Column.ID.columnName(), id.getSecondaryId());
+      bs = bs.setString(RuleColumn.VARIABLES.columnName(), JSON.toJson(variables));
+      bs = bs.setInstant(Column.MODIFIED.columnName(), modified == null ? null : modified.toInstant());
       ResultSet rs = session.execute(bs);
       if(!rs.wasApplied()) {
          throw new IllegalStateException(String.format("Unable to update rule variables. Rule [%s] has been modified since read",id));
@@ -200,4 +200,3 @@ public class RuleDaoImpl
 
 
 }
-

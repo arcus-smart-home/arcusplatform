@@ -35,13 +35,13 @@ import org.apache.shiro.util.Initializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.exceptions.InvalidQueryException;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 
 /**
  * @since 2013-06-09
@@ -59,11 +59,10 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
 
    private String keyspaceName;
    private String tableName;
-   private Cluster cluster; //created during init
 
    private Serializer<SimpleSession> serializer;
 
-   private com.datastax.driver.core.Session cassandraSession; //acquired during init();
+   private CqlSession cassandraSession;
 
    private PreparedStatement deletePreparedStatement;
    private PreparedStatement savePreparedStatement;
@@ -82,14 +81,6 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
       return (SimpleSession) session;
    }
 
-   public Cluster getCluster() {
-      return cluster;
-   }
-
-   public void setCluster(Cluster cluster) {
-      this.cluster = cluster;
-   }
-
    public String getKeyspaceName() {
       return keyspaceName;
    }
@@ -106,23 +97,16 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
       this.tableName = tableName;
    }
 
+   public void setCassandraSession(CqlSession cassandraSession) {
+      this.cassandraSession = cassandraSession;
+   }
+
    @Override
    public void init() throws ShiroException {
-      //create the necessary schema if possible:
-      com.datastax.driver.core.Session systemSession = cluster.connect();
-
-      try {
-         if (!isKeyspacePresent(systemSession)) {
-            createKeyspace(systemSession);
-            if (!isKeyspacePresent(systemSession)) {
-               throw new IllegalStateException("Unable to create keyspace " + keyspaceName);
-            }
-         }
-      } finally {
-         systemSession.close();
+      if (cassandraSession == null) {
+         throw new ShiroException("CqlSession must be set before init()");
       }
 
-      cassandraSession = cluster.connect(keyspaceName);
       createTable();
 
       prepareReadStatement();
@@ -137,41 +121,10 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
       }
    }
 
-   protected boolean isKeyspacePresent(com.datastax.driver.core.Session systemSession) {
-      // cassandra 2.x
-      PreparedStatement ps1 = systemSession.prepare("select * from system.schema_keyspaces where keyspace_name = ?");
-      // cassandra 3.x
-      PreparedStatement ps2 = systemSession.prepare("select * from system_schema.keyspaces where keyspace_name = ?");
-      ResultSet results;
-
-      try {
-          BoundStatement bs = new BoundStatement(ps1);
-          bs.bind(keyspaceName);
-          results = systemSession.execute(bs);
-      } catch (InvalidQueryException e) { // handle cassandra 3.x
-         BoundStatement bs = new BoundStatement(ps2);
-         bs.bind(keyspaceName);
-         results = systemSession.execute(bs);
-      }
-
-      for (Row row : results) {
-         if (row.getString("keyspace_name").equals(keyspaceName)) {
-            return true;
-         }
-      }
-      return false;
-   }
-
-   protected void createKeyspace(com.datastax.driver.core.Session systemSession) {
-      //Use NetworkTopologyStrategy in production and probably replication factor of 3
-      String query = "create keyspace " + this.keyspaceName + " with replication = {'class': 'SimpleStrategy', 'replication_factor': 1};";
-      systemSession.execute(query);
-   }
-
    protected void createTable() {
       try {
          cassandraSession.execute("select count(*) from " + tableName);
-      } catch(InvalidQueryException ive) {
+      } catch(Exception ive) {
          String query =
                "CREATE TABLE " + tableName + " ( " +
                      "    id timeuuid PRIMARY KEY, " +
@@ -248,16 +201,14 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
 
       UUID id = toUuid(sessionId);
 
-      PreparedStatement ps = prepareReadStatement();
-      BoundStatement bs = new BoundStatement(ps);
-      bs.bind(id);
+      BoundStatement bs = readPreparedStatement.bind(id);
 
       ResultSet results = cassandraSession.execute(bs);
 
       for(Row row : results) {
-         UUID rowId = row.getUUID("id");
+         UUID rowId = row.getUuid("id");
          if (id.equals(rowId)) {
-            ByteBuffer buffer = row.getBytes("serialized_value");
+            ByteBuffer buffer = row.isNull("serialized_value") ? null : row.getByteBuffer("serialized_value");
             if (buffer != null) { //could be null if a tombstone due to TTL removal
                byte[] bytes = new byte[buffer.remaining()];
                buffer.get(bytes);
@@ -283,26 +234,22 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
       //Cassandra TTL values are in seconds, so we need to convert from Shiro's millis:
       int timeoutInSeconds = (int)(ss.getTimeout() / 1000);
 
-      PreparedStatement ps = prepareSaveStatement();
-      BoundStatement bs = new BoundStatement(ps);
-
       byte[] serialized = serializer.serialize(ss);
 
       ByteBuffer bytes = ByteBuffer.wrap(serialized);
 
-      bs.bind(
+      BoundStatement bs = savePreparedStatement.bind(
             timeoutInSeconds,
-            ss.getStartTimestamp(),
-            ss.getStopTimestamp() != null ? ss.getStartTimestamp() : null,
-            ss.getLastAccessTime(),
+            ss.getStartTimestamp() != null ? ss.getStartTimestamp().toInstant() : null,
+            ss.getStopTimestamp() != null ? ss.getStartTimestamp().toInstant() : null,
+            ss.getLastAccessTime() != null ? ss.getLastAccessTime().toInstant() : null,
             ss.getTimeout(),
             ss.isExpired(),
             ss.getHost(),
             bytes,
             ss.getId()
       );
-      // TODO drop this down when we add session caching
-      bs.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+      bs = bs.setConsistencyLevel(DefaultConsistencyLevel.LOCAL_QUORUM);
 
       cassandraSession.execute(bs);
    }
@@ -333,9 +280,7 @@ public class CassandraSessionDAO extends AbstractSessionDAO implements Initializ
 
    @Override
    public void delete(Session session) {
-      PreparedStatement ps = prepareDeleteStatement();
-      BoundStatement bs = new BoundStatement(ps);
-      bs.bind(session.getId());
+      BoundStatement bs = deletePreparedStatement.bind(session.getId());
       cassandraSession.execute(bs);
    }
 

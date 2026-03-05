@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package com.iris.modelmanager.commands;
 
@@ -25,22 +25,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
 import com.iris.util.TimeZones;
 
 /**
- * 
+ *
  */
 public class GenerateTimeZoneId implements ExecutionCommand {
    private static final Logger logger = LoggerFactory.getLogger(GenerateTimeZoneId.class);
-   
+
    private static final String SELECT = "SELECT id, tzName, tzOffset, tzUsesDst FROM place";
    private static final String UPDATE_PLACE =
          "UPDATE place " +
@@ -52,12 +52,12 @@ public class GenerateTimeZoneId implements ExecutionCommand {
    }
 
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement update = session.prepare(UPDATE_PLACE);
-      
+
       ResultSet rs = context.getSession().execute(SELECT);
       for(Row row: rs) {
-         UUID placeId = row.getUUID("id");
+         UUID placeId = row.getUuid("id");
          String tzName = row.getString("tzName");
          if(StringUtils.isEmpty(tzName)) {
             continue;
@@ -65,8 +65,8 @@ public class GenerateTimeZoneId implements ExecutionCommand {
 
          logger.debug("Attmempting to repair timzone [{}]...", tzName);
          Double offset = row.getDouble("tzOffset");
-         Boolean usesDst = row.getBool("tzUsesDst");
-         
+         Boolean usesDst = row.getBoolean("tzUsesDst");
+
          TimeZone tz;
          try {
             tz = TimeZones.guessTimezone(tzName, offset, usesDst);
@@ -78,18 +78,17 @@ public class GenerateTimeZoneId implements ExecutionCommand {
 
          logger.info("Found timezone [{}] for name [{}]", tz.getID(), tzName);
          BoundStatement bs = update.bind(
-               tz.getID(), 
-               tzName, 
-               TimeZones.getOffsetAsHours(tz.getRawOffset()), 
+               tz.getID(),
+               tzName,
+               TimeZones.getOffsetAsHours(tz.getRawOffset()),
                tz.useDaylightTime(),
                placeId
          );
          session.execute(bs);
       }
    }
-   
+
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       logger.warn("Rollback is not supported for {}", this);
    }
 }
-

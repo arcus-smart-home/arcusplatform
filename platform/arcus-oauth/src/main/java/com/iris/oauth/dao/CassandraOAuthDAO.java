@@ -28,12 +28,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -56,7 +56,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
    private enum PersonOAuthCols { person, appid, access, refresh, attrs };
    private enum Type { CODE, ACCESS, REFRESH };
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement insertCode;
    private final PreparedStatement insertAccess;
    private final PreparedStatement insertRefresh;
@@ -71,7 +71,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
    private final PreparedStatement getAttrs;
 
    @Inject
-   public CassandraOAuthDAO(Session session, OAuthConfig config) {
+   public CassandraOAuthDAO(CqlSession session, OAuthConfig config) {
       this.session = session;
       insertCode = prepareTokenInsert(TimeUnit.SECONDS.convert(config.getCodeTtlMinutes(), TimeUnit.MINUTES));
       insertAccess = prepareTokenInsert(TimeUnit.SECONDS.convert(config.getAccessTtlMinutes(), TimeUnit.MINUTES));
@@ -142,12 +142,9 @@ public class CassandraOAuthDAO implements OAuthDAO {
          checkApplied(rs, stmt);
       }
 
-      stmt = bindPersonWhere(updatePersonTokens, appId, person);
-      stmt.setString(PersonOAuthCols.access.name(), access);
-      stmt.setString(PersonOAuthCols.refresh.name(), refresh);
-
-      rs = session.execute(stmt);
-      checkApplied(rs, stmt);
+      BoundStatement personUpdate = updatePersonTokens.bind(access, refresh, person, appId);
+      rs = session.execute(personUpdate);
+      checkApplied(rs, personUpdate);
    }
 
    @Override
@@ -160,11 +157,9 @@ public class CassandraOAuthDAO implements OAuthDAO {
       ResultSet rs = session.execute(stmt);
       checkApplied(rs, stmt);
 
-      stmt = bindPersonWhere(updatePersonAccess, appId, person);
-      stmt.setString(PersonOAuthCols.access.name(), access);
-
-      rs = session.execute(stmt);
-      checkApplied(rs, stmt);
+      BoundStatement personUpdate = updatePersonAccess.bind(access, person, appId);
+      rs = session.execute(personUpdate);
+      checkApplied(rs, personUpdate);
    }
 
    @Override
@@ -173,8 +168,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
       Preconditions.checkNotNull(person, "person is required");
 
       attrs = attrs == null ? ImmutableMap.of() : attrs;
-      BoundStatement personUpdate = bindPersonWhere(updatePersonAttrs, appId, person);
-      personUpdate.setMap(PersonOAuthCols.attrs.name(), attrs);
+      BoundStatement personUpdate = updatePersonAttrs.bind(attrs, person, appId);
 
       ResultSet rs = session.execute(personUpdate);
       checkApplied(rs, personUpdate);
@@ -185,7 +179,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
       Preconditions.checkNotNull(appId, "appId is required");
       Preconditions.checkNotNull(person, "person is required");
 
-      BoundStatement stmt = bindPersonWhere(getAttrs, appId, person);
+      BoundStatement stmt = getAttrs.bind(person, appId);
 
       Row r = session.execute(stmt).one();
       if(r == null) {
@@ -200,7 +194,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
       Preconditions.checkNotNull(appId, "appId is required");
       Preconditions.checkNotNull(person, "person is required");
 
-      BoundStatement bound = bindPersonWhere(getTokens, appId, person);
+      BoundStatement bound = getTokens.bind(person, appId);
 
       Row r = session.execute(bound).one();
       if(r != null) {
@@ -208,7 +202,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
          removeRefresh(appId, r.getString(PersonOAuthCols.refresh.name()));
       }
 
-      bound = bindPersonWhere(removePerson, appId, person);
+      bound = removePerson.bind(person, appId);
       session.execute(bound);
    }
 
@@ -246,38 +240,19 @@ public class CassandraOAuthDAO implements OAuthDAO {
    }
 
    private BoundStatement bindTokenInsert(PreparedStatement stmt, String appId, String token, Type type, UUID person) {
-      BoundStatement bound = bindTokenCommon(stmt, appId, token, type);
-      bound.setUUID(OAuthCols.person.name(), person);
-      return bound;
+      return stmt.bind(appId, tok_0_2(token), token, type.name(), person);
    }
 
    private void removeToken(String appId, String token, Type type) {
-      session.execute(bindTokenCommon(removeToken, appId, token, type));
+      session.execute(removeToken.bind(appId, tok_0_2(token), token, type.name()));
    }
 
    private BoundStatement bindPersonInsert(String appId, UUID person, Map<String,String> attrs) {
       attrs = attrs == null ? ImmutableMap.of() : attrs;
-
-      BoundStatement bound = new BoundStatement(upsertPerson);
-      bound.setUUID(PersonOAuthCols.person.name(), person);
-      bound.setString(PersonOAuthCols.appid.name(), appId);
-      bound.setMap(PersonOAuthCols.attrs.name(), attrs);
-      return bound;
-   }
-
-   private BoundStatement bindTokenCommon(PreparedStatement stmt, String appId, String token, Type type) {
-      BoundStatement bound = new BoundStatement(stmt);
-      bound.setString(OAuthCols.appid.name(), appId);
-      bound.setString(OAuthCols.tok_0_2.name(), tok_0_2(token));
-      bound.setString(OAuthCols.tok.name(), token);
-      bound.setString(OAuthCols.type.name(), type.name());
-      return bound;
+      return upsertPerson.bind(person, appId, attrs);
    }
 
    private PreparedStatement prepareUpsertPerson() {
-      // use an upsert operation here to handle a couple of cases:
-      // 1)  End user decides to go through the oauth process again to change parameters collected then
-      // 2)  AWS doesn't invoke the token call before the code expires to allow the end user to try again
       return CassandraQueryBuilder.insert(PERSON_OAUTH_TABLE)
             .addColumns(PersonOAuthCols.person.name(), PersonOAuthCols.appid.name(), PersonOAuthCols.attrs.name())
             .prepare(session);
@@ -302,13 +277,6 @@ public class CassandraOAuthDAO implements OAuthDAO {
             .addWhereColumnEquals(PersonOAuthCols.appid.name());
    }
 
-   private BoundStatement bindPersonWhere(PreparedStatement stmt, String appId, UUID person) {
-      BoundStatement bound = new BoundStatement(stmt);
-      bound.setString(PersonOAuthCols.appid.name(), appId);
-      bound.setUUID(PersonOAuthCols.person.name(), person);
-      return bound;
-   }
-
    @SuppressWarnings("rawtypes")
    private CassandraQueryBuilder prepareTokenWhere(CassandraQueryBuilder builder) {
       return builder
@@ -319,8 +287,8 @@ public class CassandraOAuthDAO implements OAuthDAO {
    }
 
    private Pair<UUID, Integer> getPersonWith(String appId, String token, Type type) {
-      Row r = session.execute(bindTokenCommon(personWith, appId, token, type)).one();
-      return r == null ? null : new ImmutablePair<>(r.getUUID(OAuthCols.person.name()), r.getInt(TTL_COLUMN_NAME));
+      Row r = session.execute(personWith.bind(appId, tok_0_2(token), token, type.name())).one();
+      return r == null ? null : new ImmutablePair<>(r.getUuid(OAuthCols.person.name()), r.getInt(TTL_COLUMN_NAME));
    }
 
    @SuppressWarnings("rawtypes")
@@ -330,7 +298,7 @@ public class CassandraOAuthDAO implements OAuthDAO {
       return colSet;
    }
 
-   private void checkApplied(ResultSet rs, Statement stmt) {
+   private void checkApplied(ResultSet rs, Statement<?> stmt) {
       if(rs == null || !rs.wasApplied()) {
          logger.error("result set null or not applied executing statement {}", stmt);
          throw new DaoException("unexpected error updating oauth tokens");
@@ -341,4 +309,3 @@ public class CassandraOAuthDAO implements OAuthDAO {
       return token.substring(0, 3);
    }
 }
-

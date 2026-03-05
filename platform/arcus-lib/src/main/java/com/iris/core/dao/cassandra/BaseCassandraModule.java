@@ -16,28 +16,26 @@
 package com.iris.core.dao.cassandra;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PreDestroy;
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.ProtocolOptions.Compression;
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.ThreadLocalMonotonicTimestampGenerator;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.name.Names;
@@ -50,18 +48,14 @@ import com.iris.bootstrap.config.ConfigurationProvider;
 public abstract class BaseCassandraModule extends AbstractModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseCassandraModule.class);
 
-    private static class ClusterDestroyer {
-        private Cluster cluster;
-        private Session session;
+    private static class SessionDestroyer {
+        private CqlSession session;
 
         @PreDestroy
         public void destroy() {
-            LOGGER.debug("Destroying the Cassandra cluster and all open sessions");
+            LOGGER.debug("Destroying the Cassandra session");
             if (session != null) {
                 session.close();
-            }
-            if (cluster != null) {
-                cluster.close();
             }
         }
     }
@@ -71,7 +65,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
     private String contactPoints;
     private int port;
     private String keyspace;
-    private ConsistencyLevel consistencyLevel;
+    private DefaultConsistencyLevel consistencyLevel;
 
     @Inject
     public BaseCassandraModule(ConfigurationProvider config, String name) {
@@ -84,15 +78,12 @@ public abstract class BaseCassandraModule extends AbstractModule {
         ConfigurationKey propContactPoints = toKey(CassandraConstants.CASSANDRA_CONTACTPOINTS_PROP, CassandraConstants.CASSANDRA_X_CONTACTPOINTS_PROP, name);
         ConfigurationKey propPort = toKey(CassandraConstants.CASSANDRA_PORT_PROP, CassandraConstants.CASSANDRA_X_PORT_PROP, name);
         ConfigurationKey propKeyspace = toKey(CassandraConstants.CASSANDRA_KEYSPACE_PROP, CassandraConstants.CASSANDRA_X_KEYSPACE_PROP, name);
-        ConfigurationKey propCompression = toKey(CassandraConstants.CASSANDRA_COMPRESSION_PROP, CassandraConstants.CASSANDRA_X_COMPRESSION_PROP, name);
 
-        ConfigurationKey protoVersion = toKey(CassandraConstants.CASSANDRA_PROTOVER_PROP, CassandraConstants.CASSANDRA_X_PROTOVER_PROP, name);
         ConfigurationKey useSsl = toKey(CassandraConstants.CASSANDRA_SSL_PROP, CassandraConstants.CASSANDRA_X_SSL_PROP, name);
-        ConfigurationKey loadBalancingPolicy = toKey(CassandraConstants.CASSANDRA_LOADBALANCINGPOLICY, CassandraConstants.CASSANDRA_X_LOADBALANCINGPOLICY, name);
+        ConfigurationKey localDc = toKey(CassandraConstants.CASSANDRA_LOCAL_DC_PROP, CassandraConstants.CASSANDRA_X_LOCAL_DC_PROP, name);
 
         ConfigurationKey poolCore = toKey(CassandraConstants.CASSANDRA_POOL_CONN_CORE_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_CORE_PROP, name);
         ConfigurationKey poolMax = toKey(CassandraConstants.CASSANDRA_POOL_CONN_MAX_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_MAX_PROP, name);
-        ConfigurationKey poolNew = toKey(CassandraConstants.CASSANDRA_POOL_CONN_NEW_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_NEW_PROP, name);
         ConfigurationKey poolIdle = toKey(CassandraConstants.CASSANDRA_POOL_IDLE_PROP, CassandraConstants.CASSANDRA_X_POOL_IDLE_PROP, name);
         ConfigurationKey poolHeartbeat = toKey(CassandraConstants.CASSANDRA_POOL_HEARTBEAT_PROP, CassandraConstants.CASSANDRA_X_POOL_HEARTBEAT_PROP, name);
         ConfigurationKey poolTimeout = toKey(CassandraConstants.CASSANDRA_POOL_TIMEOUT_PROP, CassandraConstants.CASSANDRA_X_POOL_TIMEOUT_PROP, name);
@@ -102,8 +93,6 @@ public abstract class BaseCassandraModule extends AbstractModule {
         ConfigurationKey queryConsistSer = toKey(CassandraConstants.CASSANDRA_QUERY_CONSISTSER_PROP, CassandraConstants.CASSANDRA_X_QUERY_CONSISTSER_PROP, name);
         ConfigurationKey queryIdem = toKey(CassandraConstants.CASSANDRA_QUERY_IDEM_PROP, CassandraConstants.CASSANDRA_X_QUERY_IDEM_PROP, name);
         ConfigurationKey queryFetch = toKey(CassandraConstants.CASSANDRA_QUERY_FETCH_PROP, CassandraConstants.CASSANDRA_X_QUERY_FETCH_PROP, name);
-        ConfigurationKey queryPrepAll = toKey(CassandraConstants.CASSANDRA_QUERY_PREPARE_ALL_PROP, CassandraConstants.CASSANDRA_X_QUERY_PREPARE_ALL_PROP, name);
-        ConfigurationKey queryPrepUp = toKey(CassandraConstants.CASSANDRA_QUERY_PREPARE_UP_PROP, CassandraConstants.CASSANDRA_X_QUERY_PREPARE_UP_PROP, name);
 
         this.contactPoints = getConfig(propContactPoints, String.class, CassandraConstants.CASSANDRA_CONTACTPOINTS_DEFAULT);
         this.port = getConfig(propPort, Integer.class, CassandraConstants.CASSANDRA_PORT_DEFAULT);
@@ -120,129 +109,105 @@ public abstract class BaseCassandraModule extends AbstractModule {
             throw new RuntimeException("Unable to configure Cassandra cluster, please specify the cassandra.keyspace configuration");
         }
 
-        Cluster.Builder bld = Cluster.builder()
-                .addContactPoints(parseContactPoints(contactPoints))
-                .withPort(port)
-                .withoutJMXReporting()
-                .withTimestampGenerator(new ThreadLocalMonotonicTimestampGenerator())
-                .withReconnectionPolicy(new com.datastax.driver.core.policies.ExponentialReconnectionPolicy(1000, 30000));
+        // Build programmatic config
+        ProgrammaticDriverConfigLoaderBuilder configBuilder = DriverConfigLoader.programmaticBuilder();
 
-        String username = CassandraUtils.getUsername(config, name);
-        String password = CassandraUtils.getPassword(config, name);
-        if (!StringUtils.isBlank(username) && !StringUtils.isBlank(password)) {
-            bld.withCredentials(username, password);
-        }
-
-        String compression = getConfig(propCompression, String.class, null);
-        if (compression != null) {
-            bld.withCompression(Compression.valueOf(compression.toUpperCase()));
-        }
-
-        Integer proto = getConfig(protoVersion, Integer.class, null);
-        if (proto != null) {
-            bld.withProtocolVersion(ProtocolVersion.fromInt(proto));
-        }
-
-        if (getConfig(useSsl, Boolean.class, false)) {
-            bld.withSSL();
-        }
-
-        String policy = getConfig(loadBalancingPolicy, String.class, null);
-        if (policy != null && policy.toUpperCase().equals("ROUNDROBIN")) {
-            LOGGER.info("Using RoundRobinPolicy with contact points: {}", contactPoints);
-            bld.withLoadBalancingPolicy(new RoundRobinPolicy());
-        } else {
-            LOGGER.info("Using DCAwareRoundRobinPolicy with contact points: {}", contactPoints);
-        }
-
+        // Consistency
         String qcons = getConfig(queryConsist, String.class, null);
-        String qconsser = getConfig(queryConsistSer, String.class, null);
-        Boolean qidem = getConfig(queryIdem, Boolean.class, null);
-        Integer qfetch = getConfig(queryFetch, Integer.class, null);
-        Boolean qprepall = getConfig(queryPrepAll, Boolean.class, null);
-        Boolean qprepup = getConfig(queryPrepUp, Boolean.class, null);
-        QueryOptions qopts = new QueryOptions().setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        consistencyLevel = DefaultConsistencyLevel.LOCAL_QUORUM;
         if (qcons != null) {
-            qopts.setConsistencyLevel(ConsistencyLevel.valueOf(qcons.toUpperCase()));
+            consistencyLevel = DefaultConsistencyLevel.valueOf(qcons.toUpperCase());
         }
-        consistencyLevel = qopts.getConsistencyLevel();
+        configBuilder.withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistencyLevel.name());
 
+        String qconsser = getConfig(queryConsistSer, String.class, null);
         if (qconsser != null) {
-            qopts.setSerialConsistencyLevel(ConsistencyLevel.valueOf(qconsser.toUpperCase()));
+            configBuilder.withString(DefaultDriverOption.REQUEST_SERIAL_CONSISTENCY, qconsser.toUpperCase());
         }
 
+        Boolean qidem = getConfig(queryIdem, Boolean.class, null);
         if (qidem != null) {
-            qopts.setDefaultIdempotence(qidem);
+            configBuilder.withBoolean(DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE, qidem);
         }
 
+        Integer qfetch = getConfig(queryFetch, Integer.class, null);
         if (qfetch != null) {
-            qopts.setFetchSize(qfetch);
+            configBuilder.withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, qfetch);
         }
 
-        if (qprepall != null) {
-            qopts.setPrepareOnAllHosts(qprepall);
-        }
+        // Request timeout: driver 4.x defaults to 2s (reference.conf), but driver 3.x
+        // defaulted to 12s. Secondary index queries (partitioned reads) need the longer
+        // timeout since they fan out to all nodes.
+        configBuilder.withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(12));
 
-        if (qprepup != null) {
-            qopts.setReprepareOnUp(qprepup);
-        }
-
-        bld.withQueryOptions(qopts);
-
+        // Connection pool
         Integer pcore = getConfig(poolCore, Integer.class, null);
         Integer pmax = getConfig(poolMax, Integer.class, null);
-        Integer pnew = getConfig(poolNew, Integer.class, null);
         Integer pidle = getConfig(poolIdle, Integer.class, null);
         Integer pheart = getConfig(poolHeartbeat, Integer.class, null);
         Integer ptimeout = getConfig(poolTimeout, Integer.class, null);
         Integer preqmax = getConfig(poolReqMax, Integer.class, null);
-        if (pcore != null || pmax != null || pidle != null || pheart != null || ptimeout != null || preqmax != null) {
-            PoolingOptions popts = new PoolingOptions();
-            if (pcore != null) {
-                popts.setConnectionsPerHost(HostDistance.LOCAL, 4 * pcore, 4 * pcore);
-                popts.setConnectionsPerHost(HostDistance.REMOTE, pcore, pcore);
-            }
 
-            if (pmax != null) {
-                popts.setMaxConnectionsPerHost(HostDistance.LOCAL, 4 * pmax);
-                popts.setMaxConnectionsPerHost(HostDistance.REMOTE, pmax);
-            }
-
-            if (pnew != null) {
-                popts.setNewConnectionThreshold(HostDistance.LOCAL, 4 * pnew);
-                popts.setNewConnectionThreshold(HostDistance.REMOTE, pnew);
-            }
-
-            if (pidle != null) {
-                popts.setIdleTimeoutSeconds(pidle);
-            }
-
-            if (pheart != null) {
-                popts.setHeartbeatIntervalSeconds(pheart);
-            }
-
-            if (ptimeout != null) {
-                popts.setPoolTimeoutMillis(ptimeout);
-            }
-
-            if (preqmax != null) {
-                popts.setMaxRequestsPerConnection(HostDistance.LOCAL, Math.min(32768, 4 * preqmax));
-                popts.setMaxRequestsPerConnection(HostDistance.REMOTE, Math.min(32768, preqmax));
-            }
-
-            bld.withPoolingOptions(popts);
+        if (pcore != null) {
+            configBuilder.withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, 4 * pcore);
+            configBuilder.withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, pcore);
         }
 
-        ClusterDestroyer destroyer = new ClusterDestroyer();
-        destroyer.cluster = connectWithRetry(bld, keyspace, destroyer);
-        CassandraHealth.instance().initializeFrom(destroyer.cluster);
+        if (pmax != null) {
+            // Driver 4.x uses fixed pool size (no separate max); use the larger value
+            configBuilder.withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, 4 * pmax);
+            configBuilder.withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, pmax);
+        }
+
+        if (pidle != null) {
+            configBuilder.withDuration(DefaultDriverOption.HEARTBEAT_TIMEOUT, Duration.ofSeconds(pidle));
+        }
+
+        if (pheart != null) {
+            configBuilder.withDuration(DefaultDriverOption.HEARTBEAT_INTERVAL, Duration.ofSeconds(pheart));
+        }
+
+        if (ptimeout != null) {
+            configBuilder.withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofMillis(ptimeout));
+        }
+
+        if (preqmax != null) {
+            configBuilder.withInt(DefaultDriverOption.CONNECTION_MAX_REQUESTS, Math.min(32768, preqmax));
+        }
+
+        // Build session
+        String datacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
+        CqlSessionBuilder sessionBuilder = CqlSession.builder()
+                .withConfigLoader(configBuilder.build())
+                .addContactPoints(parseContactPointsWithPort(contactPoints, port))
+                .withLocalDatacenter(datacenter)
+                .withKeyspace(keyspace)
+                .withNodeStateListener(CassandraHealth.instance());
+
+        String username = CassandraUtils.getUsername(config, name);
+        String password = CassandraUtils.getPassword(config, name);
+        if (!StringUtils.isBlank(username) && !StringUtils.isBlank(password)) {
+            sessionBuilder.withAuthCredentials(username, password);
+        }
+
+        if (getConfig(useSsl, Boolean.class, false)) {
+            try {
+                sessionBuilder.withSslContext(SSLContext.getDefault());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to configure SSL for Cassandra", e);
+            }
+        }
+
+        SessionDestroyer destroyer = new SessionDestroyer();
+        destroyer.session = connectWithRetry(sessionBuilder, keyspace);
+        CassandraHealth.instance().initializeFrom(destroyer.session);
 
         if (name == null) {
-            bind(ClusterDestroyer.class).toInstance(destroyer);
-            bind(Session.class).toInstance(destroyer.session);
+            bind(SessionDestroyer.class).toInstance(destroyer);
+            bind(CqlSession.class).toInstance(destroyer.session);
         } else {
-            bind(ClusterDestroyer.class).annotatedWith(Names.named(name)).toInstance(destroyer);
-            bind(Session.class).annotatedWith(Names.named(name)).toInstance(destroyer.session);
+            bind(SessionDestroyer.class).annotatedWith(Names.named(name)).toInstance(destroyer);
+            bind(CqlSession.class).annotatedWith(Names.named(name)).toInstance(destroyer.session);
         }
     }
 
@@ -250,23 +215,18 @@ public abstract class BaseCassandraModule extends AbstractModule {
     private static final long INITIAL_RETRY_DELAY_MS = 2000;
     private static final long MAX_RETRY_DELAY_MS = 30000;
 
-    private static Cluster connectWithRetry(Cluster.Builder bld, String keyspace, ClusterDestroyer destroyer) {
+    private static CqlSession connectWithRetry(CqlSessionBuilder builder, String keyspace) {
         long delay = INITIAL_RETRY_DELAY_MS;
         for (int attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
-            Cluster cluster = bld.build();
-            cluster.register(CassandraHealth.instance());
             try {
-                destroyer.session = cluster.connect(keyspace);
-                destroyer.cluster = cluster;
-                return cluster;
+                return builder.build();
             } catch (Exception e) {
-                cluster.close();
                 if (attempt == MAX_CONNECT_RETRIES) {
                     LOGGER.error("Failed to connect to Cassandra after {} attempts, giving up", MAX_CONNECT_RETRIES);
                     throw new RuntimeException("Failed to connect to Cassandra", e);
                 }
-                LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s...",
-                        attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay));
+                LOGGER.warn("Cassandra not available (attempt {}/{}), retrying in {}s: {}",
+                        attempt, MAX_CONNECT_RETRIES, TimeUnit.MILLISECONDS.toSeconds(delay), e.getMessage());
                 try {
                     Thread.sleep(delay);
                 } catch (InterruptedException ie) {
@@ -299,7 +259,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         return keyspace;
     }
 
-    protected ConsistencyLevel getConsistencyLevel() {
+    protected DefaultConsistencyLevel getConsistencyLevel() {
         return consistencyLevel;
     }
 
@@ -338,5 +298,13 @@ public abstract class BaseCassandraModule extends AbstractModule {
         return contactPoints;
     }
 
-}
+    private static List<InetSocketAddress> parseContactPointsWithPort(String commaDelimitedList, int port) {
+        List<InetAddress> addrs = parseContactPoints(commaDelimitedList);
+        List<InetSocketAddress> contactPoints = new ArrayList<>();
+        for (InetAddress addr : addrs) {
+            contactPoints.add(new InetSocketAddress(addr, port));
+        }
+        return contactPoints;
+    }
 
+}

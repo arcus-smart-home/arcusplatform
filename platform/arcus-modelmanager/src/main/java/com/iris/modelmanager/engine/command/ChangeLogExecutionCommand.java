@@ -19,7 +19,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.datastax.driver.core.exceptions.QueryExecutionException;
+import com.datastax.oss.driver.api.core.servererrors.QueryExecutionException;
 import com.iris.modelmanager.Status;
 import com.iris.modelmanager.changelog.ChangeLog;
 import com.iris.modelmanager.changelog.ChangeSet;
@@ -66,4 +66,3 @@ public class ChangeLogExecutionCommand extends CompositeExecutionCommand {
       }
    }
 }
-

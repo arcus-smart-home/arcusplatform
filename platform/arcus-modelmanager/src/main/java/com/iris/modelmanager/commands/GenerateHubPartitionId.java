@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package com.iris.modelmanager.commands;
 
@@ -28,43 +28,43 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
 import com.iris.util.TimeZones;
 
 /**
- * 
+ *
  */
 public class GenerateHubPartitionId implements ExecutionCommand {
    private static final Logger logger = LoggerFactory.getLogger(GenerateHubPartitionId.class);
-   
+
    private static final String SELECT = "SELECT id, placeid FROM hub";
    private static final String UPSERT_PARTITIONID =
          "UPDATE hub " +
          "SET partitionId = ? " +
          "WHERE id = ?";
-   
+
    private static final Pattern PATTERN_HUBID = Pattern.compile("\\w{3}-(\\d{4})");
-   
+
    private int partitionCount = 128;
-   
+
    public GenerateHubPartitionId() {
       // TODO Auto-generated constructor stub
    }
 
    public void execute(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
-      Session session = context.getSession();
+      CqlSession session = context.getSession();
       PreparedStatement update = session.prepare(UPSERT_PARTITIONID);
-      
-      BoundStatement select = session.prepare(SELECT).bind();
-      select.setConsistencyLevel(ConsistencyLevel.ALL);
+
+      BoundStatement select = session.prepare(SELECT).bind()
+            .setConsistencyLevel(DefaultConsistencyLevel.ALL);
       ResultSet rs = context.getSession().execute(select);
       int count = 0;
       int [] hubsPerPartition = new int[partitionCount];
@@ -72,7 +72,7 @@ public class GenerateHubPartitionId implements ExecutionCommand {
       long startTimeNs = System.nanoTime();
       for(Row row: rs) {
          String hubId = row.getString("id");
-         UUID placeId = row.getUUID("placeid");
+         UUID placeId = row.getUuid("placeid");
          int partitionId;
          if(placeId == null) {
             Matcher m = PATTERN_HUBID.matcher(hubId);
@@ -81,7 +81,7 @@ public class GenerateHubPartitionId implements ExecutionCommand {
                return;
             }
             String hubNum = m.group(1);
-            partitionId = Integer.parseInt(hubNum) % partitionCount;  
+            partitionId = Integer.parseInt(hubNum) % partitionCount;
          }
          else {
             partitionId = (int) (Math.floorMod(placeId.getLeastSignificantBits(), partitionCount));
@@ -90,7 +90,7 @@ public class GenerateHubPartitionId implements ExecutionCommand {
          logger.debug("Adding [{}] to partition [{}]", hubId, partitionId);
          BoundStatement bs = update.bind(partitionId, hubId);
          session.execute(bs);
-         
+
          count++;
          hubsPerPartition[partitionId]++;
       }
@@ -100,9 +100,8 @@ public class GenerateHubPartitionId implements ExecutionCommand {
          logger.info(String.format("%03d: %3d hubs", i, hubsPerPartition[i]));
       }
    }
-   
+
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       logger.warn("Rollback is not supported for {}", this);
    }
 }
-

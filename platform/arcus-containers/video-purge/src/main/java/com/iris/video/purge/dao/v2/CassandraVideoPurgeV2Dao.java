@@ -33,9 +33,9 @@ import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.video.VideoDao;
@@ -48,42 +48,33 @@ import com.iris.video.purge.dao.VideoPurgeDao;
 
 @Singleton
 public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
-   private final Session session;
+   private final CqlSession session;
 
 
    private final PurgeRecordingV2Table purgeTable;
    private final VideoDao videoDao;
    private final VideoPurgeTaskConfig config;
-   
+
    @Inject
-   public CassandraVideoPurgeV2Dao(VideoPurgeTaskConfig config, Session session, VideoDao videoDao) {
+   public CassandraVideoPurgeV2Dao(VideoPurgeTaskConfig config, CqlSession session, VideoDao videoDao) {
       this.session = session;
       this.config = config;
       this.purgeTable = Table.get(session, config.getTableSpace(), PurgeRecordingV2Table.class);
       this.videoDao = videoDao;
    }
-   
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#getMetadata(java.util.UUID, java.util.UUID)
-	 */
+
    @Override
 	@Nullable
    public VideoMetadata getMetadata(UUID placeId, UUID recordingId) {
    	throw new IllegalAccessError("getMetadata() is not supported for CassandraVideoPurgeV2Dao");
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#getStorageLocation(java.util.UUID)
-	 */
    @Override
 	@Nullable
    public String getStorageLocation(UUID recordingId) {
       throw new IllegalAccessError("getStorageLocation() is not supported for CassandraVideoPurgeV2Dao");
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#listPurgeableRows(int)
-	 */
    @Override
 	public ResultSet listPurgeableRows(int partitionId) throws Exception {
       long startTime = System.nanoTime();
@@ -99,9 +90,6 @@ public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
       }
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#deletePurgeableRow(java.util.Date, int)
-	 */
    @Override
 	public ResultSet deletePurgeableRow(Date time, int partitionId) throws Exception {
       long startTime = System.nanoTime();
@@ -116,16 +104,13 @@ public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
       }
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#listPurgeableRecordings(java.util.Date, int)
-	 */
    @Override
 	public Stream<PurgeRecord> listPurgeableRecordings(Date time, int partitionId) throws Exception {
       long startTime = System.nanoTime();
       boolean success = false;
       try {
          return purgeTable.streamSelectByDeleteTimeAndPartition(time, partitionId);
-      } catch (Exception ex) {         
+      } catch (Exception ex) {
          throw ex;
       } finally{
       	if(success) {
@@ -136,9 +121,6 @@ public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
       }
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#purge(com.iris.video.VideoMetadata)
-	 */
    @Override
 	public void purge(VideoMetadata metadata) throws Exception {
       long startTime = System.nanoTime();
@@ -151,9 +133,6 @@ public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
       }
    }
 
-   /* (non-Javadoc)
-	 * @see com.iris.video.purge.dao.VideoPurgeDao#purge(java.util.UUID, java.util.UUID)
-	 */
    @Override
 	public void purge(UUID placeId, UUID recordingId) throws Exception {
       long startTime = System.nanoTime();
@@ -167,4 +146,3 @@ public class CassandraVideoPurgeV2Dao implements VideoPurgeDao {
    }
 
 }
-

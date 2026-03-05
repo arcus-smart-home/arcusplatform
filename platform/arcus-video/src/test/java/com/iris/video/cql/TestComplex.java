@@ -28,7 +28,7 @@ import java.util.UUID;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -98,7 +98,7 @@ public class TestComplex {
 			UUID.fromString("92804490-5ff7-11e7-afa4-b1bf55b6d878"),
 			UUID.fromString("098c4d00-5ff7-11e7-a694-91e6d89e358d")
 	);
-	
+
 	private List<UUID> collect(Iterator<UUID> uuids) {
 		return Arrays.asList( Iterators.toArray(uuids, UUID.class) );
 	}
@@ -108,18 +108,18 @@ public class TestComplex {
 		Collections.sort(copy, IrisUUID.descTimeUUIDComparator());
 		return copy;
 	}
-	
+
 	private Iterator<UUID> difference(Iterator<UUID> delegate, Iterator<UUID> subtract) {
 		Iterator<Row> delegateRows = toRowIterator(delegate);
 		Iterator<Row> subtractRows = toRowIterator(subtract);
 		Iterator<Row> difference = VideoUtil.difference(delegateRows, subtractRows);
-		return Iterators.transform(difference, (row) -> row.getUUID(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID));
+		return Iterators.transform(difference, (row) -> row.getUuid(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID));
 	}
-	
+
 	private Iterator<Row> toRowIterator(Iterator<UUID> it) {
 		return Iterators.transform(it, (uuid) -> {
 			Row row = EasyMock.createNiceMock(Row.class);
-			EasyMock.expect(row.getUUID(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID)).andReturn(uuid).anyTimes();
+			EasyMock.expect(row.getUuid(AbstractPlaceRecordingIndexV2Table.COL_RECORDINGID)).andReturn(uuid).anyTimes();
 			EasyMock.expect(row.getLong(AbstractPlaceRecordingIndexV2Table.COL_SIZE)).andReturn(126L).anyTimes();
 			EasyMock.replay(row);
 			return row;
@@ -132,14 +132,14 @@ public class TestComplex {
 		assertTimeUUIDEquals(streams, copyAndSort(streams));
 		assertTimeUUIDEquals(recordings, copyAndSort(recordings));
 	}
-	
+
 	@Test
 	public void testUnion() {
 		List<UUID> combined = new ArrayList<>();
 		combined.addAll(streams);
 		combined.addAll(recordings);
 		Collections.sort(combined, IrisUUID.descTimeUUIDComparator());
-		
+
 		{
 			List<UUID> actual = collect( VideoUtil.union(streams.iterator(), recordings.iterator()) );
 			assertTimeUUIDEquals(combined, actual);
@@ -153,7 +153,7 @@ public class TestComplex {
 	@Test
 	public void testIntersection() {
 		List<UUID> expected = tagged;
-		
+
 		{
 			List<UUID> actual = collect( VideoUtil.intersection(tagged.iterator(), recordings.iterator()) );
 			assertTimeUUIDEquals(expected, actual);
@@ -167,7 +167,7 @@ public class TestComplex {
 	@Test
 	public void testIntersectingUnion() {
 		List<UUID> expected = tagged;
-		
+
 		{
 			List<UUID> actual = collect( VideoUtil.intersection(tagged.iterator(), VideoUtil.union(streams.iterator(), recordings.iterator())) );
 			assertTimeUUIDEquals(expected, actual);
@@ -185,7 +185,7 @@ public class TestComplex {
 			assertTimeUUIDEquals(expected, actual);
 		}
 	}
-	
+
 	@Test
 	public void testDifference() {
 		Collections.reverse(tagged);
@@ -214,6 +214,5 @@ public class TestComplex {
 			assertTimeUUIDEquals(expected, actual);
 		}
 	}
-	
-}
 
+}

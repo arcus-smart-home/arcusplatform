@@ -17,10 +17,11 @@ package com.iris.modelmanager.commands;
 
 import java.util.List;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.iris.modelmanager.engine.ExecutionContext;
 import com.iris.modelmanager.engine.command.CommandExecutionException;
 import com.iris.modelmanager.engine.command.ExecutionCommand;
@@ -36,17 +37,17 @@ public class SetHubRegistrationState implements ExecutionCommand {
 
       List<Row> rows = context.getSession().execute("SELECT * FROM hub").all();
 
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setString("registrationState", getState(r))
             .setString("id", r.getString("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 
    private String getState(Row r) {
-      if(r.getUUID("accountid") == null) {
+      if(r.getUuid("accountid") == null) {
          return "UNREGISTERED";
       }
       return "REGISTERED";
@@ -56,14 +57,13 @@ public class SetHubRegistrationState implements ExecutionCommand {
    public void rollback(ExecutionContext context, boolean autoRollback) throws CommandExecutionException {
       PreparedStatement stmt = context.getSession().prepare(update);
       List<Row> rows = context.getSession().execute("SELECT id FROM hub").all();
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.LOGGED);
 
       rows.forEach((r) -> {
-         batch.add(new BoundStatement(stmt)
+         batch.addStatement(stmt.bind()
             .setToNull("registrationState")
             .setString("id",  r.getString("id")));
       });
-      context.getSession().execute(batch);
+      context.getSession().execute(batch.build());
    }
 }
-

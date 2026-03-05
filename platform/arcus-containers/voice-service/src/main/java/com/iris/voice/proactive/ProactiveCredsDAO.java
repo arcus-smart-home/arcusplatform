@@ -15,16 +15,17 @@
  */
 package com.iris.voice.proactive;
 
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.Timer;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
@@ -41,13 +42,13 @@ public class ProactiveCredsDAO {
 
    private enum Columns { placeId, assistant, access, accessExpiry, refresh }
 
-   private final Session session;
+   private final CqlSession session;
    private final PreparedStatement findByPlaceId;
    private final PreparedStatement upsert;
    private final PreparedStatement delete;
 
    @Inject
-   public ProactiveCredsDAO(Session session) {
+   public ProactiveCredsDAO(CqlSession session) {
       this.session = session;
 
       this.findByPlaceId = CassandraQueryBuilder.select(TABLE)
@@ -68,14 +69,16 @@ public class ProactiveCredsDAO {
 
    public Map<String, ProactiveCreds> credentialsForPlace(UUID placeId) {
       try(Timer.Context ctxt = credentialsForPlaceTimer.time()) {
-         BoundStatement stmt = new BoundStatement(findByPlaceId);
-         stmt.setUUID(Columns.placeId.name(), placeId);
+         BoundStatement stmt = findByPlaceId.bind(placeId);
 
          ResultSet rs = session.execute(stmt);
          return rs.all().stream()
             .collect(Collectors.toMap(
                row -> row.getString(Columns.assistant.name()),
-               row -> new ProactiveCreds(row.getString(Columns.access.name()), row.getTimestamp(Columns.accessExpiry.name()), row.getString(Columns.refresh.name()))
+               row -> new ProactiveCreds(
+                  row.getString(Columns.access.name()),
+                  row.isNull(Columns.accessExpiry.name()) ? null : Date.from(row.getInstant(Columns.accessExpiry.name())),
+                  row.getString(Columns.refresh.name()))
                )
             );
       }
@@ -83,32 +86,22 @@ public class ProactiveCredsDAO {
 
    public void upsert(UUID placeId, String assistant, ProactiveCreds credentials) {
       try(Timer.Context ctxt = upsertTimer.time()) {
-         BoundStatement stmt = new BoundStatement(upsert);
-         stmt.setUUID(Columns.placeId.name(), placeId);
-         stmt.setString(Columns.assistant.name(), assistant);
-         stmt.setString(Columns.access.name(), credentials.getAccess());
-         if(credentials.getAccessExpiry() != null) {
-            stmt.setTimestamp(Columns.accessExpiry.name(), credentials.getAccessExpiry());
-         } else {
-            stmt.setToNull(Columns.accessExpiry.name());
-         }
-         if(credentials.getRefresh() != null) {
-            stmt.setString(Columns.refresh.name(), credentials.getRefresh());
-         } else {
-            stmt.setToNull(Columns.refresh.name());
-         }
+         BoundStatement stmt = upsert.bind(
+            placeId,
+            assistant,
+            credentials.getAccess(),
+            credentials.getAccessExpiry() != null ? credentials.getAccessExpiry().toInstant() : null,
+            credentials.getRefresh()
+         );
          session.execute(stmt);
       }
    }
 
    public void remove(UUID placeId, String assistant) {
       try(Timer.Context ctxt = removeTimer.time()) {
-         BoundStatement stmt = new BoundStatement(delete);
-         stmt.setUUID(Columns.placeId.name(), placeId);
-         stmt.setString(Columns.assistant.name(), assistant);
+         BoundStatement stmt = delete.bind(placeId, assistant);
          session.execute(stmt);
       }
    }
 
 }
-

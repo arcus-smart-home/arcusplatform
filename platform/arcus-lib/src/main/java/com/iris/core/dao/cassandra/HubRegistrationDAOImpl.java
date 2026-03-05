@@ -15,6 +15,7 @@
  */
 package com.iris.core.dao.cassandra;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,10 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.capability.registry.CapabilityRegistry;
@@ -41,9 +41,9 @@ import com.iris.messages.model.HubRegistration;
 public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegistration> implements HubRegistrationDAO {
 	private static final Logger log = LoggerFactory.getLogger(HubRegistrationDAOImpl.class);
 	private static final Timer streamAllTimer = DaoMetrics.readTimer(HubRegistrationDAO.class, "streamAll");
-	
+
 	protected static final String TABLE = "hub_registration";
-	
+
 	static class EntityColumns {
 	  final static String ID = "id";
 	  final static String CREATED = "created";
@@ -57,7 +57,7 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 	  final static String UPGRADE_ERROR_MSG = "upgradeErrorMessage";
 	  final static String DOWNLOAD_PROGRESS = "downloadProgress";
 	  final static String UPGRADE_ERROR_TIME = "upgradeErrorTime";
-      
+
 	};
 
 	private static final String[] COLUMN_ORDER = {
@@ -71,17 +71,17 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 	  EntityColumns.DOWNLOAD_PROGRESS,
 	  EntityColumns.UPGRADE_ERROR_TIME
 	};
-	   
+
 	private final CapabilityRegistry registry;
-	private final Session session;
+	private final CqlSession session;
 	private PreparedStatement streamAll;
 
 	@Inject
-	public HubRegistrationDAOImpl(Session session, CapabilityRegistry registry, HubDAOConfig config) {
+	public HubRegistrationDAOImpl(CqlSession session, CapabilityRegistry registry, HubDAOConfig config) {
       super(session, TABLE, COLUMN_ORDER, new String[0], config.getHubRegistrationTtl());
       this.session = session;
       this.registry = registry;
-      
+
       streamAll = CassandraQueryBuilder.select(TABLE)
               .addColumns(BASE_COLUMN_ORDER)
               .addColumns(COLUMN_ORDER)
@@ -91,25 +91,25 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 	@Override
 	public Stream<HubRegistration> streamAll() {
 		try(Context ctxt = streamAllTimer.time()) {
-			Iterator<Row> rows = session.execute(new BoundStatement(streamAll)).iterator();
-			return CassandraQueryExecutor.stream(rows, (row) -> buildEntity(row));			
+			Iterator<Row> rows = session.execute(streamAll.bind()).iterator();
+			return CassandraQueryExecutor.stream(rows, (row) -> buildEntity(row));
 		}
 	}
 
 
 	@Override
-	protected List<Object> getValues(HubRegistration entity) {	
-		List<Object> values = new LinkedList<Object>();		
+	protected List<Object> getValues(HubRegistration entity) {
+		List<Object> values = new LinkedList<Object>();
 		  //Note this needs to be same order as defined in COLUMN_ORDER
-	      values.add(entity.getLastConnected());
+	      values.add(entity.getLastConnected() != null ? entity.getLastConnected().toInstant() : null);
 	      values.add(entity.getState()!=null?entity.getState().name():null);
-	      values.add(entity.getUpgradeRequestTime());
+	      values.add(entity.getUpgradeRequestTime() != null ? entity.getUpgradeRequestTime().toInstant() : null);
 	      values.add(entity.getFirmwareVersion());
 	      values.add(entity.getTargetVersion());
 	      values.add(entity.getUpgradeErrorCode());
 	      values.add(entity.getUpgradeErrorMessage());
 	      values.add(entity.getDownloadProgress());
-	      values.add(entity.getUpgradeErrorTime());
+	      values.add(entity.getUpgradeErrorTime() != null ? entity.getUpgradeErrorTime().toInstant() : null);
 	      log.trace("HubRegistration:Values = [{}]", values );
 	      return values;
 	}
@@ -131,21 +131,19 @@ public class HubRegistrationDAOImpl extends BaseCassandraCRUDDao<String, HubRegi
 
 	@Override
 	protected void populateEntity(Row row, HubRegistration entity) {
-		entity.setLastConnected(row.getTimestamp(EntityColumns.LAST_CONNECTED));
+		entity.setLastConnected(row.isNull(EntityColumns.LAST_CONNECTED) ? null : Date.from(row.getInstant(EntityColumns.LAST_CONNECTED)));
 		if(!row.isNull(EntityColumns.STATE)) {
 			entity.setState(HubRegistration.RegistrationState.valueOf(row.getString(EntityColumns.STATE)));
-		}	      
-	    entity.setUpgradeRequestTime(row.getTimestamp(EntityColumns.UPGRADE_REQUEST_TIME));
+		}
+	    entity.setUpgradeRequestTime(row.isNull(EntityColumns.UPGRADE_REQUEST_TIME) ? null : Date.from(row.getInstant(EntityColumns.UPGRADE_REQUEST_TIME)));
 	    entity.setFirmwareVersion(row.getString(EntityColumns.FIRMWARE_VERSION));
 	    entity.setTargetVersion(row.getString(EntityColumns.TARGET_VERSION));
 	    entity.setUpgradeErrorCode(row.getString(EntityColumns.UPGRADE_ERROR_CODE));
 	    entity.setUpgradeErrorMessage(row.getString(EntityColumns.UPGRADE_ERROR_MSG));
 	    entity.setDownloadProgress(row.getInt(EntityColumns.DOWNLOAD_PROGRESS));
-	    entity.setUpgradeErrorTime(row.getTimestamp(EntityColumns.UPGRADE_ERROR_TIME));
+	    entity.setUpgradeErrorTime(row.isNull(EntityColumns.UPGRADE_ERROR_TIME) ? null : Date.from(row.getInstant(EntityColumns.UPGRADE_ERROR_TIME)));
 	}
 
 
-	
-	
-}
 
+}
