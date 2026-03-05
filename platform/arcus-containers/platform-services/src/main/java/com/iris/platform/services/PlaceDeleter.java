@@ -47,8 +47,6 @@ import com.iris.messages.model.ServiceLevel;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.messages.type.EmailRecipient;
 import com.iris.platform.person.InvitationHandlerHelper;
-import com.iris.platform.subscription.SubscriptionUpdateException;
-import com.iris.platform.subscription.SubscriptionUpdater;
 import com.iris.security.authz.AuthorizationGrant;
 
 @Singleton
@@ -61,7 +59,6 @@ public class PlaceDeleter {
    private final AuthorizationGrantDAO grantDao;
    private final ApiKeyDAO apiKeyDao;
    private final PreferencesDAO preferencesDao;
-   private final SubscriptionUpdater subscriptionUpdater;
    private final PersonDeleter personDeleter;
    private final PlatformMessageBus bus;
 
@@ -73,7 +70,6 @@ public class PlaceDeleter {
          AuthorizationGrantDAO grantDao,
          ApiKeyDAO apiKeyDao,
          PreferencesDAO preferencesDao,
-         SubscriptionUpdater subscriptionUpdater,
          PersonDeleter personDeleter,
          PlatformMessageBus bus
    ) {
@@ -83,7 +79,6 @@ public class PlaceDeleter {
       this.grantDao = grantDao;
       this.apiKeyDao = apiKeyDao;
       this.preferencesDao = preferencesDao;
-      this.subscriptionUpdater = subscriptionUpdater;
       this.personDeleter = personDeleter;
       this.bus = bus;
    }
@@ -101,8 +96,8 @@ public class PlaceDeleter {
          return Errors.fromCode("account.primary_place.deletion", "The primary place for an account cannot be deleted without closing the account");
       }
 
-      if(!updateBilling(account, place)) {
-         return Errors.fromCode("unable.to.update.recurly", "Billing information could not be updated.");
+      if(account != null) {
+         updateAccount(account, place, false);
       }
       Person ownerPerson = account!=null?personDao.findById(account.getOwner()):null;
       removePeopleAndSendNotification(account, place, sendNotification, ownerPerson);
@@ -117,26 +112,6 @@ public class PlaceDeleter {
 					ImmutableMap.<String, String>of(Notifications.PlaceRemovedNotifyOwner.PARAM_PLACE_NAME, place.getName()));
       }
       return PlaceCapability.DeleteResponse.instance();
-   }
-
-   private boolean updateBilling(Account account, Place place) {
-      // check for null due to concurrency, the account may have been removed and thus subscription
-      // canceled before the place delete
-      if(account != null) {
-         updateAccount(account, place, false);
-         try {
-            // only update the subscriptions if a billing account is present
-            if(account.hasBillingAccount()) {
-               subscriptionUpdater.removeSubscriptionForPlace(account, place);
-            }
-         } catch(SubscriptionUpdateException sue) {
-            updateAccount(account, place, true);
-            logger.error("Unable to remove place due to billing update error.", sue);
-            return false;
-         }
-      }
-
-      return true;
    }
 
    private void updateAccount(Account account, Place place, boolean rollback) {

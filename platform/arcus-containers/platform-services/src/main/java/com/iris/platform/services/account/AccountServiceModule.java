@@ -23,7 +23,6 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.AccountDAO;
-import com.iris.core.platform.ContextualEventMessageHandler;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
@@ -33,8 +32,6 @@ import com.iris.platform.services.account.handlers.*;
 import com.iris.platform.services.handlers.AddTagsHandler;
 import com.iris.platform.services.handlers.RemoveTagsHandler;
 import com.iris.platform.subscription.IrisSubscriptionModule;
-import com.iris.platform.subscription.SubscriptionUpdater;
-import com.iris.platform.subscription.SubscriptionUpdaterImpl;
 
 public class AccountServiceModule extends AbstractIrisModule {
 
@@ -44,8 +41,6 @@ public class AccountServiceModule extends AbstractIrisModule {
    @Override
    protected void configure() {
 
-      bind(SubscriptionUpdater.class).to(SubscriptionUpdaterImpl.class);
-
       Multibinder<ContextualRequestMessageHandler<Account>> handlerBinder = bindSetOf(new TypeLiteral<ContextualRequestMessageHandler<Account>>() {});
       handlerBinder.addBinding().to(AccountGetAttributesHandler.class);
       handlerBinder.addBinding().to(AccountSetAttributesHandler.class);
@@ -54,23 +49,13 @@ public class AccountServiceModule extends AbstractIrisModule {
       handlerBinder.addBinding().to(ListHubsHandler.class);
       handlerBinder.addBinding().to(ListPlacesHandler.class);
       handlerBinder.addBinding().to(SignupTransitionHandler.class);
-      handlerBinder.addBinding().to(UpdateBillingInfoCCHandler.class);
-      handlerBinder.addBinding().to(UpdateBillingInfoHandler.class);
-      handlerBinder.addBinding().to(CreateBillingAccountHandler.class);
       handlerBinder.addBinding().to(UpdateServicePlanHandler.class);
-      handlerBinder.addBinding().to(ListInvoicesHandler.class);
-      handlerBinder.addBinding().to(ListAdjustmentsHandler.class);
       handlerBinder.addBinding().to(AddPlaceHandler.class);
       handlerBinder.addBinding().to(AccountDeleteHandler.class);
-      handlerBinder.addBinding().to(IssueCreditHandler.class);
-      handlerBinder.addBinding().to(IssueInvoiceRefundHandler.class);
       handlerBinder.addBinding().to(SkipPremiumTrialHandler.class);
       handlerBinder.addBinding().to(new TypeLiteral<AddTagsHandler<Account>>() {});
       handlerBinder.addBinding().to(new TypeLiteral<RemoveTagsHandler<Account>>() {});
       handlerBinder.addBinding().to(AccountActivateHandler.class);
-      
-      Multibinder<ContextualEventMessageHandler<Account>> eventHandlerBinder = bindSetOf(new TypeLiteral<ContextualEventMessageHandler<Account>>() {});
-      eventHandlerBinder.addBinding().to(DelinquentAccountEventHandler.class);
 
       Multibinder<PlatformService> serviceBinder = bindSetOf(PlatformService.class);
       serviceBinder.addBinding().to(AccountService.class);
@@ -90,4 +75,3 @@ public class AccountServiceModule extends AbstractIrisModule {
       return new RemoveTagsHandler<Account>(accountDao, platformBus);
    }
 }
-

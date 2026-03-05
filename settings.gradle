@@ -28,7 +28,6 @@ include 'common:arcus-model:model-query'
 include 'common:arcus-drivers:drivers-common'
 include 'common:arcus-drivers:groovy-bindings'
 include 'common:arcus-drivers:reflex-generator'
-include 'common:arcus-billing'
 include 'common:arcus-reflection'
 include 'common:protocol-generator'
 
@@ -76,9 +75,6 @@ if (settings.hasProperty('enableVideo')) {
    include 'platform:arcus-containers:video-download-server'
    include 'platform:arcus-containers:video-preview-server'
    include 'platform:arcus-containers:video-preview-ul-server'
-}
-if (settings.hasProperty('enableBilling')) {
-   include 'platform:arcus-containers:billing-callback-server'
 }
 if (settings.hasProperty('enableAnalytics')) {
    include 'platform:arcus-containers:tag-service'

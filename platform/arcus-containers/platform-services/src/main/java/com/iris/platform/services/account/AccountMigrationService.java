@@ -15,15 +15,14 @@
  */
 package com.iris.platform.services.account;
 
-import java.util.Date;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.core.platform.AbstractPlatformService;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
@@ -33,8 +32,8 @@ import com.iris.messages.address.PlatformServiceAddress;
 import com.iris.messages.capability.AccountMigrationCapability;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
+import com.iris.messages.model.Place;
 import com.iris.messages.model.ServiceLevel;
-import com.iris.platform.services.account.billing.BillingAccountCreator;
 
 @Singleton
 public class AccountMigrationService extends AbstractPlatformService {
@@ -45,13 +44,13 @@ public class AccountMigrationService extends AbstractPlatformService {
    private static final String INVALID_SERVICE_MSG = "%s is not valid service level";
 
    private final AccountDAO accountDao;
-   private final BillingAccountCreator billingAccountCreator;
+   private final PlaceDAO placeDao;
 
    @Inject
-   public AccountMigrationService(PlatformMessageBus platformBus, AccountDAO accountDao, BillingAccountCreator billingAccountCreator) {
+   public AccountMigrationService(PlatformMessageBus platformBus, AccountDAO accountDao, PlaceDAO placeDao) {
       super(platformBus, AccountMigrationCapability.NAMESPACE);
       this.accountDao = accountDao;
-      this.billingAccountCreator = billingAccountCreator;
+      this.placeDao = placeDao;
    }
 
    @Override
@@ -81,17 +80,15 @@ public class AccountMigrationService extends AbstractPlatformService {
       }
 
       try {
-         Date trialEnd = level == ServiceLevel.PREMIUM ?
-                         new Date(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(30, TimeUnit.DAYS)) :
-                         new Date();
-
+         // No billing provider — just set the place to PREMIUM_FREE
          String placeId = AccountMigrationCapability.MigrateBillingAccountRequest.getPlaceID(request);
-         this.billingAccountCreator.createBillingAccount(
-               account,
-               AccountMigrationCapability.MigrateBillingAccountRequest.getBillingToken(request),
-               placeId == null ? null : UUID.fromString(placeId),
-               level,
-               trialEnd);
+         if(placeId != null) {
+            Place place = placeDao.findById(UUID.fromString(placeId));
+            if(place != null) {
+               place.setServiceLevel(ServiceLevel.PREMIUM_FREE);
+               placeDao.save(place);
+            }
+         }
 
          return AccountMigrationCapability.MigrateBillingAccountResponse.instance();
 
@@ -112,4 +109,3 @@ public class AccountMigrationService extends AbstractPlatformService {
       return null;
    }
 }
-

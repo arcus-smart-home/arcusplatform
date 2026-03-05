@@ -31,7 +31,6 @@ import com.iris.platform.alarm.service.AlarmService;
 import com.iris.platform.history.cassandra.CassandraHistoryDAOModule;
 import com.iris.platform.model.ModelDaoModule;
 import com.iris.platform.rule.RuleDaoModule;
-import com.iris.platform.subscription.IrisSubscriptionModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.util.ThreadPoolBuilder;
 import com.iris.bootstrap.annotations.Modules;
@@ -44,7 +43,6 @@ import com.iris.bootstrap.annotations.Modules;
       CassandraNotificationDaoModule.class,
       CassandraHistoryDAOModule.class,
       RuleDaoModule.class,
-      IrisSubscriptionModule.class,
       PlacePopulationCacheModule.class
 })
 public class AlarmServiceModule extends AbstractIrisModule {

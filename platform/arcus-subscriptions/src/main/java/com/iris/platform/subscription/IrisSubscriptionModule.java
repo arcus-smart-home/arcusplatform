@@ -15,11 +15,8 @@
  */
 package com.iris.platform.subscription;
 
-import com.iris.billing.client.BillingModule;
 import com.iris.bootstrap.guice.AbstractIrisModule;
-import com.iris.bootstrap.annotations.Modules;
 
-@Modules(include = BillingModule.class)
 public class IrisSubscriptionModule extends AbstractIrisModule {
 
    @Override
@@ -28,4 +25,3 @@ public class IrisSubscriptionModule extends AbstractIrisModule {
       bind(SubscriptionUpdater.class).to(SubscriptionUpdaterImpl.class);
    }
 }
-

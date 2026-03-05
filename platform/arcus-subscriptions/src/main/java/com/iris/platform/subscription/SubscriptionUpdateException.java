@@ -42,14 +42,6 @@ public class SubscriptionUpdateException extends Exception {
    }
 
    public ErrorEvent toError() {
-      if(getMessage() != null && getMessage().contains("transactioncode")){
-         String[] transactionMessage = getMessage().split(",");
-         return Errors.fromCode(transactionMessage[0], transactionMessage[1]);
-      } else if(getMessage() != null && getMessage().contains("apiexceptioncode")) {
-         String [] transactionMessage = getMessage().split(",");
-         return Errors.fromCode("recurly.apierror", transactionMessage[1]);
-      }
-      return ErrorEvent.fromCode("unable.to.update.recurly", "Billing information could not be updated.");
+      return Errors.fromCode("subscription.update.error", getMessage() != null ? getMessage() : "Subscription could not be updated.");
    }
 }
-

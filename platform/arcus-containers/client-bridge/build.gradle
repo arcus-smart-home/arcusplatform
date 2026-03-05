@@ -26,8 +26,6 @@ dependencies {
    api project(':platform:arcus-security')
    api project(':platform:bridge-common')
    api project(':platform:arcus-prodcat')
-   api project(':platform:arcus-subscriptions')
-   api project(':common:arcus-billing')
    api project(':common:arcus-common')
 
    implementation netty

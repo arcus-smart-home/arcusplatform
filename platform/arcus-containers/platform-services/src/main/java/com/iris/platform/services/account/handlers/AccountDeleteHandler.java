@@ -17,8 +17,6 @@ package com.iris.platform.services.account.handlers;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -27,12 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.iris.billing.client.BillingClient;
-import com.iris.billing.client.model.RecurlyError;
-import com.iris.billing.client.model.RecurlyErrors;
-import com.iris.billing.exception.BillingEntityNotFoundException;
-import com.iris.billing.exception.RecurlyAPIErrorException;
-import com.iris.billing.exception.TransactionErrorException;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
 import com.iris.core.dao.PersonDAO;
@@ -41,7 +33,6 @@ import com.iris.core.dao.PreferencesDAO;
 import com.iris.core.notification.Notifications;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
-import com.iris.messages.ErrorEvent;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
@@ -61,14 +52,12 @@ import com.iris.population.PlacePopulationCacheManager;
 public class AccountDeleteHandler implements ContextualRequestMessageHandler<Account> {
 
    private static final Logger logger = LoggerFactory.getLogger(AccountDeleteHandler.class);
-   private static final int RECURLY_TIMEOUT_SEC = 5;
 
    private final AccountDAO accountDao;
    private final PersonDAO personDao;
    private final PersonPlaceAssocDAO personPlaceAssocDao;
    private final AuthorizationGrantDAO authGrantDao;
    private final PreferencesDAO preferencesDao;
-   private final BillingClient billingClient;
    private final PlatformMessageBus bus;
    private final PlaceDeleter placeDeleter;
    private final PlacePopulationCacheManager populationCacheMgr;
@@ -80,7 +69,6 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
          PersonPlaceAssocDAO personPlaceAssocDao,
          AuthorizationGrantDAO authGrantDao,
          PreferencesDAO preferencesDao,
-         BillingClient billingClient,
          PlaceDeleter placeDeleter,
          PlatformMessageBus bus,
          PlacePopulationCacheManager populationCacheMgr) {
@@ -90,7 +78,6 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
       this.personPlaceAssocDao = personPlaceAssocDao;
       this.authGrantDao = authGrantDao;
       this.preferencesDao = preferencesDao;
-      this.billingClient = billingClient;
       this.placeDeleter = placeDeleter;
       this.bus = bus;
       this.populationCacheMgr = populationCacheMgr;
@@ -107,38 +94,20 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
       deleteLogin = deleteLogin == null ? false : deleteLogin;
 
       try {
-         if(billingAccountExists(context)) {
-            if(!closeBilling(context)) {
-               return ErrorEvent.fromCode("account.close.failed", "Error closing the billing account.");
-            }
-            doDeleteAccount(context, msg.getPlaceId(), deleteLogin);
-         } else {
-            doDeleteAccount(context, msg.getPlaceId(), deleteLogin);
-         }
-
+         doDeleteAccount(context, msg.getPlaceId(), deleteLogin);
          return AccountCapability.DeleteResponse.instance();
       }  catch (IllegalArgumentException iae) {
           logger.error("Invalid argument ", iae);
           return Errors.fromCode("invalid.argument", iae.getMessage());
       } catch (Throwable t) {
-          if (t.getCause() instanceof TransactionErrorException) {
-              logger.debug("Transaction Error {}", t);
-              TransactionErrorException e = (TransactionErrorException) t.getCause();
-              return Errors.fromCode(e.getErrorCode(), e.getCustomerMessage());
-          } else {
-              logger.error("Failed to close billing account", t);
-              return ErrorEvent.fromCode("account.close.failed", "Error closing the billing account.");
-          }
+          logger.error("Failed to delete account", t);
+          return Errors.fromCode("account.delete.failed", "Error deleting the account.");
       }
-   }
-
-   private boolean closeBilling(Account account) throws Exception {
-      return billingClient.closeAccount(account.getId().toString()).get(RECURLY_TIMEOUT_SEC, TimeUnit.SECONDS);
    }
 
    private void doDeleteAccount(Account account, String placeId, boolean deleteLogin) {
       accountDao.delete(account);
-      
+
       Person owner = personDao.findById(account.getOwner());
       sendNotifications(account, owner, placeId);
 
@@ -190,7 +159,6 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
       bus.send(event);
    }
 
-   // emit this after deleting the account record
    private void deletePlace(String accountAddress, UUID placeId) {
 	   if(placeId != null) {
 		   Place curPlace = placeDeleter.getPlace(placeId);
@@ -206,7 +174,6 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
 				.listPlaceAccessForPerson(owner.getId()).stream()
 				.map(pad -> pad.getPlaceId()).collect(Collectors.toList());
 
-		// Place is deleted prior to invocation of this method; primary place may be missing from this list.
 		if (!places.contains(placeId)) {
 			places.add(placeId);
 		}
@@ -223,43 +190,8 @@ public class AccountDeleteHandler implements ContextualRequestMessageHandler<Acc
 					.withPlaceId(thisPlace)
 					.withPopulation(populationCacheMgr.getPopulationByPlaceId(thisPlace))
 					.create();
-			
+
 			bus.send(evt);
 		}
 	}
-
-   private boolean billingAccountExists(Account account) throws Throwable {
-      try {
-         billingClient.getAccount(account.getId().toString()).get(RECURLY_TIMEOUT_SEC, TimeUnit.SECONDS);
-         return true;
-      } catch(ExecutionException ee) {
-         Throwable cause = ee.getCause();
-         if(apiErrorWasNotFound(cause)) {
-            return false;
-         }
-         throw cause;
-      } catch(Exception e) {
-         throw e;
-      }
-   }
-
-   private boolean apiErrorWasNotFound(Throwable cause) {
-      if(cause instanceof BillingEntityNotFoundException) {
-         return true;
-      }
-      //TODO: WE CAN PROBABLY REMOVE  BELOW, BECAUSE THIS LOGIC WAS PUSHED IN TO THE RECURLY CLIENT AS IT CONTAINS RECURLY SPECIFIC CODE
-      if(cause instanceof RecurlyAPIErrorException) {
-         RecurlyAPIErrorException recurlyException = (RecurlyAPIErrorException) cause;
-         RecurlyErrors errors = recurlyException.getErrors();
-         for(int i = 0; i < errors.size(); i++) {
-            RecurlyError error = errors.get(i);
-            if(error.getErrorSymbol().equals("not_found")) {
-               return true;
-            }
-         }
-      }
-      return false;
-   }
-
 }
-
