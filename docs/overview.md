@@ -24,10 +24,9 @@ Some examples of what works:
 * Nest
 * Sercomm cameras
 
-### Needs confirmation
+### Removed
 
-* Alexa
-* Google Assistant
+* Alexa and Google Assistant voice bridges — see [voice-bridges-removed.md](voice-bridges-removed.md)
 
 ## Pre-reqs
 

@@ -47,13 +47,10 @@ Set of core docker containers required to run the platform (kafka, cassandra, zo
 This contains common code used within platform as well as all containers that get deployed into production.
 
 * **arcus-alarm**:  Common code shared between the subsystem that runs the alarm state machine and the alarm service that manages the tracking of an alarm incident
-* **arcus-alexa**:  Common code shared between the bridge service for Alexa and the backing voice service that handles the incoming messages
 * **arcus-containers/alarm-service**:  Microservice that manages the state of alarm incidents that the platform has detected
-* **arcus-containers/alexa-bridge**:  Bridge service that handles incoming REST requests from Amazon Alexa, translation of them and placement on the bus
 * **arcus-containers/billing-callback-server**:  RESTful endpoint that Recurly can hit for delinquent accounts if and only if a Recurly account key is available
 * **arcus-containers/client-bridge**:  The primary entry point for web and mobile clients providing the web socket connection for messaging and RESTful APIs.  This is also responsible for placement of messages on the appropriate bus for handling by internal microservices.
 * **arcus-containers/driver-services**:  Microservice that manages all device drivers and instances of them for handling incoming events or issuing control messages to end devices
-* **arcus-containers/google-bridge**:  Bridge service that handles incoming REST requests from Google Home/Assistant, translation of them and placement on the bus
 * **arcus-containers/history-service**:  Microservice responsible for consuming events and persisting history for each place and device
 * **arcus-containers/hub-bridge**:  Entry point for hubs to connect to the platform via web sockets and placement of messages onto the appropriate bus
 * **arcus-containers/ipcd-bridge**:  Entry point for IPCD devices to connect to the platform via web sockets and placement of messages onto the appropriate bus
@@ -73,15 +70,13 @@ This contains common code used within platform as well as all containers that ge
 * **arcus-containers/video-recording-server**:  HTTPs endpoint where supported cameras can upload video for recording or live streaming
 * **arcus-containers/video-service**:  Microservice that provides web and mobile clients information regarding recordings as well as orchestration of the recording flows
 * **arcus-containers/video-streaming-server**:  HTTPs endpoint that playback clients interact with to retrieve HLS playlists for video playback
-* **arcus-containers/voice-service**:  Common backend for Alexa/Google voice integrations.  This microservice handles messages coming from the alexa-bridge/google-bridge and issues response messages.
-* **arcus-google**:  Common code shared between the bridge service for Google and the backing voice service that handles the incoming messages
 * **arcus-hubsession**:  Code used by hub bridge for managing hub sessions
 * **arcus-info**:  Common code used by Arcus applications providing infromation such as the version
 * **arcus-khakis**:  Utilities for building/deploying docker containers for developers
 * **arcus-lib**:  Primary library directory used for all things in the platform containing such common functionality as database access, message structures, application lifecycle, etc.
 * **arcus-log**:  Common code used by Arcus applications that publishes log messages through the bus for consumption by a tool such as Kibana
 * **arcus-modelmanager**:  Tool used during deployment and development to ensure that the database schema is installed into Cassandra correctly
-* **arcus-oauth**:  Common code used by bridges that require a third party to go through an OAuth flow with the Arcus platform, such as Alexa or Google.
+* **arcus-oauth**:  OAuth 2.0 server library providing authorization, token, and revocation endpoints with Cassandra-backed persistence
 * **arcus-platform-drivers**:  Code used by the driver-service for execution of device drivers in the cloud
 * **arcus-prodcat**:  Common infrastructure used by several services for access to an exposure to the product catalog
 * **arcus-rules**:  Code used by the rule-service for representing rules and consuming the catalog of rules
@@ -89,7 +84,6 @@ This contains common code used within platform as well as all containers that ge
 * **arcus-subsystems**:  Code used by the subsystem-service for executing several of the subsystems, such as irrigation
 * **arcus-test**:  Common set of base test cases classes
 * **arcus-video**:  Common video infrastructure code such as database access used by all video services
-* **arcus-voice-bridge**:  Common infrastructure used by bridges that service a voice service, such as Alexa or Google
 * bridge-common**:  Common code and building blocks for all bridges within the platform.  In particular, wiring up Netty and applying security policies.
 * ipcd-common**:  Common code used for managing IPCD devices
 
