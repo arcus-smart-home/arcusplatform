@@ -15,8 +15,8 @@
  */
 package com.iris.platform.services.apikey.handlers;
 
+import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -86,7 +86,7 @@ public class TestRevokeApiKeyHandler extends IrisMockTestCase {
 
       EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
       EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.singletonList(existing));
-      apiKeyDao.expire(EasyMock.eq(place.getId()), EasyMock.eq(keyId), EasyMock.eq("keyhash123"), EasyMock.isA(Date.class));
+      apiKeyDao.expire(EasyMock.eq(place.getId()), EasyMock.eq(keyId), EasyMock.eq("keyhash123"), EasyMock.isA(Instant.class));
       EasyMock.expectLastCall();
       replay();
 
@@ -192,14 +192,14 @@ public class TestRevokeApiKeyHandler extends IrisMockTestCase {
       key.setLabel("test-key");
       key.setKeyPrefix("arcus_sk_0a1b2c3d");
       key.setKeyHash("keyhash123");
-      key.setCreated(new Date());
+      key.setCreated(Instant.now());
       // no expiresAt = not expired
       return key;
    }
 
    private ApiKey createExpiredKey(UUID keyId) {
       ApiKey key = createActiveKey(keyId);
-      key.setExpiresAt(new Date(System.currentTimeMillis() - 86400000L)); // expired yesterday
+      key.setExpiresAt(Instant.ofEpochMilli(System.currentTimeMillis() - 86400000L)); // expired yesterday
       return key;
    }
 
