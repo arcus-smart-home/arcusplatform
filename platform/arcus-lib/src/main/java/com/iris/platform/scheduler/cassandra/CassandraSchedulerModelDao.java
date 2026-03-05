@@ -438,7 +438,7 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
                .update(SchedulerTable.NAME)
                .addColumn(Columns.MODIFIED)
                ;
-      values.add(timestamp);
+      values.add(timestamp.toInstant());
 
       attributes.forEach((attribute) -> {
          builder.addColumn(Columns.ATTRIBUTES + "[?]");
@@ -508,8 +508,8 @@ public class CassandraSchedulerModelDao extends BaseModelDao implements Schedule
    ) {
       ResultSet rs = session().execute(
             insert.bind(
-               model.getCreated(),
-               model.getModified(),
+               model.getCreated().toInstant(),
+               model.getModified().toInstant(),
                encode( model.toMap() ),
                placeId,
                SchedulerModel.getTarget(model),
