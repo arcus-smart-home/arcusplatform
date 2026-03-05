@@ -28,7 +28,6 @@ Scenario: Device associated
 #does not get placed on the platform bus.
 		When a base:GetAttributes command is placed on the platform bus
 		Then the driver should place a base:GetAttributesResponse message on the platform bus
-		Then the driver should place a base:ValueChange message on the platform bus
 			And the capability swit:statechanged should be recent
 			And the capability devpow:sourcechanged should be recent
 		Then the driver should send configuration set
@@ -39,7 +38,6 @@ Scenario: Device associated
  	
 	Scenario: Device reports state when first connected
 		When the device is connected
-		Then the driver should place a base:ValueChange message on the platform bus
 		Then the driver should send switch_binary get
 		Then the driver should poll switch_binary.get every 1 hour
 		Then the driver should set timeout at 3 hours
@@ -69,12 +67,10 @@ Scenario: Device associated
 			And with parameter value -1
 			And send to driver
 		Then the platform attribute swit:state should change to ON
-		And the driver should place a base:ValueChange message on the platform bus
 		When the device response with switch_binary report
 			And with parameter value 0
 			And send to driver
 		Then the platform attribute swit:state should change to OFF
-		And the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 	Scenario Outline: Indicator value

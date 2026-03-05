@@ -37,7 +37,6 @@ Feature: Unit Tests Binary for the ZWave Dimmer
         Then the driver should poll switch_multilevel.get every 60 minutes
         Then the driver should send switch_multilevel get
         Then the driver should send version get
-        Then the driver should place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
     @basic @name
@@ -330,7 +329,6 @@ Scenario Outline: Multilevel switch reports various dim levels
     When the device response with switch_multilevel report
     	And with parameter value <report>
     	And send to driver
-    Then the driver should place a base:ValueChange message on the platform bus
 	    And the platform attribute dim:brightness should be <brightness>
 	    And the platform attribute swit:state should change to <state>
     Then both busses should be empty

@@ -5,7 +5,7 @@ Feature: ZWave Jarden Smoke Detector Driver Test
 	message-based steps.
 
 	Background:
-		Given the ZW_Jarden_SmokeDetector.driver has been initialized
+		Given the ZW_Jarden_SmokeDetector_2_3.driver has been initialized
 				
 	Scenario: Driver reports capabilities to platform. 
 		When a base:GetAttributes command is placed on the platform bus

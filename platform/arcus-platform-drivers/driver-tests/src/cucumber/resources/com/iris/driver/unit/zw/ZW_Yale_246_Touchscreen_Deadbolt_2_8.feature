@@ -131,8 +131,8 @@ Feature: ZWave Yale YRD226/246 PushButton Deadbolt Driver Test
             And with parameter alarmlevel 1
             And send to driver
         Then the platform attribute doorlock:lockstate should change to UNLOCKED
-            And the driver should place a doorlock:PinUsed message on the platform bus
             And the driver should place a base:ValueChange message on the platform bus
+            And the driver should place a doorlock:PinUsed message on the platform bus
         Then both busses should be empty
 
     Scenario: Door Lock reports locked from keypad

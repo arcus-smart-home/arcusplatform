@@ -96,7 +96,7 @@ Given(~/^the (.+) has been initialized$/) { String driverScriptResource ->
  * 		Given the capability devpow:battery is 100
  *      Given the driver attribute devconn:state is ONLINE
  */
-Given(~/^the capability (\w+):(\w+) is (.+)$/) { namespace, attributeName, attributeValue ->
+Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { namespace, attributeName, attributeValue ->
 	// lookup for the attribute definition
 	logger.trace(" initializing "+namespace+":"+attributeName + " to "+attributeValue);
 	CapabilityDefinition capability = ClasspathDefinitionRegistry.instance().getCapability(namespace);

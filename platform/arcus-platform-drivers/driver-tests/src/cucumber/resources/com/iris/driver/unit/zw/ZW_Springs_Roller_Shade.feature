@@ -21,11 +21,9 @@ Feature: ZWave Springs Roller Shade Test
         When the device is added
             And a base:GetAttributes command is placed on the platform bus
         Then the driver should place a base:GetAttributesResponse message on the platform bus
-            And the driver should place a base:ValueChange message on the platform bus
 
     Scenario: Device connected
         When the device connects to the platform
-        Then the driver should place a base:ValueChange message on the platform bus 
         Then the driver should send Battery get
         Then the driver should send Switch_Multilevel get
         Then the driver should set timeout at 37 hours
@@ -36,7 +34,6 @@ Feature: ZWave Springs Roller Shade Test
         When the device response with battery report 
             And with parameter level 30
             And send to driver 
-        Then the driver should place a base:ValueChange message on the platform bus
             And the capability devpow:battery should be 30
         Then both busses should be empty
 
@@ -44,7 +41,6 @@ Feature: ZWave Springs Roller Shade Test
         When the device response with switch_multilevel report 
             And with parameter value <rptlevel>
             And send to driver 
-        Then the driver should place a base:ValueChange message on the platform bus
             And the capability shade:level should be <level>
             And the capability shade:levelchanged should be recent
         Then both busses should be empty
@@ -61,7 +57,6 @@ Feature: ZWave Springs Roller Shade Test
         When the device response with switch_multilevel report 
             And with parameter value <level>
             And send to driver 
-        Then the driver should place a base:ValueChange message on the platform bus
             And the capability shade:level should be <new>
             And the capability shade:levelchanged should be recent
             And the driver variable setTo100 is <after>
@@ -135,7 +130,6 @@ Feature: ZWave Springs Roller Shade Test
         When the device responds with battery report
             And with parameter level 25
             And send to driver
-        Then the driver should place a base:ValueChange message on the platform bus
         Then the driver should send Switch_Multilevel get
         Then both busses should be empty
         

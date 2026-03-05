@@ -4,7 +4,7 @@ Feature: ZWave Jarden Smoke and CO Detector Driver Test
 	These scenarios test the functionality of the ZWave Jarden Smoke and CO Detector driver.
 
 	Background:
-		Given the ZW_Jarden_SmokeCODetector.driver has been initialized
+		Given the ZW_Jarden_SmokeCODetector_2_3.driver has been initialized
 				
 	Scenario: Driver reports capabilities to platform. 
 		When a base:GetAttributes command is placed on the platform bus

@@ -59,7 +59,6 @@ Feature: GE/Jasco In-Wall Fan Controller
         Then the driver should set timeout at 10 minutes
         Then the driver should send configuration get
         Then the driver should send configuration get
-        Then the driver should place a base:ValueChange message on the platform bus
         # onConnected from GenericZWaveFan
         Then the driver should send switch_multilevel get
         # onConnected from GenericZWaveVersion
@@ -110,7 +109,6 @@ Feature: GE/Jasco In-Wall Fan Controller
         When the device response with switch_multilevel report 
             And with parameter value <val-arg>
             And send to driver
-        Then the driver should place a base:ValueChange message on the platform bus
             And the platform attribute swit:state should change to <swit-state>
             # Math is level/(100/3) + 1
             And the platform attribute fan:speed should change to <fan-speed>

@@ -4,7 +4,7 @@ Feature: Utilitech Indoor Siren Driver Unit Tests
 	These scenarios test the functionality of the Utilitech Indoor Siren driver.
 
 	Background:
-		Given the ZW_Utilitech_Indoor_Siren.driver has been initialized
+		Given the ZW_Utilitech_Indoor_Siren_2_4.driver has been initialized
 		
 	Scenario: Driver reports capabilities to platform. 
 		When a base:GetAttributes command is placed on the platform bus

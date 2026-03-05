@@ -4,7 +4,7 @@ Feature: ZWave Jasco Plugin Dimmer Driver Test
 	These scenarios test the functionality of the ZWave Jasco Plugin Dimmer driver.
 	
   Background:
-	Given the ZW_Jasco_PlugInDimmer.driver has been initialized
+	Given the ZW_Jasco_PlugInDimmer_1_2.driver has been initialized
 		And the capability dim:brightness is 10
 		And the capability swit:state is ON
 	Then both busses should be empty

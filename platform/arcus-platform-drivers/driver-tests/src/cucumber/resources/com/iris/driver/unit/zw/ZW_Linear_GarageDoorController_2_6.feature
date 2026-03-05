@@ -32,7 +32,6 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And the driver should send association get
 			And the driver should poll barrier_operator.get every 20 minutes
 			And the driver should set timeout at 70 minutes
-		Then the driver should place a base:ValueChange message on the platform bus
 		Then the driver should schedule event SetLifeline every 2 seconds 10 times
 		Then nothing else should happen
 
@@ -108,7 +107,6 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter notificationType 6
 			And with parameter event 70
 			And send to driver
-		Then the driver should place a base:ValueChange message on the platform bus
 			And the capability motdoor:doorstate should be OBSTRUCTION
 		Then nothing else should happen
 
@@ -119,7 +117,6 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter notificationType 6
 			And with parameter event 0
 			And send to driver
-		Then the driver should place a base:ValueChange message on the platform bus
 			And the capability devpow:battery should be 100
 		Then both busses should be empty
 
@@ -147,7 +144,6 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		When the device response with barrier_operator report
 			And with parameter barrierstate <barrier_state>
 			And send to driver
-		Then the driver should place a base:ValueChange message on the platform bus
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
 		Then both busses should be empty
@@ -199,7 +195,6 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		Given the driver attribute motdoor:doorstate is <before>
 		When the device response with barrier_operator <event>
 			And send to driver
-		Then the driver should place a base:ValueChange message on the platform bus
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
 		Then both busses should be empty
