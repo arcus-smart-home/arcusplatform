@@ -15,9 +15,9 @@
  */
 package com.iris.platform.services.apikey.handlers;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,10 +86,10 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
    public void testListMultipleKeys() {
       UUID key1Id = UUID.randomUUID();
       UUID key2Id = UUID.randomUUID();
-      Date created1 = new Date(1700000000000L);
-      Date created2 = new Date(1700100000000L);
-      Date lastUsed = new Date(1700200000000L);
-      Date expiresAt = new Date(1600000000000L); // in the past = expired
+      Instant created1 = Instant.ofEpochMilli(1700000000000L);
+      Instant created2 = Instant.ofEpochMilli(1700100000000L);
+      Instant lastUsed = Instant.ofEpochMilli(1700200000000L);
+      Instant expiresAt = Instant.ofEpochMilli(1600000000000L); // in the past = expired
 
       ApiKey key1 = new ApiKey();
       key1.setId(key1Id);
@@ -127,7 +127,7 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
       assertEquals(key1Id.toString(), map1.get("id"));
       assertEquals("integration-1", map1.get("label"));
       assertEquals("arcus_sk_0a1b2c3d", map1.get("keyPrefix"));
-      assertEquals(created1.getTime(), map1.get("created"));
+      assertEquals(created1.toEpochMilli(), map1.get("created"));
       assertNull(map1.get("lastUsed"));
       assertNull(map1.get("expiresAt"));
       assertEquals(false, map1.get("expired"));
@@ -136,9 +136,9 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
       assertEquals(key2Id.toString(), map2.get("id"));
       assertEquals("integration-2", map2.get("label"));
       assertEquals("arcus_sk_4e5f6a7b", map2.get("keyPrefix"));
-      assertEquals(created2.getTime(), map2.get("created"));
-      assertEquals(lastUsed.getTime(), map2.get("lastUsed"));
-      assertEquals(expiresAt.getTime(), map2.get("expiresAt"));
+      assertEquals(created2.toEpochMilli(), map2.get("created"));
+      assertEquals(lastUsed.toEpochMilli(), map2.get("lastUsed"));
+      assertEquals(expiresAt.toEpochMilli(), map2.get("expiresAt"));
       assertEquals(true, map2.get("expired"));
    }
 

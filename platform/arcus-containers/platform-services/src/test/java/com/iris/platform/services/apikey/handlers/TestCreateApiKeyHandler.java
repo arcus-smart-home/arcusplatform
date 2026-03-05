@@ -17,7 +17,6 @@ package com.iris.platform.services.apikey.handlers;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -128,7 +127,7 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
 
       ApiKey captured = savedKey.getValue();
       assertNotNull(captured.getExpiresAt());
-      assertEquals(futureTime, captured.getExpiresAt().getTime());
+      assertEquals(futureTime, captured.getExpiresAt().toEpochMilli());
    }
 
    @Test
