@@ -35,6 +35,7 @@ Feature: ZWave Springs Roller Shade Test
             And with parameter level 30
             And send to driver 
             And the capability devpow:battery should be 30
+        Then the driver should place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
     Scenario Outline: Device reports open level
@@ -43,6 +44,7 @@ Feature: ZWave Springs Roller Shade Test
             And send to driver 
             And the capability shade:level should be <level>
             And the capability shade:levelchanged should be recent
+        Then the driver should place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
       Examples:
@@ -60,6 +62,7 @@ Feature: ZWave Springs Roller Shade Test
             And the capability shade:level should be <new>
             And the capability shade:levelchanged should be recent
             And the driver variable setTo100 is <after>
+        Then the driver should place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
       Examples:
@@ -131,5 +134,6 @@ Feature: ZWave Springs Roller Shade Test
             And with parameter level 25
             And send to driver
         Then the driver should send Switch_Multilevel get
+        Then the driver should place a base:ValueChange message on the platform bus
         Then both busses should be empty
         

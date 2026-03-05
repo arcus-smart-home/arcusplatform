@@ -108,6 +108,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter event 70
 			And send to driver
 			And the capability motdoor:doorstate should be OBSTRUCTION
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then nothing else should happen
 
 	Scenario: Clear Alarms
@@ -118,6 +119,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter event 0
 			And send to driver
 			And the capability devpow:battery should be 100
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 	Scenario Outline: Other Alarm Notifications
@@ -146,6 +148,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And send to driver
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 		Examples:
@@ -197,6 +200,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And send to driver
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 		Examples:

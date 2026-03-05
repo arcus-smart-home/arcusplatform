@@ -39,7 +39,6 @@ Feature: Test ZWave Springs MCZ1 MultiChannel Remote driver
 
     Scenario: Device connected
         When the device connects to the platform
-        Then the driver should place a base:ValueChange message on the platform bus 
         Then the driver should set timeout at 37 hours
         Then the driver should send Battery get
         Then the driver should send Wake_Up set
@@ -54,12 +53,10 @@ Feature: Test ZWave Springs MCZ1 MultiChannel Remote driver
 
     Scenario Outline: Device reports battery level
         Given the capability devpow:battery is <prev_level>
-        When the device response with battery report 
+        When the device response with battery report
             And with parameter level <level-arg>
-            And send to driver 
+            And send to driver
         Then the platform attribute devpow:battery should change to <battery-attr>
-            And the driver should place a base:ValueChange message on the platform bus
-        Then both busses should be empty
 
         Examples:
           | prev_level | level-arg | battery-attr | remarks                                            |

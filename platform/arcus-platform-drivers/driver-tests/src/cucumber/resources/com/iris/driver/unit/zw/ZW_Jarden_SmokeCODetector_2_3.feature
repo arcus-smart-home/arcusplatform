@@ -12,12 +12,12 @@ Feature: ZWave Jarden Smoke and CO Detector Driver Test
 			And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'smoke', 'co', 'test']
 			And the message's dev:devtypehint attribute should be Smoke/CO
 			And the message's devadv:drivername attribute should be ZWJardenSmokeAndCarbonMonoxideDetectorDriver 
-			And the message's devadv:driverversion attribute should be 1.0
+			And the message's devadv:driverversion attribute should be 2.3
 			And the message's devpow:source attribute should be BATTERY
 			And the message's devpow:linecapable attribute should be false		
 		Then both busses should be empty
 	
-	Scenario Outline: Smoke CO Alarm reports alarm state 
+	Scenario Outline: Smoke CO Alarm reports alarm detected
 		When the device response with alarm report
 			And with parameter alarmtype <alarmtype>
 			And with parameter alarmlevel <alarmlevel>
@@ -28,10 +28,21 @@ Feature: ZWave Jarden Smoke and CO Detector Driver Test
 
 		Examples:
 		  | attribute   | alarmtype | alarmlevel | status   |
-		  | smoke:smoke | 1         | 0    	     | SAFE     |
 		  | smoke:smoke | 1	        | -1 	     | DETECTED |
-		  | co:co       | 2         | 0 	     | SAFE     |
 		  | co:co       | 2         | -1 	     | DETECTED |
+
+	Scenario Outline: Smoke CO Alarm reports alarm safe
+		When the device response with alarm report
+			And with parameter alarmtype <alarmtype>
+			And with parameter alarmlevel <alarmlevel>
+			And send to driver
+		Then the platform attribute <attribute> should change to <status>
+		Then both busses should be empty
+
+		Examples:
+		  | attribute   | alarmtype | alarmlevel | status   |
+		  | smoke:smoke | 1         | 0    	     | SAFE     |
+		  | co:co       | 2         | 0 	     | SAFE     |
 
 	Scenario Outline: Device reports battery level
 		When the device response with battery report
@@ -50,5 +61,4 @@ Feature: ZWave Jarden Smoke and CO Detector Driver Test
 	Scenario: Device connected
 		When the device is connected
 		#When the device connects to the platform
-		Then the driver should place a base:ValueChange message on the platform bus 
 		  

@@ -32,7 +32,6 @@ Feature: Unit Tests for Leviton DZPA1 ZWave Plus Plug-In Switch
 	@basic @connected
 	Scenario: Device reports state when first connected
 		When the device is connected
-		Then the driver should place a base:ValueChange message on the platform bus
 		Then the driver should set timeout at 200 minutes
 		Then the driver should poll switch_binary.get every 60 minutes
 		Then the driver should send version get

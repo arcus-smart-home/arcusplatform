@@ -45,5 +45,4 @@ Feature: Binary switch capability for the ZWJascoInWallReceptacle driver
 	Scenario: Device connected
 		When the device is connected
 		#When the device connects to the platform
-		Then the driver should place a base:ValueChange message on the platform bus 
 

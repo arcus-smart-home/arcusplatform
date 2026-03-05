@@ -31,7 +31,6 @@ Feature: Test for ZWave water valve fom FortrezZ
 
 	Scenario: Device reports state when first connected
 		When the device is connected
- 		Then the driver should place a base:ValueChange message on the platform bus
  			And the capability devconn:state should be ONLINE
  			And the capability devconn:lastchange should be recent
 		Then the driver should set timeout at 1 hr

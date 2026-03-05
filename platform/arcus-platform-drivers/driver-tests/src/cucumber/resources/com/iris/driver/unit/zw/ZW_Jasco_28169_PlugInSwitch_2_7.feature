@@ -34,8 +34,9 @@ Scenario: Device associated
 			And with parameter param 3
 			And with parameter size 1
 			And with parameter val1 0
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
- 	
+
 	Scenario: Device reports state when first connected
 		When the device is connected
 		Then the driver should send switch_binary get
@@ -44,8 +45,9 @@ Scenario: Device associated
 		Then the driver should send configuration get
 #			And with parameter param 3 
 		Then the driver should send version get
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
-								
+
 	Scenario: Platform turns on switch via attribute change. 
 		When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
 		Then the driver should send switch_binary set 
@@ -67,10 +69,12 @@ Scenario: Device associated
 			And with parameter value -1
 			And send to driver
 		Then the platform attribute swit:state should change to ON
+		Then the driver should place a base:ValueChange message on the platform bus
 		When the device response with switch_binary report
 			And with parameter value 0
 			And send to driver
 		Then the platform attribute swit:state should change to OFF
+		Then the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 	Scenario Outline: Indicator value
