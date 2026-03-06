@@ -35,7 +35,7 @@ dependencies {
    api libraries.httpMime
    api libraries.guava
    api libraries.logback
-   implementation libraries.junit
+   testImplementation libraries.junit
    implementation libraries.kxml2
    api libraries.bouncycastle
    api libraries.bouncycastle_pki

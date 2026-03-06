@@ -16,6 +16,7 @@
 package io.netty.channel.epoll;
 
 import io.netty.channel.epoll.AbstractEpollStreamChannel;
+import io.netty.channel.epoll.LinuxSocket;
 import io.netty.channel.unix.Socket;
 
 import java.net.SocketAddress;
@@ -26,8 +27,17 @@ public final class UartEpollChannel extends AbstractEpollStreamChannel {
     private static final UartAddress REMOTEADDR = new UartAddress("localhost");
     private final UartEpollChannelConfig config;
 
-    public UartEpollChannel(Socket fd, boolean active) {
+    public UartEpollChannel(LinuxSocket fd, boolean active) {
         super(fd, active);
+        config = new UartEpollChannelConfig(this);
+    }
+
+    // TODO: Remove once iris2 controller jars are replaced with open-source
+    // implementations compiled against Netty 4.1.
+    // Backward compat for iris2 jars compiled against Netty 4.0 where the
+    // constructor took Socket instead of LinuxSocket.
+    public UartEpollChannel(Socket fd, boolean active) {
+        super(new LinuxSocket(fd.intValue()), active);
         config = new UartEpollChannelConfig(this);
     }
 
@@ -56,4 +66,3 @@ public final class UartEpollChannel extends AbstractEpollStreamChannel {
 		return true;
 	 }
 }
-

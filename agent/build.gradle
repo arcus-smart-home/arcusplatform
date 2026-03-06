@@ -23,6 +23,10 @@ buildscript {
    }
 
    apply from: file('../gradle/buildscript.gradle'), to: buildscript
+
+   dependencies {
+      classpath 'org.ow2.asm:asm:9.7'
+   }
 }
 
 repositories {
@@ -51,7 +55,19 @@ subprojects {
             }
          }
          // test deps now in gradle/subproject.gradle
+
+         // Force all Netty modules to the agent's override version so that
+         // transitive deps from common/ (which use the platform Netty version)
+         // don't create a mixed-version split.
+         configurations.all {
+            resolutionStrategy.eachDependency { details ->
+               if (details.requested.group == 'io.netty' &&
+                   details.requested.name.startsWith('netty-') &&
+                   !details.requested.name.startsWith('netty-tcnative')) {
+                  details.useVersion "${netty_override_version}"
+               }
+            }
+         }
       }
    }
 }
-
