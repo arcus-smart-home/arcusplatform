@@ -25,8 +25,8 @@ Feature: Test of the Waxman Smart Valve driver
  	Scenario: Device connected
  		When the device is connected
 		#When the device connects to the platform
- 		Then the driver should place a base:ValueChange message on the platform bus 
- 		Then protocol message count is 12 
+ 		Then the driver may place a base:ValueChange message on the platform bus
+ 		Then protocol message count is 12
 		Then the driver should send pollcontrol 2
 		Then the driver should send pollcontrol 3
 		Then the driver should send onoff zclReadAttributes

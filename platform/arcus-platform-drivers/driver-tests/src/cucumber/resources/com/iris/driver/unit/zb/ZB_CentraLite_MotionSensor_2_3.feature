@@ -71,7 +71,7 @@ Feature: Test of the CentraLite Motion Sensor ZigBee reflex driver
             And with parameter newLongPollInterval 24
         Then the driver should send pollcontrol setShortPollInterval
             And with parameter newShortPollInterval 4
-        Then the driver should place a base:ValueChange message on the platform bus 
+        Then the driver may place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
 

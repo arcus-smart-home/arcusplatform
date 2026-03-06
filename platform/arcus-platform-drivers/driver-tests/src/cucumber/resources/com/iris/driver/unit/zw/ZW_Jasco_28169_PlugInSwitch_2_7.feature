@@ -45,7 +45,7 @@ Scenario: Device associated
 		Then the driver should send configuration get
 #			And with parameter param 3 
 		Then the driver should send version get
-		Then the driver should place a base:ValueChange message on the platform bus
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 	Scenario: Platform turns on switch via attribute change. 

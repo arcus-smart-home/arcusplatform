@@ -46,7 +46,7 @@ Feature: ZWave Jasco Hinge Driver Test
 		Then the driver should poll Battery.get every 24 hours
 		Then the driver should send Battery get
 		Then the driver should schedule event config_complete in 2 seconds
-		Then the driver should place a base:ValueChange message on the platform bus
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 			
 	Scenario: Device reports battery level

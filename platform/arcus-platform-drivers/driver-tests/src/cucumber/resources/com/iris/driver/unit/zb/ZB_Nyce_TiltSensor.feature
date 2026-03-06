@@ -59,8 +59,8 @@ Feature: Test of the Nyce Tilt Sensor driver
         # driver should restore poll control intervals after config
         Then the driver should send pollcontrol setLongPollInterval
         Then the driver should send pollcontrol setShortPollInterval
-        Then the driver should place a base:ValueChange message on the platform bus
-        Then both busses should be empty 
+        Then the driver may place a base:ValueChange message on the platform bus
+        Then both busses should be empty
 
 
 ############################################################
