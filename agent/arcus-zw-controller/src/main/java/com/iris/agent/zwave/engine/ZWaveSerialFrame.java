@@ -108,10 +108,10 @@ public class ZWaveSerialFrame {
          return null; // length byte + SOF + frame content must fit
       }
 
-      // Verify checksum
-      byte expected = computeChecksum(raw, offset + 1, frameLen);
+      // Verify checksum: XOR of length through checksum (inclusive) should yield 0
+      byte expected = computeChecksum(raw, offset + 1, frameLen + 1);
       if (expected != 0) {
-         return null; // Checksum failed (XOR of length through checksum should be 0)
+         return null; // Checksum failed
       }
 
       byte type = raw[offset + 2];
