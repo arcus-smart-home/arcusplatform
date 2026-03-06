@@ -38,6 +38,7 @@ dependencies {
 
    runtimeOnly project(":agent:arcus-agent")
    runtimeOnly project(":agent:arcus-hal:arcus-hal-hub-v2")
+   runtimeOnly libraries.ipcd
 }
 
 mainClassName = 'com.iris.agent.IrisAgent'
@@ -121,7 +122,7 @@ distributions {
             from patchNettyBuffer.outputs.files
          }
 
-         // Include external jars not available from source.
+         // Include closed-source controller jars extracted from a hub.
          // Usage: ./gradlew distTar -Pexternal_jars_dir=/path/to/extracted/hub/libs
          if (project.hasProperty('external_jars_dir')) {
             into('libs') {
@@ -131,7 +132,6 @@ distributions {
                   include 'iris2-sercomm-controller-*.jar'
                   include 'iris2-zigbee-controller-*.jar'
                   include 'iris2-zwave-controller-*.jar'
-                  include 'ipcd-lib-*.jar'
                }
             }
          }

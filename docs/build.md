@@ -317,7 +317,7 @@ JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 \
 
 The original Iris hub firmware included closed-source controller jars for ZigBee, Z-Wave, Sercomm cameras, Hue, and 4G. These are not part of the open-source repository but can be extracted from a working hub and included in the build.
 
-1. **Extract jars from a hub** — Copy the `iris2-*-controller-*.jar` and `ipcd-lib-*.jar` files from a running hub's `/data/agent/libs/` directory.
+1. **Extract jars from a hub** — Copy the `iris2-*-controller-*.jar` files from a running hub's `/data/agent/libs/` directory.
 
 2. **Build with external jars:**
 

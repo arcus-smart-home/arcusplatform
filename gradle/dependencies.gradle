@@ -32,6 +32,9 @@ ext.libraries << [
 // ZWave
 		openhab_zwave: "org.openhab.binding.zzsmartsystems_zigbeewave:org.openhab.binding.zwave:2.5.0-SNAPSHOT",
 
+// IPCD (IP-connected devices) — closed-source jar in libs/
+		ipcd: "ipcd-lib:ipcd-lib:1.0",
+
 // Cassandra
 		cassandraDriver: dependencies.create("com.datastax.oss:java-driver-core:4.17.0") {
 			exclude group: "io.dropwizard.metrics"
