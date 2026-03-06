@@ -1,0 +1,130 @@
+/*
+ * TODO: Remove this file once iris2 controller jars are replaced with
+ * open-source implementations compiled against Netty 4.1.
+ *
+ * Patches netty-buffer to restore ByteBufProcessor bridge methods that were
+ * present in Netty 4.0 but removed from 4.1.  The closed-source iris2
+ * controller jars were compiled against 4.0 and call:
+ *
+ *   ByteBuf.forEachByte(int, int, ByteBufProcessor)
+ *
+ * In 4.1 the method signature changed to ByteProcessor.  Since
+ * ByteBufProcessor extends ByteProcessor in 4.1, a simple bridge method
+ * that delegates to the ByteProcessor overload restores binary compat.
+ */
+
+task patchNettyBuffer {
+   def outputDir = file("${buildDir}/patched-libs")
+   outputs.dir outputDir
+
+   doLast {
+      def cl = project(':agent').buildscript.classLoader
+
+      def nettyBufferJar = configurations.runtimeClasspath.files.find {
+         it.name.startsWith('netty-buffer-')
+      }
+      if (nettyBufferJar == null) {
+         throw new GradleException('Could not find netty-buffer jar on runtimeClasspath')
+      }
+
+      outputDir.mkdirs()
+      def outputJar = new File(outputDir, nettyBufferJar.name)
+
+      def zipIn  = new java.util.zip.ZipFile(nettyBufferJar)
+      def zipOut = new java.util.zip.ZipOutputStream(new FileOutputStream(outputJar))
+
+      zipIn.entries().each { entry ->
+         if (entry.isDirectory()) {
+            zipOut.putNextEntry(new java.util.zip.ZipEntry(entry.name))
+            zipOut.closeEntry()
+            return
+         }
+
+         def bytes = zipIn.getInputStream(entry).bytes
+
+         if (entry.name == 'io/netty/buffer/ByteBuf.class') {
+            bytes = patchByteBufClass(bytes, cl)
+         }
+
+         def newEntry = new java.util.zip.ZipEntry(entry.name)
+         newEntry.time = entry.time
+         zipOut.putNextEntry(newEntry)
+         zipOut.write(bytes)
+         zipOut.closeEntry()
+      }
+
+      zipOut.close()
+      zipIn.close()
+      logger.lifecycle("Patched ${nettyBufferJar.name} -> ${outputJar}")
+   }
+}
+
+def patchByteBufClass(byte[] classBytes, ClassLoader cl) {
+   def Opcodes = cl.loadClass('org.objectweb.asm.Opcodes')
+   def ClassReaderCls = cl.loadClass('org.objectweb.asm.ClassReader')
+   def ClassWriterCls = cl.loadClass('org.objectweb.asm.ClassWriter')
+
+   int ACC_PUBLIC     = Opcodes.getField('ACC_PUBLIC').getInt(null)
+   int ALOAD          = Opcodes.getField('ALOAD').getInt(null)
+   int ILOAD          = Opcodes.getField('ILOAD').getInt(null)
+   int IRETURN        = Opcodes.getField('IRETURN').getInt(null)
+   int INVOKEVIRTUAL  = Opcodes.getField('INVOKEVIRTUAL').getInt(null)
+
+   // ClassReader(byte[])
+   def cr = ClassReaderCls.newInstance(classBytes)
+   // ClassWriter(int flags)
+   def cw = ClassWriterCls.getDeclaredConstructor(int.class).newInstance(0 as int)
+
+   // Copy all existing class content into the writer
+   cr.accept(cw, 0 as int)
+
+   def owner = 'io/netty/buffer/ByteBuf'
+   def bbp   = 'io/netty/buffer/ByteBufProcessor'
+   def bp    = 'io/netty/util/ByteProcessor'
+
+   // forEachByte(ByteBufProcessor) -> forEachByte(ByteProcessor)
+   def mv1 = cw.visitMethod(ACC_PUBLIC, 'forEachByte', "(L${bbp};)I", null, null)
+   mv1.visitCode()
+   mv1.visitVarInsn(ALOAD, 0)
+   mv1.visitVarInsn(ALOAD, 1)
+   mv1.visitMethodInsn(INVOKEVIRTUAL, owner, 'forEachByte', "(L${bp};)I", false)
+   mv1.visitInsn(IRETURN)
+   mv1.visitMaxs(2, 2)
+   mv1.visitEnd()
+
+   // forEachByte(int, int, ByteBufProcessor) -> forEachByte(int, int, ByteProcessor)
+   def mv2 = cw.visitMethod(ACC_PUBLIC, 'forEachByte', "(IIL${bbp};)I", null, null)
+   mv2.visitCode()
+   mv2.visitVarInsn(ALOAD, 0)
+   mv2.visitVarInsn(ILOAD, 1)
+   mv2.visitVarInsn(ILOAD, 2)
+   mv2.visitVarInsn(ALOAD, 3)
+   mv2.visitMethodInsn(INVOKEVIRTUAL, owner, 'forEachByte', "(IIL${bp};)I", false)
+   mv2.visitInsn(IRETURN)
+   mv2.visitMaxs(4, 4)
+   mv2.visitEnd()
+
+   // forEachByteDesc(ByteBufProcessor) -> forEachByteDesc(ByteProcessor)
+   def mv3 = cw.visitMethod(ACC_PUBLIC, 'forEachByteDesc', "(L${bbp};)I", null, null)
+   mv3.visitCode()
+   mv3.visitVarInsn(ALOAD, 0)
+   mv3.visitVarInsn(ALOAD, 1)
+   mv3.visitMethodInsn(INVOKEVIRTUAL, owner, 'forEachByteDesc', "(L${bp};)I", false)
+   mv3.visitInsn(IRETURN)
+   mv3.visitMaxs(2, 2)
+   mv3.visitEnd()
+
+   // forEachByteDesc(int, int, ByteBufProcessor) -> forEachByteDesc(int, int, ByteProcessor)
+   def mv4 = cw.visitMethod(ACC_PUBLIC, 'forEachByteDesc', "(IIL${bbp};)I", null, null)
+   mv4.visitCode()
+   mv4.visitVarInsn(ALOAD, 0)
+   mv4.visitVarInsn(ILOAD, 1)
+   mv4.visitVarInsn(ILOAD, 2)
+   mv4.visitVarInsn(ALOAD, 3)
+   mv4.visitMethodInsn(INVOKEVIRTUAL, owner, 'forEachByteDesc', "(IIL${bp};)I", false)
+   mv4.visitInsn(IRETURN)
+   mv4.visitMaxs(4, 4)
+   mv4.visitEnd()
+
+   return (byte[]) cw.toByteArray()
+}

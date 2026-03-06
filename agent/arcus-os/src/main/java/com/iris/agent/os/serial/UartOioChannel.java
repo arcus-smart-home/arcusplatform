@@ -22,12 +22,14 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.base.Preconditions;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.oio.OioByteStreamChannel;
 
 public class UartOioChannel extends OioByteStreamChannel {
    private static final UartAddress LOCALADDR = new UartAddress("localhost");
    private final UartChannelConfig config;
    private boolean open;
+   private boolean inputShutdown;
 
    @Nullable
    private UartAddress address;
@@ -55,6 +57,17 @@ public class UartOioChannel extends OioByteStreamChannel {
    @Override
    public boolean isOpen() {
       return open;
+   }
+
+   @Override
+   protected boolean isInputShutdown() {
+      return inputShutdown || !open;
+   }
+
+   @Override
+   protected ChannelFuture shutdownInput() {
+      inputShutdown = true;
+      return newSucceededFuture();
    }
 
    @Override
@@ -187,4 +200,3 @@ public class UartOioChannel extends OioByteStreamChannel {
       }
    }
 }
-

@@ -17,6 +17,7 @@ apply from: file("${rootDir}/gradle/subproject.gradle")
 apply from: file("${rootDir}/gradle/release.gradle")
 
 apply plugin: 'application'
+apply from: file("${rootDir}/agent/gradle/netty-compat.gradle")
 
 dependencies {
    api project(":agent:arcus-hal:arcus-hal-api")
@@ -28,7 +29,7 @@ dependencies {
    implementation libraries.commonsIO
    implementation libraries.apacheCommonsExec
    implementation libraries.bouncycastle // pull in to support old zwave
-   
+
    api project(':common:arcus-common')
    api project(':common:arcus-model')
    api project(':common:arcus-model:platform-messages')
@@ -37,6 +38,7 @@ dependencies {
 
    runtimeOnly project(":agent:arcus-agent")
    runtimeOnly project(":agent:arcus-hal:arcus-hal-hub-v2")
+   runtimeOnly libraries.ipcd
 }
 
 mainClassName = 'com.iris.agent.IrisAgent'
@@ -56,17 +58,49 @@ jar {
 distributions {
    main {
       contents {
-         from jar
+         includeEmptyDirs = false
+
          eachFile {
-            it.path = it.path.replace("lib/", 'libs/')
-            it.path = it.path.replace("arcus-agent-hub-v2-${agentVersion}/", '')
+            def prefix = "arcus-agent-hub-v2-${agentVersion}/"
+
+            // Strip the versioned wrapper directory
+            if (it.path.startsWith(prefix)) {
+               it.path = it.path.substring(prefix.length())
+            }
+
+            // Exclude the original netty-buffer — replaced by patched version
+            // with ByteBufProcessor bridge methods for iris2 compat.
+            // Must run before the lib/ -> libs/ rename below.
+            if (it.name.startsWith('netty-buffer-') && it.path.startsWith('lib/')) {
+               it.exclude()
+               return
+            }
+
+            // Rename the application plugin's lib/ to libs/ (for jars only).
+            // Native .so files stay in lib/.
+            if (it.path.startsWith('lib/') && it.name.endsWith('.jar')) {
+               it.path = 'libs/' + it.path.substring(4)
+            }
+
+            // Exclude logback.xml that leaked from arcus-protoc jar into libs/
+            if (it.name == 'logback.xml' && !it.path.startsWith('conf/')) {
+               it.exclude()
+            }
          }
 
          exclude ('**/*.class')
          exclude ('**/*.hbs')
          exclude ('**/*.bat')
          exclude ('**/arcus-agent-hub-v2')
+         exclude ('**/arcus-agent-hub-v2-*')
          exclude ('**/META-INF/**')
+         exclude ('**/netty-transport-native-kqueue-*')
+
+         // When using external jars, exclude the open-source replacements
+         if (project.hasProperty('external_jars_dir')) {
+            exclude ('**/arcus-zigbee-controller-*.jar')
+            exclude ('**/arcus-zw-controller-*.jar')
+         }
 
          into('conf') {
             from project(":agent:arcus-agent").file('src/dist/main/conf/')
@@ -77,8 +111,29 @@ distributions {
             from project(":agent:arcus-hal:arcus-hal-hub-v2").file('src/dist/main/bin/iris-agent')
          }
 
+         // Native .so files — iris-agent script sets java.library.path to lib/ or lib/v2/
          into('lib') {
             from project(":agent:arcus-hal:arcus-hal-hub-v2").file('src/dist/main/lib/')
+         }
+
+         // Patched netty-buffer with ByteBufProcessor bridge methods for
+         // backward compat with iris2 controller jars compiled against Netty 4.0.
+         into('libs') {
+            from patchNettyBuffer.outputs.files
+         }
+
+         // Include closed-source controller jars extracted from a hub.
+         // Usage: ./gradlew distTar -Pexternal_jars_dir=/path/to/extracted/hub/libs
+         if (project.hasProperty('external_jars_dir')) {
+            into('libs') {
+               from(project.property('external_jars_dir')) {
+                  include 'iris2-4g-controller-*.jar'
+                  include 'iris2-hue-controller-*.jar'
+                  include 'iris2-sercomm-controller-*.jar'
+                  include 'iris2-zigbee-controller-*.jar'
+                  include 'iris2-zwave-controller-*.jar'
+               }
+            }
          }
       }
    }

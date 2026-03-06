@@ -42,8 +42,20 @@ import java.util.List;
 public class IrisLifecycleManager implements Closeable {
    private static final Logger LOGGER = LoggerFactory.getLogger(IrisLifecycleManager.class);
 
+   @SuppressWarnings("unchecked")
+   private static final Class<? extends java.lang.annotation.Annotation> GOVERNATOR_WARMUP = loadAnnotation("com.netflix.governator.annotations.WarmUp");
+
    private final List<LifecycleEntry> entries = Collections.synchronizedList(new ArrayList<>());
    private volatile boolean started = false;
+
+   @SuppressWarnings("unchecked")
+   private static Class<? extends java.lang.annotation.Annotation> loadAnnotation(String name) {
+      try {
+         return (Class<? extends java.lang.annotation.Annotation>) Class.forName(name);
+      } catch (ClassNotFoundException e) {
+         return null;
+      }
+   }
 
    /**
     * Registers an object for lifecycle management. Immediately invokes
@@ -55,6 +67,10 @@ public class IrisLifecycleManager implements Closeable {
    public void register(Object instance) {
       List<Method> postConstructMethods = findAnnotatedMethods(instance.getClass(), PostConstruct.class);
       List<Method> warmUpMethods = findAnnotatedMethods(instance.getClass(), WarmUp.class);
+      // TODO: Remove Governator scan once iris2 jars are replaced with open-source code
+      if (GOVERNATOR_WARMUP != null) {
+         warmUpMethods.addAll(findAnnotatedMethods(instance.getClass(), GOVERNATOR_WARMUP));
+      }
       List<Method> preDestroyMethods = findAnnotatedMethods(instance.getClass(), PreDestroy.class);
 
       if (postConstructMethods.isEmpty() && warmUpMethods.isEmpty() && preDestroyMethods.isEmpty()) {

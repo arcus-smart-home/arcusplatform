@@ -805,20 +805,31 @@ export FOURG_DISABLE=true
 
 ## Build Output
 
+See [build.md](build.md#agent-distribution) for full build and deployment instructions.
+
 `arcus-agent/hub-v2` produces a distribution archive:
 ```
-iris-agent-hub-v2-{VERSION}/
+arcus-agent-hub-v2-{VERSION}/
 ├── bin/iris-agent     # Startup script
 ├── conf/              # logback.xml, sounds/, voice/, agent.version
-├── libs/              # JAR dependencies
-└── lib/               # Native libraries (JNA, Netty epoll)
+├── libs/              # JAR dependencies (+ patched netty-buffer)
+└── lib/               # Native libraries (.so files for JNA, tcnative)
 ```
 
 ---
 
 ## Known Missing Components (Closed-Source)
 
-These shipped as pre-compiled JARs in the original Iris platform and would need reimplementation:
-- `arcus-4g-controller` — Cellular backup radio
-- `arcus-hue-controller` — Philips Hue bridge integration
-- `arcus-sercomm-controller` — Camera integration
+The original Iris firmware included closed-source controller jars (`iris2-*-controller-*.jar`) that can be extracted from a working hub and included in the build via `-Pexternal_jars_dir`. See [build.md](build.md#building-with-closed-source-controller-jars) for details.
+
+When building **without** external jars, the open-source stubs are used instead. These provide compile targets and interfaces but lack full implementations:
+
+| Controller | Status | Notes |
+|-----------|--------|-------|
+| `arcus-zigbee-controller` | Partial | Open-source EZSP/Ember driver works for basic devices; iris2 jar has full implementation |
+| `arcus-zw-controller` | Stub | Open-source Z/IP engine is incomplete; iris2 jar required for working Z-Wave |
+| `arcus-4g-controller` | Not started | Cellular backup radio — would need reimplementation |
+| `arcus-hue-controller` | Not started | Philips Hue bridge integration — would need reimplementation |
+| `arcus-sercomm-controller` | Not started | Camera integration — would need reimplementation |
+
+The open-source code includes several compatibility shims (marked with TODO) to bridge Netty 4.0→4.1 and Governator→Iris lifecycle annotation differences in the iris2 jars. These can be removed once open-source replacements are complete.

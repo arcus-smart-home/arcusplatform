@@ -43,6 +43,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import com.iris.agent.zwave.ZWaveController;
+import com.iris.agent.zwave.ZWaveDriverFactory;
 import com.iris.agent.zwave.ZWaveLocalProcessing;
 import com.iris.agent.zwave.ZWaveLocalProcessingDefault;
 import com.iris.agent.zwave.ZWaveLocalProcessingNoop;
@@ -805,8 +806,11 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
             bind(String.class).annotatedWith(Names.named("iris.zwave.port")).toInstance(port);
          }
 
-//         bind(ZWaveDriverFactory.class).in(Singleton.class);
-         bind(ZWaveController.class).in(Singleton.class);
+         // TODO: Remove ZWaveDriverFactory binding once open-source ZWaveController
+         // has its own serial transport (replacing iris2-zwave-controller jar).
+         bind(ZWaveDriverFactory.class).in(Singleton.class);
+         // Must be eager so IrisLifecycleManager discovers @WarmUp start() method.
+         bind(ZWaveController.class).asEagerSingleton();
          bind(ZWaveLocalProcessing.class).to(ZWaveLocalProcessingDefault.class).asEagerSingleton();
       }
    }
