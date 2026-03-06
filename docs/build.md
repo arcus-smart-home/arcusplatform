@@ -305,21 +305,55 @@ Docker images are tagged as `arcus/{service-name}:{major}.{minor}.{patch}`.
 
 ### Build
 
-`agent/arcus-agent/hub-v2/build.gradle` produces the hub agent distribution:
+The agent targets **Java 8** (toolchain in `agent/build.gradle`). Build with:
 
 ```bash
-./gradlew :agent:arcus-agent:hub-v2:installDist
+# Requires a Java 8 JDK (e.g. temurin-8-jdk)
+JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 \
+  ./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar
 ```
+
+### Building with Closed-Source Controller Jars
+
+The original Iris hub firmware included closed-source controller jars for ZigBee, Z-Wave, Sercomm cameras, Hue, and 4G. These are not part of the open-source repository but can be extracted from a working hub and included in the build.
+
+1. **Extract jars from a hub** — Copy the `iris2-*-controller-*.jar` and `ipcd-lib-*.jar` files from a running hub's `/data/agent/libs/` directory.
+
+2. **Build with external jars:**
+
+```bash
+JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 \
+  ./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar \
+  -Pexternal_jars_dir=/path/to/extracted/hub/libs
+```
+
+This includes the iris2 jars in the distribution and excludes the open-source stub replacements (`arcus-zigbee-controller`, `arcus-zw-controller`).
+
+### Netty 4.0/4.1 Compatibility
+
+The iris2 jars were compiled against Netty 4.0. The open-source agent uses Netty 4.1. Several compatibility shims bridge this gap:
+
+- **`agent/gradle/netty-compat.gradle`** — ASM build-time patching of `netty-buffer` to restore `ByteBufProcessor` bridge methods removed in 4.1
+- **`UartEpollChannel`** — Backward-compat constructor accepting `Socket` (4.0) in addition to `LinuxSocket` (4.1)
+- **`UartOioChannel`** — Added `isInputShutdown()`/`shutdownInput()` required by Netty 4.1
+- **`com.netflix.governator.annotations.WarmUp`** — Stub annotation so `IrisLifecycleManager` can discover `@WarmUp` methods on iris2 classes (which reference Governator, not the Arcus replacement)
 
 ### Output Structure
 
 ```
-iris-agent-hub-v2-{VERSION}/
+arcus-agent-hub-v2-{VERSION}/
 ├── bin/iris-agent     # Startup script
 ├── conf/              # logback.xml, sounds/, voice/, agent.version
-├── libs/              # JAR dependencies
-└── lib/               # Native libraries (JNA, Netty epoll)
+├── libs/              # JAR dependencies (+ patched netty-buffer)
+└── lib/               # Native libraries (.so files for JNA, tcnative)
 ```
+
+### Deploying to a Hub
+
+1. Copy the tarball to the hub and extract to `/data/agent/`
+2. Delete the CDS archive (caches old bytecode): `rm -f /data/agent/agent.jsa`
+3. Delete any stale Netty 4.0 native jars: `rm -f /data/agent/libs/netty-transport-native-epoll-4.0*.jar`
+4. Restart the agent: `/etc/init.d/irisinitd restart`
 
 ### Simulated Mode
 
