@@ -169,8 +169,11 @@ public class ZBBootstrapper {
 
       // Remember which nodes were loaded from the database so we don't
       // re-discover them when zsmartsystems fires onNodeAdded during startup.
+      // Also mark them as already-added so proactive messages (e.g. AlertMe
+      // HelloResponse) don't trigger spurious PAIRED sounds on every boot.
       for (ZBNode existingNode : network.getNodes()) {
          knownAtStartup.add(existingNode.getIeeeAddr());
+         deviceAdded.add(existingNode.getIeeeAddr());
       }
 
       // Initialize the ZigBee driver with callbacks
