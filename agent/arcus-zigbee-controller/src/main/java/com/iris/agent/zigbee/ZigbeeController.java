@@ -196,7 +196,7 @@ public class ZigbeeController implements PortHandler, LifeCycleListener, ZBEvent
             if (node != null) {
                ProtocolMessage smsg = ZBMessageTranslator.createProtocolMessage(node, cmdEvent.getMessage());
                if (smsg != null) {
-                  logger.debug("Forwarding protocol message for IEEE={} from={} to={}",
+                  logger.trace("Forwarding protocol message for IEEE={} from={} to={}",
                         String.format("%016X", node.getIeeeAddr()), smsg.getSource(), smsg.getDestination());
                   port.send(smsg);
                } else {
@@ -225,23 +225,53 @@ public class ZigbeeController implements PortHandler, LifeCycleListener, ZBEvent
    @Override
    public void hubAccountIdUpdated(@Nullable UUID oldAcc, @Nullable UUID newAcc) {
       if (oldAcc == null && newAcc != null) {
-         needsFactoryReset.set(true);
+         performFactoryReset();
       }
    }
 
    @Override
    public void hubReset(LifeCycleService.Reset type) {
       if (type == LifeCycleService.Reset.FACTORY) {
-         needsFactoryReset.set(true);
+         performFactoryReset();
       }
    }
 
    @Override
    public void hubDeregistered() {
+      performFactoryReset();
+   }
+
+   private void performFactoryReset() {
+      if (!needsFactoryReset.compareAndSet(false, true)) {
+         logger.info("ZigBee factory reset already in progress, skipping");
+         return;
+      }
+
+      logger.info("Performing ZigBee factory reset...");
       try {
-         //TODO: Anything?
+         // Stop pairing/removal if active
+         ZBPairing.INSTANCE.stopPairing();
+         ZBPairing.INSTANCE.stopRemoval();
+
+         // Clear all bootstrapper discovery state and message translator state
+         ZBBootstrapper.reset();
+         ZBMessageTranslator.reset();
+
+         // Wipe node database and in-memory maps
+         if (zbNetwork != null) {
+            zbNetwork.clear();
+         }
+
+         // Form a new ZigBee network on the NCP (new PAN ID, new network key)
+         if (driver != null) {
+            driver.formNetwork();
+         }
+
+         logger.info("ZigBee factory reset complete");
       } catch (Exception ex) {
-         logger.warn("Could not process hub removed: {}", ex.getMessage(), ex);
+         logger.error("ZigBee factory reset failed: {}", ex.getMessage(), ex);
+      } finally {
+         needsFactoryReset.set(false);
       }
    }
 

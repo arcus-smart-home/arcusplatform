@@ -78,6 +78,14 @@ public class ZBNetwork implements ZBEventListener {
       return ieee2node.size();
    }
 
+   public void clear() {
+      ieee2node.clear();
+      nwk2node.clear();
+      devid2node.clear();
+      ZBDao.deleteAllNodes();
+      logger.info("Cleared all zigbee nodes from network and database");
+   }
+
    public ProtocolDeviceId getDeviceId(long ieeeAddr) {
       return ZBNode.computeDeviceId(ieeeAddr);
    }
@@ -126,7 +134,7 @@ public class ZBNetwork implements ZBEventListener {
          devid2node.remove(node.getDeviceId());
          ZBDao.deleteNode(node);
       } else {
-         logger.error("Unable to find node {} to deregister.", Long.toHexString(ieeeAddr));
+         logger.error("Unable to find node {} to deregister.", String.format("%016X", ieeeAddr));
       }
    }
 

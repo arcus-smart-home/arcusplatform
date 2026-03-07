@@ -35,6 +35,8 @@ public interface ZigbeeDriver {
 
    void leave(long ieeeAddr);
 
+   void formNetwork();
+
    void send(ZigBeeCommand command);
 
    void sendApsFrame(com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame);

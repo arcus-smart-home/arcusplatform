@@ -44,6 +44,13 @@ public class ZBMessageTranslator {
          java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
    /**
+    * Clears session-level tracking state. Called during factory reset.
+    */
+   public static void reset() {
+      modeChangeSent.clear();
+   }
+
+   /**
     * Translates an inbound zsmartsystems ZigBeeCommand into an Arcus protocol message
     * and dispatches it as a ZBNodeCommandEvent.
     */
@@ -53,11 +60,15 @@ public class ZBMessageTranslator {
       }
 
       int sourceNwk = command.getSourceAddress().getAddress();
+      if (sourceNwk == 0) {
+         return; // coordinator's own address, not a real device
+      }
+
       ZBNetwork network = ZBServices.INSTANCE.getNetwork();
       ZBNode node = network.getNodeByNwk(sourceNwk);
 
       if (node == null) {
-         logger.warn("Received command from unknown NWK address {}, dropping", sourceNwk);
+         logger.debug("Received command from unknown NWK address {}, dropping", sourceNwk);
          return;
       }
 
@@ -79,7 +90,7 @@ public class ZBMessageTranslator {
     * Translates an outbound Arcus ProtocolMessage and sends it via the ZigBee network manager.
     */
    public static void handleOutboundMessage(ProtocolMessage msg) {
-      logger.debug("Outbound message: type={} src={} dst={}", msg.getMessageType(), msg.getSource(), msg.getDestination());
+      logger.trace("Outbound message: type={} src={} dst={}", msg.getMessageType(), msg.getSource(), msg.getDestination());
       ZigbeeMessage.Protocol pmsg = msg.getValue(ZigbeeProtocol.INSTANCE);
       if (pmsg == null) {
          logger.warn("Could not decode zigbee protocol message, dropping: {}", msg);
@@ -258,7 +269,7 @@ public class ZBMessageTranslator {
       apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
       apsFrame.setPayload(byteArrayToIntArray(rawFrame));
 
-      logger.debug("Outbound ZCL: NWK={} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
+      logger.trace("Outbound ZCL: NWK={} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
             String.format("%04X", node.getNwkAddr()),
             String.format("%04X", zcl.getClusterId()),
             String.format("%04X", profileId),
@@ -418,7 +429,7 @@ public class ZBMessageTranslator {
       int sourceNwk = apsFrame.getSourceAddress();
       ZBNetwork network = ZBServices.INSTANCE.getNetwork();
       ZBNode node = network.getNodeByNwk(sourceNwk);
-      logger.debug("APS frame from NWK={} cluster=0x{} node={}",
+      logger.trace("APS frame from NWK={} cluster=0x{} node={}",
             String.format("%04X", sourceNwk),
             String.format("%04X", apsFrame.getCluster()),
             node != null ? String.format("%016X", node.getIeeeAddr()) : "null");
@@ -455,7 +466,7 @@ public class ZBMessageTranslator {
       }
 
       if (node == null) {
-         logger.warn("No node found for NWK {} (have {} nodes)",
+         logger.debug("No node found for NWK {} (have {} nodes)",
                String.format("%04X", sourceNwk), network.getNumDevices());
          return;
       }

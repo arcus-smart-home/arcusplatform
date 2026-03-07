@@ -82,6 +82,19 @@ public class ZBBootstrapper {
    private ZBBootstrapper() {}
 
    /**
+    * Clears all discovery state. Called during factory reset.
+    */
+   public static void reset() {
+      pendingAdds.clear();
+      pendingBasicReads.clear();
+      discoveryStarted.clear();
+      lastResendTime.clear();
+      knownAtStartup.clear();
+      deviceAdded.clear();
+      logger.info("Cleared all bootstrapper discovery state");
+   }
+
+   /**
     * Called when a node descriptor response is received for a pending device.
     * If the Basic cluster response has also arrived, dispatches ZBNodeAddedEvent.
     */

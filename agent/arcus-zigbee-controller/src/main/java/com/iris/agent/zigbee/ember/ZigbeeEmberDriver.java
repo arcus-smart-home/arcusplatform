@@ -245,7 +245,7 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
       networkManager.addAnnounceListener(new ZigBeeAnnounceListener() {
          @Override
          public void deviceStatusUpdate(com.zsmartsystems.zigbee.ZigBeeNodeStatus deviceStatus, Integer networkAddress, com.zsmartsystems.zigbee.IeeeAddress ieeeAddress) {
-            logger.info("ZigBee device announce: nwk={}, ieee={}", networkAddress, ieeeAddress);
+            logger.debug("ZigBee device announce: nwk={}, ieee={}", networkAddress, ieeeAddress);
             if (callbacks != null) {
                callbacks.onAnnounce(networkAddress, ieeeToLong(ieeeAddress));
             }
@@ -258,7 +258,12 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
          return;
       }
 
-      logger.info("ZigBee network manager started successfully");
+      logger.info("ZigBee NCP started: channel={}, panId=0x{}, extPanId={}, ieee={}, firmware={}",
+            networkManager.getZigBeeChannel(),
+            String.format("%04X", networkManager.getZigBeePanId()),
+            networkManager.getZigBeeExtendedPanId(),
+            networkManager.getLocalIeeeAddress(),
+            dongle.getVersionString());
    }
 
    @Override
@@ -266,6 +271,33 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
       if (networkManager != null) {
          networkManager.shutdown();
          networkManager = null;
+      }
+   }
+
+   @Override
+   public void formNetwork() {
+      if (networkManager != null) {
+         logger.info("Forming new ZigBee network (factory reset)...");
+
+         // Remove all nodes from zsmartsystems
+         for (ZigBeeNode node : networkManager.getNodes()) {
+            if (node.getNetworkAddress() != null && node.getNetworkAddress() != 0) {
+               networkManager.removeNode(node);
+            }
+         }
+
+         // Reinitialize the network — startup(true) tells the NCP to form a
+         // new network with a fresh random PAN ID and network key.
+         ZigBeeStatus status = networkManager.startup(true);
+         if (status != ZigBeeStatus.SUCCESS) {
+            logger.error("Failed to form new ZigBee network: {}", status);
+            return;
+         }
+
+         logger.info("New ZigBee network formed: channel={}, panId=0x{}, extPanId={}",
+               networkManager.getZigBeeChannel(),
+               String.format("%04X", networkManager.getZigBeePanId()),
+               networkManager.getZigBeeExtendedPanId());
       }
    }
 
@@ -292,7 +324,7 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
          if (node != null) {
             networkManager.leave(node.getNetworkAddress(), node.getIeeeAddress());
          } else {
-            logger.warn("Cannot send leave to unknown node: {}", Long.toHexString(ieeeAddr));
+            logger.warn("Cannot send leave to unknown node: {}", String.format("%016X", ieeeAddr));
          }
       }
    }
