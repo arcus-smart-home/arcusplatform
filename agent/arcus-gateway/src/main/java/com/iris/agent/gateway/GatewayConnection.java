@@ -430,7 +430,7 @@ public class GatewayConnection {
                                  LOG.info("ssl handshake completed successfully in {} ms", TimeUnit.NANOSECONDS.toMillis(elapsed));
                                  LOG.trace("ssl session: protocol={}, cipher={}", sslHandler.engine().getSession().getProtocol(), sslHandler.engine().getSession().getCipherSuite());
                               } else {
-                                 LOG.warn("ssl handshake failed after {} ms: {}", elapsed, (future == null) ? "unknown" : future.cause());
+                                 LOG.warn("ssl handshake failed after {} ms: {}", TimeUnit.NANOSECONDS.toMillis(elapsed), (future == null) ? "unknown" : future.cause());
                                  ch.close();
                               }
                            }
