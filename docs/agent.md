@@ -43,7 +43,7 @@ The agent runs on Iris Hub v2/v3 hardware, managing ZigBee and Z-Wave radios, ex
 | `arcus-hub-controller` | Hub device attributes, capabilities, and top-level message dispatch |
 | `arcus-reflex-controller` | Local rule/automation execution (reflexes) — see [reflexes.md](reflexes.md) |
 | `arcus-alarm-controller` | Hub-local security/safety alarm state machine |
-| `arcus-zigbee-controller` | ZigBee protocol (zsmartsystems 1.2.4) — stub, under development |
+| `arcus-zigbee-controller` | ZigBee protocol (zsmartsystems 1.4.16) — device discovery, IAS Zone, AlertMe support |
 | `arcus-zw-controller` | Z-Wave protocol (Z/IP engine) |
 | `arcus-os` | OS abstraction via JNA + Netty epoll (serial ports, watchdog) |
 | `arcus-spy-controller` | Diagnostic message snooping (enabled via `IRIS_HUB_SPY_ACTIVE`) |
@@ -85,7 +85,7 @@ arcus-spy-controller
 | RxJava | Reactive streams (Z-Wave scenes, reflex processing) |
 | GSON | JSON serialization for platform messages |
 | BouncyCastle | Cryptography and TLS |
-| zsmartsystems ZigBee (v1.2.4) | ZigBee network manager and Ember EZSP dongle support |
+| zsmartsystems ZigBee (v1.4.16) | ZigBee network manager and Ember EZSP dongle support |
 
 ---
 
@@ -653,7 +653,14 @@ ConfigService.put(String key, T value)                  // Write through to DB
 | Variable | Description |
 |----------|-------------|
 | `IRIS_GATEWAY_URI` | Override gateway URI |
-| `IRIS_AGENT_LOGTYPE` | Logging mode (`DEV` or `STDOUT`) |
+| `IRIS_AGENT_LOGTYPE` | Logging mode (`dev` or default STDOUT) |
+| `IRIS_AGENT_ROOT_LOGLVL` | Root log level (default: `debug`) |
+| `IRIS_AGENT_AGENT_LOGLVL` | `com.iris.agent` log level (default: `debug`) |
+| `IRIS_AGENT_ZIGBEE_LOGLVL` | `com.iris.agent.zigbee` log level (default: `debug`) |
+| `IRIS_AGENT_ZWAVE_LOGLVL` | `com.iris.agent.zwave` log level (default: `debug`) |
+| `IRIS_AGENT_BLE_LOGLVL` | `com.iris.agent.ble` log level (default: `debug`) |
+| `IRIS_AGENT_SERCOMM_LOGLVL` | `com.iris.agent.controller.sercomm` log level (default: `debug`) |
+| `IRIS_AGENT_ZSMARTSYSTEMS_LOGLVL` | `com.zsmartsystems.zigbee` log level (default: `info`) |
 | `IRIS_AGENT_UNCONN_REBOOT_TIME` | Minutes before forced reboot on no connection (default: 30) |
 | `IRIS_AGENT_DISABLE_LOCAL_PROCESSING` | Disable reflex local processing |
 | `IRIS_SCENE_ZWAVE_DISABLE` | Disable Z-Wave scene support |
@@ -826,10 +833,10 @@ When building **without** external jars, the open-source stubs are used instead.
 
 | Controller | Status | Notes |
 |-----------|--------|-------|
-| `arcus-zigbee-controller` | Partial | Open-source EZSP/Ember driver works for basic devices; iris2 jar has full implementation |
+| `arcus-zigbee-controller` | Working | Open-source EZSP/Ember driver with device discovery, IAS Zone enrollment, and AlertMe device support |
 | `arcus-zw-controller` | Stub | Open-source Z/IP engine is incomplete; iris2 jar required for working Z-Wave |
 | `arcus-4g-controller` | Not started | Cellular backup radio — would need reimplementation |
 | `arcus-hue-controller` | Not started | Philips Hue bridge integration — would need reimplementation |
 | `arcus-sercomm-controller` | Not started | Camera integration — would need reimplementation |
 
-The open-source code includes several compatibility shims (marked with TODO) to bridge Netty 4.0→4.1 and Governator→Iris lifecycle annotation differences in the iris2 jars. These can be removed once open-source replacements are complete.
+The `external_jars_dir` build property allows including closed-source iris2 jars for controllers that don't yet have open-source replacements. See [build.md](build.md#building-with-closed-source-controller-jars) for details.
