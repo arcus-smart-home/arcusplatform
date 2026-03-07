@@ -18,5 +18,8 @@
  */
 package com.iris.agent.zigbee;
 
-public class ZigbeeDriverFactory {
+import com.iris.agent.zigbee.ember.ZigbeeDriver;
+
+public abstract class ZigbeeDriverFactory {
+   public abstract ZigbeeDriver create();
 }

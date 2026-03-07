@@ -59,6 +59,7 @@
 
   <logger name="com.iris.agent.zwave" level="DEBUG" />
   <logger name="com.iris.agent.zigbee" level="DEBUG" />
+  <logger name="com.zsmartsystems.zigbee" level="INFO" />
   <logger name="com.iris.agent.ble" level="DEBUG" />
 
   <logger name="driver" level="WARN" />

@@ -16,22 +16,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply from: file("${rootDir}/gradle/subproject.gradle")
 
-dependencies {
-   api project(":agent:arcus-system")
-   api project(":agent:arcus-router")
-   api project(":agent:arcus-os")
+package com.iris.agent.zigbee.events;
 
-   api project(':common:arcus-protocol')
-   api project(':common:arcus-client')
-   api project(':common:arcus-common')
-   implementation libraries.guava
-   implementation 'com.google.code.findbugs:jsr305:3.0.1'
-   implementation libraries.zsmartsystems_zigbee
-   implementation libraries.zsmartsystems_zigbee_ember
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
-   testImplementation project(':agent:arcus-test-agent')
+public class ZBEventDispatcher {
 
+   public static final ZBEventDispatcher INSTANCE = new ZBEventDispatcher();
+
+   private ZBEventDispatcher() {}
+
+   private final Set<ZBEventListener> listeners = new CopyOnWriteArraySet<>();
+
+   public void dispatch(final ZBEvent event) {
+      listeners.forEach(l -> l.onZBEvent(event));
+   }
+
+   public void register(final ZBEventListener listener) {
+      listeners.add(listener);
+   }
+
+   public void unregister(final ZBEventListener listener) {
+      listeners.remove(listener);
+   }
 }
-

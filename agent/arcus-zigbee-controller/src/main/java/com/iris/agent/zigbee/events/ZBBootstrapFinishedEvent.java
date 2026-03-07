@@ -16,22 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply from: file("${rootDir}/gradle/subproject.gradle")
 
-dependencies {
-   api project(":agent:arcus-system")
-   api project(":agent:arcus-router")
-   api project(":agent:arcus-os")
+package com.iris.agent.zigbee.events;
 
-   api project(':common:arcus-protocol')
-   api project(':common:arcus-client')
-   api project(':common:arcus-common')
-   implementation libraries.guava
-   implementation 'com.google.code.findbugs:jsr305:3.0.1'
-   implementation libraries.zsmartsystems_zigbee
-   implementation libraries.zsmartsystems_zigbee_ember
-
-   testImplementation project(':agent:arcus-test-agent')
-
+public class ZBBootstrapFinishedEvent implements ZBEvent {
+   @Override
+   public ZBEventType getType() {
+      return ZBEventType.BOOTSTRAPPED;
+   }
 }
-

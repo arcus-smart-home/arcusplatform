@@ -20,7 +20,6 @@ package com.iris.agent.zigbee;
 
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.zigbee.ember.ZigbeeEmberDriver;
-import com.zsmartsystems.zigbee.serial.ZigBeeSerialPort;
 import com.zsmartsystems.zigbee.transport.ZigBeePort;
 
 public class ZigbeeEmberDriverFactory extends ZigbeeDriverFactory {
@@ -39,7 +38,7 @@ public class ZigbeeEmberDriverFactory extends ZigbeeDriverFactory {
          flowControl = ZigBeePort.FlowControl.FLOWCONTROL_OUT_RTSCTS;
       }
 
-      final ZigBeePort serialPort = new ZigBeeSerialPort(port, IrisHal.getZigbeeBaudRate(), flowControl);
+      final ZigBeePort serialPort = new NativeZigBeePort(port, IrisHal.getZigbeeBaudRate(), flowControl);
 
       return new ZigbeeEmberDriver(serialPort);
    }

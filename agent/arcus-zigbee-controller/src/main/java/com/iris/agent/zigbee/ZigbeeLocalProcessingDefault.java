@@ -18,81 +18,425 @@
  */
 package com.iris.agent.zigbee;
 
+import java.nio.ByteOrder;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.iris.agent.zigbee.ember.ZigbeeDriver;
+import com.iris.agent.zigbee.node.ZBNode;
 import com.iris.messages.address.Address;
+import com.iris.messages.address.ProtocolDeviceId;
 import com.iris.protoc.runtime.ProtocMessage;
 import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zigbee.zcl.General;
 import com.iris.protocol.zigbee.zdp.Bind;
 import com.iris.protocol.zwave.Protocol;
+import com.zsmartsystems.zigbee.IeeeAddress;
+import com.zsmartsystems.zigbee.ZigBeeEndpoint;
+import com.zsmartsystems.zigbee.ZigBeeNetworkManager;
+import com.zsmartsystems.zigbee.ZigBeeNode;
+import com.zsmartsystems.zigbee.zcl.ZclAttribute;
+import com.zsmartsystems.zigbee.zcl.ZclCluster;
+
 import rx.Observable;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 public class ZigbeeLocalProcessingDefault implements ZigbeeLocalProcessing {
-   @Override
-   public Observable<Bind.ZdpBindRsp> bind(long eui64, short profile, byte endpoint, short cluster, boolean server) {
-      return null;
-   }
-
-   @Override
-   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint, short cluster, Collection<Short> attrs) {
-      return null;
-   }
-
-   @Override
-   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint, short cluster, short[] attrs) {
-      return null;
-   }
-
-   @Override
-   public Observable<Boolean> zcl(long eui64, short profile, byte endpoint, short cluster, ProtocMessage req, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      return null;
-   }
-
-   @Override
-   public Observable<Boolean> zclmsp(long eui64, int manuf, short profile, short endpoint, short cluster, int cmd, byte[] data, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      return null;
-   }
+   private static final Logger logger = LoggerFactory.getLogger(ZigbeeLocalProcessingDefault.class);
 
    @Override
    public boolean isOffline(Address addr) {
-      return true;
+      ZBNode node = resolveNode(addr);
+      return node == null || !node.isOnline();
    }
 
    @Override
    public void setOfflineTimeout(Address addr, long offlineTimeout) {
-
+      ZBNode node = resolveNode(addr);
+      if (node != null) {
+         node.setOfflineTimeout((int) offlineTimeout);
+         ZBServices.INSTANCE.getNetwork().saveNode(node);
+      }
    }
 
    @Override
    public Observable<?> send(Address addr, Protocol.Message msg) {
+      // Note: The interface signature uses Protocol.Message (Z-Wave type) which appears
+      // to be a copy-paste error in the original interface. For now, return empty.
+      logger.warn("send() called with Z-Wave Protocol.Message type on ZigBee local processing");
       return Observable.empty();
    }
 
    @Override
+   public void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
+      logger.debug("addScheduledPoll not yet fully implemented");
+   }
+
+   @Override
    public long getNodeEui64(Address addr) {
-      return 0;
+      ZBNode node = resolveNode(addr);
+      return node != null ? node.getIeeeAddr() : 0;
    }
 
    @Override
    public long eui64() {
-      return 0;
+      ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+      return driver != null ? driver.getCoordinatorEui64() : 0;
    }
 
    @Override
-   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, Map<Short, ZclData> p4) {
+   public Observable<Bind.ZdpBindRsp> bind(long eui64, short profile, byte endpoint, short cluster, boolean server) {
+      return Observable.create(sub -> {
+         try {
+            ZigBeeNetworkManager mgr = getNetworkManager();
+            if (mgr == null) {
+               sub.onError(new IllegalStateException("Network manager not available"));
+               return;
+            }
+
+            IeeeAddress addr = new IeeeAddress(String.format("%016X", eui64));
+            ZigBeeNode zsNode = mgr.getNode(addr);
+            if (zsNode == null) {
+               sub.onError(new IllegalStateException("Node not found: " + addr));
+               return;
+            }
+
+            ZigBeeEndpoint ep = zsNode.getEndpoint(endpoint & 0xFF);
+            if (ep == null) {
+               sub.onError(new IllegalStateException("Endpoint not found: " + (endpoint & 0xFF)));
+               return;
+            }
+
+            ZclCluster zclCluster = server ? ep.getInputCluster(cluster & 0xFFFF) : ep.getOutputCluster(cluster & 0xFFFF);
+            if (zclCluster != null) {
+               java.util.concurrent.Future<com.zsmartsystems.zigbee.CommandResult> future =
+                     zclCluster.bind(mgr.getLocalIeeeAddress(), 1);
+               try {
+                  future.get(30, TimeUnit.SECONDS);
+                  Bind.ZdpBindRsp rsp = Bind.ZdpBindRsp.builder()
+                        .setStatus(0)
+                        .create();
+                  sub.onNext(rsp);
+                  sub.onCompleted();
+               } catch (Exception bindEx) {
+                  sub.onError(bindEx);
+               }
+            } else {
+               sub.onError(new IllegalStateException("Cluster not found: " + (cluster & 0xFFFF)));
+            }
+         } catch (Exception ex) {
+            sub.onError(ex);
+         }
+      });
+   }
+
+   @Override
+   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint,
+         short cluster, Map<Short, ZclData> attrs) {
+      return Observable.create(sub -> {
+         try {
+            ZigBeeNetworkManager mgr = getNetworkManager();
+            if (mgr == null) {
+               sub.onError(new IllegalStateException("Network manager not available"));
+               return;
+            }
+
+            IeeeAddress addr = new IeeeAddress(String.format("%016X", eui64));
+            ZigBeeNode zsNode = mgr.getNode(addr);
+            if (zsNode == null) {
+               sub.onError(new IllegalStateException("Node not found: " + addr));
+               return;
+            }
+
+            ZigBeeEndpoint ep = zsNode.getEndpoint(endpoint & 0xFF);
+            if (ep == null) {
+               sub.onError(new IllegalStateException("Endpoint not found"));
+               return;
+            }
+
+            ZclCluster zclCluster = ep.getInputCluster(cluster & 0xFFFF);
+            if (zclCluster == null) {
+               sub.onError(new IllegalStateException("Cluster not found"));
+               return;
+            }
+
+            for (Map.Entry<Short, ZclData> entry : attrs.entrySet()) {
+               ZclAttribute attribute = zclCluster.getAttribute(entry.getKey() & 0xFFFF);
+               if (attribute != null) {
+                  attribute.writeValue(entry.getValue().getDataValue());
+               }
+            }
+
+            General.ZclWriteAttributesResponse rsp = General.ZclWriteAttributesResponse.builder()
+                  .setAttributes(new General.ZclWriteAttributeStatus[0])
+                  .create();
+            sub.onNext(rsp);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            sub.onError(ex);
+         }
+      });
+   }
+
+   @Override
+   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint,
+         short cluster, General.ZclWriteAttributeRecord[] attrs) {
+      return Observable.create(sub -> {
+         try {
+            ZigBeeNetworkManager mgr = getNetworkManager();
+            if (mgr == null) {
+               sub.onError(new IllegalStateException("Network manager not available"));
+               return;
+            }
+
+            IeeeAddress addr = new IeeeAddress(String.format("%016X", eui64));
+            ZigBeeNode zsNode = mgr.getNode(addr);
+            if (zsNode == null) {
+               sub.onError(new IllegalStateException("Node not found: " + addr));
+               return;
+            }
+
+            ZigBeeEndpoint ep = zsNode.getEndpoint(endpoint & 0xFF);
+            if (ep == null) {
+               sub.onError(new IllegalStateException("Endpoint not found"));
+               return;
+            }
+
+            ZclCluster zclCluster = ep.getInputCluster(cluster & 0xFFFF);
+            if (zclCluster == null) {
+               sub.onError(new IllegalStateException("Cluster not found"));
+               return;
+            }
+
+            for (General.ZclWriteAttributeRecord record : attrs) {
+               ZclAttribute attribute = zclCluster.getAttribute(record.getAttributeIdentifier() & 0xFFFF);
+               if (attribute != null && record.getAttributeData() != null) {
+                  attribute.writeValue(record.getAttributeData().getDataValue());
+               }
+            }
+
+            General.ZclWriteAttributesResponse rsp = General.ZclWriteAttributesResponse.builder()
+                  .setAttributes(new General.ZclWriteAttributeStatus[0])
+                  .create();
+            sub.onNext(rsp);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            sub.onError(ex);
+         }
+      });
+   }
+
+   @Override
+   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint,
+         short cluster, Collection<Short> attrs) {
+      short[] attrArray = new short[attrs.size()];
+      int i = 0;
+      for (Short a : attrs) {
+         attrArray[i++] = a;
+      }
+      return read(eui64, profile, endpoint, cluster, attrArray);
+   }
+
+   @Override
+   public Observable<General.ZclReadAttributesResponse> read(long eui64, short profile, byte endpoint,
+         short cluster, short[] attrs) {
+      return Observable.create(sub -> {
+         try {
+            ZigBeeNetworkManager mgr = getNetworkManager();
+            if (mgr == null) {
+               sub.onError(new IllegalStateException("Network manager not available"));
+               return;
+            }
+
+            IeeeAddress addr = new IeeeAddress(String.format("%016X", eui64));
+            ZigBeeNode zsNode = mgr.getNode(addr);
+            if (zsNode == null) {
+               sub.onError(new IllegalStateException("Node not found: " + addr));
+               return;
+            }
+
+            ZigBeeEndpoint ep = zsNode.getEndpoint(endpoint & 0xFF);
+            if (ep == null) {
+               sub.onError(new IllegalStateException("Endpoint not found"));
+               return;
+            }
+
+            ZclCluster zclCluster = ep.getInputCluster(cluster & 0xFFFF);
+            if (zclCluster == null) {
+               sub.onError(new IllegalStateException("Cluster not found"));
+               return;
+            }
+
+            General.ZclReadAttributeRecord[] records = new General.ZclReadAttributeRecord[attrs.length];
+            for (int j = 0; j < attrs.length; j++) {
+               ZclAttribute attribute = zclCluster.getAttribute(attrs[j] & 0xFFFF);
+               Object value = attribute != null ? attribute.readValue(0) : null;
+
+               records[j] = General.ZclReadAttributeRecord.builder()
+                     .setAttributeIdentifier(attrs[j])
+                     .setStatus((byte) (value != null ? 0 : 1))
+                     .create();
+            }
+
+            General.ZclReadAttributesResponse rsp = General.ZclReadAttributesResponse.builder()
+                  .setAttributes(records)
+                  .create();
+            sub.onNext(rsp);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            sub.onError(ex);
+         }
+      });
+   }
+
+   @Override
+   public Observable<Boolean> zcl(long eui64, short profile, byte endpoint, short cluster,
+         ProtocMessage req, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
+      return Observable.create(sub -> {
+         try {
+            ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+            if (driver == null) {
+               sub.onError(new IllegalStateException("ZigBee driver not available"));
+               return;
+            }
+
+            ZBNode node = ZBServices.INSTANCE.getNetwork().getNode(eui64);
+            if (node == null) {
+               sub.onError(new IllegalStateException("Node not found: " + Long.toHexString(eui64)));
+               return;
+            }
+
+            byte[] zclPayload = req.toBytes(ByteOrder.LITTLE_ENDIAN);
+            byte[] rawFrame = buildZclFrame(clusterSpecific, false, 0, fromServer,
+                  disableDefaultResponse, req.getMessageId(), zclPayload);
+
+            int profileId = (profile & 0xFFFF) != 0 ? (profile & 0xFFFF) : 0x0104;
+            int destEndpoint = (endpoint & 0xFF) != 0 ? (endpoint & 0xFF) : 1;
+
+            com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame = new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
+            apsFrame.setCluster(cluster & 0xFFFF);
+            apsFrame.setProfile(profileId);
+            apsFrame.setSourceEndpoint(destEndpoint);
+            apsFrame.setDestinationEndpoint(destEndpoint);
+            apsFrame.setDestinationAddress(node.getNwkAddr());
+            apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
+            apsFrame.setPayload(byteArrayToIntArray(rawFrame));
+
+            logger.debug("zcl: NWK={} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
+                  String.format("%04X", node.getNwkAddr()),
+                  String.format("%04X", cluster & 0xFFFF),
+                  String.format("%04X", profileId),
+                  destEndpoint,
+                  String.format("%02X", req.getMessageId()));
+
+            driver.sendApsFrame(apsFrame);
+            sub.onNext(true);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            logger.warn("zcl() failed for {}: {}", Long.toHexString(eui64), ex.getMessage(), ex);
+            sub.onError(ex);
+         }
+      });
+   }
+
+   @Override
+   public Observable<Boolean> zclmsp(long eui64, int manuf, short profile, short endpoint, short cluster,
+         int cmd, byte[] data, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
+      return Observable.create(sub -> {
+         try {
+            ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+            if (driver == null) {
+               sub.onError(new IllegalStateException("ZigBee driver not available"));
+               return;
+            }
+
+            ZBNode node = ZBServices.INSTANCE.getNetwork().getNode(eui64);
+            if (node == null) {
+               sub.onError(new IllegalStateException("Node not found: " + Long.toHexString(eui64)));
+               return;
+            }
+
+            byte[] rawFrame = buildZclFrame(clusterSpecific, true, manuf, fromServer,
+                  disableDefaultResponse, cmd, data);
+
+            int profileId = (profile & 0xFFFF) != 0 ? (profile & 0xFFFF) : 0x0104;
+            int destEndpoint = (endpoint & 0xFFFF) != 0 ? (endpoint & 0xFFFF) : 1;
+
+            com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame = new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
+            apsFrame.setCluster(cluster & 0xFFFF);
+            apsFrame.setProfile(profileId);
+            apsFrame.setSourceEndpoint(destEndpoint);
+            apsFrame.setDestinationEndpoint(destEndpoint);
+            apsFrame.setDestinationAddress(node.getNwkAddr());
+            apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
+            apsFrame.setPayload(byteArrayToIntArray(rawFrame));
+
+            logger.debug("zclmsp: NWK={} manuf=0x{} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
+                  String.format("%04X", node.getNwkAddr()),
+                  String.format("%04X", manuf),
+                  String.format("%04X", cluster & 0xFFFF),
+                  String.format("%04X", profileId),
+                  destEndpoint,
+                  String.format("%02X", cmd));
+
+            driver.sendApsFrame(apsFrame);
+            sub.onNext(true);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            logger.warn("zclmsp() failed for {}: {}", Long.toHexString(eui64), ex.getMessage(), ex);
+            sub.onError(ex);
+         }
+      });
+   }
+
+   private static byte[] buildZclFrame(boolean clusterSpecific, boolean manufacturerSpecific,
+         int manufacturerCode, boolean fromServer, boolean disableDefaultResponse,
+         int commandId, byte[] payload) {
+      int frameControl = 0;
+      if (clusterSpecific) frameControl |= 0x01;
+      if (manufacturerSpecific) frameControl |= 0x04;
+      if (fromServer) frameControl |= 0x08;
+      if (disableDefaultResponse) frameControl |= 0x10;
+
+      int headerLen = 3 + (manufacturerSpecific ? 2 : 0);
+      byte[] frame = new byte[headerLen + (payload != null ? payload.length : 0)];
+
+      int idx = 0;
+      frame[idx++] = (byte) frameControl;
+      if (manufacturerSpecific) {
+         frame[idx++] = (byte) (manufacturerCode & 0xFF);
+         frame[idx++] = (byte) ((manufacturerCode >> 8) & 0xFF);
+      }
+      frame[idx++] = 0; // sequence number (filled by NCP)
+      frame[idx++] = (byte) commandId;
+      if (payload != null && payload.length > 0) {
+         System.arraycopy(payload, 0, frame, idx, payload.length);
+      }
+      return frame;
+   }
+
+   private static int[] byteArrayToIntArray(byte[] bytes) {
+      if (bytes == null) return new int[0];
+      int[] result = new int[bytes.length];
+      for (int i = 0; i < bytes.length; i++) {
+         result[i] = bytes[i] & 0xFF;
+      }
+      return result;
+   }
+
+   private ZBNode resolveNode(Address addr) {
+      Object id = addr.getId();
+      if (id instanceof ProtocolDeviceId) {
+         return ZBServices.INSTANCE.getNetwork().getNode((ProtocolDeviceId) id);
+      }
       return null;
    }
 
-   @Override
-   public Observable<General.ZclWriteAttributesResponse> write(long eui64, short profile, byte endpoint, short cluster, General.ZclWriteAttributeRecord[] attrs) {
-      return null;
-   }
-
-   @Override
-   public void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads) {
-
+   private ZigBeeNetworkManager getNetworkManager() {
+      ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+      return driver != null ? driver.getNetworkManager() : null;
    }
 }
