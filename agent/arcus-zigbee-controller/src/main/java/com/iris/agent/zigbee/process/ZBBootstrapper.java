@@ -299,12 +299,10 @@ public class ZBBootstrapper {
             ZigBeeNode existing = nwkMgr.getNode(ieeeAddr);
             if (existing != null) {
                existing.setNetworkAddress(nwkAddr);
-               logger.debug("Updated existing node {} NWK={}", ieeeAddr, String.format("%04X", nwkAddr));
             } else {
                ZigBeeNode zsNode = new ZigBeeNode(nwkMgr, ieeeAddr);
                zsNode.setNetworkAddress(nwkAddr);
                nwkMgr.updateNode(zsNode);
-               logger.debug("Added node {} NWK={}", ieeeAddr, String.format("%04X", nwkAddr));
             }
             seeded++;
          }

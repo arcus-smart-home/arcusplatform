@@ -105,6 +105,13 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
                      handleMatchDescriptorRequest(apsFrame);
                   }
 
+                  // Don't forward AlertMe profile frames to zsmartsystems —
+                  // it doesn't recognize profile 0xC216 and logs noisy warnings.
+                  // Our handleInboundApsFrame() above already processed them.
+                  if (apsFrame.getProfile() == 0xC216) {
+                     return;
+                  }
+
                   // Still forward to the network manager for ZDP (endpoint 0)
                   // and node management
                   int destEp = apsFrame.getDestinationEndpoint();
@@ -209,7 +216,7 @@ public class ZigbeeEmberDriver implements ZigbeeDriver {
       networkManager.addNetworkNodeListener(new ZigBeeNetworkNodeListener() {
          @Override
          public void nodeAdded(ZigBeeNode node) {
-            logger.info("ZigBee node added: {}", node.getIeeeAddress());
+            logger.debug("ZigBee node added: {}", node.getIeeeAddress());
             if (callbacks != null) {
                callbacks.onNodeAdded(node);
             }

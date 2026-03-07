@@ -3,7 +3,7 @@
 ## Overview
 
 The `arcus-zigbee-controller` module provides hub-local ZigBee device management using the
-[zsmartsystems](https://github.com/zsmartsystems/com.zsmartsystems.zigbee) library (v1.4.16) as the
+[zsmartsystems](https://github.com/zsmartsystems/com.zsmartsystems.zigbee) library (v1.4.16.1) as the
 ZigBee protocol engine. It follows the same architectural patterns as `arcus-zw-controller`.
 
 The module handles:
@@ -56,7 +56,7 @@ Platform Messages                    ZigBee Radio
 | File | Status | Description |
 |------|--------|-------------|
 | `ZigbeeLocalProcessing.java` | **Complete** | Interface: 13 methods for hub drivers to interact with ZigBee devices. |
-| `ZigbeeLocalProcessingDefault.java` | **Partial** | See [Gaps](#gaps-in-local-processing) below. |
+| `ZigbeeLocalProcessingDefault.java` | **Complete** | Full implementation of all actively-called methods. See [Lower Priority Gaps](#lower-priority-gaps) for remaining minor items. |
 | `ZigbeeLocalProcessingNoop.java` | **Complete** | No-op implementation used when `ZIGBEE_DISABLE` env var is set. |
 
 ### Message Translation
@@ -116,39 +116,6 @@ Platform Messages                    ZigBee Radio
 | `process/ZBPairing.java` | **Complete** | `startPairing()` calls `permitJoin()`, `stopPairing()` calls `denyJoin()`. Removal mode sends `leave()`. Auto-stop via scheduler. |
 
 ## What Needs To Be Done
-
-### Gaps in Local Processing
-
-`ZigbeeLocalProcessingDefault` has two stub methods that hub drivers actively call:
-
-**`zcl()` — Stub (logs and returns true, does not send)**
-
-Called by `CentraLiteKeyPad`, `GreatStarKeyPad`, and `AlertmeKeyPad` to send:
-- `General.ZclConfigureReporting` — attribute reporting setup
-- `General.ZclWriteAttributes` / `ZclWriteAttributesNoResponse` — attribute writes
-- `General.ZclReadAttributes` — attribute reads
-- `IasZone.ZoneEnrollResponse` — zone enrollment
-- `IasAce.PanelStatusChanged`, `IasAce.ArmResponse`, `IasAce.BypassResponse` — alarm panel responses
-- `General.ZclDefaultResponse` — default responses
-
-The implementation needs to:
-1. Serialize the `ProtocMessage` into a raw ZCL payload (using Arcus protoc serialization)
-2. Build a zsmartsystems `ZclCommand` (or use raw frame sending via `ZigBeeNetworkManager`)
-3. Send via the network manager
-4. Return `Observable<Boolean>` with the result
-
-Drivers subscribe with `.subscribe(RxIris.SWALLOW_ALL)` (fire-and-forget), so the return
-value matters less than actually transmitting the frame.
-
-**`zclmsp()` — Stub (logs and returns true, does not send)**
-
-Called by `CentraLiteKeyPad` and `GreatStarKeyPad` for manufacturer-specific commands:
-- Manufacturer 0x104E, cluster 0xFC04, command 0x00 (chime)
-
-The implementation needs to:
-1. Build a manufacturer-specific ZCL frame with the provided command ID + raw data
-2. Send via the network manager
-3. Return `Observable<Boolean>`
 
 ### Lower Priority Gaps
 

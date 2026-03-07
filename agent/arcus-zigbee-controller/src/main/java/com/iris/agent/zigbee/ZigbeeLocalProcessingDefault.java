@@ -295,23 +295,136 @@ public class ZigbeeLocalProcessingDefault implements ZigbeeLocalProcessing {
    @Override
    public Observable<Boolean> zcl(long eui64, short profile, byte endpoint, short cluster,
          ProtocMessage req, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      // TODO: serialize ProtocMessage into raw ZCL frame and send via sendApsFrame.
-      // Currently a no-op — keypad hub drivers (CentraLite, GreatStar, Alertme) that
-      // call this will not transmit arm responses, zone enrollment, or reporting config.
-      logger.warn("zcl() not yet implemented — dropping command to {} cluster 0x{} ep {}",
-            Long.toHexString(eui64), Integer.toHexString(cluster & 0xFFFF), endpoint);
-      return Observable.just(false);
+      return Observable.create(sub -> {
+         try {
+            ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+            if (driver == null) {
+               sub.onError(new IllegalStateException("ZigBee driver not available"));
+               return;
+            }
+
+            ZBNode node = ZBServices.INSTANCE.getNetwork().getNode(eui64);
+            if (node == null) {
+               sub.onError(new IllegalStateException("Node not found: " + Long.toHexString(eui64)));
+               return;
+            }
+
+            byte[] zclPayload = req.toBytes(ByteOrder.LITTLE_ENDIAN);
+            byte[] rawFrame = buildZclFrame(clusterSpecific, false, 0, fromServer,
+                  disableDefaultResponse, req.getMessageId(), zclPayload);
+
+            int profileId = (profile & 0xFFFF) != 0 ? (profile & 0xFFFF) : 0x0104;
+            int destEndpoint = (endpoint & 0xFF) != 0 ? (endpoint & 0xFF) : 1;
+
+            com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame = new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
+            apsFrame.setCluster(cluster & 0xFFFF);
+            apsFrame.setProfile(profileId);
+            apsFrame.setSourceEndpoint(destEndpoint);
+            apsFrame.setDestinationEndpoint(destEndpoint);
+            apsFrame.setDestinationAddress(node.getNwkAddr());
+            apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
+            apsFrame.setPayload(byteArrayToIntArray(rawFrame));
+
+            logger.debug("zcl: NWK={} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
+                  String.format("%04X", node.getNwkAddr()),
+                  String.format("%04X", cluster & 0xFFFF),
+                  String.format("%04X", profileId),
+                  destEndpoint,
+                  String.format("%02X", req.getMessageId()));
+
+            driver.sendApsFrame(apsFrame);
+            sub.onNext(true);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            logger.warn("zcl() failed for {}: {}", Long.toHexString(eui64), ex.getMessage(), ex);
+            sub.onError(ex);
+         }
+      });
    }
 
    @Override
    public Observable<Boolean> zclmsp(long eui64, int manuf, short profile, short endpoint, short cluster,
          int cmd, byte[] data, boolean fromServer, boolean clusterSpecific, boolean disableDefaultResponse) {
-      // TODO: build manufacturer-specific ZCL frame and send via sendApsFrame.
-      // Currently a no-op — keypad hub drivers that call this for chime commands
-      // (manuf 0x104E, cluster 0xFC04) will not transmit.
-      logger.warn("zclmsp() not yet implemented — dropping command to {} manuf=0x{} cluster=0x{} cmd=0x{}",
-            Long.toHexString(eui64), Integer.toHexString(manuf), Integer.toHexString(cluster & 0xFFFF), Integer.toHexString(cmd));
-      return Observable.just(false);
+      return Observable.create(sub -> {
+         try {
+            ZigbeeDriver driver = ZBServices.INSTANCE.getDriver();
+            if (driver == null) {
+               sub.onError(new IllegalStateException("ZigBee driver not available"));
+               return;
+            }
+
+            ZBNode node = ZBServices.INSTANCE.getNetwork().getNode(eui64);
+            if (node == null) {
+               sub.onError(new IllegalStateException("Node not found: " + Long.toHexString(eui64)));
+               return;
+            }
+
+            byte[] rawFrame = buildZclFrame(clusterSpecific, true, manuf, fromServer,
+                  disableDefaultResponse, cmd, data);
+
+            int profileId = (profile & 0xFFFF) != 0 ? (profile & 0xFFFF) : 0x0104;
+            int destEndpoint = (endpoint & 0xFFFF) != 0 ? (endpoint & 0xFFFF) : 1;
+
+            com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame = new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
+            apsFrame.setCluster(cluster & 0xFFFF);
+            apsFrame.setProfile(profileId);
+            apsFrame.setSourceEndpoint(destEndpoint);
+            apsFrame.setDestinationEndpoint(destEndpoint);
+            apsFrame.setDestinationAddress(node.getNwkAddr());
+            apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
+            apsFrame.setPayload(byteArrayToIntArray(rawFrame));
+
+            logger.debug("zclmsp: NWK={} manuf=0x{} cluster=0x{} profile=0x{} ep={} cmd=0x{}",
+                  String.format("%04X", node.getNwkAddr()),
+                  String.format("%04X", manuf),
+                  String.format("%04X", cluster & 0xFFFF),
+                  String.format("%04X", profileId),
+                  destEndpoint,
+                  String.format("%02X", cmd));
+
+            driver.sendApsFrame(apsFrame);
+            sub.onNext(true);
+            sub.onCompleted();
+         } catch (Exception ex) {
+            logger.warn("zclmsp() failed for {}: {}", Long.toHexString(eui64), ex.getMessage(), ex);
+            sub.onError(ex);
+         }
+      });
+   }
+
+   private static byte[] buildZclFrame(boolean clusterSpecific, boolean manufacturerSpecific,
+         int manufacturerCode, boolean fromServer, boolean disableDefaultResponse,
+         int commandId, byte[] payload) {
+      int frameControl = 0;
+      if (clusterSpecific) frameControl |= 0x01;
+      if (manufacturerSpecific) frameControl |= 0x04;
+      if (fromServer) frameControl |= 0x08;
+      if (disableDefaultResponse) frameControl |= 0x10;
+
+      int headerLen = 3 + (manufacturerSpecific ? 2 : 0);
+      byte[] frame = new byte[headerLen + (payload != null ? payload.length : 0)];
+
+      int idx = 0;
+      frame[idx++] = (byte) frameControl;
+      if (manufacturerSpecific) {
+         frame[idx++] = (byte) (manufacturerCode & 0xFF);
+         frame[idx++] = (byte) ((manufacturerCode >> 8) & 0xFF);
+      }
+      frame[idx++] = 0; // sequence number (filled by NCP)
+      frame[idx++] = (byte) commandId;
+      if (payload != null && payload.length > 0) {
+         System.arraycopy(payload, 0, frame, idx, payload.length);
+      }
+      return frame;
+   }
+
+   private static int[] byteArrayToIntArray(byte[] bytes) {
+      if (bytes == null) return new int[0];
+      int[] result = new int[bytes.length];
+      for (int i = 0; i < bytes.length; i++) {
+         result[i] = bytes[i] & 0xFF;
+      }
+      return result;
    }
 
    private ZBNode resolveNode(Address addr) {

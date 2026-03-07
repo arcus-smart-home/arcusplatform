@@ -63,6 +63,13 @@ public final class IrisAgentLogging {
       if (log != null) {
          log.setLevel(getLogLevel(level));
       }
+
+      // Propagate to zsmartsystems library so SetLogLevel(scope=ZIGBEE)
+      // controls both our code and the underlying ZigBee stack.
+      Logger zsLog = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger("com.zsmartsystems.zigbee");
+      if (zsLog != null) {
+         zsLog.setLevel(getLogLevel(level));
+      }
    }
 
    public static void setZWaveLogLevel(String level) {
