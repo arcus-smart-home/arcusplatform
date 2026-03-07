@@ -16,6 +16,7 @@
 package com.iris.agent.zwave;
 
 import com.iris.agent.zwave.engine.ZWaveEngine;
+import com.iris.agent.zwave.engine.ZWaveSerialEngine;
 import com.iris.agent.zwave.service.ZWOfflineService;
 
 /**
@@ -47,7 +48,11 @@ public class ZWServices {
    
    public ZWaveEngine getZWaveEngine() {
       if (zWaveEngine == null) {
-         //zWaveEngine = new ??
+         String port = System.getenv("ZWAVE_PORT");
+         if (port == null) {
+            port = "/dev/ttyO1";
+         }
+         zWaveEngine = new ZWaveSerialEngine(port);
       }
       return zWaveEngine;
    }

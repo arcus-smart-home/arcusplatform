@@ -15,6 +15,64 @@
  */
 package com.iris.agent.zwave.engine;
 
+/**
+ * Cached node protocol information obtained from the Z-Wave controller
+ * via FUNC_ID_ZW_GET_NODE_PROTOCOL_INFO.
+ */
 public class ZWaveEngineNodeInfo {
+   boolean listening;
+   boolean frequentListening;
+   boolean beaming;
+   boolean routing;
+   boolean security;
+   long maxBaudRate;
+   int version;
+   int securityByte;
+   int basicType;
+   int genericType;
+   int specificType;
 
+   public boolean isListening() {
+      return listening;
+   }
+
+   public boolean isFrequentListening() {
+      return frequentListening;
+   }
+
+   public boolean isBeaming() {
+      return beaming;
+   }
+
+   public boolean isRouting() {
+      return routing;
+   }
+
+   public boolean isSecurity() {
+      return security;
+   }
+
+   public long getMaxBaudRate() {
+      return maxBaudRate;
+   }
+
+   public int getVersion() {
+      return version;
+   }
+
+   public int getSecurityByte() {
+      return securityByte;
+   }
+
+   public int getBasicType() {
+      return basicType;
+   }
+
+   public int getGenericType() {
+      return genericType;
+   }
+
+   public int getSpecificType() {
+      return specificType;
+   }
 }
