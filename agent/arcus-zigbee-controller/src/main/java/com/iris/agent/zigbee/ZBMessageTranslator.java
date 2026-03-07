@@ -109,7 +109,7 @@ public class ZBMessageTranslator {
                handleOutboundSetOfflineTimeout(msg, pmsg);
                break;
             case ZigbeeMessage.Control.ID:
-               handleOutboundControl(pmsg);
+               handleOutboundControl(msg, pmsg);
                break;
             case ZigbeeMessage.IasZoneEnroll.ID:
                handleOutboundIasZoneEnroll(msg, pmsg);
@@ -316,8 +316,51 @@ public class ZBMessageTranslator {
       }
    }
 
-   private static void handleOutboundControl(ZigbeeMessage.Protocol pmsg) {
-      logger.trace("Outbound control message");
+   private static void handleOutboundControl(ProtocolMessage msg, ZigbeeMessage.Protocol pmsg) throws IOException {
+      ZigbeeMessage.Control ctrl = ZigbeeMessage.Control.serde()
+            .fromBytes(ByteOrder.LITTLE_ENDIAN, pmsg.getPayload());
+
+      byte[] payload = ctrl.getPayload();
+      if (payload == null || payload.length == 0) {
+         logger.debug("Empty control message, ignoring");
+         return;
+      }
+
+      // Control messages carry a serialized MessageBody (JSON)
+      com.iris.io.Deserializer<com.iris.messages.MessageBody> deserializer =
+            com.iris.io.json.JSON.createDeserializer(com.iris.messages.MessageBody.class);
+      com.iris.messages.MessageBody body = deserializer.deserialize(payload);
+      String type = body.getMessageType();
+
+      logger.debug("Outbound control message: type={}", type);
+
+      switch (type) {
+         case com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.NAME: {
+            ZBNode node = resolveDestinationNode(msg);
+            if (node == null) {
+               logger.warn("Cannot start OTA: destination node not found for {}", msg.getDestination());
+               return;
+            }
+            String url = com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.getUrl(body);
+            String md5 = com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.getMd5(body);
+            ZBServices.INSTANCE.getOtaService().startFirmwareUpdate(node.getIeeeAddr(), url, md5);
+            break;
+         }
+
+         case com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateCancelRequest.NAME: {
+            ZBNode node = resolveDestinationNode(msg);
+            if (node == null) {
+               logger.warn("Cannot cancel OTA: destination node not found for {}", msg.getDestination());
+               return;
+            }
+            ZBServices.INSTANCE.getOtaService().cancelFirmwareUpdate(node.getIeeeAddr());
+            break;
+         }
+
+         default:
+            logger.debug("Unknown control message type: {}", type);
+            break;
+      }
    }
 
    private static void handleOutboundIasZoneEnroll(ProtocolMessage msg, ZigbeeMessage.Protocol pmsg) throws IOException {
