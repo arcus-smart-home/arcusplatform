@@ -86,6 +86,20 @@ public final class IrisAgentLogging {
       }
    }
 
+   public static void setZsmartsystemsLogLevel(String level) {
+      String[] loggers = {
+         "com.zsmartsystems.zigbee",
+         "com.zsmartsystems.zigbee.dongle.ember",
+         "com.zsmartsystems.zigbee.dongle.ember.internal.ash"
+      };
+      for (String name : loggers) {
+         Logger log = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(name);
+         if (log != null) {
+            log.setLevel(getLogLevel(level));
+         }
+      }
+   }
+
    public static void setupInitialLogging() {
       Logger rootLog = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
@@ -117,6 +131,9 @@ public final class IrisAgentLogging {
 
       String sercommLevel = System.getenv("IRIS_AGENT_SERCOMM_LOGLVL");
       setSercommLogLevel(sercommLevel != null ? sercommLevel : DEFAULT_LEVEL);
+
+      String zsmartsystemsLevel = System.getenv("IRIS_AGENT_ZSMARTSYSTEMS_LOGLVL");
+      setZsmartsystemsLogLevel(zsmartsystemsLevel != null ? zsmartsystemsLevel : "info");
    }
 
    public static String getInMemoryLogs(boolean compress) {

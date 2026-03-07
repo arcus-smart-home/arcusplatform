@@ -18,449 +18,420 @@
  */
 package com.iris.agent.zigbee;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterators;
 import com.google.inject.Inject;
 import com.iris.agent.addressing.HubAddressUtils;
 import com.iris.agent.addressing.HubBridgeAddress;
+import com.iris.agent.attributes.HubAttributesService;
+import com.iris.agent.device.DeviceConstants;
+import com.iris.agent.device.HubDeviceService;
+import com.iris.agent.device.HubDeviceService.DeviceInfo;
+import com.iris.agent.hal.IrisHal;
 import com.iris.agent.lifecycle.LifeCycle;
 import com.iris.agent.lifecycle.LifeCycleListener;
 import com.iris.agent.lifecycle.LifeCycleService;
+import com.iris.agent.reflexes.HubReflexVersions;
 import com.iris.agent.router.Port;
 import com.iris.agent.router.PortHandler;
 import com.iris.agent.router.Router;
 import com.iris.agent.zigbee.ember.ZigbeeDriver;
+import com.iris.agent.zigbee.events.ZBEvent;
+import com.iris.agent.zigbee.events.ZBEventDispatcher;
+import com.iris.agent.zigbee.events.ZBEventListener;
+import com.iris.agent.zigbee.events.ZBNodeAddedEvent;
+import com.iris.agent.zigbee.events.ZBNodeCommandEvent;
+import com.iris.agent.zigbee.events.ZBNodeGoneOfflineEvent;
+import com.iris.agent.zigbee.events.ZBNodeGoneOnlineEvent;
+import com.iris.agent.zigbee.events.ZBNodeRemovedEvent;
+import com.iris.agent.zigbee.node.ZBNode;
+import com.iris.agent.zigbee.process.ZBBootstrapper;
+import com.iris.agent.zigbee.process.ZBPairing;
+import com.iris.device.attributes.AttributeKey;
+import com.iris.device.attributes.AttributeMap;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
+import com.iris.messages.address.ProtocolDeviceId;
+import com.iris.messages.capability.DeviceAdvancedCapability;
+import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.services.PlatformConstants;
 import com.iris.protocol.ProtocolMessage;
+import com.iris.protocol.constants.ZigbeeConstants;
+import com.iris.protocol.control.ControlProtocol;
+import com.iris.protocol.control.DeviceOfflineEvent;
+import com.iris.protocol.control.DeviceOnlineEvent;
 import com.iris.protocol.zigbee.ZigbeeProtocol;
 import com.iris.bootstrap.annotations.WarmUp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import javax.annotation.PreDestroy;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+public class ZigbeeController implements PortHandler, LifeCycleListener, ZBEventListener {
+   private static final Logger logger = LoggerFactory.getLogger(ZigbeeController.class);
 
-public class ZigbeeController implements PortHandler, LifeCycleListener {
-    private static final Logger logger = LoggerFactory.getLogger(ZigbeeController.class);
+   public static final HubBridgeAddress ADDRESS = HubAddressUtils.bridge("zigbee", "ZIGB");
+   private static final int ADD_REMOVE_DEVICE_TTL = (int) TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
+   private static final Address DEVICE_SERVICE = Address.platformService(PlatformConstants.SERVICE_DEVICES);
 
-    public static final HubBridgeAddress ADDRESS = HubAddressUtils.bridge("zigbee", "ZBIG");
+   private final AtomicBoolean needsFactoryReset = new AtomicBoolean(false);
 
-    private final AtomicBoolean needsFactoryReset = new AtomicBoolean(false);
+   // Hub Message Router
+   private final Router router;
 
-    // Hub Message Router
-    private final Router router;
+   // Zigbee Driver Factory
+   private final ZigbeeDriverFactory driverFactory;
 
-    // Zigbee Driver/transport
-    private final ZigbeeDriver driver;
+   // Zigbee Driver/transport
+   private ZigbeeDriver driver;
 
-    // The Hub port this controller is attached to.
-    private Port port;
+   // Logical representation of the ZigBee network.
+   private ZBNetwork zbNetwork;
 
-    /**
-     * Constructs the ZWave controller with dependency injection.
-     *
-     * @param router Hub message router.
-     */
-    @Inject
-    public ZigbeeController(Router router, ZigbeeDriver driver) {
-        this.router = router;
-        this.driver = driver;
-    }
+   // The Hub port this controller is attached to.
+   private Port port;
 
-    /**
-     * Starts the controller. Called after construction.
-     * It hooks up the Zigbee controller to the agent router
-     * and the agent life cycle service.
-     */
-    @WarmUp
-    public void start() {
-        logger.info("Starting Zigbee controller");
-        port = router.connect("zigb", ADDRESS, this);
-        LifeCycleService.addListener(this);
-    }
+   @Inject
+   public ZigbeeController(Router router, ZigbeeDriverFactory driverFactory) {
+      this.router = router;
+      this.driverFactory = driverFactory;
+   }
 
-    /**
-     * Disconnect the controller from the agent router.
-     */
-    @PreDestroy
-    public void stop() {
-        if (port != null) {
-            router.disconnect(port);
-            port = null;
-        }
-    }
+   @WarmUp
+   public void start() {
+      logger.info("Starting Zigbee controller (open-source zsmartsystems implementation)");
+      port = router.connect("zigb", ADDRESS, this);
+      LifeCycleService.addListener(this);
+      ZBEventDispatcher.INSTANCE.register(this);
 
-    //////////
-    // LifeCycle Listener Implementation
-    /////////
-    @Override
-    public void lifeCycleStateChanged(LifeCycle oldState, LifeCycle newState) {
+      // Create driver and bootstrap
+      new ZBLEDsAndSounds();
+      driver = driverFactory.create();
+      ZBBootstrapper.INSTANCE.bootstrap(driver);
+      zbNetwork = ZBServices.INSTANCE.getNetwork();
+   }
 
-    }
+   @PreDestroy
+   public void stop() {
+      if (driver != null) {
+         driver.shutdown();
+      }
+      if (port != null) {
+         router.disconnect(port);
+         port = null;
+      }
+   }
 
-    @Override
-    public void hubAccountIdUpdated(@Nullable UUID oldAcc, @Nullable UUID newAcc) {
-        if (oldAcc == null && newAcc != null) {
-            needsFactoryReset.set(true);
-        }
-    }
+   ///////////
+   // ZBEventListener Implementation
+   //////////
+   @Override
+   public void onZBEvent(ZBEvent event) {
+      switch (event.getType()) {
+         case BOOTSTRAPPED:
+            HubDeviceService.register(ZigbeeProtocol.NAMESPACE, new ZBDeviceProvider());
+            ZBServices.INSTANCE.getOfflineService().start();
+            break;
 
-    @Override
-    public void hubReset(LifeCycleService.Reset type) {
-        if (type == LifeCycleService.Reset.FACTORY) {
-            needsFactoryReset.set(true);
-        }
-    }
+         case GONE_ONLINE: {
+            long ieeeAddr = ((ZBNodeGoneOnlineEvent) event).getIeeeAddr();
+            ZBNode node = zbNetwork.getNode(ieeeAddr);
+            if (node != null) {
+               ProtocolMessage msg = ProtocolMessage.builder()
+                     .withPayload(ControlProtocol.INSTANCE, DeviceOnlineEvent.create())
+                     .to(Address.broadcastAddress())
+                     .from(node.getProtocolAddress())
+                     .withReflexVersion(HubReflexVersions.CURRENT)
+                     .create();
+               port.send(msg);
+            }
+            break;
+         }
 
-    @Override
-    public void hubDeregistered() {
-        try {
-            //TODO: Anything?
-        }
-        catch (Exception ex) {
-            logger.warn("Cloud not process hub removed: {}", ex.getMessage(), ex);
-        }
-    }
+         case GONE_OFFLINE: {
+            long ieeeAddr = ((ZBNodeGoneOfflineEvent) event).getIeeeAddr();
+            ZBNode node = zbNetwork.getNode(ieeeAddr);
+            if (node != null) {
+               ProtocolMessage msg = ProtocolMessage.builder()
+                     .withPayload(ControlProtocol.INSTANCE, DeviceOfflineEvent.create(node.getLastCall()))
+                     .to(Address.broadcastAddress())
+                     .from(node.getProtocolAddress())
+                     .withReflexVersion(HubReflexVersions.CURRENT)
+                     .create();
+               port.send(msg);
+            }
+            break;
+         }
 
-    ///////////////
-    // Port Handler Implementation
-    //////////////
-    /**
-     * Entry point for platform messages for the ZWave controller.
-     */
-    @Override
-    @Nullable
-    public Object recv(Port port, PlatformMessage message) throws Exception {
-        logger.trace("Handling zwave platform message: {} -> {}", message, message.getValue());
+         case NODE_ADDED: {
+            ZBNodeAddedEvent addedEvent = (ZBNodeAddedEvent) event;
+            MessageBody req = makeAddDeviceMessage(addedEvent);
+            port.sendRequest(DEVICE_SERVICE, req, ADD_REMOVE_DEVICE_TTL);
+            break;
+         }
 
-       //TODO: Check for performing backup/restore
+         case NODE_REMOVED: {
+            ZBNodeRemovedEvent removedEvent = (ZBNodeRemovedEvent) event;
+            MessageBody req = makeRemoveDeviceMessage(removedEvent);
+            logger.debug("sending remove device request: {}", req);
+            port.send(DEVICE_SERVICE, req, ADD_REMOVE_DEVICE_TTL);
+            break;
+         }
 
-       String type = message.getMessageType();
-       switch (type) {
-          case HubCapability.PairingRequestRequest.NAME:
-             return handlePairingRequest(message);
+         case NODE_COMMAND: {
+            ZBNodeCommandEvent cmdEvent = (ZBNodeCommandEvent) event;
+            ZBNode node = zbNetwork.getNode(cmdEvent.getIeeeAddr());
+            if (node != null) {
+               ProtocolMessage smsg = ZBMessageTranslator.createProtocolMessage(node, cmdEvent.getMessage());
+               if (smsg != null) {
+                  logger.debug("Forwarding protocol message for IEEE={} from={} to={}",
+                        String.format("%016X", node.getIeeeAddr()), smsg.getSource(), smsg.getDestination());
+                  port.send(smsg);
+               } else {
+                  logger.warn("createProtocolMessage returned null for IEEE={}",
+                        String.format("%016X", node.getIeeeAddr()));
+               }
+            } else {
+               logger.warn("NODE_COMMAND: node not found for IEEE={}",
+                     String.format("%016X", cmdEvent.getIeeeAddr()));
+            }
+            break;
+         }
 
-          case HubCapability.UnpairingRequestRequest.NAME:
-             return handleUnpairingRequest(message);
+         default:
+            break;
+      }
+   }
 
-          case com.iris.messages.ErrorEvent.MESSAGE_TYPE:
-             logger.warn("Error received from platform: {}", message);
-             return null;
+   //////////
+   // LifeCycle Listener Implementation
+   /////////
+   @Override
+   public void lifeCycleStateChanged(LifeCycle oldState, LifeCycle newState) {
+   }
 
-          default:
-             return Errors.unsupportedMessageType(message.getMessageType());
-       }    }
+   @Override
+   public void hubAccountIdUpdated(@Nullable UUID oldAcc, @Nullable UUID newAcc) {
+      if (oldAcc == null && newAcc != null) {
+         needsFactoryReset.set(true);
+      }
+   }
 
-    @Override
-    public void recv(Port port, ProtocolMessage message) {
-       if (!ZigbeeProtocol.NAMESPACE.equals((message.getMessageType()))) {
-          return;
-       }
+   @Override
+   public void hubReset(LifeCycleService.Reset type) {
+      if (type == LifeCycleService.Reset.FACTORY) {
+         needsFactoryReset.set(true);
+      }
+   }
 
-       sendZigbeeProtocolMessage(message);
-    }
+   @Override
+   public void hubDeregistered() {
+      try {
+         //TODO: Anything?
+      } catch (Exception ex) {
+         logger.warn("Could not process hub removed: {}", ex.getMessage(), ex);
+      }
+   }
 
-   /**
-    * Not used in this implementation.
-    */
-    @Override
-    public void recv(Port port, Object message) {
-       logger.trace("call to recv which is unused");
-    }
+   ///////////////
+   // Port Handler Implementation
+   //////////////
+   @Override
+   @Nullable
+   public Object recv(Port port, PlatformMessage message) throws Exception {
+      logger.trace("Handling zigbee platform message: {} -> {}", message, message.getValue());
 
-   /**
-    * Pairing request handler. This could be a request to start pairing or to
-    * stop pairing depending on message contents. The pairing process singleton
-    * is called to either start or stop pairing.
-    *
-    * The message type should be confirmed to be PairingRequest before calling
-    * this method with that message.
-    *
-    * @param message PairingRequest message
-    * @return always returns null
-    */
+      String type = message.getMessageType();
+      switch (type) {
+         case HubCapability.PairingRequestRequest.NAME:
+            return handlePairingRequest(message);
+
+         case HubCapability.UnpairingRequestRequest.NAME:
+            return handleUnpairingRequest(message);
+
+         case com.iris.messages.ErrorEvent.MESSAGE_TYPE:
+            logger.warn("Error received from platform: {}", message);
+            return null;
+
+         default:
+            return Errors.unsupportedMessageType(message.getMessageType());
+      }
+   }
+
+   @Override
+   public void recv(Port port, ProtocolMessage message) {
+      if (!ZigbeeProtocol.NAMESPACE.equals(message.getMessageType())) {
+         return;
+      }
+      sendZigbeeProtocolMessage(message);
+   }
+
+   @Override
+   public void recv(Port port, Object message) {
+      logger.trace("call to recv which is unused");
+   }
+
    private Object handlePairingRequest(PlatformMessage message) throws Exception {
-
       MessageBody body = message.getValue();
       String action = HubCapability.PairingRequestRequest.getActionType(body);
-
-      //TODO: Wait for bootstrapping to be finished.
 
       switch (action) {
          case HubCapability.PairingRequestRequest.ACTIONTYPE_START_PAIRING:
             long timeoutInMillis = HubCapability.PairingRequestRequest.getTimeout(body);
-//            Pairing.INSTANCE.startPairing((int)(timeoutInMillis/1000));
+            ZBPairing.INSTANCE.startPairing((int) (timeoutInMillis / 1000));
             return null;
          case HubCapability.PairingRequestRequest.ACTIONTYPE_STOP_PAIRING:
-//            Pairing.INSTANCE.stopPairing();
+            ZBPairing.INSTANCE.stopPairing();
             return null;
          default:
-            // TODO: Better Exception
             throw new Exception("Unknown pairing action: " + action);
       }
    }
 
-   /**
-    * Unpairing request handler. This could be a request to start unpairing or
-    * to stop unpairing depending on message contents. The pairing process singleton
-    * is called to either start or stop unpairing.
-    *
-    * The message type should be confirmed to be UnpairingRequest before calling
-    * this method with that message.
-    *
-    * @param message UnpairingRequest message
-    * @return always returns null
-    */
    private Object handleUnpairingRequest(PlatformMessage message) throws Exception {
       MessageBody body = message.getValue();
       String action = HubCapability.UnpairingRequestRequest.getActionType(body);
 
-      //TODO: Wait for bootstrapping to finish.
-
       switch (action) {
          case HubCapability.UnpairingRequestRequest.ACTIONTYPE_START_UNPAIRING:
             long timeoutInMillis = HubCapability.UnpairingRequestRequest.getTimeout(body);
-//            Pairing.INSTANCE.startRemoval((int)(timeoutInMillis/1000));
+            String protocolId = HubCapability.UnpairingRequestRequest.getProtocolId(body);
+            Boolean force = HubCapability.UnpairingRequestRequest.getForce(body, false);
+
+            if (protocolId != null && !protocolId.isEmpty()) {
+               // Targeted removal of a specific device
+               ProtocolDeviceId devId = ProtocolDeviceId.fromRepresentation(protocolId);
+               ZBNode node = zbNetwork.getNode(devId);
+               if (node != null) {
+                  long ieee = node.getIeeeAddr();
+                  logger.info("Removing ZigBee device IEEE={}", String.format("%016X", ieee));
+                  ZBPairing.INSTANCE.removeDevice(ieee);
+                  zbNetwork.deregisterNode(ieee);
+
+                  // Also remove from zsmartsystems so it triggers full
+                  // onNodeAdded discovery if the device rejoins
+                  com.zsmartsystems.zigbee.ZigBeeNetworkManager nwkMgr = driver.getNetworkManager();
+                  if (nwkMgr != null) {
+                     com.zsmartsystems.zigbee.IeeeAddress zsIeee = new com.zsmartsystems.zigbee.IeeeAddress(
+                           String.format("%016X", ieee));
+                     nwkMgr.removeNode(nwkMgr.getNode(zsIeee));
+                  }
+
+                  ZBEventDispatcher.INSTANCE.dispatch(
+                        new ZBNodeRemovedEvent(ieee));
+               } else {
+                  logger.warn("Cannot remove device: protocolId {} not found", protocolId);
+               }
+            } else {
+               // General removal mode
+               ZBPairing.INSTANCE.startRemoval((int) (timeoutInMillis / 1000));
+            }
             return null;
          case HubCapability.UnpairingRequestRequest.ACTIONTYPE_STOP_UNPAIRING:
-//            Pairing.INSTANCE.stopRemoval();
+            ZBPairing.INSTANCE.stopRemoval();
             return null;
          default:
-            // TODO: Better Exception
             throw new Exception("Unknown unpairing action: " + action);
       }
    }
 
+   private MessageBody makeRemoveDeviceMessage(ZBNodeRemovedEvent event) {
+      String status = DeviceAdvancedCapability.RemovedDeviceEvent.STATUS_CLEAN;
+
+      return DeviceAdvancedCapability.RemovedDeviceEvent.builder()
+            .withHubId(HubAttributesService.getHubId())
+            .withAccountId(HubAttributesService.getAccountId().toString())
+            .withProtocol(ZigbeeConstants.NAMESPACE)
+            .withProtocolId(zbNetwork.getDeviceId(event.getIeeeAddr()).getRepresentation())
+            .withStatus(status)
+            .build();
+   }
+
+   private MessageBody makeAddDeviceMessage(ZBNodeAddedEvent event) {
+      return makeAddDeviceMessage(MessageConstants.MSG_ADD_DEVICE_REQUEST, event.getNode(), false);
+   }
+
+   private MessageBody makeAddDeviceMessage(String msgType, ZBNode node, boolean status) {
+      AttributeMap attributes = AttributeMap.newMap();
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_EUI64, Long.class), node.getIeeeAddr());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_NWK, Integer.class), node.getNwkAddr());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MANUFACTURER, Integer.class), node.getManufacturerCode());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MAXITS, Integer.class), node.getMaximumIncomingTransferSize());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MAXOTS, Integer.class), node.getMaximumOutgoingTransferSize());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_NFLAGS, Integer.class), node.getNodeFlags());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_SMASK, Integer.class), node.getServerMask());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_DCAP, Integer.class), node.getDescriptorCapability());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MAXBUF, Integer.class), node.getMaximumBufferSize());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MCAP, Integer.class), node.getMacCapabilityFlags());
+      attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_PDESC, Integer.class), node.getPowerDescriptor());
+      if (node.getVendor() != null) {
+         attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_VENDOR, String.class), node.getVendor());
+      }
+      if (node.getModel() != null) {
+         attributes.set(AttributeKey.create(ZigbeeConstants.ATTR_MODEL, String.class), node.getModel());
+      }
+
+      Map<String, Object> attrs = new HashMap<>();
+      attrs.put(DeviceConstants.ACCOUNT_ATTR, HubAttributesService.getAccountId());
+      attrs.put(DeviceConstants.HUB_ATTR, HubAttributesService.getHubId());
+      attrs.put(DeviceConstants.PROTOCOL_ATTR, ZigbeeConstants.NAMESPACE);
+      attrs.put(DeviceConstants.DEVICE_ATTR, node.getDeviceId());
+      attrs.put(DeviceConstants.ATTRS_ATTR, attributes);
+      attrs.put(DeviceConstants.REFLEX_VERSION_ATTR, HubReflexVersions.CURRENT);
+
+      if (status) {
+         attrs.put("status", true);
+      }
+
+      return MessageBody.buildMessage(msgType, attrs);
+   }
+
    private void sendZigbeeProtocolMessage(ProtocolMessage msg) {
-//      sendZigbeeProtocolMessage(msg, null);
+      ZBMessageTranslator.handleOutboundMessage(msg);
    }
 
-
-   /////////////////////////////////////////////////////////////////////////////
-   // Moved from AbstractZigbeeHubDriver since it seems more appropriate here
-   /////////////////////////////////////////////////////////////////////////////
-
-   /*private void handleZclMessage(ZigbeeNetwork nwk, EzspIncomingMessageHandler msg, ZclFrame zcl, String type) {
-      ZigBeeNode node = nwk.getNodeUsingNwk(msg.rawSender());
-      if (node == null) {
-         log.warn("unknown zigbee node {}, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-         handleUnknownNode(nwk, msg.rawSender());
-         return;
-      }
-
-      if (node.isInSetup()) {
-         log.warn("zigbee node {} still being setup, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-         return;
-      }
-
-      boolean clsSpec = ((zcl.getFrameControl() & ZclFrame.FRAME_TYPE_MASK) == ZclFrame.FRAME_TYPE_CLUSTER_SPECIFIC);
-      boolean mspSpec = ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0);
-
-      if (clsSpec && !mspSpec) {
-         switch (msg.getApsFrame().rawClusterId()) {
-            case com.iris.protocol.zigbee.zcl.Ota.CLUSTER_ID:
-               int cmd = zcl.getCommand();
-               if (cmd == com.iris.protocol.zigbee.zcl.Ota.ImageBlockRequest.ID ||
-                     cmd == com.iris.protocol.zigbee.zcl.Ota.ImageBlockResponse.ID ||
-                     cmd == com.iris.protocol.zigbee.zcl.Ota.ImagePageRequest.ID ||
-                     cmd == com.iris.protocol.zigbee.zcl.Ota.UpgradeEndRequest.ID ||
-                     cmd == com.iris.protocol.zigbee.zcl.Ota.UpgradeEndResponse.ID ||
-                     cmd == com.iris.protocol.zigbee.zcl.Ota.ImageNotify.ID) {
-                  if (log.isTraceEnabled()) {
-                     log.trace("zigbee node {} sent local message, dropping {} message: {}", ProtocUtil.toHexString(msg.rawSender()), type, msg);
-                  }
-                  return;
-               }
-               break;
-
-            default:
-               break;
-         }
-      }
-
-      try {
-         log.trace("handling {} message: {} -> {}", type, msg, zcl);
-
-         int flags = 0;
-         if ((zcl.getFrameControl() & ZclFrame.FRAME_TYPE_MASK) == ZclFrame.FRAME_TYPE_CLUSTER_SPECIFIC) {
-            flags |= ZigbeeMessage.Zcl.CLUSTER_SPECIFIC;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.DISABLE_DEFAULT_RSP) != 0) {
-            flags |= ZigbeeMessage.Zcl.DISABLE_DEFAULT_RESPONSE;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.FROM_SERVER) != 0) {
-            flags |= ZigbeeMessage.Zcl.FROM_SERVER;
-         }
-
-         if ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0) {
-            flags |= ZigbeeMessage.Zcl.MANUFACTURER_SPECIFIC;
-         }
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.Builder zmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.builder()
-               .setZclMessageId(zcl.rawCommand())
-               .setProfileId(msg.getApsFrame().rawProfileId())
-               .setEndpoint(msg.getApsFrame().rawSourceEndpoint())
-               .setClusterId(msg.getApsFrame().rawClusterId())
-               .setFlags(flags)
-               .setPayload(zcl.getPayload());
-
-         if ((zcl.getFrameControl() & ZclFrame.MANUF_SPECIFIC) != 0) {
-            zmsg.setManufacturerCode(zcl.getManufacturer());
-         }
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol pmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol.builder()
-               .setType(com.iris.protocol.zigbee.msg.ZigbeeMessage.Zcl.ID)
-               .setPayload(ByteOrder.LITTLE_ENDIAN, zmsg.create())
-               .create();
-
-         ProtocolMessage smsg = ProtocolMessage.buildProtocolMessage(node.protocolAddress, Address.broadcastAddress(), ZigbeeProtocol.INSTANCE, pmsg)
-               .withReflexVersion(HubReflexVersions.CURRENT)
-               .create();
-         port.send(smsg);
-      } catch (IOException ex) {
-         log.warn("serialization failure: {}, dropping {} message: {}", ex.getMessage(), type, msg, ex);
+   private class ZBDeviceProvider implements HubDeviceService.DeviceProvider {
+      @Override
+      public Iterator<DeviceInfo> iterator() {
+         Iterator<ZBNode> allNodesIterator = zbNetwork.getNodes().iterator();
+         return Iterators.<ZBNode, DeviceInfo>transform(allNodesIterator, n -> new ZBDeviceInfo(n));
       }
    }
 
-   private void handleZclMessage(ZigbeeNetwork nwk, ZigbeeClusterLibrary.Zcl msg) {
-      handleZclMessage(nwk, msg.msg, msg.zcl, "zcl");
+   private class ZBDeviceInfo implements HubDeviceService.DeviceInfo {
+      private final ZBNode node;
+
+      ZBDeviceInfo(ZBNode node) {
+         this.node = node;
+      }
+
+      @Override
+      public String getProtocolAddress() {
+         return Address.hubProtocolAddress(IrisHal.getHubId(), ZigbeeProtocol.NAMESPACE, node.getDeviceId()).getRepresentation();
+      }
+
+      @Override
+      @Nullable
+      public MessageBody getDeviceInfo(boolean allowBlockingUpdates) {
+         return makeAddDeviceMessage(HubAdvancedCapability.GetDeviceInfoResponse.NAME, node, true);
+      }
+
+      @Override
+      @Nullable
+      public Boolean isOnline() {
+         return node.isOnline();
+      }
    }
-
-   private void handleAmeMessage(ZigbeeNetwork nwk, ZigbeeAlertmeProfile.Ame msg) {
-      handleZclMessage(nwk, msg.msg, msg.zcl, "alertme");
-   }
-
-   private void handleZdpMessage(ZigbeeNetwork nwk, ZigbeeDeviceProfile.Zdp msg) {
-      ZigbeeNode node = nwk.getNodeUsingNwk(msg.msg.rawSender());
-      if (node == null) {
-         log.warn("unknown zigbee node {}, dropping zdp message: {}", ProtocUtil.toHexString(msg.msg.rawSender()), msg.msg);
-         handleUnknownNode(nwk, msg.msg.rawSender());
-         return;
-      }
-
-      if (node.isInSetup()) {
-         log.warn("zigbee node {} still being setup, dropping zdp message: {}", ProtocUtil.toHexString(msg.msg.rawSender()), msg.msg);
-         return;
-      }
-
-      switch (msg.msg.getApsFrame().rawClusterId()) {
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_END_DEVICE_BIND_REQ:
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REQ:
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_UNBIND_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REGISTER_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REPLACE_DEVICE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_STORE_BKUP_BIND_ENTRY_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REMOVE_BKUP_BIND_ENTRY_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_BIND_TABLE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_BIND_TABLE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_SOURCE_BIND_REQ:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_SOURCE_BIND_REQ:
-
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_END_DEVICE_BIND_RSP:
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_RSP:
-         case com.iris.protocol.zigbee.zdp.Bind.ZDP_UNBIND_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BIND_REGISTER_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REPLACE_DEVICE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_STORE_BKUP_BIND_ENTRY_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_REMOVE_BKUP_BIND_ENTRY_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_BIND_TABLE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_BIND_TABLE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_BACKUP_SOURCE_BIND_RSP:
-            //case com.iris.protocol.zigbee.zdp.Bind.ZDP_RECOVER_SOURCE_BIND_RSP:
-
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NWK_ADDR_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_IEEE_ADDR_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_MATCH_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_COMPLEX_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_CACHE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DEVICE_ANNCE:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_SET:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SYSTEM_SERVER_DISCOVERY_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_STORE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_STORE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_STORE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_STORE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_STORE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_REMOVE_NODE_CACHE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_FIND_NODE_CACHE_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_SIMPLE_DESC_REQ:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_ACTIVE_EP_REQ:
-
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NWK_ADDR_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_IEEE_ADDR_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_MATCH_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_COMPLEX_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_CACHE_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_USER_DESC_CONF:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SYSTEM_SERVER_DISCOVERY_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_DISCOVERY_STORE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_NODE_DESC_STORE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_POWER_DESC_STORE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_ACTIVE_EP_STORE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_SIMPLE_DESC_STORE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_REMOVE_NODE_CACHE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Discovery.ZDP_FIND_NODE_CACHE_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_SIMPLE_DESC_RSP:
-         case com.iris.protocol.zigbee.zdp.Discovery.ZDP_EXTENDED_ACTIVE_EP_RSP:
-
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_DISC_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LQI_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_RTG_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_BIND_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LEAVE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_DIRECT_JOIN_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_PERMIT_JOINING_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_CACHE_REQ:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_UPDATE_REQ:
-
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_DISC_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LQI_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_RTG_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_BIND_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_LEAVE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_DIRECT_JOIN_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_PERMIT_JOINING_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_CACHE_RSP:
-            //case com.iris.protocol.zigbee.zdp.Mgmt.ZDP_MGMT_NWK_UPDATE_NOTIFY:
-            break;
-
-         default:
-            log.trace("zdp message not allowed for drivers: {}", msg.msg);
-            return;
-      }
-
-      try {
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp zmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp.builder()
-               .setZdpMessageId(msg.msg.getApsFrame().getClusterId())
-               .setPayload(msg.zdp.getMessageContents())
-               .create();
-
-         com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol pmsg = com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol.builder()
-               .setType(com.iris.protocol.zigbee.msg.ZigbeeMessage.Zdp.ID)
-               .setPayload(ByteOrder.LITTLE_ENDIAN, zmsg)
-               .create();
-
-         ProtocolMessage smsg = ProtocolMessage.buildProtocolMessage(node.protocolAddress, Address.broadcastAddress(), ZigbeeProtocol.INSTANCE, pmsg)
-               .withReflexVersion(HubReflexVersions.CURRENT)
-               .create();
-         port.send(smsg);
-      } catch (IOException ex) {
-         log.warn("serialization failure: {}, dropping zdp message: {}", ex.getMessage(), msg.msg, ex);
-      }
-   }*/
 }
