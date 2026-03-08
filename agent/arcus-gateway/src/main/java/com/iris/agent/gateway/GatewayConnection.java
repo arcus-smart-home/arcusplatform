@@ -84,7 +84,7 @@ public class GatewayConnection {
    private static final Supplier<Long> SSL_HANDSHAKE_TIMEOUT = ConfigService.supplier("iris.gateway.timeout.ssl.handshake", Long.class, 90000L);
    private static final Supplier<Long> SSL_CLOSE_NOTIFY_TIMEOUT = ConfigService.supplier("iris.gateway.timeout.ssl.closenotify", Long.class, 15000L);
    private static final Supplier<Long> FAILURES_BEFORE_FALLBACK = ConfigService.supplier("iris.gatway.fallback.fails", Long.class, 25L);
-   private static final Supplier<String> configConnectUri = ConfigService.supplier("iris.gateway.uri", "wss://bh.irisbylowes.com/hub/1.0");
+   private static final Supplier<String> configConnectUri = ConfigService.supplier("iris.gateway.uri", "wss://bh.arcussmarthome.com/hub/1.0");
 
    private final GatewayHandler handler;
    private final boolean isPrimary;
