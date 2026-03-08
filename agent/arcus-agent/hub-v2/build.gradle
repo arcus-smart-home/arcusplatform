@@ -76,6 +76,15 @@ distributions {
                return
             }
 
+            // When using iris2 jars, exclude the ARM32 epoll native —
+            // iris2 zigbee controller crashes when epoll is available.
+            if (project.hasProperty('external_jars_dir') &&
+                it.name.startsWith('netty-transport-native-epoll-') &&
+                it.name.contains('arm_32')) {
+               it.exclude()
+               return
+            }
+
             // Rename the application plugin's lib/ to libs/ (for jars only).
             // Native .so files stay in lib/.
             if (it.path.startsWith('lib/') && it.name.endsWith('.jar')) {
