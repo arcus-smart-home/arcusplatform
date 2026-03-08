@@ -70,8 +70,10 @@ task buildNettyArm32(type: Exec) {
       outputDir.mkdirs()
    }
 
+   def dockerCacheFlag = project.hasProperty('no_docker_cache') ? '--no-cache' : ''
+
    commandLine 'bash', '-c', """
-      docker build --platform linux/arm/v7 -f ${dockerDir}/Dockerfile.netty-arm32 -t netty-arm32 ${dockerDir} && \
+      docker build ${dockerCacheFlag} --platform linux/arm/v7 -f ${dockerDir}/Dockerfile.netty-arm32 -t netty-arm32 ${dockerDir} && \
       docker rm netty-out 2>/dev/null; \
       docker create --name netty-out netty-arm32 && \
       docker cp netty-out:/output/. ${outputDir} && \

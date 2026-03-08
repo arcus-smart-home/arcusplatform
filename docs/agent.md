@@ -820,7 +820,7 @@ arcus-agent-hub-v2-{VERSION}/
 ├── bin/iris-agent     # Startup script
 ├── conf/              # logback.xml, sounds/, voice/, agent.version
 ├── libs/              # JAR dependencies (+ patched netty-buffer)
-└── lib/               # Native libraries (.so files for JNA, tcnative)
+└── lib/               # Native libraries (.so files for tcnative, apr)
 ```
 
 ---
