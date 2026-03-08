@@ -62,8 +62,12 @@ RUN mkdir /output && \
 #   docker cp netty-out:/output/. ./output
 #   docker rm netty-out
 #
+# Without Docker cache (clean rebuild):
+#   docker build --no-cache --platform linux/arm/v7 -f Dockerfile.netty-arm32 -t netty-arm32 .
+#
 # Or use Gradle:
 #   ./gradlew :agent:arcus-hal:arcus-hal-hub-v2:buildNettyArm32
+#   ./gradlew :agent:arcus-hal:arcus-hal-hub-v2:buildNettyArm32 -Pno_docker_cache
 #
 # Output files are installed to:
 #   epoll .so  → libs/netty-transport-native-epoll-4.1.60.Final-linux-arm_32.jar
