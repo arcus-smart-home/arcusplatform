@@ -1,0 +1,74 @@
+FROM arm32v7/debian:bookworm
+
+# Install all deps
+RUN apt-get update && apt-get install -y \
+    cmake golang ninja-build gcc g++ \
+    openjdk-17-jdk-headless git perl curl \
+    autoconf automake libtool make \
+    libapr1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-armhf
+
+# Clone all sources
+RUN git clone https://boringssl.googlesource.com/boringssl /tmp/boringssl
+RUN git clone --branch netty-tcnative-parent-2.0.75.Final --depth 1 https://github.com/netty/netty-tcnative /tmp/tcnative
+RUN git clone --branch netty-4.1.60.Final --depth 1 https://github.com/netty/netty /tmp/netty
+RUN git clone --branch netty-jni-util-0.0.10.Final --depth 1 https://github.com/netty/netty-jni-util /tmp/netty-jni-util
+
+# Build BoringSSL
+RUN cd /tmp/boringssl && mkdir build && cd build && cmake -GNinja .. && ninja
+
+# Build tcnative JNI library against BoringSSL (v3)
+# Compile C sources with gcc, then link with g++ for C++ runtime
+RUN cd /tmp/tcnative/openssl-dynamic/src/main/c && \
+    for f in *.c /tmp/netty-jni-util/src/main/c/*.c; do \
+        gcc -c -o /tmp/$(basename $f .c).o \
+        -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
+        -I /tmp/boringssl/include \
+        -I /usr/include/apr-1.0 \
+        -I /tmp/netty-jni-util/src/main/c \
+        -I . \
+        -D_LARGEFILE64_SOURCE -O2 -fPIC $f; \
+    done && \
+    g++ -shared -o /tmp/libnetty_tcnative_linux_arm_32.so /tmp/*.o \
+    -L /tmp/boringssl/build -lssl -lcrypto \
+    -lapr-1 -lpthread -ldl
+
+# Build epoll native library
+RUN cd /tmp/netty && \
+    gcc -shared -o /tmp/libnetty_transport_native_epoll_arm_32.so \
+    -I $JAVA_HOME/include -I $JAVA_HOME/include/linux \
+    -I /tmp/netty-jni-util/src/main/c \
+    -I transport-native-unix-common/src/main/c \
+    -I transport-native-epoll/src/main/c \
+    -O2 -fPIC \
+    /tmp/netty-jni-util/src/main/c/*.c \
+    transport-native-unix-common/src/main/c/*.c \
+    transport-native-epoll/src/main/c/*.c
+
+# Strip and copy results to output
+RUN mkdir /output && \
+    strip /tmp/libnetty_tcnative_linux_arm_32.so && \
+    strip /tmp/libnetty_transport_native_epoll_arm_32.so && \
+    cp /tmp/libnetty_tcnative_linux_arm_32.so /output/ && \
+    cp /tmp/libnetty_transport_native_epoll_arm_32.so /output/ && \
+    ls -la /output/
+
+# Manual build (from this directory):
+#   docker build --platform linux/arm/v7 -f Dockerfile.netty-arm32 -t netty-arm32 .
+#   docker rm netty-out 2>/dev/null
+#   docker create --name netty-out netty-arm32
+#   docker cp netty-out:/output/. ./output
+#   docker rm netty-out
+#
+# Or use Gradle:
+#   ./gradlew :agent:arcus-hal:arcus-hal-hub-v2:buildNettyArm32
+#
+# Output files are installed to:
+#   epoll .so  → libs/netty-transport-native-epoll-4.1.60.Final-linux-arm_32.jar
+#   tcnative .so → agent/arcus-hal/hub-v2/src/dist/main/lib/libnetty_tcnative_linux_arm_32.so
+#
+# On the hub (for manual testing):
+#   epoll jar  → /data/agent/libs/
+#   tcnative .so → /data/agent/lib/
