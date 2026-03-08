@@ -22,7 +22,11 @@ package com.iris.agent.zigbee.db;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteStatement;
 import com.iris.agent.db.DbExtractor;
+import com.iris.agent.zigbee.node.ZBAttribute;
+import com.iris.agent.zigbee.node.ZBCluster;
+import com.iris.agent.zigbee.node.ZBEndpoint;
 import com.iris.agent.zigbee.node.ZBNode;
+import com.iris.agent.zigbee.node.ZBProfile;
 
 public class ZBExtractors {
 
@@ -66,6 +70,76 @@ public class ZBExtractors {
                .setOnline(stmt.columnInt(14) != 0)
                .setOfflineTimeout(stmt.columnInt(15))
                .build();
+      }
+   }
+
+   public enum ProfileExtractor implements DbExtractor<ZBProfile> {
+      INSTANCE;
+
+      @Override
+      public ZBProfile extract(SQLiteConnection conn, SQLiteStatement stmt) throws Exception {
+         return new ZBProfile(stmt.columnLong(0), stmt.columnLong(1), stmt.columnInt(2));
+      }
+   }
+
+   public enum EndpointExtractor implements DbExtractor<ZBEndpoint> {
+      INSTANCE;
+
+      @Override
+      public ZBEndpoint extract(SQLiteConnection conn, SQLiteStatement stmt) throws Exception {
+         return new ZBEndpoint(
+               stmt.columnLong(0),   // id
+               stmt.columnLong(1),   // profileId
+               stmt.columnInt(2),    // endpointId
+               stmt.columnInt(3),    // deviceId
+               stmt.columnInt(4),    // deviceVersion
+               stmt.columnInt(5),    // zclVersion
+               stmt.columnInt(6),    // appVersion
+               stmt.columnInt(7),    // stkVersion
+               stmt.columnInt(8),    // hwVersion
+               stmt.columnString(9), // manufacturerName
+               stmt.columnString(10),// modelIdentifier
+               stmt.columnString(11),// dateCode
+               stmt.columnInt(12)    // powerSource
+         );
+      }
+   }
+
+   public enum ClusterExtractor implements DbExtractor<ZBCluster> {
+      INSTANCE;
+
+      @Override
+      public ZBCluster extract(SQLiteConnection conn, SQLiteStatement stmt) throws Exception {
+         return new ZBCluster(
+               stmt.columnLong(0),        // id
+               stmt.columnLong(1),        // endpointId
+               stmt.columnInt(2),         // clusterId
+               stmt.columnInt(3) != 0     // server
+         );
+      }
+   }
+
+   public enum AttributeExtractor implements DbExtractor<ZBAttribute> {
+      INSTANCE;
+
+      @Override
+      public ZBAttribute extract(SQLiteConnection conn, SQLiteStatement stmt) throws Exception {
+         return new ZBAttribute(
+               stmt.columnLong(0),   // id
+               stmt.columnLong(1),   // clusterId
+               stmt.columnInt(2),    // attributeId
+               stmt.columnInt(3),    // attributeDt
+               stmt.columnBlob(4)    // attributeLastValue
+         );
+      }
+   }
+
+   public enum LongExtractor implements DbExtractor<Long> {
+      INSTANCE;
+
+      @Override
+      public Long extract(SQLiteConnection conn, SQLiteStatement stmt) throws Exception {
+         return stmt.columnLong(0);
       }
    }
 }
