@@ -48,7 +48,7 @@ dependencies {
    api netty_common
    api netty_tcnative
    api netty_epoll
-   implementation name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
+   implementation name: 'netty-transport-native-epoll-4.1.60.Final-linux-arm_32'
 
    api libraries.rxjava
    api libraries.rxjava_async
