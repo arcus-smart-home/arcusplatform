@@ -63,6 +63,12 @@ public class ZBBootstrapper {
    // device can actually receive and respond to our encrypted unicast frames.
    private static final int DISCOVERY_DELAY_SECONDS = 5;
 
+   // Delay between individual discovery frames to avoid overflowing the NCP's
+   // outgoing message table (typically 8-16 entries).  Sending all 4 frames at
+   // once causes EMBER_MAX_MESSAGE_LIMIT_REACHED when the table is already
+   // partially occupied by other traffic.
+   private static final long DISCOVERY_SEND_SPACING_MS = 250;
+
    // IEEE addresses of nodes loaded from the database at startup. These are
    // already-known devices that should not be re-discovered. Nodes added at
    // runtime (during pairing) will NOT be in this set.
@@ -152,6 +158,43 @@ public class ZBBootstrapper {
                node.getVendor(), node.getModel());
          ZBEventDispatcher.INSTANCE.dispatch(new ZBNodeAddedEvent(node));
       }
+   }
+
+   /**
+    * Re-dispatches ZBNodeAddedEvent for a device that was previously added
+    * with incomplete identity (null vendor/model).  This allows the platform
+    * to re-match the driver now that the node has been updated with correct
+    * vendor and model strings (e.g. from a late AlertMe HelloResponse or
+    * Basic cluster read).
+    *
+    * The deviceAdded guard is cleared so the event fires again.
+    */
+   public static void redispatchNodeAdded(long ieeeAddr) {
+      // Don't re-dispatch for devices that were loaded from the DB at startup.
+      // They're already paired on the platform — re-dispatching would send
+      // AddDeviceRequest and play the PAIRED beep on every boot.
+      if (knownAtStartup.contains(ieeeAddr)) {
+         logger.debug("Skipping redispatch for IEEE={} (known at startup)",
+               String.format("%016X", ieeeAddr));
+         return;
+      }
+
+      ZBNetwork network = ZBServices.INSTANCE.getNetwork();
+      ZBNode node = network.getNode(ieeeAddr);
+      if (node == null) {
+         return;
+      }
+
+      // Only re-dispatch if we actually have new identity info
+      if (node.getVendor() == null && node.getModel() == null) {
+         return;
+      }
+
+      // Clear the dedup guard so dispatchNodeAdded will fire
+      deviceAdded.remove(ieeeAddr);
+      logger.info("Re-dispatching add for IEEE={} with updated identity: vendor='{}' model='{}'",
+            String.format("%016X", ieeeAddr), node.getVendor(), node.getModel());
+      dispatchNodeAdded(ieeeAddr);
    }
 
    public void bootstrap(ZigbeeDriver driver) {
@@ -380,17 +423,49 @@ public class ZBBootstrapper {
    /**
     * Re-sends discovery requests to a device that announced again during
     * active discovery or was heard from with incomplete descriptor data.
+    * Only sends the AlertMe Hello and Basic cluster reads (no ZDP Node
+    * Descriptor) since the re-announce means zsmartsystems already has the
+    * node descriptor in flight.
     */
    private static void resendDiscoveryRequests(ZigbeeDriver driver, int nwkAddr) {
-      sendDiscoveryRequests(driver, nwkAddr);
+      requestBasicClusterAttributes(driver, nwkAddr, 1);
+
+      ZBScheduler.INSTANCE.startProcess(
+         () -> requestBasicClusterAttributes(driver, nwkAddr, 2),
+         DISCOVERY_SEND_SPACING_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+
+      ZBScheduler.INSTANCE.startProcess(
+         () -> sendAlertMeHelloRequest(driver, nwkAddr),
+         DISCOVERY_SEND_SPACING_MS * 2, java.util.concurrent.TimeUnit.MILLISECONDS);
    }
 
    /**
     * Sends ZDP Node Descriptor Request, ZCL Basic cluster Read Attributes,
-    * and AlertMe HelloRequest to the given NWK address.
+    * and AlertMe HelloRequest to the given NWK address.  Frames are spaced
+    * apart to avoid overflowing the NCP message table.
     */
    private static void sendDiscoveryRequests(ZigbeeDriver driver, int nwkAddr) {
-      // ZDP Node Descriptor Request
+      // Send ZDP Node Descriptor Request immediately
+      sendNodeDescriptorRequest(driver, nwkAddr);
+
+      // Space out remaining frames so the NCP can drain its outgoing table
+      ZBScheduler.INSTANCE.startProcess(
+         () -> requestBasicClusterAttributes(driver, nwkAddr, 1),
+         DISCOVERY_SEND_SPACING_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+
+      ZBScheduler.INSTANCE.startProcess(
+         () -> requestBasicClusterAttributes(driver, nwkAddr, 2),
+         DISCOVERY_SEND_SPACING_MS * 2, java.util.concurrent.TimeUnit.MILLISECONDS);
+
+      ZBScheduler.INSTANCE.startProcess(
+         () -> sendAlertMeHelloRequest(driver, nwkAddr),
+         DISCOVERY_SEND_SPACING_MS * 3, java.util.concurrent.TimeUnit.MILLISECONDS);
+   }
+
+   /**
+    * Sends a ZDP Node Descriptor Request to the given NWK address.
+    */
+   private static void sendNodeDescriptorRequest(ZigbeeDriver driver, int nwkAddr) {
       byte[] zdpPayload = new byte[] {
          (byte) (nwkAddr & 0xFF),
          (byte) ((nwkAddr >> 8) & 0xFF)
@@ -414,10 +489,6 @@ public class ZBBootstrapper {
       }
       apsFrame.setPayload(intPayload);
       driver.sendApsFrame(apsFrame);
-
-      // Basic cluster reads + AlertMe hello
-      requestBasicClusterAttributes(driver, nwkAddr);
-      sendAlertMeHelloRequest(driver, nwkAddr);
    }
 
    /**
@@ -445,14 +516,11 @@ public class ZBBootstrapper {
    }
 
    /**
-    * Sends a ZCL Read Attributes request to the Basic cluster (0x0000) on the device
-    * to read ManufacturerName (0x0004) and ModelIdentifier (0x0005).
-    * Sends to both endpoint 1 (HA) and endpoint 2 (AlertMe) since we don't know
-    * which endpoint the device uses.
+    * Sends a ZCL Read Attributes request to the Basic cluster (0x0000) on a
+    * single endpoint.
+    * @param endpoint 1 for HA profile (0x0104), 2 for AlertMe profile (0xC216)
     */
-   private static void requestBasicClusterAttributes(ZigbeeDriver driver, int nwkAddr) {
-      // ZCL Read Attributes frame:
-      // frameControl(1) + seqNum(1) + cmdId(1) + attrId1(2) + attrId2(2)
+   private static void requestBasicClusterAttributes(ZigbeeDriver driver, int nwkAddr, int endpoint) {
       int[] zclFrame = new int[] {
          0x10,       // frame control: global, client-to-server, disable default response
          0x00,       // sequence number
@@ -461,32 +529,20 @@ public class ZBBootstrapper {
          0x05, 0x00  // attribute 0x0005 ModelIdentifier (LE)
       };
 
-      // Send to endpoint 1 (HA profile)
-      com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame1 =
+      int profile = (endpoint == 2) ? 0xC216 : 0x0104;
+      com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame =
             new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
-      apsFrame1.setCluster(0x0000);  // Basic cluster
-      apsFrame1.setProfile(0x0104);  // HA profile
-      apsFrame1.setSourceEndpoint(1);
-      apsFrame1.setDestinationEndpoint(1);
-      apsFrame1.setDestinationAddress(nwkAddr);
-      apsFrame1.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
-      apsFrame1.setPayload(zclFrame);
-      driver.sendApsFrame(apsFrame1);
+      apsFrame.setCluster(0x0000);
+      apsFrame.setProfile(profile);
+      apsFrame.setSourceEndpoint(endpoint);
+      apsFrame.setDestinationEndpoint(endpoint);
+      apsFrame.setDestinationAddress(nwkAddr);
+      apsFrame.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
+      apsFrame.setPayload(zclFrame);
+      driver.sendApsFrame(apsFrame);
 
-      // Send to endpoint 2 (AlertMe/Iris manufacturer profile)
-      com.zsmartsystems.zigbee.aps.ZigBeeApsFrame apsFrame2 =
-            new com.zsmartsystems.zigbee.aps.ZigBeeApsFrame();
-      apsFrame2.setCluster(0x0000);
-      apsFrame2.setProfile(0xC216);  // Iris/AlertMe profile
-      apsFrame2.setSourceEndpoint(2);
-      apsFrame2.setDestinationEndpoint(2);
-      apsFrame2.setDestinationAddress(nwkAddr);
-      apsFrame2.setAddressMode(com.zsmartsystems.zigbee.ZigBeeNwkAddressMode.DEVICE);
-      apsFrame2.setPayload(zclFrame.clone());
-      driver.sendApsFrame(apsFrame2);
-
-      logger.debug("Requested Basic cluster attributes from NWK={} (endpoints 1 and 2)",
-            String.format("%04X", nwkAddr));
+      logger.debug("Requested Basic cluster attributes from NWK={} endpoint {}",
+            String.format("%04X", nwkAddr), endpoint);
    }
 
    /**
