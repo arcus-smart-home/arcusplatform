@@ -149,6 +149,8 @@ public class ZBBootstrapper {
          logger.debug("Skipping duplicate add for IEEE={}", String.format("%016X", ieeeAddr));
          return;
       }
+      // Mark as known so future onAnnounce calls don't restart discovery.
+      knownAtStartup.add(ieeeAddr);
       ZBNetwork network = ZBServices.INSTANCE.getNetwork();
       ZBNode node = network.getNode(ieeeAddr);
       if (node != null) {

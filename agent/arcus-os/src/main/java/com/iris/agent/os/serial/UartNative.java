@@ -17,10 +17,11 @@ package com.iris.agent.os.serial;
 
 import java.io.Closeable;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 
 import org.eclipse.jdt.annotation.Nullable;
@@ -60,13 +61,15 @@ public final class UartNative {
    }
 
    private static FileChannel toFileChannel(FileDescriptor fd, String path) {
-      return sun.nio.ch.FileChannelImpl.open(fd, path, true, true, false, null);
+      return new java.io.FileInputStream(fd).getChannel();
    }
 
    private static FileDescriptor toFileDescriptor(int fd) {
       try {
          FileDescriptor fdesc = new FileDescriptor();
-         sun.misc.SharedSecrets.getJavaIOFileDescriptorAccess().set(fdesc, fd);
+         java.lang.reflect.Field f = FileDescriptor.class.getDeclaredField("fd");
+         f.setAccessible(true);
+         f.setInt(fdesc, fd);
          return fdesc;
       } catch (Exception ex) {
          throw new UnsupportedOperationException(ex);
@@ -195,9 +198,13 @@ public final class UartNative {
 
       public InputStream getInputStream() {
          if (fd >= 0 && filedesc != null) {
-            FileChannel channel = UartNative.toFileChannel(filedesc, port);
-            InputStream delegate = Channels.newInputStream(channel);
-            return new UartInputStream(fd, delegate);
+            // Use FileInputStream directly from the FileDescriptor rather
+            // than FileChannel + Channels.newInputStream().  FileChannel
+            // implements InterruptibleChannel — if any thread is interrupted
+            // while I/O is in progress, the channel is permanently closed
+            // with ClosedByInterruptException.  FileInputStream does not
+            // have this problem.
+            return new UartInputStream(fd, new FileInputStream(filedesc));
          }
 
          throw new RuntimeException("serial port must be opened first");
@@ -205,8 +212,9 @@ public final class UartNative {
 
       public OutputStream getOutputStream() {
          if (fd >= 0 && filedesc != null) {
-            FileChannel channel = UartNative.toFileChannel(filedesc, port);
-            return Channels.newOutputStream(channel);
+            // Use FileOutputStream directly — see getInputStream() comment
+            // for why we avoid FileChannel.
+            return new FileOutputStream(filedesc);
          }
 
          throw new RuntimeException("serial port must be opened first");

@@ -18,8 +18,6 @@
  */
 package com.iris.agent.zigbee;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -101,13 +99,8 @@ public class NativeZigBeePort implements ZigBeePort {
          sp.open();
 
          serialPort = sp;
-         // Use FileInputStream/FileOutputStream directly from the FileDescriptor.
-         // Do NOT use UartNative.getInputStream()/getOutputStream() — those wrap
-         // FileChannel which implements InterruptibleChannel. The ASH handler uses
-         // Thread.interrupt() for timers, which causes ClosedByInterruptException
-         // and permanently kills the channel.
-         inputStream = new FileInputStream(sp.getFiledesc());
-         outputStream = new FileOutputStream(sp.getFiledesc());
+         inputStream = sp.getInputStream();
+         outputStream = sp.getOutputStream();
          isOpen = true;
 
          logger.info("Native serial port {} opened successfully (fd={})", portName, sp.getFd());

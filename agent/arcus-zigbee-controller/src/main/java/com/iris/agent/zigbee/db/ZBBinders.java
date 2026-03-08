@@ -22,7 +22,11 @@ package com.iris.agent.zigbee.db;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteStatement;
 import com.iris.agent.db.DbBinder;
+import com.iris.agent.zigbee.node.ZBAttribute;
+import com.iris.agent.zigbee.node.ZBCluster;
+import com.iris.agent.zigbee.node.ZBEndpoint;
 import com.iris.agent.zigbee.node.ZBNode;
+import com.iris.agent.zigbee.node.ZBProfile;
 
 public class ZBBinders {
 
@@ -99,6 +103,141 @@ public class ZBBinders {
          stmt.bind(14, value.isOnline() ? 1 : 0);
          stmt.bind(15, value.getOfflineTimeout());
          stmt.bind(16, value.getIeeeAddr()); // WHERE clause
+      }
+   }
+
+   // Profile binders
+
+   public enum CreateProfileBinder implements DbBinder<ZBProfile> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBProfile value) throws Exception {
+         stmt.bind(1, value.getNodeId());
+         stmt.bind(2, value.getProfileId());
+      }
+   }
+
+   public enum DeleteProfilesByNodeBinder implements DbBinder<Long> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, Long value) throws Exception {
+         stmt.bind(1, value);
+      }
+   }
+
+   // Endpoint binders
+
+   public enum CreateEndpointBinder implements DbBinder<ZBEndpoint> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBEndpoint value) throws Exception {
+         stmt.bind(1, value.getProfileDbId());
+         stmt.bind(2, value.getEndpointId());
+         stmt.bind(3, value.getDeviceId());
+         stmt.bind(4, value.getDeviceVersion());
+         stmt.bind(5, value.getZclVersion());
+         stmt.bind(6, value.getAppVersion());
+         stmt.bind(7, value.getStkVersion());
+         stmt.bind(8, value.getHwVersion());
+         stmt.bind(9, value.getManufacturerName());
+         stmt.bind(10, value.getModelIdentifier());
+         stmt.bind(11, value.getDateCode());
+         stmt.bind(12, value.getPowerSource());
+      }
+   }
+
+   public enum UpdateEndpointBinder implements DbBinder<ZBEndpoint> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBEndpoint value) throws Exception {
+         stmt.bind(1, value.getDeviceId());
+         stmt.bind(2, value.getDeviceVersion());
+         stmt.bind(3, value.getZclVersion());
+         stmt.bind(4, value.getAppVersion());
+         stmt.bind(5, value.getStkVersion());
+         stmt.bind(6, value.getHwVersion());
+         stmt.bind(7, value.getManufacturerName());
+         stmt.bind(8, value.getModelIdentifier());
+         stmt.bind(9, value.getDateCode());
+         stmt.bind(10, value.getPowerSource());
+         stmt.bind(11, value.getId()); // WHERE clause
+      }
+   }
+
+   // Cluster binders
+
+   public enum CreateClusterBinder implements DbBinder<ZBCluster> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBCluster value) throws Exception {
+         stmt.bind(1, value.getEndpointDbId());
+         stmt.bind(2, value.getClusterId());
+         stmt.bind(3, value.isServer() ? 1 : 0);
+      }
+   }
+
+   public enum DeleteClustersByEndpointBinder implements DbBinder<Long> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, Long value) throws Exception {
+         stmt.bind(1, value);
+      }
+   }
+
+   // Attribute binders
+
+   public enum CreateAttributeBinder implements DbBinder<ZBAttribute> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBAttribute value) throws Exception {
+         stmt.bind(1, value.getClusterDbId());
+         stmt.bind(2, value.getAttributeId());
+         stmt.bind(3, value.getAttributeDt());
+         if (value.getLastValue() != null) {
+            stmt.bind(4, value.getLastValue());
+         } else {
+            stmt.bindNull(4);
+         }
+      }
+   }
+
+   public enum UpdateAttributeBinder implements DbBinder<ZBAttribute> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, ZBAttribute value) throws Exception {
+         stmt.bind(1, value.getAttributeDt());
+         if (value.getLastValue() != null) {
+            stmt.bind(2, value.getLastValue());
+         } else {
+            stmt.bindNull(2);
+         }
+         stmt.bind(3, value.getId()); // WHERE clause
+      }
+   }
+
+   public enum DeleteAttributesByClusterBinder implements DbBinder<Long> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, Long value) throws Exception {
+         stmt.bind(1, value);
+      }
+   }
+
+   public enum LongBinder implements DbBinder<Long> {
+      INSTANCE;
+
+      @Override
+      public void bind(SQLiteConnection conn, SQLiteStatement stmt, Long value) throws Exception {
+         stmt.bind(1, value);
       }
    }
 }
