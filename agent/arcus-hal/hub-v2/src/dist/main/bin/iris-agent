@@ -200,15 +200,8 @@ JAVA_OPTS="${JAVA_OPTS} -Dos.arch=arm"
 # Native library configuration
 ################################################################################
 
-# Use old libraries if necessary (based on firmware version as they are
-#  built related to the Yocto version...)
-if grep -q "v2\." /tmp/version; then
-    export LD_LIBRARY_PATH="${INSTALL_PATH}/lib/v2"
-    JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${INSTALL_PATH}/lib/v2"
-else
-    export LD_LIBRARY_PATH="${INSTALL_PATH}/lib"
-    JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${INSTALL_PATH}/lib"
-fi
+export LD_LIBRARY_PATH="${INSTALL_PATH}/lib"
+JAVA_OPTS="${JAVA_OPTS} -Djava.library.path=${INSTALL_PATH}/lib"
 
 ################################################################################
 # If there is a selfcheck file present in the install directory then we need
