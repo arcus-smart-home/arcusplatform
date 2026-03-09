@@ -45,10 +45,11 @@ public class TestFirmwareUpdateVerifier extends FirmwareTestCase {
          Assert.fail("Should have thrown an exception.");
       }
       catch(RuntimeException ex) {
-         Assert.assertEquals("Overlapping versions in firmware updates for population qa", ex.getCause().getMessage());
+         Assert.assertTrue(ex.getCause().getMessage().startsWith("Overlapping versions in firmware updates for population:model "));
+         Assert.assertTrue(ex.getCause().getMessage().endsWith(":IH200"));
       }
    }
-   
+
    @Test
    public void testExactOverlap() throws Exception {
       try {
@@ -56,10 +57,11 @@ public class TestFirmwareUpdateVerifier extends FirmwareTestCase {
          Assert.fail("Should have thrown an exception.");
       }
       catch(RuntimeException ex) {
-         Assert.assertEquals("Overlapping versions in firmware updates for population qa", ex.getCause().getMessage());
+         Assert.assertTrue(ex.getCause().getMessage().startsWith("Overlapping versions in firmware updates for population:model "));
+         Assert.assertTrue(ex.getCause().getMessage().endsWith(":IH200"));
       }
    }
-   
+
    @Test
    public void testDuplicateOverlap() throws Exception {
       try {
@@ -67,21 +69,30 @@ public class TestFirmwareUpdateVerifier extends FirmwareTestCase {
          Assert.fail("Should have thrown an exception.");
       }
       catch(RuntimeException ex) {
-         Assert.assertEquals("Overlapping versions in firmware updates for population general", ex.getCause().getMessage());
+         Assert.assertTrue(ex.getCause().getMessage().startsWith("Overlapping versions in firmware updates for population:model "));
+         Assert.assertTrue(ex.getCause().getMessage().endsWith(":IH200"));
       }
    }
-   
+
    @Test
-   public void testAlphaOverlap() throws Exception {    
+   public void testAlphaOverlap() throws Exception {
       try {
          loadFirmwares("firmware-overlap-alpha.xml");
          Assert.fail("Should have thrown an exception.");
       }
       catch(RuntimeException ex) {
-         Assert.assertEquals("Overlapping versions in firmware updates for population qa", ex.getCause().getMessage());
+         Assert.assertTrue(ex.getCause().getMessage().startsWith("Overlapping versions in firmware updates for population:model "));
+         Assert.assertTrue(ex.getCause().getMessage().endsWith(":IH200"));
       }
    }
-   
+
+   @Test
+   public void testNoOverlapDifferentModels() throws Exception {
+      loadFirmwares("firmware-different-models.xml");
+      // No exceptions should be thrown - different models sharing
+      // the same population should not be considered overlapping.
+   }
+
    @Test
    public void testBetaOverlap() throws Exception {
       try {
@@ -89,7 +100,8 @@ public class TestFirmwareUpdateVerifier extends FirmwareTestCase {
          Assert.fail("Should have thrown an exception.");
       }
       catch(RuntimeException ex) {
-         Assert.assertEquals("Overlapping versions in firmware updates for population beta", ex.getCause().getMessage());
+         Assert.assertTrue(ex.getCause().getMessage().startsWith("Overlapping versions in firmware updates for population:model "));
+         Assert.assertTrue(ex.getCause().getMessage().endsWith(":IH200"));
       }
    }
 }

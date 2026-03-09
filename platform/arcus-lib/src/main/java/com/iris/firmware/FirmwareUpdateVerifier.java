@@ -26,19 +26,20 @@ import java.util.Map;
 public class FirmwareUpdateVerifier {
 
    public static void verifyFirmwareUpdates(List<FirmwareUpdate> updates) {
-      // Create list for each population and all populations.
-      Map<String, List<FirmwareUpdate>> populationMap = new HashMap<>();
-      for (FirmwareUpdate update : updates) {         
-         update.getPopulations().forEach(p -> addToMap(populationMap, p, update));
+      // Create list for each population+model combination.
+      Map<String, List<FirmwareUpdate>> populationModelMap = new HashMap<>();
+      for (FirmwareUpdate update : updates) {
+         update.getPopulations().forEach(p -> addToMap(populationModelMap, p + ":" + update.getModel(), update));
       }
-      
-      // Check for overlap for each population and for all populations.
+
+      // Check for overlap within each population+model group.
       // If there is an overlap between all population and a specific population that's okay
       // since the specific population will be used in preference.
-      populationMap.entrySet().forEach(e -> checkForOverlap(e.getKey(), e.getValue()));
+      // Different models cannot overlap since they target different hardware.
+      populationModelMap.entrySet().forEach(e -> checkForOverlap(e.getKey(), e.getValue()));
    }
    
-   private static void checkForOverlap(String population, List<FirmwareUpdate> updates) {
+   private static void checkForOverlap(String populationModel, List<FirmwareUpdate> updates) {
       if (updates.size() < 2) {
          // Can't overlap if there isn't at least two.
          return;
@@ -54,7 +55,7 @@ public class FirmwareUpdateVerifier {
       // Check for overlaps
       for (int index = 0; index < (updates.size() - 1); index++) {
          if (updates.get(index).getMax().compareTo(updates.get(index + 1).getMin()) <= 0) {
-            throw new IllegalStateException("Overlapping versions in firmware updates for population " + population);
+            throw new IllegalStateException("Overlapping versions in firmware updates for population:model " + populationModel);
          }
       }
    }
