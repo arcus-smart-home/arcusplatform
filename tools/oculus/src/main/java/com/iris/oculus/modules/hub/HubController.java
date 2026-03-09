@@ -102,7 +102,7 @@ public class HubController extends SessionAwareController {
    private Action registerHub       = Actions.build("Register Hub...", this::promptForHubId); 
    private Action registerHubLegacy = Actions.build("Register Hub (Deprecated)...", this::promptForHubIdLegacy); 
    private Action reloadHub         = Actions.build("Refresh Hub", this::reloadHub);
-   private Action decodeHubInfo     = Actions.build("Decode Hub Info", this::decodeHubInfo);
+   private Action decodeHubInfo     = Actions.build("Decode Batch Number", this::decodeHubInfo);
 
    private DefaultSelectionModel<HubModel> hubSelection = new DefaultSelectionModel<>();
 
@@ -335,7 +335,7 @@ public class HubController extends SessionAwareController {
    }
 
    public void decodeHubInfo() {
-      String infoInput = Oculus.showInputDialog("Decode Manufacturer Info","Enter Manufacturer Info:", JOptionPane.PLAIN_MESSAGE);
+      String infoInput = Oculus.showInputDialog("Decode Batch Number","Enter Batch Number:", JOptionPane.PLAIN_MESSAGE);
       if (infoInput == null) {
          return;
       }
@@ -345,7 +345,7 @@ public class HubController extends SessionAwareController {
          try {
             info = Long.valueOf(infoInput);
          } catch (NumberFormatException e) {
-            Oculus.showError("Invalid Input", new IllegalArgumentException("Expected a numeric manufacturer info value, got: " + infoInput));
+            Oculus.showError("Invalid Input", new IllegalArgumentException("Expected a numeric batch number, got: " + infoInput));
             return;
          }
          long tester = info & 0x3FF;
