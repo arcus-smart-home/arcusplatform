@@ -23,20 +23,24 @@ import java.awt.Component;
 import java.beans.PropertyChangeEvent;
 import java.util.Date;
 
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
 import com.iris.bootstrap.ServiceLocator;
+import com.iris.client.IrisClientFactory;
 import com.iris.client.capability.PairingSubsystem;
 import com.iris.client.event.ClientFuture;
 import com.iris.client.event.ListenerRegistration;
 import com.iris.client.event.Listeners;
 import com.iris.client.model.PairingDeviceModel;
 import com.iris.oculus.modules.pairing.PairingDeviceController;
+import com.iris.oculus.Oculus;
 import com.iris.oculus.util.Actions;
 import com.iris.oculus.util.BaseComponentWrapper;
 import com.iris.oculus.util.DefaultSelectionModel;
@@ -135,7 +139,10 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 					.labelled("Pairing Timeout: ")
 					.build()
 		);
-		return status.getComponent();
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.add(status.getComponent(), BorderLayout.CENTER);
+		panel.add(new JButton(Actions.build("Search", this::startSearch)), BorderLayout.EAST);
+		return panel;
 	}
 
 	private Component createPairingQueue() {
@@ -181,12 +188,27 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 		}
 	}
 
+	private Date toDate(Object value) {
+		if(value == null) {
+			return null;
+		}
+		if(value instanceof Date) {
+			Date d = (Date) value;
+			return d.getTime() == 0 ? null : d;
+		}
+		if(value instanceof Number) {
+			long millis = ((Number) value).longValue();
+			return millis == 0 ? null : new Date(millis);
+		}
+		return null;
+	}
+
 	private void syncStatus() {
-		status.setValues(ImmutableMap.of(
-				PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE),
-				PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, new Date((long) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)),
-				PairingSubsystem.ATTR_SEARCHTIMEOUT, new Date((long) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT))
-		));
+		Map<String, Object> values = new HashMap<>();
+		values.put(PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE));
+		values.put(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)));
+		values.put(PairingSubsystem.ATTR_SEARCHTIMEOUT, toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT)));
+		status.setValues(values);
 	}
 	
 	private void onPairingSubsystemChange(PropertyChangeEvent event) {
@@ -217,6 +239,12 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 		dialog.setErrorMessage("Search has timed out", Actions.build("<< Search Again", this::goBack));
 	}
 	
+	private void startSearch() {
+		PairingSubsystem.SearchRequest request = new PairingSubsystem.SearchRequest();
+		request.setAddress(input.getPairingSubsystem().getAddress());
+		Oculus.showProgress(IrisClientFactory.getClient().request(request), "Searching...");
+	}
+
 	private void showHelp() {
 		ServiceLocator.getInstance(PairingDeviceController.class).showHelpSteps();
 	}
