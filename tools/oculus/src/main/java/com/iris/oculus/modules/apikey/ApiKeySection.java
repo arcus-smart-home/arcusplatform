@@ -48,7 +48,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JToolBar;
+
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.table.AbstractTableModel;
@@ -99,12 +99,11 @@ public class ApiKeySection implements OculusSection {
       table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
       table.getTableHeader().setReorderingAllowed(false);
 
-      JToolBar toolbar = new JToolBar();
-      toolbar.setFloatable(false);
+      JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
       JButton createBtn = new JButton("Create");
       createBtn.addActionListener((e) -> promptCreate());
-      toolbar.add(createBtn);
+      buttonPanel.add(createBtn);
 
       JButton revokeBtn = new JButton("Revoke");
       revokeBtn.addActionListener((e) -> {
@@ -122,16 +121,14 @@ public class ApiKeySection implements OculusSection {
          }
          controller.revokeKey(key.get("id"), key.get("label"));
       });
-      toolbar.add(revokeBtn);
-
-      toolbar.addSeparator();
+      buttonPanel.add(revokeBtn);
 
       JButton refreshBtn = new JButton(controller.actionReload());
-      toolbar.add(refreshBtn);
+      buttonPanel.add(refreshBtn);
 
       JPanel tablePanel = new JPanel(new BorderLayout());
       tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
-      tablePanel.add(toolbar, BorderLayout.SOUTH);
+      tablePanel.add(buttonPanel, BorderLayout.SOUTH);
       cardPanel.add(tablePanel, CARD_TABLE);
 
       // Unsupported card
