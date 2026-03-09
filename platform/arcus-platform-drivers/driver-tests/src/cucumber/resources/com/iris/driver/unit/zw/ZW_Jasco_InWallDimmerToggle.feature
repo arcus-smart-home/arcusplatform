@@ -4,7 +4,7 @@ Feature: ZWave Jasco In-Wall Dimmer Toggle Driver Test
 	These scenarios test the functionality of the Jasco In-Wall Dimmer Toggle driver.
 	
 	Background:
-		Given the ZW_Jasco_InWallDimmerToggle.driver has been initialized
+		Given the ZW_Jasco_InWallDimmerToggle_1_2.driver has been initialized
 	
 	Scenario: Device connected
 		When the device is connected

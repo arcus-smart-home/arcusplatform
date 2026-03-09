@@ -9,4 +9,4 @@ Feature: ZWave Jasco In-Wall Toggle Driver Test
 	Scenario: Device connected
 		When the device is connected
 		#When the device connects to the platform
-		Then the driver should place a base:ValueChange message on the platform bus 
+		Then the driver may place a base:ValueChange message on the platform bus

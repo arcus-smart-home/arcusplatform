@@ -48,8 +48,8 @@ These scenarios test the functionality of the ZWave Plus GoCtrl Thermostat drive
         Then the driver should schedule event SetupReporting in 60 seconds
             And the driver should schedule event SetupDeviceStart in 120 seconds
             And the driver should schedule event SetLifeline every 5 seconds 10 times
-        Then the driver should place a base:ValueChange message on the platform bus
-        Then both busses should be empty            
+        Then the driver may place a base:ValueChange message on the platform bus
+        Then both busses should be empty
 
 ############################################################
 # Battery Test

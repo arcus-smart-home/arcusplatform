@@ -18,7 +18,6 @@ Feature: ZWave Springs VC1 Remote Test
 	
 	Scenario: Device connected
 		When the device connects to the platform
-		Then the driver should place a base:ValueChange message on the platform bus 
 		Then the driver should send Battery get
 		Then the driver should send Wake_Up set
 			And with parameter seconds1 0

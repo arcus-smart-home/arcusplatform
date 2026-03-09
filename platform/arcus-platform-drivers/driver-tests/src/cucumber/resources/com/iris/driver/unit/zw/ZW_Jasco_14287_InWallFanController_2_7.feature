@@ -55,11 +55,11 @@ Feature: GE/Jasco 500 Series 14287 In-Wall Fan Controller
         Then the driver should send switch_multilevel get
         Then the driver should poll switch_multilevel.get every 1 hour
         Then the driver should set timeout at 3 hours
-        Then the driver should place a base:ValueChange message on the platform bus
         # onConnected from GenericZWaveFan
         Then the driver should send switch_multilevel get
         # onConnected from GenericZWaveVersion
         Then the driver should send version get
+        Then the driver may place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
 

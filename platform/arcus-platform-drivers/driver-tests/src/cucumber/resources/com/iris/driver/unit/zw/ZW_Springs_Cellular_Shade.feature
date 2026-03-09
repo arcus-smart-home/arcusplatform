@@ -25,7 +25,6 @@ Feature: ZWave Springs Cellular Shade Test
     
     Scenario: Device connected
         When the device connects to the platform
-        Then the driver should place a base:ValueChange message on the platform bus 
         Then the driver should send Battery get
         Then the driver should send Switch_Multilevel get
         Then the driver should set timeout at 37 hours

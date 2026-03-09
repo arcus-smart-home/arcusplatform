@@ -71,6 +71,7 @@ Feature: Test of the Greatstar Help Button ZigBee driver
             And with attribute ATTR_ZONE_STATUS
             And with attribute ATTR_IAS_CIE_ADDRESS
         Then the driver should set timeout at 10 minutes
+        Then the driver may place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
     # onDisconnected

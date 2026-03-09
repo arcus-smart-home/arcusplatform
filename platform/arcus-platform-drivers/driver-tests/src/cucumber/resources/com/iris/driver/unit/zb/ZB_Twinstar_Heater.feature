@@ -35,8 +35,9 @@ Background:
 #		Then the driver should send metering zclReadAttributes
 		Then the driver should send appliancealerts 0x00	
  		Then the driver should place a base:ValueChange message on the platform bus
- 			And the capability devconn:state should be ONLINE  
-		Then both busses should be empty	
+ 			And the capability devconn:state should be ONLINE
+		Then the driver may place a base:ValueChange message on the platform bus
+		Then both busses should be empty
 @test2
 	Scenario Outline: Platform controls heater via attribute changes.
 		When a base:SetAttributes command with the value of <attribute> <value> is placed on the platform bus

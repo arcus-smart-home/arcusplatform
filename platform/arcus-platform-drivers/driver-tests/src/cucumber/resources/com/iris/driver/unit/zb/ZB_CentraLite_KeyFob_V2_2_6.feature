@@ -73,6 +73,7 @@ Feature: Test of the CentraLite KeyFob ZigBee driver
             And with attribute ATTR_LAST_MESSAGE_LQI
             And with attribute ATTR_LAST_MESSAGE_RSSI
         Then the driver should set timeout at 10 minutes
+        Then the driver may place a base:ValueChange message on the platform bus
         Then both busses should be empty
 
     # onDisconnected

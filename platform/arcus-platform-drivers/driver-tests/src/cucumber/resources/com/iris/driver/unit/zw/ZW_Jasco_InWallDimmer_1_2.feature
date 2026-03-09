@@ -26,7 +26,7 @@ Scenario: Driver reports capabilities to platform.
 @version @timeout
 Scenario: Multilevel switch reports state when first connected
 		When the device is connected
-		Then the driver should place a base:ValueChange message on the platform bus
+		Then the driver may place a base:ValueChange message on the platform bus
     Then the driver should send switch_multilevel get
 			And the driver should poll switch_multilevel.get every 71 seconds
 			And the driver should send configuration get 

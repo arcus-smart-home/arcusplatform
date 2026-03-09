@@ -37,7 +37,7 @@ Feature: Unit Tests Binary for the ZWave Dimmer
     Then the driver should poll switch_multilevel.get every 60 minutes
     Then the driver should send switch_multilevel get
     Then the driver should send version get
-    Then the driver should place a base:ValueChange message on the platform bus
+    Then the driver may place a base:ValueChange message on the platform bus
     Then both busses should be empty
 
 

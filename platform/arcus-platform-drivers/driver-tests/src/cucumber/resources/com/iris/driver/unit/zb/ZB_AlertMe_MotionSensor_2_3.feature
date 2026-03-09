@@ -11,7 +11,7 @@ Feature: Zigbee AlertMe Motion Sensor Driver Test
     Scenario: Driver reports capabilities to platform.
         When a base:GetAttributes command is placed on the platform bus
         Then the driver should place a base:GetAttributesResponse message on the platform bus
-            And the message's base:caps attribute list should be [ 'base', 'dev', 'devadv', 'devconn', 'devpow', 'mot', 'temp' ]
+            And the message's base:caps attribute list should be [ 'base', 'dev', 'devadv', 'devconn', 'devpow', 'mot', 'tamp', 'temp' ]
             And the message's dev:devtypehint attribute should be Motion
             And the message's devadv:drivername attribute should be ZB_AlertMe_MotionSensor
             And the message's devadv:driverversion attribute should be 2.3

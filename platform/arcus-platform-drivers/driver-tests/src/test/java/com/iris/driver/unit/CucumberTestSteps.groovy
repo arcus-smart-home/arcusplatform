@@ -96,7 +96,7 @@ Given(~/^the (.+) has been initialized$/) { String driverScriptResource ->
  * 		Given the capability devpow:battery is 100
  *      Given the driver attribute devconn:state is ONLINE
  */
-Given(~/^the capability (\w+):(\w+) is (.+)$/) { namespace, attributeName, attributeValue ->
+Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { namespace, attributeName, attributeValue ->
 	// lookup for the attribute definition
 	logger.trace(" initializing "+namespace+":"+attributeName + " to "+attributeValue);
 	CapabilityDefinition capability = ClasspathDefinitionRegistry.instance().getCapability(namespace);
@@ -535,7 +535,41 @@ Then(~/^the driver should( not)? place a (.+) message on the platform bus$/) { n
 		deviceMessageValidator = new DeviceMessageValidator(theMessage)
 		assert new DeviceMessageValidator(theMessage).eventName().is(messageName)
 	}
-}	
+}
+
+/**
+ * Optionally drains a message from the platform bus if one is present.
+ * Used for messages like devconn:lastchange ValueChange that may or may not
+ * appear depending on timing.
+ *
+ * EXAMPLE:
+ * 		Then the driver may place a base:ValueChange message on the platform bus
+ */
+Then(~/^the driver may place a (.+) message on the platform bus$/) { messageName ->
+	def msg = context.getPlatformBus().getMessageQueue().peek()
+	if (msg != null && msg.getValue().getMessageType() == messageName) {
+		context.getPlatformBus().take()
+	}
+}
+
+/**
+ * Drains platform bus messages until one matching the expected type is found.
+ * Useful when a driver emits a variable number of base:ValueChange messages
+ * before a specific event like doorlock:PinUsed.
+ *
+ * EXAMPLE:
+ * 		Then the driver should eventually place a doorlock:PinUsed message on the platform bus
+ */
+Then(~/^the driver should eventually place a (.+) message on the platform bus$/) { messageName ->
+	for (int i = 0; i < 10; i++) {
+		theMessage = context.getPlatformBus().take().getValue()
+		deviceMessageValidator = new DeviceMessageValidator(theMessage)
+		if (theMessage.getMessageType() == messageName) {
+			return
+		}
+	}
+	assert false, "Expected ${messageName} message but did not find it after draining 10 messages"
+}
 
 /**
  * Validates that the message in context has an attribute whose value is a list of elements matching

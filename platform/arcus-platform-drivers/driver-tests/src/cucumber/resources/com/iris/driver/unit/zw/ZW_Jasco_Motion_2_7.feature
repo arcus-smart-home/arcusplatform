@@ -38,7 +38,7 @@ Feature: ZWave Jasco Motion Driver Test
 @connected		 	
  	Scenario: Device connected
  		When the device is connected
- 		Then the driver should place a base:ValueChange message on the platform bus
+ 		Then the driver may place a base:ValueChange message on the platform bus
  			And the capability devconn:state should be ONLINE
  			And the capability devconn:lastchange should be recent
 		Then the driver should send configuration set

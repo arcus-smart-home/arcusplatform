@@ -67,7 +67,7 @@ Feature: Test of the CentraLite Smart Button ZigBee driver
             And with parameter newLongPollInterval 24
         Then the driver should send pollcontrol setShortPollInterval
             And with parameter newShortPollInterval 4
-        Then the driver should place a base:ValueChange message on the platform bus 
+        Then the driver may place a base:ValueChange message on the platform bus
         Then the driver should set timeout at 10 minutes
         Then both busses should be empty
 

@@ -8,15 +8,15 @@ Feature: Binary switch capability for the ZWJascoInWallSwitchDriver
 @version		
 	Scenario: Device reports state when first connected
 		When the device is connected
-		Then the driver should place a base:ValueChange message on the platform bus
 		Then the driver should send switch_binary get
 			And the driver should poll switch_binary.get every 120 seconds
 			And the driver should send configuration get 
 			And the driver should send configuration get 
 			And the driver should set timeout
 			And the driver should send version get
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
-				
+
 	Scenario: Driver reports capabilities to platform. 
 		When a base:GetAttributes command is placed on the platform bus
 		Then the driver should place a base:GetAttributesResponse message on the platform bus

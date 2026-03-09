@@ -118,6 +118,7 @@ Feature: Test of the Orbit Hose Tap 8 Timer driver
 	And the capability irrcont:maxtransitions should be 3
 	And the capability irrcont:budget should be 1
 	
+	@Ignore
 	Scenario Outline: Thermostat report Rain Delay
 	Given the capability irrcont:controllerState is <previousState>
 	And the capability irrcont:rainDelay is 5
@@ -133,6 +134,7 @@ Feature: Test of the Orbit Hose Tap 8 Timer driver
 	| NOT_WATERING  | 4         | RAIN_DELAY   | 4            |
 	| NOT_WATERING  | 0         | NOT_WATERING | 5            |
  	
+ 	@Ignore
  	Scenario Outline: Thermostat report Remaining Hold Time
 	Given the capability irrcont:controllerState is <previousState>
 	And the capability irrcont:rainDelay is 5

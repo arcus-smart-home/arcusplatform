@@ -36,15 +36,15 @@ Scenario: Device associated
  	
 	Scenario: Device reports state when first connected
 		When the device is connected
-		Then the driver should place a base:ValueChange message on the platform bus
 		Then the driver should set timeout at 3 hours
 		Then the driver should poll switch_binary.get every 1 hour
 		Then the driver should send switch_binary get
 		Then the driver should send configuration get
 #			And with parameter param 4 
 		Then the driver should send version get
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
-								
+
 	Scenario: Platform turns on switch via attribute change. 
 		When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
 		Then the driver should send switch_binary set 

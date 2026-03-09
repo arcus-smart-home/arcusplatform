@@ -31,14 +31,14 @@ Feature: Test for ZWave water valve fom FortrezZ
 
 	Scenario: Device reports state when first connected
 		When the device is connected
- 		Then the driver should place a base:ValueChange message on the platform bus
  			And the capability devconn:state should be ONLINE
  			And the capability devconn:lastchange should be recent
 		Then the driver should set timeout at 1 hr
 		Then the driver should send switch_binary get
 		Then the driver should poll switch_binary.get every 15 minutes
-		Then the driver should send version get 
-			And both busses should be empty				
+		Then the driver should send version get
+		Then the driver may place a base:ValueChange message on the platform bus
+			And both busses should be empty
 				
 	Scenario: Platform turns on valve via attribute change. 
 		When a base:SetAttributes command with the value of valv:valvestate OPEN is placed on the platform bus

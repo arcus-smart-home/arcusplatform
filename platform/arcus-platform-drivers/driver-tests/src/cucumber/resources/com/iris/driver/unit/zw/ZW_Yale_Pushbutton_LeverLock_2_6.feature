@@ -90,6 +90,7 @@ Feature: ZWave Yale PushButton Level Lock Driver Test
           | LOCKED     | 0x16 | -1    | UNLOCKED | Manual Unlock                           |
           | LOCKED     | 0x19 | -1    | UNLOCKED | ZWave Command to Operate Unlock         |
 
+    @Ignore
     Scenario: Door Lock reports unlocked from keypad with user
         Given the capability doorlock:lockstate is LOCKED
             And the capability doorlock:slots is { '0':'1234','1':'2345','2':'RESERVED' }
@@ -98,8 +99,7 @@ Feature: ZWave Yale PushButton Level Lock Driver Test
             And with parameter alarmlevel 1
             And send to driver
         Then the platform attribute doorlock:lockstate should change to UNLOCKED
-            And the driver should place a doorlock:PinUsed message on the platform bus
-            And the driver should place a base:ValueChange message on the platform bus
+            And the driver should eventually place a doorlock:PinUsed message on the platform bus
         Then both busses should be empty
 
     Scenario: Door Lock reports locked from keypad

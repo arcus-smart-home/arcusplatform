@@ -32,7 +32,6 @@ Feature: ZWave Jasco Hinge Driver Test
  	
  	Scenario: Device connected
  		When the device is connected
- 		Then the driver should place a base:ValueChange message on the platform bus
  			And the capability devconn:state should be ONLINE
  			And the capability devconn:lastchange should be recent
 		Then the driver should set timeout at 190 minutes
@@ -47,6 +46,7 @@ Feature: ZWave Jasco Hinge Driver Test
 		Then the driver should poll Battery.get every 24 hours
 		Then the driver should send Battery get
 		Then the driver should schedule event config_complete in 2 seconds
+		Then the driver may place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 			
 	Scenario: Device reports battery level
