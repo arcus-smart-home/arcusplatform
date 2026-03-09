@@ -341,7 +341,13 @@ public class HubController extends SessionAwareController {
       }
 
       try {
-         long info = Long.valueOf(infoInput);
+         long info;
+         try {
+            info = Long.valueOf(infoInput);
+         } catch (NumberFormatException e) {
+            Oculus.showError("Invalid Input", new IllegalArgumentException("Expected a numeric manufacturer info value, got: " + infoInput));
+            return;
+         }
          long tester = info & 0x3FF;
          long station = (info >> 10) & 0x7F;
          long factory = (info >> 17) & 0x1F;
