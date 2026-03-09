@@ -37,6 +37,7 @@ import com.iris.core.StartupListener;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.iris.core.dao.cassandra.CassandraHealth;
 import com.iris.platform.cluster.exception.ClusterIdLostException;
+import com.iris.platform.cluster.zookeeper.ZookeeperClusterServiceDao;
 
 /**
  * 
@@ -75,6 +76,19 @@ public class ClusterService implements StartupListener {
       this.retryDelayMs = config.getRegistrationRetryDelay(TimeUnit.MILLISECONDS);
       this.retries = config.getRegistrationRetries();
       this.exitOnDeregistered = config.isExitOnDeregistered();
+
+      if (clusterServiceDao instanceof ZookeeperClusterServiceDao) {
+         ZookeeperClusterServiceDao zkDao = (ZookeeperClusterServiceDao) clusterServiceDao;
+         zkDao.setOnSessionExpired(this::onDeregistered);
+         zkDao.setOnReconnected(() -> {
+            ClusterServiceRecord record = recordRef.get();
+            if (record != null && !zkDao.verifyRegistration(record)) {
+               logger.warn("Ephemeral node lost after zookeeper reconnect, re-registering");
+               onDeregistered();
+               tryRegister(0);
+            }
+         });
+      }
    }
 
    @Override
@@ -177,8 +191,7 @@ public class ClusterService implements StartupListener {
          }
          
          if(exitOnDeregistered) {
-            logger.error("SHUTTING DOWN -- Lost cluster service id and exitOnDeregister is true");
-            System.err.println("SHUTTING DOWN -- Lost cluster service id and exitOnDeregister is true");
+            logger.error("SHUTTING DOWN -- Lost cluster service id and exitOnDeregistered is true");
             System.exit(-1);
          }
       }
