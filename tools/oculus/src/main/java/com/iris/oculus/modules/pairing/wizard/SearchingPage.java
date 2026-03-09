@@ -181,12 +181,28 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 		}
 	}
 
+	private Date toDate(Object value) {
+		if(value == null) {
+			return null;
+		}
+		if(value instanceof Date) {
+			return (Date) value;
+		}
+		return new Date(((Number) value).longValue());
+	}
+
 	private void syncStatus() {
-		status.setValues(ImmutableMap.of(
-				PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE),
-				PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, new Date(((Number) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)).longValue()),
-				PairingSubsystem.ATTR_SEARCHTIMEOUT, new Date(((Number) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT)).longValue())
-		));
+		ImmutableMap.Builder<String, Object> values = ImmutableMap.builder();
+		values.put(PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE));
+		Date idleTimeout = toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT));
+		if(idleTimeout != null) {
+			values.put(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, idleTimeout);
+		}
+		Date searchTimeout = toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT));
+		if(searchTimeout != null) {
+			values.put(PairingSubsystem.ATTR_SEARCHTIMEOUT, searchTimeout);
+		}
+		status.setValues(values.build());
 	}
 	
 	private void onPairingSubsystemChange(PropertyChangeEvent event) {
