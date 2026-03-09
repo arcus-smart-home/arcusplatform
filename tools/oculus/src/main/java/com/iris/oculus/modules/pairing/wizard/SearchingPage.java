@@ -184,8 +184,8 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 	private void syncStatus() {
 		status.setValues(ImmutableMap.of(
 				PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE),
-				PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, new Date((long) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)),
-				PairingSubsystem.ATTR_SEARCHTIMEOUT, new Date((long) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT))
+				PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, new Date(((Number) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)).longValue()),
+				PairingSubsystem.ATTR_SEARCHTIMEOUT, new Date(((Number) input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT)).longValue())
 		));
 	}
 	
