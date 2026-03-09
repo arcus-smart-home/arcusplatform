@@ -187,9 +187,14 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 			return null;
 		}
 		if(value instanceof Date) {
-			return (Date) value;
+			Date d = (Date) value;
+			return d.getTime() == 0 ? null : d;
 		}
-		return new Date(((Number) value).longValue());
+		if(value instanceof Number) {
+			long millis = ((Number) value).longValue();
+			return millis == 0 ? null : new Date(millis);
+		}
+		return null;
 	}
 
 	private void syncStatus() {
