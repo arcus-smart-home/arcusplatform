@@ -29,7 +29,8 @@ import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
 import com.iris.bootstrap.ServiceLocator;
 import com.iris.client.capability.PairingSubsystem;
 import com.iris.client.event.ClientFuture;
@@ -192,17 +193,11 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 	}
 
 	private void syncStatus() {
-		ImmutableMap.Builder<String, Object> values = ImmutableMap.builder();
+		Map<String, Object> values = new HashMap<>();
 		values.put(PairingSubsystem.ATTR_PAIRINGMODE, input.getPairingSubsystem().get(PairingSubsystem.ATTR_PAIRINGMODE));
-		Date idleTimeout = toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT));
-		if(idleTimeout != null) {
-			values.put(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, idleTimeout);
-		}
-		Date searchTimeout = toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT));
-		if(searchTimeout != null) {
-			values.put(PairingSubsystem.ATTR_SEARCHTIMEOUT, searchTimeout);
-		}
-		status.setValues(values.build());
+		values.put(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT, toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHIDLETIMEOUT)));
+		values.put(PairingSubsystem.ATTR_SEARCHTIMEOUT, toDate(input.getPairingSubsystem().get(PairingSubsystem.ATTR_SEARCHTIMEOUT)));
+		status.setValues(values);
 	}
 	
 	private void onPairingSubsystemChange(PropertyChangeEvent event) {
