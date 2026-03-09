@@ -130,8 +130,8 @@ public class ApiKeySection implements OculusSection {
       toolbar.add(refreshBtn);
 
       JPanel tablePanel = new JPanel(new BorderLayout());
-      tablePanel.add(toolbar, BorderLayout.NORTH);
       tablePanel.add(new JScrollPane(table), BorderLayout.CENTER);
+      tablePanel.add(toolbar, BorderLayout.SOUTH);
       cardPanel.add(tablePanel, CARD_TABLE);
 
       // Unsupported card
