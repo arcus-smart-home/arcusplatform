@@ -39,7 +39,9 @@ public class ZBMessageTranslator {
 
    private static final Logger logger = LoggerFactory.getLogger(ZBMessageTranslator.class);
 
-   // Track AlertMe devices that have been sent the ModeChange(NORMAL) command this session
+   // Track AlertMe devices that have been sent the ModeChange(NORMAL) command.
+   // Fires on both inbound and outbound paths so sleepy devices that missed
+   // the initial ModeChange during pairing get it on the next outbound write.
    private static final java.util.Set<Long> modeChangeSent =
          java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
@@ -109,7 +111,7 @@ public class ZBMessageTranslator {
                handleOutboundSetOfflineTimeout(msg, pmsg);
                break;
             case ZigbeeMessage.Control.ID:
-               handleOutboundControl(pmsg);
+               handleOutboundControl(msg, pmsg);
                break;
             case ZigbeeMessage.IasZoneEnroll.ID:
                handleOutboundIasZoneEnroll(msg, pmsg);
@@ -276,6 +278,13 @@ public class ZBMessageTranslator {
             destEndpoint,
             String.format("%02X", zcl.getZclMessageId()));
 
+      // For AlertMe devices, piggyback ModeChange(NORMAL) on outbound messages.
+      // This ensures sleepy devices that missed the initial ModeChange during
+      // pairing get activated when the reflex driver writes state to them.
+      if (profileId == 0xC216) {
+         maybeSendModeChange(node);
+      }
+
       ZBServices.INSTANCE.getDriver().sendApsFrame(apsFrame);
    }
 
@@ -316,8 +325,51 @@ public class ZBMessageTranslator {
       }
    }
 
-   private static void handleOutboundControl(ZigbeeMessage.Protocol pmsg) {
-      logger.trace("Outbound control message");
+   private static void handleOutboundControl(ProtocolMessage msg, ZigbeeMessage.Protocol pmsg) throws IOException {
+      ZigbeeMessage.Control ctrl = ZigbeeMessage.Control.serde()
+            .fromBytes(ByteOrder.LITTLE_ENDIAN, pmsg.getPayload());
+
+      byte[] payload = ctrl.getPayload();
+      if (payload == null || payload.length == 0) {
+         logger.debug("Empty control message, ignoring");
+         return;
+      }
+
+      // Control messages carry a serialized MessageBody (JSON)
+      com.iris.io.Deserializer<com.iris.messages.MessageBody> deserializer =
+            com.iris.io.json.JSON.createDeserializer(com.iris.messages.MessageBody.class);
+      com.iris.messages.MessageBody body = deserializer.deserialize(payload);
+      String type = body.getMessageType();
+
+      logger.debug("Outbound control message: type={}", type);
+
+      switch (type) {
+         case com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.NAME: {
+            ZBNode node = resolveDestinationNode(msg);
+            if (node == null) {
+               logger.warn("Cannot start OTA: destination node not found for {}", msg.getDestination());
+               return;
+            }
+            String url = com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.getUrl(body);
+            String md5 = com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateRequest.getMd5(body);
+            ZBServices.INSTANCE.getOtaService().startFirmwareUpdate(node.getIeeeAddr(), url, md5);
+            break;
+         }
+
+         case com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateCancelRequest.NAME: {
+            ZBNode node = resolveDestinationNode(msg);
+            if (node == null) {
+               logger.warn("Cannot cancel OTA: destination node not found for {}", msg.getDestination());
+               return;
+            }
+            ZBServices.INSTANCE.getOtaService().cancelFirmwareUpdate(node.getIeeeAddr());
+            break;
+         }
+
+         default:
+            logger.debug("Unknown control message type: {}", type);
+            break;
+      }
    }
 
    private static void handleOutboundIasZoneEnroll(ProtocolMessage msg, ZigbeeMessage.Protocol pmsg) throws IOException {
@@ -391,6 +443,18 @@ public class ZBMessageTranslator {
             endpoint);
 
       ZBServices.INSTANCE.getDriver().sendApsFrame(apsFrame);
+   }
+
+   /**
+    * Sends ModeChange(NORMAL) once per session per device.
+    * Called on both inbound (HelloResponse) and outbound (reflex driver write)
+    * paths so sleepy devices that missed ModeChange during pairing get it
+    * when the reflex driver next writes to them.
+    */
+   private static void maybeSendModeChange(ZBNode node) {
+      if (modeChangeSent.add(node.getIeeeAddr())) {
+         sendAlertMeModeChange(node);
+      }
    }
 
    /**
@@ -508,12 +572,11 @@ public class ZBMessageTranslator {
       // If the device is still pending discovery, resend requests while it's awake
       com.iris.agent.zigbee.process.ZBBootstrapper.onDeviceHeardFrom(node.getIeeeAddr(), sourceNwk);
 
-      // For AlertMe devices, send ModeChange(NORMAL) once per session to activate reporting.
-      // The on-added reflex sends this, but sleepy devices often miss it.
-      if (apsFrame.getProfile() == 0xC216 && modeChangeSent.add(node.getIeeeAddr())) {
-         logger.debug("Sending initial AlertMe ModeChange(NORMAL) to IEEE={} NWK={}",
-               String.format("%016X", node.getIeeeAddr()), String.format("%04X", sourceNwk));
-         sendAlertMeModeChange(node);
+      // For AlertMe devices, send ModeChange(NORMAL) periodically to activate reporting.
+      // Sleepy devices can miss the initial ModeChange during pairing when the NCP
+      // indirect message table is congested.
+      if (apsFrame.getProfile() == 0xC216) {
+         maybeSendModeChange(node);
       }
 
       // Handle IAS Zone Enroll Request (cluster 0x0500, cluster-specific command 0x01)
@@ -639,6 +702,9 @@ public class ZBMessageTranslator {
       String model = readAmeString(payload, idx);
 
       if (vendor != null || model != null) {
+         // Track whether identity was previously missing so we know to re-dispatch
+         boolean hadNoIdentity = node.getVendor() == null && node.getModel() == null;
+
          node.setVendor(vendor);
          if (model != null) node.setModel(model);
          ZBServices.INSTANCE.getNetwork().saveNode(node);
@@ -650,9 +716,18 @@ public class ZBMessageTranslator {
          // pending-add flow. If not (device sent HelloResponse proactively after
          // Match_Desc_rsp), dispatch the add event directly.
          if (!com.iris.agent.zigbee.process.ZBBootstrapper.onBasicClusterReceived(node.getIeeeAddr())) {
-            logger.debug("Dispatching add for IEEE={} (proactive HelloResponse)",
-                  String.format("%016X", node.getIeeeAddr()));
-            com.iris.agent.zigbee.process.ZBBootstrapper.dispatchNodeAdded(node.getIeeeAddr());
+            if (hadNoIdentity) {
+               // Device was previously added with null vendor/model (e.g. fallback
+               // timeout fired before HelloResponse arrived).  Re-dispatch the add
+               // so the platform can re-match the driver with the new identity.
+               logger.info("Late HelloResponse for IEEE={}, re-dispatching add for driver re-match",
+                     String.format("%016X", node.getIeeeAddr()));
+               com.iris.agent.zigbee.process.ZBBootstrapper.redispatchNodeAdded(node.getIeeeAddr());
+            } else {
+               logger.debug("Dispatching add for IEEE={} (proactive HelloResponse)",
+                     String.format("%016X", node.getIeeeAddr()));
+               com.iris.agent.zigbee.process.ZBBootstrapper.dispatchNodeAdded(node.getIeeeAddr());
+            }
          }
          return true;
       }
@@ -712,6 +787,8 @@ public class ZBMessageTranslator {
       }
 
       if (vendor != null || model != null) {
+         boolean hadNoIdentity = node.getVendor() == null && node.getModel() == null;
+
          if (vendor != null) node.setVendor(vendor);
          if (model != null) node.setModel(model);
          ZBServices.INSTANCE.getNetwork().saveNode(node);
@@ -720,9 +797,15 @@ public class ZBMessageTranslator {
                String.format("%016X", node.getIeeeAddr()), vendor, model);
 
          if (!com.iris.agent.zigbee.process.ZBBootstrapper.onBasicClusterReceived(node.getIeeeAddr())) {
-            logger.debug("Dispatching add for IEEE={} (proactive Basic cluster response)",
-                  String.format("%016X", node.getIeeeAddr()));
-            com.iris.agent.zigbee.process.ZBBootstrapper.dispatchNodeAdded(node.getIeeeAddr());
+            if (hadNoIdentity) {
+               logger.info("Late Basic cluster response for IEEE={}, re-dispatching add for driver re-match",
+                     String.format("%016X", node.getIeeeAddr()));
+               com.iris.agent.zigbee.process.ZBBootstrapper.redispatchNodeAdded(node.getIeeeAddr());
+            } else {
+               logger.debug("Dispatching add for IEEE={} (proactive Basic cluster response)",
+                     String.format("%016X", node.getIeeeAddr()));
+               com.iris.agent.zigbee.process.ZBBootstrapper.dispatchNodeAdded(node.getIeeeAddr());
+            }
          }
          return true;
       }

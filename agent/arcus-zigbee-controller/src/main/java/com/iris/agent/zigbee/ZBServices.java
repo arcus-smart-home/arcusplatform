@@ -21,6 +21,7 @@ package com.iris.agent.zigbee;
 
 import com.iris.agent.zigbee.ember.ZigbeeDriver;
 import com.iris.agent.zigbee.service.ZBOfflineService;
+import com.iris.agent.zigbee.service.ZBOtaService;
 
 public class ZBServices {
    public static final ZBServices INSTANCE = new ZBServices();
@@ -28,6 +29,7 @@ public class ZBServices {
    private ZBNetwork zbNetwork;
    private ZigbeeDriver driver;
    private ZBOfflineService zbOfflineService;
+   private ZBOtaService zbOtaService;
 
    private ZBServices() {}
 
@@ -51,5 +53,12 @@ public class ZBServices {
          zbOfflineService = new ZBOfflineService();
       }
       return zbOfflineService;
+   }
+
+   public ZBOtaService getOtaService() {
+      if (zbOtaService == null) {
+         zbOtaService = new ZBOtaService();
+      }
+      return zbOtaService;
    }
 }

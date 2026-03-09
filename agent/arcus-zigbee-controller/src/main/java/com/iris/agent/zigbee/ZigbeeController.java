@@ -121,6 +121,46 @@ public class ZigbeeController implements PortHandler, LifeCycleListener, ZBEvent
       driver = driverFactory.create();
       ZBBootstrapper.INSTANCE.bootstrap(driver);
       zbNetwork = ZBServices.INSTANCE.getNetwork();
+
+      // Wire OTA progress reporting
+      ZBServices.INSTANCE.getOtaService().setProgressCallback((ieeeAddr, status, percent) -> {
+         ZBNode node = zbNetwork.getNode(ieeeAddr);
+         if (node == null || port == null) return;
+
+         String arcusStatus;
+         switch (status) {
+            case OTA_TRANSFER_IN_PROGRESS:
+               arcusStatus = "INPROGRESS";
+               break;
+            case OTA_UPGRADE_COMPLETE:
+            case OTA_TRANSFER_COMPLETE:
+               arcusStatus = "COMPLETE";
+               break;
+            case OTA_UPGRADE_FAILED:
+            case OTA_CANCELLED:
+               arcusStatus = "FAILED";
+               break;
+            default:
+               arcusStatus = "INPROGRESS";
+               break;
+         }
+
+         ProtocolMessage pmsg = ProtocolMessage.buildProtocolMessage(
+               node.getProtocolAddress(), Address.broadcastAddress(),
+               ZigbeeProtocol.INSTANCE,
+               ZigbeeProtocol.packageMessage(
+                     com.iris.protocol.zigbee.msg.ZigbeeMessage.Control.builder()
+                           .setPayload(com.iris.io.json.JSON.createSerializer(MessageBody.class)
+                                 .serialize(com.iris.messages.capability.DeviceOtaCapability.FirmwareUpdateProgressEvent.builder()
+                                       .withDlProgress((double) percent)
+                                       .withOtaProgress((double) percent)
+                                       .withStatus(arcusStatus)
+                                       .build()))
+                           .create()))
+               .withReflexVersion(HubReflexVersions.CURRENT)
+               .create();
+         port.send(pmsg);
+      });
    }
 
    @PreDestroy
@@ -252,6 +292,9 @@ public class ZigbeeController implements PortHandler, LifeCycleListener, ZBEvent
          // Stop pairing/removal if active
          ZBPairing.INSTANCE.stopPairing();
          ZBPairing.INSTANCE.stopRemoval();
+
+         // Cancel any active OTA upgrades
+         ZBServices.INSTANCE.getOtaService().reset();
 
          // Clear all bootstrapper discovery state and message translator state
          ZBBootstrapper.reset();

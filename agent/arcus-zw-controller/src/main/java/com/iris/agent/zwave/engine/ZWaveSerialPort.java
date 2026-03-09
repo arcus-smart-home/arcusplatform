@@ -15,6 +15,9 @@
  */
 package com.iris.agent.zwave.engine;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -22,27 +25,19 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.iris.agent.os.serial.UartAddress;
-import com.iris.agent.os.serial.UartChannelConfig;
-import com.iris.agent.os.serial.UartChannelOption;
-import com.iris.agent.os.serial.UartOioChannel;
-
-import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.oio.OioEventLoopGroup;
-import io.netty.handler.codec.ByteToMessageDecoder;
+import com.iris.agent.os.serial.UartNative;
 
 /**
  * Manages the serial port connection to the Z-Wave controller chip.
- * Uses the existing arcus-os UartOioChannel for Netty-based serial I/O.
  *
- * Inbound frames and single-byte signals (ACK/NAK/CAN) are placed into
- * a blocking queue for the engine to consume.
+ * Uses direct blocking I/O via UartNative, following the same pattern as
+ * NativeZigBeePort in the ZigBee controller.  Streams are obtained via
+ * FileInputStream/FileOutputStream on the raw FileDescriptor to avoid
+ * InterruptibleChannel issues (FileChannel's ClosedByInterruptException
+ * permanently kills the channel if any thread is interrupted).
+ *
+ * A dedicated reader thread decodes Z-Wave serial frames and places
+ * them into a blocking queue for the engine to consume.
  */
 public class ZWaveSerialPort {
    private static final Logger logger = LoggerFactory.getLogger(ZWaveSerialPort.class);
@@ -50,70 +45,87 @@ public class ZWaveSerialPort {
    private final String portPath;
    private final BlockingQueue<Object> inboundQueue = new LinkedBlockingQueue<>();
 
-   private OioEventLoopGroup eventLoopGroup;
-   private Channel channel;
+   private volatile UartNative.SerialPort serialPort;
+   private volatile InputStream inputStream;
+   private volatile OutputStream outputStream;
+   private volatile boolean open;
+   private Thread readerThread;
 
    public ZWaveSerialPort(String portPath) {
       this.portPath = portPath;
    }
 
    /**
-    * Open the serial port and start reading frames.
+    * Open the serial port and start the reader thread.
     */
    public void open() throws Exception {
       logger.info("Opening Z-Wave serial port: {}", portPath);
-      eventLoopGroup = new OioEventLoopGroup();
 
-      Bootstrap bootstrap = new Bootstrap();
-      bootstrap.group(eventLoopGroup)
-         .channel(UartOioChannel.class)
-         .option(UartChannelOption.BAUDRATE, ZWaveSerialConstants.ZWAVE_BAUD_RATE)
-         .option(UartChannelOption.DATABITS, UartChannelConfig.DataBits.DATABITS_8)
-         .option(UartChannelOption.STOPBITS, UartChannelConfig.StopBits.STOPBITS_1)
-         .option(UartChannelOption.PARITYBIT, UartChannelConfig.ParityBit.PARITY_NONE)
-         .option(UartChannelOption.FLOWCONTROL, UartChannelConfig.FlowControl.FLOW_NONE)
-         .handler(new ChannelInitializer<UartOioChannel>() {
-            @Override
-            protected void initChannel(UartOioChannel ch) {
-               ch.pipeline().addLast(new ZWaveFrameDecoder());
-               ch.pipeline().addLast(new ZWaveFrameHandler());
-            }
-         });
+      UartNative.SerialPort sp = UartNative.create(portPath);
+      sp.setBaudRate(ZWaveSerialConstants.ZWAVE_BAUD_RATE);
+      sp.setDataBits(UartNative.DataBits.DATA8);
+      sp.setStopBits(UartNative.StopBits.STOP1);
+      sp.setParityBit(UartNative.ParityBit.NONE);
+      sp.setFlowControl(UartNative.FlowControl.NONE);
+      // VMIN=1, VTIME=0: read() blocks until at least 1 byte arrives.
+      // This matches the ZigBee NativeZigBeePort configuration and avoids
+      // the 0-byte timeout reads that corrupt framing.
+      sp.setVMin(1);
+      sp.setVTime(0);
+      sp.open();
 
-      ChannelFuture future = bootstrap.connect(new UartAddress(portPath)).sync();
-      channel = future.channel();
-      logger.info("Z-Wave serial port opened successfully");
+      serialPort = sp;
+      inputStream = sp.getInputStream();
+      outputStream = sp.getOutputStream();
+      open = true;
+
+      readerThread = new Thread(this::readLoop, "zwave-serial-port-reader");
+      readerThread.setDaemon(true);
+      readerThread.start();
+
+      logger.info("Z-Wave serial port opened successfully (fd={})", sp.getFd());
    }
 
    /**
     * Close the serial port.
     */
    public void close() {
+      if (!open) {
+         return;
+      }
       logger.info("Closing Z-Wave serial port");
-      if (channel != null) {
+      open = false;
+
+      // Close only the underlying serial port — it owns the FD.
+      // Don't close the streams separately since they share the same FD.
+      UartNative.SerialPort sp = serialPort;
+      if (sp != null) {
          try {
-            channel.close().sync();
-         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            sp.close();
+         } catch (IOException e) {
+            logger.warn("Error closing serial port: {}", e.getMessage());
          }
-         channel = null;
       }
-      if (eventLoopGroup != null) {
-         eventLoopGroup.shutdownGracefully();
-         eventLoopGroup = null;
-      }
+
+      serialPort = null;
+      inputStream = null;
+      outputStream = null;
    }
 
    /**
     * Send raw bytes to the serial port.
     */
-   public void write(byte[] data) {
-      if (channel != null && channel.isActive()) {
-         ByteBuf buf = channel.alloc().buffer(data.length);
-         buf.writeBytes(data);
-         channel.writeAndFlush(buf);
-      } else {
-         logger.warn("Cannot write to serial port - channel not active");
+   public synchronized void write(byte[] data) {
+      OutputStream os = outputStream;
+      if (!open || os == null) {
+         logger.warn("Cannot write to serial port - not open");
+         return;
+      }
+      try {
+         os.write(data);
+         os.flush();
+      } catch (IOException e) {
+         logger.error("Z-Wave serial write failed ({}: {})", e.getClass().getSimpleName(), e.getMessage(), e);
       }
    }
 
@@ -154,78 +166,117 @@ public class ZWaveSerialPort {
    }
 
    public boolean isOpen() {
-      return channel != null && channel.isActive();
+      return open;
    }
 
    /**
-    * Netty decoder that parses the Z-Wave serial framing protocol.
-    * Handles SOF frames and single-byte signals (ACK/NAK/CAN).
+    * Reader thread that continuously reads from the serial port input
+    * stream and decodes Z-Wave frames.  With VMIN=1/VTIME=0, read()
+    * blocks until at least one byte arrives.
     */
-   private class ZWaveFrameDecoder extends ByteToMessageDecoder {
-      @Override
-      protected void decode(ChannelHandlerContext ctx, ByteBuf in, java.util.List<Object> out) {
-         while (in.isReadable()) {
-            in.markReaderIndex();
-            byte first = in.readByte();
+   private void readLoop() {
+      logger.debug("Z-Wave serial port reader started");
+      byte[] buf = new byte[256];
+      byte[] frameBuf = new byte[512];
+      int framePos = 0;
 
-            switch (first) {
-               case ZWaveSerialConstants.ACK:
-               case ZWaveSerialConstants.NAK:
-               case ZWaveSerialConstants.CAN:
-                  out.add(Byte.valueOf(first));
-                  break;
+      while (open) {
+         try {
+            InputStream is = inputStream;
+            if (is == null) break;
 
-               case ZWaveSerialConstants.SOF:
-                  if (!in.isReadable()) {
-                     in.resetReaderIndex();
-                     return;
-                  }
-                  int frameLen = 0xFF & in.readByte();
-                  if (frameLen < 3) {
-                     // Invalid, discard
-                     logger.warn("Invalid Z-Wave frame length: {}", frameLen);
-                     break;
-                  }
-                  // Need frameLen - 1 more bytes (we already read the length byte)
-                  if (in.readableBytes() < frameLen - 1) {
-                     in.resetReaderIndex();
-                     return;
-                  }
-                  // Read the entire frame including SOF and length for parsing
-                  byte[] raw = new byte[frameLen + 2]; // SOF + length + frame content
-                  raw[0] = ZWaveSerialConstants.SOF;
-                  raw[1] = (byte) frameLen;
-                  in.readBytes(raw, 2, frameLen);
-
-                  ZWaveSerialFrame frame = ZWaveSerialFrame.parse(raw, 0, raw.length);
-                  if (frame != null) {
-                     out.add(frame);
-                  } else {
-                     logger.warn("Failed to parse Z-Wave frame, bad checksum");
-                  }
-                  break;
-
-               default:
-                  // Unexpected byte, discard
-                  logger.debug("Discarding unexpected byte: 0x{}", String.format("%02X", 0xFF & first));
-                  break;
+            int n = is.read(buf);
+            if (n < 0) {
+               if (open) {
+                  logger.warn("Z-Wave serial port returned EOF");
+               }
+               break;
             }
+            if (n == 0) {
+               continue;
+            }
+
+            // Append to frame buffer
+            for (int i = 0; i < n; i++) {
+               if (framePos >= frameBuf.length) {
+                  logger.warn("Z-Wave frame buffer overflow, discarding {} bytes", framePos);
+                  framePos = 0;
+               }
+               frameBuf[framePos++] = buf[i];
+            }
+
+            // Decode complete frames from the buffer
+            framePos = decodeFrames(frameBuf, framePos);
+
+         } catch (IOException e) {
+            if (open) {
+               logger.error("Z-Wave serial port read error ({}: {})",
+                     e.getClass().getSimpleName(), e.getMessage(), e);
+            }
+            break;
          }
       }
+      logger.debug("Z-Wave serial port reader stopped");
    }
 
    /**
-    * Netty handler that receives decoded frames and signals and queues them.
+    * Decode complete frames from the buffer. Returns the number of
+    * unconsumed bytes remaining (shifted to the start of the buffer).
     */
-   private class ZWaveFrameHandler extends SimpleChannelInboundHandler<Object> {
-      @Override
-      protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
-         inboundQueue.offer(msg);
+   private int decodeFrames(byte[] buf, int len) {
+      int pos = 0;
+
+      while (pos < len) {
+         byte b = buf[pos];
+
+         switch (b) {
+            case ZWaveSerialConstants.ACK:
+            case ZWaveSerialConstants.NAK:
+            case ZWaveSerialConstants.CAN:
+               inboundQueue.offer(Byte.valueOf(b));
+               pos++;
+               break;
+
+            case ZWaveSerialConstants.SOF:
+               if (pos + 1 >= len) {
+                  shift(buf, pos, len);
+                  return len - pos;
+               }
+               int frameLen = 0xFF & buf[pos + 1];
+               if (frameLen < 3) {
+                  logger.warn("Invalid Z-Wave frame length: {}", frameLen);
+                  pos += 2;
+                  break;
+               }
+               int totalLen = frameLen + 2; // SOF + length byte + frame content
+               if (pos + totalLen > len) {
+                  shift(buf, pos, len);
+                  return len - pos;
+               }
+               byte[] raw = new byte[totalLen];
+               System.arraycopy(buf, pos, raw, 0, totalLen);
+               ZWaveSerialFrame frame = ZWaveSerialFrame.parse(raw, 0, raw.length);
+               if (frame != null) {
+                  inboundQueue.offer(frame);
+               } else {
+                  logger.warn("Failed to parse Z-Wave frame, bad checksum");
+               }
+               pos += totalLen;
+               break;
+
+            default:
+               logger.debug("Discarding unexpected byte: 0x{}", String.format("%02X", 0xFF & b));
+               pos++;
+               break;
+         }
       }
 
-      @Override
-      public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-         logger.error("Error in Z-Wave serial handler", cause);
+      return 0;
+   }
+
+   private static void shift(byte[] buf, int from, int len) {
+      if (from > 0 && from < len) {
+         System.arraycopy(buf, from, buf, 0, len - from);
       }
    }
 }

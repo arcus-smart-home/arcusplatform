@@ -1,13 +1,14 @@
 repositories {
-   repositories { 
-
-      // maven central alternative
+   repositories {
       maven {
-         url 'https://jitpack.io'
+         url "https://plugins.gradle.org/m2/"
       }
 
       maven {
-         url "https://plugins.gradle.org/m2/"
+         url 'https://jitpack.io'
+         content {
+            includeGroupByRegex 'com\\.github\\..*'
+         }
       }
    }
 }
@@ -16,7 +17,7 @@ dependencies {
    // micro-benchmarks
    classpath "me.champeau.jmh:jmh-gradle-plugin:0.6.8"
    // reflex-generator
-   classpath "com.github.jengelman.gradle.plugins:shadow:5.1.0"
+   classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
    // cucumber
    classpath "com.github.samueltbrown:gradle-cucumber-plugin:0.9"
    

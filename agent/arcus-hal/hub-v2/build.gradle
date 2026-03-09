@@ -50,6 +50,41 @@ task('run-hub-v2', type:JavaExec) {
    jvmArgs "-Dlogback.configurationFile=${rootDir}/agent/arcus-agent/src/dist/main/conf/logback.xml"
 }
 
+// Cross-compile Netty ARM32 native libraries (epoll + tcnative).
+// Not part of the normal build — run explicitly when bumping Netty or tcnative versions.
+// Requires: docker with linux/arm/v7 platform support (e.g. via QEMU binfmt_misc).
+task buildNettyArm32(type: Exec) {
+   group 'Build'
+   description 'Cross-compile Netty ARM32 native libraries via Docker'
+
+   def dockerDir = file('docker')
+   def outputDir = file("${buildDir}/netty-arm32")
+   def libDir = file('src/dist/main/lib')
+   def epollJar = file("${rootDir}/libs/netty-transport-native-epoll-${netty_override_version}-linux-arm_32.jar")
+
+   inputs.file("${dockerDir}/Dockerfile.netty-arm32")
+   outputs.file(epollJar)
+   outputs.file("${libDir}/libnetty_tcnative_linux_arm_32.so")
+
+   doFirst {
+      outputDir.mkdirs()
+   }
+
+   def dockerCacheFlag = project.hasProperty('no_docker_cache') ? '--no-cache' : ''
+
+   commandLine 'bash', '-c', """
+      docker build ${dockerCacheFlag} --platform linux/arm/v7 -f ${dockerDir}/Dockerfile.netty-arm32 -t netty-arm32 ${dockerDir} && \
+      docker rm netty-out 2>/dev/null; \
+      docker create --name netty-out netty-arm32 && \
+      docker cp netty-out:/output/. ${outputDir} && \
+      docker rm netty-out && \
+      cp ${outputDir}/libnetty_tcnative_linux_arm_32.so ${libDir}/ && \
+      mkdir -p ${outputDir}/META-INF/native && \
+      cp ${outputDir}/libnetty_transport_native_epoll_arm_32.so ${outputDir}/META-INF/native/ && \
+      jar cf ${epollJar} -C ${outputDir} META-INF/
+   """.stripIndent().trim()
+}
+
 jar {
    manifest {
       attributes(

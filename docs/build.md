@@ -338,6 +338,33 @@ The iris2 jars were compiled against Netty 4.0. The open-source agent uses Netty
 - **`UartOioChannel`** — Added `isInputShutdown()`/`shutdownInput()` required by Netty 4.1
 - **`com.netflix.governator.annotations.WarmUp`** — Stub annotation so `IrisLifecycleManager` can discover `@WarmUp` methods on iris2 classes (which reference Governator, not the Arcus replacement)
 
+### ARM32 Native Libraries
+
+The hub runs on ARM32 (ARMv7) hardware. Two Netty native libraries are cross-compiled for this platform:
+
+- **epoll** — Netty transport for efficient I/O (packaged as a jar in `libs/`)
+- **tcnative** — Netty SSL via BoringSSL (packaged as a `.so` in `lib/`)
+
+Pre-built binaries are checked into the repo. To rebuild (e.g. after bumping Netty or tcnative versions):
+
+```bash
+./gradlew :agent:arcus-hal:arcus-hal-hub-v2:buildNettyArm32
+
+# Without Docker cache (clean rebuild):
+./gradlew :agent:arcus-hal:arcus-hal-hub-v2:buildNettyArm32 -Pno_docker_cache
+```
+
+This requires Docker with `linux/arm/v7` platform support (QEMU binfmt_misc). The task:
+1. Builds BoringSSL and the Netty JNI libraries in an ARM32 Debian container
+2. Packages the epoll `.so` into `libs/netty-transport-native-epoll-{version}-linux-arm_32.jar`
+3. Copies the tcnative `.so` to `agent/arcus-hal/hub-v2/src/dist/main/lib/`
+
+The Dockerfiles are in `agent/arcus-hal/hub-v2/docker/`:
+- `Dockerfile.netty-arm32` — BoringSSL static build (self-contained, no system OpenSSL dependency)
+- `Dockerfile.netty-arm32-openssl` — Dynamic linking against system OpenSSL
+
+**Note:** When building with `-Pexternal_jars_dir` (iris2 jars), the ARM32 epoll native jar is automatically excluded from the distribution. The iris2 zigbee controller's `EpollSerialTransport` is incompatible with Netty 4.1 epoll on UART file descriptors.
+
 ### Output Structure
 
 ```
@@ -345,15 +372,14 @@ arcus-agent-hub-v2-{VERSION}/
 ├── bin/iris-agent     # Startup script
 ├── conf/              # logback.xml, sounds/, voice/, agent.version
 ├── libs/              # JAR dependencies (+ patched netty-buffer)
-└── lib/               # Native libraries (.so files for JNA, tcnative)
+└── lib/               # Native libraries (.so files for tcnative, apr)
 ```
 
 ### Deploying to a Hub
 
 1. Copy the tarball to the hub and extract to `/data/agent/`
 2. Delete the CDS archive (caches old bytecode): `rm -f /data/agent/agent.jsa`
-3. Delete any stale Netty 4.0 native jars: `rm -f /data/agent/libs/netty-transport-native-epoll-4.0*.jar`
-4. Restart the agent: `/etc/init.d/irisinitd restart`
+3. Restart the agent: `/etc/init.d/irisinitd restart`
 
 ### Simulated Mode
 

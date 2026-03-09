@@ -35,14 +35,19 @@ import com.iris.agent.config.ConversionService;
 import com.iris.agent.db.Db;
 import com.iris.agent.db.DbExtractor;
 import com.iris.agent.db.DbService;
+import com.iris.agent.zigbee.node.ZBAttribute;
+import com.iris.agent.zigbee.node.ZBCluster;
+import com.iris.agent.zigbee.node.ZBEndpoint;
 import com.iris.agent.zigbee.node.ZBNode;
+import com.iris.agent.zigbee.node.ZBProfile;
 
 public class ZBDao {
    private static final Logger logger = LoggerFactory.getLogger(ZBDao.class);
 
    private static final Object LOCK = new Object();
    private static final Map<String, String> config = Collections.synchronizedMap(new HashMap<>());
-   private static final Set<Long> knownNodes = new HashSet<>();
+   private static final Set<Long> knownNodes =
+         java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
    private static final String NODES_QUERY = "SELECT ieeeAddr, nwkAddr, parentAddr, state, " +
          "maximumIncomingTransferSize, maximumOutgoingTransferSize, nodeFlags, serverMask, " +
@@ -51,7 +56,7 @@ public class ZBDao {
 
    private static final String READ_NODE = NODES_QUERY + " WHERE ieeeAddr=?";
 
-   private static final String CREATE_NODE = "INSERT INTO zigbee_node(ieeeAddr, nwkAddr, parentAddr, state, " +
+   private static final String CREATE_NODE = "INSERT OR REPLACE INTO zigbee_node(ieeeAddr, nwkAddr, parentAddr, state, " +
          "maximumIncomingTransferSize, maximumOutgoingTransferSize, nodeFlags, serverMask, " +
          "manufacturerCode, descriptorCapability, maximumBufferSize, macCapabilityFlags, " +
          "powerDescriptor, deviceCapability, online, offlineTimeout) " +
@@ -64,6 +69,36 @@ public class ZBDao {
 
    private static final String DELETE_NODE = "DELETE FROM zigbee_node WHERE ieeeAddr=?";
    private static final String DELETE_ALL_NODES = "DELETE FROM zigbee_node";
+
+   // Profile queries
+   private static final String PROFILES_BY_NODE = "SELECT id, nodeId, profileId FROM zigbee_profile WHERE nodeId=?";
+   private static final String CREATE_PROFILE = "INSERT INTO zigbee_profile(nodeId, profileId) VALUES (?,?)";
+   private static final String DELETE_PROFILES_BY_NODE = "DELETE FROM zigbee_profile WHERE nodeId=?";
+   private static final String LAST_INSERT_ROWID = "SELECT last_insert_rowid()";
+
+   // Endpoint queries
+   private static final String ENDPOINTS_BY_PROFILE = "SELECT id, profileId, endpointId, deviceId, deviceVersion, " +
+         "zclVersion, appVersion, stkVersion, hwVersion, manufacturerName, modelIdentifier, dateCode, powerSource " +
+         "FROM zigbee_endpoint WHERE profileId=?";
+   private static final String CREATE_ENDPOINT = "INSERT INTO zigbee_endpoint(profileId, endpointId, deviceId, deviceVersion, " +
+         "zclVersion, appVersion, stkVersion, hwVersion, manufacturerName, modelIdentifier, dateCode, powerSource) " +
+         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+   private static final String UPDATE_ENDPOINT = "UPDATE zigbee_endpoint SET deviceId=?, deviceVersion=?, " +
+         "zclVersion=?, appVersion=?, stkVersion=?, hwVersion=?, manufacturerName=?, modelIdentifier=?, " +
+         "dateCode=?, powerSource=? WHERE id=?";
+
+   // Cluster queries
+   private static final String CLUSTERS_BY_ENDPOINT = "SELECT id, endpointId, clusterId, server FROM zigbee_cluster WHERE endpointId=?";
+   private static final String CREATE_CLUSTER = "INSERT INTO zigbee_cluster(endpointId, clusterId, server) VALUES (?,?,?)";
+   private static final String DELETE_CLUSTERS_BY_ENDPOINT = "DELETE FROM zigbee_cluster WHERE endpointId=?";
+
+   // Attribute queries
+   private static final String ATTRIBUTES_BY_CLUSTER = "SELECT id, clusterId, attributeId, attributeDt, attributeLastValue " +
+         "FROM zigbee_attribute WHERE clusterId=?";
+   private static final String CREATE_ATTRIBUTE = "INSERT INTO zigbee_attribute(clusterId, attributeId, attributeDt, attributeLastValue) " +
+         "VALUES (?,?,?,?)";
+   private static final String UPDATE_ATTRIBUTE = "UPDATE zigbee_attribute SET attributeDt=?, attributeLastValue=? WHERE id=?";
+   private static final String DELETE_ATTRIBUTES_BY_CLUSTER = "DELETE FROM zigbee_attribute WHERE clusterId=?";
 
    private static final String CHECK_CONFIG_TABLE = "SELECT name FROM sqlite_master WHERE type='table' and name='zigbee_config'";
    private static final String CONFIG_QUERY = "SELECT key, value FROM zigbee_config";
@@ -208,5 +243,89 @@ public class ZBDao {
    public static void deleteAllNodes() {
       knownNodes.clear();
       get().execute(DELETE_ALL_NODES);
+   }
+
+   // Profile persistence
+
+   public static List<ZBProfile> getProfilesByNode(long nodeId) {
+      return DbService.get().queryAll(PROFILES_BY_NODE, ZBBinders.LongBinder.INSTANCE,
+            nodeId, ZBExtractors.ProfileExtractor.INSTANCE);
+   }
+
+   public static long createProfile(ZBProfile profile) {
+      get().execute(CREATE_PROFILE, ZBBinders.CreateProfileBinder.INSTANCE, profile);
+      Long rowId = get().query(LAST_INSERT_ROWID, ZBExtractors.LongExtractor.INSTANCE);
+      if (rowId != null) {
+         profile.setId(rowId);
+      }
+      return rowId != null ? rowId : 0;
+   }
+
+   public static void deleteProfilesByNode(long nodeId) {
+      get().execute(DELETE_PROFILES_BY_NODE, ZBBinders.DeleteProfilesByNodeBinder.INSTANCE, nodeId);
+   }
+
+   // Endpoint persistence
+
+   public static List<ZBEndpoint> getEndpointsByProfile(long profileDbId) {
+      return DbService.get().queryAll(ENDPOINTS_BY_PROFILE, ZBBinders.LongBinder.INSTANCE,
+            profileDbId, ZBExtractors.EndpointExtractor.INSTANCE);
+   }
+
+   public static long createEndpoint(ZBEndpoint endpoint) {
+      get().execute(CREATE_ENDPOINT, ZBBinders.CreateEndpointBinder.INSTANCE, endpoint);
+      Long rowId = get().query(LAST_INSERT_ROWID, ZBExtractors.LongExtractor.INSTANCE);
+      if (rowId != null) {
+         endpoint.setId(rowId);
+      }
+      return rowId != null ? rowId : 0;
+   }
+
+   public static void updateEndpoint(ZBEndpoint endpoint) {
+      get().execute(UPDATE_ENDPOINT, ZBBinders.UpdateEndpointBinder.INSTANCE, endpoint);
+   }
+
+   // Cluster persistence
+
+   public static List<ZBCluster> getClustersByEndpoint(long endpointDbId) {
+      return DbService.get().queryAll(CLUSTERS_BY_ENDPOINT, ZBBinders.LongBinder.INSTANCE,
+            endpointDbId, ZBExtractors.ClusterExtractor.INSTANCE);
+   }
+
+   public static long createCluster(ZBCluster cluster) {
+      get().execute(CREATE_CLUSTER, ZBBinders.CreateClusterBinder.INSTANCE, cluster);
+      Long rowId = get().query(LAST_INSERT_ROWID, ZBExtractors.LongExtractor.INSTANCE);
+      if (rowId != null) {
+         cluster.setId(rowId);
+      }
+      return rowId != null ? rowId : 0;
+   }
+
+   public static void deleteClustersByEndpoint(long endpointDbId) {
+      get().execute(DELETE_CLUSTERS_BY_ENDPOINT, ZBBinders.DeleteClustersByEndpointBinder.INSTANCE, endpointDbId);
+   }
+
+   // Attribute persistence
+
+   public static List<ZBAttribute> getAttributesByCluster(long clusterDbId) {
+      return DbService.get().queryAll(ATTRIBUTES_BY_CLUSTER, ZBBinders.LongBinder.INSTANCE,
+            clusterDbId, ZBExtractors.AttributeExtractor.INSTANCE);
+   }
+
+   public static long createAttribute(ZBAttribute attribute) {
+      get().execute(CREATE_ATTRIBUTE, ZBBinders.CreateAttributeBinder.INSTANCE, attribute);
+      Long rowId = get().query(LAST_INSERT_ROWID, ZBExtractors.LongExtractor.INSTANCE);
+      if (rowId != null) {
+         attribute.setId(rowId);
+      }
+      return rowId != null ? rowId : 0;
+   }
+
+   public static void updateAttribute(ZBAttribute attribute) {
+      get().execute(UPDATE_ATTRIBUTE, ZBBinders.UpdateAttributeBinder.INSTANCE, attribute);
+   }
+
+   public static void deleteAttributesByCluster(long clusterDbId) {
+      get().execute(DELETE_ATTRIBUTES_BY_CLUSTER, ZBBinders.DeleteAttributesByClusterBinder.INSTANCE, clusterDbId);
    }
 }

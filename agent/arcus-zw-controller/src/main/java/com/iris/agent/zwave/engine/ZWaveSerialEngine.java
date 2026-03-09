@@ -87,20 +87,31 @@ public class ZWaveSerialEngine implements ZWaveEngine {
    public void bootstrap() {
       logger.info("Bootstrapping Z-Wave serial engine on port {}", portPath);
       try {
-         serialPort = new ZWaveSerialPort(portPath);
-         serialPort.open();
          running = true;
 
-         // Hardware reset the Z-Wave chip via GPIO to guarantee clean state
-         if (IrisHal.resetZWaveChip()) {
+         // Hardware reset the Z-Wave chip via GPIO BEFORE opening the serial
+         // port.  Opening first starts Netty's OIO read thread which hits I/O
+         // errors while the chip is resetting, killing the channel.
+         boolean gpioResetDone = IrisHal.resetZWaveChip();
+         if (gpioResetDone) {
             logger.info("Z-Wave chip hardware reset complete");
-         } else {
+            // Give the chip a moment to finish booting after reset
+            Thread.sleep(500);
+         }
+
+         serialPort = new ZWaveSerialPort(portPath);
+         serialPort.open();
+
+         if (!gpioResetDone) {
+            // GPIO reset wasn't available, fall back to serial soft reset
+            // now that the port is open.
             logger.warn("Z-Wave GPIO reset unavailable, falling back to serial soft reset");
             serialPort.writeByte(CAN);
             drainUntilQuiet();
             serialPort.write(ZWaveSerialFrame.request(FUNC_ID_SERIAL_API_SOFT_RESET).toBytes());
             Thread.sleep(1500);
          }
+
          drainUntilQuiet();
 
          // Bootstrap reads directly from serial port (no reader thread)

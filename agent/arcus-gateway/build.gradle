@@ -34,7 +34,7 @@ dependencies {
    implementation netty_common
    implementation netty_tcnative
    implementation netty_epoll
-   implementation name: 'netty-transport-native-epoll-4.0.41.Final-linux-armpoky21'
+   implementation name: 'netty-transport-native-epoll-4.1.60.Final-linux-arm_32'
 
    runtimeOnly libraries.javassist
 
