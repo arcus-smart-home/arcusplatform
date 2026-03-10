@@ -108,7 +108,7 @@ public class SelectNewPlacePrompt {
          gbc.anchor = GridBagConstraints.NORTHEAST;
          gbc.weighty = 1;
          gbc.weightx = 0;
-         panel.add(select, gbc.clone());
+         panel.add(logout, gbc.clone());
 
          return panel;
       }
