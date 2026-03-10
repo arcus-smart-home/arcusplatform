@@ -126,6 +126,7 @@ test {
     testLogging {
         events "STARTED", "PASSED", "FAILED", "SKIPPED"
     }
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 
 if ("${use_jacoco}" == "true") {

@@ -26,7 +26,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
       - name: Run tests
-        run: ./gradlew clean test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon
+        run: ./gradlew test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon --parallel --build-cache
 
   build-and-push-image:
     needs: tests
@@ -54,7 +54,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build jars
-        run: ./gradlew clean jar --no-daemon
+        run: ./gradlew jar --no-daemon --parallel --build-cache
 
       - name: Build and push containers
         run: bash khakis/bin/release.sh
