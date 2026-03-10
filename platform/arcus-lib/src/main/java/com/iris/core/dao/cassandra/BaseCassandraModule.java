@@ -101,7 +101,8 @@ public abstract class BaseCassandraModule extends AbstractModule {
         String defaultKeyspace = (name != null) ? name : CassandraConstants.CASSANDRA_KEYSPACE_DEFAULT;
         this.keyspace = getConfig(propKeyspace, String.class, defaultKeyspace);
 
-        LOGGER.info("Establishing Cassandra connection at {} for keyspace {}", contactPoints, keyspace);
+        LOGGER.info("Establishing Cassandra connection at {} for keyspace {} with local datacenter {}",
+              contactPoints, keyspace, getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT));
         if (StringUtils.isBlank(contactPoints)) {
             throw new RuntimeException("Unable to configure Cassandra cluster, please specify the cassandra.contactPoints configuration");
         }
