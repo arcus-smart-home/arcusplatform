@@ -18,6 +18,7 @@
  */
 package com.iris.platform.subsystem.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,8 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
    private final PlaceContext rootContext;
    private final SingleThreadDispatcher<AddressableEvent> dispatcher;
    private final ConcurrentMap<Address, SubsystemAndContext<?>> subsystems;
+   private volatile boolean dispatching = false;
+   private List<AddressableEvent> pendingModelEvents = null;
    
    /**
     * 
@@ -114,7 +117,18 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
       
       // these change events skip the queue, so that the store is still in sync with when
       // the event was received
-      context.models().addListener((event) -> accept(event));
+      context.models().addListener((event) -> {
+         if(dispatching) {
+            // already processing an event, accumulate for dispatch after the current event completes
+            if(pendingModelEvents == null) {
+               pendingModelEvents = new ArrayList<>();
+            }
+            pendingModelEvents.add(event);
+         }
+         else {
+            accept(event);
+         }
+      });
    }
 
    /**
@@ -269,7 +283,9 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
     */
    @Override
    public void accept(AddressableEvent event) {
+      boolean wasDispatching = dispatching;
       try(MdcContextReference context = MdcContext.captureMdcContext()) {
+         dispatching = true;
          bindPlaceToMdc();
          if(event instanceof MessageReceivedEvent) {
             MessageReceivedEvent mrevent = (MessageReceivedEvent)event;
@@ -304,6 +320,12 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
             dispatchToAllSubsystems(event);
          }
       }
+      finally {
+         if(!wasDispatching) {
+            drainPendingModelEvents();
+         }
+         dispatching = wasDispatching;
+      }
    }
 
    /* (non-Javadoc)
@@ -317,6 +339,21 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
             "]";
    }
    
+   private void drainPendingModelEvents() {
+      while(pendingModelEvents != null && !pendingModelEvents.isEmpty()) {
+         List<AddressableEvent> batch = pendingModelEvents;
+         pendingModelEvents = null;
+         for(AddressableEvent event : batch) {
+            try {
+               accept(event);
+            }
+            catch(Exception e) {
+               context().logger().warn("Error dispatching pending model event [{}]", event, e);
+            }
+         }
+      }
+   }
+
    protected void commitAllSubsystems(){
       for(SubsystemAndContext<?>subsystem:subsystems.values()){
          try{

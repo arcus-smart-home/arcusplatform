@@ -22,6 +22,9 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
@@ -42,6 +45,8 @@ import com.iris.prodcat.ProductCatalogManager;
 
 @Singleton
 public class DeviceLowBatteryGenerator extends AlertGenerator {
+
+   private static final Logger logger = LoggerFactory.getLogger(DeviceLowBatteryGenerator.class);
 
    private final static Set<String> INTERESTING_ATTRS = ImmutableSet.of(
       PlaceMonitorSubsystemCapability.ATTR_LOWBATTERYNOTIFICATIONSENT
@@ -94,11 +99,16 @@ public class DeviceLowBatteryGenerator extends AlertGenerator {
 
    private Map<String, Object> generateAttributes(Model model) {
       ProductCatalogEntry entry = prodCat.getCatalog(Population.NAME_GENERAL).getProductById(DeviceModel.getProductId(model));
-      return ImmutableMap.<String, Object>builder()
-         .putAll(SmartHomeAlerts.baseDeviceAttribues(model, prodCat))
-         .put(CONTEXT_ATTR_BATTERYTYPE, entry.getBatteryPrimSize().name())
-         .put(CONTEXT_ATTR_BATTERYNUMBER, entry.getBatteryPrimNum())
-         .build();
+      ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
+         .putAll(SmartHomeAlerts.baseDeviceAttribues(model, prodCat));
+      if(entry != null && entry.getBatteryPrimSize() != null) {
+         builder.put(CONTEXT_ATTR_BATTERYTYPE, entry.getBatteryPrimSize().name());
+         builder.put(CONTEXT_ATTR_BATTERYNUMBER, entry.getBatteryPrimNum());
+      } else if(entry == null) {
+         logger.warn("no product catalog entry for device [{}], omitting battery attributes from alert", DeviceModel.getProductId(model));
+      } else {
+         logger.warn("no battery info in product catalog for device [{}], omitting battery attributes from alert", DeviceModel.getProductId(model));
+      }
+      return builder.build();
    }
 }
-

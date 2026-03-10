@@ -164,6 +164,10 @@ public class HubEventListener
       if(hubBridge == null) {
          // this is the version sent by the hub with all the attributes
          Hub hub = hubDao.findById(hubAddress.getHubId());
+         if(hub == null) {
+            logger.warn("Received connected event for unknown hub [{}], ignoring", hubAddress.getHubId());
+            return;
+         }
 
          if(!devicesInSync(hub,value)){
             sendMessage(buildGetKnownDevicesRequest(hub));

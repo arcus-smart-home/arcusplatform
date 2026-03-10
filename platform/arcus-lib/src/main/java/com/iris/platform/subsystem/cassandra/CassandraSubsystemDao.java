@@ -218,8 +218,8 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
          // we are inserting the entire state of the current model entity.
          session().execute(
             upsert.bind(
-               modified,
-               modified,
+               modified.toInstant(),
+               modified.toInstant(),
                encode(model.toMap()),
                (UUID) model.getAddress().getId(),
                (String) model.getAddress().getGroup()

@@ -426,7 +426,7 @@ public class PlatformSubsystemContext<M extends SubsystemModel>
          }
 
          failedToSave.putAll(changes);
-         throw th;
+         logger().warn("Failed to persist subsystem state, will retry on next commit", th);
       }
    }
    

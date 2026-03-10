@@ -282,8 +282,13 @@ public class PlatformDriverExecutorRegistry implements DriverExecutorRegistry {
 
    protected void onExecutorEvicted(DriverExecutor consumer) {
       logger.debug("Message consumer cache entry expired: [{}]", consumer);
-      DeviceProtocolAddress protocolAddress =  (DeviceProtocolAddress) consumer.context().getProtocolAddress();
-      protocolToDriverCache.invalidate(protocolAddress);
+      Address protocolAddress = consumer.context().getProtocolAddress();
+      if(protocolAddress instanceof DeviceProtocolAddress) {
+         protocolToDriverCache.invalidate(protocolAddress);
+      }
+      else {
+         logger.debug("Skipping protocol cache cleanup for non-protocol address: [{}]", protocolAddress);
+      }
       scheduler.scheduleDelayed(consumer::stop, 0, TimeUnit.MILLISECONDS);
    }
    
