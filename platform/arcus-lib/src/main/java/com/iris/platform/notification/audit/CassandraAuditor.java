@@ -16,7 +16,6 @@
 package com.iris.platform.notification.audit;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -123,10 +122,10 @@ public class CassandraAuditor implements NotificationAuditor {
 
     private void upsert (String id, Instant rxTimestamp, String eventLog) {
         BoundStatement statement = upsert.bind(
-                Date.from(Instant.now()),		// Time the event is written to the log
+                Instant.now(),		         // Time the event is written to the log
                 eventLog,						// Composite event log message (state, notification, error message, etc.)
                 id,                       // Notification id that event belongs to (i.e., person:<uuid>, place:<uuid>)
-                Date.from(rxTimestamp)
+                rxTimestamp
                 );
 
         Context timer = auditDbTimer.time();
