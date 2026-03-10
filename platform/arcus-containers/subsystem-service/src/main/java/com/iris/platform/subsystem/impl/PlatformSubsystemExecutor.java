@@ -18,6 +18,7 @@
  */
 package com.iris.platform.subsystem.impl;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
    private final SingleThreadDispatcher<AddressableEvent> dispatcher;
    private final ConcurrentMap<Address, SubsystemAndContext<?>> subsystems;
    private volatile boolean dispatching = false;
+   private List<AddressableEvent> pendingModelEvents = null;
    
    /**
     * 
@@ -117,8 +119,11 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
       // the event was received
       context.models().addListener((event) -> {
          if(dispatching) {
-            // already processing an event, queue the model change to avoid recursive dispatch
-            this.dispatcher.dispatchOrQueue(event);
+            // already processing an event, accumulate for dispatch after the current event completes
+            if(pendingModelEvents == null) {
+               pendingModelEvents = new ArrayList<>();
+            }
+            pendingModelEvents.add(event);
          }
          else {
             accept(event);
@@ -316,6 +321,9 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
          }
       }
       finally {
+         if(!wasDispatching) {
+            drainPendingModelEvents();
+         }
          dispatching = wasDispatching;
       }
    }
@@ -331,6 +339,21 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
             "]";
    }
    
+   private void drainPendingModelEvents() {
+      while(pendingModelEvents != null && !pendingModelEvents.isEmpty()) {
+         List<AddressableEvent> batch = pendingModelEvents;
+         pendingModelEvents = null;
+         for(AddressableEvent event : batch) {
+            try {
+               accept(event);
+            }
+            catch(Exception e) {
+               context().logger().warn("Error dispatching pending model event [{}]", event, e);
+            }
+         }
+      }
+   }
+
    protected void commitAllSubsystems(){
       for(SubsystemAndContext<?>subsystem:subsystems.values()){
          try{
