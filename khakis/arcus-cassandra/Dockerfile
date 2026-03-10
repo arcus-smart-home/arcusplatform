@@ -38,6 +38,10 @@ ADD logback.xml /opt/apache-cassandra-${CASSANDRA_VERSION}/conf/logback.xml
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
 
+# Create a logs directory that can be mounted as tmpfs
+RUN mkdir -p /var/log/cassandra && chown arcus:arcus /var/log/cassandra
+VOLUME /var/log/cassandra
+
 # Own the install and data dirs so we can run as non-root
 RUN chown -R arcus:arcus /opt/apache-cassandra-${CASSANDRA_VERSION} /data
 
