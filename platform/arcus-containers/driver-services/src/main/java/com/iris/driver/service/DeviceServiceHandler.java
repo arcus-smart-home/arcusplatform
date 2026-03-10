@@ -228,8 +228,12 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       Errors.assertPlaceMatches(msg, place);
 
       Hub hub = hubDao.findHubForPlace(place);
+      if(hub == null) {
+         logger.warn("No hub found for place [{}], cannot sync devices", place);
+         return Errors.notFound(Address.platformService(place.toString(), "place"));
+      }
       List<Device> devices = deviceDao.listDevicesByPlaceId(place, true);
-      
+
       try {
          String reportedDevices = com.iris.messages.service.DeviceService.SyncDevicesRequest.getDevices(request);
          Integer reflexVersion = com.iris.messages.service.DeviceService.SyncDevicesRequest.getReflexVersion(request);
@@ -303,8 +307,12 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       Errors.assertPlaceMatches(msg, place);
 
       Hub hub = hubDao.findHubForPlace(place);
+      if(hub == null) {
+         logger.warn("No hub found for place [{}], cannot sync degraded devices", place);
+         return;
+      }
       List<Device> devices = deviceDao.listDevicesByPlaceId(place, true);
-      
+
       try {
          String reportedDevices = com.iris.messages.service.DeviceService.DevicesDegradedEvent.getDevices(request);
          List<Map<String,Object>> reportedStates = decompress(reportedDevices, List.class);
