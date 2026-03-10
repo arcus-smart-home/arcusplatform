@@ -85,6 +85,7 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
    private final PlaceContext rootContext;
    private final SingleThreadDispatcher<AddressableEvent> dispatcher;
    private final ConcurrentMap<Address, SubsystemAndContext<?>> subsystems;
+   private volatile boolean dispatching = false;
    
    /**
     * 
@@ -114,7 +115,15 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
       
       // these change events skip the queue, so that the store is still in sync with when
       // the event was received
-      context.models().addListener((event) -> accept(event));
+      context.models().addListener((event) -> {
+         if(dispatching) {
+            // already processing an event, queue the model change to avoid recursive dispatch
+            this.dispatcher.dispatchOrQueue(event);
+         }
+         else {
+            accept(event);
+         }
+      });
    }
 
    /**
@@ -269,7 +278,9 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
     */
    @Override
    public void accept(AddressableEvent event) {
+      boolean wasDispatching = dispatching;
       try(MdcContextReference context = MdcContext.captureMdcContext()) {
+         dispatching = true;
          bindPlaceToMdc();
          if(event instanceof MessageReceivedEvent) {
             MessageReceivedEvent mrevent = (MessageReceivedEvent)event;
@@ -303,6 +314,9 @@ public class PlatformSubsystemExecutor implements Consumer<AddressableEvent>, Su
          else {
             dispatchToAllSubsystems(event);
          }
+      }
+      finally {
+         dispatching = wasDispatching;
       }
    }
 

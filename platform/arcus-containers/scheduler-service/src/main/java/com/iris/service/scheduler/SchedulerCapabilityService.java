@@ -41,6 +41,7 @@ import com.iris.messages.address.AddressMatchers;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.capability.SchedulerCapability;
+import com.iris.messages.address.PlatformServiceAddress;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.errors.NotFoundException;
@@ -305,12 +306,25 @@ public class SchedulerCapabilityService extends AbstractPlatformMessageListener 
    
    private SchedulerCapabilityDispatcher getExecutor(PlatformMessage message, String address) {
       UUID placeId = UUID.fromString(message.getPlaceId());
-      
-      // FIXME need a way to verify the thing being targetted is actually associated with the same place
-      
-      SchedulerCapabilityDispatcher executor = registry.loadOrCreateByAddress(placeId, Address.fromString(address));
+      Address target = Address.fromString(address);
+
+      assertTargetBelongsToPlace(placeId, target);
+
+      SchedulerCapabilityDispatcher executor = registry.loadOrCreateByAddress(placeId, target);
       Errors.assertPlaceMatches(message, SchedulerModel.getPlaceId(executor.getScheduler()));
       return executor;
+   }
+
+   private void assertTargetBelongsToPlace(UUID placeId, Address target) {
+      // Platform service addresses (scenes, subsystems) embed the place ID as the context ID
+      if(target instanceof PlatformServiceAddress) {
+         Object targetId = target.getId();
+         if(targetId instanceof UUID && !placeId.equals(targetId)) {
+            throw new ErrorEventException(Errors.invalidRequest(
+               "Target " + target.getRepresentation() + " does not belong to place " + placeId
+            ));
+         }
+      }
    }
    
 }

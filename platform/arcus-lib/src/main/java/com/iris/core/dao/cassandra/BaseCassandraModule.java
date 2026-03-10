@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.driver.api.core.type.codec.ExtraTypeCodecs;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
@@ -182,7 +183,8 @@ public abstract class BaseCassandraModule extends AbstractModule {
                 .addContactPoints(parseContactPointsWithPort(contactPoints, port))
                 .withLocalDatacenter(datacenter)
                 .withKeyspace(keyspace)
-                .withNodeStateListener(CassandraHealth.instance());
+                .withNodeStateListener(CassandraHealth.instance())
+                .addTypeCodecs(ExtraTypeCodecs.TIMESTAMP_MILLIS_SYSTEM);
 
         String username = CassandraUtils.getUsername(config, name);
         String password = CassandraUtils.getPassword(config, name);

@@ -154,6 +154,9 @@ public class PlatformSchedulerRegistry implements SchedulerRegistry {
    }
 
    private GeoLocation locationOf(Place place) {
+      if(place == null) {
+         return null;
+      }
       Double lat = place.getAddrLatitude();
       Double lon = place.getAddrLongitude();
       if(lat == null  || lon == null) {
