@@ -15,7 +15,10 @@
  */
 package com.iris.driver.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.easymock.EasyMock;
@@ -111,17 +114,33 @@ public class TestDeviceServiceLost extends IrisMockTestCase {
       device = getDevice(IpcdProtocol.NAME);
       device.setProtocolAddress("PROT:ZWAV:YWEK");
       device.setState(Device.STATE_TOMBSTONED);
-      expectFindByDeviceId();
+      // Use anyTimes() because the ForceRemoveRequest sent by start() for
+      // tombstoned devices is picked up by PlatformDriverService's listener
+      // on a background thread, which may re-load the device from the DAO
+      // if the executor cache has been invalidated by the time it runs.
+      EasyMock.expect(mockDeviceDao.findById(device.getId())).andReturn(device).anyTimes();
+      EasyMock.expect(mockDeviceDao.loadDriverState(device)).andReturn(state).anyTimes();
       // note state isn't updated in this case, because instead we just delete the whole thing
-      
+
       Device dev2=device.copy();
       mockDeviceDao.delete(dev2);
-      EasyMock.expectLastCall();
+      EasyMock.expectLastCall().atLeastOnce();
       replay();
-      
+
       deviceService.lostDevice(Address.fromString(device.getAddress()));
-      assertForceRemove(); // kind of weird, but anytime a tombstoned driver is loaded a ForceRemove is sent
-      assertDeleted(); // since it was already tombstoned this isn't necessary, but it doesn't hurt either
+
+      // Collect all messages from the bus. The ForceRemoveRequest sent by
+      // start() for tombstoned devices is picked up by PlatformDriverService's
+      // listener on a background thread, which asynchronously fires it through
+      // the driver executor. Depending on thread scheduling, an error response
+      // from the driver (which drops messages for tombstoned/deleted devices)
+      // may appear on the message queue between the ForceRemoveRequest and the
+      // Deleted event, causing non-deterministic ordering. Collect all messages
+      // and verify the expected ones are present rather than relying on strict
+      // order.
+      List<PlatformMessage> received = collectTombstonedMessages();
+      assertContainsMessageOfType(received, DeviceCapability.ForceRemoveRequest.NAME);
+      assertContainsDeletedEvent(received);
 
       verify();
    }
@@ -171,6 +190,53 @@ public class TestDeviceServiceLost extends IrisMockTestCase {
       assertEquals(Address.broadcastAddress(), message.getDestination());
       assertEquals(device.getAddress(), message.getSource().getRepresentation());
       assertEquals(Capability.EVENT_DELETED, message.getMessageType());
+   }
+
+   /**
+    * Collects messages from the platform bus until both expected messages
+    * (ForceRemoveRequest and Deleted event) have been found, or a timeout
+    * is reached. This avoids sensitivity to message ordering caused by
+    * async processing on background threads.
+    */
+   private List<PlatformMessage> collectTombstonedMessages() throws InterruptedException {
+      List<PlatformMessage> received = new ArrayList<>();
+      boolean foundForceRemove = false;
+      boolean foundDeleted = false;
+      long deadline = System.currentTimeMillis() + 10000; // 10 second overall deadline
+      while((!foundForceRemove || !foundDeleted) && System.currentTimeMillis() < deadline) {
+         long remaining = deadline - System.currentTimeMillis();
+         if(remaining <= 0) break;
+         PlatformMessage msg = messages.getMessageQueue().poll(remaining, TimeUnit.MILLISECONDS);
+         if(msg == null) break;
+         received.add(msg);
+         if(DeviceCapability.ForceRemoveRequest.NAME.equals(msg.getMessageType())) {
+            foundForceRemove = true;
+         }
+         if(Capability.EVENT_DELETED.equals(msg.getMessageType())) {
+            foundDeleted = true;
+         }
+      }
+      return received;
+   }
+
+   private void assertContainsMessageOfType(List<PlatformMessage> received, String messageType) {
+      for(PlatformMessage msg : received) {
+         if(messageType.equals(msg.getMessageType())) {
+            return;
+         }
+      }
+      fail("Expected message of type [" + messageType + "] but received: " + received);
+   }
+
+   private void assertContainsDeletedEvent(List<PlatformMessage> received) {
+      for(PlatformMessage msg : received) {
+         if(Capability.EVENT_DELETED.equals(msg.getMessageType())) {
+            assertEquals(Address.broadcastAddress(), msg.getDestination());
+            assertEquals(device.getAddress(), msg.getSource().getRepresentation());
+            return;
+         }
+      }
+      fail("Expected Deleted event but received: " + received);
    }
 
 }
