@@ -292,6 +292,35 @@ public class GroovyAttributeDefinition extends Closure<Object> {
       set(extractValue(value));
    }
 
+   // Groovy 3.0+ may dispatch `attr null` via Closure.call() rather than
+   // through GroovyCapabilityDefinition.invokeMethod(), depending on JDK
+   // version and indy mode.  Handle null args defensively here.
+   @Override
+   public Object call(Object arguments) {
+      if(arguments == null) {
+         doCall((Object) null);
+         return null;
+      }
+      return super.call(arguments);
+   }
+
+   @Override
+   public Object call(Object... args) {
+      if(args == null) {
+         doCall((Object) null);
+         return null;
+      }
+      return super.call(args);
+   }
+
+   // Groovy 3.0+ Parrot parser may interpret `attr [:]` as a subscript
+   // (getAt) rather than a method call.  Delegate to set() so that
+   // driver DSL lines like `DoorLock.slots [:]` keep working.
+   public Object getAt(Object key) {
+      set(extractValue(key));
+      return null;
+   }
+
    @Override
    public boolean isCase(Object o) {
       if(o == null) return false;

@@ -106,6 +106,12 @@ public class GroovyCapabilityDefinition extends GroovyObjectSupport {
    }
 
    protected void call(Closure<?> configClosure) {
+      if(configClosure == null) {
+         // Groovy 4.0 may dispatch `attr null` inside a capability block
+         // through call(null) on the GroovyCapabilityDefinition itself;
+         // ignore and let the attribute closure handle it.
+         return;
+      }
       if (binding instanceof DriverBinding) {
          ((DriverBinding)binding).getBuilder().addCapabilityDefinition(delegate);
          configClosure.setDelegate(this);
@@ -198,7 +204,10 @@ public class GroovyCapabilityDefinition extends GroovyObjectSupport {
    public Object invokeMethod(String name, Object arguments) {
       Object o = properties.get(name);
       if(o != null && o instanceof Closure<?>) {
-         return ((Closure<?>) o).call((Object[]) arguments);
+         if(arguments instanceof Object[]) {
+            return ((Closure<?>) o).call((Object[]) arguments);
+         }
+         return ((Closure<?>) o).call(arguments);
       }
       return super.invokeMethod(name, arguments);
    }
