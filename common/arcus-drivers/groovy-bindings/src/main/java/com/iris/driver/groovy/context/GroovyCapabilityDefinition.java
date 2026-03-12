@@ -105,12 +105,17 @@ public class GroovyCapabilityDefinition extends GroovyObjectSupport {
       this.binding = binding;
    }
 
-   protected void call(Closure<?> configClosure) {
-      if(configClosure == null) {
-         // Groovy 4.0 may dispatch `attr null` inside a capability block
-         // through call(null) on the GroovyCapabilityDefinition itself;
-         // ignore and let the attribute closure handle it.
-         return;
+   /**
+    * Thrown when Groovy 4's invokePropertyOrMissing incorrectly dispatches
+    * to this method with a non-Closure argument (e.g. null).  Caught by
+    * DriverScriptMetaClass and converted to MissingMethodException so
+    * the closure dispatch falls through to the delegate.
+    */
+   public static class MisdispatchException extends RuntimeException { }
+
+   public void call(Closure<?> configClosure) {
+      if (configClosure == null) {
+         throw new MisdispatchException();
       }
       if (binding instanceof DriverBinding) {
          ((DriverBinding)binding).getBuilder().addCapabilityDefinition(delegate);
