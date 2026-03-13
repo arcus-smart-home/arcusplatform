@@ -413,6 +413,7 @@ onZWaveMessage.sensor_multilevel.report {
 	}
 
 	if( 0x05 == sensor_type ) {
+		value = value / Math.pow(10,precision)
 		RelativeHumidity.humidity value
 	}
 }

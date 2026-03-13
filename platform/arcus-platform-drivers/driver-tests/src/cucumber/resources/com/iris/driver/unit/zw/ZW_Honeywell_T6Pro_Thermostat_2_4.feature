@@ -152,7 +152,6 @@ Feature: ZWave Honeywell T6 Pro Thermostat Driver Test
 		When the device response with sensor_multilevel report
 			# type 5 = humidity
 			And with parameter type 5
-			And with parameter type 1
 			# level 1 = prec:0, scale:0, size:1 byte
 			And with parameter level 1
 			And with parameter val1 50
@@ -160,7 +159,7 @@ Feature: ZWave Honeywell T6 Pro Thermostat Driver Test
 			And with parameter val3 0
 			And with parameter val4 0
 			And send to driver
-		Then the numeric capability temp:temperature should be within 1% of 50
+		Then the numeric capability humid:humidity should be within 1% of 50
 			And the driver should place a base:ValueChange message on the platform bus
 
 	Scenario Outline: Device reports an operating state value

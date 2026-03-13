@@ -150,6 +150,11 @@ onZWaveMessage.basic.report {
     handleMotionMsg message.command.get('value')
 }
 
+onZWaveMessage.basic.set {
+    log.trace "Basic Set: {}", message
+    handleMotionMsg message.command.get('value')
+}
+
 onZWaveMessage.sensor_binary.report {
     log.trace "Sensor Binary Report: {}", message
     handleMotionMsg message.command.get('value')
