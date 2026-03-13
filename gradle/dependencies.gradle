@@ -134,6 +134,7 @@ ext.libraries << [
 
 		prometheus_dropwizard: "io.prometheus:simpleclient_dropwizard:0.8.0",
 		prometheus_servlet: "io.prometheus:simpleclient_servlet:0.8.0",
+		prometheus_httpserver: "io.prometheus:simpleclient_httpserver:0.8.0",
 
 // misc dependencies
 		guava: "com.google.guava:guava:33.4.0-jre",
