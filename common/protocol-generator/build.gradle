@@ -27,10 +27,10 @@ configurations {
 }
 
 dependencies {
-    jaxb 'com.sun.xml.bind:jaxb-xjc:2.2.7-b41'
-    jaxb 'com.sun.xml.bind:jaxb-impl:2.2.7-b41'
-    jaxb 'javax.xml.bind:jaxb-api:2.2.7'
-    jaxb 'javax.activation:javax.activation-api:1.2.0'
+    jaxb libraries.jaxb_xjc
+    jaxb libraries.jaxb_impl
+    jaxb libraries.jaxb_api
+    jaxb libraries.javax_activation_api
 
     implementation libraries.jaxb_api
     implementation libraries.jaxb_impl
