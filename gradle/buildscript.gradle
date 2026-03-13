@@ -18,9 +18,6 @@ dependencies {
    classpath "me.champeau.jmh:jmh-gradle-plugin:0.6.8"
    // reflex-generator
    classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
-   // cucumber
-   classpath "com.github.samueltbrown:gradle-cucumber-plugin:0.9"
-   
    classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
    classpath "com.netflix.nebula:gradle-contacts-plugin:3.0.1"
    classpath "org.ajoberstar.grgit:grgit-gradle:4.1.1"

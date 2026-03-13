@@ -21,6 +21,7 @@ package com.iris.driver.groovy;
 import groovy.lang.Closure;
 import groovy.lang.MetaClassImpl;
 import groovy.lang.MetaMethod;
+import groovy.lang.MissingMethodException;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.ReadOnlyPropertyException;
 import groovy.lang.Script;
@@ -85,6 +86,13 @@ public class DriverScriptMetaClass extends MetaClassImpl {
       } catch (Exception e) {
          try {
             return super.invokeMethod(sender, object, methodName, originalArguments, isCallToSuper, fromInsideClass);
+         } catch (GroovyCapabilityDefinition.MisdispatchException mde) {
+            // Groovy 4's invokePropertyOrMissing resolved a lowercase attribute
+            // name (e.g. "temperature") to the capability bean property (via
+            // getTemperature()) and tried to call() it with a non-Closure arg.
+            // Convert to MissingMethodException so the closure dispatch falls
+            // through to the delegate where the attribute setter lives.
+            throw new MissingMethodException(methodName, sender, originalArguments, false);
          } catch (Exception e1) {
             throw e1;
          }

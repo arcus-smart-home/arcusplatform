@@ -87,15 +87,15 @@ public class DriverCompilationCustomizer extends CompilationCustomizer {
          if(classNode.getProperty(definition.getCapabilityName()) != null) {
             continue;
          }
-         
+
          if(!isDeviceCapability(definition)) {
             continue;
          }
-         
+
          String fieldName = definition.getNamespace();
          FieldNode field = classNode.addField(
                fieldName,
-               Modifier.PRIVATE | Modifier.FINAL, 
+               Modifier.PRIVATE | Modifier.FINAL,
                groovyCapabilityDefinition,
                new StaticMethodCallExpression(
                      new ClassNode(GroovyCapabilityDefinitionFactory.class),
@@ -106,8 +106,8 @@ public class DriverCompilationCustomizer extends CompilationCustomizer {
                      )
                )
          );
-         
-         
+
+
          classNode.addProperty(
                definition.getCapabilityName(),
                Modifier.PUBLIC | Modifier.FINAL,
@@ -118,7 +118,7 @@ public class DriverCompilationCustomizer extends CompilationCustomizer {
           );
       }
    }
-   
+
    private boolean isDeviceCapability(CapabilityDefinition capability) {
       if(Capability.NAME.equals(capability.getCapabilityName())) {
          return true;

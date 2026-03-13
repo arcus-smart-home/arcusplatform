@@ -105,7 +105,18 @@ public class GroovyCapabilityDefinition extends GroovyObjectSupport {
       this.binding = binding;
    }
 
-   protected void call(Closure<?> configClosure) {
+   /**
+    * Thrown when Groovy 4's invokePropertyOrMissing incorrectly dispatches
+    * to this method with a non-Closure argument (e.g. null).  Caught by
+    * DriverScriptMetaClass and converted to MissingMethodException so
+    * the closure dispatch falls through to the delegate.
+    */
+   public static class MisdispatchException extends RuntimeException { }
+
+   public void call(Closure<?> configClosure) {
+      if (configClosure == null) {
+         throw new MisdispatchException();
+      }
       if (binding instanceof DriverBinding) {
          ((DriverBinding)binding).getBuilder().addCapabilityDefinition(delegate);
          configClosure.setDelegate(this);
@@ -198,7 +209,10 @@ public class GroovyCapabilityDefinition extends GroovyObjectSupport {
    public Object invokeMethod(String name, Object arguments) {
       Object o = properties.get(name);
       if(o != null && o instanceof Closure<?>) {
-         return ((Closure<?>) o).call((Object[]) arguments);
+         if(arguments instanceof Object[]) {
+            return ((Closure<?>) o).call((Object[]) arguments);
+         }
+         return ((Closure<?>) o).call(arguments);
       }
       return super.invokeMethod(name, arguments);
    }

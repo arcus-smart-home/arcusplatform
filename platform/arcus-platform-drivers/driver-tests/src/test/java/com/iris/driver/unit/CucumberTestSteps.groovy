@@ -724,10 +724,10 @@ Then(~/^the (?:device|platform|driver) attribute (.+) should (?:change to|be|equ
  * 
  * STEP : ASSERT_CAPABILITY
  */
-Then(~/^the capability (.+):(.+) should be (.+)$/) { namespace, attributeName, String expectedValue ->	
+Then(~/^the capability (.+):(.+) should be (.+)$/) { namespace, attributeName, String expectedValue ->
 
 	def isInstance = attributeName.contains(".");
-	
+
 	def rawAttributeName = isInstance
 	? attributeName.substring(0, attributeName.lastIndexOf("."))
 	: attributeName
@@ -735,14 +735,14 @@ Then(~/^the capability (.+):(.+) should be (.+)$/) { namespace, attributeName, S
 	def key = null
 	if(isInstance) {
 		def instanceId = attributeName.substring(attributeName.lastIndexOf(".")+1)
-		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName && it.instance == instanceId}
+		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName && it.getInstance() == instanceId}
 	} else {
 		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName }
 	}
-	
+
 	context.deviceDriverContext.attributeKeys.find {
 		if(isInstance) {
-			return it.namespace == namespace && it.id == rawAttributeName && it.instance == rawAttributeName
+			return it.namespace == namespace && it.id == rawAttributeName && it.getInstance() == rawAttributeName
 		} else {
 			return it.namespace == namespace && it.id == rawAttributeName
 		}
@@ -791,14 +791,14 @@ Then(~/^the numeric capability (.+):(.+) should be within ([\d.]+)% of ([\d.]+)$
 	def key = null
 	if(isInstance) {
 		def instanceId = attributeName.substring(attributeName.lastIndexOf(".")+1)
-		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName && it.instance == instanceId}
+		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName && it.getInstance() == instanceId}
 	} else {
 		key = context.deviceDriverContext.attributeKeys.find { it.namespace == namespace && it.id == rawAttributeName }
 	}
 	
 	context.deviceDriverContext.attributeKeys.find {
 		if(isInstance) {
-			return it.namespace == namespace && it.id == rawAttributeName && it.instance == rawAttributeName
+			return it.namespace == namespace && it.id == rawAttributeName && it.getInstance() == rawAttributeName
 		} else {
 			return it.namespace == namespace && it.id == rawAttributeName
 		}
