@@ -67,9 +67,9 @@ ext.libraries << [
 		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.12.4",
 
 // Apache Lucene
-		luceneCore: "org.apache.lucene:lucene-core:5.4.0",
-		luceneAnalyzer: "org.apache.lucene:lucene-analyzers-common:5.4.0",
-		luceneParser: "org.apache.lucene:lucene-queryparser:5.4.0",
+		luceneCore: "org.apache.lucene:lucene-core:8.11.4",
+		luceneAnalyzer: "org.apache.lucene:lucene-analyzers-common:8.11.4",
+		luceneParser: "org.apache.lucene:lucene-queryparser:8.11.4",
 
 
 // Reactive
