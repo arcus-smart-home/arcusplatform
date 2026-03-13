@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 /**
- * Driver for a Zooz Zen 26 In-Wall Switch
+ * Driver for a Zooz ZEN26 In-Wall Switch
  *
  */
 
 driver          "ZWZoozZen26Driver"
-description     "Driver for a Zooz Zen26 In-Wall Switch"
+description     "Driver for a Zooz ZEN26 In-Wall Switch"
 version         "1.0"
 protocol        "ZWAV"
 deviceTypeHint  "Switch"
 productId       "acd43b"
 vendor          "Zooz"
-model           "Zen26"
+model           "ZEN26"
 
 matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa001
 
@@ -69,7 +69,7 @@ final byte CNFG_RESET_SIZE        = 0x81		// size field (actually flags indicati
 final byte CNFG_RESET_VALUE       = 0x00        // Not used by device
 final int  OFFLINE_TIMEOUT_SECS   = 1800 		// 30 min
 
-final String DEVICE_NAME = 'Zooz Zen 26 In-Wall Switch'
+final String DEVICE_NAME = 'Zooz ZEN26 In-Wall Switch'
 
 
 onAdded {
@@ -222,5 +222,11 @@ onZWaveMessage {
 onZWaveMessage.basic.report {
     byte currState = message.command.get('value')
     log.trace "Basic Report: {}", currState
+    GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, currState)
+}
+
+onZWaveMessage.basic.set {
+    byte currState = message.command.get('value')
+    log.trace "Basic Set: {}", currState
     GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, currState)
 }

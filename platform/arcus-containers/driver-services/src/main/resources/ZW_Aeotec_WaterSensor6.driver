@@ -1,0 +1,313 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Aeotec Water Sensor 6 (ZW122-A)
+ *
+ * The ZW122-A is a Z-Wave Plus water leak sensor with a rechargeable battery (USB charged),
+ * built-in buzzer, temperature sensor, and vibration/tilt detection.
+ *
+ * FACTORY RESET: Press and hold the Action button for 20 seconds until the LED starts a
+ *                fast blink, then release.
+ *
+ * PAIR:          Press the Action button once while hub is in "pairing" mode.
+ * UNPAIR:        Press the Action button once while hub is in "unpairing" mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x30   (48) Sensor_Binary
+ *   0x31   (49) Sensor_Multilevel
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification v4)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x98 (-104) Security
+ */
+import groovy.transform.Field
+
+driver          "ZWAeotecWaterSensor6Driver"
+description     "Driver for an Aeotec Water Sensor 6"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Water Leak"
+productId       "c9a122"
+vendor          "AEOTEC"
+model           "ZW122-A"
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as
+// a negative number (similar to codes greater than 0x7FFF)
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x007A
+matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0102, 'ZWAV:ProductId': 0x007A
+
+capabilities    DevicePower, LeakH2O, Temperature
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+LeakH2O.state                    LeakH2O.STATE_SAFE
+
+
+def final String DEVICE_NAME = "Aeotec Water Sensor 6"
+
+// Leak states
+@Field final byte SAFE          = 0x00
+@Field final byte LEAK_DETECTED = 0xFF
+
+final int OFFLINE_TIMEOUT_SECS       = 21600        // 360 minutes
+final int BATTERY_POLLING_SEC        = 86400        // Ask for battery level every 24 hours
+final int STATE_POLLING_INTERVAL_SEC = 3600         // Ask for current state every 60 minutes
+
+
+// Config Parameters
+// ------------------------------------------------------------------
+@Field def byte CNFG_SENSOR_REPORT_PARAM_NO       = 0x30       //  (48) Sensor Report - which sensors to report (bit 0=water, bit 1=vibration, bit 2=tilt)
+def byte CNFG_SENSOR_REPORT_SIZE                   = 0x01
+def byte CNFG_SENSOR_REPORT_VALUE                  = 0x01      //   (1) report water leak only
+
+@Field def byte CNFG_BUZZER_PARAM_NO               = 0x57       //  (87) Buzzer Triggers - which events activate buzzer
+def byte CNFG_BUZZER_SIZE                           = 0x01
+def byte CNFG_BUZZER_VALUE                          = 0x01      //   (1) buzzer on water leak
+
+@Field def byte CNFG_UNSOLICITED_RPT_PARAM_NO      = 0x65       // (101) Unsolicited Report - what to include (bit 0=battery, bit 1=temperature)
+def byte CNFG_UNSOLICITED_RPT_SIZE                  = 0x01
+def byte CNFG_UNSOLICITED_RPT_VALUE                 = 0x03      //   (3) report both battery and temperature
+
+@Field def byte CNFG_LOCK_PARAM_NO                  = 0xFC       // (252) Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} added", DEVICE_NAME
+
+    LeakH2O.statechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} connected", DEVICE_NAME
+
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    // read the current state
+    ZWave.basic.get()
+    ZWave.poll(STATE_POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // Make sure Configuration is Unlocked to allow changes
+    ZWave.configuration.set(CNFG_LOCK_PARAM_NO, (byte)0x01, (byte)0x00)
+
+    // configure sensor report (water leak only)
+    ZWave.configuration.set(CNFG_SENSOR_REPORT_PARAM_NO, CNFG_SENSOR_REPORT_SIZE, CNFG_SENSOR_REPORT_VALUE)
+
+    // configure buzzer to sound on water leak
+    ZWave.configuration.set(CNFG_BUZZER_PARAM_NO, CNFG_BUZZER_SIZE, CNFG_BUZZER_VALUE)
+
+    // configure unsolicited reports to include battery and temperature
+    ZWave.configuration.set(CNFG_UNSOLICITED_RPT_PARAM_NO, CNFG_UNSOLICITED_RPT_SIZE, CNFG_UNSOLICITED_RPT_VALUE)
+}
+
+onDisconnected {
+    log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+    log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Z-Wave protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(byte currentState) {
+    def prevState = LeakH2O.state.get()
+    if (SAFE == currentState) {
+        LeakH2O.state LeakH2O.STATE_SAFE
+        log.trace "Water: SAFE"
+    } else if (LEAK_DETECTED == currentState) {
+        LeakH2O.state LeakH2O.STATE_LEAK
+        log.trace "Water: LEAK DETECTED"
+    } else {
+        log.warn "Unexpected State value reported [expected 0(safe) or -1(leak)]: {}", currentState
+    }
+    if (LeakH2O.state.get() != prevState) {
+        LeakH2O.statechanged new Date()
+    }
+}
+
+onZWaveMessage.basic.report {
+    byte currState = message.command.get('value')
+    log.trace "Basic Report: {}", currState
+    handleStateMsg currState
+}
+
+onZWaveMessage.basic.set {
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Basic Set: {}", bytes[0]
+    handleStateMsg bytes[0]
+}
+
+onZWaveMessage.sensor_binary.report {
+    byte currState = message.command.get('value')
+    log.trace "Sensor Binary Report: {}", currState
+    handleStateMsg currState
+}
+
+onZWaveMessage.sensor_multilevel.report {
+    log.trace "Sensor MultiLevel Report: {}", message
+
+    def sensorType = message.command.get('type')
+    def level = message.command.get('level')
+
+    // Type 0x01 = Temperature
+    if ((1 == sensorType) && (null != level)) {
+        double dataSize      = (level & 0x07)
+        double dataScale     = (level & 0x18) >> 3        // 0 = Celsius, 1 = Fahrenheit
+        double dataPrecision = (level & 0xE0) >> 5
+        double dataValue     = 0
+        byte[] vals = new byte[4]
+        try {
+            if ( 1 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = 0
+                vals[3] = message.command.get('val1')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if ( 2 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = message.command.get('val1')
+                vals[3] = message.command.get('val2')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if ( 4 == dataSize ) {
+                vals[0] = message.command.get('val1')
+                vals[1] = message.command.get('val2')
+                vals[2] = message.command.get('val3')
+                vals[3] = message.command.get('val4')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            dataValue /= Math.pow(10, dataPrecision)
+
+            // convert to Celsius if reported in Fahrenheit
+            double tempC = dataValue
+            if (1 == dataScale) {
+                tempC = (dataValue - 32.0) * 5.0 / 9.0
+            }
+            log.trace "Temperature - size:{}, precision:{}, scale (0=C,1=F):{}, value:{}, tempC:{}", dataSize, dataPrecision, dataScale, dataValue, tempC
+            Temperature.temperature tempC
+        } catch (Exception e) {
+            log.info "Error parsing Temperature value: {}", e.getMessage()
+        }
+    }
+}
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    // Notification Type 0x05 = Water Alarm
+    if (5 == notificationType) {
+        // Event 0x02 = Water Leak Detected (location provided)
+        // Event 0x04 = Water Level Dropped
+        if (2 == event) {
+            handleStateMsg(LEAK_DETECTED)
+        }
+        // Event 0x00 = State Idle (leak cleared)
+        else if (0 == event) {
+            handleStateMsg(SAFE)
+        }
+    }
+    // Notification Type 0x07 = Home Security (Tamper)
+    else if (7 == notificationType) {
+        if (3 == event) {
+            log.warn "Notification: Tamper detected"
+        }
+    }
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}

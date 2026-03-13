@@ -26,7 +26,7 @@ vendor 			"GE"
 model 			"12726"
 productId		"b65108"
 matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F44, 'ZWAV:ProductId': 0x3031
-// samples?
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F44, 'ZWAV:ProductId': 0x3032
 matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x5042, 'ZWAV:ProductId': 0x4004
 
 capabilities	DevicePower, Switch, PowerUse

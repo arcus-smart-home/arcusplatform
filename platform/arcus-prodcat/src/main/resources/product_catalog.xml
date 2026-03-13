@@ -902,6 +902,33 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="t6pro1" name="T6 Pro Z-Wave Thermostat" shortname="Thermostat" screen="Thermostat" description="" manufacturer="Honeywell" installManualUrl="" vendor="Honeywell" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Honeywell, Resideo, indoor, thermostat, programmable, T6, Pro, climate, hvac, heater, air, conditioner, zwave, TH6320ZW" ota="" protofamily="Z-Wave" added="2026-03-03T00:00:00-0600" lastchanged="2026-03-03T00:00:00-0600">
+      <categories>
+        <category name="Climate"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Install the thermostat as described in the manufacturer's instructions and set the correct time and date."/>
+        <step2 type="text" img="" text="Press the MENU button on the thermostat. Use the arrow buttons to scroll to the ISU (Installer Setup) menu and press SELECT."/>
+        <step3 type="text" img="" text="Navigate to parameter 0900 (Z-Wave Include/Exclude). Set the value to 1 and press SELECT to put the thermostat into Z-Wave inclusion mode. The hub will beep when pairing is complete."/>
+        <step4 type="text" img="" text="To enable the 'Auto' thermostat setting, navigate to parameter 0300 in ISU and set the value to 1. Press DONE to exit the ISU menu."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the MENU button on the thermostat and navigate to the ISU (Installer Setup) menu."/>
+        <step2 type="text" img="" text="Navigate to parameter 0900 (Z-Wave Include/Exclude). Set the value to 1 and press SELECT to put the thermostat into Z-Wave exclusion mode."/>
+        <step3 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press the MENU button on the thermostat and navigate to the ISU (Installer Setup) menu."/>
+        <step2 type="text" img="" text="Navigate to parameter 0950 (Reset to Factory Defaults). Set the value to 1 and press SELECT."/>
+        <step3 type="text" img="" text="The thermostat will restart itself. This resets all settings including the Z-Wave configuration."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="a48ae6" name="Programmable Thermostat" shortname="Thermostat" screen="Thermostat" description="" manufacturer="Linear" installManualUrl="https://www.myprotectamerica.com/uploads/documents/GC-TBZ48-Install.pdf" vendor="GoControl" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/9tZgOjtAt8Q" batteryprimsize="AA" batteryprimnum="4" keywords="Iris, GoControl, indoor, thermostat, programmable, 7, day, climate, hvac, heater, air, conditioner, zwave, battery" ota="No" protofamily="Z-Wave" added="2015-06-29T22:56:59-0600" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Climate"/>
@@ -3042,6 +3069,54 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="c9a122" name="Water Sensor 6" shortname="Water Sensor" screen="Water Leak" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Aeotec,Aeon,Labs,zwave,water,moisture,leak,sensor,safety,alarm,battery,rechargeable,temperature,ZW122-A" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Water"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Press the Action button once. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the Action button once."/>
+        <step2 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the Action button for 20 seconds until the LED starts a fast blink, then release."/>
+        <step2 type="text" img="" text="Press the Action button once to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="b3a112" name="Door/Window Sensor 6" shortname="Door/Window Sensor" screen="Contact" description="" manufacturer="Aeon Labs" vendor="Aeotec by Aeon Labs" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Aeotec,Aeon,Labs,zwave,contact,door,window,sensor,security,alarm,battery,rechargeable,ZW112-A" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Doors &amp; Locks"/>
+        <category name="Care"/>
+        <category name="Windows &amp; Blinds"/>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Press the Action button once. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the Action button once."/>
+        <step2 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the Action button for 20 seconds and then release it."/>
+        <step2 type="text" img="" text="Press the Action button once to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="3e1751" name="A19 LED Light Bulb" shortname="Light Bulb" screen="Light" description="" manufacturer="Yankon" vendor="Utilitech" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="dimmable, 60, watt, a19, led, light, bulb" ota="Yes" protofamily="ZigBee" added="2016-04-15T11:31:30-0400" lastchanged="2016-04-15T11:31:30-0400">
       <categories>
         <category name="Lights &amp; Switches"/>
@@ -3728,6 +3803,22 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="4fcc24" name="Button" shortname="Button" screen="Button" description="" manufacturer="Samsung" vendor="SmartThings" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="samsung, smartthings, samjin, button, zigbee" ota="Yes" protofamily="ZigBee" added="2026-03-01T12:00:00-0500" lastchanged="2026-03-01T12:00:00-0500">
+      <categories>
+        <category name="Cameras &amp; Sensors"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Hold the button close to the hub, then press and hold the button for 5 seconds until the LED flashes. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="806362" name="Link A19 LED Light Bulb" shortname="Light Bulb" screen="Light" description="" manufacturer="GE" vendor="GE" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="ge, link, dimmable, white, 60, 12, watt, a19, led, light, bulb" ota="No" protofamily="ZigBee" added="2015-10-28T17:53:30-0600" lastchanged="2015-10-28T17:53:30-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
@@ -4131,6 +4222,54 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="4c7e29" name="Outdoor Motion Sensor" shortname="Outdoor Motion" screen="Motion" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="AA" batteryprimnum="3" keywords="zooz,outdoor,motion,sensor,security,battery,zwave,lux,illuminance,ZSE29" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert 3 AA batteries or connect the Micro USB cable. The LED indicator will start blinking."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row. The LED will flash 5 times and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row."/>
+        <step2 type="text" img="" text="The LED will flash 5 times and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds and release."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="a3e070" name="Outdoor Motion Sensor (ZSE70)" shortname="Outdoor Motion" screen="Motion" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="2" keywords="zooz,outdoor,motion,sensor,security,battery,zwave,lux,illuminance,temperature,ZSE70,800" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert 2 CR123A batteries or connect the external power supply. The LED indicator will start blinking."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row. The LED will flash 5 times and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row."/>
+        <step2 type="text" img="" text="The LED will flash 5 times and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds and release."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d4e156" name="Water Leak Sensor" shortname="Water Leak Sensor" screen="Water Leak" description="" manufacturer="Dome" vendor="Dome" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR14250" batteryprimnum="1" keywords="dome, safety, moisture, water, leak, sensor" ota="No" protofamily="Z-Wave" added="2017-04-24T07:50:30-0400" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Water"/>
@@ -4286,6 +4425,31 @@
       </pair>
       <reset>
         <step1 type="text" img="" text="Remove the cover of the sensor and remove the battery for 5 seconds. Replacing the battery will return the sensor to pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="a4e125" name="Z-Wave Plus Garage Door Tilt Sensor (TILT-ZWAVE2.5-ECO)" shortname="Tilt Sensor" screen="Tilt" description="" manufacturer="Ecolink" vendor="Ecolink" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="ecolink,tilt,garage,door,sensor,zwave,battery,security,alarm,TILT-ZWAVE2.5-ECO" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Doors &amp; Locks"/>
+        <category name="Care"/>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+        <category name="Garage Doors"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Slide open the tilt sensor's cover and insert a CR123A battery, or remove the plastic battery tab if a battery is already installed." showInstallManual="true"/>
+        <step2 type="text" img="" text="The LED will flash when the sensor enters pairing mode. The hub will beep when pairing is complete."/>
+        <step3 type="text" img="" text="Attach the tilt sensor mounting bracket to the inside top panel of your garage door using the included screws or adhesive tape, with the sensor oriented so the arrow points up."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="Press the pairing button on the sensor while the hub is in unpairing mode. The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Remove the battery from the sensor. Press and hold the pairing button, reinsert the battery while holding the button, then release the button after the LED blinks. The sensor will be reset to factory defaults."/>
       </reset>
       <populations>
         <population name="general"/>
@@ -5284,6 +5448,28 @@
       </removal>
       <reset>
         <step1 type="text" img="" text="Open the contact sensor's battery cover."/>
+        <step2 type="text" img="" text="Press the tamper switch once."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="f4e352" name="Motion Detector" shortname="Motion Detector" screen="Motion" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Ring, motion, sensor, detector, zwave" ota="" protofamily="Z-Wave" added="2026-03-02T00:00:00-0000" lastchanged="2026-03-02T00:00:00-0000">
+      <categories>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Open the motion sensor's battery cover."/>
+        <step2 type="text" img="" text="Remove the battery, replacing quickly."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Open the motion sensor's battery cover."/>
         <step2 type="text" img="" text="Press the tamper switch once."/>
       </reset>
       <populations>

@@ -1,0 +1,338 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZSE70 Outdoor Motion Sensor (800 Series)
+ *
+ * The ZSE70 is a 3-in-1 outdoor sensor (motion, temperature, lux) powered by
+ * 2x CR123A batteries or an external 12-24V AC/DC supply. It is the 800-series
+ * successor to the ZSE29 with added temperature sensing.
+ *
+ * FACTORY RESET:  Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds and release.
+ *
+ * PAIR/INCLUDE:   Click the Z-Wave button quickly 3 times in a row while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Click the Z-Wave button quickly 3 times in a row while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x22   (34) Application Status
+ *   0x31   (49) Sensor Multilevel (V11)
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration (V4)
+ *   0x71  (113) Notification (V8)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ *   0x8E (-114) Multi Channel Association
+ *   0x98 (-104) Security S0
+ *   0x9F  (-97) Security S2
+ */
+import groovy.transform.Field
+
+driver           "ZWZoozZse70OutdoorMotionSensorDriver"
+description      "Driver for a Zooz ZSE70 Outdoor Motion Sensor"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Motion"
+productId        "a3e070"
+vendor           "Zooz"
+model            "ZSE70"
+
+matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0004, 'ZWAV:ProductId': 0x0006
+
+
+capabilities     DevicePower, Motion, Temperature, Illuminance
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Motion.motion                    Motion.MOTION_NONE
+
+Illuminance.sensorType           Illuminance.SENSORTYPE_PHOTODIODE
+
+
+final String DEVICE_NAME        = "Zooz ZSE70 Outdoor Motion Sensor"
+
+final int POLLING_INTERVAL_SEC  = 3600      // every 60 minutes
+final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
+final int BATTERY_POLLING_SEC   = 86400     // Ask for battery level every 24 hours
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_MOTION_SENSITIVITY_PARAM_NO   = 1          // Motion sensitivity
+final byte CNFG_MOTION_SENSITIVITY_SIZE              = 1          // 0=disable, 1-8 (low to high), default=6
+final byte CNFG_MOTION_SENSITIVITY_VALUE             = 6
+
+@Field final byte CNFG_MOTION_CLEARED_TIME_PARAM_NO  = 2          // Motion cleared time delay
+final byte CNFG_MOTION_CLEARED_TIME_SIZE             = 2          // 10-3600 seconds, default=30
+final byte CNFG_MOTION_CLEARED_TIME_VALUE_1          = 0
+final byte CNFG_MOTION_CLEARED_TIME_VALUE_2          = 30
+
+@Field final byte CNFG_BASIC_SET_REPORTING_PARAM_NO  = 3          // Basic Set reporting
+final byte CNFG_BASIC_SET_REPORTING_SIZE             = 1          // 0-7, default=7
+final byte CNFG_BASIC_SET_REPORTING_VALUE            = 7
+
+@Field final byte CNFG_TEMP_UNIT_PARAM_NO            = 5          // Temperature report unit
+final byte CNFG_TEMP_UNIT_SIZE                       = 1          // 0=Celsius, 1=Fahrenheit (default)
+final byte CNFG_TEMP_UNIT_VALUE                      = 1
+
+@Field final byte CNFG_LED_MOTION_PARAM_NO           = 6          // LED for motion
+final byte CNFG_LED_MOTION_SIZE                      = 1          // 0=disabled, 1=enabled (default)
+final byte CNFG_LED_MOTION_VALUE                     = 1
+
+@Field final byte CNFG_TEMP_THRESHOLD_PARAM_NO       = 12         // Temperature reporting threshold
+final byte CNFG_TEMP_THRESHOLD_SIZE                  = 1          // 0-144 degrees F, default=1
+final byte CNFG_TEMP_THRESHOLD_VALUE                 = 1
+
+@Field final byte CNFG_LUX_THRESHOLD_PARAM_NO        = 13         // Lux reporting threshold
+final byte CNFG_LUX_THRESHOLD_SIZE                   = 2          // 0-30000 lux, default=50
+final byte CNFG_LUX_THRESHOLD_VALUE_1                = 0
+final byte CNFG_LUX_THRESHOLD_VALUE_2                = 50
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    Motion.motionchanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    ZWave.basic.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+
+    // configure device
+    ZWave.configuration.set( CNFG_MOTION_SENSITIVITY_PARAM_NO, CNFG_MOTION_SENSITIVITY_SIZE, CNFG_MOTION_SENSITIVITY_VALUE )
+    ZWave.configuration.set( CNFG_MOTION_CLEARED_TIME_PARAM_NO, CNFG_MOTION_CLEARED_TIME_SIZE, CNFG_MOTION_CLEARED_TIME_VALUE_1, CNFG_MOTION_CLEARED_TIME_VALUE_2 )
+    ZWave.configuration.set( CNFG_BASIC_SET_REPORTING_PARAM_NO, CNFG_BASIC_SET_REPORTING_SIZE, CNFG_BASIC_SET_REPORTING_VALUE )
+    ZWave.configuration.set( CNFG_TEMP_UNIT_PARAM_NO, CNFG_TEMP_UNIT_SIZE, CNFG_TEMP_UNIT_VALUE )
+    ZWave.configuration.set( CNFG_LED_MOTION_PARAM_NO, CNFG_LED_MOTION_SIZE, CNFG_LED_MOTION_VALUE )
+    ZWave.configuration.set( CNFG_TEMP_THRESHOLD_PARAM_NO, CNFG_TEMP_THRESHOLD_SIZE, CNFG_TEMP_THRESHOLD_VALUE )
+    ZWave.configuration.set( CNFG_LUX_THRESHOLD_PARAM_NO, CNFG_LUX_THRESHOLD_SIZE, CNFG_LUX_THRESHOLD_VALUE_1, CNFG_LUX_THRESHOLD_VALUE_2 )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleMotionMsg(Object currentState) {
+    def prevState = Motion.motion.get()
+    if (-1 == currentState ) {
+        Motion.motion Motion.MOTION_DETECTED
+        log.trace 'Motion: DETECTED'
+    } else if (0 == currentState ) {
+        Motion.motion Motion.MOTION_NONE
+        log.trace 'Motion: NONE'
+    } else {
+        log.warn "Unexpected State value reported [expected 0(None) or -1(Motion)]: {}", currentState
+    }
+    if (Motion.motion.get() != prevState) {
+        def now = new Date()
+        Motion.motionchanged now
+    }
+}
+
+onZWaveMessage.basic.report {
+    log.trace "Basic Report: {}", message
+    handleMotionMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.set {
+    log.trace "Basic Set: {}", message
+    handleMotionMsg message.command.get('value')
+}
+
+onZWaveMessage.sensor_multilevel.report {
+    log.trace "Sensor MultiLevel Report: {}", message
+
+    def sensorType = message.command.get('type')
+    def level = message.command.get('level')
+
+    // Type 0x01 = Temperature
+    if ((1 == sensorType) && (null != level)) {
+        double dataSize      = (level & 0x07)
+        double dataScale     = (level & 0x18) >> 3        // 0 = Celsius, 1 = Fahrenheit
+        double dataPrecision = (level & 0xE0) >> 5
+        double dataValue     = 0
+        byte[] vals = new byte[4]
+        try {
+            if ( 1 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = 0
+                vals[3] = message.command.get('val1')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if ( 2 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = message.command.get('val1')
+                vals[3] = message.command.get('val2')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if ( 4 == dataSize ) {
+                vals[0] = message.command.get('val1')
+                vals[1] = message.command.get('val2')
+                vals[2] = message.command.get('val3')
+                vals[3] = message.command.get('val4')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            dataValue /= Math.pow(10, dataPrecision)
+
+            // convert to Celsius if reported in Fahrenheit
+            double tempC = dataValue
+            if (1 == dataScale) {
+                tempC = (dataValue - 32.0) * 5.0 / 9.0
+            }
+            log.trace "Temperature - size:{}, precision:{}, scale (0=C,1=F):{}, value:{}, tempC:{}", dataSize, dataPrecision, dataScale, dataValue, tempC
+            Temperature.temperature tempC
+        } catch (Exception e) {
+            log.info "Error parsing Temperature value: {}", e.getMessage()
+        }
+    }
+
+    // Type 0x03 = Luminance
+    if ((3 == sensorType) && (null != level)) {
+        double dataSize      = (level & 0x07)
+        double dataScale     = (level & 0x18) >> 3        // 0 = Percent, 1 = Lux
+        double dataPrecision = (level & 0xE0) >> 5
+        int    dataValue     = -1
+        byte[] vals = new byte[4]
+        try {
+            if ( 2 == dataSize ) {
+                vals[0] = 0
+                vals[1] = 0
+                vals[2] = message.command.get('val1')
+                vals[3] = message.command.get('val2')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            if( 4 == dataSize ) {
+                vals[0] = message.command.get('val1')
+                vals[1] = message.command.get('val2')
+                vals[2] = message.command.get('val3')
+                vals[3] = message.command.get('val4')
+                dataValue = java.nio.ByteBuffer.wrap(vals).getInt()
+            }
+            dataValue /= Math.pow(10, dataPrecision)
+            log.trace "Luminance - size:{}, precision:{}, scale (0=Percent,1=Lux):{}, value:{}", dataSize, dataPrecision, dataScale, dataValue
+            if (1 == dataScale) {
+                if (100000 < dataValue) dataValue = 100000
+                if (0 > dataValue) dataValue = 0
+                Illuminance.illuminance dataValue
+            }
+        } catch (Exception e) {
+            log.info "Error parsing Luminance value: {}", e.getMessage()
+        }
+    }
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    // Notification Type 0x07 = Home Security
+    if (7 == notificationType) {
+        // Event 0x08 = Motion Detection
+        if (8 == event) {
+            def prevState = Motion.motion.get()
+            Motion.motion Motion.MOTION_DETECTED
+            log.trace "Notification: Motion DETECTED"
+            if (Motion.motion.get() != prevState) {
+                Motion.motionchanged new Date()
+            }
+        }
+        // Event 0x00 = State Idle (motion cleared)
+        else if (0 == event) {
+            def prevState = Motion.motion.get()
+            Motion.motion Motion.MOTION_NONE
+            log.trace "Notification: Motion CLEARED"
+            if (Motion.motion.get() != prevState) {
+                Motion.motionchanged new Date()
+            }
+        }
+        // Event 0x03 = Tampering, Product Cover Removed
+        else if (3 == event) {
+            log.warn "Notification: Tamper detected"
+        }
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}

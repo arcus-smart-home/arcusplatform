@@ -1,0 +1,294 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Ecolink Z-Wave Plus Garage Door Tilt Sensor (TILT-ZWAVE2.5-ECO)
+ *
+ * FACTORY RESET: Remove the battery, press and hold the pairing button, reinsert the battery
+ *                while holding the button, then release after the LED blinks.
+ *
+ * PAIR:          Insert battery or press the pairing button while hub is in "pairing" mode.
+ * UNPAIR:        Press the pairing button while hub is in "unpairing" mode.
+ *
+ * By default the Contact state is set to Closed when the Tilt sensor is Flat (horizontal).
+ * If you wish to reverse the states of the Contact capability with respect to the Tilt sensor orientation
+ * (for example to monitor a garage door) you must add a Tag on the device of "closedOnUpright".
+ *
+ * By default, a sensor is configured to send Wake Up Notification frames every three hours. A controller may change the
+ * duration between Wake Up Notification frames to be between one hour and one week in increments of two hundred seconds
+ * with the Wake Up Interval Set command.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x30   (48) Sensor_Binary (V2)
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification V5)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up (V2)
+ *   0x85 (-123) Association (V2)
+ *   0x86 (-122) Version (V2)
+ */
+import groovy.transform.Field
+
+driver          "ZWEcolinkTiltSensor25Driver"
+description     "Driver for an Ecolink Z-Wave Plus Garage Door Tilt Sensor"
+version         "2.5"
+protocol        "ZWAV"
+deviceTypeHint  "Tilt"
+productId       "a4e125"
+vendor          "Ecolink"
+model           "TILT-ZWAVE2.5-ECO"
+
+matcher         'ZWAV:Manufacturer': 0x014A, 'ZWAV:ProductType': 0x0004, 'ZWAV:ProductId': 0x0003
+
+
+capabilities    DevicePower, Tilt, Contact
+
+importCapability 'generic/GenericTiltWithContact'
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+Contact.usehint                  Contact.USEHINT_UNKNOWN
+
+@Field static final String DEVICE_NAME = 'Ecolink Tilt Sensor 2.5'
+
+def final int OFFLINE_TIMEOUT_SECS             = 11400    // 190 minutes
+def final int POLLING_INTERVAL_SEC             = 3600     // every 60 minutes
+def final int BATTERY_POLLING_INTERVAL_SEC     = 86400    // Ask for battery level every 24 hours
+
+@Field def byte CONTACT_OPEN = 0xFF
+
+// Configuration Parameters
+// -----------------------------------------------------------------
+// Parameter 1: Send or not send Basic Set commands (0=Do Not Send, 255=Send). Default: 255
+@Field def byte CNFG_BASIC_SET_PARAM_NO        = 0x01
+def byte CNFG_BASIC_SET_SIZE                   = 0x01
+def byte CNFG_BASIC_SET_VALUE                  = (byte)0xFF     // Send Basic Set on state change
+
+// Parameter 2: Send Sensor Binary Report (0=Send both Sensor Binary and Notification, 255=Notification only). Default: 0
+@Field def byte CNFG_SENSOR_REPORT_PARAM_NO    = 0x02
+def byte CNFG_SENSOR_REPORT_SIZE               = 0x01
+def byte CNFG_SENSOR_REPORT_VALUE              = 0x00           // Send both Sensor Binary and Notification
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+
+    Tilt.tiltstate          Tilt.TILTSTATE_UPRIGHT
+    Tilt.tiltstatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+    boolean closedOnUpright = Base.tags.get().contains('closedOnUpright')
+    if (closedOnUpright) {
+        Contact.contact     Contact.CONTACT_CLOSED
+    } else {
+        Contact.contact     Contact.CONTACT_OPENED
+    }
+    Contact.contactchanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} connected", DEVICE_NAME
+
+    // set recommended offline timeout interval
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set Association to Group 1, Node 1 (Z-Wave Plus Lifeline)
+    ZWave.association.set( 1, 1);
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    // configure Parameter 1: Send Basic Set commands on state change
+    ZWave.configuration.set(CNFG_BASIC_SET_PARAM_NO, CNFG_BASIC_SET_SIZE, CNFG_BASIC_SET_VALUE)
+
+    // configure Parameter 2: Send both Sensor Binary and Notification reports
+    ZWave.configuration.set(CNFG_SENSOR_REPORT_PARAM_NO, CNFG_SENSOR_REPORT_SIZE, CNFG_SENSOR_REPORT_VALUE)
+
+    // read the current state
+    ZWave.basic.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    // get the level of the battery 0 - 100%
+    ZWave.battery.get()
+    ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+}
+
+onDisconnected {
+    log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+    log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+    def prevState = Tilt.tiltstate.get()
+    if (-1 == currentState) {
+        log.info "Tilt Sensor is Horizontal [{}]", currentState
+        Tilt.tiltstate Tilt.TILTSTATE_FLAT
+    } else if (0 == currentState) {
+        log.info "Tilt Sensor is Vertical [{}]", currentState
+        Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+    }
+    // if previous state is not the same as newly reported state, record timestamp of change
+    if (Tilt.tiltstate.get() != prevState) {
+        def now = new Date()
+        Tilt.tiltstatechanged now
+        adjustContactState(Tilt.tiltstate.get(), now)
+    }
+}
+
+void adjustContactState(Object newTiltState, Object now) {
+    boolean closedOnUpright = Base.tags.get().contains('closedOnUpright')
+    if (((Tilt.TILTSTATE_UPRIGHT == newTiltState) && closedOnUpright) || ((Tilt.TILTSTATE_FLAT == newTiltState) && !closedOnUpright)) {
+        Contact.contact Contact.CONTACT_CLOSED
+        Contact.contactchanged now
+    } else {
+        Contact.contact Contact.CONTACT_OPENED
+        Contact.contactchanged now
+    }
+}
+
+onZWaveMessage.basic.report {
+    log.debug "Received Basic Report: {}", message
+    handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.sensor_binary.report {
+    log.debug "Received Sensor Binary Report: {}", message
+    handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.battery.report {
+    // pass message to generic ZWave Battery Report handler
+    GenericZWaveBattery.handleBatteryReportAcceptValuesOver100(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    log.debug "Device sent Alarm/Notification Report"
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.debug "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    // Notification Type 0x06 = Access Control
+    if (6 == notificationType) {
+        // Event 0x16 (22) = Window/Door is open (tilt sensor upright)
+        if (22 == event) {
+            def prevState = Tilt.tiltstate.get()
+            Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+            if (Tilt.tiltstate.get() != prevState) {
+                def now = new Date()
+                Tilt.tiltstatechanged now
+                adjustContactState(Tilt.tiltstate.get(), now)
+            }
+        }
+        // Event 0x17 (23) = Window/Door is closed (tilt sensor flat)
+        else if (23 == event) {
+            def prevState = Tilt.tiltstate.get()
+            Tilt.tiltstate Tilt.TILTSTATE_FLAT
+            if (Tilt.tiltstate.get() != prevState) {
+                def now = new Date()
+                Tilt.tiltstatechanged now
+                adjustContactState(Tilt.tiltstate.get(), now)
+            }
+        }
+    }
+    // Notification Type 0x07 = Home Security
+    else if (7 == notificationType) {
+        // Event 3 = Tampering / Cover Removed
+        if (3 == event) {
+            log.warn "{} cover removed / tamper detected", DEVICE_NAME
+        }
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1 * 256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1 * 256 * 256 * 256) + (val2 * 256 * 256) + (val3 * 256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.info "{} sent Wakeup Notification", DEVICE_NAME
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}
+
+onZWaveMessage {
+    log.debug "{} received unhandled ZWave message {}", DEVICE_NAME, message
+    return false;
+}
+
+// Handling tags
+onBase.AddTags {
+    GenericTiltWithContact.doAddTags(this, message, DEVICE_NAME)
+}
+
+onBase.RemoveTags {
+    GenericTiltWithContact.doRemoveTags(this, message, DEVICE_NAME)
+}

@@ -27,10 +27,20 @@
  * UNPAIR:
  *   Open the contact sensor's battery cover.
  *   Press the tamper switch.
+ *
+ * Command Classes:
+ *   0x71  (113) Alarm (Notification V8)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x86 (-122) Version
  */
 import groovy.transform.Field
 
 uses "generic.GenericContact"
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
 
 driver          "ZWRingContactSensor"
 description     "Driver for a Ring Contact Sensor"
@@ -42,11 +52,14 @@ vendor          "RING"
 model           "4XD3S70EN0"
 
 matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0201
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0301
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0601
 
 capabilities    DevicePower
 
 
 def final int OFFLINE_TIMEOUT_SECS   = 3600               // 60 minutes
+def final int BATTERY_POLL_SEC       = 86400               // Ask for battery level every 24 hours
 
 def final String DEVICE_NAME = "Ring Contact Sensor"
 
@@ -95,6 +108,12 @@ onConnected {
 
 	// set recommended offline timeout interval
 	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+	// set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+	ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+	// Note: Generic ZWave Battery capability file reads current battery level during onConnected
+	ZWave.poll(BATTERY_POLL_SEC, ZWave.battery.get)
 }
 
 onDisconnected {
@@ -112,4 +131,8 @@ onZWaveNodeInfo {
 onZWaveMessage.battery.report {
    // pass message to generic ZWave Battery Report handler
    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+	log.trace "{} wakeup notification", DEVICE_NAME
 }
