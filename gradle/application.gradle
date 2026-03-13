@@ -62,12 +62,18 @@ startScripts {
            '-Djava.security.egd=file:/dev/./urandom', // increased SSL performance
            "-Dio.netty.leakDetectionLevel=disabled",
            "-Dio.netty.buffer.bytebuf.checkAccessible=false",
-           '-XX:StringTableSize=1000003',
            "-Xms${jvmMem}m",
            "-Xmx${jvmMem}m",
            '-XX:+UseNUMA',
            '-XX:+UseNUMAInterleaving'
    ]
+
+   // StringTableSize was removed in JDK 15+
+   if (JavaVersion.current() < JavaVersion.VERSION_15) {
+      baseOpts.addAll([
+           '-XX:StringTableSize=1000003'
+      ])
+   }
 
    // These intrinsic flags only exist in Java 8
    if (JavaVersion.current() == JavaVersion.VERSION_1_8) {

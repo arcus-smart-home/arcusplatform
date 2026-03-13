@@ -15,10 +15,15 @@
  */
 
 def jvmVersion = JavaVersion.current()
-if (jvmVersion != JavaVersion.VERSION_1_8 && jvmVersion != JavaVersion.VERSION_11) {
+def supportedVersions = [
+   JavaVersion.VERSION_1_8,
+   JavaVersion.VERSION_11,
+   JavaVersion.VERSION_17
+]
+if (!supportedVersions.contains(jvmVersion)) {
    throw new GradleException(
-      "Arcus requires Java 8 or 11 to build. Current JVM is Java ${jvmVersion}.\n" +
+      "Arcus requires Java 8, 11, or 17 to build. Current JVM is Java ${jvmVersion}.\n" +
       "Set JAVA_HOME to a supported JDK, e.g.:\n" +
-      "  export JAVA_HOME=/usr/lib/jvm/temurin-11-jdk-amd64"
+      "  export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64"
    )
 }

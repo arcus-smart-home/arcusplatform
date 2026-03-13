@@ -238,6 +238,7 @@ public class TestDefaultPlaceExecutorRegistry extends IrisMockTestCase {
    public void testRestartResultsInNewEnvironment() {
       PlaceEnvironmentExecutor nu = EasyMock.createMock(PlaceEnvironmentExecutor.class);
       expectLoadPlace(placeId);
+      expectExecutorStop();
       expectReloadPlaceAndReturn(placeId, nu);
       replay();
       EasyMock.replay(nu);
@@ -321,6 +322,7 @@ public class TestDefaultPlaceExecutorRegistry extends IrisMockTestCase {
    @Test
    public void testRestartLoadError() {
       expectLoadPlace(placeId);
+      expectExecutorStop();
       expectReloadPlaceThrowsError(placeId, new NullPointerException("Oops"));
       replay();
       

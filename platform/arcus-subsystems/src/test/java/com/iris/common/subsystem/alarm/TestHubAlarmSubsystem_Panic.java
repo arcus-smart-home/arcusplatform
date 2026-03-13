@@ -48,6 +48,7 @@ public class TestHubAlarmSubsystem_Panic extends HubAlarmSubsystemTestCase {
 	@Test
 	public void testPanicFromKeypad() throws Exception {
 		Capture<List<IncidentTrigger>> triggersCapture = expectAddAlert(PanicAlarm.NAME);
+		expectUpdateIncident();
 		stageDisarmed(ImmutableSet.<String>of());
 		start();
 
@@ -71,6 +72,7 @@ public class TestHubAlarmSubsystem_Panic extends HubAlarmSubsystemTestCase {
 	@Test
 	public void testPanicFromRule() throws Exception {
 		Capture<List<IncidentTrigger>> triggersCapture = expectAddAlert(PanicAlarm.NAME);
+		expectUpdateIncident();
 		stageDisarmed(ImmutableSet.<String>of());
 		start();
 
@@ -90,6 +92,7 @@ public class TestHubAlarmSubsystem_Panic extends HubAlarmSubsystemTestCase {
 	@Test
 	public void testPanicFromNowhere() throws Exception {
 		Capture<List<IncidentTrigger>> triggersCapture = expectAddAlert(PanicAlarm.NAME);
+		expectUpdateIncident();
 		stageDisarmed(ImmutableSet.<String>of());
 		start();
 

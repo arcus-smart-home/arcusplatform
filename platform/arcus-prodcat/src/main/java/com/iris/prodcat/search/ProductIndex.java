@@ -37,9 +37,8 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.NoLockFactory;
-import org.apache.lucene.store.RAMDirectory;
 
 import com.iris.prodcat.ProductCatalogEntry;
 import com.iris.prodcat.ProductCatalog;
@@ -52,7 +51,7 @@ public class ProductIndex {
 	
 	public ProductIndex(ProductCatalog prodcat) throws IOException {
 		this.prodcat = prodcat;
-		dir = new RAMDirectory(NoLockFactory.INSTANCE);
+		dir = new ByteBuffersDirectory();
 		Analyzer analyzer = new SimpleAnalyzer();
 		
 		IndexWriterConfig iwc = new IndexWriterConfig(analyzer);

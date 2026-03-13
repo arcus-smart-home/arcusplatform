@@ -27,6 +27,7 @@ import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
+import com.iris.gson.AddressTypeAdapterFactory;
 import com.iris.gson.AttributeMapSerializer;
 import com.iris.gson.ByteArrayToBase64TypeAdapter;
 import com.iris.gson.GsonFactory;
@@ -56,10 +57,13 @@ public class GsonModule extends AbstractModule {
          .newSetBinder(binder(), new TypeLiteral<TypeAdapter<?>>() {})
          .addBinding()
          .to(ByteArrayToBase64TypeAdapter.class);
-      Multibinder
-         .newSetBinder(binder(), new TypeLiteral<TypeAdapterFactory>() {})
-         .addBinding()
-         .to(TypeTypeAdapterFactory.class);
+      Multibinder<TypeAdapterFactory> typeAdapterFactoryBinder =
+         Multibinder.newSetBinder(binder(), new TypeLiteral<TypeAdapterFactory>() {});
+      typeAdapterFactoryBinder.addBinding().to(TypeTypeAdapterFactory.class);
+      typeAdapterFactoryBinder.addBinding().to(AddressTypeAdapterFactory.class);
+      typeAdapterFactoryBinder.addBinding().to(GsonReferenceTypeAdapterFactory.class);
+      typeAdapterFactoryBinder.addBinding().to(MessageTypeAdapterFactory.class);
+      typeAdapterFactoryBinder.addBinding().to(MessageBodyTypeAdapterFactory.class);
    }
 
    @Provides

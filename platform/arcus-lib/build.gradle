@@ -38,8 +38,7 @@ dependencies {
    api libraries.metrics_jvm
 
    api libraries.prometheus_dropwizard
-   api libraries.prometheus_servlet
-   api libraries.jetty_servlet
+   api libraries.prometheus_httpserver
 
    api libraries.zookeeper
    api libraries.kafka
@@ -55,9 +54,6 @@ dependencies {
    api libraries.joda
 
    implementation libraries.jcommander
-
-   // TODO need a custom scope for this, providedCompile is part of war plugin
-   api libraries.javaxServlet
 
    implementation libraries.azure_storage
    implementation libraries.commons_beanutils

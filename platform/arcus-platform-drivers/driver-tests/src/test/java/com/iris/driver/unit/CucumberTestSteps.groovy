@@ -28,8 +28,8 @@ import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-this.metaClass.mixin(cucumber.api.groovy.Hooks)
-this.metaClass.mixin(cucumber.api.groovy.EN)
+this.metaClass.mixin(io.cucumber.groovy.Hooks)
+this.metaClass.mixin(io.cucumber.groovy.EN)
 
 final class Constant {
 	enum Direction { 	IN, OUT		}
@@ -96,7 +96,7 @@ Given(~/^the (.+) has been initialized$/) { String driverScriptResource ->
  * 		Given the capability devpow:battery is 100
  *      Given the driver attribute devconn:state is ONLINE
  */
-Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { namespace, attributeName, attributeValue ->
+Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { String namespace, String attributeName, String attributeValue ->
 	// lookup for the attribute definition
 	logger.trace(" initializing "+namespace+":"+attributeName + " to "+attributeValue);
 	CapabilityDefinition capability = ClasspathDefinitionRegistry.instance().getCapability(namespace);
@@ -162,7 +162,7 @@ Given(~/^the capability (\w+):([\w.]+) is (.+)$/) { namespace, attributeName, at
  * EXAMPLE:
  *      Given the driver attribute devconn:state is ONLINE
  */
-Given(~/^the driver attribute (.+):(.+) is (.+)$/) { namespace, attributeName, attributeValue ->
+Given(~/^the driver attribute (.+):(.+) is (.+)$/) { String namespace, String attributeName, String attributeValue ->
 	// lookup for the attribute definition
 	CapabilityDefinition capability = ClasspathDefinitionRegistry.instance().getCapability(namespace);
 	def isInstance = attributeName.contains(".")
@@ -415,7 +415,7 @@ When(~/^a (.+) command is placed on the platform bus$/) { String messageType ->
  * 		When a set attribute command with the value swit state ON is placed on the platform bus
  */
 // deprecated - TBD :: Replace with SETUP_CAPABILITY_METHOD
-When(~/^a (.+) command with the value of (\S+) (\S+) is placed on the platform bus$/) { messageType, attribute, value ->
+When(~/^a (.+) command with the value of (\S+) (\S+) is placed on the platform bus$/) { String messageType, String attribute, String value ->
     new DeviceCommandBuilder(context).command(messageType).withStringAttribute(attribute, value).buildAndSend()
 }
 
@@ -430,7 +430,7 @@ When(~/^a (.+) command with the value of (\S+) (\S+) is placed on the platform b
  * EXAMPLE:
  * 		When a base:SetAttributes command with the value of dev:name "Bob & Sue's Device" is placed on the platform bus
  */
-When(~/^a (.+) command with the value of (\S+) "([^"]*)" is placed on the platform bus$/) { messageType, attribute, value ->
+When(~/^a (.+) command with the value of (\S+) "([^"]*)" is placed on the platform bus$/) { String messageType, String attribute, String value ->
     new DeviceCommandBuilder(context).command(messageType).withStringAttribute(attribute, value).buildAndSend()
 }
 
@@ -445,7 +445,7 @@ When(~/^a (.+) command with the value of (\S+) "([^"]*)" is placed on the platfo
  * EXAMPLE:
  * 		When a therm:SetIdealTemperature command with argument temperature of value 25.0 is placed on the platform bus
  */
-When(~/^a (.+) command with argument (\S+) of value (\S+) is placed on the platform bus$/) { messageType, argument, value ->
+When(~/^a (.+) command with argument (\S+) of value (\S+) is placed on the platform bus$/) { String messageType, String argument, String value ->
     new DeviceCommandBuilder(context).command(messageType).withStringArgument(argument, value).buildAndSend()
 }
 
@@ -482,7 +482,7 @@ When(~/^the capability method (.+)$/) { String messageType ->
  * STEP : SETUP_CAPABILITY_ATTRIBUTE 
  * 
  */
-When(~/^with capability (.+) is (.+)$/) { String attribute, value ->
+When(~/^with capability (.+) is (.+)$/) { String attribute, String value ->
 	if("N/A" == attribute) return	
 	if(attribute.indexOf(":") > -1) {
 		commandBuilder.withStringAttribute(attribute, value)
@@ -505,7 +505,7 @@ When(~/^with capability (.+) is (.+)$/) { String attribute, value ->
  * STEP : SETUP_CAPABILITY_ATTRIBUTE 
  * 
  */
-When(~/^attribute (.+) is (.+)$/) { String attribute, value ->	
+When(~/^attribute (.+) is (.+)$/) { String attribute, String value ->
 	if(attribute.indexOf(":") > -1) {
 		commandBuilder.withAttribute(attribute, JSON.fromJson(value, Object.class))
 	} else {
@@ -529,7 +529,7 @@ When(~/^attribute (.+) is (.+)$/) { String attribute, value ->
  * 
  * STEP : ASSERT_PLATFORM_MESSAGE_POLL
  */
-Then(~/^the driver should( not)? place a (.+) message on the platform bus$/) { negative, messageName ->
+Then(~/^the driver should( not)? place a (.+) message on the platform bus$/) { String negative, String messageName ->
 	if (null == negative){
 		theMessage = context.getPlatformBus().take().getValue()
 		deviceMessageValidator = new DeviceMessageValidator(theMessage)
@@ -545,7 +545,7 @@ Then(~/^the driver should( not)? place a (.+) message on the platform bus$/) { n
  * EXAMPLE:
  * 		Then the driver may place a base:ValueChange message on the platform bus
  */
-Then(~/^the driver may place a (.+) message on the platform bus$/) { messageName ->
+Then(~/^the driver may place a (.+) message on the platform bus$/) { String messageName ->
 	def msg = context.getPlatformBus().getMessageQueue().peek()
 	if (msg != null && msg.getValue().getMessageType() == messageName) {
 		context.getPlatformBus().take()
@@ -560,7 +560,7 @@ Then(~/^the driver may place a (.+) message on the platform bus$/) { messageName
  * EXAMPLE:
  * 		Then the driver should eventually place a doorlock:PinUsed message on the platform bus
  */
-Then(~/^the driver should eventually place a (.+) message on the platform bus$/) { messageName ->
+Then(~/^the driver should eventually place a (.+) message on the platform bus$/) { String messageName ->
 	for (int i = 0; i < 10; i++) {
 		theMessage = context.getPlatformBus().take().getValue()
 		deviceMessageValidator = new DeviceMessageValidator(theMessage)
@@ -588,7 +588,7 @@ Then(~/^the driver should eventually place a (.+) message on the platform bus$/)
  * STEP : ASSERT_CAPABILITY_ATTRIBUTE_1
  */
 // deprecated - TBD :: Replace with ASSERT_CAPABILITY
-Then(~/^the message\'?s (.+) attribute list should be (.+)$/) { attributeName, expectedValue ->
+Then(~/^the message\'?s (.+) attribute list should be (.+)$/) { String attributeName, String expectedValue ->
     assert new DeviceMessageValidator(theMessage)
 	.attribute(attributeName)
 	.hasSameElementsAs(Eval.me(expectedValue))
@@ -611,7 +611,7 @@ Then(~/^the message\'?s (.+) attribute list should be (.+)$/) { attributeName, e
  * STEP : ASSERT_CAPABILITY_ATTRIBUTE_2
  */
 // deprecated - TBD :: Replace with ASSERT_CAPABILITY
-Then(~/^the message\'?s (.+) attribute should be (.+)$/) { attributeName, expectedValue ->    
+Then(~/^the message\'?s (.+) attribute should be (.+)$/) { String attributeName, String expectedValue ->
 	assert new DeviceMessageValidator(theMessage)
 	.attribute(attributeName)
 	.is(expectedValue)
@@ -632,7 +632,7 @@ Then(~/^the message\'?s (.+) attribute should be (.+)$/) { attributeName, expect
  * 
  * STEP : ASSERT_ATTRIBUTE_1
  */
-Then(~/^the message\'?s (.+) attribute numeric value should be within delta ([\d.]+) of (.+)$/) { attributeName, delta, expectedValue ->
+Then(~/^the message\'?s (.+) attribute numeric value should be within delta ([\d.]+) of (.+)$/) { String attributeName, String delta, String expectedValue ->
 	float value
 	float fDelta
 	try{
@@ -667,7 +667,7 @@ Then(~/^the message\'?s (.+) attribute numeric value should be within delta ([\d
  * 		Then both busses should be empty
  */
 /* deprecated - TBD :: Replace with STEP : nothing else should happen*/
-Then(~/^(?:the )?(platform|protocol|both) (?:bus|busses) should be empty$/) { busSelection ->
+Then(~/^(?:the )?(platform|protocol|both) (?:bus|busses) should be empty$/) { String busSelection ->
     if (busSelection == 'platform' || busSelection == 'both')
         assert context.getPlatformBus().getMessageQueue().peek() == null
     if (busSelection == 'protocol' || busSelection == 'both')
@@ -724,7 +724,7 @@ Then(~/^the (?:device|platform|driver) attribute (.+) should (?:change to|be|equ
  * 
  * STEP : ASSERT_CAPABILITY
  */
-Then(~/^the capability (.+):(.+) should be (.+)$/) { namespace, attributeName, String expectedValue ->
+Then(~/^the capability (.+):(.+) should be (.+)$/) { String namespace, String attributeName, String expectedValue ->
 
 	def isInstance = attributeName.contains(".");
 
@@ -780,7 +780,7 @@ Then(~/^the capability (.+):(.+) should be (.+)$/) { namespace, attributeName, S
  *
  * STEP : ASSERT_CAPABILITY
  */
-Then(~/^the numeric capability (.+):(.+) should be within ([\d.]+)% of ([\d.]+)$/) { namespace, attributeName, double range, double expectedValue ->
+Then(~/^the numeric capability (.+):(.+) should be within ([\d.]+)% of ([\d.]+)$/) { String namespace, String attributeName, double range, double expectedValue ->
 
 	def isInstance = attributeName.contains(".");
 	
@@ -829,7 +829,7 @@ Then(~/^the numeric capability (.+):(.+) should be within ([\d.]+)% of ([\d.]+)$
  * 
  * STEP : ASSERT_CAPABILITY
  */
-Then(~/^the driver variable (\S+) should be (.*)$/) { variableName, json ->
+Then(~/^the driver variable (\S+) should be (.*)$/) { String variableName, String json ->
 	def value = JSON.fromJson(json, Object.class)
 	if ("recent" == value){   
 		def actual = context.getDeviceDriverContext().getVariable(variableName)
@@ -851,7 +851,7 @@ Then(~/^the driver variable (\S+) should be (.*)$/) { variableName, json ->
  *
  * STEP : ASSERT_CAPABILITY
  */
-Then(~/^the numeric driver variable (\S+) should be within ([\d.]+)% of ([\d.]+)$/) { variableName,  float range, target ->
+Then(~/^the numeric driver variable (\S+) should be within ([\d.]+)% of ([\d.]+)$/) { String variableName, float range, String target ->
 	float value;
 	try{
 		value = Float.parseFloat(target)

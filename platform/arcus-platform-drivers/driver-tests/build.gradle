@@ -77,7 +77,7 @@ task cucumber(type: JavaExec, dependsOn: compileCucumberGroovy) {
 
 	def cukeArgs = [
 			'--glue',
-			'src/test/java/com/iris/driver/unit/',
+			'com.iris.driver.unit',
 	]
 	
 	def plugins = [
@@ -95,7 +95,7 @@ task cucumber(type: JavaExec, dependsOn: compileCucumberGroovy) {
 		}
 	} else {
 		cukeArgs << '--tags'
-		cukeArgs << "~@Ignore"
+		cukeArgs << "not @Ignore"
 	}
 	if(project.hasProperty('features') && !features.isEmpty()) {
 		features.tokenize(",").each {
@@ -109,7 +109,7 @@ task cucumber(type: JavaExec, dependsOn: compileCucumberGroovy) {
 	}
 	//println cukeArgs
 	//println allJvmArgs
-	mainClass = "cucumber.api.cli.Main"
+	mainClass = "io.cucumber.core.cli.Main"
 	classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output + sourceSets.cucumber.output
 	args = cukeArgs
 }

@@ -67,9 +67,9 @@ ext.libraries << [
 		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.12.4",
 
 // Apache Lucene
-		luceneCore: "org.apache.lucene:lucene-core:5.4.0",
-		luceneAnalyzer: "org.apache.lucene:lucene-analyzers-common:5.4.0",
-		luceneParser: "org.apache.lucene:lucene-queryparser:5.4.0",
+		luceneCore: "org.apache.lucene:lucene-core:8.11.4",
+		luceneAnalyzer: "org.apache.lucene:lucene-analyzers-common:8.11.4",
+		luceneParser: "org.apache.lucene:lucene-queryparser:8.11.4",
 
 
 // Reactive
@@ -86,9 +86,9 @@ ext.libraries << [
 		sunrise_sunset_calc: "com.luckycatlabs:SunriseSunsetCalculator:1.2",
 
 // JAXB Dependencies
-		jaxb_xjc: "com.sun.xml.bind:jaxb-xjc:2.2.7-b41",
-		jaxb_impl: "com.sun.xml.bind:jaxb-impl:2.2.7-b41",
-		jaxb_api: "javax.xml.bind:jaxb-api:2.2.7",
+		jaxb_xjc: "org.glassfish.jaxb:jaxb-xjc:2.3.9",
+		jaxb_impl: "org.glassfish.jaxb:jaxb-runtime:2.3.9",
+		jaxb_api: "javax.xml.bind:jaxb-api:2.3.1",
 
 // Encryption via Bouncy Castle
 		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.78",
@@ -134,6 +134,7 @@ ext.libraries << [
 
 		prometheus_dropwizard: "io.prometheus:simpleclient_dropwizard:0.8.0",
 		prometheus_servlet: "io.prometheus:simpleclient_servlet:0.8.0",
+		prometheus_httpserver: "io.prometheus:simpleclient_httpserver:0.8.0",
 
 // misc dependencies
 		guava: "com.google.guava:guava:33.4.0-jre",
@@ -142,7 +143,6 @@ ext.libraries << [
 		commons_lang: "org.apache.commons:commons-lang3:3.17.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0",
 		handlebars: "com.github.jknack:handlebars:2.2.2",
-		javassist: "org.javassist:javassist:3.19.0-GA",
 		jna: 'net.java.dev.jna:jna:4.4.0',
 		janino: 'org.codehaus.janino:commons-compiler:3.0.12',
 		oshi_core: 'com.github.oshi:oshi-core:3.4.3',
@@ -171,13 +171,13 @@ ext.libraries << [
 		groovy: "org.apache.groovy:groovy:4.0.30",
 
 // Cucumber
-		cucumber_junit: "io.cucumber:cucumber-junit:2.4.0",
-		cucumber_groovy: "io.cucumber:cucumber-groovy:2.0.1",
-		cucumber_java: "io.cucumber:cucumber-java8:2.4.0",
+		cucumber_junit: "io.cucumber:cucumber-junit:6.10.4",
+		cucumber_groovy: "io.cucumber:cucumber-groovy:6.10.4",
+		cucumber_java: "io.cucumber:cucumber-java:6.10.4",
 
 
 // EasyMock
-		easymock: "org.easymock:easymock:3.3",
+		easymock: "org.easymock:easymock:5.5.0",
 		mockito:	"org.mockito:mockito-inline:4.11.0",
 
 //Junit
@@ -250,16 +250,14 @@ ext.netty_epoll_linux = "io.netty:netty-transport-native-epoll:${netty_version}:
 ext.netty_tcnative = "io.netty:netty-tcnative:${tcnative_version}"
 ext.netty_tcnative_osx = "io.netty:netty-tcnative-boringssl-static:${tcnative_version}:osx-x86_64"
 ext.netty_tcnative_linux = "io.netty:netty-tcnative-boringssl-static:${tcnative_version}:linux-x86_64"
-ext.javassist = "org.javassist:javassist:3.19.0-GA"
-
 if (OperatingSystem.current().isMacOsX()) {
 	ext.netty_tcnative_lib = netty_tcnative_osx
 } else {
 	ext.netty_tcnative_lib = netty_tcnative_linux
 }
 if(!netty_version.startsWith("4.")) {
-    ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_handler_proxy, netty_epoll_linux, javassist, netty_tcnative, netty_tcnative_lib]
+    ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_handler_proxy, netty_epoll_linux, netty_tcnative, netty_tcnative_lib]
 }
 else {
-	ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_epoll_linux, javassist, netty_tcnative, netty_tcnative_lib]
+	ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_epoll_linux, netty_tcnative, netty_tcnative_lib]
 }
