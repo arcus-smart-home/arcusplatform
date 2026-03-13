@@ -1,0 +1,266 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for an Aeotec Door/Window Sensor 6 (ZW112-A)
+ *
+ * FACTORY RESET: Press and hold the Action button for 20 seconds and then release it.
+ *
+ * PAIR:          Press the Action button once while hub is in "pairing" mode.
+ * UNPAIR:        Press the Action button once while hub is in "unpairing" mode.
+ *
+ * NOTES:
+ *  - The ZW112-A has a rechargeable battery (USB charged).
+ *  - The sensor uses a reed switch to detect door/window open/close state.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x30   (48) Sensor_Binary
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x70  (112) Configuration
+ *   0x71  (113) Alarm (Notification v4)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x98 (-104) Security
+ */
+import groovy.transform.Field
+
+driver          "ZWAeotecDoorWindowSensor6Driver"
+description     "Driver for an Aeotec Door/Window Sensor 6"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Contact"
+productId       "b3a112"
+vendor          "AEOTEC"
+model           "ZW112-A"
+
+// !!!! NOTE !!!!
+// It appears a manufacturer code between 0x0080 and 0x00FF does not parse correctly and must be represented as
+// a negative number (similar to codes greater than 0x7FFF)
+matcher         'ZWAV:Manufacturer': 0x0086, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x0070
+matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0002, 'ZWAV:ProductId': 0x0070
+
+capabilities    DevicePower, Contact
+
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveContact'
+importCapability 'generic/GenericContact'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+Contact.usehint                  Contact.USEHINT_UNKNOWN
+
+
+def final String DEVICE_NAME                   = "Aeotec Door/Window Sensor 6"
+
+def final int OFFLINE_TIMEOUT_SECS             = 21600               // 360 minutes
+def final int CONTACT_POLLING_INTERVAL_SEC     = 3600                // Ask for current contact state every 60 minutes
+def final int BATTERY_POLLING_INTERVAL_SEC     = 86400               // Ask for battery level every 24 hours
+
+@Field def byte CONTACT_OPEN = 0xFF
+
+
+// Config Parameters
+// ------------------------------------------------------------------
+@Field def byte CNFG_SENSOR_BINARY_REPORT_PARAM_NO  = 0x01       //   (1) set Sensor Binary Report type (0=Open/Close, 1=Tamper). Default: 0
+def byte CNFG_SENSOR_BINARY_REPORT_SIZE             = 0x01
+def byte CNFG_SENSOR_BINARY_REPORT_VALUE            = 0x00       //   (0) report Open/Close
+
+@Field def byte CNFG_WAKEUP_TIME_PARAM_NO           = 0x65       // (101) set low battery checking interval in seconds (0=disable). Default: 0x00015180 (86400)
+def byte CNFG_WAKEUP_TIME_SIZE                      = 0x04
+def byte CNFG_WAKEUP_TIME_VALUE_B0                  = 0x80       //  (86400) 24 hours
+def byte CNFG_WAKEUP_TIME_VALUE_B1                  = 0x51
+def byte CNFG_WAKEUP_TIME_VALUE_B2                  = 0x01
+def byte CNFG_WAKEUP_TIME_VALUE_B3                  = 0x00
+
+@Field def byte CNFG_BASIC_SET_OFF_DELAY_PARAM_NO   = 0x6F       // (111) set delay for sending BASIC OFF after BASIC ON (seconds). Default: 0x1E (30)
+def byte CNFG_BASIC_SET_OFF_DELAY_SIZE              = 0x04
+def byte CNFG_BASIC_SET_OFF_DELAY_VALUE_B0          = 0x1E       //  (30) 30 seconds
+def byte CNFG_BASIC_SET_OFF_DELAY_VALUE_B1          = 0x00
+def byte CNFG_BASIC_SET_OFF_DELAY_VALUE_B2          = 0x00
+def byte CNFG_BASIC_SET_OFF_DELAY_VALUE_B3          = 0x00
+
+@Field def byte CNFG_CMD_SENT_PARAM_NO              = 0x79       // (121) set which command will be sent to associated nodes when the magnet switch is triggered.
+def byte CNFG_CMD_SENT_SIZE                         = 0x04       //       Bit 4 = Sensor Binary. Default: 0x10 (16)
+def byte CNFG_CMD_SENT_VALUE                        = 0x10       //  (16) send Sensor Binary command when state changes
+
+@Field def byte CNFG_LOCK_PARAM_NO                  = 0xFC       // (252) parameter number for Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} added", DEVICE_NAME
+}
+
+onConnected {
+    vars.'CURRENT_NAME' = DEVICE_NAME
+    log.debug "{} connected", DEVICE_NAME
+
+    // set recommended offline timeout interval
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+    // Note: Generic ZWave Contact capability file reads current state during onConnected
+    ZWave.poll(CONTACT_POLLING_INTERVAL_SEC, ZWave.basic.get)
+
+    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+    ZWave.poll(BATTERY_POLLING_INTERVAL_SEC, ZWave.battery.get)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // Make sure Configuration is Unlocked to allow changes
+    ZWave.configuration.set(CNFG_LOCK_PARAM_NO, (byte)0x01, (byte)0x00)
+
+    // configure Command Sent when contact sensor changes state
+    ZWave.configuration.set(CNFG_CMD_SENT_PARAM_NO, CNFG_CMD_SENT_SIZE,
+        (byte)0x00, (byte)0x00, (byte)0x00, CNFG_CMD_SENT_VALUE)
+
+    // configure Sensor Binary Report type (Open/Close)
+    ZWave.configuration.set(CNFG_SENSOR_BINARY_REPORT_PARAM_NO, CNFG_SENSOR_BINARY_REPORT_SIZE, CNFG_SENSOR_BINARY_REPORT_VALUE)
+}
+
+onDisconnected {
+    log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+    log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.basic.report {
+    byte currentState = message.command.get( 'value' )
+    log.trace "Basic Report: {}", currentState
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.basic.set {
+    log.trace "Basic Set: {}", message
+    def byte[] bytes = message.command.recvBytes
+    log.trace "State: {}", bytes[0]
+    def prevContact = Contact.contact.get()
+    Contact.contact (bytes[0] == CONTACT_OPEN ? Contact.CONTACT_OPENED : Contact.CONTACT_CLOSED)
+    if (Contact.contact.get() != prevContact) {
+        Contact.contactchanged new Date()
+    }
+}
+
+onZWaveMessage.sensor_binary.report {
+    byte currentState = message.command.get( 'value' )
+    log.trace "Sensor Binary Report: {}", currentState
+    GenericZWaveContact.handleContactState(this, DEVICE_NAME, currentState)
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.alarm.report {
+    def alarmType =  message.command.get('alarmtype')
+    def alarmLevel =  message.command.get('alarmlevel')
+    def notificationStatus =  message.command.get('notificationstatus')
+    def notificationType =  message.command.get('notificationtype')
+    def event =  message.command.get('event')
+    def byte[] bytes = message.command.recvBytes
+    log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+              alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+    // Notification Type 0x06 = Access Control
+    if (6 == notificationType) {
+        def prevContact = Contact.contact.get()
+        // Event 0x16 (22) = Window/Door is open
+        if (22 == event) {
+            Contact.contact Contact.CONTACT_OPENED
+            log.trace "Notification: Contact OPENED"
+        }
+        // Event 0x17 (23) = Window/Door is closed
+        else if (23 == event) {
+            Contact.contact Contact.CONTACT_CLOSED
+            log.trace "Notification: Contact CLOSED"
+        }
+        if (Contact.contact.get() != prevContact) {
+            Contact.contactchanged new Date()
+        }
+    }
+    // Notification Type 0x07 = Home Security (Tamper)
+    else if (7 == notificationType) {
+        if (3 == event) {
+            log.warn "Notification: Tamper detected"
+        }
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+    // don't do a ZWave.basic.get() here. Instead we poll for that so the queued message will be sent as soon as the device communicates to the hub,
+    // rather than waiting for the driver to see that the device is awake and then sending the request down to the hub and then on to the device.
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+}

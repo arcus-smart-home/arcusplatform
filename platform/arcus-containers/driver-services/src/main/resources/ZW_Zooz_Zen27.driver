@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 /**
- * Driver for a Zooz Zen 27 In-Wall Dimmer
+ * Driver for a Zooz ZEN27 In-Wall Dimmer
  *
  */
 
 driver          "ZWZoozZen27Driver"
-description     "Driver for a Zooz Zen27 In-Wall Dimmer"
+description     "Driver for a Zooz ZEN27 In-Wall Dimmer"
 version         "1.0"
 protocol        "ZWAV"
 deviceTypeHint  "Dimmer"
 productId       "acd43a"
 vendor          "Zooz"
-model           "Zen27"
+model           "ZEN27"
 
 matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa002
 
@@ -72,7 +72,7 @@ final byte CNFG_RESET_SIZE        = 0x81		// size field (actually flags indicati
 final byte CNFG_RESET_VALUE       = 0x00        // Not used by device
 final int  OFFLINE_TIMEOUT_SECS   = 1800 		// 30 min
 
-final String DEVICE_NAME = 'Zooz Zen 27 In-Wall Dimmer'
+final String DEVICE_NAME = 'Zooz ZEN27 In-Wall Dimmer'
 
 
 onAdded {
@@ -248,5 +248,11 @@ onZWaveMessage {
 onZWaveMessage.basic.report {
     byte currState = message.command.get('value')
     log.trace "Basic Report: {}", currState
+    GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+}
+
+onZWaveMessage.basic.set {
+    byte currState = message.command.get('value')
+    log.trace "Basic Set: {}", currState
     GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
 }

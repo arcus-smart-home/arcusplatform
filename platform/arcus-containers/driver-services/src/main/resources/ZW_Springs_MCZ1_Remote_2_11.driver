@@ -92,7 +92,6 @@ final int OFFLINE_TIMEOUT_SECS = 133200     // 37 hours
   
 onConnected {
 	ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
-	ZWave.battery.get()
 
 	// set the wakeup interval to 12 hours (0x00A8C0 = 43200 seconds) for node 0x01
 	ZWave.wake_up.set((byte)0x00, (byte)0xA8, (byte)0xC0, (byte)0x01)
@@ -110,6 +109,8 @@ onZWaveMessage.battery.report {
 
 onZWaveMessage.wake_up.notification {
 	log.trace "Wakeup Notification"
+	ZWave.battery.get()
+	ZWave.wake_up.no_more_information()
 }
 
 onZWaveMessage.zwaveplus_info.report {
