@@ -1,6 +1,7 @@
 # Based on https://github.com/kairosdb/kairosdb/issues/288#issuecomment-404411656
 
-FROM arcus/java as builder
+# KairosDB 1.2.2 build (tablesaw) requires JDK 11; runtime is JDK 17
+FROM eclipse-temurin:11-jdk-jammy as builder
 
 USER root
 
