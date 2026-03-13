@@ -129,12 +129,16 @@ test {
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 
     // JDK 17+ requires --add-opens for reflective access used by commons-lang3
-    // EqualsBuilder, EasyMock, and other test libraries
+    // EqualsBuilder, EasyMock, and other test libraries. Use doFirst to check
+    // the actual test JVM version (agent modules use a JDK 8 toolchain).
     if (JavaVersion.current() >= JavaVersion.VERSION_17) {
-        jvmArgs += [
-            '--add-opens', 'java.base/java.util=ALL-UNNAMED',
-            '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-        ]
+        doFirst {
+            def launcher = javaLauncher.orNull
+            if (launcher == null || launcher.metadata.languageVersion.asInt() >= 17) {
+                jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                        '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+            }
+        }
     }
 }
 

@@ -183,6 +183,7 @@ public class TestAlarmSubsystem_RecordOnSecurity extends PlatformAlarmSubsystemT
 	   setExitDelay(AlarmSubsystemCapability.SECURITYMODE_ON, true, 0);
 	   setEntryDelay(AlarmSubsystemCapability.SECURITYMODE_ON, 0);
 	   expectAddAlert(alarm);
+	   expectUpdateIncident();
 	   replay();
       
       start();     
