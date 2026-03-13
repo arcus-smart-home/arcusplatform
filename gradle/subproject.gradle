@@ -136,7 +136,8 @@ test {
             def launcher = javaLauncher.orNull
             if (launcher == null || launcher.metadata.languageVersion.asInt() >= 17) {
                 jvmArgs '--add-opens', 'java.base/java.util=ALL-UNNAMED',
-                        '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+                        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                        '--add-opens', 'java.base/java.time=ALL-UNNAMED'
             }
         }
     }
