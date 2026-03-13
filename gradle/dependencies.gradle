@@ -171,9 +171,9 @@ ext.libraries << [
 		groovy: "org.apache.groovy:groovy:4.0.30",
 
 // Cucumber
-		cucumber_junit: "io.cucumber:cucumber-junit:2.4.0",
-		cucumber_groovy: "io.cucumber:cucumber-groovy:2.0.1",
-		cucumber_java: "io.cucumber:cucumber-java8:2.4.0",
+		cucumber_junit: "io.cucumber:cucumber-junit:6.10.4",
+		cucumber_groovy: "io.cucumber:cucumber-groovy:6.10.4",
+		cucumber_java: "io.cucumber:cucumber-java:6.10.4",
 
 
 // EasyMock
