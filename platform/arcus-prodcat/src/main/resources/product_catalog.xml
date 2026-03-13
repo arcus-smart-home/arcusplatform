@@ -902,7 +902,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="t6pro1" name="T6 Pro Z-Wave Thermostat" shortname="Thermostat" screen="Thermostat" description="" manufacturer="Honeywell" installManualUrl="" vendor="Honeywell" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Honeywell, Resideo, indoor, thermostat, programmable, T6, Pro, climate, hvac, heater, air, conditioner, zwave, TH6320ZW" ota="" protofamily="Z-Wave" added="2026-03-03T00:00:00-0600" lastchanged="2026-03-03T00:00:00-0600">
+    <product id="4fa410" name="T6 Pro Z-Wave Thermostat" shortname="Thermostat" screen="Thermostat" description="" manufacturer="Honeywell" installManualUrl="" vendor="Honeywell" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="Honeywell, Resideo, indoor, thermostat, programmable, T6, Pro, climate, hvac, heater, air, conditioner, zwave, TH6320ZW" ota="" protofamily="Z-Wave" added="2026-03-03T00:00:00-0600" lastchanged="2026-03-03T00:00:00-0600">
       <categories>
         <category name="Climate"/>
       </categories>

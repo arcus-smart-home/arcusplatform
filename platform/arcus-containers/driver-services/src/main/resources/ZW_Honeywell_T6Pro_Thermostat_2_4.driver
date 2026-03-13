@@ -27,7 +27,7 @@ description		"Driver for a Honeywell T6 Pro TH6320ZW Thermostat"
 version			"2.4"
 protocol		"ZWAV"
 deviceTypeHint	"Thermostat"
-productId		"t6pro1"
+productId		"4fa410"
 vendor 			"Honeywell"
 model 			"TH6320ZW"
 
