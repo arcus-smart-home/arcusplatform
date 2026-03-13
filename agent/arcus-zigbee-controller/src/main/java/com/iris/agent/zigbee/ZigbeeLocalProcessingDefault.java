@@ -34,7 +34,7 @@ import com.iris.protoc.runtime.ProtocMessage;
 import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zigbee.zcl.General;
 import com.iris.protocol.zigbee.zdp.Bind;
-import com.iris.protocol.zwave.Protocol;
+import com.iris.protocol.zigbee.msg.ZigbeeMessage;
 import com.zsmartsystems.zigbee.IeeeAddress;
 import com.zsmartsystems.zigbee.ZigBeeEndpoint;
 import com.zsmartsystems.zigbee.ZigBeeNetworkManager;
@@ -63,10 +63,8 @@ public class ZigbeeLocalProcessingDefault implements ZigbeeLocalProcessing {
    }
 
    @Override
-   public Observable<?> send(Address addr, Protocol.Message msg) {
-      // Note: The interface signature uses Protocol.Message (Z-Wave type) which appears
-      // to be a copy-paste error in the original interface. For now, return empty.
-      logger.warn("send() called with Z-Wave Protocol.Message type on ZigBee local processing");
+   public Observable<?> send(Address addr, ZigbeeMessage.Protocol msg) {
+      logger.warn("send() not yet implemented for ZigBee local processing");
       return Observable.empty();
    }
 
