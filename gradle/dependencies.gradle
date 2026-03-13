@@ -142,7 +142,6 @@ ext.libraries << [
 		commons_lang: "org.apache.commons:commons-lang3:3.17.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0",
 		handlebars: "com.github.jknack:handlebars:2.2.2",
-		javassist: "org.javassist:javassist:3.19.0-GA",
 		jna: 'net.java.dev.jna:jna:4.4.0',
 		janino: 'org.codehaus.janino:commons-compiler:3.0.12',
 		oshi_core: 'com.github.oshi:oshi-core:3.4.3',
@@ -250,16 +249,14 @@ ext.netty_epoll_linux = "io.netty:netty-transport-native-epoll:${netty_version}:
 ext.netty_tcnative = "io.netty:netty-tcnative:${tcnative_version}"
 ext.netty_tcnative_osx = "io.netty:netty-tcnative-boringssl-static:${tcnative_version}:osx-x86_64"
 ext.netty_tcnative_linux = "io.netty:netty-tcnative-boringssl-static:${tcnative_version}:linux-x86_64"
-ext.javassist = "org.javassist:javassist:3.19.0-GA"
-
 if (OperatingSystem.current().isMacOsX()) {
 	ext.netty_tcnative_lib = netty_tcnative_osx
 } else {
 	ext.netty_tcnative_lib = netty_tcnative_linux
 }
 if(!netty_version.startsWith("4.")) {
-    ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_handler_proxy, netty_epoll_linux, javassist, netty_tcnative, netty_tcnative_lib]
+    ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_handler_proxy, netty_epoll_linux, netty_tcnative, netty_tcnative_lib]
 }
 else {
-	ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_epoll_linux, javassist, netty_tcnative, netty_tcnative_lib]
+	ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_epoll_linux, netty_tcnative, netty_tcnative_lib]
 }

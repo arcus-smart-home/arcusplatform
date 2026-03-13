@@ -36,8 +36,6 @@ dependencies {
    implementation netty_epoll
    implementation name: 'netty-transport-native-epoll-4.1.60.Final-linux-arm_32'
 
-   runtimeOnly libraries.javassist
-
    testImplementation project(':agent:arcus-test-agent')
 }
 
