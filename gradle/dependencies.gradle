@@ -177,7 +177,7 @@ ext.libraries << [
 
 
 // EasyMock
-		easymock: "org.easymock:easymock:4.3",
+		easymock: "org.easymock:easymock:5.5.0",
 		mockito:	"org.mockito:mockito-inline:4.11.0",
 
 //Junit
