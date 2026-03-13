@@ -33,9 +33,7 @@ public class DaemonThreadFactory implements ThreadFactory {
 
 	public DaemonThreadFactory() {
 		this.priority = Thread.NORM_PRIORITY;
-		SecurityManager s = System.getSecurityManager();
-		group = (s != null) ? s.getThreadGroup() : Thread.currentThread()
-				.getThreadGroup();
+		group = Thread.currentThread().getThreadGroup();
 		namePrefix = "pool-" + poolNumber.getAndIncrement() + "-thread-";
 	}
 
@@ -45,9 +43,7 @@ public class DaemonThreadFactory implements ThreadFactory {
 
 	public DaemonThreadFactory(String name, int priority) {
 		this.priority = priority;
-		SecurityManager s = System.getSecurityManager();
-		group = (s != null) ? s.getThreadGroup() : Thread.currentThread()
-				.getThreadGroup();
+		group = Thread.currentThread().getThreadGroup();
 		namePrefix = "pool-" + name + "-thread-";
 	}
 

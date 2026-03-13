@@ -64,13 +64,13 @@ public class IrisDropwizardExports extends io.prometheus.client.Collector implem
     */
    MetricFamilySamples fromCounter(String dropwizardName, Counter counter) {
       MetricFamilySamples.Sample sample = sampleBuilder.createSample(dropwizardName, "", new ArrayList<String>(), new ArrayList<String>(),
-            new Long(counter.getCount()).doubleValue());
+            (double) counter.getCount());
       return new MetricFamilySamples(sample.name, Type.GAUGE, getHelpMessage(dropwizardName, counter), Arrays.asList(sample));
    }
 
    MetricFamilySamples fromCounter(String dropwizardName, Counter counter, HashMap<String, String> tags) {
       MetricFamilySamples.Sample sample = sampleBuilder.createSample(dropwizardName, "", new ArrayList<String>(tags.keySet()), new ArrayList<String>(tags.values()),
-              new Long(counter.getCount()).doubleValue());
+              (double) counter.getCount());
       return new MetricFamilySamples(sample.name, Type.GAUGE, getHelpMessage(dropwizardName, counter), Arrays.asList(sample));
    }
 

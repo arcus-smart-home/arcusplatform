@@ -51,6 +51,7 @@ public interface RequestResponseMessageBus<T extends Message> extends MessageBus
     * @param handler
     * @return
     */
+   @Deprecated
    default ListenableFuture<Void> invokeAndSendIfNotNull(T request, Callable<Optional<MessageBody>> handler) {
       Optional<MessageBody> response = Optional.ofNullable( invoke(request, () -> handler.call().orElse(null)) );
       return sendResponse(request, response.orElse(MessageBody.noResponse()));

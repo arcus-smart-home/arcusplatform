@@ -1987,23 +1987,23 @@ public final class ZclDataUtil {
       Random r = ThreadLocalRandom.current();
       switch (dataType) {
       case ZB_TYPE_NO_DATA: return NONE;
-      case ZB_TYPE_8BIT: return new Byte((byte)r.nextInt());
-      case ZB_TYPE_16BIT: return new Short((short)r.nextInt());
-      case ZB_TYPE_24BIT: return new Integer(r.nextInt() & 0xFFFFFF);
-      case ZB_TYPE_32BIT: return new Integer(r.nextInt());
-      case ZB_TYPE_40BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFL);
-      case ZB_TYPE_48BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFFFL);
-      case ZB_TYPE_56BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFFFFFL);
-      case ZB_TYPE_64BIT: return new Long(r.nextLong());
-      case ZB_TYPE_BOOLEAN: return new Boolean(r.nextInt(2) == 0);
-      case ZB_TYPE_BITMAP_8BIT: return new Byte((byte)r.nextInt());
-      case ZB_TYPE_BITMAP_16BIT: return new Short((short)r.nextInt());
-      case ZB_TYPE_BITMAP_24BIT: return new Integer(r.nextInt()) & 0xFFFFFF;
-      case ZB_TYPE_BITMAP_32BIT: return new Integer(r.nextInt());
-      case ZB_TYPE_BITMAP_40BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFL);
-      case ZB_TYPE_BITMAP_48BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFFFL);
-      case ZB_TYPE_BITMAP_56BIT: return new Long(r.nextLong() & 0xFFFFFFFFFFFFFFL);
-      case ZB_TYPE_BITMAP_64BIT: return new Long(r.nextLong());
+      case ZB_TYPE_8BIT: return Byte.valueOf((byte)r.nextInt());
+      case ZB_TYPE_16BIT: return Short.valueOf((short)r.nextInt());
+      case ZB_TYPE_24BIT: return Integer.valueOf(r.nextInt() & 0xFFFFFF);
+      case ZB_TYPE_32BIT: return Integer.valueOf(r.nextInt());
+      case ZB_TYPE_40BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFL);
+      case ZB_TYPE_48BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFFFL);
+      case ZB_TYPE_56BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFFFFFL);
+      case ZB_TYPE_64BIT: return Long.valueOf(r.nextLong());
+      case ZB_TYPE_BOOLEAN: return Boolean.valueOf(r.nextInt(2) == 0);
+      case ZB_TYPE_BITMAP_8BIT: return Byte.valueOf((byte)r.nextInt());
+      case ZB_TYPE_BITMAP_16BIT: return Short.valueOf((short)r.nextInt());
+      case ZB_TYPE_BITMAP_24BIT: return Integer.valueOf(r.nextInt() & 0xFFFFFF);
+      case ZB_TYPE_BITMAP_32BIT: return Integer.valueOf(r.nextInt());
+      case ZB_TYPE_BITMAP_40BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFL);
+      case ZB_TYPE_BITMAP_48BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFFFL);
+      case ZB_TYPE_BITMAP_56BIT: return Long.valueOf(r.nextLong() & 0xFFFFFFFFFFFFFFL);
+      case ZB_TYPE_BITMAP_64BIT: return Long.valueOf(r.nextLong());
       case ZB_TYPE_UNSIGNED_8BIT: return decode((byte)r.nextInt(), false);
       case ZB_TYPE_UNSIGNED_16BIT: return decode((short)r.nextInt(), false);
       case ZB_TYPE_UNSIGNED_24BIT: return decode24(r.nextInt() & 0xFFFFFF, false);
@@ -2022,10 +2022,10 @@ public final class ZclDataUtil {
       case ZB_TYPE_SIGNED_64BIT: return decode(r.nextLong(),true);
       case ZB_TYPE_ENUM_8BIT: return decode((byte)r.nextInt(),false);
       case ZB_TYPE_ENUM_16BIT: return decode((short)r.nextInt(),false);
-      //case ZB_TYPE_SEMIFLOAT: return new Float(r.nextFloat());
-      case ZB_TYPE_SEMIFLOAT: return new Float(r.nextFloat());
-      case ZB_TYPE_FLOAT: return new Float(r.nextFloat());
-      case ZB_TYPE_DOUBLE: return new Double(r.nextDouble());
+      //case ZB_TYPE_SEMIFLOAT: return Float.valueOf(r.nextFloat());
+      case ZB_TYPE_SEMIFLOAT: return Float.valueOf(r.nextFloat());
+      case ZB_TYPE_FLOAT: return Float.valueOf(r.nextFloat());
+      case ZB_TYPE_DOUBLE: return Double.valueOf(r.nextDouble());
       case ZB_TYPE_STRING_OCTET: return randomByteString(r);
       case ZB_TYPE_STRING_CHAR: return randomString(r);
       case ZB_TYPE_LONG_STRING_OCTET: return randomByteString(r);
@@ -2138,12 +2138,12 @@ public final class ZclDataUtil {
 
    static Object getRandomObject(Random r, int type) {
       switch (type) {
-      case 0: return new Byte((byte)r.nextInt());
-      case 1: return new Short((short)r.nextInt());
-      case 2: return new Integer(r.nextInt());
-      case 3: return new Long(r.nextLong());
-      case 4: return new Float(r.nextFloat());
-      case 5: return new Double(r.nextDouble());
+      case 0: return Byte.valueOf((byte)r.nextInt());
+      case 1: return Short.valueOf((short)r.nextInt());
+      case 2: return Integer.valueOf(r.nextInt());
+      case 3: return Long.valueOf(r.nextLong());
+      case 4: return Float.valueOf(r.nextFloat());
+      case 5: return Double.valueOf(r.nextDouble());
       default: return new Object();
       }
    }
