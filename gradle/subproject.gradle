@@ -127,6 +127,15 @@ test {
         events "STARTED", "PASSED", "FAILED", "SKIPPED"
     }
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
+    // JDK 17+ requires --add-opens for reflective access used by commons-lang3
+    // EqualsBuilder, EasyMock, and other test libraries
+    if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+        jvmArgs += [
+            '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+        ]
+    }
 }
 
 if ("${use_jacoco}" == "true") {
