@@ -61,6 +61,7 @@
     <brand name="Ring" />
   </brands>
   <categories>
+    <category name="Buttons &amp; Fobs"/>
     <category name="Cameras &amp; Sensors"/>
     <category name="Care"/>
     <category name="Climate"/>
@@ -1412,6 +1413,7 @@
     </product>
     <product id="bbf1cf" name="Smart Button" shortname="Smart Button" screen="Button" description="" manufacturer="CentraLite Systems" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/eulDk_xMuSk" batteryprimsize="CR2450" batteryprimnum="1" keywords="CentraLite, Iris, smart, panic, button, doorbell, zigbee, indoor, control, battery" ota="Yes" protofamily="ZigBee" added="2015-06-29T22:56:59-0600" lastchanged="2015-06-29T22:56:59-0600">
       <categories>
+        <category name="Buttons &amp; Fobs"/>
         <category name="Cameras &amp; Sensors"/>
         <category name="Lights &amp; Switches"/>
       </categories>
@@ -2005,6 +2007,7 @@
     </product>
     <product id="bca135" name="1st Gen Smart Button" shortname="Smart Button" screen="Button" description="" manufacturer="AlertMe" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="https://youtu.be/HGPY8wJ08F4" batteryprimsize="CR2" batteryprimnum="1" keywords="AlertMe, Iris, smart, panic, button, doorbell, zigbee, indoor, control, battery, BTN900" ota="Yes" protofamily="ZigBee" pairingMode="ZBCLEAR" added="2015-06-29T22:56:59-0600" lastchanged="2016-04-26T10:39:59-0400" pairingIdleTimeoutMs="240000">
       <categories>
+        <category name="Buttons &amp; Fobs"/>
         <category name="Cameras &amp; Sensors"/>
         <category name="Lights &amp; Switches"/>
       </categories>
@@ -3805,6 +3808,7 @@
     </product>
     <product id="4fcc24" name="Button" shortname="Button" screen="Button" description="" manufacturer="Samsung" vendor="SmartThings" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="samsung, smartthings, samjin, button, zigbee" ota="Yes" protofamily="ZigBee" added="2026-03-01T12:00:00-0500" lastchanged="2026-03-01T12:00:00-0500">
       <categories>
+        <category name="Buttons &amp; Fobs"/>
         <category name="Cameras &amp; Sensors"/>
       </categories>
       <pair>
@@ -4272,6 +4276,7 @@
     </product>
     <product id="e5c734" name="Remote Switch (Zen34)" shortname="Remote Switch" screen="Button" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2032" batteryprimnum="1" keywords="zooz,remote,switch,button,scene,controller,battery,zwave,zen34" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
       <categories>
+        <category name="Buttons &amp; Fobs"/>
         <category name="Lights &amp; Switches"/>
       </categories>
       <pair>
@@ -4309,6 +4314,30 @@
       <reset>
         <step1 type="text" img="" text="Tap the upper paddle of the main button quickly 10 times."/>
         <step2 type="text" img="" text="The LED indicator will start blinking and the switch will reset to factory defaults."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="a3b737" name="4-Button Wall Remote (Zen37)" shortname="Wall Remote" screen="Button" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,remote,wall,button,scene,controller,battery,rechargeable,zwave,zen37" ota="No" protofamily="Z-Wave" added="2026-03-12T12:00:00-0600" lastchanged="2026-03-12T12:00:00-0600">
+      <categories>
+        <category name="Buttons &amp; Fobs"/>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the Wall Remote is charged. Hold down any button to check the battery level via the LED indicator."/>
+        <step2 type="text" img="" text="Click the top button 7-8 times as quickly as possible. The LED will flash rapidly and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the middle button 6 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the bottom right button 6 times quickly. The LED will blink red."/>
+        <step2 type="text" img="" text="Immediately click the same button 6 more times. The LED will stay red for 2 seconds to confirm the reset."/>
       </reset>
       <populations>
         <population name="general"/>

@@ -278,7 +278,7 @@ onZWaveMessage.central_scene.notification {
         Button.state."${instanceName}" Button.STATE_PRESSED
         Button.statechanged."${instanceName}" new Date()
         // auto-release after delay (except for explicit release events)
-        def eventName = "ReleaseButton" + instanceName.capitalize()
+        def eventName = (instanceName == 'main') ? "ReleaseButtonMain" : "ReleaseButton" + instanceName.replace('button', '')
         Scheduler.scheduleIn eventName, RELEASE_DELAY_MSEC
         log.trace "Button {}: PRESSED (keyAttribute:{})", instanceName, keyAttribute
     }
