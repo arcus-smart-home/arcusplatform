@@ -27,14 +27,14 @@ import com.iris.protoc.runtime.ProtocMessage;
 import com.iris.protocol.zigbee.zcl.General;
 import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zigbee.zdp.Bind;
-import com.iris.protocol.zwave.Protocol;
+import com.iris.protocol.zigbee.msg.ZigbeeMessage;
 
 import rx.Observable;
 
 public interface ZigbeeLocalProcessing {
    boolean isOffline(Address addr);
    void setOfflineTimeout(Address addr, long offlineTimeout);
-   Observable<?> send(Address addr, Protocol.Message msg);
+   Observable<?> send(Address addr, ZigbeeMessage.Protocol msg);
    void addScheduledPoll(Address addr, long period, TimeUnit unit, Collection<byte[]> payloads);
    long getNodeEui64(Address addr);
    long eui64();

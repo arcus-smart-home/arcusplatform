@@ -23,7 +23,7 @@ import com.iris.protoc.runtime.ProtocMessage;
 import com.iris.protocol.zigbee.ZclData;
 import com.iris.protocol.zigbee.zcl.General;
 import com.iris.protocol.zigbee.zdp.Bind;
-import com.iris.protocol.zwave.Protocol;
+import com.iris.protocol.zigbee.msg.ZigbeeMessage;
 import rx.Observable;
 
 import java.util.Collection;
@@ -66,7 +66,7 @@ public class ZigbeeLocalProcessingNoop implements ZigbeeLocalProcessing {
    }
 
    @Override
-   public Observable<?> send(Address addr, Protocol.Message msg) {
+   public Observable<?> send(Address addr, ZigbeeMessage.Protocol msg) {
       return Observable.empty();
    }
 

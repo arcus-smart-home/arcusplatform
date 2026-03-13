@@ -256,17 +256,17 @@ public final class ReflexDriverHubContext implements ReflexDriverContext {
 
    @Override
    public void zigbeeSend(ZigbeeMessage.Protocol msg) {
-//      parent.zigbee().send(addr, msg).subscribe(RxIris.SWALLOW_ALL);
+      parent.zigbee().send(addr, msg).subscribe(RxIris.SWALLOW_ALL);
    }
 
    @Override
    public void zwaveSend(Protocol.Message msg) {
-//      parent.zwave().send(addr, msg).subscribe(RxIris.SWALLOW_ALL);
+      parent.zwave().send(addr, msg).subscribe(RxIris.SWALLOW_ALL);
    }
 
    @Override
    public void zwaveAddScheduledPoll(long time, TimeUnit unit, Collection<byte[]> polls) {
-//      parent.zwave().addScheduledPoll(addr, time, unit, polls);
+      parent.zwave().addScheduledPoll(addr, time, unit, polls);
    }
 
    private static Map<String,Object> addto(@Nullable Map<String,Object> map, Map<String,Object> values) {
