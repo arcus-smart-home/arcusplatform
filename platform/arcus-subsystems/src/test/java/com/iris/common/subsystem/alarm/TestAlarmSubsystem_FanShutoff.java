@@ -154,6 +154,7 @@ public class TestAlarmSubsystem_FanShutoff extends PlatformAlarmSubsystemTestCas
 	@Test
    public void testTriggerCOAlarmWithFanShutoffOnCO_False() throws Exception {
       expectAddAlert(CarbonMonoxideAlarm.NAME);
+      expectUpdateIncident();
       replay();      
       
       start();
@@ -184,13 +185,14 @@ public class TestAlarmSubsystem_FanShutoff extends PlatformAlarmSubsystemTestCas
 	@Test
    public void testTriggerCOAlarmWithFanShutoffOnCO_False_DeviceAlreadyOff() throws Exception {
       expectAddAlert(CarbonMonoxideAlarm.NAME);
+      expectUpdateIncident();
       replay();      
       
       start();
       
       //Add all 3 capable devices that if triggered, should NOT be shut off because they are already off
       fan = addFan(0);
-      fanWithSwitch = addFanWithSwitch(3, SwitchCapability.STATE_OFF);
+      fanWithSwitch = addFanWithSwitch(0, SwitchCapability.STATE_OFF);
       spaceheater = addSpaceHeater(SpaceHeaterCapability.HEATSTATE_OFF);
       thermostat = addThermostat(ThermostatCapability.HVACMODE_OFF);
       
@@ -242,6 +244,7 @@ public class TestAlarmSubsystem_FanShutoff extends PlatformAlarmSubsystemTestCas
    @Test
    public void testTriggerSmokeAlarmWithFanShutoffOnSmoke_False() throws Exception {
       expectAddAlert(SmokeAlarm.NAME);
+      expectUpdateIncident();
       replay();      
       
       start();
@@ -267,6 +270,7 @@ public class TestAlarmSubsystem_FanShutoff extends PlatformAlarmSubsystemTestCas
    @Test
    public void testTriggerSmokeAlarmWithFanShutoffOnSmoke_False_DeviceAlreadyOff() throws Exception {
       expectAddAlert(SmokeAlarm.NAME);
+      expectUpdateIncident();
       replay();      
       
       start();
