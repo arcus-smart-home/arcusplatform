@@ -38,12 +38,13 @@ ADD logback.xml /opt/apache-cassandra-${CASSANDRA_VERSION}/conf/logback.xml
 WORKDIR /data
 ENV CASSANDRA_HOME /opt/apache-cassandra-${CASSANDRA_VERSION}
 
-# Create a logs directory that can be mounted as tmpfs
-RUN mkdir -p /var/log/cassandra && chown arcus:arcus /var/log/cassandra
-VOLUME /var/log/cassandra
+# Point logs at a fixed path so compose can mount tmpfs without hardcoding the version
+RUN rm -rf /opt/apache-cassandra-${CASSANDRA_VERSION}/logs && \
+    mkdir -p /var/log/cassandra && \
+    ln -s /var/log/cassandra /opt/apache-cassandra-${CASSANDRA_VERSION}/logs
 
 # Own the install and data dirs so we can run as non-root
-RUN chown -R arcus:arcus /opt/apache-cassandra-${CASSANDRA_VERSION} /data
+RUN chown -R arcus:arcus /opt/apache-cassandra-${CASSANDRA_VERSION} /var/log/cassandra /data
 
 # Expose Cassandra ports
 # 7000: intra-node communication
