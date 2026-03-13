@@ -164,6 +164,13 @@ cassandra_start() {
     # TODO: remove this chown in a future release once all volumes have been migrated
     chown -R arcus:arcus /data
 
+    # Ensure logs dir is writable (tmpfs mounts as root)
+    chown arcus:arcus /var/log/cassandra
+
+    # Reduce GC log rotation size for tmpfs-mounted logs dir
+    # Cassandra 4.0 defaults: filecount=10,filesize=10485760 (100MB max)
+    sed -i 's/filecount=10,filesize=10485760/filecount=3,filesize=2097152/' "${CASSANDRA_HOME}/conf/jvm11-server.options"
+
     if [ -z "${EYERIS_CASSANDRA_INIT}" ] && [ -z "${CASSANDRA_SINGLE_NODE}" ]; then
         echo "Starting Apache Cassandra Server..."
         exec gosu arcus "${CASSANDRA_HOME}/bin/cassandra" "-f"
