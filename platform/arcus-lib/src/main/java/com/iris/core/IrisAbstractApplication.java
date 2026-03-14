@@ -196,9 +196,39 @@ public abstract class IrisAbstractApplication {
             app.start();
          }
       } catch(Exception e) {
-         System.err.println(e.getMessage() + "\n");
-         e.printStackTrace(System.err);
-         logger.error("Application failed to start", e);
+         System.err.println(e.getMessage());
+         Throwable cause = e.getCause();
+         while (cause != null) {
+            if (cause instanceof com.google.inject.CreationException) {
+               com.google.inject.CreationException ce = (com.google.inject.CreationException) cause;
+               // Deduplicate errors by cause message
+               java.util.LinkedHashMap<String, String> seen = new java.util.LinkedHashMap<>();
+               for (com.google.inject.spi.Message msg : ce.getErrorMessages()) {
+                  String causeStr = msg.getCause() != null ? msg.getCause().toString() : msg.getMessage();
+                  String full = msg.getMessage();
+                  String summary = full.contains("\n") ? full.substring(0, full.indexOf('\n')) : full;
+                  seen.putIfAbsent(causeStr, summary);
+               }
+               System.err.println("\nGuice injection errors (" + ce.getErrorMessages().size() + " total, " + seen.size() + " unique):");
+               int i = 1;
+               for (java.util.Map.Entry<String, String> entry : seen.entrySet()) {
+                  System.err.println("  " + i + ") " + entry.getValue());
+                  System.err.println("     Caused by: " + entry.getKey());
+                  i++;
+               }
+               System.err.println();
+               break;
+            }
+            cause = cause.getCause();
+         }
+         if (cause == null) {
+            // Not a Guice error — print the full stack trace
+            e.printStackTrace(System.err);
+            logger.error("Application failed to start", e);
+         } else {
+            // Guice error — already printed summary above, don't dump full trace again
+            logger.error("Application failed to start: {}", e.getMessage());
+         }
          System.exit(1);
       }
    }
