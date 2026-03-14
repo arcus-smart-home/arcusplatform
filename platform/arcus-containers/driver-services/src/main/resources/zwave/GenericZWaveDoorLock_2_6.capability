@@ -209,7 +209,11 @@ static def getDoorLockSlots(ctx) {
 }
 
 static def getUserInSlot(ctx,slot) {
-   return ctx.DoorLock.slots.get()[slot.toString()]
+   def slots = ctx.DoorLock.slots.get()
+   if (slots == null) {
+      return null
+   }
+   return slots[slot.toString()]
 }
 
 static void updateLockState(ctx,newState) {

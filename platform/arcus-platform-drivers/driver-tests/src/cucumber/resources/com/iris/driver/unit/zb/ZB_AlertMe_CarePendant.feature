@@ -173,18 +173,19 @@ Feature: Zigbee AlertMe Care Pendant Driver Test
 
 
     @heartbeat
-    Scenario Outline: Device sends Heartbeat Message while Target State set
+    Scenario: Device sends Heartbeat Message while Target State set
         # assume in Help Needed state
         Given the driver variable targetHelpState is 1
              And the capability devpow:battery is 90
-        When the device response with 240 251 
+        When the device response with 240 251
             # status(1byte), timer(4bytes), battery(2bytes), temperature(2bytes), RSSI(1byte), LQI(1byte), Switch Mask(1byte), Switch State(1byte)
             And with payload 1, 0,0,0,0, 0xF6,0x09, 0,0, 0, 0, 0, 0
             And send to driver
         Then the driver should place a base:ValueChange message on the platform bus
         # driver should tell device the current Help State
         Then the driver should send 0x00C0 0x02
-        # driver should send Stop Polling after heartbeat received and Help state sent
+        # driver should send Stop Polling after DeferredStopPolling event fires
+        When event DeferredStopPolling triggers
         Then the driver should send 0x00F0 0xFD
 
 

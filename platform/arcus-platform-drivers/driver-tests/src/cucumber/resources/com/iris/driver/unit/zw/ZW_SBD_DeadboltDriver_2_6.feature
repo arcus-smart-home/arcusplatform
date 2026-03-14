@@ -58,13 +58,13 @@ Feature: ZWave Stanley Black & Decker Deadbolt Driver Test
 	Scenario Outline: Door Lock reports alarm state of bolt retracted from Keypad
     Given the capability doorlock:lockstate is LOCKED
       And the capability devadv:errors is {"WARN_JAM":"Door lock may be jammed"}
- 		When the device response with alarm report 
+ 		When the device response with alarm report
 			And with parameter alarmtype 0x13
 			And send to driver
 		Then the platform attribute doorlock:lockstate should change to UNLOCKED
 		  And the capability devadv:errors should be [:]
 		  And the driver should place a doorlock:PinUsed message on the platform bus
-			And the driver should place a base:ValueChange message on the platform bus
+		  And the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 
