@@ -1,5 +1,5 @@
-# Use the standard arcus java image
-FROM arcus/java
+# Cassandra 4.0 only supports JDK 8/11; use a pinned base image
+FROM arcus/java:jdk11
 
 USER root
 
