@@ -1,0 +1,349 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZEN32 Scene Controller
+ *
+ * The ZEN32 is a mains-powered Z-Wave wall switch with a main relay paddle and four small
+ * scene buttons. The main paddle controls a load (up to 3A at 120V) and also supports
+ * central scene notifications. The four small buttons are scene-only (no load).
+ *
+ * Layout:
+ *   +---------------------------+
+ *   |     Main Paddle (relay)   |   Scene 5
+ *   +-------------+-------------+
+ *   | Button 1    | Button 2    |   Scene 1  |  Scene 2
+ *   +-------------+-------------+
+ *   | Button 3    | Button 4    |   Scene 3  |  Scene 4
+ *   +-------------+-------------+
+ *
+ * FACTORY RESET:  Tap the upper paddle of the main button quickly 10 times. The LED indicator
+ *                 will start blinking and the switch will reset.
+ *
+ * PAIR/INCLUDE:   Tap the upper paddle 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Tap the upper paddle 3 times quickly while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x25   (37) Switch Binary
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5B   (91) Central Scene
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ *   0x8E (-114) Multi Channel Association
+ *   0x9F  (-97) Security 2
+ */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveVersion'
+
+
+driver          "ZWZoozZen32SceneControllerDriver"
+description     "Driver for a Zooz ZEN32 Scene Controller"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Switch"
+productId       "f8e032"
+vendor          "Zooz"
+model           "ZEN32"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xA008
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+Switch {
+    state Switch.STATE_OFF
+    bind statechanged to state
+}
+
+instance 'button1', Button
+instance 'button2', Button
+instance 'button3', Button
+instance 'button4', Button
+instance 'main', Button
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN32 Scene Controller"
+
+final int OFFLINE_TIMEOUT_SECS = 11400        // 190 minutes
+final int POLLING_INTERVAL_SEC = 3600         // Poll every 60 minutes
+
+@Field final byte SWITCH_ON  = 0xff
+@Field final byte SWITCH_OFF = 0x00
+
+final long RELEASE_DELAY_MSEC = 1000          // simulate button RELEASED 1 second after PRESSED
+
+// Central Scene Key Attributes (bits 0-2 of properties1)
+@Field final byte KEY_PRESSED_1_TIME  = 0x00
+@Field final byte KEY_RELEASED        = 0x01
+@Field final byte KEY_HELD_DOWN       = 0x02
+@Field final byte KEY_PRESSED_2_TIMES = 0x03
+@Field final byte KEY_PRESSED_3_TIMES = 0x04
+@Field final byte KEY_PRESSED_4_TIMES = 0x05
+@Field final byte KEY_PRESSED_5_TIMES = 0x06
+
+// Scene Numbers
+@Field final byte SCENE_BUTTON_1 = 0x01   // small button top left
+@Field final byte SCENE_BUTTON_2 = 0x02   // small button top right
+@Field final byte SCENE_BUTTON_3 = 0x03   // small button bottom left
+@Field final byte SCENE_BUTTON_4 = 0x04   // small button bottom right
+@Field final byte SCENE_MAIN     = 0x05   // main relay paddle
+
+// Instance name lookup by scene number
+@Field final Map SCENE_TO_INSTANCE = [
+    (SCENE_BUTTON_1): 'button1',
+    (SCENE_BUTTON_2): 'button2',
+    (SCENE_BUTTON_3): 'button3',
+    (SCENE_BUTTON_4): 'button4',
+    (SCENE_MAIN):     'main'
+]
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_MODE_PARAM_NO          = 1       // LED Indicator Mode for relay
+final byte CNFG_LED_MODE_SIZE                     = 1       // 0=LED on when relay off (default), 1=LED on when relay on, 2=always off, 3=always on
+final byte CNFG_LED_MODE_VALUE                    = 0       // LED on when relay off
+
+@Field final byte CNFG_AUTO_OFF_PARAM_NO          = 16      // Auto Turn-Off Timer (minutes)
+final byte CNFG_AUTO_OFF_SIZE                     = 4
+final int  CNFG_AUTO_OFF_VALUE                    = 0       // disabled
+
+@Field final byte CNFG_AUTO_ON_PARAM_NO           = 17      // Auto Turn-On Timer (minutes)
+final byte CNFG_AUTO_ON_SIZE                      = 4
+final int  CNFG_AUTO_ON_VALUE                     = 0       // disabled
+
+@Field final byte CNFG_POWER_FAILURE_PARAM_NO     = 18      // On Off Status After Power Failure
+final byte CNFG_POWER_FAILURE_SIZE                = 1       // 0=OFF, 1=ON, 2=restore last state (default)
+final byte CNFG_POWER_FAILURE_VALUE               = 2       // restore last state
+
+@Field final byte CNFG_LOAD_CONTROL_PARAM_NO      = 19      // Smart Bulb Mode
+final byte CNFG_LOAD_CONTROL_SIZE                 = 1       // 0=disabled, 1=physical+zwave (default), 2=physical disabled/zwave only
+final byte CNFG_LOAD_CONTROL_VALUE                = 1       // physical+zwave enabled
+
+@Field final byte CNFG_SCENE_CONTROL_PARAM_NO     = 24      // Scene Control for main paddle
+final byte CNFG_SCENE_CONTROL_SIZE                = 1       // 0=disabled (default), 1=enabled
+final byte CNFG_SCENE_CONTROL_VALUE               = 1       // enable scene control for main paddle
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.statechanged       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+
+    Button.state.button1         Button.STATE_RELEASED
+    Button.statechanged.button1  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Button.state.button2         Button.STATE_RELEASED
+    Button.statechanged.button2  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Button.state.button3         Button.STATE_RELEASED
+    Button.statechanged.button3  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Button.state.button4         Button.STATE_RELEASED
+    Button.statechanged.button4  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Button.state.main            Button.STATE_RELEASED
+    Button.statechanged.main     ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // request current switch state
+    ZWave.switch_binary.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // configure device
+    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+    ZWave.configuration.set( CNFG_POWER_FAILURE_PARAM_NO, CNFG_POWER_FAILURE_SIZE, CNFG_POWER_FAILURE_VALUE )
+    ZWave.configuration.set( CNFG_LOAD_CONTROL_PARAM_NO, CNFG_LOAD_CONTROL_SIZE, CNFG_LOAD_CONTROL_VALUE )
+
+    // enable scene control for main paddle (disabled by default)
+    ZWave.configuration.set( CNFG_SCENE_CONTROL_PARAM_NO, CNFG_SCENE_CONTROL_SIZE, CNFG_SCENE_CONTROL_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handle Switch Capability (main relay)
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+    def attributes = message.attributes
+    log.debug "setAttributes('swit'): {} ", attributes
+    for(attribute in attributes) {
+        switch(attribute.key) {
+            case Switch.state:
+                byte targetState = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+                log.trace "Set relay: {}", attribute.value
+                ZWave.switch_binary.set( targetState )
+                // read back state to verify
+                ZWave.switch_binary.get()
+                break
+
+            default:
+                log.warn "Unrecognized attribute: {}", attribute
+                break
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Callbacks (button auto-release)
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent( "ReleaseButton1" ) {
+    Button.state.button1 Button.STATE_RELEASED
+    Button.statechanged.button1 new Date()
+}
+
+onEvent( "ReleaseButton2" ) {
+    Button.state.button2 Button.STATE_RELEASED
+    Button.statechanged.button2 new Date()
+}
+
+onEvent( "ReleaseButton3" ) {
+    Button.state.button3 Button.STATE_RELEASED
+    Button.statechanged.button3 new Date()
+}
+
+onEvent( "ReleaseButton4" ) {
+    Button.state.button4 Button.STATE_RELEASED
+    Button.statechanged.button4 new Date()
+}
+
+onEvent( "ReleaseButtonMain" ) {
+    Button.state.main Button.STATE_RELEASED
+    Button.statechanged.main new Date()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.central_scene.notification {
+    def sequenceNumber = message.command.get('sequencenumber')
+    def properties1    = message.command.get('properties1')
+    def sceneNumber    = message.command.get('scenenumber')
+    def keyAttribute   = (properties1 & 0x07)
+
+    log.debug "Central Scene Notification - Sequence:{}, Scene:{}, KeyAttribute:{}", sequenceNumber, sceneNumber, keyAttribute
+
+    def instanceName = SCENE_TO_INSTANCE.get((byte) sceneNumber)
+    if (instanceName == null) {
+        log.warn "Unexpected scene number: {}", sceneNumber
+        return
+    }
+
+    if (KEY_RELEASED == keyAttribute) {
+        Button.state."${instanceName}" Button.STATE_RELEASED
+        Button.statechanged."${instanceName}" new Date()
+        log.trace "Button {}: RELEASED", instanceName
+    } else {
+        Button.state."${instanceName}" Button.STATE_PRESSED
+        Button.statechanged."${instanceName}" new Date()
+        // auto-release after delay (except for explicit release events)
+        def eventName = (instanceName == 'main') ? "ReleaseButtonMain" : "ReleaseButton" + instanceName.replace('button', '')
+        Scheduler.scheduleIn eventName, RELEASE_DELAY_MSEC
+        log.trace "Button {}: PRESSED (keyAttribute:{})", instanceName, keyAttribute
+    }
+}
+
+onZWaveMessage.switch_binary.report {
+    log.trace "Switch Binary Report: {}", message
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.get()
+    Switch.state (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.get() != prevState) {
+        Switch.statechanged new Date()
+    }
+}
+
+onZWaveMessage.basic.report {
+    log.trace "Basic Report: {}", message
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.get()
+    Switch.state (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.get() != prevState) {
+        Switch.statechanged new Date()
+    }
+}
+
+onZWaveMessage.basic.set {
+    log.trace "Basic Set: {}", message
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.get()
+    Switch.state (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.get() != prevState) {
+        Switch.statechanged new Date()
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    ZWave.switch_binary.get()
+}

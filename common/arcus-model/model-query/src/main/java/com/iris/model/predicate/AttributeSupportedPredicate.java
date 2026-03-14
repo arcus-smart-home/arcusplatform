@@ -47,9 +47,20 @@ public class AttributeSupportedPredicate implements Predicate<Model>, Serializab
       if(model == null) {
          return false;
       }
-      
+
       Object value = model.getAttribute(attributeName);
-      return value != null;
+      if(value != null) {
+         return true;
+      }
+
+      // Check for instanced attributes (e.g., "but:state" matches "but:state:up")
+      String prefix = attributeName + ":";
+      for(String key : model.keys()) {
+         if(key.startsWith(prefix)) {
+            return true;
+         }
+      }
+      return false;
    }
 
    @Override

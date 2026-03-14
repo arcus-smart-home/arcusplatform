@@ -1,0 +1,228 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZEN34 Remote Switch
+ *
+ * The ZEN34 is a battery-powered Z-Wave paddle remote with two buttons (upper and lower paddle).
+ * Each paddle supports single tap, double tap, triple tap, 4x tap, 5x tap, held, and released actions
+ * via the Central Scene command class.
+ *
+ * FACTORY RESET:  Quickly press the upper paddle 6 times, then immediately hold the upper paddle.
+ *                 The LED indicator will start blinking and the remote will reset.
+ *
+ * PAIR/INCLUDE:   Press and hold the upper paddle for 3 seconds while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Press and hold the lower paddle for 3 seconds while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x22   (34) Application Status
+ *   0x26   (38) Switch Multilevel
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5B   (91) Central Scene
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ *   0x8E (-114) Multi Channel Association
+ *   0x9F  (-97) Security 2
+ */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveBattery'
+uses 'zwave.GenericZWaveVersion'
+
+
+driver          "ZWZoozZen34RemoteSwitchDriver"
+description     "Driver for a Zooz ZEN34 Remote Switch"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Button"
+productId       "e5c734"
+vendor          "Zooz"
+model           "ZEN34"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xF001
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_BATTERY
+    linecapable false
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+instance 'up', Button
+instance 'down', Button
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN34 Remote Switch"
+
+final int OFFLINE_TIMEOUT_SECS = 133200     // 37 hours
+final long RELEASE_DELAY_MSEC  = 1000       // simulate button RELEASED 1 second after PRESSED
+
+// Central Scene Key Attributes (bits 0-2 of properties1)
+@Field final byte KEY_PRESSED_1_TIME  = 0x00
+@Field final byte KEY_RELEASED        = 0x01
+@Field final byte KEY_HELD_DOWN       = 0x02
+@Field final byte KEY_PRESSED_2_TIMES = 0x03
+@Field final byte KEY_PRESSED_3_TIMES = 0x04
+@Field final byte KEY_PRESSED_4_TIMES = 0x05
+@Field final byte KEY_PRESSED_5_TIMES = 0x06
+
+// Scene Numbers
+@Field final byte SCENE_UPPER_PADDLE = 0x01
+@Field final byte SCENE_LOWER_PADDLE = 0x02
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_MODE_PARAM_NO  = 1       // parameter number to configure LED indicator mode
+final byte CNFG_LED_MODE_SIZE             = 1        // size is 1 byte
+final byte CNFG_LED_MODE_VALUE            = 1        // 0=Always Off, 1=On when button pressed (default), 2=Always on (LED is on)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    Button.state.up           Button.STATE_RELEASED
+    Button.statechanged.up    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+    Button.state.down         Button.STATE_RELEASED
+    Button.statechanged.down  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // set the wakeup interval to 12 hours (0x00A8C0 = 43200 seconds) for node 0x01
+    ZWave.wake_up.set((byte)0x00, (byte)0xA8, (byte)0xC0, (byte)0x01)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // configure LED mode
+    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent( "ReleaseButtonUp" ) {
+    Button.state.up Button.STATE_RELEASED
+    Button.statechanged.up new Date()
+}
+
+onEvent( "ReleaseButtonDown" ) {
+    Button.state.down Button.STATE_RELEASED
+    Button.statechanged.down new Date()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.central_scene.notification {
+    def sequenceNumber = message.command.get('sequencenumber')
+    def properties1    = message.command.get('properties1')
+    def sceneNumber    = message.command.get('scenenumber')
+    def keyAttribute   = (properties1 & 0x07)
+
+    log.debug "Central Scene Notification - Sequence:{}, Scene:{}, KeyAttribute:{}", sequenceNumber, sceneNumber, keyAttribute
+
+    if (SCENE_UPPER_PADDLE == sceneNumber) {
+        if (KEY_RELEASED == keyAttribute) {
+            Button.state.up Button.STATE_RELEASED
+            Button.statechanged.up new Date()
+            log.trace "Upper paddle: RELEASED"
+        } else {
+            Button.state.up Button.STATE_PRESSED
+            Button.statechanged.up new Date()
+            // auto-release after delay (except for explicit release events)
+            Scheduler.scheduleIn 'ReleaseButtonUp', RELEASE_DELAY_MSEC
+            log.trace "Upper paddle: PRESSED (keyAttribute:{})", keyAttribute
+        }
+    } else if (SCENE_LOWER_PADDLE == sceneNumber) {
+        if (KEY_RELEASED == keyAttribute) {
+            Button.state.down Button.STATE_RELEASED
+            Button.statechanged.down new Date()
+            log.trace "Lower paddle: RELEASED"
+        } else {
+            Button.state.down Button.STATE_PRESSED
+            Button.statechanged.down new Date()
+            // auto-release after delay (except for explicit release events)
+            Scheduler.scheduleIn 'ReleaseButtonDown', RELEASE_DELAY_MSEC
+            log.trace "Lower paddle: PRESSED (keyAttribute:{})", keyAttribute
+        }
+    } else {
+        log.warn "Unexpected scene number: {}", sceneNumber
+    }
+}
+
+onZWaveMessage.battery.report {
+    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+    log.trace "Wakeup Notification"
+    ZWave.battery.get()
+    ZWave.wake_up.no_more_information()
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}

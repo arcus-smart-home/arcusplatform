@@ -122,7 +122,7 @@ public class RuleEditorWizard {
       
       public void onTemplateLoaded(RuleTemplateModel template) {
          this.template = template;
-         ClientFuture<ResolveResponse> response = template.resolve(placeId);
+         ClientFuture<ResolveResponse> response = template.resolve(placeId, null);
          Oculus.showProgress(response, "Resolving template options...");
          response
             .onSuccess((r) -> onTemplateResolved(r))

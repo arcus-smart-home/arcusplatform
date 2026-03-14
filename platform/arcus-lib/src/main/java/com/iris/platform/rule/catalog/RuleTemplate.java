@@ -303,15 +303,41 @@ public class RuleTemplate {
    }
 
    public Map<String, Selector> resolve(RuleContext environment){
+      return resolve(environment, Collections.emptyMap());
+   }
+
+   public Map<String, Selector> resolve(RuleContext environment, Map<String, String> selections){
       if(options.isEmpty()) {
          return ImmutableMap.of();
       }
       Map<String, Selector> resolved = new HashMap<>(options.size());
       for(Map.Entry<String, SelectorGenerator> entry: options.entrySet()) {
-         Selector selector = entry.getValue().generate(environment);
+         Selector selector = entry.getValue().generate(environment, selections);
          resolved.put(entry.getKey(), selector);
       }
       return resolved;
+   }
+
+   /**
+    * Validates that the variable selections are consistent with each other
+    * (e.g., an instance value exists on the selected device).
+    * @throws ValidationException if any selector reports invalid state
+    */
+   public void validateSelections(RuleContext context, Map<String, Object> variables) throws ValidationException {
+      if (variables == null || variables.isEmpty()) {
+         return;
+      }
+      Validator v = new Validator();
+      for (Map.Entry<String, SelectorGenerator> entry : options.entrySet()) {
+         Object value = variables.get(entry.getKey());
+         if (value != null) {
+            String error = entry.getValue().validate(context, String.valueOf(value), variables);
+            if (error != null) {
+               v.error("Selector '" + entry.getKey() + "': " + error);
+            }
+         }
+      }
+      v.throwIfErrors();
    }
 
    public RuleDefinition create(UUID placeId, String name, Map<String, Object> variables) throws ValidationException {

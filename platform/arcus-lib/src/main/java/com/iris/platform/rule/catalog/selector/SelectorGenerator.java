@@ -18,15 +18,29 @@
  */
 package com.iris.platform.rule.catalog.selector;
 
+import java.util.Map;
+
 import com.iris.common.rule.RuleContext;
 
 /**
- * 
+ *
  */
 public interface SelectorGenerator {
 
    boolean isSatisfiable(RuleContext context);
-   
+
    Selector generate(RuleContext context);
+
+   default Selector generate(RuleContext context, Map<String, String> selections) {
+      return generate(context);
+   }
+
+   /**
+    * Validates that the selected value for this selector is consistent with
+    * other selected values. Returns null if valid, or an error message if not.
+    */
+   default String validate(RuleContext context, String value, Map<String, Object> allVariables) {
+      return null;
+   }
 }
 

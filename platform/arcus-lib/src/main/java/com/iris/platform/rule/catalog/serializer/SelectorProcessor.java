@@ -37,6 +37,7 @@ import com.iris.model.type.EnumType;
 import com.iris.platform.rule.catalog.selector.ConstantListSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.ConstantSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.FilteringListSelectorGenerator;
+import com.iris.platform.rule.catalog.selector.InstanceSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.ListSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.MinMaxSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.MinMaxSelectorGenerator.Unit;
@@ -70,6 +71,7 @@ public class SelectorProcessor extends BaseCatalogProcessor {
    public static final String TYPE_TEXT = "text";
    public static final String TYPE_TEMPERATURE = "temperature";
    public static final String TYPE_MIN_MAX = "min-max";
+   public static final String TYPE_INSTANCE = "instance";
 
    private SelectorGenerator generator;
 
@@ -77,7 +79,9 @@ public class SelectorProcessor extends BaseCatalogProcessor {
    private String name;
    private String query;
    private String attribute;
+   private String capability;
    private List<Option> options;
+   private String dependsOn;
    private String minStr;
    private String maxStr;
    private String incrementStr;
@@ -118,6 +122,8 @@ public class SelectorProcessor extends BaseCatalogProcessor {
          name = getValue("name", attributes);
          query = getValue("query", null, attributes);
          attribute = getValue("attribute", null, attributes);
+         capability = getValue("capability", null, attributes);
+         dependsOn = getValue("depends-on", null, attributes);
          minStr = getValue("min", null, attributes);
          maxStr = getValue("max", null, attributes);
          incrementStr = getValue("increment", "1", attributes);
@@ -211,6 +217,13 @@ public class SelectorProcessor extends BaseCatalogProcessor {
         	 this.generator = createMinMaxGenerator(Unit.FAHRENHEIT);
          }else if(TYPE_MIN_MAX.equals(type)) {
         	 this.generator = createMinMaxGenerator(Unit.NONE);
+         }
+         else if(TYPE_INSTANCE.equalsIgnoreCase(type)) {
+            if(capability == null) {
+               getValidator().error("Invalid selector [" + name + "]: No capability specified for instance selector");
+            } else {
+               this.generator = new InstanceSelectorGenerator(capability, dependsOn);
+            }
          }
          else {
             getValidator().error("Unrecognized option type: " + type);

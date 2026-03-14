@@ -406,6 +406,7 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
             .build();
    }
 
+   @SuppressWarnings("unchecked")
    private MessageBody handleResolve(Object templateId, MessageBody body) {
       // TODO:  replace with better error events
       Preconditions.checkNotNull(templateId, "The template ID is required from the destination address");
@@ -422,7 +423,13 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
 
       RuleContext context = createSimpleRuleContext(placeId);
 
-      Map<String,Selector> resolution = template.resolve(context);
+      // Extract optional selections for dependent selectors
+      Map<String, String> selections = (Map<String, String>) body.getAttributes().get("selections");
+      if (selections == null) {
+         selections = Collections.emptyMap();
+      }
+
+      Map<String,Selector> resolution = template.resolve(context, selections);
       Map<String,Map<String,Object>> transformed = new HashMap<>();
       resolution.entrySet().forEach((e) -> {
          transformed.put(e.getKey(), selectorToMap(e.getValue()));
@@ -455,6 +462,9 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
             options.add(Arrays.asList(o.getLabel(), o.getValue()));
          });
          asMap.put("options", options);
+         if(optionSelector.getDependsOn() != null) {
+            asMap.put("dependsOn", optionSelector.getDependsOn());
+         }
       }
       return asMap;
    }
@@ -482,6 +492,9 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
       }
 
       try {
+         // Validate that dependent selectors are consistent (e.g., instance exists on device)
+         RuleContext validationContext = createSimpleRuleContext(placeId);
+         template.validateSelections(validationContext, variables);
          Callable<RuleDefinition> save = () -> doCreateRule(placeId, template, name, description, variables);
          com.google.common.base.Optional<PlaceEnvironmentExecutor> executorRef = registry.getExecutor(placeId);
          RuleDefinition rule;

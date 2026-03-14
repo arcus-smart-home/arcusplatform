@@ -408,6 +408,20 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       setOrDefault(Capability.ATTR_IMAGES, coerceToStringMap(row.getMap(BaseEntityColumns.IMAGES, String.class, UUID.class)), ImmutableMap.of(), model);
       setOrDefault(Capability.ATTR_CAPS, row.getSet(DeviceEntityColumns.CAPS, String.class), ImmutableSet.of(Capability.NAMESPACE, DeviceCapability.NAMESPACE), model);
 
+      // base:instances is stored in the generic attributes blob but the base
+      // capability has no XML definition, so key() cannot resolve it.
+      // Deserialize it manually so that instance selectors work.
+      String instancesJson = encoded.get(Capability.ATTR_INSTANCES);
+      if(instancesJson != null) {
+         try {
+            Object instances = JSON.fromJson(instancesJson, TypeMarker.wrap(Capability.KEY_INSTANCES.getType()));
+            setIf(Capability.ATTR_INSTANCES, instances, model);
+         }
+         catch(Exception e) {
+            log.warn("Invalid value for attribute [{}]", Capability.ATTR_INSTANCES, e);
+         }
+      }
+
       // device attributes
       setIf(DeviceCapability.ATTR_DEVTYPEHINT, row.getString(DeviceEntityColumns.DEVTYPEHINT), model);
       setOrDefault(DeviceCapability.ATTR_NAME, row.getString(DeviceEntityColumns.NAME), DFLT_NAME, model);
