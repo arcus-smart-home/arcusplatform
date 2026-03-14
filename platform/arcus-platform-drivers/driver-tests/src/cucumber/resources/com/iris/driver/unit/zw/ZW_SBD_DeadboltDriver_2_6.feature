@@ -63,7 +63,8 @@ Feature: ZWave Stanley Black & Decker Deadbolt Driver Test
 			And send to driver
 		Then the platform attribute doorlock:lockstate should change to UNLOCKED
 		  And the capability devadv:errors should be [:]
-		  And the driver should eventually place a doorlock:PinUsed message on the platform bus
+		  And the driver should place a doorlock:PinUsed message on the platform bus
+		  And the driver should place a base:ValueChange message on the platform bus
 		Then both busses should be empty
 
 
