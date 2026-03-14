@@ -211,9 +211,18 @@ public abstract class IrisAbstractApplication {
                }
                System.err.println("\nGuice injection errors (" + ce.getErrorMessages().size() + " total, " + seen.size() + " unique):");
                int i = 1;
-               for (java.util.Map.Entry<String, String> entry : seen.entrySet()) {
-                  System.err.println("  " + i + ") " + entry.getValue());
-                  System.err.println("     Caused by: " + entry.getKey());
+               for (com.google.inject.spi.Message msg : ce.getErrorMessages()) {
+                  String causeStr = msg.getCause() != null ? msg.getCause().toString() : msg.getMessage();
+                  if (!seen.containsKey(causeStr)) continue;
+                  String summary = seen.remove(causeStr);
+                  System.err.println("  " + i + ") " + summary);
+                  System.err.println("     Caused by: " + causeStr);
+                  // For NPE and other uninformative exceptions, print the stack trace
+                  if (msg.getCause() != null && (msg.getCause() instanceof NullPointerException || msg.getCause().getMessage() == null)) {
+                     for (StackTraceElement ste : msg.getCause().getStackTrace()) {
+                        System.err.println("       at " + ste);
+                     }
+                  }
                   i++;
                }
                System.err.println();
