@@ -20,14 +20,15 @@ package com.iris.driver.groovy;
 
 import groovy.lang.MetaClassImpl;
 import groovy.lang.MetaMethod;
+import groovy.lang.MissingMethodException;
 import groovy.lang.Script;
 
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
+import com.iris.driver.groovy.context.GroovyCapabilityDefinition;
 
 /**
  * The meta-class for the outer-script execution.
  */
-// TODO collapse with DriverScriptMetaClass
 public class CapabilityScriptMetaClass extends MetaClassImpl {
 
    public CapabilityScriptMetaClass(Class cls) {
@@ -36,18 +37,30 @@ public class CapabilityScriptMetaClass extends MetaClassImpl {
 
    @Override
    public Object invokeMethod(Class sender, Object object, String methodName, Object[] originalArguments, boolean isCallToSuper, boolean fromInsideClass) {
-      return getBinding(object).invokeMethod(methodName, originalArguments);
+      try {
+         return getBinding(object).invokeMethod(methodName, originalArguments);
+      } catch (Exception e) {
+         try {
+            return super.invokeMethod(sender, object, methodName, originalArguments, isCallToSuper, fromInsideClass);
+         } catch (GroovyCapabilityDefinition.MisdispatchException mde) {
+            throw new MissingMethodException(methodName, sender, originalArguments, false);
+         }
+      }
    }
 
    @Override
    public Object invokeMethod(Object object, String methodName, Object[] arguments) {
-      return getBinding(object).invokeMethod(methodName, arguments);
+      try {
+         return getBinding(object).invokeMethod(methodName, arguments);
+      } catch (Exception e) {
+         return super.invokeMethod(object, methodName, arguments);
+      }
    }
 
    private static CapabilityEnvironmentBinding getBinding(Object instance) {
       Script s = (Script) instance;
       return (CapabilityEnvironmentBinding) s.getBinding();
    }
-   
+
 }
 
