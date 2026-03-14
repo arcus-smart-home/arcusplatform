@@ -1,6 +1,6 @@
 # Use Debian as the base installation
 FROM debian:bookworm
-ARG JAVA_VERSION=17
+ARG JAVA_VERSION=21
 
 # Install the latest updates.
 ADD sources.list /etc/apt/
