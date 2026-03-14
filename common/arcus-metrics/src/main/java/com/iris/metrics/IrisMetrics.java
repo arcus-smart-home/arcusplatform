@@ -250,7 +250,7 @@ public final class IrisMetrics {
       public Snapshot getSnapshot() {
          long clamped = this.clamped.getAndSet(0);
          if (clamped != 0) {
-            logger.info("metrics clamped {} negative values to 0", clamped);
+            logger.trace("metrics clamped {} negative values to 0", clamped);
          }
 
          return delegate.getSnapshot();
