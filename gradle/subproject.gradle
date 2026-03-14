@@ -118,7 +118,7 @@ task systemTestRunner(type: Test,dependsOn: testClasses) {
 
 tasks.withType(Tar) {
    compression = Compression.GZIP
-   extension = "tar.gz"
+   archiveExtension = "tar.gz"
 }
 
 test {
@@ -141,6 +141,33 @@ test {
             }
         }
     }
+}
+
+// JDK 17+ requires --add-opens for Groovy reflection (ClassLoader.defineClass),
+// commons-lang3, and other libraries that use deep reflection at build time.
+if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+    def jdk17Opens = [
+        '--add-opens=java.base/java.lang=ALL-UNNAMED',
+        '--add-opens=java.base/java.util=ALL-UNNAMED',
+        '--add-opens=java.base/java.time=ALL-UNNAMED',
+        '--add-opens=java.base/java.io=ALL-UNNAMED',
+    ]
+
+    tasks.withType(JavaExec).configureEach {
+        jvmArgs jdk17Opens
+    }
+    tasks.withType(GroovyCompile).configureEach {
+        groovyOptions.forkOptions.jvmArgs = jdk17Opens
+    }
+}
+
+// Track JDK version as a compile input so Gradle invalidates outputs when
+// the JDK changes (avoids stale class files from a different JDK version).
+tasks.withType(JavaCompile).configureEach {
+   inputs.property("javaVersion", System.getProperty("java.version"))
+}
+tasks.withType(GroovyCompile).configureEach {
+   inputs.property("javaVersion", System.getProperty("java.version"))
 }
 
 if ("${use_jacoco}" == "true") {

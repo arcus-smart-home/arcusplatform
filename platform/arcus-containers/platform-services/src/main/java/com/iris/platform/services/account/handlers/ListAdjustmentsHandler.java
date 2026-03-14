@@ -113,7 +113,7 @@ public class ListAdjustmentsHandler implements ContextualRequestMessageHandler<A
         map.put(com.iris.messages.type.Adjustment.ATTR_TAXINDOLLARS, convertCentStringToDollars(adjustment.getTaxInCents()));
         map.put(com.iris.messages.type.Adjustment.ATTR_TOTALINDOLLARS,convertCentStringToDollars(adjustment.getTotalInCents()));
         map.put(com.iris.messages.type.Adjustment.ATTR_UNITINDOLLARS, convertCentStringToDollars(adjustment.getUnitAmountInCents()));
-        map.put(com.iris.messages.type.Adjustment.ATTR_QUANTITY, StringUtils.isNotEmpty(adjustment.getQuantity())?new Integer (adjustment.getQuantity()): null);
+        map.put(com.iris.messages.type.Adjustment.ATTR_QUANTITY, StringUtils.isNotEmpty(adjustment.getQuantity()) ? Integer.valueOf(adjustment.getQuantity()) : null);
 
         return map;
 

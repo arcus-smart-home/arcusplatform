@@ -18,6 +18,8 @@
  */
 driver   "ReflexDriverPlatformOnly"
 version  "1.0"
+vendor   "Test"
+model    "Test"
 
 deviceTypeHint "Test"
 matcher vendor: ~/.*/

@@ -45,6 +45,7 @@
   <logger name="com.sun.jersey" level="INFO"/>
   <logger name="sun.net.www" level="INFO"/>
   <logger name="com.sun.xml" level="WARN"/>
+  <logger name="com.sun.net.httpserver" level="WARN"/>
   <logger name="javax.activation" level="WARN" />
   <logger name="javax.xml.bind" level="INFO" />
   <logger name="com.netflix" level="WARN" />

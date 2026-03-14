@@ -92,6 +92,16 @@ startScripts {
       ])
    }
 
+   // JDK 17+ requires --add-opens for reflective access (GSON, commons-lang3, etc.)
+   if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+      baseOpts.addAll([
+           '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+           '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+           '--add-opens', 'java.base/java.time=ALL-UNNAMED',
+           '--add-opens', 'java.base/java.io=ALL-UNNAMED'
+      ])
+   }
+
    defaultJvmOpts = baseOpts
 
    doLast {

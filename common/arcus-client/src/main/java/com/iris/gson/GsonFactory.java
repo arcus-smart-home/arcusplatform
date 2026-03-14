@@ -17,6 +17,7 @@ package com.iris.gson;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Set;
 
@@ -70,6 +71,7 @@ public class GsonFactory {
 
       builder.disableHtmlEscaping();
       builder.registerTypeAdapter(Date.class, new DateTypeAdapter());
+      builder.registerTypeAdapter(Instant.class, new InstantTypeAdapter());
 
       if(typeAdapterFactories != null) {
          for(TypeAdapterFactory factory : typeAdapterFactories) {
