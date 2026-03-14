@@ -161,6 +161,15 @@ if (JavaVersion.current() >= JavaVersion.VERSION_17) {
     }
 }
 
+// Track JDK version as a compile input so Gradle invalidates outputs when
+// the JDK changes (avoids stale class files from a different JDK version).
+tasks.withType(JavaCompile).configureEach {
+   inputs.property("javaVersion", System.getProperty("java.version"))
+}
+tasks.withType(GroovyCompile).configureEach {
+   inputs.property("javaVersion", System.getProperty("java.version"))
+}
+
 if ("${use_jacoco}" == "true") {
    apply plugin: 'jacoco'
 
