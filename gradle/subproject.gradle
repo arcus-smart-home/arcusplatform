@@ -118,7 +118,7 @@ task systemTestRunner(type: Test,dependsOn: testClasses) {
 
 tasks.withType(Tar) {
    compression = Compression.GZIP
-   extension = "tar.gz"
+   archiveExtension = "tar.gz"
 }
 
 test {

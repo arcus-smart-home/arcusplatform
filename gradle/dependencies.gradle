@@ -98,8 +98,8 @@ ext.libraries << [
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
 
 // guice dependencies
-		guiceCore: "com.google.inject:guice:5.1.0",
-		guiceServlet: "com.google.inject.extensions:guice-servlet:5.1.0",
+		guiceCore: "com.google.inject:guice:6.0.0",
+		guiceServlet: "com.google.inject.extensions:guice-servlet:6.0.0",
 		// guice-multibindings merged into core guice jar in 5.x
 
 // jackson dependencies
