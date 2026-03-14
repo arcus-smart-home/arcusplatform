@@ -39,13 +39,14 @@ Feature: Test ZWave Springs MCZ1 MultiChannel Remote driver
 
     Scenario: Device connected
         When the device connects to the platform
+        Then the driver may place a base:ValueChange message on the platform bus
         Then the driver should set timeout at 37 hours
-        Then the driver should send Battery get
         Then the driver should send Wake_Up set
             And with parameter seconds1 0
             And with parameter seconds2 0xA8
             And with parameter seconds3 0xC0
             And with parameter node 1
+        Then the driver should send Battery get
 
 ############################################################
 # Generic ZWave Driver Tests

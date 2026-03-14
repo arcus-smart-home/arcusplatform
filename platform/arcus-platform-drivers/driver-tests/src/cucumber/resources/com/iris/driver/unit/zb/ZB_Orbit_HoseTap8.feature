@@ -48,13 +48,12 @@ Feature: Test of the Orbit Hose Tap 8 Timer driver
 	When event CnfgPollCrtl trigger 
 	Then the driver should send PollControl 0x02	
 	
-	Scenario Outline: setAttributes for irrcont
- 	When the capability method base:SetAttributes 
+	Scenario: setAttributes for irrcont
+ 	When the capability method base:SetAttributes
  	And with capability irrcont:rainDelay is 5
  	And with capability irrcont:budget is 10
  	And send to driver
  	Then protocol message count is 2
- 	And the driver should place a base:ValueChange message on the platform bus
 @Ignore 	
  	Scenario: onIrrigationController.WaterNow
  	Given the capability irrcont:controllerState is NOT_WATERING
@@ -200,9 +199,14 @@ Feature: Test of the Orbit Hose Tap 8 Timer driver
 	And with parameter fileOffset 1
 	And with header flags 1
 	And send to driver
-	Then the capability devota:status should be INPROGRESS 	
-	And the driver should place a base:ValueChange message on the platform bus	 	
-	
+	Then the capability devota:status should be INPROGRESS
+	And the driver should place a base:ValueChange message on the platform bus
+
+	Examples:
+	| request           |
+	| imageblockrequest |
+	| imagePageRequest  |
+
 	# ota.upgradeendrequest
 	Scenario Outline: OTA upgrade end request
 	When the device response with ota upgradeendrequest
