@@ -4270,6 +4270,29 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="e5c734" name="Remote Switch (Zen34)" shortname="Remote Switch" screen="Button" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2032" batteryprimnum="1" keywords="zooz,remote,switch,button,scene,controller,battery,zwave,zen34" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Pull the battery tab or insert the CR2032 battery with the positive side facing up."/>
+        <step2 type="text" img="" text="Press and hold the upper paddle for 3 seconds. The LED will flash rapidly and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press and hold the lower paddle for 3 seconds."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Quickly press the upper paddle 6 times, then immediately press and hold the upper paddle."/>
+        <step2 type="text" img="" text="The LED indicator will start blinking and the remote will reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d4e156" name="Water Leak Sensor" shortname="Water Leak Sensor" screen="Water Leak" description="" manufacturer="Dome" vendor="Dome" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR14250" batteryprimnum="1" keywords="dome, safety, moisture, water, leak, sensor" ota="No" protofamily="Z-Wave" added="2017-04-24T07:50:30-0400" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Water"/>
