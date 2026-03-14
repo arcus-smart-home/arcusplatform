@@ -16,8 +16,16 @@ if [ -z "${IMAGES}" ]; then
 #    IMAGES="${IMAGES} arcus-kairosdb"
 fi
 
-# Build the requested images
+# Build arcus-java first, including the JDK 11 variant needed by Cassandra/Kafka
+if [ -z "${1}" ] || echo "${IMAGES}" | grep -q "arcus-java"; then
+    docker_build "arcus-java"
+    echo "Building arcus/java:jdk11 for infra containers..."
+    docker build --build-arg JAVA_VERSION=11 -t arcus/java:jdk11 arcus-java
+fi
+
+# Build the remaining images
 for image in ${IMAGES}; do
+    [ "${image}" = "arcus-java" ] && continue
     docker_build "${image}"
 done
 
