@@ -142,13 +142,10 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
       } catch (KeeperException e) {
          if (e.code() == KeeperException.Code.NONODE) {
             try {
-               logger.info("Creating path in zookeeper for {}", service);
-               zk.create(zkPathPrefix + service, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+               ensurePath(zkPathPrefix + service);
             } catch (KeeperException e1) {
-               if (e1.code() != KeeperException.Code.NODEEXISTS) {
-                  logger.error("Failed to create path for service", e1);
-                  return null;
-               }
+               logger.error("Failed to create path for service", e1);
+               return null;
             } catch (InterruptedException e1) {
                Thread.currentThread().interrupt();
                logger.error("Failed to create path for service", e1);
@@ -245,6 +242,28 @@ public class ZookeeperClusterServiceDao implements ClusterServiceDao, Watcher {
          }
          logger.warn("Failed to verify registration at {}", path, e);
          return false;
+      }
+   }
+
+   private void ensurePath(String path) throws KeeperException, InterruptedException {
+      if (path == null || path.equals("/")) {
+         return;
+      }
+      if (zk.exists(path, false) != null) {
+         return;
+      }
+      // Ensure parent exists first
+      String parent = path.substring(0, path.lastIndexOf('/'));
+      if (!parent.isEmpty()) {
+         ensurePath(parent);
+      }
+      try {
+         logger.info("Creating zookeeper path: {}", path);
+         zk.create(path, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      } catch (KeeperException e) {
+         if (e.code() != KeeperException.Code.NODEEXISTS) {
+            throw e;
+         }
       }
    }
 
