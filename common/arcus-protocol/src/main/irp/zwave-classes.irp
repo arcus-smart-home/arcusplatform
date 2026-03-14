@@ -160,6 +160,8 @@ constants zwave.ZWaveCommandClasses {
    const u8 COMMAND_CLASS_APPLIANCE_V1 = 0x64;
    const u8 COMMAND_CLASS_DMX_V1 = 0x65;
    const u8 COMMAND_CLASS_BARRIER_OPERATOR_V1 = 0x66;
+   const u8 COMMAND_CLASS_ENTRY_CONTROL_V1 = 0x6F;
+   const u8 COMMAND_CLASS_SUPERVISION_V1 = 0x6C;
 }
 
 include "zwave-class-alarm.irp";
@@ -266,3 +268,4 @@ include "zwave-class-ip-association.irp";
 include "zwave-class-appliance.irp";
 include "zwave-class-dmx.irp";
 include "zwave-class-barrier-operator.irp";
+include "zwave-class-entry-control.irp";

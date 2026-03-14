@@ -3426,5 +3426,20 @@
       "SendVars" : [ ],
       "ReceiveVars" : [ "keycachesize", "keycachetimeout" ]
     } ]
+  }, {
+    "name" : "SUPERVISION",
+    "id" : 108,
+    "version" : 1,
+    "Commands" : [ {
+      "name" : "get",
+      "id" : 1,
+      "SendVars" : [ ],
+      "ReceiveVars" : [ "properties", "encapcc", "encapcmd", "encaplength" ]
+    }, {
+      "name" : "report",
+      "id" : 2,
+      "SendVars" : [ "properties", "status", "duration" ],
+      "ReceiveVars" : [ ]
+    } ]
   } ]
 }

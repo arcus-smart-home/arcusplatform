@@ -5965,5 +5965,25 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product name="Alarm Keypad" shortname="Keypad" screen="KeyPad" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, alarm, keypad, security, pin, arm, disarm, zwave" ota="No" protofamily="Z-Wave" id="c2592f" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
+      <categories>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Remove the back cover of the keypad."/>
+        <step2 type="text" img="" text="Press the pairing button once. The LED ring will flash indicating pairing mode. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="Remove the back cover and press the pairing button once while the hub is in exclusion mode."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the reset button (pinhole on back) for 10 seconds."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="beta"/>
+        <population name="qa"/>
+      </populations>
+    </product>
   </products>
 </prodcat>

@@ -1,0 +1,37 @@
+
+message zwave.EntryControl.EntryControlNotificationV1<id="0x01", group="V1"> {
+   u8 sequenceNumber;
+   u8 dataType;
+   u8 eventType;
+   u8 dataLength;
+   u8[] eventData;
+}
+
+message zwave.EntryControl.EntryControlKeySupportedGetV1<id="0x02", group="V1"> {
+}
+
+message zwave.EntryControl.EntryControlKeySupportedReportV1<id="0x03", group="V1"> {
+   u8 bitMaskLength;
+   u8[] bitMask;
+}
+
+message zwave.EntryControl.EntryControlEventSupportedGetV1<id="0x04", group="V1"> {
+}
+
+message zwave.EntryControl.EntryControlEventSupportedReportV1<id="0x05", group="V1"> {
+   u8 dataTypeBitMaskLength;
+   u8[] dataTypeBitMask;
+}
+
+message zwave.EntryControl.EntryControlConfigurationSetV1<id="0x06", group="V1"> {
+   u8 keyCacheSize;
+   u8 keyCacheTimeout;
+}
+
+message zwave.EntryControl.EntryControlConfigurationGetV1<id="0x07", group="V1"> {
+}
+
+message zwave.EntryControl.EntryControlConfigurationReportV1<id="0x08", group="V1"> {
+   u8 keyCacheSize;
+   u8 keyCacheTimeout;
+}
