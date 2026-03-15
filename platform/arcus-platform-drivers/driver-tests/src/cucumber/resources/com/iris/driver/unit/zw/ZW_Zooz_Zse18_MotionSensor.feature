@@ -17,6 +17,7 @@ These scenarios test the functionality of the ZWave Zooz ZSE18 Motion Sensor dri
         And the message's devpow:source attribute should be BATTERY
         And the message's devpow:linecapable attribute should be true
         And the message's devpow:backupbatterycapable attribute should be false
+        And the message's mot:motion attribute should be NONE
     Then both busses should be empty
 
 

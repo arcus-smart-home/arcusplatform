@@ -80,7 +80,7 @@ Contact.usehint                  Contact.USEHINT_UNKNOWN
 final String DEVICE_NAME        = "Zooz ZSE43 Tilt / Shock XS Sensor"
 
 // Timeouts
-final int OFFLINE_TIMEOUT_SECS       = 90000       // 25 hours (wakeup default is 12 hours)
+final int OFFLINE_TIMEOUT_SECS       = 11400       // 190 minutes (3+ wakeup intervals of 1 hour)
 final int BATTERY_POLL_SEC           = 86400       // Ask for battery level every 24 hours
 final int STATE_POLLING_INTERVAL_SEC = 3600        // Ask for current state every 60 minutes
 
@@ -105,10 +105,56 @@ final byte CNFG_BASIC_SET_VALUE                     = 1
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledIndicator', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'LED on shock only', '2': 'LED on tilt only', '3': 'LED on shock and tilt'],
+       description: 'Parameter 1: LED indicator mode',
+       dflt: 3
+   param name: 'batteryReportThreshold', id: 2, size: 1,
+       type: 'range', min: 1, max: 50,
+       description: 'Parameter 2: Battery reporting threshold (percent)',
+       dflt: 10
+   param name: 'lowBatteryThreshold', id: 3, size: 1,
+       type: 'range', min: 10, max: 50,
+       description: 'Parameter 3: Low battery alert threshold (percent)',
+       dflt: 20
+   param name: 'shockSensitivity', id: 4, size: 1,
+       type: 'enum', values: ['0': 'High', '1': 'Medium', '2': 'Low'],
+       description: 'Parameter 4: Shock sensitivity',
+       dflt: 0
+   param name: 'group2OnDelay', id: 5, size: 4,
+       type: 'range', min: 0, max: 3600,
+       description: 'Parameter 5: Group 2 on delay in seconds',
+       dflt: 0
+   param name: 'group2OffDelay', id: 6, size: 4,
+       type: 'range', min: 0, max: 3600,
+       description: 'Parameter 6: Group 2 off delay in seconds',
+       dflt: 0
+   param name: 'enableSensors', id: 7, size: 1,
+       type: 'enum', values: ['0': 'Tilt sensor only', '1': 'Shock sensor only', '2': 'Both sensors'],
+       description: 'Parameter 7: Enable sensors',
+       dflt: 2
+   param name: 'tiltBasicReports', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'On when tilt detected', '2': 'Off when tilt cleared', '3': 'On when detected / Off when cleared'],
+       description: 'Parameter 8: Group 2 tilt sensor Basic Set reports',
+       dflt: 3
+   param name: 'shockBasicReports', id: 9, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'On when shock detected', '2': 'Off when shock cleared', '3': 'On when detected / Off when cleared'],
+       description: 'Parameter 9: Group 3 shock sensor Basic Set reports',
+       dflt: 3
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Driver lifecycle callbacks
 ////////////////////////////////////////////////////////////////////////////////
 
 onAdded {
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
    Tilt.tiltstate          Tilt.TILTSTATE_UPRIGHT
    Tilt.tiltstatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
 

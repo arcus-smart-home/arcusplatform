@@ -34,7 +34,7 @@ These scenarios test the functionality of the ZWave Zooz ZSE42 Water Leak XS Sen
     @basic @connected @timeout
     Scenario: Make sure the offline timeout is set each time the device Connects
         When the device is connected
-        Then the driver should set timeout at 1500 minutes
+        Then the driver should set timeout at 190 minutes
 
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set

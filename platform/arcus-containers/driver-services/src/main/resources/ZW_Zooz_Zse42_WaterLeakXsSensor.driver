@@ -78,7 +78,7 @@ final String DEVICE_NAME        = "Zooz ZSE42 Water Leak XS Sensor"
 @Field final byte LEAK_DETECTED      = 0xFF
 
 // Timeouts
-final int OFFLINE_TIMEOUT_SECS       = 90000       // 25 hours (wakeup default is 12 hours)
+final int OFFLINE_TIMEOUT_SECS       = 11400       // 190 minutes (3+ wakeup intervals of 1 hour)
 final int BATTERY_POLL_SEC           = 86400       // Ask for battery level every 24 hours
 final int STATE_POLLING_INTERVAL_SEC = 3600        // Ask for current state every 60 minutes
 
@@ -107,6 +107,34 @@ final byte CNFG_LOW_BATTERY_VALUE                   = 20
 @Field final byte CNFG_BASIC_SET_PARAM_NO           = 5    // Group 2 Basic Set Commands
 final byte CNFG_BASIC_SET_SIZE                      = 1    // 0=disabled, 1=Off/On (default), 2=On/Off
 final byte CNFG_BASIC_SET_VALUE                     = 1
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledIndicator', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 1: LED indicator',
+       dflt: 1
+   param name: 'alarmClearDelay', id: 2, size: 4,
+       type: 'range', min: 0, max: 3600,
+       description: 'Parameter 2: Leak alarm clear delay in seconds (0=instant)',
+       dflt: 0
+   param name: 'batteryReportThreshold', id: 3, size: 1,
+       type: 'range', min: 1, max: 50,
+       description: 'Parameter 3: Battery reporting threshold (percent)',
+       dflt: 10
+   param name: 'lowBatteryThreshold', id: 4, size: 1,
+       type: 'range', min: 10, max: 50,
+       description: 'Parameter 4: Low battery alert threshold (percent)',
+       dflt: 20
+   param name: 'basicSetCommands', id: 5, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Off when water detected / On when cleared', '2': 'On when water detected / Off when cleared'],
+       description: 'Parameter 5: Group 2 Basic Set commands',
+       dflt: 1
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
