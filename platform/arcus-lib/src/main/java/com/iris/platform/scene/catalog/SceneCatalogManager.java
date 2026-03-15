@@ -43,6 +43,7 @@ import com.iris.platform.scene.catalog.serializer.ActionTemplateType;
 import com.iris.platform.scene.catalog.serializer.SceneType;
 import com.iris.platform.scene.resolver.ActionResolver;
 import com.iris.platform.scene.resolver.CatalogActionTemplateResolver;
+import com.iris.platform.scene.resolver.MultiSwitchResolver;
 import com.iris.resource.Resource;
 import com.iris.resource.Resources;
 
@@ -92,7 +93,10 @@ public class SceneCatalogManager {
       
       com.iris.platform.scene.catalog.serializer.SceneCatalog sc = JAXBUtil.fromXml(resource, com.iris.platform.scene.catalog.serializer.SceneCatalog.class);
       List<ActionResolver> dynamicResolvers = createResolvers(registry, sc);
-      List<ActionResolver> resolvers = ImmutableList.<ActionResolver>builder().addAll(dynamicResolvers).build();
+      List<ActionResolver> resolvers = ImmutableList.<ActionResolver>builder()
+            .addAll(dynamicResolvers)
+            .add(new MultiSwitchResolver())
+            .build();
       for(SceneType st:sc.getScenes().getScene()){
          SceneTemplate template = createTemplate(
                st.getId(),

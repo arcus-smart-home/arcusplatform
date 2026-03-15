@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -459,6 +460,24 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       setIf(DeviceAdvancedCapability.ATTR_DEGRADEDCODE, degraded, model);
 
       setOrDefault(DeviceAdvancedCapability.ATTR_HUBLOCAL, row.getBoolean(DeviceEntityColumns.HUBLOCAL), false, model);
+
+      // expose protocol fingerprint attributes
+      ByteBuffer protoBuf = row.isNull(DeviceEntityColumns.PROTOCOL_ATTRS) ? null : row.getByteBuffer(DeviceEntityColumns.PROTOCOL_ATTRS);
+      if (protoBuf != null) {
+         byte[] protoBytes = new byte[protoBuf.remaining()];
+         protoBuf.get(protoBytes);
+         AttributeMap protoAttrs = bytesToProtocolAttributes(protoBytes);
+         if (protoAttrs != null && !protoAttrs.isEmpty()) {
+            Map<String, String> protoMap = new LinkedHashMap<>();
+            for (AttributeValue<?> entry : protoAttrs.entries()) {
+               Object value = entry.getValue();
+               if (value != null) {
+                  protoMap.put(entry.getKey().getName(), formatProtocolValue(value));
+               }
+            }
+            model.put(DeviceAdvancedCapability.ATTR_PROTOCOLATTRS, protoMap);
+         }
+      }
 
       return model;
    }
@@ -1006,6 +1025,13 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       return bytes != null && bytes.length > 0
             ? attributeMapDeserializer.deserialize(bytes)
             : null;
+   }
+
+   private static String formatProtocolValue(Object value) {
+      if (value instanceof Number) {
+         return String.format("0x%04X", ((Number) value).longValue() & 0xFFFF);
+      }
+      return String.valueOf(value);
    }
 
    private String serialize(AttributeKey<?> key, Object value) {

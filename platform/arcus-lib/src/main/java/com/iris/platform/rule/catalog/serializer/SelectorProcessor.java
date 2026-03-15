@@ -37,6 +37,7 @@ import com.iris.model.type.EnumType;
 import com.iris.platform.rule.catalog.selector.ConstantListSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.ConstantSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.FilteringListSelectorGenerator;
+import com.iris.model.predicate.InstancedAttributeSupportedPredicate;
 import com.iris.platform.rule.catalog.selector.InstanceSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.ListSelectorGenerator;
 import com.iris.platform.rule.catalog.selector.MinMaxSelectorGenerator;
@@ -82,6 +83,7 @@ public class SelectorProcessor extends BaseCatalogProcessor {
    private String capability;
    private List<Option> options;
    private String dependsOn;
+   private String instanceCapability;
    private String minStr;
    private String maxStr;
    private String incrementStr;
@@ -124,6 +126,7 @@ public class SelectorProcessor extends BaseCatalogProcessor {
          attribute = getValue("attribute", null, attributes);
          capability = getValue("capability", null, attributes);
          dependsOn = getValue("depends-on", null, attributes);
+         instanceCapability = getValue("instance-of", null, attributes);
          minStr = getValue("min", null, attributes);
          maxStr = getValue("max", null, attributes);
          incrementStr = getValue("increment", "1", attributes);
@@ -172,12 +175,18 @@ public class SelectorProcessor extends BaseCatalogProcessor {
             listGenerator.setLabel(TemplatedValue.named(DeviceCapability.ATTR_NAME, String.class));
             listGenerator.setValue(TemplatedValue.named(Capability.ATTR_ADDRESS));
             try {
-               listGenerator.setMatcher(
+               com.google.common.base.Predicate<com.iris.messages.model.Model> matcher =
                      com.google.common.base.Predicates.and(
                            Predicates.isA(DeviceCapability.NAMESPACE),
                            ExpressionCompiler.compile(query)
-                     )
-               );
+                     );
+               if (instanceCapability != null) {
+                  matcher = com.google.common.base.Predicates.and(
+                        matcher,
+                        new InstancedAttributeSupportedPredicate(instanceCapability)
+                  );
+               }
+               listGenerator.setMatcher(matcher);
                this.generator = listGenerator;
             }
             catch(Exception e) {
