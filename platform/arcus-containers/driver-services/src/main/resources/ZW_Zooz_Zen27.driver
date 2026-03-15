@@ -14,13 +14,45 @@
  * limitations under the License.
  */
 /**
- * Driver for a Zooz ZEN27 In-Wall Dimmer
+ * Driver for a Zooz ZEN27 S2 Dimmer Switch
  *
+ * The ZEN27 is a mains-powered Z-Wave in-wall dimmer with a paddle that supports
+ * central scene notifications for multi-tap and hold actions. Scene control must
+ * be enabled via parameter 13.
+ *
+ * FACTORY RESET:  Quickly press the upper paddle 6 times, then immediately press
+ *                 and hold the upper paddle. The LED will start blinking.
+ *
+ * PAIR/INCLUDE:   Tap the upper paddle 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Tap the upper paddle 3 times quickly while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x26   (38) Switch_Multilevel
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5B   (91) Central Scene
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8E (-114) Multi Channel Association
+ *   0x9F  (-97) Security 2
  */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveDim'
+uses 'zwave.GenericZWaveVersion'
+
 
 driver          "ZWZoozZen27Driver"
-description     "Driver for a Zooz ZEN27 In-Wall Dimmer"
-version         "1.0"
+description     "Driver for a Zooz ZEN27 S2 Dimmer Switch"
+version         "2.4"
 protocol        "ZWAV"
 deviceTypeHint  "Dimmer"
 productId       "acd43a"
@@ -30,101 +62,191 @@ model           "ZEN27"
 matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa002
 
 
-capabilities	DevicePower, Dimmer, Switch, Indicator
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
 
-importCapability 'zwave/GenericZWaveDim'
-importCapability 'zwave/GenericZWaveVersion'
+DevicePower {
+   source DevicePower.SOURCE_LINE
+   linecapable true
+   backupbatterycapable false
+   bind sourcechanged to source
+}
 
-// set DevicePower
-// ---------------
-DevicePower.source               DevicePower.SOURCE_LINE
-DevicePower.linecapable          true
-DevicePower.backupbatterycapable false
+Switch {
+   state Switch.STATE_OFF
+   inverted false
+   bind statechanged to state
+}
 
-Indicator.enabled			true
-Indicator.enableSupported	false
+Dimmer {
+   brightness 100
+}
 
-final int  POLLING_INTERVAL_SEC = 600
+Indicator {
+   enabled true
+   enableSupported true
+   inverted false
+   indicator Indicator.INDICATOR_ON
+}
 
-final byte SWITCH_ON		= 0xff
-final byte SWITCH_OFF		= 0x00
-final byte RAMP_INSTANTLY	= 0x00
+instance 'up', Button
+instance 'down', Button
 
-final int MAX_RAMP_SECS     = 7620			// maximum ramp is 127 minutes (7620 seconds)
 
-final long DFLT_READBACK_DELAY = 5000		// 5 second delay before reading
-final long DEFERRED_READ_DELAY_MSEC = 5000	// wait 5 seconds after Node Info to read level
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings — exposing Z-Wave config params to clients
+////////////////////////////////////////////////////////////////////////////////
 
-// config definitions/constants
-// ----------------------------
-final byte CNFG_LED_PARAM_NO      = 0x03		// parameter number for 'LED' setting, used to switch when LED is On and Off
-final byte CNFG_LED_SIZE          = 0x01		// size of 'LED' parameter field, in bytes
-final byte CNFG_LED_NORMAL        = 0x00		// LED 'ON' when outlet is 'OFF' (default)
-final byte CNFG_LED_INVERSE       = 0x01		// LED 'ON' when outlet is 'ON'
+deviceSettings {
+   param name: 'paddleOrientation', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Upper On / Lower Off', '1': 'Upper Off / Lower On', '2': 'Any Paddle Toggles'],
+       description: 'Parameter 1: Paddle orientation',
+       dflt: 0
 
-final byte CNFG_TOGGLE_PARAM_NO   = 0x04		// parameter number for 'Toggle' setting, used to invert operation if installed upside down
-final byte CNFG_TOGGLE_SIZE       = 0x01		// size of 'Toggle' parameter field, in bytes
-final byte CNFG_TOGGLE_NORMAL     = 0x00		// Top/Up is 'ON' (default)
-final byte CNFG_TOGGLE_INVERT     = 0x01		// Top/Up is 'OFF'
+   param name: 'ledMode', id: 2, size: 1,
+       type: 'enum', values: ['0': 'LED on when switch off', '1': 'LED on when switch on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 2: LED indicator control',
+       dflt: 0
 
-final byte CNFG_RESET_PARAM_NO    = 0x00		// parameter number to reset configuration to factory default
-final byte CNFG_RESET_SIZE        = 0x81		// size field (actually flags indicating: 0x80 = reset, 0x01 = ignore values, use factory settings
-final byte CNFG_RESET_VALUE       = 0x00        // Not used by device
-final int  OFFLINE_TIMEOUT_SECS   = 1800 		// 30 min
+   param name: 'autoOffEnable', id: 3, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 3: Auto turn-off timer',
+       dflt: 0
 
-final String DEVICE_NAME = 'Zooz ZEN27 In-Wall Dimmer'
+   param name: 'autoOffDuration', id: 4, size: 4,
+       type: 'range', min: 1, max: 65535,
+       description: 'Parameter 4: Auto turn-off timer duration (minutes)',
+       dflt: 60
 
+   param name: 'autoOnEnable', id: 5, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 5: Auto turn-on timer',
+       dflt: 0
+
+   param name: 'autoOnDuration', id: 6, size: 4,
+       type: 'range', min: 1, max: 65535,
+       description: 'Parameter 6: Auto turn-on timer duration (minutes)',
+       dflt: 60
+
+   param name: 'powerFailure', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
+       description: 'Parameter 8: On/Off status after power failure',
+       dflt: 2
+
+   param name: 'rampRate', id: 9, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 9: Physical ramp rate (seconds, 0=instant)',
+       dflt: 1
+
+   param name: 'minBrightness', id: 10, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 10: Minimum brightness level (%)',
+       dflt: 1
+
+   param name: 'maxBrightness', id: 11, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 11: Maximum brightness level (%)',
+       dflt: 99
+
+   param name: 'doubleTapFunction', id: 12, size: 1,
+       type: 'enum', values: ['0': 'Full brightness', '1': 'Max brightness (parameter 11)'],
+       description: 'Parameter 12: Double-tap upper paddle behavior',
+       dflt: 0
+
+   param name: 'sceneControl', id: 13, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 13: Scene control (multi-tap detection)',
+       dflt: 0
+
+   param name: 'dimmingSpeed', id: 16, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 16: Physical dimming speed (seconds, 0-100%)',
+       dflt: 4
+
+   param name: 'customBrightnessOn', id: 18, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 18: Custom brightness on turn-on (0=last level, 1-99=%)',
+       dflt: 0
+
+   param name: 'nightLightMode', id: 22, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 22: Night light brightness (0=disabled, 1-99=%)',
+       dflt: 20
+}
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN27 S2 Dimmer"
+
+final int OFFLINE_TIMEOUT_SECS = 1800          // 30 minutes
+final int POLLING_INTERVAL_SEC = 600           // Poll every 10 minutes
+final long DEFERRED_READ_DELAY_MSEC = 5000     // wait 5 seconds after Node Info to read level
+final long RELEASE_DELAY_MSEC  = 1000          // simulate button RELEASED 1 second after PRESSED
+
+// Config Parameters (for onConnected defaults)
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_PADDLE_PARAM_NO        = 1       // Paddle Orientation
+final byte CNFG_PADDLE_SIZE                   = 1       // 0=upper on/lower off (default), 1=inverted, 2=any toggles
+final byte CNFG_PADDLE_VALUE                  = 0       // normal
+
+@Field final byte CNFG_LED_PARAM_NO           = 2       // LED Indicator Control
+final byte CNFG_LED_SIZE                      = 1       // 0=on when off (default), 1=on when on, 2=always off, 3=always on
+final byte CNFG_LED_NORMAL                    = 0       // LED on when switch off
+final byte CNFG_LED_INVERSE                   = 1       // LED on when switch on
+final byte CNFG_LED_OFF                       = 2       // LED always off
+
+@Field final byte CNFG_POWER_FAILURE_PARAM_NO = 8       // On Off Status After Power Failure
+final byte CNFG_POWER_FAILURE_SIZE            = 1       // 0=off, 1=on, 2=restore (default)
+final byte CNFG_POWER_FAILURE_VALUE           = 2       // restore last state
+
+@Field final byte CNFG_SCENE_CONTROL_PARAM_NO = 13      // Scene Control Enable
+final byte CNFG_SCENE_CONTROL_SIZE            = 1       // 0=disabled (default), 1=enabled
+final byte CNFG_SCENE_CONTROL_VALUE           = 1       // enable scene control
+
+// Central Scene Key Attributes (bits 0-2 of properties1)
+@Field final byte KEY_PRESSED_1_TIME  = 0x00
+@Field final byte KEY_RELEASED        = 0x01
+@Field final byte KEY_HELD_DOWN       = 0x02
+@Field final byte KEY_PRESSED_2_TIMES = 0x03
+@Field final byte KEY_PRESSED_3_TIMES = 0x04
+@Field final byte KEY_PRESSED_4_TIMES = 0x05
+@Field final byte KEY_PRESSED_5_TIMES = 0x06
+
+// Scene Numbers (default mapping, param 23 = 0: upper=Scene 2, lower=Scene 1)
+@Field final byte SCENE_LOWER_PADDLE = 0x01
+@Field final byte SCENE_UPPER_PADDLE = 0x02
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
 
 onAdded {
-	vars.'CURRENT_NAME' = DEVICE_NAME
-	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+   Switch.statechanged       ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
 
-	// set default attribute values
-	DevicePower.source                  DevicePower.SOURCE_LINE
-	DevicePower.linecapable             true
-	DevicePower.backupbatterycapable    false
-	DevicePower.sourcechanged           ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
-
-	Switch.state                        Switch.STATE_OFF
-	Switch.statechanged                 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
-	Switch.inverted                     false
-
-	Indicator.enabled                   true
-	Indicator.enableSupported           false		// user cannot change the Indicator.enabled attribute for this device
-	Indicator.indicator                 Indicator.INDICATOR_ON
-	Indicator.inverted                  false
-
-	// reset the device configuration to factory defaults
-	ZWave.configuration.set(CNFG_RESET_PARAM_NO, CNFG_RESET_SIZE, CNFG_RESET_VALUE)
+   Button.state.up           Button.STATE_RELEASED
+   Button.statechanged.up    ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+   Button.state.down         Button.STATE_RELEASED
+   Button.statechanged.down  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
 }
 
 onConnected {
-	log.debug "${DEVICE_NAME} connected"
+   ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
 
-	vars.'MAX_READBACKS' = 10				// used by GenericZWaveSwitch to limit maximum read operations
-	vars.'DFLT_READBACK_DELAY' = 1000		// used by GenericZWaveSwitch to determine delay between read retries (in mSec)
-	// get the current switch level
-	ZWave.switch_multilevel.get()
+   vars.'MAX_READBACKS' = 10
+   vars.'DFLT_READBACK_DELAY' = 1000
 
-	// These devices do NOT send a switch_multilevel.report when their level is changed locally,
-	// so periodically poll for the current switch level.  They do send a Node Info when the
-	// level is changed locally, but we also periodically poll in case we miss that message.
-	ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
+   // get the current switch level
+   ZWave.switch_multilevel.get()
+   ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_multilevel.get)
 
-	// get configuration settings
-	ZWave.configuration.get(CNFG_LED_PARAM_NO)
-	ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
-	ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
-}
+   // get configuration settings
+   ZWave.configuration.get(CNFG_LED_PARAM_NO)
+   ZWave.configuration.get(CNFG_PADDLE_PARAM_NO)
 
-
-onDisconnected {
-	log.debug "${DEVICE_NAME} disconnected"
-}
-
-
-onRemoved {
-	log.debug "${DEVICE_NAME} removed"
+   // enable scene control for paddle (disabled by default)
+   ZWave.configuration.set( CNFG_SCENE_CONTROL_PARAM_NO, CNFG_SCENE_CONTROL_SIZE, CNFG_SCENE_CONTROL_VALUE )
 }
 
 
@@ -132,54 +254,64 @@ onRemoved {
 // Capability Support
 ////////////////////////////////////////////////////////////////////////////////
 
-setAttributes(){
-	GenericZWaveDim.handleSetAttributes(this, DEVICE_NAME, message)
+setAttributes() {
+   GenericZWaveDim.handleSetAttributes(this, DEVICE_NAME, message)
 
-	def attributes = message.attributes
-	for(attribute in attributes) {
-		switch(attribute.key) {
-			case Switch.inverted:
-				// only accept this if the Switch.inverted attribute is not null, indicating that it can be set
-				if (null != Switch.inverted.get()) {
-					// set the Switch Orientation configuration
-					ZWave.configuration.set(CNFG_TOGGLE_PARAM_NO, CNFG_TOGGLE_SIZE, attribute.value ? CNFG_TOGGLE_INVERT : CNFG_TOGGLE_NORMAL)
-					// get the current Switch Orientation configuration from the device (to verify the config was set)
-					ZWave.configuration.get(CNFG_TOGGLE_PARAM_NO)
-				} else {
-					log.warn "Attempted to set Switch.inverted attribute on device that does not support it"
-				}
-				break
+   def attributes = message.attributes
+   for(attribute in attributes) {
+      switch(attribute.key) {
+         case Switch.inverted:
+            if (null != Switch.inverted.get()) {
+               ZWave.configuration.set(CNFG_PADDLE_PARAM_NO, CNFG_PADDLE_SIZE, attribute.value ? (byte) 1 : CNFG_PADDLE_VALUE)
+               ZWave.configuration.get(CNFG_PADDLE_PARAM_NO)
+            }
+            break
 
-			case Indicator.inverted:
-				// set the LED configuration
-				ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
-				// get the current LED configuration from the device (to verify the config was set)
-				ZWave.configuration.get(CNFG_LED_PARAM_NO)
-				break
+         case Indicator.inverted:
+            ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, attribute.value ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+            ZWave.configuration.get(CNFG_LED_PARAM_NO)
+            break
 
-			case Indicator.enabled:
-				// The indicator cannot be enabled/disabled, only inverted
-				log.warn "Switch does not support enable/disable of Indicator"
-				Indicator.enabled true
-				break
+         case Indicator.enabled:
+            if (true == attribute.value) {
+               ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, Indicator.inverted.get() ? CNFG_LED_INVERSE : CNFG_LED_NORMAL)
+            } else {
+               ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_OFF)
+            }
+            ZWave.configuration.get(CNFG_LED_PARAM_NO)
+            break
 
-			default:
-				break
-		}
-	}
+         default:
+            break
+      }
+   }
 }
 
 onDimmer.RampBrightness {
-	GenericZWaveDim.handleRampBrightness(this, DEVICE_NAME, message)
-	// Note: GenericZWaveDim.handleRampBrightness sends a 'dim:RampBrightnessResponse'
+   GenericZWaveDim.handleRampBrightness(this, DEVICE_NAME, message)
 }
 
 onDimmer.IncrementBrightness {
-	GenericZWaveDim.handleIncrementBrightness(this, DEVICE_NAME, message)
+   GenericZWaveDim.handleIncrementBrightness(this, DEVICE_NAME, message)
 }
 
 onDimmer.DecrementBrightness {
-	GenericZWaveDim.handleDecrementBrightness(this, DEVICE_NAME, message)
+   GenericZWaveDim.handleDecrementBrightness(this, DEVICE_NAME, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Callbacks (button auto-release)
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent( "ReleaseButtonUp" ) {
+   Button.state.up Button.STATE_RELEASED
+   Button.statechanged.up new Date()
+}
+
+onEvent( "ReleaseButtonDown" ) {
+   Button.state.down Button.STATE_RELEASED
+   Button.statechanged.down new Date()
 }
 
 
@@ -188,71 +320,119 @@ onDimmer.DecrementBrightness {
 ////////////////////////////////////////////////////////////////////////////////
 
 onZWaveMessage.switch_multilevel.report {
-	 GenericZWaveDim.handleMultilevelReport(this, DEVICE_NAME, message)
-
-	// adjust Indicator attributes based on reported state
-	def boolean indicatorMatchesSwitch = Indicator.inverted.get()	// LED Indicator matches switch power if inverted
-	if (Switch.STATE_OFF == Switch.state.get()) {
-		//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
-		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
-	} else {
-		//log.debug "Set Indicator based on Inverted:$indicatorMatchesSwitch to " + (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
-		Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
-	}
+   GenericZWaveDim.handleMultilevelReport(this, DEVICE_NAME, message)
+   updateIndicator()
 }
 
+onZWaveMessage.central_scene.notification {
+   def sequenceNumber = message.command.get('sequencenumber')
+   def properties1    = message.command.get('properties1')
+   def sceneNumber    = message.command.get('scenenumber')
+   def keyAttribute   = (properties1 & 0x07)
 
+   log.debug "Central Scene Notification - Sequence:{}, Scene:{}, KeyAttribute:{}", sequenceNumber, sceneNumber, keyAttribute
 
-onZWaveMessage.configuration.report {
-	log.debug "${DEVICE_NAME} reported configuration: {}", message
-	byte param = message.command.get('param')
-	byte level = message.command.get('level')
-	byte val1 = message.command.get('val1')
-	log.debug "param: {}, level: {}, val1: {}", param, level, val1
-
-	if (CNFG_LED_PARAM_NO == param) {
-		log.debug "LED Inverted: {}", val1
-		if (0 == val1) {
-			// set/save the inverted attribute of the LED indicator
-			Indicator.inverted false
-			// update the indicator attribute to match (or inverse of) the current state attribute
-			Indicator.indicator ( (Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON )
-		} else {
-			// set/save the inverted attribute of the LED indicator
-			Indicator.inverted true
-			// update the indicator attribute to match (or inverse of) the current state attribute
-			Indicator.indicator ( (Switch.STATE_ON == Switch.state.get()) ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF )
-		}
-	}
-
-	if (CNFG_TOGGLE_PARAM_NO == param) {
-		log.debug "Toggle Switch Inverted: {}", val1
-		// set/save the inverted attribute of the switch
-		Switch.inverted ((0 == val1) ? false : true)
-	}
-}
-
-
-onZWaveNodeInfo {
-	log.debug "${DEVICE_NAME} reported Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
-	GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
-}
-
-
-onZWaveMessage {
-    log.debug "${DEVICE_NAME} received unhandled ZWave message {}", message
-    return false;
+   if (SCENE_UPPER_PADDLE == sceneNumber) {
+      if (KEY_RELEASED == keyAttribute) {
+         Button.state.up Button.STATE_RELEASED
+         Button.statechanged.up new Date()
+         log.trace "Upper paddle: RELEASED"
+      } else {
+         Button.state.up Button.STATE_PRESSED
+         Button.statechanged.up new Date()
+         Scheduler.scheduleIn 'ReleaseButtonUp', RELEASE_DELAY_MSEC
+         log.trace "Upper paddle: PRESSED (keyAttribute:{})", keyAttribute
+      }
+   } else if (SCENE_LOWER_PADDLE == sceneNumber) {
+      if (KEY_RELEASED == keyAttribute) {
+         Button.state.down Button.STATE_RELEASED
+         Button.statechanged.down new Date()
+         log.trace "Lower paddle: RELEASED"
+      } else {
+         Button.state.down Button.STATE_PRESSED
+         Button.statechanged.down new Date()
+         Scheduler.scheduleIn 'ReleaseButtonDown', RELEASE_DELAY_MSEC
+         log.trace "Lower paddle: PRESSED (keyAttribute:{})", keyAttribute
+      }
+   } else {
+      log.warn "Unexpected scene number: {}", sceneNumber
+   }
 }
 
 // ZEN27 reports local changes via basic report
 onZWaveMessage.basic.report {
-    byte currState = message.command.get('value')
-    log.trace "Basic Report: {}", currState
-    GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+   byte currState = message.command.get('value')
+   log.trace "Basic Report: {}", currState
+   GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+   updateIndicator()
 }
 
 onZWaveMessage.basic.set {
-    byte currState = message.command.get('value')
-    log.trace "Basic Set: {}", currState
-    GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+   byte currState = message.command.get('value')
+   log.trace "Basic Set: {}", currState
+   GenericZWaveDim.updateDeviceAttributes(this, DEVICE_NAME, currState)
+   updateIndicator()
+}
+
+onZWaveMessage.configuration.report {
+   log.trace "Config Report: {}", message
+   byte param = message.command.get('param')
+   byte level = message.command.get('level')
+   byte val1 = message.command.get('val1')
+   log.debug "Config Param:{}, Level:{}, Val:{}", param, level, val1
+
+   if (CNFG_LED_PARAM_NO == param) {
+      log.debug "LED Indicator: {}", val1
+      switch (val1) {
+         case CNFG_LED_NORMAL:
+            Indicator.inverted false
+            Indicator.enabled true
+            break
+         case CNFG_LED_INVERSE:
+            Indicator.inverted true
+            Indicator.enabled true
+            break
+         case CNFG_LED_OFF:
+            Indicator.enabled false
+            break
+         default:
+            log.info "Received unknown value for LED Parameter: {}", val1
+            break
+      }
+      updateIndicator()
+   }
+
+   if (CNFG_PADDLE_PARAM_NO == param) {
+      log.debug "Paddle Orientation: {}", val1
+      Switch.inverted ((0 == val1) ? false : true)
+   }
+}
+
+void updateIndicator() {
+   if (Indicator.enabled.get()) {
+      boolean indicatorMatchesSwitch = Indicator.inverted.get()
+      if (Switch.STATE_OFF == Switch.state.get()) {
+         Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_OFF : Indicator.INDICATOR_ON)
+      } else {
+         Indicator.indicator (indicatorMatchesSwitch ? Indicator.INDICATOR_ON : Indicator.INDICATOR_OFF)
+      }
+   } else {
+      Indicator.indicator Indicator.INDICATOR_DISABLED
+   }
+}
+
+onZWaveMessage.zwaveplus_info.report {
+   def zwVer = message.command.get('zwaveversion')
+   def roleType = message.command.get('roletype')
+   def nodeType = message.command.get('nodetype')
+   log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+   log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+   log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+   GenericZWaveDim.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
 }
