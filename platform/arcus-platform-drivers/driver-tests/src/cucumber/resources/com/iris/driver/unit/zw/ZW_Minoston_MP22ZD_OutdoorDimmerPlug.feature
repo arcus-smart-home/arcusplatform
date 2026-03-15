@@ -11,7 +11,7 @@ Feature: Unit Tests for the ZWMinostonMP22ZDOutdoorDimmerPlugDriver
     Scenario: Driver reports capabilities to platform.
         When a base:GetAttributes command is placed on the platform bus
         Then the driver should place a base:GetAttributesResponse message on the platform bus
-            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'swit', 'dim']
+            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'devsettings', 'swit', 'dim']
             And the message's dev:devtypehint attribute should be Dimmer
             And the message's devadv:drivername attribute should be ZWMinostonMP22ZDOutdoorDimmerPlugDriver
             And the message's devadv:driverversion attribute should be 2.4
