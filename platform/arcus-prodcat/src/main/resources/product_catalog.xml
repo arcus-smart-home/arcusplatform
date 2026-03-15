@@ -10,6 +10,7 @@
     <brand name="Dome"/>
     <brand name="Duraflame"/>
     <brand name="Ecolink"/>
+    <brand name="Enerwave"/>
     <brand name="EnergySmart"/>
     <brand name="Everspring"/>
     <brand name="First Alert"/>
@@ -5720,6 +5721,50 @@
       </removal>
       <reset>
         <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly, then hold for at least 10 seconds until the LED blinks to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="36b9a1" name="Smart Relay Switch Module (ZWN-RSM1-PLUS)" shortname="Relay Switch" screen="Switch" description="" manufacturer="Enerwave" vendor="Enerwave" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="enerwave,relay,switch,module,zwave,ZWN-RSM1-PLUS,in-wall" ota="No" protofamily="Z-Wave" added="2026-03-15T12:00:00-0600" lastchanged="2026-03-15T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Install the relay module in an electrical box according to the wiring diagram in the manual."/>
+        <step2 type="text" img="" text="Press the program button on the module while the hub is in pairing mode. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the program button on the module."/>
+        <step2 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Refer to the device manual for factory reset instructions."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="82f6ba" name="In-Wall Paddle Dimmer (46203/ZW3010)" shortname="Dimmer" screen="Dimmer" description="" manufacturer="GE" vendor="GE" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="ge,enbrighten,jasco,dimmer,zwave,46203,ZW3010,paddle,in-wall,500S" ota="No" protofamily="Z-Wave" added="2026-03-15T12:00:00-0600" lastchanged="2026-03-15T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the dimmer is installed and power is restored to the circuit."/>
+        <step2 type="text" img="" text="Press and release the top or bottom of the dimmer paddle while the hub is in pairing mode. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press and release the top or bottom of the dimmer paddle."/>
+        <step2 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Quickly press the top button 3 times then immediately press the bottom button 3 times. The LED will flash 5 times when completed successfully."/>
       </reset>
       <populations>
         <population name="general"/>
