@@ -24,7 +24,7 @@
  *                 The LED indicator will start blinking and the remote will reset.
  *
  * PAIR/INCLUDE:   Press and hold the upper paddle for 3 seconds while the hub is in inclusion mode.
- * UNPAIR/EXCLUDE: Press and hold the lower paddle for 3 seconds while the hub is in exclusion mode.
+ * UNPAIR/EXCLUDE: Quickly press the lower paddle 6 times while the hub is in exclusion mode.
  *
  * Command Classes:
  *   0x20   (32) Basic
