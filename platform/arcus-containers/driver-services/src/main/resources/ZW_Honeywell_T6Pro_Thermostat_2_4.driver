@@ -52,10 +52,205 @@ uses 'zwave.GenericZWaveVersion'
 //      0x42	(66)   COMMAND_CLASS_THERMOSTAT_OPERATING_STATE
 //      0x44	(68)   COMMAND_CLASS_THERMOSTAT_FAN_MODE
 //      0x31	(49)   COMMAND_CLASS_SENSOR_MULTILEVEL
+//      0x70	(112)  COMMAND_CLASS_CONFIGURATION
 //      0x72	(114)  COMMAND_CLASS_MANUFACTURER_SPECIFIC
 //      0x86	(134)  COMMAND_CLASS_VERSION
 //      0x5A	(90)   COMMAND_CLASS_DEVICE_RESET_LOCALLY
 //
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   // Schedule & Display
+   param name: 'scheduleType', id: 1, size: 1,
+       type: 'enum', values: ['0': 'No schedule / Occupancy based', '1': 'Every day the same', '2': '5-2 Schedule', '3': '5-1-1 Schedule', '4': 'Every day individual'],
+       description: 'Parameter 1: Schedule type',
+       dflt: 2
+   param name: 'temperatureScale', id: 2, size: 1,
+       type: 'enum', values: ['0': 'Fahrenheit', '1': 'Celsius'],
+       description: 'Parameter 2: Temperature scale displayed on thermostat',
+       dflt: 0
+   param name: 'outdoorTemperature', id: 3, size: 1,
+       type: 'enum', values: ['0': 'No', '1': 'Wired'],
+       description: 'Parameter 3: Outdoor temperature sensor',
+       dflt: 0
+
+   // Equipment Configuration
+   param name: 'equipmentType', id: 4, size: 1,
+       type: 'enum', values: ['0': 'None', '1': 'Standard Gas', '2': 'High Efficiency Gas', '3': 'Oil', '4': 'Electric', '5': 'Fan Coil', '6': 'Air to Air Heat Pump', '7': 'Geothermal Heat Pump', '8': 'Hot Water', '9': 'Steam'],
+       description: 'Parameter 4: Equipment type',
+       dflt: 2
+   param name: 'reversingValve', id: 5, size: 1,
+       type: 'enum', values: ['0': 'O/B on Cool', '1': 'O/B on Heat'],
+       description: 'Parameter 5: Reversing valve (heat pump only)',
+       dflt: 0
+   param name: 'coolStages', id: 6, size: 1,
+       type: 'range', min: 0, max: 2,
+       description: 'Parameter 6: Number of cool stages',
+       dflt: 1
+   param name: 'heatStagesAuxE', id: 7, size: 1,
+       type: 'range', min: 0, max: 2,
+       description: 'Parameter 7: Number of heat stages for aux/emergency heat',
+       dflt: 1
+   param name: 'auxEControl', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Both Aux and E', '1': 'Either Aux or E'],
+       description: 'Parameter 8: Aux/E control',
+       dflt: 0
+   param name: 'auxHeatType', id: 9, size: 1,
+       type: 'enum', values: ['0': 'Electric', '1': 'Gas/Oil'],
+       description: 'Parameter 9: Aux heat type',
+       dflt: 0
+   param name: 'emHeatType', id: 10, size: 1,
+       type: 'enum', values: ['0': 'Electric', '1': 'Gas/Oil'],
+       description: 'Parameter 10: Emergency heat type',
+       dflt: 0
+   param name: 'fossilKitControl', id: 11, size: 1,
+       type: 'enum', values: ['0': 'Thermostat', '1': 'External'],
+       description: 'Parameter 11: Fossil kit control',
+       dflt: 0
+   param name: 'autoChangeover', id: 12, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On'],
+       description: 'Parameter 12: Auto changeover',
+       dflt: 0
+   param name: 'autoDifferential', id: 13, size: 1,
+       type: 'range', min: 0, max: 5,
+       description: 'Parameter 13: Auto differential temperature (degrees F)',
+       dflt: 0
+   param name: 'highCoolStageFinish', id: 14, size: 1,
+       type: 'enum', values: ['0': 'No', '1': 'Yes'],
+       description: 'Parameter 14: High cool stage finish',
+       dflt: 0
+   param name: 'highHeatStageFinish', id: 15, size: 1,
+       type: 'enum', values: ['0': 'No', '1': 'Yes'],
+       description: 'Parameter 15: High heat stage finish',
+       dflt: 0
+   param name: 'auxHeatDroop', id: 16, size: 1,
+       type: 'enum', values: ['0': 'Comfort', '2': '2 F', '3': '3 F', '4': '4 F', '5': '5 F', '6': '6 F', '7': '7 F', '8': '8 F', '9': '9 F', '10': '10 F', '11': '11 F', '12': '12 F', '13': '13 F', '14': '14 F', '15': '15 F'],
+       description: 'Parameter 16: Aux heat droop temperature',
+       dflt: 0
+   param name: 'upStageTimerAux', id: 17, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': '30 minutes', '2': '45 minutes', '3': '60 minutes', '4': '75 minutes', '5': '90 minutes', '6': '2 hours', '7': '3 hours', '8': '4 hours', '9': '5 hours', '10': '6 hours', '11': '8 hours', '12': '10 hours', '13': '12 hours', '14': '14 hours', '15': '16 hours'],
+       description: 'Parameter 17: Up stage timer for aux heat',
+       dflt: 0
+   param name: 'balancePoint', id: 18, size: 1,
+       type: 'range', min: 0, max: 65,
+       description: 'Parameter 18: Balance point / compressor lockout (0=Off, 5-65 degrees F)',
+       dflt: 65
+   param name: 'auxHeatLockout', id: 19, size: 1,
+       type: 'range', min: 0, max: 65,
+       description: 'Parameter 19: Aux heat lockout temperature (0=Off, 5-65 degrees F)',
+       dflt: 0
+
+   // Cycles Per Hour
+   param name: 'cool1CPH', id: 20, size: 1,
+       type: 'range', min: 1, max: 6,
+       description: 'Parameter 20: Cool stage 1 cycles per hour',
+       dflt: 3
+   param name: 'cool2CPH', id: 21, size: 1,
+       type: 'range', min: 1, max: 6,
+       description: 'Parameter 21: Cool stage 2 cycles per hour',
+       dflt: 3
+   param name: 'heat1CPH', id: 22, size: 1,
+       type: 'range', min: 1, max: 12,
+       description: 'Parameter 22: Heat stage 1 cycles per hour',
+       dflt: 3
+   param name: 'heat2CPH', id: 23, size: 1,
+       type: 'range', min: 1, max: 12,
+       description: 'Parameter 23: Heat stage 2 cycles per hour',
+       dflt: 3
+   param name: 'auxHeatCPH', id: 24, size: 1,
+       type: 'range', min: 1, max: 12,
+       description: 'Parameter 24: Aux heat cycles per hour',
+       dflt: 9
+   param name: 'emHeatCPH', id: 25, size: 1,
+       type: 'range', min: 1, max: 12,
+       description: 'Parameter 25: Emergency heat cycles per hour',
+       dflt: 9
+
+   // Protection & Recovery
+   param name: 'compressorProtection', id: 26, size: 1,
+       type: 'range', min: 0, max: 5,
+       description: 'Parameter 26: Compressor protection time (0=Off, 1-5 minutes)',
+       dflt: 5
+   param name: 'adaptiveRecovery', id: 27, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On'],
+       description: 'Parameter 27: Adaptive intelligent recovery',
+       dflt: 1
+
+   // Temperature Limits
+   param name: 'minCoolTemp', id: 28, size: 1,
+       type: 'range', min: 50, max: 99,
+       description: 'Parameter 28: Minimum cool temperature (degrees F)',
+       dflt: 50
+   param name: 'maxHeatTemp', id: 29, size: 1,
+       type: 'range', min: 40, max: 90,
+       description: 'Parameter 29: Maximum heat temperature (degrees F)',
+       dflt: 90
+
+   // Filter & Maintenance Reminders
+   param name: 'airFilters', id: 30, size: 1,
+       type: 'range', min: 0, max: 2,
+       description: 'Parameter 30: Number of air filters',
+       dflt: 0
+   param name: 'airFilter1Reminder', id: 31, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': '10 run days', '2': '20 run days', '3': '30 run days', '4': '45 run days', '5': '60 run days', '6': '90 run days', '7': '120 run days', '8': '150 run days', '9': '30 days', '10': '45 days', '11': '60 days', '12': '75 days', '13': '3 months', '14': '4 months', '15': '5 months', '16': '6 months', '17': '9 months', '18': '12 months', '19': '15 months'],
+       description: 'Parameter 31: Air filter 1 reminder',
+       dflt: 0
+   param name: 'airFilter2Reminder', id: 32, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': '10 run days', '2': '20 run days', '3': '30 run days', '4': '45 run days', '5': '60 run days', '6': '90 run days', '7': '120 run days', '8': '150 run days', '9': '30 days', '10': '45 days', '11': '60 days', '12': '75 days', '13': '3 months', '14': '4 months', '15': '5 months', '16': '6 months', '17': '9 months', '18': '12 months', '19': '15 months'],
+       description: 'Parameter 32: Air filter 2 reminder',
+       dflt: 0
+   param name: 'humidPadReminder', id: 33, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': '6 months', '2': '12 months'],
+       description: 'Parameter 33: Humidification pad reminder',
+       dflt: 0
+   param name: 'dehumidFilterReminder', id: 34, size: 1,
+       type: 'range', min: 0, max: 12,
+       description: 'Parameter 34: Dehumidification filter reminder (0=Off, 1-12 months)',
+       dflt: 0
+   param name: 'ventFilterReminder', id: 35, size: 1,
+       type: 'range', min: 0, max: 12,
+       description: 'Parameter 35: Ventilation filter reminder (0=Off, 3-12 months)',
+       dflt: 0
+   param name: 'uvDevices', id: 36, size: 1,
+       type: 'range', min: 0, max: 2,
+       description: 'Parameter 36: Number of UV devices',
+       dflt: 0
+   param name: 'uvBulb1Reminder', id: 37, size: 1,
+       type: 'enum', values: ['0': 'Off', '6': '6 months', '12': '12 months', '24': '24 months'],
+       description: 'Parameter 37: UV bulb 1 reminder',
+       dflt: 0
+   param name: 'uvBulb2Reminder', id: 38, size: 1,
+       type: 'enum', values: ['0': 'Off', '6': '6 months', '12': '12 months', '24': '24 months'],
+       description: 'Parameter 38: UV bulb 2 reminder',
+       dflt: 0
+
+   // Display & Clock
+   param name: 'idleBrightness', id: 39, size: 1,
+       type: 'range', min: 0, max: 5,
+       description: 'Parameter 39: Idle brightness level (0=off, 5=max)',
+       dflt: 0
+   param name: 'clockFormat', id: 40, size: 1,
+       type: 'enum', values: ['0': '12 hour', '1': '24 hour'],
+       description: 'Parameter 40: Clock format',
+       dflt: 0
+   param name: 'daylightSavings', id: 41, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On'],
+       description: 'Parameter 41: Daylight saving time',
+       dflt: 1
+
+   // Offsets
+   param name: 'temperatureOffset', id: 42, size: 1,
+       type: 'range', min: -3, max: 3,
+       description: 'Parameter 42: Temperature offset (degrees F)',
+       dflt: 0
+   param name: 'humidityOffset', id: 43, size: 1,
+       type: 'range', min: -12, max: 12,
+       description: 'Parameter 43: Humidity offset (percent)',
+       dflt: 0
+}
 
 @Field final String DEVICE_NAME                 = 'Honeywell T6 Pro thermostat'
 
