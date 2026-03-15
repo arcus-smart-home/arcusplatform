@@ -55,6 +55,34 @@ importCapability 'zwave/GenericZWaveDim'
 importCapability 'zwave/GenericZWaveVersion'
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'dimRate', id: 6, size: 1,
+       type: 'enum', values: ['0': 'Dim quickly', '1': 'Dim slowly'],
+       description: 'Parameter 6: Dim rate',
+       dflt: 0
+   param name: 'switchMode', id: 16, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 16: Switch mode (disables dimming, on/off only)',
+       dflt: 0
+   param name: 'minDimThreshold', id: 30, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 30: Minimum dimmer threshold',
+       dflt: 1
+   param name: 'maxDimThreshold', id: 31, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 31: Maximum dimmer threshold',
+       dflt: 99
+   param name: 'defaultBrightness', id: 32, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 32: Default brightness level (0=last dim level)',
+       dflt: 0
+}
+
+
 DevicePower.source                DevicePower.SOURCE_LINE
 DevicePower.linecapable           true
 DevicePower.backupbatterycapable  false

@@ -10,7 +10,7 @@ Feature: Unit Tests for the ZWJasco46203DimmerDriver
     Scenario: Driver reports capabilities to platform.
         When a base:GetAttributes command is placed on the platform bus
         Then the driver should place a base:GetAttributesResponse message on the platform bus
-            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'swit', 'dim', 'indicator' ]
+            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'swit', 'dim', 'indicator', 'devsettings' ]
             And the message's dev:devtypehint attribute should be Dimmer
             And the message's devadv:drivername attribute should be ZWJasco46203DimmerDriver
             And the message's devadv:driverversion attribute should be 2.4
