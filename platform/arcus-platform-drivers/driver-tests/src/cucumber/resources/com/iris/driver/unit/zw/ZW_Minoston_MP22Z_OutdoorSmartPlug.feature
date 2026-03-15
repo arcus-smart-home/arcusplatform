@@ -51,6 +51,24 @@ These scenarios test the functionality of the ZWave Minoston MP22Z Outdoor Smart
 ############################################################
 
     @switch
+    Scenario: Platform turns on switch via attribute change
+        When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+        Then the driver should send switch_binary set
+            And with parameter value -1
+        Then the driver should place a EmptyMessage message on the platform bus
+        Then the driver should schedule event DelayedRead
+        Then both busses should be empty
+
+    @switch
+    Scenario: Platform turns off switch via attribute change
+        When a base:SetAttributes command with the value of swit:state OFF is placed on the platform bus
+        Then the driver should send switch_binary set
+            And with parameter value 0
+        Then the driver should place a EmptyMessage message on the platform bus
+        Then the driver should schedule event DelayedRead
+        Then both busses should be empty
+
+    @switch
     Scenario: Device reports switch binary ON
         When the device response with switch_binary report
             And with parameter value -1
