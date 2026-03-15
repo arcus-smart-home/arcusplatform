@@ -25,6 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 
+import javax.swing.SwingUtilities;
+
 import com.google.common.collect.Iterators;
 import com.iris.client.event.Listener;
 import com.iris.client.event.ListenerRegistration;
@@ -103,6 +105,17 @@ public class StoreViewModel<M extends Model> implements ViewModel<M> {
    }
 
    private void onModelEvent(ModelEvent event) {
+      // Must mutate the delegate list on the EDT to avoid concurrent
+      // modification — the JTable/RowSorter reads the list on the EDT.
+      if(SwingUtilities.isEventDispatchThread()) {
+         dispatchModelEvent(event);
+      }
+      else {
+         SwingUtilities.invokeLater(() -> dispatchModelEvent(event));
+      }
+   }
+
+   private void dispatchModelEvent(ModelEvent event) {
       M model = (M) event.getModel();
       if(event instanceof ModelAddedEvent) {
          int index = delegate.size();
