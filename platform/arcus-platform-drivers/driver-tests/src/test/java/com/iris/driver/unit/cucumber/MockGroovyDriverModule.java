@@ -32,6 +32,7 @@ import com.iris.driver.groovy.GroovyDriverModule;
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
 import com.iris.driver.groovy.binding.EnvironmentBinding;
 import com.iris.driver.groovy.customizer.DriverCompilationCustomizer;
+import com.iris.driver.groovy.devicesettings.DeviceSettingsPlugin;
 import com.iris.driver.groovy.pin.PinManagementContext;
 import com.iris.driver.groovy.plugin.GroovyDriverPlugin;
 import com.iris.driver.groovy.scheduler.OnScheduledClosure;
@@ -77,6 +78,9 @@ public class MockGroovyDriverModule extends GroovyDriverModule {
       bindSetOf(GroovyDriverPlugin.class)
         .addBinding()
         .toInstance(mockGroovyDriverPlugin);
+      bindSetOf(GroovyDriverPlugin.class)
+        .addBinding()
+        .to(DeviceSettingsPlugin.class);
       bindSetOf(CompilationCustomizer.class)
          .addBinding()
          .toInstance(new ImportCustomizer()

@@ -135,43 +135,54 @@ final long RELEASE_DELAY_MSEC  = 1000       // simulate button RELEASED 1 second
 ]
 
 
-// Config Parameters
+// Device Settings (Z-Wave Configuration Parameters)
 // ----------------------------------------------------------------------------
-@Field final byte CNFG_LOW_BATTERY_PARAM_NO        = 1   // Low battery alert threshold
-final byte CNFG_LOW_BATTERY_SIZE                   = 1   // 5-10%, default 5
-final byte CNFG_LOW_BATTERY_VALUE                  = 5
+deviceSettings {
+   param name: 'lowBatteryAlert', id: 1, size: 1,
+       type: 'range', min: 5, max: 10,
+       description: 'Parameter 1: Low battery alert threshold (%)',
+       dflt: 5
 
-@Field final byte CNFG_BTN1_LED_COLOR_PARAM_NO     = 2   // Button 1 (top) LED color
-final byte CNFG_BTN1_LED_COLOR_SIZE                = 1   // 0=white, 1=purple, 2=orange, 3=cyan, 4=red, 5=green, 6=blue
-final byte CNFG_BTN1_LED_COLOR_VALUE               = 0   // default white
+   param name: 'btn1LedColor', id: 2, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 2: Button 1 (top) LED color',
+       dflt: 0
 
-@Field final byte CNFG_BTN2_LED_COLOR_PARAM_NO     = 3   // Button 2 (middle) LED color
-final byte CNFG_BTN2_LED_COLOR_SIZE                = 1
-final byte CNFG_BTN2_LED_COLOR_VALUE               = 1   // default purple
+   param name: 'btn2LedColor', id: 3, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 3: Button 2 (middle) LED color',
+       dflt: 1
 
-@Field final byte CNFG_BTN3_LED_COLOR_PARAM_NO     = 4   // Button 3 (bottom-left) LED color
-final byte CNFG_BTN3_LED_COLOR_SIZE                = 1
-final byte CNFG_BTN3_LED_COLOR_VALUE               = 2   // default orange
+   param name: 'btn3LedColor', id: 4, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 4: Button 3 (bottom-left) LED color',
+       dflt: 2
 
-@Field final byte CNFG_BTN4_LED_COLOR_PARAM_NO     = 5   // Button 4 (bottom-right) LED color
-final byte CNFG_BTN4_LED_COLOR_SIZE                = 1
-final byte CNFG_BTN4_LED_COLOR_VALUE               = 3   // default cyan
+   param name: 'btn4LedColor', id: 5, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 5: Button 4 (bottom-right) LED color',
+       dflt: 3
 
-@Field final byte CNFG_LED_BRIGHTNESS_PARAM_NO     = 6   // LED indicator brightness
-final byte CNFG_LED_BRIGHTNESS_SIZE                = 1   // 0=off, 1-10 (10%–100%), default 5 (50%)
-final byte CNFG_LED_BRIGHTNESS_VALUE               = 5
+   param name: 'ledBrightness', id: 6, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 6: LED brightness (0=off, 1-10 in 10% increments)',
+       dflt: 5
 
-@Field final byte CNFG_DIMMING_SPEED_PARAM_NO      = 7   // Remote dimming speed (seconds to full brightness)
-final byte CNFG_DIMMING_SPEED_SIZE                 = 1   // 1-99 seconds, default 5
-final byte CNFG_DIMMING_SPEED_VALUE                = 5
+   param name: 'dimmingSpeed', id: 7, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 7: Remote dimming speed (seconds to full brightness)',
+       dflt: 5
 
-@Field final byte CNFG_BATT_REPORT_FREQ_PARAM_NO   = 8   // Battery reporting frequency (hours)
-final byte CNFG_BATT_REPORT_FREQ_SIZE              = 1   // 1-84 hours, default 12
-final byte CNFG_BATT_REPORT_FREQ_VALUE             = 12
+   param name: 'battReportFreq', id: 8, size: 1,
+       type: 'range', min: 1, max: 84,
+       description: 'Parameter 8: Battery reporting frequency (hours)',
+       dflt: 12
 
-@Field final byte CNFG_BATT_REPORT_THRESH_PARAM_NO = 9   // Battery reporting threshold (%)
-final byte CNFG_BATT_REPORT_THRESH_SIZE            = 1   // 0=disable, 1-20%, default 0
-final byte CNFG_BATT_REPORT_THRESH_VALUE           = 0
+   param name: 'battReportThresh', id: 9, size: 1,
+       type: 'range', min: 0, max: 20,
+       description: 'Parameter 9: Battery reporting threshold (0=disabled, 1-20%)',
+       dflt: 0
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -197,9 +208,6 @@ onConnected {
 
    // set Association to Group 1, Node 1
    ZWave.association.set( 1, 1, 0, 0, 0);
-
-   // configure LED brightness
-   ZWave.configuration.set( CNFG_LED_BRIGHTNESS_PARAM_NO, CNFG_LED_BRIGHTNESS_SIZE, CNFG_LED_BRIGHTNESS_VALUE )
 }
 
 

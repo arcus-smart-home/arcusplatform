@@ -40,6 +40,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.driver.groovy.customizer.DriverCompilationCustomizer;
+import com.iris.driver.groovy.devicesettings.DeviceSettingsPlugin;
 import com.iris.driver.groovy.pin.PinManagementPlugin;
 import com.iris.driver.groovy.plugin.GroovyDriverPlugin;
 import com.iris.driver.groovy.scheduler.SchedulerPlugin;
@@ -85,6 +86,9 @@ public class GroovyDriverModule extends AbstractIrisModule {
       bindSetOf(GroovyDriverPlugin.class)
          .addBinding()
          .to(PinManagementPlugin.class);
+      bindSetOf(GroovyDriverPlugin.class)
+         .addBinding()
+         .to(DeviceSettingsPlugin.class);
    }
 
    @Provides
