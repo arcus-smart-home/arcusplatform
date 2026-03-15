@@ -108,6 +108,34 @@ final byte CNFG_LED_MODE_VALUE            = 1        // 0=Always Off, 1=On when 
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledMode', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Always off', '1': 'On when button pressed', '2': 'Always on in upper paddle color', '3': 'Always on in lower paddle color'],
+       description: 'Parameter 1: LED indicator mode',
+       dflt: 1
+   param name: 'ledColorUpperPaddle', id: 2, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 2: LED color for upper paddle',
+       dflt: 1
+   param name: 'ledColorLowerPaddle', id: 3, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 3: LED color for lower paddle',
+       dflt: 0
+   param name: 'wakeUpDuration', id: 4, size: 1,
+       type: 'enum', values: ['0': 'Short wake-up', '1': '30 seconds'],
+       description: 'Parameter 4: Manual wake-up duration (firmware 1.30+)',
+       dflt: 0
+   param name: 'dimmingDuration', id: 5, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 5: Dimmer control group dimming duration in seconds (firmware 1.40+)',
+       dflt: 5
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Driver Lifecycle Callbacks
 ////////////////////////////////////////////////////////////////////////////////
 
