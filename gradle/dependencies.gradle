@@ -197,7 +197,7 @@ ext.libraries << [
 
 
 // Notifications
-		mailgun: "com.mailgun:mailgun-java:1.0.0",
+		mailgun: "com.mailgun:mailgun-java:1.0.9",
 		sendgridJava: "com.sendgrid:sendgrid-java:4.10.3",
 		sendgridHTTP: "com.sendgrid:java-http-client:4.5.1",
 		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
