@@ -4355,7 +4355,7 @@
       </pair>
       <removal>
         <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
-        <step1 type="text" img="" text="Press and hold the lower paddle for 3 seconds."/>
+        <step1 type="text" img="" text="Quickly press the bottom button 6 times."/>
         <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
       </removal>
       <reset>

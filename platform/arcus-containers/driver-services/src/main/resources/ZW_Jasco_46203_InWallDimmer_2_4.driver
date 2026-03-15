@@ -48,6 +48,7 @@ vendor           "GE"
 model            "ZW3010"
 
 matcher          'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4944, 'ZWAV:ProductId': 0x3235
+matcher          'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4944, 'ZWAV:ProductId': 0x3339    // UltraPro 39351/ZW3010
 
 capabilities     DevicePower, Switch, Dimmer, Indicator
 
