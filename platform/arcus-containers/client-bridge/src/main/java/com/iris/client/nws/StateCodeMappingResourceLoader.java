@@ -23,8 +23,9 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.iris.resource.manager.ResourceParser;
-import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
 /*
  * The {@code StateCodeMappingResourceLoader} loads NWS SAME Code State Name Mappings for each two character US Postal
@@ -51,7 +52,9 @@ public class StateCodeMappingResourceLoader implements ResourceParser<Map<String
 
 		Map<String, SameState> sameStates = new HashMap<String,SameState>();
 
-		try (CSVReader reader = new CSVReader(new InputStreamReader(is), 0, new CSVParser())) {
+		try (CSVReader reader = new CSVReaderBuilder(new InputStreamReader(is))
+				.withCSVParser(new CSVParserBuilder().build())
+				.build()) {
 			String[] nextLine;
 			while ((nextLine = reader.readNext()) != null) {
 				if (nextLine.length < 2) { // error in input file, skip the record and continue

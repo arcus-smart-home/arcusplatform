@@ -30,8 +30,9 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Table;
 import com.iris.Utils;
 import com.iris.resource.manager.ResourceParser;
-import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
 /*
  * The {@code SameCodeResourceLoader} loads NWS SAME Code mapping as derived from the National Weather Service
@@ -84,7 +85,9 @@ public class SameCodeResourceLoader implements ResourceParser<SameCodeRegistry> 
       // ListMultimap conceptually provides Map<stateCode, List<counties>>
       ListMultimap<String, String> sameCounties = ArrayListMultimap.create();
 
-      try (CSVReader reader = new CSVReader(new InputStreamReader(is), 0, new CSVParser())){
+      try (CSVReader reader = new CSVReaderBuilder(new InputStreamReader(is))
+            .withCSVParser(new CSVParserBuilder().build())
+            .build()){
          String[] nextLine;
          while ((nextLine = reader.readNext()) != null){
             if (nextLine.length < 3) { // error in input file, skip

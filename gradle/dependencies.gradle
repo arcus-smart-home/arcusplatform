@@ -210,7 +210,7 @@ ext.libraries << [
 
 
 // Open CSV
-		opencsv: "com.opencsv:opencsv:3.4",
+		opencsv: "com.opencsv:opencsv:5.10",
 
 		//Joda
 		joda: "joda-time:joda-time:2.14.0",

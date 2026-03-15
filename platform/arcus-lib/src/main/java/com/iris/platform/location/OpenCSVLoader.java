@@ -25,8 +25,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.iris.common.sunrise.GeoLocation;
 import com.iris.resource.manager.ResourceParser;
-import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
 public class OpenCSVLoader implements ResourceParser<Map<String,GeoLocation>> {
    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(OpenCSVLoader.class);
@@ -37,7 +38,10 @@ public class OpenCSVLoader implements ResourceParser<Map<String,GeoLocation>> {
       CSVReader reader=null;
       Map<String,GeoLocation>geopointsByZip = new HashMap<String, GeoLocation>(40000);
       try{
-         reader = new CSVReader(new InputStreamReader(is), 1, new CSVParser());
+         reader = new CSVReaderBuilder(new InputStreamReader(is))
+            .withSkipLines(1)
+            .withCSVParser(new CSVParserBuilder().build())
+            .build();
          String[] nextLine;
          while ((nextLine = reader.readNext()) != null){
             if (nextLine.length < 3) {
