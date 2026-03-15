@@ -150,7 +150,7 @@ setAttributes('swit') {
                ZWave.switch_binary.set 0x00
             }
             // read back after a short delay
-            ZWave.scheduler.scheduleIn 'DelayedRead', 1000
+            Scheduler.scheduleIn 'DelayedRead', 1000
             break
          default:
             break
