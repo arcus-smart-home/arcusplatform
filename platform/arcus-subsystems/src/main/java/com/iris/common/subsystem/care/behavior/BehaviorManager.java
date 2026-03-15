@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
@@ -35,6 +36,7 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.subs.CareSubsystemModel;
 import com.iris.messages.type.CareBehaviorTemplate;
+import com.iris.messages.type.TimeWindow;
 import com.iris.model.query.expression.ExpressionCompiler;
 import com.iris.util.TypeMarker;
 
@@ -158,10 +160,16 @@ public class BehaviorManager {
       if (behavior.getTimeWindows() == null || behavior.getTimeWindows().isEmpty()) {
          return;
       }
-      List<WeeklyTimeWindow> windows = WeeklyTimeWindow.fromTimeWindowDataListSorted(behavior.getTimeWindows(), context.getLocalTime());
+      Date asOf = context.getLocalTime().getTime();
+      TimeZone tz = context.getLocalTime().getTimeZone();
+      List<WeeklyTimeWindow> windows = new ArrayList<>();
+      for (Map<String, Object> window : behavior.getTimeWindows()) {
+         windows.add(new WeeklyTimeWindow(new TimeWindow(window)));
+      }
+      windows.sort((a, b) -> a.thisWeekStartDate(asOf, tz).compareTo(b.thisWeekStartDate(asOf, tz)));
       Date lastestEndDate = null;
-      for (WeeklyTimeWindow wtw : windows){
-         Date startDate = wtw.nextOrCurrentStartDate(context.getLocalTime().getTime(), context.getLocalTime().getTimeZone());
+      for (WeeklyTimeWindow wtw : windows) {
+         Date startDate = wtw.thisWeekStartDate(asOf, tz);
          Date endDate = wtw.calculateEndDate(startDate);
          if (lastestEndDate != null && startDate.before(lastestEndDate)) {
             throw new ErrorEventException(CareErrors.duplicateTimeWindows(wtw.toString()));
