@@ -158,7 +158,7 @@ public class DeviceSection extends BaseComponentWrapper<Component> implements Oc
       return
             ModelStoreViewBuilder
                .builder(controller.getStore())
-               .sortedBy(Comparator.comparing(DeviceModel::getName))
+               .sortedBy(Comparator.comparing(DeviceModel::getName, Comparator.nullsLast(Comparator.naturalOrder())))
                .withListTableModel(createTableModel(), controller.getSelection(), createSummaryToolbar())
                .withTypeName("Device")
                .withModelSelector(

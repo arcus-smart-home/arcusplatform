@@ -19,11 +19,13 @@
 package com.iris.oculus.view;
 
 import javax.swing.AbstractListModel;
+import javax.swing.SwingUtilities;
 
 import com.iris.client.event.ListenerRegistration;
 import com.iris.oculus.view.ViewModelEvent.ViewModelAddedEvent;
 import com.iris.oculus.view.ViewModelEvent.ViewModelChangedEvent;
 import com.iris.oculus.view.ViewModelEvent.ViewModelRemovedEvent;
+import com.iris.oculus.view.ViewModelEvent.ViewModelUpdatedEvent;
 
 /**
  *
@@ -62,19 +64,27 @@ public class ViewListModel<T> extends AbstractListModel<T> {
    }
    
    protected void onViewEvent(ViewModelEvent event) {
+      if(SwingUtilities.isEventDispatchThread()) {
+         dispatchViewEvent(event);
+      }
+      else {
+         SwingUtilities.invokeLater(() -> fireContentsChanged(ViewListModel.this, 0, getSize()));
+      }
+   }
+
+   private void dispatchViewEvent(ViewModelEvent event) {
       if(event instanceof ViewModelChangedEvent) {
          fireContentsChanged(ViewListModel.this, 0, getSize());
       }
       else if(event instanceof ViewModelAddedEvent) {
          fireIntervalAdded(ViewListModel.this, event.getStart(), event.getEnd());
       }
-      else if(event instanceof ViewModelChangedEvent) {
+      else if(event instanceof ViewModelUpdatedEvent) {
          fireContentsChanged(ViewListModel.this, event.getStart(), event.getEnd());
       }
       else if(event instanceof ViewModelRemovedEvent) {
          fireIntervalRemoved(ViewListModel.this, event.getStart(), event.getEnd());
       }
-      
    }
 }
 
