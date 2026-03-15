@@ -16,8 +16,12 @@
 package com.iris.client.server;
 
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -126,6 +130,9 @@ import com.iris.resource.Resources;
 import com.iris.util.ThreadPoolBuilder;
 import com.iris.bootstrap.annotations.Modules;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
@@ -136,6 +143,8 @@ import io.netty.channel.socket.SocketChannel;
 		PlacePopulationCacheModule.class
 })
 public class ClientServerModule extends AbstractIrisModule {
+   private static final Logger log = LoggerFactory.getLogger(ClientServerModule.class);
+
    public static final String AUTHZ_LOADER_PROP = "authz.contextLoader";
    public static final String AUTHZ_LOADER_NONE = "none";
    public static final String DEBUG_PROP = "deploy.debug";
@@ -176,7 +185,12 @@ public class ClientServerModule extends AbstractIrisModule {
 	@Inject(optional=true)
 	@Named("client.background.threadKeepAliveMs")
 	private long threadKeepAliveMs = 10000;
-	
+
+   @Inject(optional=true)
+   @Named("client.disabled.handlers")
+   private String disabledHandlersConfig = "";
+
+   private Set<String> disabledHandlers = Collections.emptySet();
    private ExecutorService executor;
    
    @Inject
@@ -190,8 +204,22 @@ public class ClientServerModule extends AbstractIrisModule {
    				.build();
    }
 
+   private void bindHandler(Multibinder<RequestHandler> rhBindings, Class<? extends RequestHandler> handler) {
+      if (disabledHandlers.contains(handler.getSimpleName())) {
+         log.warn("Handler {} is disabled via configuration", handler.getSimpleName());
+         return;
+      }
+      rhBindings.addBinding().to(handler);
+   }
+
    @Override
    protected void configure() {
+      if (disabledHandlersConfig != null && !disabledHandlersConfig.isEmpty()) {
+         disabledHandlers = Arrays.stream(disabledHandlersConfig.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
+      }
       bind(BridgeServerConfig.class);
       bind(BridgeServerTlsContext.class).to(BridgeServerTlsContextImpl.class);
       bind(BridgeServerTrustManagerFactory.class).to(NullTrustManagerFactoryImpl.class);
@@ -236,46 +264,46 @@ public class ClientServerModule extends AbstractIrisModule {
       rhBindings.addBinding().to(LoginPage.class);
       
       /* Bounce handlers */
-      rhBindings.addBinding().to(AppleAppSiteAssociationHandler.class);
-      rhBindings.addBinding().to(AppFallbackHandler.class);
-      rhBindings.addBinding().to(AppLaunchHandler.class);
-      rhBindings.addBinding().to(WebLaunchHandler.class);
-      rhBindings.addBinding().to(WebRunHandler.class);
-      
+      bindHandler(rhBindings, AppleAppSiteAssociationHandler.class);
+      bindHandler(rhBindings, AppFallbackHandler.class);
+      bindHandler(rhBindings, AppLaunchHandler.class);
+      bindHandler(rhBindings, WebLaunchHandler.class);
+      bindHandler(rhBindings, WebRunHandler.class);
+
       /* ProductCatalog RestHandlers */
-      rhBindings.addBinding().to(GetProductCatalogRESTHandler.class);
-      rhBindings.addBinding().to(GetProductsRESTHandler.class);
-      rhBindings.addBinding().to(FindProductsRESTHandler.class);
-      rhBindings.addBinding().to(GetBrandsRESTHandler.class);
-      rhBindings.addBinding().to(GetCategoriesRESTHandler.class);
-      rhBindings.addBinding().to(GetProductRESTHandler.class);
-      rhBindings.addBinding().to(GetProductsByBrandRESTHandler.class);
-      rhBindings.addBinding().to(GetProductsByCategoryRESTHandler.class);
+      bindHandler(rhBindings, GetProductCatalogRESTHandler.class);
+      bindHandler(rhBindings, GetProductsRESTHandler.class);
+      bindHandler(rhBindings, FindProductsRESTHandler.class);
+      bindHandler(rhBindings, GetBrandsRESTHandler.class);
+      bindHandler(rhBindings, GetCategoriesRESTHandler.class);
+      bindHandler(rhBindings, GetProductRESTHandler.class);
+      bindHandler(rhBindings, GetProductsByBrandRESTHandler.class);
+      bindHandler(rhBindings, GetProductsByCategoryRESTHandler.class);
 
       // NWS SAME and EAS Code REST Handlers
-      rhBindings.addBinding().to(GetSameCodeRESTHandler.class);
-      rhBindings.addBinding().to(ListSameCountiesRESTHandler.class);
-      rhBindings.addBinding().to(ListSameStatesRESTHandler.class);    
-      rhBindings.addBinding().to(ListEasCodesRESTHandler.class);
+      bindHandler(rhBindings, GetSameCodeRESTHandler.class);
+      bindHandler(rhBindings, ListSameCountiesRESTHandler.class);
+      bindHandler(rhBindings, ListSameStatesRESTHandler.class);
+      bindHandler(rhBindings, ListEasCodesRESTHandler.class);
 
       /* Other RestHandlers */
-      rhBindings.addBinding().to(ChangePinRESTHandler.class);
-      rhBindings.addBinding().to(ChangePinV2RESTHandler.class);
-      rhBindings.addBinding().to(VerifyPinRESTHandler.class);
-      rhBindings.addBinding().to(CreateAccountRESTHandler.class);
-      rhBindings.addBinding().to(ChangePasswordRESTHandler.class);
-      rhBindings.addBinding().to(LoadLocalizedStringsRESTHandler.class);
-      rhBindings.addBinding().to(ResetPasswordRESTHandler.class);
-      rhBindings.addBinding().to(SendPasswordResetRESTHandler.class);
-      rhBindings.addBinding().to(SessionLogout.class);
-      rhBindings.addBinding().to(SessionLogRESTHandler.class);
-      rhBindings.addBinding().to(ListTimezonesRESTHandler.class);
-      rhBindings.addBinding().to(AcceptInvitationCreateLoginRESTHandler.class);
-      rhBindings.addBinding().to(GetInvitationRESTHandler.class);
-      rhBindings.addBinding().to(GetInvoiceRESTHandler.class);
-      rhBindings.addBinding().to(LockDeviceRESTHandler.class);
-      rhBindings.addBinding().to(RequestEmailVerificatonRESTHandler.class);
-      rhBindings.addBinding().to(VerifyEmailRESTHandler.class);
+      bindHandler(rhBindings, ChangePinRESTHandler.class);
+      bindHandler(rhBindings, ChangePinV2RESTHandler.class);
+      bindHandler(rhBindings, VerifyPinRESTHandler.class);
+      bindHandler(rhBindings, CreateAccountRESTHandler.class);
+      bindHandler(rhBindings, ChangePasswordRESTHandler.class);
+      bindHandler(rhBindings, LoadLocalizedStringsRESTHandler.class);
+      bindHandler(rhBindings, ResetPasswordRESTHandler.class);
+      bindHandler(rhBindings, SendPasswordResetRESTHandler.class);
+      bindHandler(rhBindings, SessionLogout.class);
+      bindHandler(rhBindings, SessionLogRESTHandler.class);
+      bindHandler(rhBindings, ListTimezonesRESTHandler.class);
+      bindHandler(rhBindings, AcceptInvitationCreateLoginRESTHandler.class);
+      bindHandler(rhBindings, GetInvitationRESTHandler.class);
+      bindHandler(rhBindings, GetInvoiceRESTHandler.class);
+      bindHandler(rhBindings, LockDeviceRESTHandler.class);
+      bindHandler(rhBindings, RequestEmailVerificatonRESTHandler.class);
+      bindHandler(rhBindings, VerifyEmailRESTHandler.class);
 
       /* Static resource handler */
       // should be bound last because its matcher is super-greedy 
