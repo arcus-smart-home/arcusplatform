@@ -94,6 +94,118 @@ instance 'button4', Button
 instance 'main', Button
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings — exposing Z-Wave config params to clients
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledModeRelay', id: 1, size: 1,
+       type: 'enum', values: ['0': 'LED on when relay off', '1': 'LED on when relay on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 1: LED indicator mode for relay button',
+       dflt: 0
+
+   param name: 'ledModeButton1', id: 2, size: 1,
+       type: 'enum', values: ['0': 'LED on when off', '1': 'LED on when on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 2: LED indicator mode for button 1',
+       dflt: 0
+
+   param name: 'ledModeButton2', id: 3, size: 1,
+       type: 'enum', values: ['0': 'LED on when off', '1': 'LED on when on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 3: LED indicator mode for button 2',
+       dflt: 0
+
+   param name: 'ledModeButton3', id: 4, size: 1,
+       type: 'enum', values: ['0': 'LED on when off', '1': 'LED on when on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 4: LED indicator mode for button 3',
+       dflt: 0
+
+   param name: 'ledModeButton4', id: 5, size: 1,
+       type: 'enum', values: ['0': 'LED on when off', '1': 'LED on when on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 5: LED indicator mode for button 4',
+       dflt: 0
+
+   param name: 'ledColorRelay', id: 6, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 6: LED color for relay button',
+       dflt: 0
+
+   param name: 'ledColorButton1', id: 7, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 7: LED color for button 1',
+       dflt: 0
+
+   param name: 'ledColorButton2', id: 8, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 8: LED color for button 2',
+       dflt: 0
+
+   param name: 'ledColorButton3', id: 9, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 9: LED color for button 3',
+       dflt: 0
+
+   param name: 'ledColorButton4', id: 10, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red', '4': 'Magenta', '5': 'Yellow', '6': 'Cyan'],
+       description: 'Parameter 10: LED color for button 4',
+       dflt: 0
+
+   param name: 'ledBrightnessRelay', id: 11, size: 1,
+       type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
+       description: 'Parameter 11: LED brightness for relay button',
+       dflt: 1
+
+   param name: 'ledBrightnessButton1', id: 12, size: 1,
+       type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
+       description: 'Parameter 12: LED brightness for button 1',
+       dflt: 1
+
+   param name: 'ledBrightnessButton2', id: 13, size: 1,
+       type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
+       description: 'Parameter 13: LED brightness for button 2',
+       dflt: 1
+
+   param name: 'ledBrightnessButton3', id: 14, size: 1,
+       type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
+       description: 'Parameter 14: LED brightness for button 3',
+       dflt: 1
+
+   param name: 'ledBrightnessButton4', id: 15, size: 1,
+       type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
+       description: 'Parameter 15: LED brightness for button 4',
+       dflt: 1
+
+   param name: 'autoOffTimer', id: 16, size: 4,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 16: Auto turn-off timer for relay (0=disabled, 1-65535=minutes)',
+       dflt: 0
+
+   param name: 'autoOnTimer', id: 17, size: 4,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 17: Auto turn-on timer for relay (0=disabled, 1-65535=minutes)',
+       dflt: 0
+
+   param name: 'powerFailure', id: 18, size: 1,
+       type: 'enum', values: ['0': 'Restore Last State', '1': 'Forced Off', '2': 'Forced On'],
+       description: 'Parameter 18: On/Off status after power failure',
+       dflt: 0
+
+   param name: 'smartBulbMode', id: 19, size: 1,
+       type: 'enum', values: ['0': 'Disable paddle / enable Z-Wave', '1': 'Enable paddle and Z-Wave', '2': 'Disable paddle and Z-Wave'],
+       description: 'Parameter 19: Smart bulb mode / load control',
+       dflt: 1
+
+   param name: 'threeWaySwitchType', id: 21, size: 1,
+       type: 'enum', values: ['0': 'Toggle switch', '1': 'Momentary switch (ZAC99)'],
+       description: 'Parameter 21: 3-way switch type',
+       dflt: 0
+
+   param name: 'relaySceneControl', id: 24, size: 1,
+       type: 'enum', values: ['0': 'Enabled', '1': 'Disabled'],
+       description: 'Parameter 24: Scene control for relay button',
+       dflt: 0
+}
+
+
 @Field final String DEVICE_NAME = "Zooz ZEN32 Scene Controller"
 
 final int OFFLINE_TIMEOUT_SECS = 11400        // 190 minutes
