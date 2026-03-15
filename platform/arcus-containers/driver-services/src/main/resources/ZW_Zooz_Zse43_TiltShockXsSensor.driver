@@ -1,0 +1,323 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZSE43 Tilt / Shock XS Sensor (800 Series)
+ *
+ * The ZSE43 is a compact tilt/shock sensor powered by a CR2450 battery.
+ * It can be used to monitor garage doors, gates, mailboxes, and other
+ * objects where tilt detection is useful. It supports Z-Wave Long Range.
+ *
+ * FACTORY RESET:  Double-click the Z-Wave button, hold the third click for 10 seconds, then double-click again.
+ *
+ * PAIR/INCLUDE:   Click the Z-Wave button quickly 3 times in a row while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Click the Z-Wave button quickly 3 times in a row while the hub is in exclusion mode.
+ *
+ * By default the Contact state is set to Closed when the Tilt sensor is Flat (horizontal).
+ * If you wish to reverse the states of the Contact capability with respect to the Tilt sensor orientation
+ * (for example to monitor a garage door) you must add a Tag on the device of "closedOnUpright".
+ *
+ * Command Classes:
+ *   0x30   (48) Sensor Binary (V2)
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration (V4)
+ *   0x71  (113) Notification (V8)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake_Up
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ *   0x8E (-114) Multi Channel Association
+ *   0x98 (-104) Security S0
+ *   0x9F  (-97) Security S2
+ */
+import groovy.transform.Field
+
+driver           "ZWZoozZse43TiltShockXsSensorDriver"
+description      "Driver for a Zooz ZSE43 Tilt / Shock XS Sensor"
+version          "2.4"
+protocol         "ZWAV"
+deviceTypeHint   "Tilt"
+productId        "f3a043"
+vendor           "Zooz"
+model            "ZSE43"
+
+matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xE003
+
+capabilities     DevicePower, Tilt, Contact
+
+importCapability 'generic/GenericTiltWithContact'
+importCapability 'zwave/GenericZWaveBattery'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+DevicePower.source               DevicePower.SOURCE_BATTERY
+DevicePower.linecapable          false
+DevicePower.backupbatterycapable false
+
+Contact.usehint                  Contact.USEHINT_UNKNOWN
+
+
+final String DEVICE_NAME        = "Zooz ZSE43 Tilt / Shock XS Sensor"
+
+// Timeouts
+final int OFFLINE_TIMEOUT_SECS       = 11400       // 190 minutes (3+ wakeup intervals of 1 hour)
+final int BATTERY_POLL_SEC           = 86400       // Ask for battery level every 24 hours
+final int STATE_POLLING_INTERVAL_SEC = 3600        // Ask for current state every 60 minutes
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_INDICATOR_PARAM_NO       = 1    // LED Indicator
+final byte CNFG_LED_INDICATOR_SIZE                  = 1    // 0=disabled, 1=enabled (default)
+final byte CNFG_LED_INDICATOR_VALUE                 = 1
+
+@Field final byte CNFG_BATTERY_THRESHOLD_PARAM_NO   = 2    // Battery Reporting Threshold
+final byte CNFG_BATTERY_THRESHOLD_SIZE              = 1    // 1-50 percent, default=10
+final byte CNFG_BATTERY_THRESHOLD_VALUE             = 10
+
+@Field final byte CNFG_LOW_BATTERY_PARAM_NO         = 3    // Low Battery Alert Threshold
+final byte CNFG_LOW_BATTERY_SIZE                    = 1    // 10-50 percent, default=20
+final byte CNFG_LOW_BATTERY_VALUE                   = 20
+
+@Field final byte CNFG_BASIC_SET_PARAM_NO           = 4    // Group 2 Basic Set Commands
+final byte CNFG_BASIC_SET_SIZE                      = 1    // 0=disabled, 1=Off/On (default), 2=On/Off
+final byte CNFG_BASIC_SET_VALUE                     = 1
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledIndicator', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'LED on shock only', '2': 'LED on tilt only', '3': 'LED on shock and tilt'],
+       description: 'Parameter 1: LED indicator mode',
+       dflt: 3
+   param name: 'batteryReportThreshold', id: 2, size: 1,
+       type: 'range', min: 1, max: 50,
+       description: 'Parameter 2: Battery reporting threshold (percent)',
+       dflt: 10
+   param name: 'lowBatteryThreshold', id: 3, size: 1,
+       type: 'range', min: 10, max: 50,
+       description: 'Parameter 3: Low battery alert threshold (percent)',
+       dflt: 20
+   param name: 'shockSensitivity', id: 4, size: 1,
+       type: 'enum', values: ['0': 'High', '1': 'Medium', '2': 'Low'],
+       description: 'Parameter 4: Shock sensitivity',
+       dflt: 0
+   param name: 'group2OnDelay', id: 5, size: 4,
+       type: 'range', min: 0, max: 3600,
+       description: 'Parameter 5: Group 2 on delay in seconds',
+       dflt: 0
+   param name: 'group2OffDelay', id: 6, size: 4,
+       type: 'range', min: 0, max: 3600,
+       description: 'Parameter 6: Group 2 off delay in seconds',
+       dflt: 0
+   param name: 'enableSensors', id: 7, size: 1,
+       type: 'enum', values: ['0': 'Tilt sensor only', '1': 'Shock sensor only', '2': 'Both sensors'],
+       description: 'Parameter 7: Enable sensors',
+       dflt: 2
+   param name: 'tiltBasicReports', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'On when tilt detected', '2': 'Off when tilt cleared', '3': 'On when detected / Off when cleared'],
+       description: 'Parameter 8: Group 2 tilt sensor Basic Set reports',
+       dflt: 3
+   param name: 'shockBasicReports', id: 9, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'On when shock detected', '2': 'Off when shock cleared', '3': 'On when detected / Off when cleared'],
+       description: 'Parameter 9: Group 3 shock sensor Basic Set reports',
+       dflt: 3
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Tilt.tiltstate          Tilt.TILTSTATE_UPRIGHT
+   Tilt.tiltstatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   boolean closedOnUpright = Base.tags.get().contains('closedOnUpright')
+   if (closedOnUpright) {
+      Contact.contact      Contact.CONTACT_CLOSED
+   } else {
+      Contact.contact      Contact.CONTACT_OPENED
+   }
+   Contact.contactchanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   ZWave.setOfflineTimeout(OFFLINE_TIMEOUT_SECS)
+
+   // set the wakeup interval to 1 hour (0x000E10 = 3600 seconds) for node 0x01
+   ZWave.wake_up.set((byte)0x00, (byte)0x0E, (byte)0x10, (byte)0x01)
+
+   ZWave.sensor_binary.get()
+   ZWave.poll(STATE_POLLING_INTERVAL_SEC, ZWave.sensor_binary.get)
+
+   // Note: Generic ZWave Battery capability file reads current battery level during onConnected
+   ZWave.poll(BATTERY_POLL_SEC, ZWave.battery.get)
+
+   // configure device
+   ZWave.configuration.set( CNFG_LED_INDICATOR_PARAM_NO, CNFG_LED_INDICATOR_SIZE, CNFG_LED_INDICATOR_VALUE )
+   ZWave.configuration.set( CNFG_BATTERY_THRESHOLD_PARAM_NO, CNFG_BATTERY_THRESHOLD_SIZE, CNFG_BATTERY_THRESHOLD_VALUE )
+   ZWave.configuration.set( CNFG_LOW_BATTERY_PARAM_NO, CNFG_LOW_BATTERY_SIZE, CNFG_LOW_BATTERY_VALUE )
+   ZWave.configuration.set( CNFG_BASIC_SET_PARAM_NO, CNFG_BASIC_SET_SIZE, CNFG_BASIC_SET_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+void handleStateMsg(Object currentState) {
+   def prevState = Tilt.tiltstate.get()
+   if (-1 == currentState) {
+      Tilt.tiltstate Tilt.TILTSTATE_FLAT
+   } else if (0 == currentState) {
+      Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+   }
+   // if previous state is not the same as newly reported state, record timestamp of change
+   if (Tilt.tiltstate.get() != prevState) {
+      def now = new Date()
+      Tilt.tiltstatechanged now
+      adjustContactState(Tilt.tiltstate.get(), now)
+   }
+}
+
+void adjustContactState(Object newTiltState, Object now) {
+   boolean closedOnUpright = Base.tags.get().contains('closedOnUpright')
+   if (((Tilt.TILTSTATE_UPRIGHT == newTiltState) && closedOnUpright) || ((Tilt.TILTSTATE_FLAT == newTiltState) && !closedOnUpright)) {
+      Contact.contact Contact.CONTACT_CLOSED
+      Contact.contactchanged now
+   } else {
+      Contact.contact Contact.CONTACT_OPENED
+      Contact.contactchanged now
+   }
+}
+
+onZWaveMessage.basic.report {
+   log.trace "Basic Report: {}", message
+   handleStateMsg message.command.get('value')
+}
+
+onZWaveMessage.basic.set {
+   def byte[] bytes = message.command.recvBytes
+   log.trace "Basic Set: {}", bytes[0]
+   handleStateMsg bytes[0]
+}
+
+onZWaveMessage.sensor_binary.report {
+   log.trace "Sensor Binary Report: {}", message
+   handleStateMsg message.command.get('value')
+}
+
+
+onZWaveMessage.alarm.report {
+   def alarmType =  message.command.get('alarmtype')
+   def alarmLevel =  message.command.get('alarmlevel')
+   def notificationStatus =  message.command.get('notificationstatus')
+   def notificationType =  message.command.get('notificationtype')
+   def event =  message.command.get('event')
+   def byte[] bytes = message.command.recvBytes
+   log.trace "Notification, Alarm Type: {}, Alarm Level: {}, Event: {}, Notification Type: {}, Notification Status: {}, CmdBytes: {}",
+             alarmType, alarmLevel, event, notificationType, notificationStatus, bytes
+
+   // Notification Type 0x06 = Access Control
+   if (0 == alarmType && 0 == alarmLevel && 6 == notificationType && -1 == notificationStatus) {
+      // Event 0x16 (22) = Window/Door is open (tilt sensor upright)
+      if (22 == event) {
+         def prevState = Tilt.tiltstate.get()
+         Tilt.tiltstate Tilt.TILTSTATE_UPRIGHT
+         if (Tilt.tiltstate.get() != prevState) {
+            def now = new Date()
+            Tilt.tiltstatechanged now
+            adjustContactState(Tilt.tiltstate.get(), now)
+         }
+      }
+      // Event 0x17 (23) = Window/Door is closed (tilt sensor flat)
+      else if (23 == event) {
+         def prevState = Tilt.tiltstate.get()
+         Tilt.tiltstate Tilt.TILTSTATE_FLAT
+         if (Tilt.tiltstate.get() != prevState) {
+            def now = new Date()
+            Tilt.tiltstatechanged now
+            adjustContactState(Tilt.tiltstate.get(), now)
+         }
+      }
+   }
+   // Notification Type 0x07 = Home Security
+   else if (7 == notificationType) {
+      // Event 3 = Tampering / Cover Removed
+      if (3 == event) {
+         log.warn "{} cover removed / tamper detected", DEVICE_NAME
+      }
+   }
+}
+
+onZWaveMessage.configuration.report {
+   log.trace "Config Report: {}", message
+   byte[] bytes = message.command.recvBytes
+   int param = message.command.get('param') & 0xFF
+   int byteCnt = message.command.get('level') & 0xFF
+   long val1 = message.command.get('val1') & 0xFF
+   if (2 == byteCnt) {
+      long val2 = message.command.get('val2') & 0xFF
+      val1 = (val1*256) + val2
+   } else if (4 == byteCnt) {
+      long val2 = message.command.get('val2') & 0xFF
+      long val3 = message.command.get('val3') & 0xFF
+      long val4 = message.command.get('val4') & 0xFF
+      val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+   }
+   log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.battery.report {
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+   log.trace "Wakeup Notification"
+}
+
+onZWaveMessage.zwaveplus_info.report {
+   def zwVer = message.command.get('zwaveversion')
+   def roleType = message.command.get('roletype')
+   def nodeType = message.command.get('nodetype')
+   log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+   log.info "Device Reset Locally Notification"
+}
+
+// Handling tags
+onBase.AddTags {
+   GenericTiltWithContact.doAddTags(this, message, DEVICE_NAME)
+}
+
+onBase.RemoveTags {
+   GenericTiltWithContact.doRemoveTags(this, message, DEVICE_NAME)
+}

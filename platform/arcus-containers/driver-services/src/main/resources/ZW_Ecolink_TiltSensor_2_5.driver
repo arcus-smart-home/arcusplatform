@@ -96,12 +96,30 @@ def byte CNFG_SENSOR_REPORT_VALUE              = 0x00           // Send both Sen
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'basicSetCommands', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Do not send', '255': 'Send'],
+       description: 'Parameter 1: Send Basic Set commands on state change',
+       dflt: 255
+   param name: 'sensorBinaryReport', id: 2, size: 1,
+       type: 'enum', values: ['0': 'Send Sensor Binary and Notification', '255': 'Notification only'],
+       description: 'Parameter 2: Sensor Binary Report behavior',
+       dflt: 0
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Driver Lifecycle Callbacks
 ////////////////////////////////////////////////////////////////////////////////
 
 onAdded {
     vars.'CURRENT_NAME' = DEVICE_NAME
     log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
 
     Tilt.tiltstate          Tilt.TILTSTATE_UPRIGHT
     Tilt.tiltstatechanged   ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())

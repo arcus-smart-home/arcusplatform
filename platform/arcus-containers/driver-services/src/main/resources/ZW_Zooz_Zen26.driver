@@ -72,6 +72,54 @@ final int  OFFLINE_TIMEOUT_SECS   = 1800 		// 30 min
 final String DEVICE_NAME = 'Zooz ZEN26 In-Wall Switch'
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings (firmware 2.0+)
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'paddleOrientation', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Upper On / Lower Off', '1': 'Upper Off / Lower On', '2': 'Any Paddle Toggles'],
+       description: 'Parameter 1: Paddle orientation',
+       dflt: 0
+   param name: 'ledMode', id: 2, size: 1,
+       type: 'enum', values: ['0': 'LED on when switch off', '1': 'LED on when switch on', '2': 'LED always off', '3': 'LED always on'],
+       description: 'Parameter 2: LED indicator control',
+       dflt: 0
+   param name: 'autoOffTimerEnabled', id: 3, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 3: Auto turn-off timer',
+       dflt: 0
+   param name: 'autoOffTimerDuration', id: 4, size: 4,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 4: Auto turn-off timer duration (minutes)',
+       dflt: 0
+   param name: 'autoOnTimerEnabled', id: 5, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 5: Auto turn-on timer',
+       dflt: 0
+   param name: 'autoOnTimerDuration', id: 6, size: 4,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 6: Auto turn-on timer duration (minutes)',
+       dflt: 0
+   param name: 'associationReports', id: 7, size: 1,
+       type: 'range', min: 0, max: 15,
+       description: 'Parameter 7: Association group 2 report triggers (bitmask)',
+       dflt: 15
+   param name: 'powerFailure', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
+       description: 'Parameter 8: State after power failure',
+       dflt: 2
+   param name: 'sceneControl', id: 10, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 10: Scene control (multi-tap detection)',
+       dflt: 0
+   param name: 'smartSwitchMode', id: 11, size: 1,
+       type: 'enum', values: ['0': 'Disable paddle / enable Z-Wave', '1': 'Enable paddle and Z-Wave', '2': 'Disable paddle and Z-Wave'],
+       description: 'Parameter 11: Smart bulb mode / load control',
+       dflt: 1
+}
+
+
 onAdded {
 	vars.'CURRENT_NAME' = DEVICE_NAME
 	log.debug "${DEVICE_NAME} added with Attributes {}", message.attributes

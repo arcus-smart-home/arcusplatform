@@ -32,6 +32,7 @@
     <brand name="Leviton"/>
     <brand name="Linear"/>
     <brand name="Lux"/>
+    <brand name="Minoston"/>
     <brand name="MMB Networks"/>
     <brand name="Nanoleaf"/>
     <brand name="NuTone"/>
@@ -4084,6 +4085,74 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="f3a042" name="Water Leak XS Sensor (ZSE42)" shortname="Water Leak Sensor" screen="Water Leak" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="zooz,water,leak,sensor,moisture,safety,zwave,ZSE42,800" ota="No" protofamily="Z-Wave" added="2026-03-12T12:00:00-0600" lastchanged="2026-03-12T12:00:00-0600">
+      <categories>
+        <category name="Water"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Pull the battery tab or insert a CR2450 battery."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Double-click the Z-Wave button, hold the third click for 10 seconds, then double-click again."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="f3a043" name="Tilt / Shock XS Sensor (ZSE43)" shortname="Tilt Sensor" screen="Tilt" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="zooz,tilt,shock,sensor,garage,door,gate,zwave,ZSE43,800" ota="No" protofamily="Z-Wave" added="2026-03-12T12:00:00-0600" lastchanged="2026-03-12T12:00:00-0600">
+      <categories>
+        <category name="Doors &amp; Locks"/>
+        <category name="Cameras &amp; Sensors"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Pull the battery tab or insert a CR2450 battery."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Double-click the Z-Wave button, hold the third click for 10 seconds, then double-click again."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="a3e018" name="Motion Sensor (ZSE18)" shortname="Motion Sensor" screen="Motion" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="zooz,motion,sensor,security,pir,battery,usb,zwave,ZSE18,700" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
+      <categories>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert a CR123A battery or connect the USB cable."/>
+        <step2 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button quickly 3 times in a row."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds until the LED blinks to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="edc94a" name="Contact Sensor" shortname="Contact Sensor" screen="Contact" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" batteryprimsize="CR14250" batteryprimnum="1" keywords="zooz, security, door, window, battery, zwave, sensor" ota="No" protofamily="Z-Wave" added="2017-04-24T07:50:30-0400" lastchanged="2018-03-08T10:27:00-0600">
       <categories>
         <category name="Doors &amp; Locks"/>
@@ -5590,6 +5659,72 @@
         <population name="general"/>
         <population name="beta"/>
         <population name="qa"/>
+      </populations>
+    </product>
+    <product id="acd477" name="S2 Dimmer Switch (ZEN77)" shortname="Dimmer Switch" screen="Dimmer" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,dimmer,switch,paddle,scene,zwave,ZEN77,700" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the dimmer switch is installed and has power."/>
+        <step2 type="text" img="" text="Tap the upper paddle 3 times quickly. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Tap the upper paddle 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Quickly press the upper paddle 6 times, then immediately press and hold the upper paddle. The LED will start blinking to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="d312fd" name="Outdoor Dimmer Smart Plug (MP22ZD)" shortname="Dimmer Plug" screen="Dimmer" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="minoston,dimmer,plug,outdoor,smart,zwave,MP22ZD,800" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the device into an outdoor outlet."/>
+        <step2 type="text" img="" text="Click the Z-Wave button 3 times quickly. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly, then hold for at least 10 seconds until the LED blinks to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="d31222" name="Outdoor Smart Plug (MP22Z)" shortname="Smart Plug" screen="Switch" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="minoston,plug,outdoor,smart,zwave,MP22Z,switch" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the device into an outdoor outlet."/>
+        <step2 type="text" img="" text="Click the PROG button 5 times quickly. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the PROG button 5 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly, then hold for at least 10 seconds until the LED blinks to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
       </populations>
     </product>
   </products>
