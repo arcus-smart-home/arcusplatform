@@ -28,6 +28,8 @@ productId		"359d72"
 
 matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F50, 'ZWAV:ProductId': 0x3032	//GE
 matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F50, 'ZWAV:ProductId': 0x3033	//Jasco
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F50, 'ZWAV:ProductId': 0x3034	//GE 14298 / ZW4203
+matcher			'ZWAV:Manufacturer': 0x0063, 'ZWAV:ProductType': 0x4F50, 'ZWAV:ProductId': 0x3035	//Jasco 14325 / ZW4203
 
 capabilities	DevicePower, Switch
 

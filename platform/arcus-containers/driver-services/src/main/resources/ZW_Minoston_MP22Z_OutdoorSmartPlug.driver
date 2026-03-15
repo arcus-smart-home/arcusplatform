@@ -56,6 +56,7 @@ vendor          "Minoston"
 model           "MP22Z"
 
 matcher         'ZWAV:Manufacturer': 0x0312, 'ZWAV:ProductType': 0xFF00, 'ZWAV:ProductId': 0xFF07
+matcher         'ZWAV:Manufacturer': 0x0312, 'ZWAV:ProductType': 0xC000, 'ZWAV:ProductId': 0xC005
 
 
 ////////////////////////////////////////////////////////////////////////////////
