@@ -74,6 +74,49 @@ Switch.state                     Switch.STATE_OFF
 Dimmer.brightness                100
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledIndicator', id: 2, size: 1,
+       type: 'enum', values: ['0': 'On when load on', '1': 'On when load off', '2': 'Always off', '3': 'Always on'],
+       description: 'Parameter 2: LED indicator behavior',
+       dflt: 0
+   param name: 'autoOffTimer', id: 4, size: 2,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 4: Auto off timer in minutes (0=disabled)',
+       dflt: 0
+   param name: 'autoOnTimer', id: 6, size: 2,
+       type: 'range', min: 0, max: 65535,
+       description: 'Parameter 6: Auto on timer in minutes (0=disabled)',
+       dflt: 0
+   param name: 'nightModeBrightness', id: 7, size: 1,
+       type: 'range', min: 1, max: 10,
+       description: 'Parameter 7: Night mode brightness level (1-10, each unit = 10%)',
+       dflt: 2
+   param name: 'stateAfterPowerFailure', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Previous state'],
+       description: 'Parameter 8: State after power failure',
+       dflt: 2
+   param name: 'dimmingRateOnOff', id: 9, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 9: Dimming rate for manual on/off (seconds)',
+       dflt: 2
+   param name: 'dimmingRateManual', id: 10, size: 1,
+       type: 'range', min: 1, max: 10,
+       description: 'Parameter 10: Dimming rate for manual dimming / Z-Wave (seconds)',
+       dflt: 4
+   param name: 'minimumDimLevel', id: 11, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 11: Minimum dim level (0=disabled, 1-99)',
+       dflt: 0
+   param name: 'maximumDimLevel', id: 12, size: 1,
+       type: 'range', min: 0, max: 99,
+       description: 'Parameter 12: Maximum dim level (0=disabled, 1-99)',
+       dflt: 0
+}
+
 @Field final String DEVICE_NAME = "Minoston MP22ZD Outdoor Dimmer Plug"
 
 final int OFFLINE_TIMEOUT_SECS    = 10800       // 3 hrs
