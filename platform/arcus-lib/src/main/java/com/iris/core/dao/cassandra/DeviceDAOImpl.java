@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -459,6 +460,27 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       setIf(DeviceAdvancedCapability.ATTR_DEGRADEDCODE, degraded, model);
 
       setOrDefault(DeviceAdvancedCapability.ATTR_HUBLOCAL, row.getBoolean(DeviceEntityColumns.HUBLOCAL), false, model);
+
+      ByteBuffer protocolAttrsBuf = row.isNull(DeviceEntityColumns.PROTOCOL_ATTRS) ? null : row.getByteBuffer(DeviceEntityColumns.PROTOCOL_ATTRS);
+      if (protocolAttrsBuf != null) {
+         byte[] protocolAttrBytes = new byte[protocolAttrsBuf.remaining()];
+         protocolAttrsBuf.get(protocolAttrBytes);
+         AttributeMap protocolAttrs = bytesToProtocolAttributes(protocolAttrBytes);
+         if (protocolAttrs != null && !protocolAttrs.isEmpty()) {
+            Map<String, String> protocolAttrsMap = new LinkedHashMap<>();
+            for (AttributeValue<?> entry : protocolAttrs.entries()) {
+               Object value = entry.getValue();
+               if (value != null) {
+                  if (value instanceof Number) {
+                     protocolAttrsMap.put(entry.getKey().getName(), String.format("0x%04X", ((Number) value).longValue() & 0xFFFF));
+                  } else {
+                     protocolAttrsMap.put(entry.getKey().getName(), String.valueOf(value));
+                  }
+               }
+            }
+            setIf(DeviceAdvancedCapability.ATTR_PROTOCOLATTRS, protocolAttrsMap, model);
+         }
+      }
 
       return model;
    }
