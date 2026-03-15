@@ -113,6 +113,7 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
             .add(DeviceAdvancedCapability.KEY_HUBLOCAL)
             .add(DeviceAdvancedCapability.KEY_DEGRADED)
             .add(DeviceAdvancedCapability.KEY_DEGRADEDCODE)
+            .add(DeviceAdvancedCapability.KEY_PROTOCOLATTRS)
             .build();
 
    private static final AttributeKey<String> ATTR_DEVICE_PRESENCE =
@@ -466,6 +467,9 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
       case DeviceAdvancedCapability.ATTR_DEGRADEDCODE:
          return (V) device.getDegradedCode();
 
+      case DeviceAdvancedCapability.ATTR_PROTOCOLATTRS:
+         return (V) protocolAttributesToStringMap(device.getProtocolAttributes());
+
       default:
          return attributes.get(key);
       }
@@ -487,6 +491,7 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
       case DeviceCapability.ATTR_PLACE:
       case DeviceAdvancedCapability.ATTR_ADDED:
       case DeviceAdvancedCapability.ATTR_DEGRADED:
+      case DeviceAdvancedCapability.ATTR_PROTOCOLATTRS:
          throw new IllegalArgumentException("Attribute [" + key + "] is read-only");
 
       case DeviceAdvancedCapability.ATTR_PROTOCOL:   // FIXME mark as read-only, currently pass through to allow setting via constructor
@@ -1095,6 +1100,27 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
 
    private static String toStringVersion(Version version) {
       return version != null ? version.getRepresentation() : null;
+   }
+
+   private static Map<String, String> protocolAttributesToStringMap(AttributeMap protocolAttrs) {
+      if (protocolAttrs == null || protocolAttrs.isEmpty()) {
+         return Collections.emptyMap();
+      }
+      Map<String, String> result = new LinkedHashMap<>();
+      for (AttributeValue<?> entry : protocolAttrs.entries()) {
+         Object value = entry.getValue();
+         if (value != null) {
+            result.put(entry.getKey().getName(), formatProtocolValue(value));
+         }
+      }
+      return result;
+   }
+
+   private static String formatProtocolValue(Object value) {
+      if (value instanceof Number) {
+         return String.format("0x%04X", ((Number) value).longValue() & 0xFFFF);
+      }
+      return String.valueOf(value);
    }
 
    private static <V> void setIfNotNull(

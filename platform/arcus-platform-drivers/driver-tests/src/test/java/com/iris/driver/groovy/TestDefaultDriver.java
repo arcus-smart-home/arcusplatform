@@ -135,7 +135,7 @@ public class TestDefaultDriver extends GroovyDriverTestCase {
 
       MessageBody event = response.getValue();
       assertEquals(Capability.EVENT_GET_ATTRIBUTES_RESPONSE, event.getMessageType());
-      assertEquals(17, event.getAttributes().size());
+      assertEquals(18, event.getAttributes().size());
       assertEquals(
             Arrays.asList(DeviceCapability.NAMESPACE, DeviceAdvancedCapability.NAMESPACE, Capability.NAMESPACE, DeviceConnectionCapability.NAMESPACE),
             event.getAttributes().get(Capability.ATTR_CAPS)
