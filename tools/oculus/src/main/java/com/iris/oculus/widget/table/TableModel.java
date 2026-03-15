@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 import com.iris.client.event.ListenerRegistration;
@@ -127,6 +128,17 @@ public class TableModel<T> extends AbstractTableModel {
    }
 
    protected void onViewEvent(ViewModelEvent event) {
+      if(SwingUtilities.isEventDispatchThread()) {
+         dispatchViewEvent(event);
+      }
+      else {
+         // When off the EDT the model may have changed multiple times before
+         // the EDT processes this, so a full refresh is the only safe option.
+         SwingUtilities.invokeLater(this::fireTableDataChanged);
+      }
+   }
+
+   private void dispatchViewEvent(ViewModelEvent event) {
       if(event instanceof ViewModelChangedEvent) {
          fireTableDataChanged();
       }
