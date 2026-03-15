@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:capability
+   name="DeviceSettings"
+   namespace="devsettings"
+   enhances="Device"
+   version="1.0"
+   xmlns:c="http://www.arcussmarthome.com/schema/capability/1.0.0">
+
+   <c:description>
+   Exposes device-specific configuration parameters (LED mode, power restore behavior,
+   reporting thresholds, etc.) in a structured, discoverable way. Drivers declare
+   available parameters via a DSL block; clients read metadata and current values
+   through the params attribute and modify them via SetParam/GetParam methods.
+   </c:description>
+
+   <c:attributes>
+      <c:attribute
+         name="params"
+         readwrite="r"
+         type="list&lt;any&gt;"
+         optional="false"
+         description="List of parameter descriptors with metadata and current values."/>
+   </c:attributes>
+
+   <c:methods>
+      <c:method name="SetParam" description="Set a device configuration parameter.">
+         <c:parameter name="paramId" type="string" description="Parameter identifier"/>
+         <c:parameter name="value" type="string" description="Value to set"/>
+         <c:return name="status" type="string" description="OK, PENDING, INVALID_PARAM, INVALID_VALUE"/>
+      </c:method>
+      <c:method name="GetParam" description="Read a parameter's current value from the device.">
+         <c:parameter name="paramId" type="string" description="Parameter identifier"/>
+         <c:return name="status" type="string" description="OK, PENDING, INVALID_PARAM"/>
+         <c:return name="value" type="string" optional="true" description="Current value if available"/>
+      </c:method>
+   </c:methods>
+</c:capability>

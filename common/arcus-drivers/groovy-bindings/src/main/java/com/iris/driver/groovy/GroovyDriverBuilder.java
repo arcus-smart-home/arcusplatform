@@ -48,6 +48,7 @@ import com.iris.driver.DeviceDriverDefinition;
 import com.iris.driver.DriverConstants;
 import com.iris.driver.capability.Capability;
 import com.iris.driver.config.DriverConfigurationStateMachine;
+import com.iris.driver.devicesettings.DeviceSettingsContext;
 import com.iris.driver.event.DriverEvent;
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
 import com.iris.driver.groovy.context.GroovyCapabilityDefinition;
@@ -106,6 +107,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    private final List<SetAttributesHandlerDefinition> setAttrsDefinitions = new ArrayList<>();
    private final List<RequestHandlerDefinition> requestDefinitions = new ArrayList<>();
    private DriverConfigurationStateMachine configurationStateMachine;
+   private DeviceSettingsContext deviceSettingsContext;
    private long offlineTimeout = Long.MAX_VALUE;
    private List<String> defaultPopulations = ImmutableList.<String>of(Population.NAME_GENERAL);
 
@@ -393,6 +395,14 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    public GroovyDriverBuilder withOfflineTimeout(long offlineTimeout) {
       this.offlineTimeout = offlineTimeout;
       return this;
+   }
+
+   public DeviceSettingsContext getDeviceSettingsContext() {
+      return deviceSettingsContext;
+   }
+
+   public void setDeviceSettingsContext(DeviceSettingsContext deviceSettingsContext) {
+      this.deviceSettingsContext = deviceSettingsContext;
    }
 
    //-------- Attribute Values (definitions are part of capabilities) ---------------

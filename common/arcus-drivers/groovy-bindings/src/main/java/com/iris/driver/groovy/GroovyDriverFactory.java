@@ -122,6 +122,8 @@ public class GroovyDriverFactory {
             }
          } catch (ClassNotFoundException ex) {
             logger.warn("precompiled class not found for driver {}, falling back to source compilation", driver);
+         } catch (LinkageError ex) {
+            logger.warn("precompiled class for driver {} failed to link ({}), falling back to source compilation", driver, ex.getMessage());
          } catch (Exception ex) {
             logger.info("failed to load precompiled class:", ex);
          }

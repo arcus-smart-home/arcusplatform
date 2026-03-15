@@ -115,7 +115,14 @@ public class GetAttributesHandler implements ContextualEventHandler<MessageBody>
    private Set<String> getNames(DeviceDriverContext context, MessageBody event) {
       Object o = event.getAttributes().get("namespaces");
       if(o == null) {
-         return getNames(context.getAttributeKeys());
+         Set<String> names = getNames(context.getAttributeKeys());
+         // Also include attribute names from all declared capabilities so that
+         // provider-computed attributes (e.g. devsettings:params) are returned
+         // even if they haven't been explicitly set on the context yet.
+         for(CapabilityDefinition definition: definitions.values()) {
+            names.addAll(definition.getAttributes().keySet());
+         }
+         return names;
       }
       else if(o instanceof Collection) {
          Set<String> names = new HashSet<>();
