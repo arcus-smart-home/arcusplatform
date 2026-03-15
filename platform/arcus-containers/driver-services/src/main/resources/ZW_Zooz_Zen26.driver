@@ -330,15 +330,13 @@ onZWaveMessage {
 
 // ZEN26 reports local changes via basic report
 onZWaveMessage.basic.report {
-    byte currState = message.command.get('value')
-    log.trace "Basic Report: {}", currState
-    GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, currState)
+    log.trace "Basic Report: {}", message
+    GenericZWaveSwitch.handleBinarySwitchReport(this, DEVICE_NAME, message)
     updateIndicator()
 }
 
 onZWaveMessage.basic.set {
-    byte currState = message.command.get('value')
-    log.trace "Basic Set: {}", currState
-    GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, currState)
+    log.trace "Basic Set: {}", message
+    GenericZWaveSwitch.handleBinarySwitchReport(this, DEVICE_NAME, message)
     updateIndicator()
 }
