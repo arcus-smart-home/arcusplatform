@@ -1,0 +1,305 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZEN14 Outdoor Double Plug
+ *
+ * The ZEN14 is an IP65-rated outdoor double plug with two independently controlled
+ * outlets. Each outlet is exposed as a separate Z-Wave multi-channel endpoint.
+ * Maximum combined load: 15A resistive, 150W LED, 960W incandescent, 1/3 HP motor.
+ *
+ * FACTORY RESET:  Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds.
+ *                 The green LED will blink to confirm.
+ *
+ * PAIR/INCLUDE:   Click the Z-Wave button 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Click the Z-Wave button 3 times quickly while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x25   (37) Switch_Binary
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x60   (96) Multi Channel
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration (V4)
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x87 (-121) Indicator
+ *   0x8E (-114) Multi Channel Association
+ *   0x98 (-104) Security S0
+ *   0x9F  (-97) Security S2
+ */
+import groovy.transform.Field
+
+importCapability 'zwave/GenericZWaveVersion'
+
+
+driver          "ZWZoozZen14OutdoorDoublePlugDriver"
+description     "Driver for a Zooz ZEN14 Outdoor Double Plug"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Switch"
+productId       "b4e014"
+vendor          "Zooz"
+model           "ZEN14"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xB003
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+instance 'outlet1', Switch
+instance 'outlet2', Switch
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN14 Outdoor Double Plug"
+
+final int OFFLINE_TIMEOUT_SECS = 1800         // 30 minutes
+final int POLLING_INTERVAL_SEC = 600          // Ask for current state every 10 minutes
+
+@Field final byte SWITCH_ON               = 0xff
+@Field final byte SWITCH_OFF              = 0x00
+
+// Multi Channel endpoints
+@Field final byte ENDPOINT_OUTLET_1       = 0x01
+@Field final byte ENDPOINT_OUTLET_2       = 0x02
+
+// Z-Wave Command Class and Command IDs
+@Field final byte CMD_CLASS_SWITCH_BINARY = 0x25
+@Field final byte CMD_SWITCH_SET          = 0x01
+@Field final byte CMD_SWITCH_GET          = 0x02
+@Field final byte CMD_SWITCH_REPORT       = 0x03
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_MODE_PARAM_NO          = 1       // LED Indicator Behavior
+final byte CNFG_LED_MODE_SIZE                     = 1       // 0=LED on when plug on (default), 1=LED on when plug off, 2=LED always off
+final byte CNFG_LED_MODE_VALUE                    = 0
+
+@Field final byte CNFG_AUTO_OFF_O1_PARAM_NO       = 2       // Auto Turn-Off Timer for Outlet 1 (minutes)
+final byte CNFG_AUTO_OFF_O1_SIZE                  = 4       // 0=disabled (default), 1-65535=minutes
+final byte CNFG_AUTO_OFF_O1_VALUE_B3              = 0
+final byte CNFG_AUTO_OFF_O1_VALUE_B2              = 0
+final byte CNFG_AUTO_OFF_O1_VALUE_B1              = 0
+final byte CNFG_AUTO_OFF_O1_VALUE_B0              = 0       // disabled
+
+@Field final byte CNFG_AUTO_OFF_O2_PARAM_NO       = 3       // Auto Turn-Off Timer for Outlet 2 (minutes)
+final byte CNFG_AUTO_OFF_O2_SIZE                  = 4       // 0=disabled (default), 1-65535=minutes
+final byte CNFG_AUTO_OFF_O2_VALUE_B3              = 0
+final byte CNFG_AUTO_OFF_O2_VALUE_B2              = 0
+final byte CNFG_AUTO_OFF_O2_VALUE_B1              = 0
+final byte CNFG_AUTO_OFF_O2_VALUE_B0              = 0       // disabled
+
+@Field final byte CNFG_AUTO_ON_O1_PARAM_NO        = 4       // Auto Turn-On Timer for Outlet 1 (minutes)
+final byte CNFG_AUTO_ON_O1_SIZE                   = 4       // 0=disabled (default), 1-65535=minutes
+final byte CNFG_AUTO_ON_O1_VALUE_B3               = 0
+final byte CNFG_AUTO_ON_O1_VALUE_B2               = 0
+final byte CNFG_AUTO_ON_O1_VALUE_B1               = 0
+final byte CNFG_AUTO_ON_O1_VALUE_B0               = 0       // disabled
+
+@Field final byte CNFG_AUTO_ON_O2_PARAM_NO        = 5       // Auto Turn-On Timer for Outlet 2 (minutes)
+final byte CNFG_AUTO_ON_O2_SIZE                   = 4       // 0=disabled (default), 1-65535=minutes
+final byte CNFG_AUTO_ON_O2_VALUE_B3               = 0
+final byte CNFG_AUTO_ON_O2_VALUE_B2               = 0
+final byte CNFG_AUTO_ON_O2_VALUE_B1               = 0
+final byte CNFG_AUTO_ON_O2_VALUE_B0               = 0       // disabled
+
+@Field final byte CNFG_POWER_RESTORE_PARAM_NO     = 6       // On Off Status After Power Failure
+final byte CNFG_POWER_RESTORE_SIZE                = 1       // 0=both off, 1=both on, 2=restore last state (default), 3=outlet1 on outlet2 off, 4=outlet1 off outlet2 on
+final byte CNFG_POWER_RESTORE_VALUE               = 2       // restore last state
+
+@Field final byte CNFG_LED_BRIGHTNESS_PARAM_NO    = 7       // LED Indicator Brightness
+final byte CNFG_LED_BRIGHTNESS_SIZE               = 1       // 0=bright, 1=medium, 2=low (default)
+final byte CNFG_LED_BRIGHTNESS_VALUE              = 2       // low
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.state.outlet1        Switch.STATE_OFF
+    Switch.statechanged.outlet1 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.state.outlet2        Switch.STATE_OFF
+    Switch.statechanged.outlet2 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // request current state for both outlets via multi-channel encapsulation
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+
+    ZWave.switch_binary.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // configure device
+    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+    ZWave.configuration.set( CNFG_POWER_RESTORE_PARAM_NO, CNFG_POWER_RESTORE_SIZE, CNFG_POWER_RESTORE_VALUE )
+    ZWave.configuration.set( CNFG_LED_BRIGHTNESS_PARAM_NO, CNFG_LED_BRIGHTNESS_SIZE, CNFG_LED_BRIGHTNESS_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handle Switch Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+    def attributes = message.attributes
+    log.debug "setAttributes('swit'): {} ", attributes
+    for(attribute in attributes) {
+        switch(attribute.key) {
+            case Switch.state.outlet1:
+                byte targetState = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+                log.trace "Set Outlet 1: {}", attribute.value
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_SET, targetState )
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+                break
+
+            case Switch.state.outlet2:
+                byte targetState = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+                log.trace "Set Outlet 2: {}", attribute.value
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_SET, targetState )
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+                break
+
+            default:
+                log.warn "Unrecognized attribute: {}", attribute
+                break
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.multi_channel.encapsulate {
+    log.trace "Multi Channel Encapsulate: {}", message
+    byte source = message.command.get('source')
+    byte cmdClass = message.command.get('command_class')
+    byte cmd = message.command.get('command')
+    byte[] bytes = message.command.recvBytes
+    log.trace "Source:{}, CmdClass:{}, Command:{}, MsgBytes:{}", source, cmdClass, cmd, bytes
+
+    if (CMD_CLASS_SWITCH_BINARY == cmdClass && CMD_SWITCH_REPORT == cmd) {
+        byte switchValue = message.command.get('parameter1')
+
+        if (ENDPOINT_OUTLET_1 == source) {
+            def prevState = Switch.state.outlet1.get()
+            Switch.state.outlet1 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+            log.trace "Outlet 1: {}", Switch.state.outlet1.get()
+            if (Switch.state.outlet1.get() != prevState) {
+                Switch.statechanged.outlet1 new Date()
+            }
+        } else if (ENDPOINT_OUTLET_2 == source) {
+            def prevState = Switch.state.outlet2.get()
+            Switch.state.outlet2 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+            log.trace "Outlet 2: {}", Switch.state.outlet2.get()
+            if (Switch.state.outlet2.get() != prevState) {
+                Switch.statechanged.outlet2 new Date()
+            }
+        } else {
+            log.trace "Switch Binary Report from unexpected endpoint: {}", source
+        }
+    } else {
+        log.trace "Unhandled Encapsulated Message - CmdClass:{}, Cmd:{}", cmdClass, cmd
+    }
+}
+
+onZWaveMessage.switch_binary.report {
+    log.trace "Switch Binary Report (root endpoint): {}", message
+    // Root endpoint reports may reflect Outlet 1 state on some firmware versions
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.outlet1.get()
+    Switch.state.outlet1 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.outlet1.get() != prevState) {
+        Switch.statechanged.outlet1 new Date()
+    }
+}
+
+onZWaveMessage.basic.report {
+    log.trace "Basic Report: {}", message
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.outlet1.get()
+    Switch.state.outlet1 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.outlet1.get() != prevState) {
+        Switch.statechanged.outlet1 new Date()
+    }
+}
+
+onZWaveMessage.basic.set {
+    log.trace "Basic Set: {}", message
+    def switchValue = message.command.get('value')
+    def prevState = Switch.state.outlet1.get()
+    Switch.state.outlet1 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+    if (Switch.state.outlet1.get() != prevState) {
+        Switch.statechanged.outlet1 new Date()
+    }
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    // request current state for both outlets
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_OUTLET_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+}

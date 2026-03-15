@@ -1,0 +1,350 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZEN17 Universal Relay
+ *
+ * The ZEN17 is a mains-powered Z-Wave dual relay with two independently controlled
+ * NO/NC relay outputs (Relay 1: 20A, Relay 2: 10A) and two dry contact inputs.
+ * Each relay is exposed as a separate Z-Wave multi-channel endpoint.
+ *
+ * FACTORY RESET:  Press and hold the Z-Wave button for 10+ seconds until the LED starts blinking,
+ *                 then release.
+ *
+ * PAIR/INCLUDE:   Click the Z-Wave button 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Click the Z-Wave button 3 times quickly while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x25   (37) Switch_Binary
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x60   (96) Multi Channel
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8E (-114) Multi Channel Association
+ *   0x9F  (-97) Security 2
+ */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveVersion'
+
+
+driver          "ZWZoozZen17UniversalRelayDriver"
+description     "Driver for a Zooz ZEN17 Universal Relay"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Switch"
+productId       "d2e917"
+vendor          "Zooz"
+model           "ZEN17"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xA00A
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+    source DevicePower.SOURCE_LINE
+    linecapable true
+    backupbatterycapable false
+    bind sourcechanged to source
+}
+
+instance 'relay1', Switch
+instance 'relay2', Switch
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings — exposing Z-Wave config params to clients
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+    param name: 'repowerState', id: 1, size: 1,
+        type: 'enum', values: ['0': 'All Relays OFF', '1': 'Remember Last State', '2': 'All Relays ON', '3': 'R1 Remembers / R2 ON', '4': 'R2 Remembers / R1 ON'],
+        description: 'Parameter 1: On/Off status after power failure',
+        dflt: 1
+
+    param name: 'inputTypeR1', id: 2, size: 1,
+        type: 'enum', values: ['0': 'Momentary', '1': 'Toggle On/Off', '2': 'Toggle Any Change', '3': 'Garage Door', '4': 'Leak Sensor', '5': 'Heat Alarm', '6': 'Motion Sensor', '7': 'Door Sensor', '8': 'CO Sensor', '9': 'CO2 Sensor', '10': 'On/Off Report', '11': 'Garage Door w/ Sensor'],
+        description: 'Parameter 2: Input type for Relay 1 (S1)',
+        dflt: 2
+
+    param name: 'inputTypeR2', id: 3, size: 1,
+        type: 'enum', values: ['0': 'Momentary', '1': 'Toggle On/Off', '2': 'Toggle Any Change', '3': 'Garage Door', '4': 'Leak Sensor', '5': 'Heat Alarm', '6': 'Motion Sensor', '7': 'Door Sensor', '8': 'CO Sensor', '9': 'CO2 Sensor', '10': 'On/Off Report', '11': 'Garage Door w/ Sensor'],
+        description: 'Parameter 3: Input type for Relay 2 (S2)',
+        dflt: 2
+
+    param name: 'ledMode', id: 5, size: 1,
+        type: 'enum', values: ['0': 'LED on when all relays off', '1': 'LED on when any relay on', '2': 'LED always off', '3': 'LED always on'],
+        description: 'Parameter 5: LED indicator control',
+        dflt: 0
+
+    param name: 'autoOffR1', id: 6, size: 4,
+        type: 'range', min: 0, max: 65535,
+        description: 'Parameter 6: Auto turn-off timer for Relay 1 (0=disabled)',
+        dflt: 0
+
+    param name: 'autoOnR1', id: 7, size: 4,
+        type: 'range', min: 0, max: 65535,
+        description: 'Parameter 7: Auto turn-on timer for Relay 1 (0=disabled)',
+        dflt: 0
+
+    param name: 'autoOffR2', id: 8, size: 4,
+        type: 'range', min: 0, max: 65535,
+        description: 'Parameter 8: Auto turn-off timer for Relay 2 (0=disabled)',
+        dflt: 0
+
+    param name: 'autoOnR2', id: 9, size: 4,
+        type: 'range', min: 0, max: 65535,
+        description: 'Parameter 9: Auto turn-on timer for Relay 2 (0=disabled)',
+        dflt: 0
+
+    param name: 'inputTriggerR1', id: 10, size: 1,
+        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+        description: 'Parameter 10: S1 input triggers Relay 1',
+        dflt: 1
+
+    param name: 'inputTriggerR2', id: 11, size: 1,
+        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+        description: 'Parameter 11: S2 input triggers Relay 2',
+        dflt: 1
+
+    param name: 'autoOffUnitR1', id: 15, size: 1,
+        type: 'enum', values: ['0': 'Minutes', '1': 'Seconds', '2': 'Hours'],
+        description: 'Parameter 15: Time unit for R1 auto turn-off timer',
+        dflt: 0
+
+    param name: 'autoOnUnitR1', id: 16, size: 1,
+        type: 'enum', values: ['0': 'Minutes', '1': 'Seconds', '2': 'Hours'],
+        description: 'Parameter 16: Time unit for R1 auto turn-on timer',
+        dflt: 0
+
+    param name: 'autoOffUnitR2', id: 17, size: 1,
+        type: 'enum', values: ['0': 'Minutes', '1': 'Seconds', '2': 'Hours'],
+        description: 'Parameter 17: Time unit for R2 auto turn-off timer',
+        dflt: 0
+
+    param name: 'autoOnUnitR2', id: 18, size: 1,
+        type: 'enum', values: ['0': 'Minutes', '1': 'Seconds', '2': 'Hours'],
+        description: 'Parameter 18: Time unit for R2 auto turn-on timer',
+        dflt: 0
+
+    param name: 'dcMotorMode', id: 24, size: 1,
+        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+        description: 'Parameter 24: DC motor mode (R1 open / R2 close)',
+        dflt: 0
+}
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN17 Universal Relay"
+
+final int OFFLINE_TIMEOUT_SECS = 11400        // 190 minutes
+final int POLLING_INTERVAL_SEC = 3600         // Ask for current state every 60 minutes
+
+@Field final byte SWITCH_ON               = 0xff
+@Field final byte SWITCH_OFF              = 0x00
+
+// Multi Channel endpoints
+@Field final byte ENDPOINT_RELAY_1        = 0x01
+@Field final byte ENDPOINT_RELAY_2        = 0x02
+
+// Z-Wave Command Class and Command IDs
+@Field final byte CMD_CLASS_SWITCH_BINARY = 0x25
+@Field final byte CMD_SWITCH_SET          = 0x01
+@Field final byte CMD_SWITCH_GET          = 0x02
+@Field final byte CMD_SWITCH_REPORT       = 0x03
+
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_POWER_FAILURE_PARAM_NO     = 1       // On Off Status After Power Failure
+final byte CNFG_POWER_FAILURE_SIZE                = 1       // 0=all off, 1=remember last state (default), 2=all on, 3=R1 remembers/R2 on, 4=R2 remembers/R1 on
+final byte CNFG_POWER_FAILURE_VALUE               = 1       // remember last state
+
+@Field final byte CNFG_INPUT_TYPE_R1_PARAM_NO     = 2       // Input Type for Relay 1
+final byte CNFG_INPUT_TYPE_R1_SIZE                = 1       // 0=momentary, 1=toggle on/off, 2=toggle any change (default), 3=garage door, 4-11=sensor types
+final byte CNFG_INPUT_TYPE_R1_VALUE               = 2       // toggle any change
+
+@Field final byte CNFG_INPUT_TYPE_R2_PARAM_NO     = 3       // Input Type for Relay 2
+final byte CNFG_INPUT_TYPE_R2_SIZE                = 1       // same options as Relay 1
+final byte CNFG_INPUT_TYPE_R2_VALUE               = 2       // toggle any change
+
+@Field final byte CNFG_LED_MODE_PARAM_NO          = 5       // LED Indicator Control
+final byte CNFG_LED_MODE_SIZE                     = 1       // 0=LED on when all relays off (default), 1=LED on when any relay on, 2=LED always off, 3=LED always on
+final byte CNFG_LED_MODE_VALUE                    = 0       // LED on when all relays off
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+    DevicePower.sourcechanged ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.state.relay1        Switch.STATE_OFF
+    Switch.statechanged.relay1 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+    Switch.state.relay2        Switch.STATE_OFF
+    Switch.statechanged.relay2 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
+}
+
+onConnected {
+    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+    // request current state for both relays via multi-channel encapsulation
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+
+    // also get via root endpoint (some firmware versions report here)
+    ZWave.switch_binary.get()
+    ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+    // set Association to Group 1, Node 1
+    ZWave.association.set( 1, 1, 0, 0, 0);
+
+    // configure device
+    ZWave.configuration.set( CNFG_POWER_FAILURE_PARAM_NO, CNFG_POWER_FAILURE_SIZE, CNFG_POWER_FAILURE_VALUE )
+    ZWave.configuration.set( CNFG_INPUT_TYPE_R1_PARAM_NO, CNFG_INPUT_TYPE_R1_SIZE, CNFG_INPUT_TYPE_R1_VALUE )
+    ZWave.configuration.set( CNFG_INPUT_TYPE_R2_PARAM_NO, CNFG_INPUT_TYPE_R2_SIZE, CNFG_INPUT_TYPE_R2_VALUE )
+    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handle Switch Capability
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+    def attributes = message.attributes
+    log.debug "setAttributes('swit'): {} ", attributes
+    for(attribute in attributes) {
+        switch(attribute.key) {
+            case Switch.state.relay1:
+                byte targetState = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+                log.trace "Set Relay 1: {}", attribute.value
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_SET, targetState )
+                // read back state to verify
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+                break
+
+            case Switch.state.relay2:
+                byte targetState = attribute.value == 'ON' ? SWITCH_ON : SWITCH_OFF
+                log.trace "Set Relay 2: {}", attribute.value
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_SET, targetState )
+                // read back state to verify
+                ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+                break
+
+            default:
+                log.warn "Unrecognized attribute: {}", attribute
+                break
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.multi_channel.encapsulate {
+    log.trace "Multi Channel Encapsulate: {}", message
+    byte source = message.command.get('source')
+    byte cmdClass = message.command.get('command_class')
+    byte cmd = message.command.get('command')
+    byte[] bytes = message.command.recvBytes
+    log.trace "Source:{}, CmdClass:{}, Command:{}, MsgBytes:{}", source, cmdClass, cmd, bytes
+
+    if (CMD_CLASS_SWITCH_BINARY == cmdClass && CMD_SWITCH_REPORT == cmd) {
+        byte switchValue = message.command.get('parameter1')
+
+        if (ENDPOINT_RELAY_1 == source) {
+            def prevState = Switch.state.relay1.get()
+            Switch.state.relay1 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+            log.trace "Relay 1: {}", Switch.state.relay1.get()
+            if (Switch.state.relay1.get() != prevState) {
+                Switch.statechanged.relay1 new Date()
+            }
+        } else if (ENDPOINT_RELAY_2 == source) {
+            def prevState = Switch.state.relay2.get()
+            Switch.state.relay2 (switchValue == SWITCH_ON ? Switch.STATE_ON : Switch.STATE_OFF)
+            log.trace "Relay 2: {}", Switch.state.relay2.get()
+            if (Switch.state.relay2.get() != prevState) {
+                Switch.statechanged.relay2 new Date()
+            }
+        } else {
+            log.trace "Switch Binary Report from unexpected endpoint: {}", source
+        }
+    } else {
+        log.trace "Unhandled Encapsulated Message - CmdClass:{}, Cmd:{}", cmdClass, cmd
+    }
+}
+
+onZWaveMessage.switch_binary.report {
+    log.trace "Switch Binary Report (root endpoint): {} -- ignored, using multi-channel reports only", message
+    // Root endpoint reports are ambiguous on multi-relay devices -- they may
+    // reflect the last-changed relay rather than relay 1, causing cross-relay
+    // state corruption.  Rely on multi-channel encapsulated reports instead.
+}
+
+onZWaveMessage.basic.report {
+    log.trace "Basic Report: {} -- ignored, using multi-channel reports only", message
+    // Same as switch_binary.report: root-level basic reports are ambiguous on
+    // multi-relay devices.  Rely on multi-channel encapsulated reports instead.
+}
+
+onZWaveMessage.configuration.report {
+    log.trace "Config Report: {}", message
+    byte[] bytes = message.command.recvBytes
+    int param = message.command.get('param') & 0xFF
+    int byteCnt = message.command.get('level') & 0xFF
+    long val1 = message.command.get('val1') & 0xFF
+    if (2 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        val1 = (val1*256) + val2
+    } else if (4 == byteCnt) {
+        long val2 = message.command.get('val2') & 0xFF
+        long val3 = message.command.get('val3') & 0xFF
+        long val4 = message.command.get('val4') & 0xFF
+        val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+    }
+    log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+    def zwVer = message.command.get('zwaveversion')
+    def roleType = message.command.get('roletype')
+    def nodeType = message.command.get('nodetype')
+    log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+    log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+    log.trace "Node Info: {}, {}, {}, {}, {}", message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+    // request current state for both relays
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_1, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+    ZWave.multi_channel.encapsulate( 0x00, ENDPOINT_RELAY_2, CMD_CLASS_SWITCH_BINARY, CMD_SWITCH_GET )
+}

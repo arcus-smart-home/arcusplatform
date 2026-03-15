@@ -12,6 +12,7 @@
     <brand name="Ecolink"/>
     <brand name="EnergySmart"/>
     <brand name="Everspring"/>
+    <brand name="Fibaro"/>
     <brand name="First Alert"/>
     <brand name="FortrezZ"/>
     <brand name="Gatehouse"/>
@@ -4343,6 +4344,52 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="b4e014" name="Outdoor Double Plug (ZEN14)" shortname="Double Plug" screen="Switch" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,outdoor,plug,double,switch,zwave,zen14,outlet" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the plug is connected to an outdoor outlet. The LED indicator should be on."/>
+        <step2 type="text" img="" text="Click the Z-Wave button 3 times quickly. The LED will flash rapidly and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds. The green LED will blink to confirm."/>
+        <step2 type="text" img="" text="Click the Z-Wave button 3 times quickly to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="d2e917" name="Universal Relay (Zen17)" shortname="Universal Relay" screen="Switch" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,relay,universal,dual,switch,zwave,zen17,dry,contact,garage,sprinkler" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the relay is wired and powered. The LED indicator on the device should be on."/>
+        <step2 type="text" img="" text="Click the Z-Wave button 3 times quickly. The LED will flash rapidly and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the Z-Wave button 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash rapidly and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the Z-Wave button for 10+ seconds until the LED starts blinking, then release."/>
+        <step2 type="text" img="" text="Click the Z-Wave button 3 times quickly to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="e5c734" name="Remote Switch (Zen34)" shortname="Remote Switch" screen="Button" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2032" batteryprimnum="1" keywords="zooz,remote,switch,button,scene,controller,battery,zwave,zen34" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
       <categories>
         <category name="Buttons &amp; Fobs"/>
@@ -4531,6 +4578,29 @@
       <reset>
         <step1 type="text" img="" text="Remove the back cover, then press and hold the Connect button for 10 seconds."/>
         <step2 type="text" img="" text="Press the Connect button 3 times quickly to enter pairing mode."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="fb0601" name="KeyFob (FGKF-601)" shortname="KeyFob" screen="Button" description="" manufacturer="Fibaro" vendor="Fibaro" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2450" batteryprimnum="1" keywords="fibaro,keyfob,remote,button,scene,controller,zwave,fgkf-601" ota="No" protofamily="Z-Wave" added="2026-03-02T12:00:00-0600" lastchanged="2026-03-02T12:00:00-0600">
+      <categories>
+        <category name="Buttons &amp; Fobs"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the KeyFob has a CR2450 battery installed."/>
+        <step2 type="text" img="" text="Press any button 3 times quickly. The LED will flash green when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them."/>
+        <step1 type="text" img="" text="Press any button 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will confirm when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the Square and Circle buttons simultaneously for 5+ seconds until the LED changes color."/>
+        <step2 type="text" img="" text="Press any button 3 times quickly to enter pairing mode."/>
       </reset>
       <populations>
         <population name="general"/>
