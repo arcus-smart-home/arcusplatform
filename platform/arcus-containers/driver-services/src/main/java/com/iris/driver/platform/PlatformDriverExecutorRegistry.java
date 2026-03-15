@@ -318,6 +318,13 @@ public class PlatformDriverExecutorRegistry implements DriverExecutorRegistry {
       catch(ExecutionException e) {
          throw unwrap(e);
       }
+      catch(com.google.common.util.concurrent.ExecutionError e) {
+         Throwable cause = e.getCause();
+         if(cause instanceof Error) {
+            throw (Error) cause;
+         }
+         throw e;
+      }
    }
    
    protected boolean doDelete(Address address, Mode mode) throws Exception {

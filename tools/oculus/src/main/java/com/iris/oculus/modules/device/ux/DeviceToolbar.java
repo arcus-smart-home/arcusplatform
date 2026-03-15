@@ -22,6 +22,7 @@ import javax.swing.Action;
 import javax.swing.JPanel;
 
 import com.iris.bootstrap.ServiceLocator;
+import com.iris.client.capability.DeviceAdvanced;
 import com.iris.client.capability.DeviceMock;
 import com.iris.client.model.DeviceModel;
 import com.iris.oculus.Oculus;
@@ -38,10 +39,11 @@ import com.iris.oculus.widget.Toolbar;
  */
 public class DeviceToolbar extends BaseToolbar<DeviceModel> {
    // TODO should these actions from from a per-device controller?
-   private Action delete = Actions.build("Delete", () -> onDelete(false)); 
+   private Action delete = Actions.build("Delete", () -> onDelete(false));
    private Action forceDelete = Actions.build("Force Delete", () -> onDelete(true));
    private Action schedule = Actions.build("Schedule", this::onSchedule);
    private Action actions = Actions.build("Mock Actions", this::onActions);
+   private Action upgradeDriver = Actions.build("Upgrade Driver", this::onUpgradeDriver);
 
    private MockActionsDialog mockActionsDialog = null;
 
@@ -50,10 +52,11 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
 
    @Override
    protected JPanel createComponent() {
-      return 
+      return
          Toolbar
             .builder()
             .left().addButton(actions)
+            .left().addButton(upgradeDriver)
             .right().addButton(schedule)
             .right().addButton(delete)
             .right().addButton(forceDelete)
@@ -64,6 +67,25 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
 
    protected void onActions() {
       getMockActionsDialog(true).show(model());
+   }
+
+   protected void onUpgradeDriver() {
+      upgradeDriver.setEnabled(false);
+      DeviceModel model = model();
+      DeviceAdvanced device = (DeviceAdvanced) model;
+      device
+         .upgradeDriver(null, null)
+         .onSuccess((response) -> {
+            DeviceAdvanced.UpgradeDriverResponse resp = new DeviceAdvanced.UpgradeDriverResponse(response);
+            if (Boolean.TRUE.equals(resp.getUpgraded())) {
+               Oculus.info("Driver upgraded to " + resp.getDriverName() + " v" + resp.getDriverVersion());
+            } else {
+               Oculus.info("Driver is already current: " + resp.getDriverName() + " v" + resp.getDriverVersion());
+            }
+         })
+         .onFailure((error) -> Oculus.error("Unable to upgrade driver: " + error.getMessage(), error))
+         .onCompletion((v) -> upgradeDriver.setEnabled(model() != null))
+         ;
    }
 
    protected void onDelete(boolean force) {
@@ -110,6 +132,7 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
       delete.setEnabled(true);
       forceDelete.setEnabled(true);
       schedule.setEnabled(true);
+      upgradeDriver.setEnabled(true);
       if (model.getCaps().contains(DeviceMock.NAMESPACE)) {
          if(mockActionsDialog != null && mockActionsDialog.isVisible()) {
             mockActionsDialog.show(model);
@@ -129,6 +152,7 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
          mockActionsDialog.setVisible(false);
       }
       actions.setEnabled(false);
+      upgradeDriver.setEnabled(false);
       delete.setEnabled(false);
       forceDelete.setEnabled(false);
       schedule.setEnabled(false);

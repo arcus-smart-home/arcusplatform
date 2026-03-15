@@ -400,6 +400,7 @@ setAttributes('therm') {
 		case Thermostat.emergencyheat:
 			if( attribute.value == 'ON' ) {
 				vars.'hvacmode' = Thermostat.hvacmode.get() ?: Thermostat.HVACMODE_OFF
+				Thermostat.emergencyheat Thermostat.EMERGENCYHEAT_ON
 				ZWave.thermostat_mode.set( MODE_AUX );
 			} else {
 				byte mode
@@ -407,8 +408,10 @@ setAttributes('therm') {
 				if( vars.'hvacmode' == Thermostat.HVACMODE_HEAT) mode = MODE_HEAT
 				if( vars.'hvacmode' == Thermostat.HVACMODE_COOL) mode = MODE_COOL
 				if( vars.'hvacmode' == Thermostat.HVACMODE_AUTO) mode = MODE_AUTO
+				Thermostat.emergencyheat Thermostat.EMERGENCYHEAT_OFF
 				ZWave.thermostat_mode.set( mode )
 			}
+			Scheduler.scheduleIn 'GetThermostatMode', SHORT_WAIT_MSEC
 			break;
 		case Thermostat.coolsetpoint:
 			double set_point = attribute.value
@@ -830,6 +833,10 @@ onZWaveMessage.zwaveplus_info.report {
 
 onZWaveMessage.device_reset_locally.notification {
 	log.info "Device Reset Locally Notification"
+}
+
+onEvent('GetThermostatMode') {
+	ZWave.thermostat_mode.get()
 }
 
 onEvent(GenericZWaveThermostat.EVENT_GET_HEAT_SETPOINT) {

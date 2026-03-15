@@ -92,7 +92,6 @@ task cleanDriversReflexDB(type: Delete) {
 
 task generateDriversReflexDB(type: JavaExec) {
     dependsOn ':common:arcus-drivers:reflex-generator:jar' // XXX: this seems wrong, why doesn't this get pulled in above?
-    dependsOn cleanDriversReflexDB
 
     description 'Generate the current reflexdb for hub local processing'
 

@@ -9,7 +9,7 @@ Feature: ZWave Honeywell T6 Pro Thermostat Driver Test
 	Scenario: Driver reports capabilities to platform.
 	When a base:GetAttributes command is placed on the platform bus
 	Then the driver should place a base:GetAttributesResponse message on the platform bus
-		And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'temp','therm','humid']
+		And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'devsettings', 'temp','therm','humid']
 		And the message's dev:devtypehint attribute should be Thermostat
 		And the message's devadv:drivername attribute should be ZWHoneywellT6ProThermostat
 		And the message's devadv:driverversion attribute should be 2.4

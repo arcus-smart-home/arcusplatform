@@ -10,7 +10,7 @@ These scenarios test the functionality of the ZWave Zooz ZSE42 Water Leak XS Sen
     Scenario: Driver reports capabilities to platform.
     When a base:GetAttributes command is placed on the platform bus
     Then the driver should place a base:GetAttributesResponse message on the platform bus
-        And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'leakh2o']
+        And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'devsettings', 'leakh2o']
         And the message's dev:devtypehint attribute should be Water Leak
         And the message's devadv:drivername attribute should be ZWZoozZse42WaterLeakXsSensorDriver
         And the message's devadv:driverversion attribute should be 2.4

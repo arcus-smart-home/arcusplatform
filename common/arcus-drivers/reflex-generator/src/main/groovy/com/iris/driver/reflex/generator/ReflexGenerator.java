@@ -49,7 +49,6 @@ import com.iris.bootstrap.guice.GuiceServiceLocator;
 import com.iris.capability.definition.DefinitionRegistry;
 import com.iris.capability.registry.CapabilityRegistry;
 import com.iris.device.model.CapabilityDefinition;
-import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverDefinition;
 import com.iris.driver.groovy.GroovyDriverFactory;
 import com.iris.driver.groovy.GroovyDriverModule;
@@ -183,8 +182,7 @@ public class ReflexGenerator {
       File fl = new File(file);
       System.out.println("parsing " + fl.getName() + "...");
 
-      DeviceDriver driver = factory.load(fl.getAbsolutePath());
-      DeviceDriverDefinition def = driver.getDefinition();
+      DeviceDriverDefinition def = factory.parse(fl.getAbsolutePath());
 
       ReflexDriverDefinition reflexes = def.getReflexes();
       if (reflexes == null) {

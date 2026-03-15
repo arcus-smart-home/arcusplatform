@@ -60,7 +60,7 @@ productId       "acd477"
 vendor          "Zooz"
 model           "ZEN77"
 
-matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0xa000, 'ZWAV:ProductId': 0xa004
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x7000, 'ZWAV:ProductId': 0xa007
 
 
 ////////////////////////////////////////////////////////////////////////////////

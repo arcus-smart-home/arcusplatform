@@ -10,7 +10,7 @@ These scenarios test the functionality of the ZWave Ecolink TILT-ZWAVE2.5-ECO Ga
     Scenario: Driver reports capabilities to platform.
     When a base:GetAttributes command is placed on the platform bus
     Then the driver should place a base:GetAttributesResponse message on the platform bus
-        And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'tilt', 'cont']
+        And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'devsettings', 'tilt', 'cont']
         And the message's dev:devtypehint attribute should be Tilt
         And the message's devadv:drivername attribute should be ZWEcolinkTiltSensor25Driver
         And the message's devadv:driverversion attribute should be 2.5

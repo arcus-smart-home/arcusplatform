@@ -98,12 +98,18 @@
          type="boolean" 
          optional="false" 
          description="True if the device is operating in a degraded manner for any reason."/>
-      <c:attribute 
-         name="degradedCode" 
-         readwrite="rw" 
-         type="string" 
-         optional="false" 
+      <c:attribute
+         name="degradedCode"
+         readwrite="rw"
+         type="string"
+         optional="false"
          description="The code string indicating the reason that a device is operating in a degraded manner."/>
+      <c:attribute
+         name="protocolAttrs"
+         readwrite="r"
+         type="map&lt;string&gt;"
+         optional="true"
+         description="A read-only map of protocol-specific fingerprint attributes for the device. Keys are namespaced protocol attribute names (e.g. ZWAV:Manufacturer, ZWAV:ProductType, ZWAV:ProductId for Z-Wave; ZIGB:manufacturer, ZIGB:vendor, ZIGB:model for Zigbee)."/>
    </c:attributes>
 
    <c:methods>
