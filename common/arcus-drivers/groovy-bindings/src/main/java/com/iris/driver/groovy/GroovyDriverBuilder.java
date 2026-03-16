@@ -97,6 +97,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    private String name;
    private List<String> populations = null;
    private List<Predicate<AttributeMap>> attributeMatchers = new ArrayList<Predicate<AttributeMap>>();
+   private Map<String, Object> rawMatcherAttributes = new LinkedHashMap<>();
    private Map<String, Set<CapabilityDefinition>> instances = new LinkedHashMap<>();
    // linked has map because we iterate these all the time
    private Map<String, CapabilityDefinition> capabilityDefinitions = new LinkedHashMap<>();
@@ -194,6 +195,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
       Predicate<AttributeMap> p = toMatcher(name, value);
       if(p != null) {
          attributeMatchers.add(p);
+         rawMatcherAttributes.put(name, value);
       }
       return this;
    }
@@ -205,6 +207,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
             Predicate<AttributeMap> predicated = toMatcher(e.getKey(), e.getValue());
             if(predicated != null) {
                predicators.add(predicated);
+               rawMatcherAttributes.put(e.getKey(), e.getValue());
             }
          }
          if(predicators.size() == 1) {
@@ -470,6 +473,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
                .withOfflineTimeout(offlineTimeout)
                .withPopulations(getPopulations())
                .withReflexRunMode(reflexRunMode == null ? ReflexRunMode.defaultMode() : reflexRunMode)
+               .withMatcherAttributes(rawMatcherAttributes)
                ;
       for(CapabilityDefinition definition: capabilityDefinitions.values()) {
          builder.addCapability(definition);

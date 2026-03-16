@@ -32,7 +32,6 @@ import com.iris.core.dao.PersonPlaceAssocDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
 import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
 import com.iris.core.protocol.ipcd.IpcdDeviceDao;
-import com.iris.device.attributes.AttributeMap;
 import com.iris.device.model.CapabilityDefinition;
 import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverDefinition;
@@ -188,7 +187,6 @@ public class TestDeviceServiceHandler_ListDrivers extends IrisMockTestCase {
 
       DeviceDriver driver = EasyMock.createMock(DeviceDriver.class);
       EasyMock.expect(driver.getDefinition()).andReturn(def).anyTimes();
-      EasyMock.expect(driver.getBaseAttributes()).andReturn(AttributeMap.newMap()).anyTimes();
       EasyMock.replay(driver);
       return driver;
    }
