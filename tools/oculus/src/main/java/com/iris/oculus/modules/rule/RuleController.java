@@ -95,6 +95,13 @@ public class RuleController extends BaseController<RuleModel> {
    }
 
    public void delete(RuleModel model) {
+      int result = javax.swing.JOptionPane.showConfirmDialog(
+         null, "Are you sure you want to delete this rule?", "Confirm Delete",
+         javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE
+      );
+      if(result != javax.swing.JOptionPane.YES_OPTION) {
+         return;
+      }
       Oculus.showProgress(
             model.delete(),
             "Deleting rule..."

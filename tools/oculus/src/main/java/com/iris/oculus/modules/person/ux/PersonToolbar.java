@@ -87,6 +87,13 @@ public class PersonToolbar extends BaseToolbar<PersonModel> {
    }
 
    public void onRemove() {
+      int result = JOptionPane.showConfirmDialog(
+         null, "Are you sure you want to remove this person?", "Confirm Remove",
+         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+      );
+      if(result != JOptionPane.YES_OPTION) {
+         return;
+      }
 		remove.setEnabled(false);
    	model()
    		.delete()

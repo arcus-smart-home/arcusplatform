@@ -141,6 +141,13 @@ public class BehaviorController extends SessionAwareController {
 
    public void removeBehavior() {
       if (behaviorSelection.hasSelection()) {
+         int result = javax.swing.JOptionPane.showConfirmDialog(
+            null, "Are you sure you want to remove this behavior?", "Confirm Remove",
+            javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE
+         );
+         if(result != javax.swing.JOptionPane.YES_OPTION) {
+            return;
+         }
          RemoveBehaviorRequest request = new RemoveBehaviorRequest();
          request.setAddress("SERV:" + CareSubsystem.NAMESPACE + ":" + getPlaceId());
          request.setAttribute(RemoveBehaviorRequest.ATTR_ID, behaviorSelection.getSelectedItem().get().getId());

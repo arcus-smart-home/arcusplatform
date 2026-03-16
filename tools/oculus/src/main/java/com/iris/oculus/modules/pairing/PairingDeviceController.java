@@ -195,10 +195,24 @@ public class PairingDeviceController extends BaseController<PairingDeviceModel> 
    }
    
    public void remove(PairingDeviceModel model) {
+      int result = javax.swing.JOptionPane.showConfirmDialog(
+         null, "Are you sure you want to remove this pairing device?", "Confirm Remove",
+         javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE
+      );
+      if(result != javax.swing.JOptionPane.YES_OPTION) {
+         return;
+      }
       Oculus.showProgress(model.remove(), "Remove-inating...");
    }
 
    public void forceRemove(PairingDeviceModel model) {
+      int result = javax.swing.JOptionPane.showConfirmDialog(
+         null, "Are you sure you want to force-remove this pairing device?", "Confirm Force Remove",
+         javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE
+      );
+      if(result != javax.swing.JOptionPane.YES_OPTION) {
+         return;
+      }
       Oculus.showProgress(model.forceRemove(), "Wow.  You're not kidding around.  If you see this message, something is probably wrong... Think on it.");
    }
 

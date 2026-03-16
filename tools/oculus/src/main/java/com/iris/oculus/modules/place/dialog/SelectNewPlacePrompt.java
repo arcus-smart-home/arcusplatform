@@ -60,6 +60,8 @@ public class SelectNewPlacePrompt {
       private JButton logout = new JButton(ServiceLocator.getInstance(SessionController.class).getLogoutAndLoginAction());
 
       SelectNewPlaceDialog() {
+         // Dismiss the dialog when the user chooses to log out
+         logout.addActionListener((e) -> dispose());
          placeSelector.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {

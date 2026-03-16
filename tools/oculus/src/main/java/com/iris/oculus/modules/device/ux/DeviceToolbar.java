@@ -19,6 +19,7 @@
 package com.iris.oculus.modules.device.ux;
 
 import javax.swing.Action;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.iris.bootstrap.ServiceLocator;
@@ -89,6 +90,17 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
    }
 
    protected void onDelete(boolean force) {
+      String message = force
+         ? "Are you sure you want to force-delete this device?"
+         : "Are you sure you want to delete this device?";
+      int result = JOptionPane.showConfirmDialog(
+         this.getComponent(), message, "Confirm Delete",
+         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+      );
+      if(result != JOptionPane.YES_OPTION) {
+         return;
+      }
+
       delete.setEnabled(false);
       forceDelete.setEnabled(false);
 

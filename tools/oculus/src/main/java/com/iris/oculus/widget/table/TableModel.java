@@ -26,10 +26,6 @@ import com.iris.client.event.ListenerRegistration;
 import com.iris.oculus.view.SimpleViewModel;
 import com.iris.oculus.view.ViewModel;
 import com.iris.oculus.view.ViewModelEvent;
-import com.iris.oculus.view.ViewModelEvent.ViewModelAddedEvent;
-import com.iris.oculus.view.ViewModelEvent.ViewModelChangedEvent;
-import com.iris.oculus.view.ViewModelEvent.ViewModelRemovedEvent;
-import com.iris.oculus.view.ViewModelEvent.ViewModelUpdatedEvent;
 
 public class TableModel<T> extends AbstractTableModel {
    private final List<ColumnModel<T>> columns;
@@ -139,18 +135,11 @@ public class TableModel<T> extends AbstractTableModel {
    }
 
    private void dispatchViewEvent(ViewModelEvent event) {
-      if(event instanceof ViewModelChangedEvent) {
-         fireTableDataChanged();
-      }
-      else if(event instanceof ViewModelAddedEvent) {
-         fireTableRowsInserted(event.getStart(), event.getEnd());
-      }
-      else if(event instanceof ViewModelUpdatedEvent) {
-         fireTableRowsUpdated(event.getStart(), event.getEnd());
-      }
-      else if(event instanceof ViewModelRemovedEvent) {
-         fireTableRowsDeleted(event.getStart(), event.getEnd());
-      }
+      // Always use fireTableDataChanged() rather than granular row events.
+      // DefaultRowSorter has known bugs (JDK-6301297) where incremental
+      // rowsInserted/rowsDeleted leave internal arrays inconsistent,
+      // causing ArrayIndexOutOfBoundsException on the next sort.
+      fireTableDataChanged();
    }
 
 }

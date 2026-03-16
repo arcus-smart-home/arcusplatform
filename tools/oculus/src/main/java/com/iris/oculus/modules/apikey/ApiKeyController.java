@@ -94,7 +94,7 @@ public class ApiKeyController extends SessionAwareController {
    }
 
    public void reload() {
-      if (!isSessionActive()) {
+      if (!isSessionActive() || getPlaceId() == null) {
          return;
       }
       ApiKeyService.ListKeysRequest request = new ApiKeyService.ListKeysRequest();
