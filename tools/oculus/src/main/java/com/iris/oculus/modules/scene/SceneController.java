@@ -87,6 +87,9 @@ public class SceneController extends SessionAwareController {
    }
    
    public void reload() {
+      if(!isSessionActive() || getPlaceId() == null) {
+         return;
+      }
       reloadRules();
    }
    
