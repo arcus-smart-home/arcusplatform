@@ -31,11 +31,26 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.codehaus.groovy.control.customizers.ImportCustomizer;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.inject.Binder;
+import com.google.inject.multibindings.Multibinder;
 import com.iris.device.model.AttributeDefinition;
 import com.iris.device.model.CapabilityDefinition;
 import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverContext;
 import com.iris.driver.PlatformDeviceDriverContext;
+import com.iris.driver.groovy.control.ControlProtocolPlugin;
+import com.iris.driver.groovy.devicesettings.DeviceSettingsPlugin;
+import com.iris.driver.groovy.ipcd.IpcdProtocolPlugin;
+import com.iris.driver.groovy.mock.MockProtocolPlugin;
+import com.iris.driver.groovy.pin.PinManagementPlugin;
+import com.iris.driver.groovy.plugin.GroovyDriverPlugin;
+import com.iris.driver.groovy.reflex.ReflexPlugin;
+import com.iris.driver.groovy.scheduler.SchedulerPlugin;
+import com.iris.driver.groovy.zigbee.ZigbeeProtocolPlugin;
+import com.iris.driver.groovy.zwave.ZWaveProtocolPlugin;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.Capability;
@@ -53,6 +68,32 @@ public class DriverSetAttributesSmokeTest extends GroovyDriverTestCase {
 
    private static final String DRIVER_DIR =
       "../../arcus-containers/driver-services/src/main/resources";
+
+   @Override
+   protected Set<GroovyDriverPlugin> getPlugins() {
+      return ImmutableSet.of(
+         new SchedulerPlugin(),
+         new ControlProtocolPlugin(),
+         new ZWaveProtocolPlugin(),
+         new ZigbeeProtocolPlugin(),
+         new IpcdProtocolPlugin(),
+         new MockProtocolPlugin(),
+         new ReflexPlugin(),
+         new PinManagementPlugin(),
+         new DeviceSettingsPlugin()
+      );
+   }
+
+   @Override
+   protected void configure(Binder binder) {
+      super.configure(binder);
+      Multibinder.newSetBinder(binder, org.codehaus.groovy.control.customizers.CompilationCustomizer.class)
+         .addBinding()
+         .toInstance(new ImportCustomizer()
+            .addImports("groovy.transform.Field")
+            .addStaticStars("java.util.concurrent.TimeUnit")
+         );
+   }
 
    // Capabilities with writable attributes commonly handled by setAttributes.
    // Maps namespace -> (attribute name -> sample value)
