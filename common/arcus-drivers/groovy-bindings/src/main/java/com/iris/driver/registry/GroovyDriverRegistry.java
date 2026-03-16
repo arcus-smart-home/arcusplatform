@@ -158,24 +158,29 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
    }
 
    private DeviceDriver compileAndCache(DriverId driverId) {
-      return compiledDriverCache.computeIfAbsent(driverId, id -> {
-         String source = driverSources.get(id);
-         if(source == null) {
-            logger.warn("No source file recorded for driver [{}], cannot compile on demand", id);
-            return null;
-         }
-         try {
-            long start = System.nanoTime();
-            DeviceDriver fullDriver = factory.load(source);
-            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            logger.info("Lazy-compiled driver [{}] from [{}] in {}ms", id, source, elapsed);
-            lazyCompileCount.inc();
-            return fullDriver;
-         } catch(ValidationException e) {
-            logger.error("Failed to lazy-compile driver [{}]: {}", id, e.getMessage(), e);
-            return null;
-         }
-      });
+      DeviceDriver cached = compiledDriverCache.get(driverId);
+      if(cached != null) {
+         return cached;
+      }
+
+      String source = driverSources.get(driverId);
+      if(source == null) {
+         logger.warn("No source file recorded for driver [{}], cannot compile on demand", driverId);
+         return null;
+      }
+
+      try {
+         long start = System.nanoTime();
+         DeviceDriver fullDriver = factory.load(source);
+         long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+         logger.info("Lazy-compiled driver [{}] from [{}] in {}ms", driverId, source, elapsed);
+         lazyCompileCount.inc();
+         DeviceDriver existing = compiledDriverCache.putIfAbsent(driverId, fullDriver);
+         return existing != null ? existing : fullDriver;
+      } catch(ValidationException e) {
+         logger.error("Failed to lazy-compile driver [{}]: {}", driverId, e.getMessage(), e);
+         return null;
+      }
    }
 
    @Override
