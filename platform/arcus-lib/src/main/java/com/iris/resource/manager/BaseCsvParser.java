@@ -19,14 +19,14 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
 
-import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
 public abstract class BaseCsvParser<T> implements ResourceParser<T>
 {
@@ -39,7 +39,10 @@ public abstract class BaseCsvParser<T> implements ResourceParser<T>
 
       final int startingLine = getStartingLine();
 
-      try (CSVReader reader = new CSVReader(new InputStreamReader(in), startingLine, new CSVParser()))
+      try (CSVReader reader = new CSVReaderBuilder(new InputStreamReader(in))
+         .withSkipLines(startingLine)
+         .withCSVParser(new CSVParserBuilder().build())
+         .build())
       {
          T result = newResult();
 
@@ -67,7 +70,7 @@ public abstract class BaseCsvParser<T> implements ResourceParser<T>
 
          return finalizeResult(result);
       }
-      catch (IOException e)
+      catch (Exception e)
       {
          logger.warn("Error parsing CSV file", e);
 
