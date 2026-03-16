@@ -218,6 +218,11 @@ public class DeviceServiceHandler extends AbstractPlatformService {
          }
          driverInfo.put("capabilities", new ArrayList<>(capNamespaces));
 
+         AttributeMap baseAttrs = driver.getBaseAttributes();
+         if (baseAttrs != null) {
+            driverInfo.put("matchers", baseAttrs.toMap());
+         }
+
          driverList.add(driverInfo);
       }
 
