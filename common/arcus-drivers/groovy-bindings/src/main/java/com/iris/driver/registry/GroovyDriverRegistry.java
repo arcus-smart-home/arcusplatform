@@ -88,6 +88,7 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
 	   if(StringUtils.isNotBlank(driverConfig.getDriverFilterPattern())) {
 		   filterPattern = Pattern.compile(driverConfig.getDriverFilterPattern());
 	   }
+      logger.info("driver lazy loading [{}]", driverConfig.isLazyLoading() ? "enabled" : "disabled");
       load();
    }
 
