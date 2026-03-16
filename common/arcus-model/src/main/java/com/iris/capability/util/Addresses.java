@@ -24,8 +24,7 @@ public class Addresses {
    
    public static String toServiceAddress(String namespace) {
       if(namespace == null) throw new IllegalArgumentException("namespace may not be null");
-      String prefix = getPrefixForNamespace(namespace);
-      return prefix + namespace + ":";
+      return SERVICE_ADDRESS_PREFIX + namespace + ":";
    }
    
    public static String toObjectAddress(String namespace, String id) {
