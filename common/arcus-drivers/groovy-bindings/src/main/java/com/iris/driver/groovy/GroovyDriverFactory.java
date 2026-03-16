@@ -43,6 +43,7 @@ import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverBuilder;
 import com.iris.driver.DeviceDriverDefinition;
 import com.iris.driver.Drivers;
+import com.iris.driver.LightweightDeviceDriver;
 import com.iris.driver.capability.Capability;
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
 import com.iris.driver.groovy.binding.EnvironmentBinding;
@@ -404,6 +405,34 @@ public class GroovyDriverFactory {
       DeviceDriver driver = builder.create(definition, reflexesRunLifecycleActions);
       afterBuilt(bindings, driver);
       return driver;
+   }
+
+   /**
+    * Compiles a driver script and extracts only the definition, matcher,
+    * and base attributes. The full handler closures and script bindings
+    * are not retained, allowing them to be garbage collected.
+    */
+   public LightweightDeviceDriver loadLightweight(String driver) throws ValidationException {
+      try (AutoCloseable pop = GroovyValidator.push()) {
+         LightweightDeviceDriver lightweight = null;
+         try {
+            DriverBinding bindings = loadBindings(driver);
+            beforeConstruction(bindings);
+            DeviceDriverDefinition definition = bindings.getBuilder().createDefinition();
+            Predicate<AttributeMap> matcher = bindings.getBuilder().doCreateMatchers();
+            AttributeMap baseAttributes = bindings.getBuilder().getAttributes();
+            lightweight = new LightweightDeviceDriver(definition, matcher, baseAttributes);
+         } catch (Exception ex) {
+            GroovyValidator.error("Unable to load driver " + driver + ": " + ex.getMessage(), ex);
+         }
+
+         GroovyValidator.throwIfErrors();
+         return lightweight;
+      } catch (ValidationException ex) {
+         throw ex;
+      } catch (Exception ex) {
+         throw new ValidationException("could not close validator", ex);
+      }
    }
 
    protected DeviceDriverDefinition createDefinitionFromBindings(DriverBinding bindings) throws ValidationException {
