@@ -16,6 +16,7 @@
 package com.iris.driver.registry;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.google.inject.Inject;
 import com.iris.device.attributes.AttributeMap;
 import com.iris.driver.DeviceDriver;
@@ -36,6 +39,8 @@ import com.iris.driver.service.DriverConfig;
 import com.iris.driver.service.registry.DriverScriptInfo;
 import com.iris.driver.service.registry.FilesystemDriverRegistry;
 import com.iris.messages.model.DriverId;
+import com.iris.metrics.IrisMetricSet;
+import com.iris.metrics.IrisMetrics;
 import com.iris.validators.ValidationException;
 import com.iris.bootstrap.annotations.WarmUp;
 
@@ -48,11 +53,34 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
    // Lazy loading state
    private final ConcurrentHashMap<DriverId, DeviceDriver> compiledDriverCache = new ConcurrentHashMap<>();
    private final ConcurrentHashMap<DriverId, String> driverSources = new ConcurrentHashMap<>();
+   private final Counter lazyCompileCount;
 
    @Inject
    public GroovyDriverRegistry(DriverConfig driverConfig, GroovyDriverFactory factory) {
       this.driverConfig = driverConfig;
       this.factory = factory;
+
+      IrisMetricSet metrics = IrisMetrics.metrics("drivers.registry");
+      metrics.gauge("registered", (Gauge<Integer>) () -> {
+         Collection<DeviceDriver> drivers = listDrivers();
+         return drivers != null ? drivers.size() : 0;
+      });
+      metrics.gauge("compiled", (Gauge<Integer>) () -> {
+         if(!driverConfig.isLazyLoading()) {
+            Collection<DeviceDriver> drivers = listDrivers();
+            return drivers != null ? drivers.size() : 0;
+         }
+         return compiledDriverCache.size();
+      });
+      metrics.gauge("lightweight", (Gauge<Integer>) () -> {
+         if(!driverConfig.isLazyLoading()) {
+            return 0;
+         }
+         Collection<DeviceDriver> drivers = listDrivers();
+         int total = drivers != null ? drivers.size() : 0;
+         return total - compiledDriverCache.size();
+      });
+      lazyCompileCount = metrics.counter("lazy.compiles");
    }
 
    @WarmUp
@@ -137,8 +165,11 @@ public class GroovyDriverRegistry extends FilesystemDriverRegistry {
             return null;
          }
          try {
-            logger.info("Lazy-compiling driver [{}] from [{}]", id, source);
+            long start = System.nanoTime();
             DeviceDriver fullDriver = factory.load(source);
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            logger.info("Lazy-compiled driver [{}] from [{}] in {}ms", id, source, elapsed);
+            lazyCompileCount.inc();
             return fullDriver;
          } catch(ValidationException e) {
             logger.error("Failed to lazy-compile driver [{}]: {}", id, e.getMessage(), e);
