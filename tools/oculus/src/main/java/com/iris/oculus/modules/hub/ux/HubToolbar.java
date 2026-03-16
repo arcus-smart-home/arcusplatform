@@ -126,6 +126,13 @@ public class HubToolbar extends JPanel {
    }
 
    public void onDelete() {
+      int result = JOptionPane.showConfirmDialog(
+         this, "Are you sure you want to delete hub " + model.getId() + "?",
+         "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+      );
+      if(result != JOptionPane.YES_OPTION) {
+         return;
+      }
       delete.setEnabled(false);
       controller.delete(model).onCompletion((v) -> delete.setEnabled(model != null));
    }

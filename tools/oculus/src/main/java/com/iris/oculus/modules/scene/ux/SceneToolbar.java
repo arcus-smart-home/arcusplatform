@@ -19,6 +19,7 @@ import javax.swing.Action;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.iris.client.model.SceneModel;
@@ -58,6 +59,13 @@ public class SceneToolbar extends JPanel {
    }
 
    public void onRemove() {
+      int result = JOptionPane.showConfirmDialog(
+         this, "Are you sure you want to delete this scene?", "Confirm Delete",
+         JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+      );
+      if(result != JOptionPane.YES_OPTION) {
+         return;
+      }
 		Oculus.showProgress(model.delete(), "Deleting scene...");
    }
    
