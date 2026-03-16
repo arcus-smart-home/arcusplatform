@@ -195,7 +195,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
       Predicate<AttributeMap> p = toMatcher(name, value);
       if(p != null) {
          attributeMatchers.add(p);
-         rawMatcherAttributes.put(name, value);
+         rawMatcherAttributes.put(name, toSerializable(value));
       }
       return this;
    }
@@ -207,7 +207,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
             Predicate<AttributeMap> predicated = toMatcher(e.getKey(), e.getValue());
             if(predicated != null) {
                predicators.add(predicated);
-               rawMatcherAttributes.put(e.getKey(), e.getValue());
+               rawMatcherAttributes.put(e.getKey(), toSerializable(e.getValue()));
             }
          }
          if(predicators.size() == 1) {
@@ -220,6 +220,13 @@ public class GroovyDriverBuilder extends GroovyBuilder {
       return this;
    }
    
+   private static Object toSerializable(Object value) {
+      if (value instanceof java.util.regex.Pattern) {
+         return ((java.util.regex.Pattern) value).pattern();
+      }
+      return value;
+   }
+
    private Predicate<AttributeMap> toMatcher(String name, Object value) {
       AttributeDefinition definition = matchAttributes.get(name);
       if(definition == null) {
