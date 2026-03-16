@@ -64,6 +64,10 @@ public class DriverConfig {
    private String driverFilterPattern2 = null;
 
    @Inject(optional = true)
+   @Named("driver.lazy.loading")
+   private boolean lazyLoading = false;
+
+   @Inject(optional = true)
    @Named("driver.tombstoneTimeoutSec")
    private long driverTombstoneTimeoutSec = TimeUnit.MINUTES.toSeconds(5);
    
@@ -127,6 +131,14 @@ public class DriverConfig {
          return driverDirectory;
       }
       return applicationDirectory + "/" + driverDirectory;
+   }
+
+   public boolean isLazyLoading() {
+      return lazyLoading;
+   }
+
+   public void setLazyLoading(boolean lazyLoading) {
+      this.lazyLoading = lazyLoading;
    }
 
    public String getDriverFilterPattern() {
