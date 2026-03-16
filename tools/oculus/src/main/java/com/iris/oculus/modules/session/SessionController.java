@@ -500,6 +500,10 @@ public class SessionController {
          .prompt("Select Place:")
          .onSuccess((place) -> doSetActivePlace(place.getPlaceId(), result))
          .onFailure((e) -> {
+            if(e instanceof java.util.concurrent.CancellationException) {
+               // Dialog was dismissed (e.g. user chose to log out) — don't re-prompt
+               return;
+            }
             Oculus.showError("Unable to Set Active Place", e);
             doPromptSelectPlace(result);
          });
