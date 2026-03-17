@@ -1,0 +1,290 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Minoston MR40Z S2 4-Button Remote Control Switch
+ *
+ * Functionally identical to the Zooz ZEN37 but uses CR2032 batteries instead of
+ * a rechargeable cell, different config parameter layout, and different pairing
+ * instructions — hence the separate productId and product catalog entry.
+ *
+ * The MR40Z is a battery-powered Z-Wave 700 series wall remote with four buttons.
+ * Each button supports single tap, double tap, triple tap, 4x tap, 5x tap, held,
+ * and released actions via the Central Scene command class.
+ *
+ * Layout:
+ *   +---------------------------+
+ *   |        Button 1 (top)     |   Scene 1
+ *   +---------------------------+
+ *   |       Button 2 (middle)   |   Scene 2
+ *   +-------------+-------------+
+ *   | Button 3    | Button 4    |   Scene 3  |  Scene 4
+ *   | (bottom-L)  | (bottom-R)  |
+ *   +-------------+-------------+
+ *
+ * FACTORY RESET:  Press the fourth button five times, then press it five more times
+ *                 when the red light is flashing.
+ *
+ * WAKE UP:        Press the third button 5 times quickly. LED stays solid blue
+ *                 while awake, turns off when Z-Wave radio sleeps again.
+ *
+ * PAIR/INCLUDE:   Put the hub in inclusion mode, then click the first button 5 times quickly.
+ * UNPAIR/EXCLUDE: Put the hub in exclusion mode, then click the second button 5 times quickly.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x55   (85) Transport Service V2
+ *   0x59   (89) Association Group Info V3
+ *   0x5A   (90) Device Reset Locally
+ *   0x5B   (91) Central Scene V3
+ *   0x5E   (94) Z-Wave+ Info V2
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration V4
+ *   0x72  (114) Manufacturer Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data V5
+ *   0x80 (-128) Battery
+ *   0x84 (-124) Wake Up V2
+ *   0x85 (-123) Association V3
+ *   0x86 (-122) Version V2
+ *   0x87 (-121) Indicator V3
+ *   0x8E (-114) Multi Channel Association V4
+ *   0x9F  (-97) Security 2
+ */
+import groovy.transform.Field
+
+uses 'zwave.GenericZWaveBattery'
+uses 'zwave.GenericZWaveVersion'
+
+
+driver          "ZWMinostonMR40Z_4ButtonRemote"
+description     "Driver for a Minoston MR40Z 4-Button Remote"
+version         "2.4"
+protocol        "ZWAV"
+deviceTypeHint  "Button"
+productId       "d31240"
+vendor          "Minoston"
+model           "MR40Z"
+
+matcher         'ZWAV:Manufacturer': 0x0312, 'ZWAV:ProductType': 0x0924, 'ZWAV:ProductId': 0xD001
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+instance 'button1', Button
+instance 'button2', Button
+instance 'button3', Button
+instance 'button4', Button
+
+
+@Field final String DEVICE_NAME = "Minoston MR40Z 4-Button Remote"
+
+final int OFFLINE_TIMEOUT_SECS = 133200     // 37 hours
+final long RELEASE_DELAY_MSEC  = 1000       // simulate button RELEASED 1 second after PRESSED
+
+// Central Scene Key Attributes (bits 0-2 of properties1)
+@Field final byte KEY_PRESSED_1_TIME  = 0x00
+@Field final byte KEY_RELEASED        = 0x01
+@Field final byte KEY_HELD_DOWN       = 0x02
+@Field final byte KEY_PRESSED_2_TIMES = 0x03
+@Field final byte KEY_PRESSED_3_TIMES = 0x04
+@Field final byte KEY_PRESSED_4_TIMES = 0x05
+@Field final byte KEY_PRESSED_5_TIMES = 0x06
+
+// Scene Numbers
+@Field final byte SCENE_BUTTON_1 = 0x01
+@Field final byte SCENE_BUTTON_2 = 0x02
+@Field final byte SCENE_BUTTON_3 = 0x03
+@Field final byte SCENE_BUTTON_4 = 0x04
+
+// Instance name lookup by scene number
+@Field final Map SCENE_TO_INSTANCE = [
+   (SCENE_BUTTON_1): 'button1',
+   (SCENE_BUTTON_2): 'button2',
+   (SCENE_BUTTON_3): 'button3',
+   (SCENE_BUTTON_4): 'button4'
+]
+
+
+// Device Settings (Z-Wave Configuration Parameters)
+// ----------------------------------------------------------------------------
+deviceSettings {
+   param name: 'battReportThresh', id: 1, size: 1,
+       type: 'range', min: 1, max: 20,
+       description: 'Parameter 1: Battery report threshold (%)',
+       dflt: 10
+
+   param name: 'lowBatteryAlert', id: 2, size: 1,
+       type: 'range', min: 5, max: 20,
+       description: 'Parameter 2: Low battery alarm threshold (%)',
+       dflt: 5
+
+   param name: 'btn1LedColor', id: 3, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 3: Button 1 (top) LED color',
+       dflt: 0
+
+   param name: 'btn2LedColor', id: 4, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 4: Button 2 (middle) LED color',
+       dflt: 1
+
+   param name: 'btn3LedColor', id: 5, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 5: Button 3 (bottom-left) LED color',
+       dflt: 2
+
+   param name: 'btn4LedColor', id: 6, size: 1,
+       type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
+       description: 'Parameter 6: Button 4 (bottom-right) LED color',
+       dflt: 3
+
+   param name: 'ledBrightness', id: 7, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 7: LED brightness (0=off, 1-10 in 10% increments)',
+       dflt: 5
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   Button.state.button1         Button.STATE_RELEASED
+   Button.statechanged.button1  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Button.state.button2         Button.STATE_RELEASED
+   Button.statechanged.button2  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Button.state.button3         Button.STATE_RELEASED
+   Button.statechanged.button3  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Button.state.button4         Button.STATE_RELEASED
+   Button.statechanged.button4  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+
+   // set the wakeup interval to 12 hours (0x00A8C0 = 43200 seconds) for node 0x01
+   ZWave.wake_up.set((byte)0x00, (byte)0xA8, (byte)0xC0, (byte)0x01)
+
+   // set Association to Group 1, Node 1
+   ZWave.association.set( 1, 1, 0, 0, 0);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Callbacks (button auto-release)
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent( "ReleaseButton1" ) {
+   Button.state.button1 Button.STATE_RELEASED
+   Button.statechanged.button1 new Date()
+}
+
+onEvent( "ReleaseButton2" ) {
+   Button.state.button2 Button.STATE_RELEASED
+   Button.statechanged.button2 new Date()
+}
+
+onEvent( "ReleaseButton3" ) {
+   Button.state.button3 Button.STATE_RELEASED
+   Button.statechanged.button3 new Date()
+}
+
+onEvent( "ReleaseButton4" ) {
+   Button.state.button4 Button.STATE_RELEASED
+   Button.statechanged.button4 new Date()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.central_scene.notification {
+   def sequenceNumber = message.command.get('sequencenumber')
+   def properties1    = message.command.get('properties1')
+   def sceneNumber    = message.command.get('scenenumber')
+   def keyAttribute   = (properties1 & 0x07)
+
+   log.debug "Central Scene Notification - Sequence:{}, Scene:{}, KeyAttribute:{}", sequenceNumber, sceneNumber, keyAttribute
+
+   def instanceName = SCENE_TO_INSTANCE.get((byte) sceneNumber)
+   if (instanceName == null) {
+      log.warn "Unexpected scene number: {}", sceneNumber
+      return
+   }
+
+   if (KEY_RELEASED == keyAttribute) {
+      Button.state."${instanceName}" Button.STATE_RELEASED
+      Button.statechanged."${instanceName}" new Date()
+      log.trace "Button {}: RELEASED", instanceName
+   } else {
+      Button.state."${instanceName}" Button.STATE_PRESSED
+      Button.statechanged."${instanceName}" new Date()
+      // auto-release after delay (except for explicit release events)
+      def buttonNum = instanceName.replace('button', '')
+      Scheduler.scheduleIn "ReleaseButton${buttonNum}", RELEASE_DELAY_MSEC
+      log.trace "Button {}: PRESSED (keyAttribute:{})", instanceName, keyAttribute
+   }
+}
+
+onZWaveMessage.battery.report {
+   GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.wake_up.notification {
+   log.trace "Wakeup Notification"
+   ZWave.battery.get()
+   ZWave.wake_up.no_more_information()
+}
+
+onZWaveMessage.configuration.report {
+   log.trace "Config Report: {}", message
+   byte[] bytes = message.command.recvBytes
+   int param = message.command.get('param') & 0xFF
+   int byteCnt = message.command.get('level') & 0xFF
+   long val1 = message.command.get('val1') & 0xFF
+   if (2 == byteCnt) {
+      long val2 = message.command.get('val2') & 0xFF
+      val1 = (val1*256) + val2
+   } else if (4 == byteCnt) {
+      long val2 = message.command.get('val2') & 0xFF
+      long val3 = message.command.get('val3') & 0xFF
+      long val4 = message.command.get('val4') & 0xFF
+      val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
+   }
+   log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+   def zwVer = message.command.get('zwaveversion')
+   def roleType = message.command.get('roletype')
+   def nodeType = message.command.get('nodetype')
+   log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+   log.info "Device Reset Locally Notification"
+}

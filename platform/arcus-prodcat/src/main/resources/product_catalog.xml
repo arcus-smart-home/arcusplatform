@@ -5728,6 +5728,30 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="d31240" name="4-Button Remote Control Switch (MR40Z)" shortname="Wall Remote" screen="Button" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR2032" batteryprimnum="2" keywords="minoston,remote,wall,button,scene,controller,battery,zwave,mr40z" ota="No" protofamily="Z-Wave" added="2026-03-16T12:00:00-0600" lastchanged="2026-03-16T12:00:00-0600">
+      <categories>
+        <category name="Buttons &amp; Fobs"/>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the remote has battery charge. Hold down any button to check the battery level via the LED indicator."/>
+        <step2 type="text" img="" text="Click the first button (top) 5 times quickly. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Click the second button 5 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press the fourth button (bottom-right) 5 times quickly. The LED will blink red."/>
+        <step2 type="text" img="" text="Immediately press the same button 5 more times. The LED will stay red for 2 seconds to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="36b9a1" name="Smart Relay Switch Module (ZWN-RSM1-PLUS)" shortname="Relay Switch" screen="Switch" description="" manufacturer="Enerwave" vendor="Enerwave" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="enerwave,relay,switch,module,zwave,ZWN-RSM1-PLUS,in-wall" ota="No" protofamily="Z-Wave" added="2026-03-15T12:00:00-0600" lastchanged="2026-03-15T12:00:00-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
