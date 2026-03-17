@@ -74,9 +74,13 @@ public class GatewayConnection {
    private static final Logger SECONDARY_LOG = LoggerFactory.getLogger(GatewayConnection.class.getName() + ".sec");
 
    private static final String[] ALLOWED_CIPHERS = new String[] {
+      // TLS 1.3 cipher suites
+      "TLS_AES_256_GCM_SHA384",
+      "TLS_AES_128_GCM_SHA256",
+      "TLS_CHACHA20_POLY1305_SHA256",
+      // TLS 1.2 cipher suites
       "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
       "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-      "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
    };
 
    public static final int WEBSOCKETS_MAX_FRAME_LENGTH = 1 * 1024 * 1024; // 1 MB
@@ -388,12 +392,16 @@ public class GatewayConnection {
                         List<String> protocols = Arrays.asList(sslEngine.getSupportedProtocols());
                         List<String> ciphers = Arrays.asList(sslEngine.getSupportedCipherSuites());
 
-                        // If the hub supports TLSv1.2 then use that, otherwise use TLSv1.1. If
-                        // neither are supported then it is a fatal error. We don't allow negotiation
-                        // with the hub gateway here to mitigate SSL downgrade attacks (the hub
-                        // doesn't really need to be backwards compatible with older standards
-                        // because we control the stack end-to-end).
-                        if (protocols.contains("TLSv1.2")) {
+                        // Prefer TLSv1.3 if available (requires native SSL provider on JDK 8),
+                        // otherwise use TLSv1.2. We don't allow negotiation below 1.2 to
+                        // mitigate SSL downgrade attacks (the hub doesn't really need to be
+                        // backwards compatible with older standards because we control the
+                        // stack end-to-end).
+                        if (protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2")) {
+                           sslEngine.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.2"});
+                        } else if (protocols.contains("TLSv1.3")) {
+                           sslEngine.setEnabledProtocols(new String[] {"TLSv1.3"});
+                        } else if (protocols.contains("TLSv1.2")) {
                            sslEngine.setEnabledProtocols(new String[] {"TLSv1.2"});
                         } else {
                            LOG.error("!!!! SSL PROTOCOL COULD NOT BE SELECTED, ALLOWING ALL DEFAULTS");
@@ -427,8 +435,7 @@ public class GatewayConnection {
                            public void operationComplete(@Nullable Future<Object> future) throws Exception {
                               long elapsed = System.nanoTime() - connectAttemptTime;
                               if (future != null && future.isSuccess()) {
-                                 LOG.info("ssl handshake completed successfully in {} ms", TimeUnit.NANOSECONDS.toMillis(elapsed));
-                                 LOG.trace("ssl session: protocol={}, cipher={}", sslHandler.engine().getSession().getProtocol(), sslHandler.engine().getSession().getCipherSuite());
+                                 LOG.info("ssl handshake completed successfully in {} ms: protocol={}, cipher={}", TimeUnit.NANOSECONDS.toMillis(elapsed), sslHandler.engine().getSession().getProtocol(), sslHandler.engine().getSession().getCipherSuite());
                               } else {
                                  LOG.warn("ssl handshake failed after {} ms: {}", TimeUnit.NANOSECONDS.toMillis(elapsed), (future == null) ? "unknown" : future.cause());
                                  ch.close();
