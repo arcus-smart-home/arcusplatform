@@ -230,6 +230,7 @@ public class GatewayConnection {
                      if (isSSL) {
                            SslContextBuilder builder = sslProvider.get();
                            sslProvider.setupClientCertificates(builder);
+                           builder.protocols("TLSv1.3", "TLSv1.2");
                            ctx = builder.build();
                      }
 

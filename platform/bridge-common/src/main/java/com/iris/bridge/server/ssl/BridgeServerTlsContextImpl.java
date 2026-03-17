@@ -36,6 +36,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.server.config.BridgeServerConfig;
 
+import com.google.common.base.Splitter;
+
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslContext;
@@ -79,6 +81,23 @@ public class BridgeServerTlsContextImpl implements BridgeServerTlsContext {
 
          if (serverConfig.getTlsSessionTimeout() > 0) {
             serverContext.sessionTimeout(serverConfig.getTlsSessionTimeout());
+         }
+
+         String configuredProtocols = serverConfig.getTlsServerProtocols();
+         if (configuredProtocols != null && !configuredProtocols.isEmpty()) {
+            String[] protocols = Splitter.on(',').trimResults().omitEmptyStrings()
+               .splitToList(configuredProtocols).toArray(new String[0]);
+            serverContext.protocols(protocols);
+            logger.info("TLS protocols: {}", java.util.Arrays.toString(protocols));
+         } else {
+            logger.info("TLS protocols: defaults");
+         }
+
+         String configuredCiphers = serverConfig.getTlsServerCiphers();
+         if (configuredCiphers != null && !configuredCiphers.isEmpty()) {
+            logger.info("TLS ciphers: {}", configuredCiphers);
+         } else {
+            logger.info("TLS ciphers: defaults");
          }
 
          if (serverConfig.isTlsNeedClientAuth()) {
