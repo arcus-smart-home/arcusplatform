@@ -63,8 +63,18 @@ import com.iris.bridge.server.traffic.TrafficHandler;
 @Singleton
 public class Bridge10ChannelInitializer extends ChannelInitializer<SocketChannel> {
    private static final Logger logger = LoggerFactory.getLogger(Bridge10ChannelInitializer.class);
-   private static final String[] PREFERRED_CIPHERS = new String[] {"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"};
-   private static final String[] PREFERRED_PROTOCOLS = new String[] { "TLSv1.2", "TLSv1.1", "TLSv1" };
+   private static final String[] PREFERRED_CIPHERS = new String[] {
+      // TLS 1.3 cipher suites
+      "TLS_AES_256_GCM_SHA384",
+      "TLS_AES_128_GCM_SHA256",
+      "TLS_CHACHA20_POLY1305_SHA256",
+      // TLS 1.2 cipher suites
+      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+      "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+      "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+   };
+   private static final String[] PREFERRED_PROTOCOLS = new String[] { "TLSv1.3", "TLSv1.2" };
 
    public static final String FILTER_SSL = "tls";
    public static final String FILTER_ENCODER = "encoder";
