@@ -55,6 +55,9 @@ dependencies {
 
 test {
 	exclude '**/*.feature'
+	if (!project.hasProperty('includeDriverSmokeTest')) {
+		exclude '**/DriverSetAttributesSmokeTest*'
+	}
 }
 
 
