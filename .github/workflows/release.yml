@@ -24,9 +24,9 @@ jobs:
           java-version: ${{ matrix.java-version }}
           distribution: 'corretto'
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
       - name: Run tests
-        run: ./gradlew test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon --parallel --build-cache
+        run: ./gradlew test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon
 
   build-and-push-image:
     needs: tests
@@ -44,7 +44,7 @@ jobs:
           java-version: '21'
           distribution: 'corretto'
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -54,7 +54,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build jars
-        run: ./gradlew jar --no-daemon --parallel --build-cache
+        run: ./gradlew jar --no-daemon
 
       - name: Build and push containers
         run: bash khakis/bin/release.sh
