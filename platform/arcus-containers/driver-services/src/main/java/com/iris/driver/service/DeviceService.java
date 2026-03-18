@@ -15,7 +15,9 @@
  */
 package com.iris.driver.service;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -370,12 +372,18 @@ public class DeviceService {
       }
       String oldDriverName;
       Device device;
-      
+      boolean wasFallback = isFallback(executor.driver());
+
       synchronized(executor.context()) {
          device = ((PlatformDeviceDriverContext) executor.context()).getDevice();
-         oldDriverName = device.getDrivername(); 
+         oldDriverName = device.getDrivername();
          registry.associate(device, driver, (newExecutor) -> {
             Runnable afterAdded = () -> {
+               // When upgrading from a fallback driver to a real driver, clear the
+               // mispaired errors so the pairing subsystem can transition to PAIRED.
+               if(wasFallback && !isFallback(driver)) {
+                  clearPairingErrors(newExecutor);
+               }
                updateState(newExecutor, driver, device.getProtocolAttributes(), false);
                if(!connected) {
                   newExecutor.context().setDisconnected();
@@ -388,7 +396,7 @@ public class DeviceService {
                   sendResyncToHub(newExecutor);
                }
             };
-            
+
             synchronized(newExecutor.context()) {
                if(!Objects.equals(oldDriverName, driver.getDriverId().getName())) {
                   logger.info("Device {} is changing drivers", device.getAddress());
@@ -401,7 +409,7 @@ public class DeviceService {
             }
          });
       }
-      
+
       return new UpgradeDriverResponse(true, driver.getDriverId());
    }
 
@@ -535,6 +543,17 @@ public class DeviceService {
       return device;
    }
    
+   private void clearPairingErrors(DriverExecutor executor) {
+      executor.context().setAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE);
+      Map<String, String> errors = executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
+      if(errors != null) {
+         errors = new HashMap<>(errors);
+         errors.remove(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
+         errors.remove(DeviceAdvancedCapability.PairingMisconfiguredException.CODE_PAIRING_MISCONFIGURED);
+         executor.context().setAttributeValue(DeviceAdvancedCapability.KEY_ERRORS, errors);
+      }
+   }
+
    private boolean isFallback(DeviceDriver driver) {
       return driver.getDefinition().getName().contains("Fallback");
    }

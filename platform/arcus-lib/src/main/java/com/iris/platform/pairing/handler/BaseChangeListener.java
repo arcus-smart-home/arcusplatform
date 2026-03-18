@@ -82,20 +82,17 @@ public class BaseChangeListener {
 		return model;
 	}
 	
-	//Determine if the current device pairing has reached the ending state, currently defined as 
-	//[pairingState, pairingPhase] = [PAIRED, PAIRED] or [MISPAIRED, FAILED]
+	// Determine if the current device pairing has reached the ending state.
+	// Only [PAIRED, PAIRED] is truly terminal. MISPAIRED devices can recover
+	// if they are later upgraded from a fallback driver to a real driver.
 	private boolean isPairingFinal(PairingDevice model) {
 		String currentPairingPhase = PairingDeviceModel.getPairingPhase(model);
 		String currentPairingState = PairingDeviceModel.getPairingState(model);
 		if(PairingDeviceCapability.PAIRINGPHASE_PAIRED.equals(currentPairingPhase) && PairingDeviceCapability.PAIRINGSTATE_PAIRED.equals(currentPairingState)) {
 			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
 			return true;
-		}else if(PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(currentPairingPhase) && PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(currentPairingState)) {
-			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
-			return true;
-		}else{
-			return false;
 		}
+		return false;
 	}
 
 	private void sendChanges(PairingDevice model, Map<String, Object> original) {
