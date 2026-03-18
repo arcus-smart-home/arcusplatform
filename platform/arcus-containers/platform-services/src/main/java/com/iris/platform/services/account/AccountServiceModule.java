@@ -59,7 +59,6 @@ public class AccountServiceModule extends AbstractIrisModule {
 
       Multibinder<PlatformService> serviceBinder = bindSetOf(PlatformService.class);
       serviceBinder.addBinding().to(AccountService.class);
-      serviceBinder.addBinding().to(AccountMigrationService.class);
 
    }
 
