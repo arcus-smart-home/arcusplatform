@@ -461,6 +461,15 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
 
       setOrDefault(DeviceAdvancedCapability.ATTR_HUBLOCAL, row.getBoolean(DeviceEntityColumns.HUBLOCAL), false, model);
 
+      return model;
+   }
+
+   /**
+    * Deserializes devadv:protocolAttrs from the row and adds it to the model map.
+    * This is only needed for end-user API responses (ListDevices); internal
+    * consumers like the rule service model store don't use protocol attributes.
+    */
+   private void addProtocolAttributes(Row row, Map<String, Object> model) {
       ByteBuffer protocolAttrsBuf = row.isNull(DeviceEntityColumns.PROTOCOL_ATTRS) ? null : row.getByteBuffer(DeviceEntityColumns.PROTOCOL_ATTRS);
       if (protocolAttrsBuf != null) {
          byte[] protocolAttrBytes = new byte[protocolAttrsBuf.remaining()];
@@ -481,8 +490,6 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
             setIf(DeviceAdvancedCapability.ATTR_PROTOCOLATTRS, protocolAttrsMap, model);
          }
       }
-
-      return model;
    }
 
    private ModelEntity toModel(Row row, boolean includeTombstoned) {
@@ -563,6 +570,7 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
       for(Row row:  results) {
          Map<String, Object> deviceAttributes = toAttributes(row, includeTombstoned);
          if(deviceAttributes != null) {
+            addProtocolAttributes(row, deviceAttributes);
             devices.add(deviceAttributes);
          }
       }
@@ -583,7 +591,14 @@ public class DeviceDAOImpl extends BaseCassandraCRUDDao<UUID, Device> implements
             row -> row.getUuid("devid");
 
          Function<ResultSet, Map<String, Object>> entityTransform =
-            resultSet -> toAttributes(resultSet.one(), includeTombstoned);
+            resultSet -> {
+               Row row = resultSet.one();
+               Map<String, Object> attrs = toAttributes(row, includeTombstoned);
+               if (attrs != null) {
+                  addProtocolAttributes(row, attrs);
+               }
+               return attrs;
+            };
 
          return listByAssociation(associationQuery, entityIdTransform, entityTransform, asyncTimeoutMs);
       }
