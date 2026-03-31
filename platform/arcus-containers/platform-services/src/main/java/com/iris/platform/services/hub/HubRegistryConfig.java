@@ -27,11 +27,14 @@ import com.google.inject.name.Named;
 public class HubRegistryConfig {
    public static final String PROP_OFFLINE_TIMEOUT_MIN = "hub.offlineTimeoutMin";
    public static final String PROP_TIMEOUT_INTERVAL_SEC = "hub.timeoutIntervalSec";
-   
+   public static final String PROP_CONNECTED_CHECK_INTERVAL_MIN = "hub.connectedCheckIntervalMin";
+
    @Inject(optional = true) @Named(PROP_OFFLINE_TIMEOUT_MIN)
    private int offlineTimeoutMin = 10;
    @Inject(optional = true) @Named(PROP_TIMEOUT_INTERVAL_SEC)
    private int timeoutIntervalSec = 30;
+   @Inject(optional = true) @Named(PROP_CONNECTED_CHECK_INTERVAL_MIN)
+   private int connectedCheckIntervalMin = 5;
    
    
    /**
@@ -67,6 +70,20 @@ public class HubRegistryConfig {
     */
    public void setTimeoutIntervalSec(int timeoutIntervalSec) {
       this.timeoutIntervalSec = timeoutIntervalSec;
+   }
+
+   /**
+    * @return the connectedCheckIntervalMin
+    */
+   public int getConnectedCheckIntervalMin() {
+      return connectedCheckIntervalMin;
+   }
+
+   /**
+    * @param connectedCheckIntervalMin the connectedCheckIntervalMin to set
+    */
+   public void setConnectedCheckIntervalMin(int connectedCheckIntervalMin) {
+      this.connectedCheckIntervalMin = connectedCheckIntervalMin;
    }
 
 }

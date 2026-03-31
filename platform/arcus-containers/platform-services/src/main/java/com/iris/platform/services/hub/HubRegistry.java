@@ -72,6 +72,7 @@ public class HubRegistry implements PartitionListener {
 
    private final long offlineTimeoutMs;
    private final long timeoutIntervalMs;
+   private final long connectedCheckIntervalMs;
    private final PlacePopulationCacheManager populationCacheMgr;
    
    @Inject
@@ -93,6 +94,7 @@ public class HubRegistry implements PartitionListener {
       
       this.offlineTimeoutMs = TimeUnit.MINUTES.toMillis(config.getOfflineTimeoutMin());
       this.timeoutIntervalMs = TimeUnit.SECONDS.toMillis(config.getTimeoutIntervalSec());
+      this.connectedCheckIntervalMs = TimeUnit.MINUTES.toMillis(config.getConnectedCheckIntervalMin());
       
       this.executor = ThreadPoolBuilder.newSingleThreadedScheduler("hub-heartbeat-watchdog");
       this.hubs = new ConcurrentHashMap<>();
@@ -188,6 +190,27 @@ public class HubRegistry implements PartitionListener {
             }
          }
       }
+      recheckConnectedState();
+   }
+
+   /**
+    * Periodically re-asserts that tracked hubs are marked connected in the
+    * database.  This corrects stale disconnect writes that may have replicated
+    * from another datacenter after a failover.
+    */
+   protected void recheckConnectedState() {
+      long now = clock.millis();
+      for(HubState state: hubs.values()) {
+         if(now - state.lastConnectedCheck > connectedCheckIntervalMs) {
+            state.lastConnectedCheck = now;
+            try {
+               assertConnected(state.getHubId());
+            }
+            catch(Exception e) {
+               logger.warn("Error re-checking connected state for hub [{}]", state.getHubId(), e);
+            }
+         }
+      }
    }
    
    protected void onTimeout(String hubId) {
@@ -213,10 +236,21 @@ public class HubRegistry implements PartitionListener {
    private HubState connected(String hubId, int partitionId) {
       // note a db outage will prevent the hub from being marked online
       // but it should keep retrying as more heartbeats are received
+      assertConnected(hubId);
+      return new HubState(hubId, partitionId, clock.millis());
+   }
+
+   /**
+    * Asserts that a hub is connected in the database.  This uses a CAS
+    * operation (IF state = 'DOWN') so it is a no-op when the hub is
+    * already online.  This is called both on initial connect and
+    * periodically to correct stale disconnect writes that may have
+    * replicated from another datacenter.
+    */
+   private void assertConnected(String hubId) {
       Map<String, Object> event = hubDao.connected(hubId);
       if(IrisCollections.isNotEmpty(event)) {
-         logger.debug("Marking hub [{}] online due to heartbeat", hubId);
-         // need to load the hub to get the placeid
+         logger.debug("Asserting hub [{}] as online", hubId);
          Hub hub = hubDao.findById(hubId);
          if(hub != null) {
             Address address = Address.hubService(hubId, HubCapability.NAMESPACE);
@@ -224,7 +258,6 @@ public class HubRegistry implements PartitionListener {
             broadcast(address, hub.getPlace(), vc);
          }
       }
-      return new HubState(hubId, partitionId);
    }
 
    private void disconnected(String hubId) {
@@ -316,17 +349,19 @@ public class HubRegistry implements PartitionListener {
       private final int partitionId;
       private final Map<String, Long> heartbeats;
       private volatile long lastHeartbeat;
-      
+      private volatile long lastConnectedCheck;
+
       HubState(String hubId, int partitionId) {
          this.hubId = hubId;
          this.partitionId = partitionId;
          this.heartbeats = new HashMap<>(4);
       }
-      
+
       HubState(String hubId, int partitionId, long timestamp) {
          this.hubId = hubId;
          this.partitionId = partitionId;
          this.lastHeartbeat = timestamp;
+         this.lastConnectedCheck = timestamp;
          this.heartbeats = new HashMap<>(4);
       }
       
