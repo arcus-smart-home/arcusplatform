@@ -125,10 +125,6 @@ public class TestPlatformEventSchedulerService extends IrisMockTestCase {
       replay();
 
       service.onPartitionsChanged(createPartitionChangedEvent(new DefaultPartition(0)));
-
-      // Wait for the async executor to finish scheduling partitions
-      service.stop();
-
       service.fireEventAt(placeId, schedulerAddress, scheduledTime);
       
       // the mock scheduler runs the event immediately
@@ -166,9 +162,6 @@ public class TestPlatformEventSchedulerService extends IrisMockTestCase {
       replay();
 
       service.onPartitionsChanged(createPartitionChangedEvent(new DefaultPartition(0)));
-
-      // Wait for the async executor to finish scheduling partitions
-      service.stop();
 
       verify();
    }
