@@ -123,12 +123,12 @@ public class TestPlatformEventSchedulerService extends IrisMockTestCase {
       expectAndExecuteScheduleAt(scheduledTime);
       
       replay();
-      
+
       service.onPartitionsChanged(createPartitionChangedEvent(new DefaultPartition(0)));
-      
-      // TODO need some sort of sync to wait until its done scheduling
-      Thread.sleep(1000);
-      
+
+      // Wait for the async executor to finish scheduling partitions
+      service.stop();
+
       service.fireEventAt(placeId, schedulerAddress, scheduledTime);
       
       // the mock scheduler runs the event immediately
@@ -161,13 +161,15 @@ public class TestPlatformEventSchedulerService extends IrisMockTestCase {
    public void testScheduleHistoricalPartitions() throws Exception {
       Date currentPartition = new Date(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(20));
       expectGetPendingAndReturnOffset(currentPartition);
-      
+      expectStreamByAnyOffset();
+
       replay();
-      
+
       service.onPartitionsChanged(createPartitionChangedEvent(new DefaultPartition(0)));
-      
-      // TODO verify the partitions were actually executed
-      
+
+      // Wait for the async executor to finish scheduling partitions
+      service.stop();
+
       verify();
    }
    
