@@ -144,9 +144,10 @@ public class PlatformEventSchedulerService implements EventSchedulerService, Par
       
       for(PartitionOffset offset: offsets.values()) {
          PartitionSchedulerJob job = new PartitionSchedulerJob(offset);
+         job.schedule();
          Future<?> future = executor.scheduleAtFixedRate(
                () -> job.schedule(),
-               0,
+               scheduleDao.getTimeBucketDurationMs(),
                scheduleDao.getTimeBucketDurationMs(),
                TimeUnit.MILLISECONDS
          );
