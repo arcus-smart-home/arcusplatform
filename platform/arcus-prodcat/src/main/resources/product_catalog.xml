@@ -11,6 +11,7 @@
     <brand name="Duraflame"/>
     <brand name="Ecolink"/>
     <brand name="Enerwave"/>
+    <brand name="EnergyHub"/>
     <brand name="EnergySmart"/>
     <brand name="Everspring"/>
     <brand name="First Alert"/>
@@ -5767,6 +5768,27 @@
       </removal>
       <reset>
         <step1 type="text" img="" text="Refer to the device manual for factory reset instructions."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
+    <product id="f3e1a0" name="EnergyHub Socket (SK-ZP)" shortname="Smart Plug" screen="Switch" description="" manufacturer="EnergyHub" vendor="EnergyHub" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="energyhub,socket,plug,switch,energy,power,metering,zigbee,SK-ZP" ota="No" protofamily="ZigBee" added="2026-03-31T00:00:00-0600" lastchanged="2026-03-31T00:00:00-0600">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+        <category name="Energy"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the EnergyHub Socket into an outlet."/>
+        <step2 type="text" img="" text="If the device does not automatically pair, press the button on the socket once. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Hold down the button on the socket while plugging it in. Release the button after a few seconds."/>
       </reset>
       <populations>
         <population name="general"/>
