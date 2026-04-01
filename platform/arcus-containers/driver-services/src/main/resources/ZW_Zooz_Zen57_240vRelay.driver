@@ -1,0 +1,248 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Driver for a Zooz ZEN57 240V XS Relay
+ *
+ * The ZEN57 is a single-channel 240V relay designed for high-voltage loads
+ * such as water heaters, pool pumps, and well pumps. It supports a dry-contact
+ * input for external switch or sensor connection.
+ *
+ * FACTORY RESET:  Click the Z-Wave button 2 times quickly, then hold for at
+ *                 least 10 seconds. The LED will blink to confirm.
+ *
+ * PAIR/INCLUDE:   Click the Z-Wave button 3 times quickly while the hub is in inclusion mode.
+ * UNPAIR/EXCLUDE: Click the Z-Wave button 3 times quickly while the hub is in exclusion mode.
+ *
+ * Command Classes:
+ *   0x20   (32) Basic
+ *   0x25   (37) Switch_Binary
+ *   0x55   (85) Transport Service
+ *   0x59   (89) Association Group Info
+ *   0x5A   (90) Device Reset Locally
+ *   0x5E   (94) Z-Wave+ Info
+ *   0x6C  (108) Supervision
+ *   0x70  (112) Configuration
+ *   0x72  (114) Manufacturer_Specific
+ *   0x73  (115) Power Level
+ *   0x7A  (122) Firmware Update Meta Data
+ *   0x85 (-123) Association
+ *   0x86 (-122) Version
+ *   0x8E (-114) Multi Channel Association
+ *   0x9F  (-97) Security S2
+ */
+import groovy.transform.Field
+
+importCapability 'zwave/GenericZWaveSwitch'
+importCapability 'zwave/GenericZWaveVersion'
+
+
+driver          "ZWZoozZen57240vRelayDriver"
+description     "Driver for a Zooz ZEN57 240V XS Relay"
+version         "1.0"
+protocol        "ZWAV"
+deviceTypeHint  "Switch"
+productId       "d3e057"
+vendor          "Zooz"
+model           "ZEN57"
+
+matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0004, 'ZWAV:ProductId': 0x0321
+
+
+capabilities    DevicePower, Switch
+
+
+// set DevicePower
+// ---------------
+DevicePower.source               DevicePower.SOURCE_LINE
+DevicePower.linecapable          true
+DevicePower.backupbatterycapable false
+
+Switch.state                     Switch.STATE_OFF
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings -- exposing Z-Wave config params to clients
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'ledMode', id: 1, size: 1,
+       type: 'enum', values: ['0': 'LED always off', '1': 'LED on when load is on'],
+       description: 'Parameter 1: LED indicator control',
+       dflt: 1
+
+   param name: 'powerFailure', id: 2, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
+       description: 'Parameter 2: State after power failure',
+       dflt: 2
+
+   param name: 'sceneControl', id: 4, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 4: Scene control (multi-tap detection)',
+       dflt: 1
+
+   param name: 'switchType', id: 5, size: 1,
+       type: 'enum', values: ['0': 'Auto Detect', '1': 'Toggle', '2': 'Momentary', '3': 'Toggle (Reversed)', '4': 'Leak Sensor', '5': 'Heat Alarm', '6': 'Motion Alert', '7': 'Door Sensor', '8': 'CO Alarm', '9': 'CO2 Alarm', '10': 'On/Off Report Only'],
+       description: 'Parameter 5: External switch type',
+       dflt: 0
+
+   param name: 'autoOffTimer', id: 7, size: 4,
+       type: 'range', min: 0, max: 2678400,
+       description: 'Parameter 7: Auto turn-off timer in seconds (0=disabled)',
+       dflt: 0
+
+   param name: 'autoOnTimer', id: 8, size: 4,
+       type: 'range', min: 0, max: 2678400,
+       description: 'Parameter 8: Auto turn-on timer in seconds (0=disabled)',
+       dflt: 0
+
+   param name: 'smartSwitchMode', id: 9, size: 1,
+       type: 'enum', values: ['0': 'Local disabled', '1': 'Local and Z-Wave enabled', '2': 'Both disabled'],
+       description: 'Parameter 9: Smart switch mode / load control',
+       dflt: 1
+
+   param name: 'relayType', id: 10, size: 1,
+       type: 'enum', values: ['0': 'Normally Open', '1': 'Normally Closed'],
+       description: 'Parameter 10: Relay type',
+       dflt: 0
+
+   param name: 'inputTrigger', id: 11, size: 1,
+       type: 'enum', values: ['0': 'Input triggers load', '1': 'Input reports only'],
+       description: 'Parameter 11: External input trigger behavior',
+       dflt: 0
+}
+
+
+@Field final String DEVICE_NAME = "Zooz ZEN57 240V XS Relay"
+
+final int OFFLINE_TIMEOUT_SECS = 11400        // 190 minutes
+final int POLLING_INTERVAL_SEC = 3600         // Ask for current state every 60 minutes
+final long DEFERRED_READ_DELAY_MSEC = 5000    // wait 5 seconds after Node Info to read state
+
+final byte SWITCH_ON            = 0xff
+final byte SWITCH_OFF           = 0x00
+
+// Config Parameters
+// ----------------------------------------------------------------------------
+@Field final byte CNFG_LED_PARAM_NO           = 1
+final byte CNFG_LED_SIZE                      = 1
+final byte CNFG_LED_VALUE                     = 1       // LED on when load is on
+
+@Field final byte CNFG_POWER_FAILURE_PARAM_NO = 2
+final byte CNFG_POWER_FAILURE_SIZE            = 1
+final byte CNFG_POWER_FAILURE_VALUE           = 2       // restore last state
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Lifecycle Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "{} added with Attributes {}", DEVICE_NAME, message.attributes
+
+   DevicePower.source               DevicePower.SOURCE_LINE
+   DevicePower.linecapable          true
+   DevicePower.backupbatterycapable false
+   DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Switch.state                     Switch.STATE_OFF
+   Switch.statechanged              ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "{} connected", DEVICE_NAME
+
+   vars.'MAX_READBACKS' = 10
+   vars.'DFLT_READBACK_DELAY' = 1000
+
+   ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
+   ZWave.poll(POLLING_INTERVAL_SEC, ZWave.switch_binary.get)
+
+   // set Association to Group 1, Node 1
+   ZWave.association.set( 1, 1, 0, 0, 0);
+
+   // configure device
+   ZWave.configuration.set( CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_VALUE )
+   ZWave.configuration.set( CNFG_POWER_FAILURE_PARAM_NO, CNFG_POWER_FAILURE_SIZE, CNFG_POWER_FAILURE_VALUE )
+
+   // get configuration settings
+   ZWave.configuration.get( CNFG_LED_PARAM_NO )
+   ZWave.configuration.get( CNFG_POWER_FAILURE_PARAM_NO )
+}
+
+onDisconnected {
+   log.debug "{} disconnected", DEVICE_NAME
+}
+
+onRemoved {
+   log.debug "{} removed", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Support
+////////////////////////////////////////////////////////////////////////////////
+
+setAttributes('swit') {
+   GenericZWaveSwitch.handleSwitchState(this, DEVICE_NAME, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Protocol Message Callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onZWaveMessage.switch_binary.report {
+   GenericZWaveSwitch.handleBinarySwitchReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.basic.report {
+   log.trace "Basic Report: {}", message
+   GenericZWaveSwitch.handleBinarySwitchReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.basic.set {
+   log.trace "Basic Set: {}", message
+   GenericZWaveSwitch.handleBinarySwitchReport(this, DEVICE_NAME, message)
+}
+
+onZWaveMessage.configuration.report {
+   log.debug "{} reported configuration: {}", DEVICE_NAME, message
+   byte param = message.command.get('param')
+   byte level = message.command.get('level')
+   byte val1 = message.command.get('val1')
+   log.debug "param: {}, level: {}, val1: {}", param, level, val1
+}
+
+onZWaveMessage.zwaveplus_info.report {
+   def zwVer = message.command.get('zwaveversion')
+   def roleType = message.command.get('roletype')
+   def nodeType = message.command.get('nodetype')
+   log.info "ZWave Plus Info, ZWave Ver:{}, RoleType:{}, NodeType:{}", zwVer, roleType, nodeType
+}
+
+onZWaveMessage.device_reset_locally.notification {
+   log.info "Device Reset Locally Notification"
+}
+
+onZWaveNodeInfo {
+   log.debug "{} reported Node Info: {}, {}, {}, {}, {}", DEVICE_NAME, message.getNodeId(), message.getStatus(), message.getBasic(), message.getGeneric(), message.getSpecific()
+   GenericZWaveSwitch.scheduleDeferredReadLevel(this, DEFERRED_READ_DELAY_MSEC)
+}
+
+onZWaveMessage {
+   log.debug "{} received unhandled ZWave message {}", DEVICE_NAME, message
+   return false;
+}

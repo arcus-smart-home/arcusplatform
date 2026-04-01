@@ -1,0 +1,125 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * Mock driver for a dual-switch (multi-instance) device.
+ * Two independently controlled switch instances (switch1, switch2).
+ */
+driver         "MOCK_DualSwitch"
+description    "Driver for the Mockitron Dual Switch device"
+version        "1.0"
+protocol       "MOCK"
+deviceTypeHint "Switch"
+productId      "671eee"
+vendor         "Mockitron"
+model          "Dual Switch"
+
+matcher        'MOCK:Capability' : 'DualSwitch'
+matcher        'MOCK:ProductId'  : '671eee'
+
+capabilities   DevicePower, DeviceMock
+
+instance 'switch1', Switch
+instance 'switch2', Switch
+
+
+// ########### driver lifecycle callbacks ##################
+
+onAdded {
+   log.debug "Mockitron Dual Switch device started."
+   Device.name 'Mock Dual Switch'
+
+   DeviceConnection.signal 74
+
+   DevicePower.source               DevicePower.SOURCE_LINE
+   DevicePower.linecapable          true
+   DevicePower.backupbatterycapable false
+   DevicePower.sourcechanged        ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+
+   Switch.state.switch1        Switch.STATE_OFF
+   Switch.statechanged.switch1 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+   Switch.state.switch2        Switch.STATE_OFF
+   Switch.statechanged.switch2 ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date())
+}
+
+onConnected {
+   log.debug "Mockitron Dual Switch device connected."
+}
+
+onDisconnected {
+   log.debug "Mockitron Dual Switch device disconnected."
+}
+
+onRemoved {
+   log.debug "Mockitron Dual Switch device removed."
+}
+
+
+// ########### capability support ##################
+
+setAttributes('swit') {
+   def attrs = message.attributes
+   log.debug "setAttributes('swit'): {}", attrs
+   for (attr in attrs) {
+      switch (attr.key) {
+         case Switch.state.switch1:
+            def prev = Switch.state.switch1.get()
+            Switch.state.switch1 attr.value
+            if (attr.value != prev) {
+               Switch.statechanged.switch1 new Date()
+            }
+            break
+
+         case Switch.state.switch2:
+            def prev = Switch.state.switch2.get()
+            Switch.state.switch2 attr.value
+            if (attr.value != prev) {
+               Switch.statechanged.switch2 new Date()
+            }
+            break
+
+         default:
+            log.warn "Unrecognized attribute: {}", attr
+            break
+      }
+   }
+}
+
+
+// ########### mock stuff here #####################
+
+onPlatform ("devmock:Connect") {
+   log.debug "devmock:Connect"
+   connected();
+   sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:Disconnect") {
+   log.debug "devmock:Disconnect"
+   disconnected();
+   sendResponse "devmock:ConnectResponse", [:]
+}
+
+onPlatform ("devmock:SetAttributes") {
+   log.debug "devmock:SetAttributes:" + message.attributes.attrs
+   attributes << message.attributes.attrs
+   if (message.attributes.attrs['swit:state:switch1']) {
+      Switch.statechanged.switch1 new Date()
+   }
+   if (message.attributes.attrs['swit:state:switch2']) {
+      Switch.statechanged.switch2 new Date()
+   }
+   sendResponse "devmock:SetAttributesResponse", [:]
+}
