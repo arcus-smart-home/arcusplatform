@@ -58,7 +58,9 @@ public class TestAES {
         thrown.expect(RuntimeException.class);
         String ctext = aes.encryptSafe("foo", "foo1");
         byte[] tamper = Utils.b64Decode(ctext);
-        tamper[3] = 'A';
+        // Flip a bit so the byte is always altered; assigning a constant is a
+        // no-op ~1/256 of the time when the random GCM IV already holds it.
+        tamper[3] ^= 0x01;
         String tampered = Utils.b64Encode(tamper);
         String decoded = aes.decryptSafe("foo", tampered);
     }
