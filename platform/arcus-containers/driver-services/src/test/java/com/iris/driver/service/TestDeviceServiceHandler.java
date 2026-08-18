@@ -70,6 +70,7 @@ public class TestDeviceServiceHandler extends IrisMockTestCase {
    @Inject private PersonPlaceAssocDAO personPlaceAssocDao;
    @Inject private DeviceService service;
    @Inject private DriverExecutorRegistry execReg;
+   @Inject private DriverRegistry driverRegistry;
    @Inject private InMemoryPlatformMessageBus platformBus;
 
    private DeviceServiceHandler handler;
@@ -80,7 +81,7 @@ public class TestDeviceServiceHandler extends IrisMockTestCase {
    public void setUp() throws Exception {
       super.setUp();
 
-      handler = new DeviceServiceHandler(platformBus, new DriverServiceConfig(), devDao, hubDao, ipcdDevDao, personDao, personPlaceAssocDao, service, null);
+      handler = new DeviceServiceHandler(platformBus, new DriverServiceConfig(), devDao, hubDao, ipcdDevDao, personDao, personPlaceAssocDao, service, null, driverRegistry);
 
       placeId = UUID.randomUUID();
       devices = new ArrayList<>();

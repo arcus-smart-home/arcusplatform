@@ -55,6 +55,22 @@
             description="A base64 encoded and gzipped json list of ReflexDriverDefinition objects"
             optional="false"/>
       </s:method>
+
+      <s:method
+         name="ListDrivers"
+         description="Returns a list of all drivers the platform currently supports, with optional filtering by population.">
+
+         <s:parameter
+            name="population"
+            type="string"
+            description="If specified, only return drivers that support this population"
+            optional="true"/>
+
+         <s:return
+            name="drivers"
+            type="List&lt;Object&gt;"
+            description="List of driver summary objects with name, version, description, capabilities, and populations"/>
+      </s:method>
    </s:methods>
    
    <s:events>

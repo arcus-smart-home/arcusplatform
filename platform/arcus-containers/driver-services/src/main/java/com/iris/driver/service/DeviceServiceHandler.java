@@ -21,7 +21,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,8 +50,12 @@ import com.iris.core.platform.AbstractPlatformService;
 import com.iris.core.protocol.ipcd.IpcdDeviceDao;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.device.attributes.AttributeMap;
+import com.iris.device.model.CapabilityDefinition;
+import com.iris.driver.DeviceDriver;
+import com.iris.driver.DeviceDriverDefinition;
 import com.iris.driver.platform.PlatformDriverService;
 import com.iris.driver.service.DeviceService.CreateDeviceRequest;
+import com.iris.driver.service.registry.DriverRegistry;
 import com.iris.io.json.JSON;
 import com.iris.messages.MessageBody;
 import com.iris.messages.MessageConstants;
@@ -82,6 +90,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    private final PersonPlaceAssocDAO personPlaceAssocDao;
 	private final DeviceService service;
    private final PlatformDriverService driverService;
+   private final DriverRegistry driverRegistry;
    private final int syncSizeWarning;
 
 	@Inject
@@ -94,7 +103,8 @@ public class DeviceServiceHandler extends AbstractPlatformService {
 	      PersonDAO personDao,
 	      PersonPlaceAssocDAO personPlaceAssocDao,
 	      DeviceService service,
-	      PlatformDriverService driverService
+	      PlatformDriverService driverService,
+	      DriverRegistry driverRegistry
    ) {
 	   super(platformBus, NAME, config.getMaxThreads(), config.getThreadKeepAliveMs());
 		this.deviceDao = deviceDao;
@@ -104,6 +114,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
 		this.personPlaceAssocDao = personPlaceAssocDao;
 		this.service = service;
 		this.driverService = driverService;
+		this.driverRegistry = driverRegistry;
 		this.syncSizeWarning = config.getSyncSizeWarning();
 	}
 
@@ -116,6 +127,8 @@ public class DeviceServiceHandler extends AbstractPlatformService {
                 return addDevice(body);
             case com.iris.messages.service.DeviceService.SyncDevicesRequest.NAME:
                 return syncDevices(message, body);
+            case com.iris.messages.service.DeviceService.ListDriversRequest.NAME:
+                return listDrivers(body);
             // TODO: Adding this case for i2-1932 this should be changed in the hub to use dev namespace and removed at some point in the fufutre
             case LEGACY_DEVICESYNC_NAMESPACE:
                 MessageBody m = syncDevices(message, body);
@@ -177,6 +190,46 @@ public class DeviceServiceHandler extends AbstractPlatformService {
 	      return Errors.fromException(e);
 	   }
 	}
+
+   public MessageBody listDrivers(MessageBody request) {
+      String population = com.iris.messages.service.DeviceService.ListDriversRequest.getPopulation(request);
+
+      Collection<DeviceDriver> allDrivers = driverRegistry.listDrivers();
+
+      List<Map<String, Object>> driverList = new ArrayList<>();
+      for (DeviceDriver driver : allDrivers) {
+         DeviceDriverDefinition def = driver.getDefinition();
+
+         if (population != null && !def.getPopulations().isEmpty()
+               && !def.getPopulations().contains(population)) {
+            continue;
+         }
+
+         Map<String, Object> driverInfo = new HashMap<>();
+         driverInfo.put("name", def.getName());
+         driverInfo.put("version", def.getVersion().getRepresentation());
+         driverInfo.put("description", def.getDescription());
+         driverInfo.put("populations", new ArrayList<>(def.getPopulations()));
+         driverInfo.put("hash", def.getHash());
+
+         Set<String> capNamespaces = new LinkedHashSet<>();
+         for (CapabilityDefinition cap : def.getCapabilities()) {
+            capNamespaces.add(cap.getNamespace());
+         }
+         driverInfo.put("capabilities", new ArrayList<>(capNamespaces));
+
+         Map<String, Object> matchers = def.getMatcherAttributes();
+         if (matchers != null && !matchers.isEmpty()) {
+            driverInfo.put("matchers", matchers);
+         }
+
+         driverList.add(driverInfo);
+      }
+
+      return com.iris.messages.service.DeviceService.ListDriversResponse.builder()
+         .withDrivers(driverList)
+         .build();
+   }
 
    public void handleRemovedDeviceEvent(MessageBody request) {
       String protocolName = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocol(request);
