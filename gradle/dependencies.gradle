@@ -64,7 +64,7 @@ ext.libraries << [
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 			exclude group: "log4j", module: "log4j"
 		},
-		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.15.0",
+		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.16.1",
 
 // Apache Lucene
 		luceneCore: "org.apache.lucene:lucene-core:8.11.4",
@@ -91,8 +91,8 @@ ext.libraries << [
 		jaxb_api: "javax.xml.bind:jaxb-api:2.3.1",
 
 // Encryption via Bouncy Castle
-		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.79",
-		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk18on:1.79",
+		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.86",
+		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk18on:1.86",
 
 // SQL Database
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
@@ -103,8 +103,8 @@ ext.libraries << [
 		// guice-multibindings merged into core guice jar in 5.x
 
 // jackson dependencies
-		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.8",
-		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.18.8",
+		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.11",
+		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.18.11",
 
 // kafka dependencies
 		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
@@ -229,7 +229,7 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
 else
-	ext.netty_version = "4.1.135.Final"
+	ext.netty_version = "4.1.138.Final"
 if (project.hasProperty("tcnative_override_version"))
 	ext.tcnative_version = "${tcnative_override_version}"
 else
