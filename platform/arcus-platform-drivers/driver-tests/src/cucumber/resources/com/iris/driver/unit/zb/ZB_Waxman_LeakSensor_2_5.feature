@@ -92,8 +92,8 @@ Feature: Test of the Waxman Leak Sensor driver
     Scenario: poll control check in
         When the device response with pollcontrol checkin
             And send to driver
-        Then the driver should send pollcontrol checkinresponse    
-    
+        Then the driver should send pollcontrol checkinresponse
+
 ############################################################
 # Temperature Cluster Tests
 ############################################################
