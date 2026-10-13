@@ -17,7 +17,14 @@
  * ZigBee Driver for the Waxman (LeakSmart) Water Leak Sensor
  * 
  *    08/07/17 - Version 2.5 for Reflexes.
- *  
+ *
+ *    10/12/26 - No longer sets poll intervals on connect, to fix disconnect/reconnect
+ *               cycling.  Offline timeout increased to 1440 minutes (24 hours).
+ *               See: https://github.com/Koenkk/zigbee2mqtt/issues/16183
+ *               This device's check-in interval cannot be configured, so it always checks
+ *               in and the hub must keep answering; an unanswered check-in leaves it fast
+ *               polling until it times out.
+ *
  *    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  *    IMPORTANT:
  *    It appears that even though the Liquid Detected attribute is configured to be reported, the devices do not always
@@ -41,10 +48,7 @@
  *  - Performing an Identify operation turns the LED on and cycles the color for 3 minutes (see IDENT_PERIOD_SECS).
  * 
  * OFFLINE TIMEOUT:
- *    195 minutes
- * 
- * CHECK-IN INTERVAL:
- *    60 minutes
+ *    1440 minutes (24 hours)
  * 
  * BATTERY LEVEL REPORTING:
  *  - At least every 12 hours, at most every 60 minutes
@@ -142,7 +146,7 @@ final short IDENT_PERIOD_SECS = 180       // number of seconds (0-600) for devic
 ////////////////////////////////////////////////////////////////////////////////
 
 Zigbee {
-    offlineTimeout 195, MINUTES
+    offlineTimeout 1440, MINUTES
 
     /////////////////////////////////////////////////////////////////////////////
     // Hub Local Lifecycle
@@ -170,10 +174,6 @@ Zigbee {
             // configure temperature reporting at most once every 60 minutes, at least once every 3 hours
             report endpoint: 1, cluster: Zcl.TemperatureMeasurement.CLUSTER_ID, attr: tempCluster.ATTR_MEASURED_VALUE, type: Data.TYPE_SIGNED_16BIT, min: 3600, max: 10800
             
-            send zcl.pollcontrol.setLongPollInterval, newLongPollInterval: 24
-            send zcl.pollcontrol.setShortPollInterval, newShortPollInterval: 4
-        
-            // Poll Control Check-In interval cannot be set on device
         }
     }
     
