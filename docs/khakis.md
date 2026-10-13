@@ -37,7 +37,7 @@ All containers are built from `arcus/java`, the base image.
 
 | Property | Value |
 |----------|-------|
-| Version | 3.8.6 |
+| Version | 3.9.6 |
 | Ports | 2181 (client), 2888 (peer), 3888 (leader election) |
 | Entry point | `zookeeper-cmd entry` → `zookeeper-cmd start` |
 | Data dir | `/data` |
@@ -57,7 +57,7 @@ All containers are built from `arcus/java`, the base image.
 
 | Property | Value |
 |----------|-------|
-| Version | 4.0.15 |
+| Version | 4.0.21 |
 | Ports | 9042 (CQL), 7000 (intra-node), 7001 (TLS intra-node), 7199 (JMX) |
 | Entry point | `cassandra-cmd entry` → `cassandra-cmd start` |
 | Data dir | `/data` |

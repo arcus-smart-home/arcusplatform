@@ -272,7 +272,7 @@ See [tools.md](tools.md#arcus-captools) for details.
 | `arcus/java` | Temurin JDK 8 (Debian Bullseye) | — (base image) |
 | `arcus/zookeeper` | arcus/java | 2181, 2888, 3888 |
 | `arcus/kafka` | arcus/java (Kafka 2.8.2, Scala 2.12) | 9092 |
-| `arcus/cassandra` | arcus/java (Cassandra 4.0.15) | 9042, 9160, 7000, 7199 |
+| `arcus/cassandra` | arcus/java (Cassandra 4.0.21) | 9042, 9160, 7000, 7199 |
 
 ### Service Containers
 
