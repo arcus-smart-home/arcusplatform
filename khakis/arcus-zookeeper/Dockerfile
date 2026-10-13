@@ -11,11 +11,11 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV ZOOKEEPER_VERSION 3.8.6
+ENV ZOOKEEPER_VERSION 3.9.6
 
 # Download and install the required version of Apache Zookeeper.
 RUN \
-    wget http://mirrors.ibiblio.org/apache/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz && \
+    wget https://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz && \
     tar xfz /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz -C /opt && \
     mv /opt/apache-zookeeper-${ZOOKEEPER_VERSION}-bin /opt/zookeeper-${ZOOKEEPER_VERSION} && \
     ln -s /opt/zookeeper-${ZOOKEEPER_VERSION} /opt/zookeeper && \
