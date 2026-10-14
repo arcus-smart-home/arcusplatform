@@ -75,7 +75,6 @@ public class Binary10WebSocketServerHandler extends BaseWebSocketServerHandler {
 		   }
 		   terminateSocketSessionWithExtremePrejudice(ctx.channel());
 			closeWebSocket(ctx, (CloseWebSocketFrame)frame.retain());
-         metrics.incSessionDestroyedCounter();
 			return;
 		}
 

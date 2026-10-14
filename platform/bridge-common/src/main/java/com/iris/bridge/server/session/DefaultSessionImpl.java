@@ -102,6 +102,18 @@ public class DefaultSessionImpl implements Session {
       parent.destroySession(this);
    }
 
+   void countCreated() {
+      if(bridgeMetrics != null) {
+         bridgeMetrics.incSessionCreatedCounter();
+      }
+   }
+
+   void countDestroyed() {
+      if(bridgeMetrics != null) {
+         bridgeMetrics.incSessionDestroyedCounter();
+      }
+   }
+
    void destroy0() {
       this.channel = null;
    }

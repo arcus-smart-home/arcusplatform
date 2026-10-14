@@ -61,7 +61,6 @@ public class WebSocketServerHandler extends Text10WebSocketServerHandler {
       if (!session.isInitialized()) {
          ClientToken ct = new IrisNettyClientClientToken(IrisNettyClientIds.createId());
          session.setClientToken(ct);
-         metrics.incSessionCreatedCounter();
          sessionRegistry.putSession(session);
       }
       return session;

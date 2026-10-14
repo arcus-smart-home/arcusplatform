@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +46,7 @@ public class DefaultSessionRegistryImpl implements SessionRegistry  {
    public DefaultSessionRegistryImpl(ClientFactory clientFactory, Set<SessionListener> listeners) {
       this.listeners = ImmutableSet.copyOf(listeners);
       this.clientFactory = clientFactory;
+      SessionMetrics.track(this);
    }
       
 
@@ -66,22 +67,36 @@ public class DefaultSessionRegistryImpl implements SessionRegistry  {
    @Override
    public void putSession(Session session) {
       ClientToken ct = session.getClientToken();
-      SessionMetrics.incrementSessions();
-      sessionMap.put(ct, session);
-      logger.debug("Session registered [{}]", ct);
+      Session previous = sessionMap.put(ct, session);
+      if(previous == session) {
+         // already registered, e.g. a session registered on creation and again after the handshake
+         return;
+      }
+
+      if(previous != null) {
+         // A reconnect with the same token (e.g. a hub) replaces the old session, whose connection
+         // is left to close on its own; count it as gone so created - destroyed stays the live count.
+         logger.debug("Session [{}] replaced an existing session", ct);
+         countDestroyed(previous);
+      }
+      else {
+         logger.debug("Session registered [{}]", ct);
+      }
+      countCreated(session);
    }
 
    @Override
    public void destroySession(Session session) {
       logger.debug("Bridge session.destroySession is called [{}]");
       ClientToken ct = session.getClientToken();
-      Session s = sessionMap.remove(ct);
-      if(s != null && s instanceof DefaultSessionImpl) {
+      // Only remove this exact session: destroying a session that was already replaced must not
+      // remove its replacement.
+      if(ct != null && sessionMap.remove(ct, session) && session instanceof DefaultSessionImpl) {
     	 Client curClient = session.getClient();
          logger.debug("Session destroyed [{}], session id [{}]", ct, curClient!=null?curClient.getSessionId():"");
-         SessionMetrics.decrementSessions();                 
+         countDestroyed(session);
          fireListeners(session);   
-         ((DefaultSessionImpl) s).destroy0(); 	         
+         ((DefaultSessionImpl) session).destroy0(); 	         
       }
    }
 
@@ -93,37 +108,37 @@ public class DefaultSessionRegistryImpl implements SessionRegistry  {
    private void fireListeners(Session session) {
       listeners.forEach((l) -> l.onSessionDestroyed(session));
    }
+
+   private static void countCreated(Session session) {
+      if(session instanceof DefaultSessionImpl) {
+         ((DefaultSessionImpl) session).countCreated();
+      }
+   }
+
+   private static void countDestroyed(Session session) {
+      if(session instanceof DefaultSessionImpl) {
+         ((DefaultSessionImpl) session).countDestroyed();
+      }
+   }
    
-   
+   /**
+    * Reports the number of registered sessions. The gauge can only be registered once per
+    * process, so it follows the most recently created registry (there is one per bridge).
+    */
    private static class SessionMetrics {
-      private static final SessionMetrics INSTANCE;
-      
+      private static final AtomicReference<DefaultSessionRegistryImpl> REGISTRY = new AtomicReference<>();
+
       static {
-         INSTANCE = new SessionMetrics();
-         IrisMetrics.metrics("bridge.sessions").gauge("active", SessionMetrics::getSessionCount, INSTANCE);
+         IrisMetrics.metrics("bridge.sessions").gauge("active", SessionMetrics::getSessionCount, REGISTRY);
       }
-      
-      public static void incrementSessions() {
-         INSTANCE.doIncrementSessions();
+
+      static void track(DefaultSessionRegistryImpl registry) {
+         REGISTRY.set(registry);
       }
-      
-      public static void decrementSessions() {
-         INSTANCE.doDecrementSessions();
-      }
-      
-      private final AtomicLong sessions = new AtomicLong();
-      
-      public void doIncrementSessions() {
-         sessions.incrementAndGet();
-      }
-      
-      public void doDecrementSessions() {
-         sessions.decrementAndGet();
-      }
-      
-      public long getSessionCount() {
-         return sessions.get();
+
+      private static long getSessionCount(AtomicReference<DefaultSessionRegistryImpl> registry) {
+         DefaultSessionRegistryImpl current = registry.get();
+         return current == null ? 0 : current.sessionCount();
       }
    }
 }
-
