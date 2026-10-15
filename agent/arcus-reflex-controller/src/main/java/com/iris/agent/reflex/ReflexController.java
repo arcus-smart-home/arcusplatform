@@ -36,6 +36,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import com.iris.agent.config.ConversionService;
 import com.iris.agent.zwave.ZWaveLocalProcessing;
 import com.iris.protocol.zigbee.ZigbeeProtocol;
 import com.iris.protocol.zwave.ZWaveProtocol;
@@ -706,13 +707,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
                   ((HubDriver)existing).shutdown();
                }
 
-               Map<String,String> driverState = (driverStates != null)
-                  ? driverStates.get(addr)
-                  : ReflexDao.getDriverState(addr);
-
-               if (driverState == null) {
-                  driverState = ImmutableMap.of();
-               }
+               Map<String,String> driverState = getStartState(addr, existing, driverStates);
 
                HubDriver driver = factory.create(this,addr);
                driver.start(driverState, curState);
@@ -727,13 +722,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
                continue;
             }
 
-            Map<String,String> reflexState = (driverStates != null)
-               ? driverStates.get(addr)
-               : ReflexDao.getDriverState(addr);
-
-            if (reflexState == null) {
-               reflexState = ImmutableMap.of();
-            }
+            Map<String,String> reflexState = getStartState(addr, rdp, driverStates);
 
             log.info("hub local reflexes {}: {} reflexes defined", addr, drv.getReflexes().size());
             if (log.isTraceEnabled() && drv.getDfa() != null && drv.getDfa().getDfa() != null) {
@@ -753,6 +742,36 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
 
       numDevicesAttr.poke();
       localProcessing.fireDevicesUpdated();
+   }
+
+   /**
+    * The state to start a device's new processor with. When a processor is
+    * already running for the device (a driver changed during a resync), its
+    * in-memory state is authoritative: the database copy is written
+    * asynchronously and may be behind, and starting from it can change device
+    * state (e.g. a leak sensor's wet/dry) without any event reaching the alarms.
+    * The database is used when there is no running processor, as at startup.
+    */
+   private Map<String,String> getStartState(Address addr, @Nullable ReflexProcessor existing, @Nullable Map<Address,Map<String,String>> driverStates) {
+      if (existing != null) {
+         Map<String,Object> live = new HashMap<>();
+         Map<String,String> state = new HashMap<>();
+         for (Map.Entry<String,Object> entry : existing.getState().entrySet()) {
+            if (entry.getValue() != null) {
+               live.put(entry.getKey(), entry.getValue());
+               state.put(entry.getKey(), ConversionService.from(entry.getValue()));
+            }
+         }
+
+         // bring the database back in line so a restart doesn't restore stale values
+         ReflexDao.putDriverState(addr.getRepresentation(), live);
+         return state;
+      }
+
+      Map<String,String> state = (driverStates != null)
+         ? driverStates.get(addr)
+         : ReflexDao.getDriverState(addr);
+      return (state != null) ? state : ImmutableMap.of();
    }
 
    private void sendOfflineTimeout(Address protocol, long offlineTimeout) {
