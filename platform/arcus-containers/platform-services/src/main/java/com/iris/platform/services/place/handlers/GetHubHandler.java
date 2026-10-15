@@ -67,8 +67,9 @@ public class GetHubHandler implements ContextualRequestMessageHandler<Place> {
             if(registry.isOnline(hub.getId())) {
                logger.warn("Hub {} incorrectly marked as offline", hub.getId());
 
+               // only corrects this response; HubRegistry's periodic connected check
+               // persists the correction and broadcasts it to everyone else
                hub.setAttribute(HubCapability.ATTR_STATE, HubCapability.STATE_NORMAL);
-               // TODO fire a ValueChange to get everyone else back in sync
             }
          }
          hubAttrs = hub.toMap();

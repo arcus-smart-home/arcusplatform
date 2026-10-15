@@ -61,6 +61,14 @@ public interface HubDAO extends CRUDDao<String, Hub> {
 	Map<String, Object> connected(String hubId) throws NotFoundException;
 
 	/**
+	 * The stored hubconn:state and hubconn:lastchange exactly as persisted (JSON text),
+	 * keyed by attribute name, for use with {@link #updateConnectionState}. Read at serial
+	 * consistency, so it reflects conditional writes from other instances. Empty if the
+	 * hub doesn't exist or has no connection state.
+	 */
+	Map<String, String> findConnectionState(String hubId);
+
+	/**
 	 * Sets
 	 *  hub:state DOWN
 	 *  hubconn:state OFFLINE
@@ -92,6 +100,17 @@ public interface HubDAO extends CRUDDao<String, Hub> {
 	 * @param attrs
 	 */
 	void updateAttributes(String hubId, Map<String, Object> attrs);
+
+	/**
+	 * Sets hubconn:state and hubconn:lastchange IF the stored hubconn:lastchange still
+	 * equals expectedLastChange (or the hub exists, when expectedLastChange is null).
+	 * Lets writers on different partitions or instances apply connection changes in
+	 * order: read with {@link #findConnectionState(String)}, compare, then write.
+	 *
+	 * @param expectedLastChange the stored hubconn:lastchange as returned by findConnectionState, or null if none
+	 * @return true if the write was applied
+	 */
+	boolean updateConnectionState(String hubId, String state, Object lastChange, String expectedLastChange);
 
 	ModelEntity findHubModelForPlace(UUID placeId);
 	ModelEntity findHubModel(String id);

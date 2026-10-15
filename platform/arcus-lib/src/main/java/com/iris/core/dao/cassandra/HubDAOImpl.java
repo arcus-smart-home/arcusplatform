@@ -102,6 +102,8 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    private static final Timer updateAttributesTimer = DaoMetrics.updateTimer(HubDAO.class, "updateAttributes");
    private static final Timer connectedTimer = DaoMetrics.updateTimer(HubDAO.class, "connected");
    private static final Timer disconnectedTimer = DaoMetrics.updateTimer(HubDAO.class, "disconnected");
+   private static final Timer findConnectionStateTimer = DaoMetrics.readTimer(HubDAO.class, "findConnectionState");
+   private static final Timer updateConnectionStateTimer = DaoMetrics.updateTimer(HubDAO.class, "updateConnectionState");
    private static final Timer findHubModelTimer = DaoMetrics.readTimer(HubDAO.class, "findHubModel");
    private static final Timer findHubModelForPlaceTimer = DaoMetrics.readTimer(HubDAO.class, "findHubModelForPlace");
    private static final Counter hubInsertCellBackupFailure = DaoMetrics.counter(HubDAO.class, "insert.cellbackup.failure");
@@ -208,6 +210,9 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    private PreparedStatement updateCellDisallow;
    private PreparedStatement connected;
    private PreparedStatement disconnected;
+   private PreparedStatement findAttributes;
+   private PreparedStatement updateConnectionState;
+   private PreparedStatement updateConnectionStateIfExists;
 
    private final PreparedStatement listPaged;
 
@@ -275,6 +280,37 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
                .update(TABLE)
                .addColumns(
                      HubEntityColumns.STATE,
+                     String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_STATE),
+                     String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_LASTCHANGE),
+                     BaseEntityColumns.MODIFIED
+               )
+               .addWhereColumnEquals(HubEntityColumns.ID)
+               .ifExists()
+               .prepare(session);
+
+      findAttributes =
+            CassandraQueryBuilder
+               .select(TABLE)
+               .addColumns(ATTRIBUTES_COLUMN)
+               .addWhereColumnEquals(HubEntityColumns.ID)
+               .prepare(session);
+
+      updateConnectionState =
+            CassandraQueryBuilder
+               .update(TABLE)
+               .addColumns(
+                     String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_STATE),
+                     String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_LASTCHANGE),
+                     BaseEntityColumns.MODIFIED
+               )
+               .addWhereColumnEquals(HubEntityColumns.ID)
+               .ifClause(String.format("%s['%s'] = ?", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_LASTCHANGE))
+               .prepare(session);
+
+      updateConnectionStateIfExists =
+            CassandraQueryBuilder
+               .update(TABLE)
+               .addColumns(
                      String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_STATE),
                      String.format("%s['%s']", ATTRIBUTES_COLUMN, HubConnectionCapability.ATTR_LASTCHANGE),
                      BaseEntityColumns.MODIFIED
@@ -533,6 +569,26 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
    @Override
+   public Map<String, String> findConnectionState(String hubId) {
+      try(Context ctx = findConnectionStateTimer.time()) {
+         // serial, so a conditional write from another instance is visible and the
+         // caller's condition on lastchange isn't checked against a stale value
+         Row row = session.execute(findAttributes.bind(hubId).setConsistencyLevel(DefaultConsistencyLevel.LOCAL_SERIAL)).one();
+         Map<String, String> attributes = row != null ? row.getMap(ATTRIBUTES_COLUMN, String.class, String.class) : null;
+         if(attributes == null) {
+            return ImmutableMap.of();
+         }
+         Map<String, String> state = new HashMap<>();
+         for(String name: new String[] { HubConnectionCapability.ATTR_STATE, HubConnectionCapability.ATTR_LASTCHANGE }) {
+            if(attributes.get(name) != null) {
+               state.put(name, attributes.get(name));
+            }
+         }
+         return state;
+      }
+   }
+
+   @Override
    public Map<String, Object> disconnected(String hubId) {
       Date ts = new Date();
       BoundStatement bs = disconnected.bind(HubCapability.STATE_DOWN, JSON.toJson(HubConnectionCapability.STATE_OFFLINE), JSON.toJson(ts), ts.toInstant(), hubId);
@@ -612,6 +668,17 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
             hubUpdateAttributesFailure.inc();
          }
       });
+   }
+
+   @Override
+   public boolean updateConnectionState(String hubId, String state, Object lastChange, String expectedLastChange) {
+      Date ts = new Date();
+      BoundStatement bs = expectedLastChange != null
+            ? updateConnectionState.bind(JSON.toJson(state), JSON.toJson(lastChange), ts.toInstant(), hubId, expectedLastChange)
+            : updateConnectionStateIfExists.bind(JSON.toJson(state), JSON.toJson(lastChange), ts.toInstant(), hubId);
+      try(Context ctx = updateConnectionStateTimer.time()) {
+         return session.execute(bs).wasApplied();
+      }
    }
 
    @Override

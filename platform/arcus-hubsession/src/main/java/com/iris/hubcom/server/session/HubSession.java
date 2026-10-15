@@ -26,6 +26,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import com.iris.bridge.metrics.BridgeMetrics;
 import com.iris.bridge.server.session.DefaultSessionImpl;
+import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionRegistry;
 import com.iris.platform.partition.PlatformPartition;
 
@@ -43,6 +44,7 @@ public class HubSession extends DefaultSessionImpl {
    }
 
    private final String hubId;
+   private final SessionRegistry registry;
    private volatile State state = State.CONNECTED;
    private volatile UnauthorizedReason unauthReason = UnauthorizedReason.HANDSHAKING;
    private volatile Date lastStateChange = new Date();
@@ -57,6 +59,7 @@ public class HubSession extends DefaultSessionImpl {
     */
    public HubSession(SessionRegistry parent, Channel channel, BridgeMetrics bridgeMetrics, HubClientToken token) {
       super(parent, channel, bridgeMetrics);
+      this.registry = parent;
       setClientType(TYPE_HUB);
       setClientToken(token);
       hubId = token.getRepresentation();
@@ -64,6 +67,16 @@ public class HubSession extends DefaultSessionImpl {
 
    public String getHubId() {
       return hubId;
+   }
+
+   /**
+    * True if a newer session for the same hub has replaced this one on this
+    * bridge, e.g. the hub reconnected after a network failure before this
+    * connection was noticed as closed.
+    */
+   public boolean isReplaced() {
+      Session current = registry.getSession(getClientToken());
+      return current != null && current != this;
    }
 
    public State getState() {
