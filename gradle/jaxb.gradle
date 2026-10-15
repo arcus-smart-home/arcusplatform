@@ -1,3 +1,11 @@
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
+
+interface InjectedExecOps {
+   @Inject
+   ExecOperations getExecOps()
+}
+
 ext.DEFAULT_SCHEMA_DIR = 'src/main/resources/schema/'
 ext.DEFAULT_SCHEMA_DIR_INCLUDES = '*.xsd'
 ext.DEFAULT_DESTINATION_DIR = 'src/generated/java'
@@ -42,29 +50,36 @@ task cleanJaxb {
 task excuteJaxbGeneration() {
    inputs.dir DEFAULT_SCHEMA_DIR
    outputs.dir DEFAULT_DESTINATION_DIR
+   def execOps = objects.newInstance(InjectedExecOps).execOps
 
    doLast {
       jaxbRuns.each {
          it()
-         xjcAnt()
+         xjcExec(execOps)
          resetExtensionDefaults()
       }
    }
 }
 
 
-def xjcAnt(){
+// Run XJC in its own JVM rather than as an Ant task inside the Gradle daemon.
+// With org.gradle.parallel, XJC runs from different projects can overlap, and
+// on JDK 8 the Ant task's class loader setup is not safe to run concurrently in
+// one JVM: builds fail intermittently with NoClassDefFoundError or an NPE.
+def xjcExec(ExecOperations execOps){
    println "genertaing schema for $schemaDir$schemaDirIncludes"
-   ant.taskdef(name: 'xjc', classname: 'com.sun.tools.xjc.XJCTask', classpath: configurations.xjc.asPath)
 
-   def destination = destinationDir
-   def jaxbTargetDir = file(destination)
+   def jaxbTargetDir = file(destinationDir)
    def packageName = packageName
-   def schemaDir = schemaDir
+   def schemas = fileTree(dir: schemaDir, include: schemaDirIncludes).files.sort()
+   def xjcClasspath = configurations.xjc
 
    jaxbTargetDir.mkdirs()
-   ant.xjc(destdir: destination, package: packageName) {
-      schema(dir:schemaDir, includes: schemaDirIncludes)
+   execOps.javaexec {
+      classpath = xjcClasspath
+      mainClass = 'com.sun.tools.xjc.XJCFacade'
+      args '-d', jaxbTargetDir.path, '-p', packageName
+      args schemas*.path
    }
 }
 
