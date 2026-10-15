@@ -21,6 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
@@ -59,6 +63,21 @@ public final class ReflexDao {
 
    private static final Map<String,String> config = Collections.synchronizedMap(new HashMap<>());
    private static boolean reflexStarted = false;
+
+   // Driver state is written by a single thread, one write at a time, so writes
+   // reach the database in the order they were made. Handing them straight to
+   // the database's worker pool would let two writes waiting on the write lock
+   // commit in either order, leaving an older value in the database than in
+   // memory (e.g. a leak sensor's LEAK after its SAFE) for a restart or a
+   // replaced reflex processor to restore without any event.
+   private static final int MAX_PENDING_DRIVER_STATE_WRITES = 1024;
+   private static final long DRIVER_STATE_WRITES_TIMEOUT_SECS = 30;
+   private static final ThreadPoolExecutor driverStateWriter = new ThreadPoolExecutor(
+      1, 1, 0, TimeUnit.MILLISECONDS,
+      new LinkedBlockingQueue<>(MAX_PENDING_DRIVER_STATE_WRITES),
+      ReflexDao::newDriverStateWriterThread,
+      ReflexDao::waitForDriverStateQueue
+   );
 
    private ReflexDao() {
    }
@@ -169,6 +188,8 @@ public final class ReflexDao {
    }
 
    public static Map<String,String> getDriverState(Address addr) {
+      awaitDriverStateWrites();
+
       List<KeyValue> all = DbService.get().queryAll("SELECT key,value FROM drivers WHERE addr=?", AddressBinder.INSTANCE, addr, AddressKeyValueExtractor.INSTANCE);
       Map<String,String> result = new HashMap<>();
       for (KeyValue kv : all) {
@@ -179,11 +200,7 @@ public final class ReflexDao {
    }
 
    public static void putDriverState(String addr, String key, Object val) {
-      DbService.get().asyncExecute(
-         "INSERT OR REPLACE INTO drivers (addr,key,value) VALUES (?,?,?)",
-         AddressKeyValueInsertBinder.INSTANCE,
-         new AddressKeyValue(addr, key, ConversionService.from(val))
-      );
+      writeDriverState(addr, Collections.singletonList(new AddressKeyValue(addr, key, ConversionService.from(val))));
    }
 
    public static void putDriverState(String addr, Map<String,Object> state) {
@@ -192,16 +209,60 @@ public final class ReflexDao {
          updates.add(new AddressKeyValue(addr,entry.getKey(), ConversionService.from(entry.getValue())));
       }
 
-      DbService.get().asyncExecute(
-         "INSERT OR REPLACE INTO drivers (addr,key,value) VALUES (?,?,?)",
-         AddressKeyValueInsertBinder.INSTANCE,
-         updates
-      );
+      writeDriverState(addr, updates);
+   }
+
+   private static void writeDriverState(String addr, List<AddressKeyValue> updates) {
+      try {
+         driverStateWriter.execute(() -> {
+            try {
+               DbService.get().execute(
+                  "INSERT OR REPLACE INTO drivers (addr,key,value) VALUES (?,?,?)",
+                  AddressKeyValueInsertBinder.INSTANCE,
+                  updates
+               );
+            } catch (Exception ex) {
+               log.warn("failed to persist driver state for {}: {}", addr, updates, ex);
+            }
+         });
+      } catch (RejectedExecutionException ex) {
+         log.warn("failed to queue driver state for {}: {}", addr, updates, ex);
+      }
+   }
+
+   /**
+    * Waits for the driver state writes queued so far to reach the database.
+    */
+   private static void awaitDriverStateWrites() {
+      try {
+         DbUtils.complete(driverStateWriter.submit(() -> {}), DRIVER_STATE_WRITES_TIMEOUT_SECS, TimeUnit.SECONDS);
+      } catch (Exception ex) {
+         log.warn("timed out waiting for driver state writes:", ex);
+      }
+   }
+
+   private static Thread newDriverStateWriterThread(Runnable runnable) {
+      Thread thr = new Thread(runnable);
+      thr.setDaemon(true);
+      thr.setName("rflxdb");
+      return thr;
+   }
+
+   // When the queue is full the caller waits for room instead of the write
+   // being dropped.
+   private static void waitForDriverStateQueue(Runnable write, ThreadPoolExecutor writer) {
+      try {
+         writer.getQueue().put(write);
+      } catch (InterruptedException ex) {
+         Thread.currentThread().interrupt();
+         throw new RejectedExecutionException(ex);
+      }
    }
 
    public static void removeAllDriverAndReflexState(String addr) {
       try {
-         DbService.get().execute("DELETE FROM drivers WHERE addr=?", addr);
+         // queued behind any pending writes for the device, so they can't recreate its state
+         DbUtils.complete(driverStateWriter.submit(() -> DbService.get().execute("DELETE FROM drivers WHERE addr=?", addr)));
       } catch (Exception ex) {
          log.warn("could not delete driver state:", ex);
       }
@@ -288,6 +349,9 @@ public final class ReflexDao {
       synchronized (LOCK) {
          reflexStarted = false;
       }
+
+      // let queued driver state reach the database before the agent stops
+      awaitDriverStateWrites();
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -374,6 +438,11 @@ public final class ReflexDao {
          this.addr = addr;
          this.key = key;
          this.value = value;
+      }
+
+      @Override
+      public String toString() {
+         return key + "=" + value;
       }
    }
 
