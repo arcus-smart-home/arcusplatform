@@ -24,6 +24,9 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.iris.bridge.server.session.Session;
@@ -51,6 +54,8 @@ import io.netty.channel.Channel;
  *
  */
 public class HubConnectionSessionListener extends HubSessionAdapter {
+   private static final Logger logger = LoggerFactory.getLogger(HubConnectionSessionListener.class);
+
    private final Partitioner partitioner; // just need this for the id, kind of annoying
    private final PlatformMessageBus platformBus;
    private final PlaceDAO placeDao;
@@ -118,6 +123,12 @@ public class HubConnectionSessionListener extends HubSessionAdapter {
    @Override
    public void onDisconnected(HubSession session) {
       super.onDisconnected(session);
+      if(session.isReplaced()) {
+         // The hub already reconnected on a new session here, which shares this bridge's
+         // heartbeat entry; reporting this one as disconnected would mark the hub offline.
+         logger.debug("Ignoring disconnect of replaced session for hub [{}]", session.getHubId());
+         return;
+      }
       // note the state change isn't handled here, that's up to the HubService on platform-services
       // to ensure this isn't incorrect as a hub bounces between bridges
       hubRegistrationRegistry.offline(session.getHubId());  
