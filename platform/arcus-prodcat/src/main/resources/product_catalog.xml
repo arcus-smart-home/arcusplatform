@@ -668,7 +668,7 @@
       </populations>
       <reconnect/>
     </product>
-    <product name="Security Keypad (Model iL02-1)" shortname="Keypad" screen="Keypad" description="" manufacturer="iMagic by GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="GreatStar, Iris, keypad, zigbee, security, safety, panic, alarm, indoor, battery" ota="true" protofamily="ZigBee" id="432031" added="2018-03-20T17:00:00-0500" lastchanged="2018-09-12T22:56:05.678Z">
+    <product name="Security Keypad (Model iL02-1)" shortname="Keypad" screen="Keypad" description="" manufacturer="iMagic by GreatStar" installManualUrl="" vendor="Iris" cert="workswith" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="AA" batteryprimnum="4" keywords="GreatStar, Iris, keypad, zigbee, security, safety, panic, alarm, indoor, battery" ota="true" protofamily="ZigBee" id="432031" added="2018-03-20T17:00:00-0500" lastchanged="2018-09-12T22:56:05.678Z">
       <categories>
         <category name="Cameras &amp; Sensors"/>
         <category name="Security"/>
