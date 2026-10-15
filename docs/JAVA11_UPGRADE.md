@@ -1,5 +1,7 @@
 # Java 11 Upgrade Notes
 
+> **Historical.** JDK 8 builds have since been dropped: Gradle now runs on Java 11, 17, or 21, and `isJava8` and the Java 8-only JVM flags described below no longer exist. `common` still targets Java 8 (now enforced with `--release 8`) and `agent` still uses a Java 8 toolchain. See [build.md](build.md) for the current setup.
+
 ## Overview
 
 The build automatically detects the JDK version running Gradle and adjusts `sourceCompatibility`/`targetCompatibility`, JVM flags, and test exclusions accordingly. No flags or properties needed — just run Gradle with the desired JDK.
