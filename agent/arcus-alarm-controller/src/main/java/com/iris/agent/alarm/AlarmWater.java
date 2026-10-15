@@ -38,6 +38,11 @@ public class AlarmWater extends AbstractSafetyAlarm {
    }
 
    @Override
+   protected Trigger getTriggerType() {
+      return Trigger.WATER;
+   }
+
+   @Override
    protected boolean isSupported(ReflexDevice device) {
       return device.getCapabilities().contains(LeakH2OCapability.NAME);
    }

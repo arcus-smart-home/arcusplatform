@@ -40,6 +40,12 @@ public class AlarmPanic extends AbstractSafetyAlarm {
    }
 
    @Override
+   protected Trigger getTriggerType() {
+      // isTriggered() is always false for panic, so reconcile() never alerts on it
+      return Trigger.PANIC;
+   }
+
+   @Override
    protected boolean isSupported(ReflexDevice device) {
       return device.getCapabilities().contains(KeyPadCapability.NAME);
    }

@@ -123,6 +123,8 @@ public class AlarmController implements SnoopingPortHandler, LifeCycleListener {
    private final Timer timer;
    private final Router router;
 
+   private static final long RECONCILE_INTERVAL_SECS = 60;
+
    private final Map<String,Alarm> alarms;
    private Port port;
 
@@ -218,6 +220,43 @@ public class AlarmController implements SnoopingPortHandler, LifeCycleListener {
       });
 
       LifeCycleService.addListener(this);
+      scheduleReconcile();
+   }
+
+   /**
+    * Re-checks each alarm against current device state. Startup used to be the
+    * only time this happened, so a trigger that never reached an alarm (for
+    * example a sensor state changed without a trigger event) left it READY
+    * with the sensor triggered until the hub rebooted.
+    *
+    * @return true if any alarm changed state
+    */
+   boolean reconcileAlarms() {
+      if (!isActive()) {
+         return false;
+      }
+
+      boolean changed = false;
+      for (Alarm alrm : alarms.values()) {
+         try {
+            changed |= alrm.reconcile();
+         } catch (Exception ex) {
+            log.warn("failed to reconcile {} alarm:", alrm.getName(), ex);
+         }
+      }
+      return changed;
+   }
+
+   private void scheduleReconcile() {
+      schedule(() -> {
+         try {
+            if (reconcileAlarms()) {
+               updateAndReportState();
+            }
+         } finally {
+            scheduleReconcile();
+         }
+      }, RECONCILE_INTERVAL_SECS, TimeUnit.SECONDS);
    }
 
    @WarmUp
@@ -788,6 +827,8 @@ public class AlarmController implements SnoopingPortHandler, LifeCycleListener {
                }
             }
          } finally {
+            // any device update is a chance to catch an alert that was missed
+            doUpdate |= reconcileAlarms();
             if (doUpdate) {
                updateAndReportState();
             }

@@ -38,6 +38,11 @@ public class AlarmCo extends AbstractSafetyAlarm {
    }
 
    @Override
+   protected Trigger getTriggerType() {
+      return Trigger.CO;
+   }
+
+   @Override
    protected boolean isSupported(ReflexDevice device) {
       return device.getCapabilities().contains(CarbonMonoxideCapability.NAME);
    }

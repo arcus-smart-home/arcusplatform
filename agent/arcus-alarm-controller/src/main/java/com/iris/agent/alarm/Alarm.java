@@ -42,6 +42,15 @@ public interface Alarm {
 
    void onVerified();
 
+   /**
+    * Corrects an alert state that disagrees with current device state, for
+    * when a trigger event never reached this alarm.
+    * @return true if the alert state changed
+    */
+   default boolean reconcile() {
+      return false;
+   }
+
    int getPriority();
 }
 

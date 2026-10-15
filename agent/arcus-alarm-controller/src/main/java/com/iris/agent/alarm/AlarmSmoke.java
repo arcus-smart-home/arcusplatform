@@ -38,6 +38,11 @@ public class AlarmSmoke extends AbstractSafetyAlarm {
    }
 
    @Override
+   protected Trigger getTriggerType() {
+      return Trigger.SMOKE;
+   }
+
+   @Override
    protected boolean isSupported(ReflexDevice device) {
       return device.getCapabilities().contains(SmokeCapability.NAME);
    }
