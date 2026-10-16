@@ -122,7 +122,8 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       assertFalse(MispairedRecovery.recoverBeforeStart(executor));
 
       assertEquals(MISPAIRED_ERRORS, executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
-      assertNull(messages.poll());
+      // nothing is saved, but the pairing state is announced as it is
+      assertAnnounced(DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED, MISPAIRED_ERRORS);
       verify();
    }
 
@@ -159,7 +160,8 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
 
       assertFalse(MispairedRecovery.recoverBeforeStart(executor));
 
-      assertNull(messages.poll());
+      // nothing is saved, but the pairing state is announced as it is
+      assertAnnounced(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, ImmutableMap.of("other.error", "Something else"));
       verify();
    }
 
@@ -173,9 +175,8 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
 
       assertEquals(ImmutableMap.of(), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
       assertEquals(Device.STATE_LOST_RECOVERABLE, ((PlatformDeviceDriverContext) executor.context()).getDevice().getState());
-      PlatformMessage changed = messages.take();
-      assertEquals(ImmutableMap.of(), changed.getValue().getAttributes().get(DeviceAdvancedCapability.ATTR_ERRORS));
-      assertFalse(changed.getValue().getAttributes().containsKey(DeviceAdvancedCapability.ATTR_DRIVERSTATE));
+      // the driver state didn't change, but it's sent with the errors so the pairing device can follow
+      assertAnnounced(DeviceAdvancedCapability.DRIVERSTATE_RECOVERABLE, ImmutableMap.of());
       verify();
    }
 
@@ -231,5 +232,14 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
    private void expectUpdateDriverState() {
       mockDeviceDao.updateDriverState(EasyMock.anyObject(Device.class), EasyMock.anyObject(DeviceDriverStateHolder.class));
       EasyMock.expectLastCall();
+   }
+
+   // the pairing device's listener reads these through the same coercing getters
+   private void assertAnnounced(String driverState, Map<String, String> errors) throws Exception {
+      PlatformMessage changed = messages.take();
+      assertEquals(Capability.EVENT_VALUE_CHANGE, changed.getMessageType());
+      assertEquals(driverState, DeviceAdvancedCapability.getDriverstate(changed.getValue()));
+      assertEquals(errors, DeviceAdvancedCapability.getErrors(changed.getValue()));
+      assertNull(messages.poll());
    }
 }

@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.name.Named;
@@ -117,6 +118,32 @@ public class MispairedRecoveryOnLoadTest extends IrisMockTestCase {
       assertEquals(Capability.EVENT_VALUE_CHANGE, changed.getMessageType());
       assertEquals(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, DeviceAdvancedCapability.getDriverstate(changed.getValue()));
       assertEquals(ImmutableMap.of(), changed.getValue().getAttributes().get(DeviceAdvancedCapability.ATTR_ERRORS));
+      // the commit announced the pairing state, so it isn't announced again
+      assertNull(messages.poll());
+      verify();
+   }
+
+   @Test
+   public void testLoadAnnouncesPairingStateOfDeviceThatHadErrors() throws Exception {
+      // pairing.failed was cleared before, but its pairing device may not have followed
+      device.setDriverId(REAL_DRIVER);
+      device.setState(Device.STATE_ACTIVE_SUPPORTED);
+      expectLoad(ImmutableMap.of());
+      replay();
+
+      executors.loadConsumer(Address.fromString(device.getAddress()));
+
+      // nothing changed, so nothing is saved, but the pairing state is announced
+      PlatformMessage announced = messages.take();
+      assertEquals(Capability.EVENT_VALUE_CHANGE, announced.getMessageType());
+      assertEquals(Address.fromString(device.getAddress()), announced.getSource());
+      assertEquals(
+            ImmutableSet.of(DeviceAdvancedCapability.ATTR_DRIVERSTATE, DeviceAdvancedCapability.ATTR_ERRORS),
+            announced.getValue().getAttributes().keySet()
+      );
+      assertEquals(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, DeviceAdvancedCapability.getDriverstate(announced.getValue()));
+      assertEquals(ImmutableMap.of(), DeviceAdvancedCapability.getErrors(announced.getValue()));
+      assertNull(messages.poll());
       verify();
    }
 

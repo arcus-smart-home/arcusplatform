@@ -23,7 +23,10 @@ import org.slf4j.LoggerFactory;
 
 import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverContext;
+import com.iris.driver.PlatformDeviceDriverContext;
 import com.iris.driver.service.executor.DriverExecutor;
+import com.iris.messages.MessageBody;
+import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 
 /**
@@ -34,6 +37,12 @@ import com.iris.messages.capability.DeviceAdvancedCapability;
  * On any other driver both are stale. Older fallback-to-real driver upgrades did
  * not clear them, so a device can end up running a real driver while still
  * reporting a failed pairing.
+ * <p>
+ * The pairing device follows its device only through value changes. Older code
+ * ignored the change that cleared a failed pairing, so a pairing device can still
+ * show a failed pairing for a device that is now fine, and nothing will change on
+ * the device to correct it. Loading a device that has had errors announces its
+ * pairing state again, so that pairing device can catch up.
  */
 public final class MispairedRecovery {
    private static final Logger logger = LoggerFactory.getLogger(MispairedRecovery.class);
@@ -82,25 +91,37 @@ public final class MispairedRecovery {
    }
 
    /**
-    * Clears stale pairing state on a newly loaded executor and commits. Only call
-    * this before the executor starts, while nothing else can be using its context.
-    * A failed commit is logged, not thrown, so the load carries on; the cleared
-    * values stay in the context and are saved by its next commit.
+    * Clears stale pairing state on a newly loaded executor and commits, which
+    * announces the new pairing state. A device with nothing to clear has its
+    * pairing state announced as it is, if it has had errors. Only call this before
+    * the executor starts, while nothing else can be using its context. A failure is
+    * logged, not thrown, so the load carries on; cleared values stay in the context
+    * and are saved by its next commit.
     *
     * @return true if the device was recovered
     */
    public static boolean recoverBeforeStart(DriverExecutor executor) {
       try {
          if(!clearStalePairingState(executor)) {
+            announcePairingState(executor.context());
             return false;
          }
          executor.context().commit();
          return true;
       }
       catch(Exception e) {
-         logger.warn("Unable to save cleared pairing state for device [{}]", executor.context().getDriverAddress(), e);
+         logger.warn("Unable to recover pairing state for device [{}]", executor.context().getDriverAddress(), e);
          return false;
       }
+   }
+
+   // Only a device that has had errors can have a pairing device left showing a
+   // failed or misconfigured pairing, so don't announce the others.
+   private static void announcePairingState(DeviceDriverContext context) {
+      if(context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS) == null) {
+         return;
+      }
+      context.broadcast(MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE, PlatformDeviceDriverContext.getPairingStateAttributes(context)));
    }
 
    private static boolean hasPairingFailed(DeviceDriverContext context) {
