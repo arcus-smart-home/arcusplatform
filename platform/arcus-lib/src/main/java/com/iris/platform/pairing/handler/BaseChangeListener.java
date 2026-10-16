@@ -77,15 +77,20 @@ public class BaseChangeListener {
 			PairingDeviceModel.setPairingState(model, pairingState);
 			PairingDeviceModel.setPairingPhase(model, pairingPhase);
 		}
+		if(original != null && original.equals(model.toMap())) {
+			// the device announces its pairing state without changing it, e.g. when its driver loads
+			return model;
+		}
 		model = pairingDeviceDao.save(model);
 		sendChanges(model, original);
 		return model;
 	}
 	
 	// Determine if the current device pairing has reached the ending state.
-	// [PAIRED, PAIRED] is terminal. [MISPAIRED, FAILED] can recover when the device
-	// moves to a real driver, but only on a change that carries devadv:errors. A
-	// driver state change on its own doesn't say pairing.failed was cleared.
+	// [PAIRED, PAIRED] is terminal. A failed pairing, [MISPAIRED, FAILED] or
+	// [MISCONFIGURED, FAILED], can recover when the device does, but only on a change
+	// that carries devadv:errors. A driver state change on its own doesn't say the
+	// error was cleared.
 	private boolean isPairingFinal(PairingDevice model, MessageBody message) {
 		String currentPairingPhase = PairingDeviceModel.getPairingPhase(model);
 		String currentPairingState = PairingDeviceModel.getPairingState(model);
@@ -93,17 +98,16 @@ public class BaseChangeListener {
 			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
 			return true;
 		}
-		if(isMispaired(model) && !message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
-			logger.debug("Ignoring the incoming pairing status update for a mispaired device because it doesn't include the device errors");
+		if(isFailed(model) && !message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
+			logger.debug("Ignoring the incoming pairing status update for a failed pairing because it doesn't include the device errors");
 			return true;
 		}
 		return false;
 	}
 
-	protected static boolean isMispaired(PairingDevice model) {
-		return
-				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(PairingDeviceModel.getPairingPhase(model)) &&
-				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(PairingDeviceModel.getPairingState(model));
+	// MISPAIRED and MISCONFIGURED are both reached through the FAILED phase
+	protected static boolean isFailed(PairingDevice model) {
+		return PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(PairingDeviceModel.getPairingPhase(model));
 	}
 
 	private void sendChanges(PairingDevice model, Map<String, Object> original) {

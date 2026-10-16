@@ -34,11 +34,12 @@ import com.iris.platform.pairing.PairingDevice;
 import com.iris.platform.pairing.PairingDeviceDao;
 
 /**
- * This class depends on the MISPAIRED / MISCONFIGURED cases updating
- * the driver state and the driver errors in the same ValueChange.  Using
- * the DSL plugins this should always be the case.  A mispaired device also
- * recovers on a change to its errors alone, since clearing a stale
- * pairing.failed doesn't always change the driver state.
+ * This class depends on the driver state and the driver errors arriving
+ * in the same ValueChange.  Driver services sends both whenever either
+ * changes, and announces them again when a device that has had errors
+ * loads.  A failed pairing (MISPAIRED or MISCONFIGURED) also recovers on
+ * a change whose driver state isn't an active one, such as a lost device
+ * whose error was cleared.
  * @author tweidlin
  *
  */
@@ -75,14 +76,14 @@ public class DeviceChangeListener extends BaseChangeListener {
 			// no pairing device, no worries
 			return;
 		}
-		if(!driverStateChanged && !isMispaired(model)) {
-			// an errors change alone only matters to a mispaired device
+		if(!driverStateChanged && !isFailed(model)) {
+			// a change without an active driver state, e.g. on a lost device, only matters to a failed pairing
 			return;
 		}
 		updatePairingStatus(model, message.getValue(), model.toMap());
 	}
 
-	// a change to the errors without pairing.failed may be a stale pairing.failed being cleared
+	// errors without pairing.failed may clear a failed pairing, e.g. a stale pairing.failed or pairing.misconfigured being cleared
 	private static boolean mayClearPairingFailed(MessageBody changes) {
 		if(!changes.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
 			return false;

@@ -21,6 +21,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverContext;
 import com.iris.driver.PlatformDeviceDriverContext;
@@ -118,10 +121,24 @@ public final class MispairedRecovery {
    // Only a device that has had errors can have a pairing device left showing a
    // failed or misconfigured pairing, so don't announce the others.
    private static void announcePairingState(DeviceDriverContext context) {
-      if(context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS) == null) {
+      Map<String, Object> pairingState = PlatformDeviceDriverContext.getPairingStateAttributes(context);
+      if(!pairingState.containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
          return;
       }
-      context.broadcast(MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE, PlatformDeviceDriverContext.getPairingStateAttributes(context)));
+      Futures.addCallback(
+            context.broadcast(MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE, pairingState)),
+            new FutureCallback<Object>() {
+               @Override
+               public void onSuccess(Object result) {
+               }
+
+               @Override
+               public void onFailure(Throwable t) {
+                  logger.warn("Unable to announce pairing state for device [{}]", context.getDriverAddress(), t);
+               }
+            },
+            MoreExecutors.directExecutor()
+      );
    }
 
    private static boolean hasPairingFailed(DeviceDriverContext context) {

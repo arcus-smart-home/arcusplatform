@@ -121,6 +121,23 @@ public class PlatformDeviceDriverContextPairingStateTest extends IrisMockTestCas
    }
 
    @Test
+   public void testDirectStateChangeCarriesPairingState() throws Exception {
+      device.setState(Device.STATE_ACTIVE_SUPPORTED);
+      PlatformDeviceDriverContext context = context();
+      context.setAttributeValue(DeviceAdvancedCapability.KEY_ERRORS, MISCONFIGURED);
+      context.commit();
+      takeValueChange();
+
+      // DeviceService.lostDevice and updateState change the state on the device itself
+      context.getDevice().setState(Device.STATE_LOST_RECOVERABLE);
+      context.commit();
+
+      MessageBody changed = takeValueChange();
+      assertEquals(DeviceAdvancedCapability.DRIVERSTATE_RECOVERABLE, DeviceAdvancedCapability.getDriverstate(changed));
+      assertEquals(MISCONFIGURED, DeviceAdvancedCapability.getErrors(changed));
+   }
+
+   @Test
    public void testDriverStateChangeWithoutErrors() throws Exception {
       device.setState(Device.STATE_ACTIVE_PROVISIONING);
       PlatformDeviceDriverContext context = context();

@@ -751,7 +751,8 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
 
    /**
     * The attributes a pairing device's state is derived from: the driver state, and the
-    * errors when the device has any.
+    * errors whenever the device has an errors attribute. An empty map is included, because
+    * it is how a listener learns that an error was cleared.
     */
    public static Map<String, Object> getPairingStateAttributes(DeviceDriverContext context) {
       Map<String, Object> attributes = new HashMap<>();
@@ -928,7 +929,10 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
       for (AttributeKey<?> key : dirtyAttributes) {
          dirtyMap.put(key.getName(),getAttributeValue(key));
       }
-      if(dirtyAttributes.contains(DeviceAdvancedCapability.KEY_DRIVERSTATE) || dirtyAttributes.contains(DeviceAdvancedCapability.KEY_ERRORS)) {
+      // DeviceService changes the state on the device directly when a device is lost or upgraded,
+      // so compare with what was saved rather than relying on the dirty attributes alone
+      boolean driverStateChanged = persisted != null && !StringUtils.equalsIgnoreCase(persisted.getState(), device.getState());
+      if(driverStateChanged || dirtyAttributes.contains(DeviceAdvancedCapability.KEY_DRIVERSTATE) || dirtyAttributes.contains(DeviceAdvancedCapability.KEY_ERRORS)) {
          // the pairing state depends on both, so a listener must never have to guess the one that didn't change
          dirtyMap.putAll(getPairingStateAttributes(this));
       }
