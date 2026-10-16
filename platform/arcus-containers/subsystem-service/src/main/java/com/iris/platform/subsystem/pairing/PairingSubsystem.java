@@ -36,6 +36,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.address.ProtocolDeviceId;
 import com.iris.messages.capability.HubCapability;
+import com.iris.messages.capability.PairingDeviceCapability.DismissRequest;
 import com.iris.messages.capability.PairingSubsystemCapability;
 import com.iris.messages.capability.PairingSubsystemCapability.DismissAllRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.FactoryResetRequest;
@@ -55,11 +56,13 @@ import com.iris.messages.listener.annotation.Request;
 import com.iris.messages.model.Hub;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.hub.HubModel;
+import com.iris.messages.model.serv.PairingDeviceModel;
 import com.iris.messages.model.subs.PairingSubsystemModel;
 import com.iris.messages.type.KitDeviceId;
 import com.iris.platform.manufacture.kitting.dao.ManufactureKittingDao;
 import com.iris.platform.manufacture.kitting.kit.Kit;
 import com.iris.platform.manufacture.kitting.kit.KitDevice;
+import com.iris.platform.pairing.MispairedPairingDevices;
 import com.iris.platform.subsystem.pairing.attribute.Initializer;
 import com.iris.platform.subsystem.pairing.handler.DismissAllHandler;
 import com.iris.platform.subsystem.pairing.handler.ListHelpStepsHandler;
@@ -97,6 +100,24 @@ public class PairingSubsystem extends BaseSubsystem<PairingSubsystemModel> {
 		super.onStarted(context);
 		initializer.onStarted(context);
 		PairingStateMachine.get(context).onStarted();
+		dismissStaleMispaired(context);
+	}
+
+	// A pairing device can be left MISPAIRED after its device recovered, with nothing left
+	// to move it on, so it shows as improperly paired for a working device. Clean those up
+	// while the place isn't pairing; during pairing, DismissAll will dismiss them.
+	private void dismissStaleMispaired(SubsystemContext<PairingSubsystemModel> context) {
+		if(!PairingSubsystemModel.isPairingModeIDLE(context.model())) {
+			return;
+		}
+		for(Model pairingDevice: context.models().getModels(PairingUtils.isPairingDevice())) {
+			String deviceAddress = PairingDeviceModel.getDeviceAddress(pairingDevice);
+			Model device = StringUtils.isEmpty(deviceAddress) ? null : context.models().getModelByAddress(Address.fromString(deviceAddress));
+			if(MispairedPairingDevices.isStale(pairingDevice, device)) {
+				context.logger().info("Dismissing pairing device [{}] because its device [{}] has recovered from a failed pairing", pairingDevice.getAddress(), deviceAddress);
+				context.request(pairingDevice.getAddress(), DismissRequest.instance());
+			}
+		}
 	}
 
 	@OnScheduledEvent
