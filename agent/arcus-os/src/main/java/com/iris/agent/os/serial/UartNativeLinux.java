@@ -18,6 +18,9 @@ package com.iris.agent.os.serial;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
@@ -25,6 +28,25 @@ import com.sun.jna.Structure;
 
 public enum UartNativeLinux implements UartNative.Impl {
    INSTANCE;
+
+   private static final Logger log = LoggerFactory.getLogger(UartNativeLinux.class);
+
+   // Starting with glibc 2.42 the cfgetXspeed/cfsetXspeed functions take and return
+   // the literal baud rate instead of the legacy Bxxx constants. C programs compiled
+   // against older headers are bound to compatibility symbols, but JNA looks the
+   // functions up by name and always gets the new versions.
+   private static final boolean LITERAL_SPEEDS = detectLiteralSpeeds();
+
+   // 9600 is not one of the legacy Bxxx constants, so a libc that expects those
+   // rejects it with EINVAL, while one that takes literal baud rates accepts it.
+   private static boolean detectLiteralSpeeds() {
+      LINCLibrary.Termios termios = new LINCLibrary.Termios();
+      boolean literal = LINCLibrary.INSTANCE.cfsetospeed(termios, 9600) == 0 &&
+                        LINCLibrary.INSTANCE.cfgetospeed(termios) == 9600;
+
+      log.info("using {} termios speeds", literal ? "literal" : "legacy");
+      return literal;
+   }
 
    @Override
    public Object newTermios() {
@@ -92,6 +114,10 @@ public enum UartNativeLinux implements UartNative.Impl {
    }
 
    private long fromSpeed(int speed) {
+      if (LITERAL_SPEEDS) {
+         return speed & 0xFFFFFFFFL;
+      }
+
       switch (speed) {
       case LinuxConstants.B0: return 0;
       case LinuxConstants.B50: return 50;
@@ -139,6 +165,13 @@ public enum UartNativeLinux implements UartNative.Impl {
    }
 
    private int toSpeed(long speed) {
+      if (LITERAL_SPEEDS) {
+         if (speed < 0 || speed > Integer.MAX_VALUE) {
+            throw new RuntimeException("unknown baud rate: " + speed);
+         }
+         return (int)speed;
+      }
+
       switch ((int)speed) {
       case 0: return LinuxConstants.B0;
       case 50: return LinuxConstants.B50;
