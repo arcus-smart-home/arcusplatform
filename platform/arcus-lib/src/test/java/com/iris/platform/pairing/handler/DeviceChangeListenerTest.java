@@ -1,0 +1,133 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.iris.platform.pairing.handler;
+
+import java.util.UUID;
+
+import org.easymock.Capture;
+import org.easymock.EasyMock;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
+import com.iris.core.messaging.memory.InMemoryMessageModule;
+import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
+import com.iris.messages.MessageBody;
+import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
+import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.DeviceAdvancedCapability;
+import com.iris.messages.capability.PairingDeviceCapability;
+import com.iris.messages.model.serv.PairingDeviceModel;
+import com.iris.platform.pairing.PairingDevice;
+import com.iris.platform.pairing.PairingDeviceDao;
+import com.iris.test.IrisMockTestCase;
+import com.iris.test.Mocks;
+import com.iris.test.Modules;
+
+@Mocks({ PairingDeviceDao.class })
+@Modules({ InMemoryMessageModule.class })
+public class DeviceChangeListenerTest extends IrisMockTestCase {
+
+   @Inject private InMemoryPlatformMessageBus platformBus;
+   @Inject private PairingDeviceDao pairingDeviceDao;
+   @Inject private DeviceChangeListener listener;
+
+   private final UUID placeId = UUID.randomUUID();
+   private final Address deviceAddress = Address.platformDriverAddress(UUID.randomUUID());
+
+   @Test
+   public void testMispairedDeviceRecoversWhenErrorsCleared() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      Capture<PairingDevice> saved = expectListAndSave(model);
+      replay();
+
+      listener.onDeviceChanged(valueChange(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, ImmutableMap.of()));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_PAIRED, PairingDeviceModel.getPairingPhase(saved.getValue()));
+      PlatformMessage changed = platformBus.take();
+      assertEquals(Capability.EVENT_VALUE_CHANGE, changed.getMessageType());
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, changed.getValue().getAttributes().get(PairingDeviceCapability.ATTR_PAIRINGSTATE));
+      verify();
+   }
+
+   @Test
+   public void testMispairedDeviceStaysMispairedWhileErrorPresent() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      Capture<PairingDevice> saved = expectListAndSave(model);
+      replay();
+
+      listener.onDeviceChanged(valueChange(
+            DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED,
+            ImmutableMap.of(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED, "Driver could not be determined.")
+      ));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_FAILED, PairingDeviceModel.getPairingPhase(saved.getValue()));
+      // nothing changed, so no value change is sent
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
+   public void testPairedDeviceIgnoresLaterChanges() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceCapability.PAIRINGPHASE_PAIRED);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      replay();
+
+      listener.onDeviceChanged(valueChange(
+            DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED,
+            ImmutableMap.of(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED, "Driver could not be determined.")
+      ));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceModel.getPairingState(model));
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   private PairingDevice pairingDevice(String pairingState, String pairingPhase) {
+      PairingDevice model = new PairingDevice();
+      model.setId(placeId, 1);
+      PairingDeviceModel.setDeviceAddress(model, deviceAddress.getRepresentation());
+      PairingDeviceModel.setPairingState(model, pairingState);
+      PairingDeviceModel.setPairingPhase(model, pairingPhase);
+      return model;
+   }
+
+   private Capture<PairingDevice> expectListAndSave(PairingDevice model) {
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      Capture<PairingDevice> saved = EasyMock.newCapture();
+      EasyMock.expect(pairingDeviceDao.save(EasyMock.capture(saved))).andAnswer(() -> saved.getValue());
+      return saved;
+   }
+
+   private PlatformMessage valueChange(String driverState, Object errors) {
+      MessageBody body = MessageBody.buildMessage(
+            Capability.EVENT_VALUE_CHANGE,
+            ImmutableMap.of(
+                  DeviceAdvancedCapability.ATTR_DRIVERSTATE, driverState,
+                  DeviceAdvancedCapability.ATTR_ERRORS, errors
+            )
+      );
+      return PlatformMessage.builder()
+            .from(deviceAddress)
+            .withPlaceId(placeId)
+            .withPayload(body)
+            .create();
+   }
+}

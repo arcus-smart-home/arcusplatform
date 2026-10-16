@@ -56,6 +56,7 @@ import com.iris.driver.reflex.ReflexRunMode;
 import com.iris.driver.service.DriverConfig;
 import com.iris.driver.service.DriverService;
 import com.iris.driver.service.DriverServiceConfig;
+import com.iris.driver.service.MispairedRecovery;
 import com.iris.driver.service.executor.DriverExecutor;
 import com.iris.driver.service.executor.DriverExecutorRegistry;
 import com.iris.driver.service.handler.DriverServiceRequestHandler;
@@ -447,6 +448,8 @@ public class PlatformDriverService implements DriverService {
            		exec.context().sendToPlatform(request);
                continue;
             }
+
+            MispairedRecovery.recover(exec);
 
             if (online != null && online != exec.context().isConnected()) {
                if (online) {

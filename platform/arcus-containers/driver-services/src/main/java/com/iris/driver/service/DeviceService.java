@@ -15,9 +15,7 @@
  */
 package com.iris.driver.service;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -368,6 +366,8 @@ public class DeviceService {
 
    protected UpgradeDriverResponse doUpgrade(DriverExecutor executor, DeviceDriver driver, boolean connected) {
       if(driver.getDriverId().equals(executor.driver().getDriverId())) {
+         // already on the right driver, but it may still be marked mispaired from a past fallback
+         MispairedRecovery.recover(executor);
          return new UpgradeDriverResponse(false, driver.getDriverId());
       }
       String oldDriverName;
@@ -382,7 +382,7 @@ public class DeviceService {
                // When upgrading from a fallback driver to a real driver, clear the
                // mispaired errors so the pairing subsystem can transition to PAIRED.
                if(wasFallback && !isFallback(driver)) {
-                  clearPairingErrors(newExecutor);
+                  MispairedRecovery.clearPairingErrors(newExecutor.context());
                }
                updateState(newExecutor, driver, device.getProtocolAttributes(), false);
                if(!connected) {
@@ -526,6 +526,8 @@ public class DeviceService {
             }
          }
          
+         MispairedRecovery.recover(executor);
+
          logger.info("Attempting to re-add an existing device [{}]", device.getProtocolAddress());
          // ONLINE really means healthy in this case, not necessarilly ONLINE
          executor.context().setAttributeValue(DeviceConnectionCapability.KEY_STATUS, DeviceConnectionCapability.STATUS_ONLINE);
@@ -543,19 +545,8 @@ public class DeviceService {
       return device;
    }
    
-   private void clearPairingErrors(DriverExecutor executor) {
-      executor.context().setAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE);
-      Map<String, String> errors = executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
-      if(errors != null) {
-         errors = new HashMap<>(errors);
-         errors.remove(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
-         errors.remove(DeviceAdvancedCapability.PairingMisconfiguredException.CODE_PAIRING_MISCONFIGURED);
-         executor.context().setAttributeValue(DeviceAdvancedCapability.KEY_ERRORS, errors);
-      }
-   }
-
    private boolean isFallback(DeviceDriver driver) {
-      return driver.getDefinition().getName().contains("Fallback");
+      return MispairedRecovery.isFallback(driver);
    }
    
    private String getPopulationFromPlace(UUID placeId) {
