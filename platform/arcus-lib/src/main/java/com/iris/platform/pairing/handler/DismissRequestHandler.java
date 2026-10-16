@@ -15,24 +15,56 @@
  */
 package com.iris.platform.pairing.handler;
 
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.core.dao.DeviceDAO;
 import com.iris.messages.MessageBody;
+import com.iris.messages.address.Address;
 import com.iris.messages.capability.PairingDeviceCapability.DismissResponse;
 import com.iris.messages.capability.PairingDeviceCapability.DismissRequest;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.listener.annotation.Request;
 import com.iris.messages.model.serv.PairingDeviceModel;
 import com.iris.platform.model.PersistentModelWrapper;
+import com.iris.platform.pairing.MispairedPairingDevices;
 import com.iris.platform.pairing.PairingDevice;
 
 @Singleton
 public class DismissRequestHandler {
+	private final DeviceDAO deviceDao;
+
+	@Inject
+	public DismissRequestHandler(DeviceDAO deviceDao) {
+		this.deviceDao = deviceDao;
+	}
 
 	@Request(DismissRequest.NAME)
 	public MessageBody dismiss(PersistentModelWrapper<PairingDevice> device) {
-		Errors.assertValidRequest(PairingDeviceModel.isPairingStatePAIRED(device.model()), "Can only dismiss fully PAIRED devices");
+		Errors.assertValidRequest(
+				PairingDeviceModel.isPairingStatePAIRED(device.model()) || isStaleMispaired(device.model()),
+				"Can only dismiss fully PAIRED devices, or MISPAIRED devices whose device has since recovered"
+		);
 		device.delete();
 		return DismissResponse.instance();
 	}
-}
 
+	// checked against the stored device, so a client can't dismiss a device that is still mispaired
+	private boolean isStaleMispaired(PairingDevice model) {
+		if(!MispairedPairingDevices.isMispaired(model)) {
+			return false;
+		}
+		String deviceAddress = PairingDeviceModel.getDeviceAddress(model);
+		if(StringUtils.isEmpty(deviceAddress)) {
+			return false;
+		}
+		Object deviceId = Address.fromString(deviceAddress).getId();
+		if(!(deviceId instanceof UUID)) {
+			return false;
+		}
+		return MispairedPairingDevices.hasRecovered(deviceDao.modelById((UUID) deviceId));
+	}
+}

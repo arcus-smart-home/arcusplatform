@@ -31,6 +31,7 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 import com.iris.messages.capability.PairingDeviceCapability;
 import com.iris.messages.model.serv.PairingDeviceModel;
+import com.iris.platform.pairing.MispairedPairingDevices;
 import com.iris.platform.pairing.PairingDevice;
 import com.iris.platform.pairing.PairingDeviceDao;
 import com.iris.population.PlacePopulationCacheManager;
@@ -101,9 +102,7 @@ public class BaseChangeListener {
 	}
 
 	protected static boolean isMispaired(PairingDevice model) {
-		return
-				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(PairingDeviceModel.getPairingPhase(model)) &&
-				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(PairingDeviceModel.getPairingState(model));
+		return MispairedPairingDevices.isMispaired(model);
 	}
 
 	private void sendChanges(PairingDevice model, Map<String, Object> original) {
