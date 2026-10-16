@@ -182,12 +182,16 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
    @Test
    public void testFailedCommitIsLoggedNotThrown() throws Exception {
       DriverExecutor executor = createExecutor(realDriver, Device.STATE_ACTIVE_UNSUPPORTED, MISPAIRED_ERRORS);
-      EasyMock.expect(mockDeviceDao.save(EasyMock.anyObject(Device.class))).andThrow(new RuntimeException("write timeout")).anyTimes();
+      EasyMock.expect(mockDeviceDao.save(EasyMock.anyObject(Device.class))).andThrow(new RuntimeException("write timeout")).once();
       mockDeviceDao.updateDriverState(EasyMock.anyObject(Device.class), EasyMock.anyObject(DeviceDriverStateHolder.class));
       EasyMock.expectLastCall().anyTimes();
       replay();
 
       assertFalse(MispairedRecovery.recoverBeforeStart(executor));
+
+      // the cleared values stay in the context for its next commit
+      assertEquals(ImmutableMap.of(), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+      assertEquals(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE).toUpperCase());
       verify();
    }
 

@@ -16,6 +16,7 @@
 package com.iris.driver.service;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.easymock.Capture;
 import org.easymock.EasyMock;
@@ -84,12 +85,14 @@ public class MispairedRecoveryOnLoadTest extends IrisMockTestCase {
                   .withMatcher((a) -> false)
                   .withPopulations(ImmutableList.<String>of(Population.NAME_GENERAL, Population.NAME_BETA, Population.NAME_QA))
                   .addCapabilityDefinition(registry.getCapabilityDefinitionByNamespace(DeviceCapability.NAMESPACE))
+                  .addCapabilityDefinition(registry.getCapabilityDefinitionByNamespace(DeviceAdvancedCapability.NAMESPACE))
                   .create(true)
                   ;
       }
    }
 
    @Inject DriverExecutorRegistry executors;
+   @Inject @Named("RealDriver") DeviceDriver realDriver;
    @Inject InMemoryPlatformMessageBus messages;
    @Inject DeviceDAO mockDeviceDao;
 
@@ -127,6 +130,25 @@ public class MispairedRecoveryOnLoadTest extends IrisMockTestCase {
       executors.loadConsumer(Address.fromString(device.getAddress()));
 
       assertNull(messages.poll());
+      verify();
+   }
+
+   @Test
+   public void testAssociateLeavesRepairToTheUpgrade() throws Exception {
+      // the device is on the fallback, and an upgrade associates the real driver
+      device.setDriverId(new DriverId("Fallback", Version.fromRepresentation("1.0")));
+      device.setState(Device.STATE_ACTIVE_UNSUPPORTED);
+      expectLoad(MISPAIRED_ERRORS);
+      EasyMock.expect(mockDeviceDao.save(EasyMock.anyObject(Device.class))).andAnswer(() -> ((Device) EasyMock.getCurrentArguments()[0]).copy()).anyTimes();
+      mockDeviceDao.updateDriverState(EasyMock.anyObject(Device.class), EasyMock.anyObject(DeviceDriverStateHolder.class));
+      EasyMock.expectLastCall().anyTimes();
+      replay();
+
+      AtomicReference<Map<String, String>> errorsAtInitialize = new AtomicReference<>();
+      executors.associate(device, realDriver, (executor) -> errorsAtInitialize.set(executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS)));
+
+      // not cleared, saved or broadcast by the registry: DeviceService clears it before the new driver's onAdded
+      assertEquals(MISPAIRED_ERRORS, errorsAtInitialize.get());
       verify();
    }
 

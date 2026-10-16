@@ -418,7 +418,15 @@ public class PlatformDriverExecutorRegistry implements DriverExecutorRegistry {
          // also don't start it if we're just cleaning out the tombstone
          startDriver = false;
       }
-      return createExecutor(context, startDriver);
+      DriverExecutor executor = createExecutor(context, false);
+      if(startDriver) {
+         if(mode == Mode.LOAD && !context.isTombstoned()) {
+            // nothing else can use the context until the executor is returned
+            MispairedRecovery.recoverBeforeStart(executor);
+         }
+         executor.start();
+      }
+      return executor;
    }
    
    private DriverExecutor createExecutor(DeviceDriverContext context, boolean start) {
@@ -439,8 +447,6 @@ public class PlatformDriverExecutorRegistry implements DriverExecutorRegistry {
       }
       
       if(start) {
-         // nothing else can use the context until the executor is returned
-         MispairedRecovery.recoverBeforeStart(executor);
          executor.start();
       }
       return executor;

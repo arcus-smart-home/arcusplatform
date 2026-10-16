@@ -114,6 +114,20 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
    }
 
    @Test
+   public void testIgnoresErrorsChangeThatKeepsPairingFailed() throws Exception {
+      replay();
+
+      // pairing.failed is still there, so no pairing device can change; don't look them up
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(
+            DeviceAdvancedCapability.ATTR_ERRORS,
+            ImmutableMap.of(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED, "Driver could not be determined.", "other.error", "Something else")
+      )));
+
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
    public void testProvisioningDeviceIgnoresErrorsChangeAlone() throws Exception {
       PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_PAIRING, PairingDeviceCapability.PAIRINGPHASE_CONFIGURE);
       EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
