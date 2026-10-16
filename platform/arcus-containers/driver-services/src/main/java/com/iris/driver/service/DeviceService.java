@@ -372,18 +372,12 @@ public class DeviceService {
       }
       String oldDriverName;
       Device device;
-      boolean wasFallback = isFallback(executor.driver());
 
       synchronized(executor.context()) {
          device = ((PlatformDeviceDriverContext) executor.context()).getDevice();
          oldDriverName = device.getDrivername();
          registry.associate(device, driver, (newExecutor) -> {
             Runnable afterAdded = () -> {
-               // When upgrading from a fallback driver to a real driver, clear the
-               // mispaired errors so the pairing subsystem can transition to PAIRED.
-               if(wasFallback && !isFallback(driver)) {
-                  MispairedRecovery.clearPairingErrors(newExecutor.context());
-               }
                updateState(newExecutor, driver, device.getProtocolAttributes(), false);
                if(!connected) {
                   newExecutor.context().setDisconnected();
@@ -398,6 +392,9 @@ public class DeviceService {
             };
 
             synchronized(newExecutor.context()) {
+               // A fallback's pairing.failed may still be set, from this upgrade or an older
+               // one. Clear it before the new driver's onAdded so that can set its own state.
+               MispairedRecovery.clearStalePairingError(newExecutor);
                if(!Objects.equals(oldDriverName, driver.getDriverId().getName())) {
                   logger.info("Device {} is changing drivers", device.getAddress());
                   // FIXME should clear all the variables and attributes in this case
@@ -526,7 +523,8 @@ public class DeviceService {
             }
          }
          
-         MispairedRecovery.recover(executor);
+         // committed along with the re-add below
+         MispairedRecovery.clearStalePairingError(executor);
 
          logger.info("Attempting to re-add an existing device [{}]", device.getProtocolAddress());
          // ONLINE really means healthy in this case, not necessarilly ONLINE

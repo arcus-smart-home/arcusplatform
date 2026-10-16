@@ -148,6 +148,34 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       verify();
    }
 
+   @Test
+   public void testClearsErrorOnLostDeviceWithoutChangingState() throws Exception {
+      DriverExecutor executor = createExecutor(realDriver, Device.STATE_LOST_RECOVERABLE, MISPAIRED_ERRORS);
+      expectUpdateDriverState();
+      replay();
+
+      assertTrue(MispairedRecovery.recover(executor));
+
+      assertEquals(ImmutableMap.of(), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+      assertEquals(Device.STATE_LOST_RECOVERABLE, ((PlatformDeviceDriverContext) executor.context()).getDevice().getState());
+      PlatformMessage changed = messages.take();
+      assertEquals(ImmutableMap.of(), changed.getValue().getAttributes().get(DeviceAdvancedCapability.ATTR_ERRORS));
+      assertFalse(changed.getValue().getAttributes().containsKey(DeviceAdvancedCapability.ATTR_DRIVERSTATE));
+      verify();
+   }
+
+   @Test
+   public void testFailedCommitIsLoggedNotThrown() throws Exception {
+      DriverExecutor executor = createExecutor(realDriver, Device.STATE_ACTIVE_UNSUPPORTED, MISPAIRED_ERRORS);
+      EasyMock.expect(mockDeviceDao.save(EasyMock.anyObject(Device.class))).andThrow(new RuntimeException("write timeout")).anyTimes();
+      mockDeviceDao.updateDriverState(EasyMock.anyObject(Device.class), EasyMock.anyObject(DeviceDriverStateHolder.class));
+      EasyMock.expectLastCall().anyTimes();
+      replay();
+
+      assertFalse(MispairedRecovery.recover(executor));
+      verify();
+   }
+
    private DeviceDriver createDriver(String name) {
       return Drivers
             .builder()

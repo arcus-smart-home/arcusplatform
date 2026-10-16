@@ -27,12 +27,13 @@ import com.iris.driver.service.executor.DriverExecutor;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 
 /**
- * Recovers devices left in a mispaired state by a fallback driver.
+ * Clears the mispaired state a fallback driver leaves on a device.
  * <p>
  * Only the fallback drivers call {@code mispaired}, which sets the driver state
- * to UNSUPPORTED and adds {@code pairing.failed} to {@code devadv:errors}. Older
- * fallback-to-real driver upgrades did not clear these, so a device can end up
- * running a real driver while still reporting a failed pairing.
+ * to UNSUPPORTED and adds {@code pairing.failed} to {@code devadv:errors}. On any
+ * other driver that error is stale. Older fallback-to-real driver upgrades did
+ * not clear it, so a device can end up running a real driver while still
+ * reporting a failed pairing.
  */
 public final class MispairedRecovery {
    private static final Logger logger = LoggerFactory.getLogger(MispairedRecovery.class);
@@ -45,52 +46,66 @@ public final class MispairedRecovery {
    }
 
    /**
-    * Marks the driver ACTIVE and removes the pairing errors. The caller is
-    * responsible for committing the context.
+    * True when the device is running a non-fallback driver but still carries
+    * the {@code pairing.failed} error from a fallback driver.
     */
-   public static void clearPairingErrors(DeviceDriverContext context) {
-      context.setAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE);
-      Map<String, String> errors = context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
-      if(errors != null) {
-         errors = new HashMap<>(errors);
-         errors.remove(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
-         errors.remove(DeviceAdvancedCapability.PairingMisconfiguredException.CODE_PAIRING_MISCONFIGURED);
-         context.setAttributeValue(DeviceAdvancedCapability.KEY_ERRORS, errors);
-      }
-   }
-
-   /**
-    * True when the device is running a real driver but still carries the
-    * UNSUPPORTED state and pairing.failed error from a fallback driver.
-    */
-   public static boolean hasStalePairingErrors(DriverExecutor executor) {
+   public static boolean hasStalePairingError(DriverExecutor executor) {
       if(isFallback(executor.driver())) {
          return false;
       }
-      DeviceDriverContext context = executor.context();
-      String driverState = context.getAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE);
-      if(!DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equalsIgnoreCase(driverState)) {
-         return false;
-      }
-      Map<String, String> errors = context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
+      Map<String, String> errors = executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
       return errors != null && errors.containsKey(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
    }
 
    /**
-    * Clears stale pairing errors and commits, emitting a value change so the
-    * pairing subsystem can move the device to PAIRED.
+    * Removes a stale {@code pairing.failed} and, if the fallback's UNSUPPORTED
+    * driver state is still set, marks the driver ACTIVE. Any other driver state,
+    * such as PROVISIONING set by the new driver or a lost state, is left alone.
+    * The caller must hold the context lock and commit.
+    *
+    * @return true if anything changed
+    */
+   public static boolean clearStalePairingError(DriverExecutor executor) {
+      if(!hasStalePairingError(executor)) {
+         return false;
+      }
+      DeviceDriverContext context = executor.context();
+      logger.info("Clearing stale pairing error for device [{}] running driver [{}]", context.getDriverAddress(), executor.driver().getDriverId());
+      Map<String, String> errors = new HashMap<>(context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+      errors.remove(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
+      context.setAttributeValue(DeviceAdvancedCapability.KEY_ERRORS, errors);
+      String driverState = context.getAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE);
+      if(DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equalsIgnoreCase(driverState)) {
+         context.setAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE);
+      }
+      return true;
+   }
+
+   /**
+    * Clears a stale pairing error and commits, for callers outside the driver's
+    * own event handling. It checks before taking the context lock because hub
+    * sync calls this for every device, and the executor holds that lock while
+    * the driver handles an event. Failures are logged, not thrown, so callers
+    * carry on with the rest of their work.
     *
     * @return true if the device was recovered
     */
    public static boolean recover(DriverExecutor executor) {
-      synchronized(executor.context()) {
-         if(!hasStalePairingErrors(executor)) {
+      try {
+         if(!hasStalePairingError(executor)) {
             return false;
          }
-         logger.info("Clearing stale pairing errors for device [{}] running driver [{}]", executor.context().getDriverAddress(), executor.driver().getDriverId());
-         clearPairingErrors(executor.context());
-         executor.context().commit();
-         return true;
+         synchronized(executor.context()) {
+            if(!clearStalePairingError(executor)) {
+               return false;
+            }
+            executor.context().commit();
+            return true;
+         }
+      }
+      catch(Exception e) {
+         logger.warn("Unable to clear stale pairing error for device [{}]", executor.context().getDriverAddress(), e);
+         return false;
       }
    }
 }

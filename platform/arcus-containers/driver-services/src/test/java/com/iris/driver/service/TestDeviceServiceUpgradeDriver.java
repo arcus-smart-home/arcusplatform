@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.iris.capability.attribute.transform.AttributeMapTransformModule;
 import com.iris.capability.registry.CapabilityRegistry;
@@ -47,6 +48,7 @@ import com.iris.driver.DeviceDriver;
 import com.iris.driver.DeviceDriverContext;
 import com.iris.driver.Drivers;
 import com.iris.driver.PlatformDeviceDriverContext;
+import com.iris.driver.event.DeviceAssociatedEvent;
 import com.iris.driver.groovy.GroovyProtocolPluginModule;
 import com.iris.driver.service.DeviceService.UpgradeDriverResponse;
 import com.iris.driver.service.executor.DefaultDriverExecutor;
@@ -97,7 +99,10 @@ public class TestDeviceServiceUpgradeDriver extends IrisMockTestCase {
    DeviceDriverStateHolder state = new DeviceDriverStateHolder(AttributeMap.mapOf(DeviceConnectionCapability.KEY_STATE.valueOf(DeviceConnectionCapability.STATE_ONLINE)));
    DeviceDriver fallbackDriver;
    DeviceDriver switchDriver;
+   DeviceDriver oldSwitchDriver;
+   DeviceDriver provisioningDriver;
    Map<String, String> initialErrors;
+   DriverExecutor associated;
 
    private static final Map<String, String> MISPAIRED_ERRORS =
          ImmutableMap.of(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED, "Driver could not be determined.");
@@ -124,6 +129,34 @@ public class TestDeviceServiceUpgradeDriver extends IrisMockTestCase {
                .withPopulations(ImmutableList.<String>of(Population.NAME_GENERAL, Population.NAME_BETA, Population.NAME_QA))
                .addCapabilityDefinition(capabilities.getCapabilityDefinitionByNamespace(DeviceCapability.NAMESPACE))
                .addCapabilityDefinition(capabilities.getCapabilityDefinitionByNamespace(SwitchCapability.NAMESPACE))
+               .create(true)
+               ;
+
+      oldSwitchDriver =
+            Drivers
+               .builder()
+               .withName("Driver")
+               .withVersion(Version.fromRepresentation("1.0"))
+               .withMatcher((a) -> false)
+               .withPopulations(ImmutableList.<String>of(Population.NAME_GENERAL, Population.NAME_BETA, Population.NAME_QA))
+               .addCapabilityDefinition(capabilities.getCapabilityDefinitionByNamespace(DeviceCapability.NAMESPACE))
+               .addCapabilityDefinition(capabilities.getCapabilityDefinitionByNamespace(SwitchCapability.NAMESPACE))
+               .create(true)
+               ;
+
+      // a driver that starts provisioning when it's added
+      provisioningDriver =
+            Drivers
+               .builder()
+               .withName("ProvisioningDriver")
+               .withVersion(Version.fromRepresentation("1.0"))
+               .withMatcher((a) -> false)
+               .withPopulations(ImmutableList.<String>of(Population.NAME_GENERAL, Population.NAME_BETA, Population.NAME_QA))
+               .addCapabilityDefinition(capabilities.getCapabilityDefinitionByNamespace(DeviceCapability.NAMESPACE))
+               .addDriverEventHandler(DeviceAssociatedEvent.class, (context, event) -> {
+                  context.setAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_PROVISIONING);
+                  return true;
+               })
                .create(true)
                ;
 
@@ -229,6 +262,51 @@ public class TestDeviceServiceUpgradeDriver extends IrisMockTestCase {
       UpgradeDriverResponse response = uut.upgradeDriver(Address.fromString(device.getAddress()));
       assertTrue(response.isUpgraded());
       assertEquals(Device.STATE_ACTIVE_SUPPORTED, saved.getValue().getState());
+      assertEquals(ImmutableMap.of(), associated.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+
+      verify();
+   }
+
+   @Test
+   public void testUpgradeBetweenRealDriversClearsStalePairingErrors() throws Exception {
+      // moved off the fallback before upgrades cleared its errors, now getting a newer version
+      device.setCaps(ImmutableSet.of(DeviceCapability.NAMESPACE, SwitchCapability.NAMESPACE));
+      device.setState(Device.STATE_ACTIVE_UNSUPPORTED);
+      initialErrors = MISPAIRED_ERRORS;
+      expectLoadConsumerWithDriver(oldSwitchDriver);
+      expectFindByProtocolAttributes().andReturn(switchDriver);
+      expectAssociateDriver(switchDriver);
+      expectResyncToHub(hubDao);
+      expectLoadHubModelForPlace(hubDao);
+      expectUpdateDriverState();
+      Capture<Device> saved = expectSaveDevice();
+      replay();
+
+      UpgradeDriverResponse response = uut.upgradeDriver(Address.fromString(device.getAddress()));
+      assertTrue(response.isUpgraded());
+      assertEquals(Device.STATE_ACTIVE_SUPPORTED, saved.getValue().getState());
+      assertEquals(ImmutableMap.of(), associated.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+
+      verify();
+   }
+
+   @Test
+   public void testUpgradeFromFallbackKeepsStateSetByNewDriver() throws Exception {
+      device.setState(Device.STATE_ACTIVE_UNSUPPORTED);
+      initialErrors = MISPAIRED_ERRORS;
+      expectLoadConsumerWithDriver(fallbackDriver);
+      expectFindByProtocolAttributes().andReturn(provisioningDriver);
+      expectAssociateDriver(provisioningDriver);
+      expectResyncToHub(hubDao);
+      expectLoadHubModelForPlace(hubDao);
+      expectUpdateDriverState();
+      Capture<Device> saved = expectSaveDevice();
+      replay();
+
+      UpgradeDriverResponse response = uut.upgradeDriver(Address.fromString(device.getAddress()));
+      assertTrue(response.isUpgraded());
+      assertEquals(Device.STATE_ACTIVE_PROVISIONING, saved.getValue().getState());
+      assertEquals(ImmutableMap.of(), associated.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
 
       verify();
    }
@@ -332,6 +410,7 @@ public class TestDeviceServiceUpgradeDriver extends IrisMockTestCase {
          .expect(mockExecutorRegistry.associate(EasyMock.eq(device), EasyMock.eq(driver), EasyMock.capture(executorRef)))
          .andAnswer(() -> {
             DefaultDriverExecutor executor = new DefaultDriverExecutor(driver, createContext(device, driver), null, 100);
+            associated = executor;
             executorRef.getValue().initialize(executor);
             return executor;
          });

@@ -15,6 +15,7 @@
  */
 package com.iris.platform.pairing.handler;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.easymock.Capture;
@@ -85,6 +86,20 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
    }
 
    @Test
+   public void testMispairedDeviceIgnoresChangeWithoutErrors() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      replay();
+
+      // the driver state changed but the errors didn't, so pairing.failed may still be set
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(DeviceAdvancedCapability.ATTR_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE)));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceModel.getPairingState(model));
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
    public void testPairedDeviceIgnoresLaterChanges() throws Exception {
       PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceCapability.PAIRINGPHASE_PAIRED);
       EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
@@ -117,13 +132,14 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
    }
 
    private PlatformMessage valueChange(String driverState, Object errors) {
-      MessageBody body = MessageBody.buildMessage(
-            Capability.EVENT_VALUE_CHANGE,
-            ImmutableMap.of(
-                  DeviceAdvancedCapability.ATTR_DRIVERSTATE, driverState,
-                  DeviceAdvancedCapability.ATTR_ERRORS, errors
-            )
-      );
+      return valueChange(ImmutableMap.of(
+            DeviceAdvancedCapability.ATTR_DRIVERSTATE, driverState,
+            DeviceAdvancedCapability.ATTR_ERRORS, errors
+      ));
+   }
+
+   private PlatformMessage valueChange(Map<String, Object> attributes) {
+      MessageBody body = MessageBody.buildMessage(Capability.EVENT_VALUE_CHANGE, attributes);
       return PlatformMessage.builder()
             .from(deviceAddress)
             .withPlaceId(placeId)

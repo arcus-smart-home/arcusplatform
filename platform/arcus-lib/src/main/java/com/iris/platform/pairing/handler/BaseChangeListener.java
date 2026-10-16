@@ -56,7 +56,7 @@ public class BaseChangeListener {
 	      @Nullable Map<String, Object> original, 
 	      String pairingState, 
 	      String pairingPhase) {		
-		if(isPairingFinal(model)) {
+		if(isPairingFinal(model, message)) {
 			return model;
 		}
 		
@@ -83,13 +83,22 @@ public class BaseChangeListener {
 	}
 	
 	// Determine if the current device pairing has reached the ending state.
-	// Only [PAIRED, PAIRED] is truly terminal. MISPAIRED devices can recover
-	// if they are later upgraded from a fallback driver to a real driver.
-	private boolean isPairingFinal(PairingDevice model) {
+	// [PAIRED, PAIRED] is terminal. [MISPAIRED, FAILED] can recover when the device
+	// moves to a real driver, but only on a change that carries devadv:errors. A
+	// driver state change on its own doesn't say pairing.failed was cleared.
+	private boolean isPairingFinal(PairingDevice model, MessageBody message) {
 		String currentPairingPhase = PairingDeviceModel.getPairingPhase(model);
 		String currentPairingState = PairingDeviceModel.getPairingState(model);
 		if(PairingDeviceCapability.PAIRINGPHASE_PAIRED.equals(currentPairingPhase) && PairingDeviceCapability.PAIRINGSTATE_PAIRED.equals(currentPairingState)) {
 			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
+			return true;
+		}
+		if(
+				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(currentPairingPhase) &&
+				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(currentPairingState) &&
+				!message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)
+		) {
+			logger.debug("Ignoring the incoming pairing status update for a mispaired device because it doesn't include the device errors");
 			return true;
 		}
 		return false;
