@@ -39,7 +39,6 @@ nav:
   - Alarm State Machine: alarm.md
   - Security: security.md
   - Troubleshooting: troubleshooting.md
-  - Java 11 Upgrade: JAVA11_UPGRADE.md
   - Eye-Kat: eye-kat.md
 
 markdown_extensions:

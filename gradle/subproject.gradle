@@ -59,9 +59,8 @@ dependencies {
    testImplementation 'org.hamcrest:hamcrest-all:1.3'
 }
 
-// Gate Java 11 changes based on the JDK running Gradle
-ext.isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8
-ext.javaCompatibility = ext.isJava8 ? '1.8' : JavaVersion.current().toString()
+// Target the JDK running Gradle (common and agent override this to target Java 11 for the hub)
+ext.javaCompatibility = JavaVersion.current().toString()
 
 ext.cpus = project.hasProperty('cpus') ? project.cpus : 2;
 ext.mem = project.hasProperty('mem') ? project.mem.toInteger() : 512; // docker memory max
@@ -130,7 +129,7 @@ test {
 
     // JDK 17+ requires --add-opens for reflective access used by commons-lang3
     // EqualsBuilder, EasyMock, and other test libraries. Use doFirst to check
-    // the actual test JVM version (agent modules use a JDK 8 toolchain).
+    // the actual test JVM version.
     if (JavaVersion.current() >= JavaVersion.VERSION_17) {
         doFirst {
             def launcher = javaLauncher.orNull

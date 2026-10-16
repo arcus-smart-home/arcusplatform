@@ -1,6 +1,6 @@
 # Arcus Platform
 
-Java IoT platform (Iris by Lowe's fork). Gradle 7.6.4, Java 11, Groovy drivers.
+Java IoT platform (Iris by Lowe's fork). Gradle 8.12, Java 11/17/21 (agent + common target Java 11), Groovy drivers.
 
 ## Repository Layout
 
@@ -23,7 +23,7 @@ Java IoT platform (Iris by Lowe's fork). Gradle 7.6.4, Java 11, Groovy drivers.
 
 ## Coding Conventions
 
-- **Java 11** — source/target compatibility set in `platform/build.gradle`
+- **Java** — Gradle runs on 11, 17, or 21; platform targets the running JDK (`platform/build.gradle`). `common` and `agent` compile with `--release 11` because hubs run JDK 11, so code there must stay Java 11 compatible
 - **3-space indentation** (no tabs)
 - **SLF4J + Logback** for logging — never use System.out or log4j directly
 - **JUnit 4** for tests, **EasyMock** for mocking, **Cucumber** for BDD

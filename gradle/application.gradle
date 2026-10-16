@@ -75,23 +75,6 @@ startScripts {
       ])
    }
 
-   // These intrinsic flags only exist in Java 8
-   if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
-      baseOpts.addAll([
-           '-XX:+UseMontgomeryMultiplyIntrinsic',
-           '-XX:+UseMontgomerySquareIntrinsic',
-           '-XX:+UseSquareToLenIntrinsic',
-           '-XX:+UseMultiplyToLenIntrinsic',
-           '-XX:+UseSHA',
-           '-XX:+UseSHA1Intrinsics',
-           '-XX:+UseSHA256Intrinsics',
-           '-XX:+UseSHA512Intrinsics',
-           '-XX:+UseMulAddIntrinsic',
-           '-XX:+UseXmmI2D',
-           '-XX:+UseXmmI2F'
-      ])
-   }
-
    // JDK 17+ requires --add-opens for reflective access (GSON, commons-lang3, etc.)
    if (JavaVersion.current() >= JavaVersion.VERSION_17) {
       baseOpts.addAll([

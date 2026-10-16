@@ -1,6 +1,6 @@
 # Build System
 
-The Arcus platform uses Gradle 7.6.4 with a multi-project build spanning ~86 subprojects. Builds target Java 8 or 11 (auto-detected). Docker images are built via Gradle tasks wrapping shell scripts.
+The Arcus platform uses Gradle 8.12 with a multi-project build spanning ~86 subprojects. Gradle runs on Java 11, 17, or 21; platform modules target the JDK running Gradle, while `common` and `agent` modules target Java 11, the JDK the hub runs. Docker images are built via Gradle tasks wrapping shell scripts.
 
 ---
 
@@ -71,7 +71,7 @@ Four major sections with ~86 subprojects:
 
 Applied to all subprojects:
 - **Group:** `com.arcussmarthome`
-- **Java:** Source/target compatibility auto-detected (Java 8 or 11; fails fast on unsupported versions)
+- **Java:** Gradle must run on Java 11, 17, or 21 (fails fast on other versions). Platform modules target that JDK; `common` and `agent` compile with `--release 11` for the hub
 - **Repositories:** Maven Central, JCenter (optional `mavenLocal` via `use_maven_local=true`)
 - **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13.2, Logback (test), Eclipse annotations
 - **Global exclusions:** commons-logging, findbugs annotations, log4j, duplicate metrics-core
@@ -269,7 +269,7 @@ See [tools.md](tools.md#arcus-captools) for details.
 
 | Container | Base | Key Ports |
 |-----------|------|-----------|
-| `arcus/java` | Temurin JDK 8 (Debian Bullseye) | — (base image) |
+| `arcus/java` | Temurin JRE matching the build JDK, default 21 (Debian Bookworm) | — (base image) |
 | `arcus/zookeeper` | arcus/java | 2181, 2888, 3888 |
 | `arcus/kafka` | arcus/java (Kafka 2.8.2, Scala 2.12) | 9092 |
 | `arcus/cassandra` | arcus/java (Cassandra 4.0.21) | 9042, 9160, 7000, 7199 |
@@ -305,11 +305,10 @@ Docker images are tagged as `arcus/{service-name}:{major}.{minor}.{patch}`.
 
 ### Build
 
-The agent targets **Java 8** (toolchain in `agent/build.gradle`). Build with:
+The agent targets **Java 11** (`--release 11` in `agent/build.gradle`), the JDK the hub OS ships. Any JDK that runs Gradle can build it:
 
 ```bash
-# Requires a Java 8 JDK (e.g. temurin-8-jdk)
-JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 \
+JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64 \
   ./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar
 ```
 
@@ -404,8 +403,8 @@ export FOURG_DISABLE=true
 
 **test.yml** — Runs on every push:
 ```yaml
-- Set up JDK 8 (Corretto)
-- Setup Gradle (gradle-build-action v2)
+- Matrix: JDK 11 and 21 (Corretto)
+- Setup Gradle (gradle/actions/setup-gradle v4)
 - ./gradlew test --no-daemon
 ```
 
