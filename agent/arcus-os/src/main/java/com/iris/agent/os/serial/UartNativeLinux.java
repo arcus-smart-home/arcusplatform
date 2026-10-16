@@ -37,37 +37,15 @@ public enum UartNativeLinux implements UartNative.Impl {
    // functions up by name and always gets the new versions.
    private static final boolean LITERAL_SPEEDS = detectLiteralSpeeds();
 
+   // 9600 is not one of the legacy Bxxx constants, so a libc that expects those
+   // rejects it with EINVAL, while one that takes literal baud rates accepts it.
    private static boolean detectLiteralSpeeds() {
-      String version;
-      try {
-         version = LINCLibrary.INSTANCE.gnu_get_libc_version();
-      } catch (Throwable th) {
-         log.warn("could not determine glibc version, assuming legacy termios speed constants", th);
-         return false;
-      }
+      LINCLibrary.Termios termios = new LINCLibrary.Termios();
+      boolean literal = LINCLibrary.INSTANCE.cfsetospeed(termios, 9600) == 0 &&
+                        LINCLibrary.INSTANCE.cfgetospeed(termios) == 9600;
 
-      boolean literal = usesLiteralSpeeds(version);
-      log.info("glibc version {}, using {} termios speeds", version, literal ? "literal" : "legacy");
+      log.info("using {} termios speeds", literal ? "literal" : "legacy");
       return literal;
-   }
-
-   static boolean usesLiteralSpeeds(String glibcVersion) {
-      if (glibcVersion == null) {
-         return false;
-      }
-
-      String[] parts = glibcVersion.trim().split("\\.");
-      if (parts.length < 2) {
-         return false;
-      }
-
-      try {
-         int major = Integer.parseInt(parts[0]);
-         int minor = Integer.parseInt(parts[1].replaceAll("[^0-9].*$", ""));
-         return major > 2 || (major == 2 && minor >= 42);
-      } catch (NumberFormatException ex) {
-         return false;
-      }
    }
 
    @Override
@@ -188,6 +166,9 @@ public enum UartNativeLinux implements UartNative.Impl {
 
    private int toSpeed(long speed) {
       if (LITERAL_SPEEDS) {
+         if (speed < 0 || speed > Integer.MAX_VALUE) {
+            throw new RuntimeException("unknown baud rate: " + speed);
+         }
          return (int)speed;
       }
 
@@ -523,8 +504,6 @@ public enum UartNativeLinux implements UartNative.Impl {
 
    public interface LINCLibrary extends Library {
       LINCLibrary INSTANCE = (LINCLibrary)Native.loadLibrary("c", LINCLibrary.class);
-
-      public String gnu_get_libc_version();
 
       public int open(String path, int flags);
       public int close(int fd);
