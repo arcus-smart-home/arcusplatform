@@ -18,6 +18,9 @@ package com.iris.agent.os.serial;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
@@ -25,6 +28,47 @@ import com.sun.jna.Structure;
 
 public enum UartNativeLinux implements UartNative.Impl {
    INSTANCE;
+
+   private static final Logger log = LoggerFactory.getLogger(UartNativeLinux.class);
+
+   // Starting with glibc 2.42 the cfgetXspeed/cfsetXspeed functions take and return
+   // the literal baud rate instead of the legacy Bxxx constants. C programs compiled
+   // against older headers are bound to compatibility symbols, but JNA looks the
+   // functions up by name and always gets the new versions.
+   private static final boolean LITERAL_SPEEDS = detectLiteralSpeeds();
+
+   private static boolean detectLiteralSpeeds() {
+      String version;
+      try {
+         version = LINCLibrary.INSTANCE.gnu_get_libc_version();
+      } catch (Throwable th) {
+         log.warn("could not determine glibc version, assuming legacy termios speed constants", th);
+         return false;
+      }
+
+      boolean literal = usesLiteralSpeeds(version);
+      log.info("glibc version {}, using {} termios speeds", version, literal ? "literal" : "legacy");
+      return literal;
+   }
+
+   static boolean usesLiteralSpeeds(String glibcVersion) {
+      if (glibcVersion == null) {
+         return false;
+      }
+
+      String[] parts = glibcVersion.trim().split("\\.");
+      if (parts.length < 2) {
+         return false;
+      }
+
+      try {
+         int major = Integer.parseInt(parts[0]);
+         int minor = Integer.parseInt(parts[1].replaceAll("[^0-9].*$", ""));
+         return major > 2 || (major == 2 && minor >= 42);
+      } catch (NumberFormatException ex) {
+         return false;
+      }
+   }
 
    @Override
    public Object newTermios() {
@@ -92,6 +136,10 @@ public enum UartNativeLinux implements UartNative.Impl {
    }
 
    private long fromSpeed(int speed) {
+      if (LITERAL_SPEEDS) {
+         return speed & 0xFFFFFFFFL;
+      }
+
       switch (speed) {
       case LinuxConstants.B0: return 0;
       case LinuxConstants.B50: return 50;
@@ -139,6 +187,10 @@ public enum UartNativeLinux implements UartNative.Impl {
    }
 
    private int toSpeed(long speed) {
+      if (LITERAL_SPEEDS) {
+         return (int)speed;
+      }
+
       switch ((int)speed) {
       case 0: return LinuxConstants.B0;
       case 50: return LinuxConstants.B50;
@@ -471,6 +523,8 @@ public enum UartNativeLinux implements UartNative.Impl {
 
    public interface LINCLibrary extends Library {
       LINCLibrary INSTANCE = (LINCLibrary)Native.loadLibrary("c", LINCLibrary.class);
+
+      public String gnu_get_libc_version();
 
       public int open(String path, int flags);
       public int close(int fd);
