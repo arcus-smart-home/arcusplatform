@@ -634,8 +634,9 @@ static void handleSchlageAlarmReportViaNotification(ctx,name,message) {
          updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
          break;
       case 0x05: // Locked from outside
+         // Locking from outside is just the Schlage button, with no PIN, so the
+         // reported user slot doesn't identify who locked it. Don't credit it.
          updateLockState(ctx,ctx.DoorLock.LOCKSTATE_LOCKED)
-         doPinUsed(ctx, name,message.command.get('parameter1'), "locked")
          break;
       case 0x06: // Unlocked from outside
          updateLockState(ctx,ctx.DoorLock.LOCKSTATE_UNLOCKED)
