@@ -54,6 +54,7 @@ import com.iris.driver.ProxyDeviceDriver;
 import com.iris.driver.event.DriverEvent;
 import com.iris.driver.reflex.ReflexDriverDefinition;
 import com.iris.driver.service.DriverConfig;
+import com.iris.driver.service.MispairedRecovery;
 import com.iris.driver.service.executor.DefaultDriverExecutor;
 import com.iris.driver.service.executor.DriverExecutor;
 import com.iris.driver.service.executor.DriverExecutorRegistry;
@@ -417,7 +418,15 @@ public class PlatformDriverExecutorRegistry implements DriverExecutorRegistry {
          // also don't start it if we're just cleaning out the tombstone
          startDriver = false;
       }
-      return createExecutor(context, startDriver);
+      DriverExecutor executor = createExecutor(context, false);
+      if(startDriver) {
+         if(mode == Mode.LOAD && !context.isTombstoned()) {
+            // nothing else can use the context until the executor is returned
+            MispairedRecovery.recoverBeforeStart(executor);
+         }
+         executor.start();
+      }
+      return executor;
    }
    
    private DriverExecutor createExecutor(DeviceDriverContext context, boolean start) {

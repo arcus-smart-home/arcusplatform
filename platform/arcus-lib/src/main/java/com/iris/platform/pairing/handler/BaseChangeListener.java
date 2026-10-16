@@ -56,7 +56,7 @@ public class BaseChangeListener {
 	      @Nullable Map<String, Object> original, 
 	      String pairingState, 
 	      String pairingPhase) {		
-		if(isPairingFinal(model)) {
+		if(isPairingFinal(model, message)) {
 			return model;
 		}
 		
@@ -82,20 +82,28 @@ public class BaseChangeListener {
 		return model;
 	}
 	
-	//Determine if the current device pairing has reached the ending state, currently defined as 
-	//[pairingState, pairingPhase] = [PAIRED, PAIRED] or [MISPAIRED, FAILED]
-	private boolean isPairingFinal(PairingDevice model) {
+	// Determine if the current device pairing has reached the ending state.
+	// [PAIRED, PAIRED] is terminal. [MISPAIRED, FAILED] can recover when the device
+	// moves to a real driver, but only on a change that carries devadv:errors. A
+	// driver state change on its own doesn't say pairing.failed was cleared.
+	private boolean isPairingFinal(PairingDevice model, MessageBody message) {
 		String currentPairingPhase = PairingDeviceModel.getPairingPhase(model);
 		String currentPairingState = PairingDeviceModel.getPairingState(model);
 		if(PairingDeviceCapability.PAIRINGPHASE_PAIRED.equals(currentPairingPhase) && PairingDeviceCapability.PAIRINGSTATE_PAIRED.equals(currentPairingState)) {
 			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
 			return true;
-		}else if(PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(currentPairingPhase) && PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(currentPairingState)) {
-			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
-			return true;
-		}else{
-			return false;
 		}
+		if(isMispaired(model) && !message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
+			logger.debug("Ignoring the incoming pairing status update for a mispaired device because it doesn't include the device errors");
+			return true;
+		}
+		return false;
+	}
+
+	protected static boolean isMispaired(PairingDevice model) {
+		return
+				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(PairingDeviceModel.getPairingPhase(model)) &&
+				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(PairingDeviceModel.getPairingState(model));
 	}
 
 	private void sendChanges(PairingDevice model, Map<String, Object> original) {

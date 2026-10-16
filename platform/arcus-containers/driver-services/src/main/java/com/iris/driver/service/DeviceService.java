@@ -390,6 +390,9 @@ public class DeviceService {
             };
             
             synchronized(newExecutor.context()) {
+               // The device may still have a fallback's mispaired state, from this upgrade or
+               // an older one. Clear it before the new driver's onAdded so that can set its own.
+               MispairedRecovery.clearStalePairingState(newExecutor);
                if(!Objects.equals(oldDriverName, driver.getDriverId().getName())) {
                   logger.info("Device {} is changing drivers", device.getAddress());
                   // FIXME should clear all the variables and attributes in this case
@@ -536,7 +539,7 @@ public class DeviceService {
    }
    
    private boolean isFallback(DeviceDriver driver) {
-      return driver.getDefinition().getName().contains("Fallback");
+      return MispairedRecovery.isFallback(driver);
    }
    
    private String getPopulationFromPlace(UUID placeId) {

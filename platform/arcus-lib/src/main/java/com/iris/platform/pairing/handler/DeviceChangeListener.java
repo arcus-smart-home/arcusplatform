@@ -15,10 +15,12 @@
  */
 package com.iris.platform.pairing.handler;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.platform.PlatformMessageBus;
@@ -34,7 +36,9 @@ import com.iris.platform.pairing.PairingDeviceDao;
 /**
  * This class depends on the MISPAIRED / MISCONFIGURED cases updating
  * the driver state and the driver errors in the same ValueChange.  Using
- * the DSL plugins this should always be the case.
+ * the DSL plugins this should always be the case.  A mispaired device also
+ * recovers on a change to its errors alone, since clearing a stale
+ * pairing.failed doesn't always change the driver state.
  * @author tweidlin
  *
  */
@@ -55,13 +59,11 @@ public class DeviceChangeListener extends BaseChangeListener {
 	public void onDeviceChanged(PlatformMessage message) {
 		MessageBody changes = message.getValue();
 		@Nullable String driverState = DeviceAdvancedCapability.getDriverstate(changes);
-		if(
-				!(
-					DeviceAdvancedCapability.DRIVERSTATE_PROVISIONING.equals(driverState) ||
-					DeviceAdvancedCapability.DRIVERSTATE_ACTIVE.equals(driverState) ||
-					DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equals(driverState)
-				)
-		) {
+		boolean driverStateChanged =
+				DeviceAdvancedCapability.DRIVERSTATE_PROVISIONING.equals(driverState) ||
+				DeviceAdvancedCapability.DRIVERSTATE_ACTIVE.equals(driverState) ||
+				DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equals(driverState);
+		if(!driverStateChanged && !mayClearPairingFailed(changes)) {
 			// this is not the change you are looking for
 			return;
 		}
@@ -73,7 +75,20 @@ public class DeviceChangeListener extends BaseChangeListener {
 			// no pairing device, no worries
 			return;
 		}
+		if(!driverStateChanged && !isMispaired(model)) {
+			// an errors change alone only matters to a mispaired device
+			return;
+		}
 		updatePairingStatus(model, message.getValue(), model.toMap());
+	}
+
+	// a change to the errors without pairing.failed may be a stale pairing.failed being cleared
+	private static boolean mayClearPairingFailed(MessageBody changes) {
+		if(!changes.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
+			return false;
+		}
+		Map<String, String> errors = DeviceAdvancedCapability.getErrors(changes, ImmutableMap.of());
+		return !errors.containsKey(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED);
 	}
 
 }
