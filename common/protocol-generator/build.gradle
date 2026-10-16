@@ -15,9 +15,6 @@
  */
 // project specific build settings, dependencies, etc.
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-
 // Support for JAXB bindings
 ext.generatedSrcDir = 'src/generated/java'
 ext.xsdDir = "${rootDir}/common/arcus-protocol/src/main/resources/definition/ipcd/schema"

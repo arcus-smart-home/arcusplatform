@@ -708,13 +708,13 @@ src/system-test/resources # System test resources
 Runs on every push:
 
 ```yaml
-- Set up JDK 8 (Corretto)
-- Setup Gradle (gradle-build-action v2)
+- Set up JDK 11 / 21 (Corretto, matrix)
+- Setup Gradle (gradle/actions/setup-gradle v4)
 - ./gradlew test --no-daemon
 ```
 
 - **Runner:** Ubuntu latest
-- **Java:** Corretto 8
+- **Java:** Corretto 11 and 21 (one job each)
 - **Caching:** Gradle build action caches dependencies
 - No system tests or Cucumber tests in CI currently
 

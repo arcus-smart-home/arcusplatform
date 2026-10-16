@@ -87,7 +87,7 @@ Make sure you can run basic commands like `docker ps` before continuing.
 
 ### Java
 
-You'll need to install Java 11, 17, or 21 (e.g. Temurin or Corretto) to run gradle; 21 is recommended. To build the hub agent you'll also need a Java 8 JDK installed, which gradle finds automatically for the agent's toolchain. If you have multiple versions of the JDK installed, you'll need to tell gradle which one to run on. When running Arcus in production you'll use the Java runtime included with the arcus/java container (Temurin 21 by default).
+You'll need to install Java 11, 17, or 21 (e.g. Temurin or Corretto) to run gradle; 21 is recommended. If you have multiple versions of the JDK installed, you'll need to tell gradle which one to run on. When running Arcus in production you'll use the Java runtime included with the arcus/java container (Temurin 21 by default).
 
 Example of working Java version:
 ```

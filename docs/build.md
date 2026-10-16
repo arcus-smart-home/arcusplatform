@@ -1,6 +1,6 @@
 # Build System
 
-The Arcus platform uses Gradle 8.12 with a multi-project build spanning ~86 subprojects. Gradle runs on Java 11, 17, or 21; platform modules target the JDK running Gradle, while `common` and `agent` modules target Java 8 for the hub. Docker images are built via Gradle tasks wrapping shell scripts.
+The Arcus platform uses Gradle 8.12 with a multi-project build spanning ~86 subprojects. Gradle runs on Java 11, 17, or 21; platform modules target the JDK running Gradle, while `common` and `agent` modules target Java 11, the JDK the hub runs. Docker images are built via Gradle tasks wrapping shell scripts.
 
 ---
 
@@ -71,7 +71,7 @@ Four major sections with ~86 subprojects:
 
 Applied to all subprojects:
 - **Group:** `com.arcussmarthome`
-- **Java:** Gradle must run on Java 11, 17, or 21 (fails fast on other versions). Platform modules target that JDK; `common` compiles with `--release 8` and `agent` uses a Java 8 toolchain
+- **Java:** Gradle must run on Java 11, 17, or 21 (fails fast on other versions). Platform modules target that JDK; `common` and `agent` compile with `--release 11` for the hub
 - **Repositories:** Maven Central, JCenter (optional `mavenLocal` via `use_maven_local=true`)
 - **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13.2, Logback (test), Eclipse annotations
 - **Global exclusions:** commons-logging, findbugs annotations, log4j, duplicate metrics-core
@@ -305,7 +305,7 @@ Docker images are tagged as `arcus/{service-name}:{major}.{minor}.{patch}`.
 
 ### Build
 
-The agent targets **Java 8** (toolchain in `agent/build.gradle`). Gradle itself runs on Java 11+, but a Java 8 JDK must also be installed (e.g. temurin-8-jdk) so Gradle can find it for the toolchain. Build with:
+The agent targets **Java 11** (`--release 11` in `agent/build.gradle`), the JDK the hub OS ships. Any JDK that runs Gradle can build it:
 
 ```bash
 JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64 \

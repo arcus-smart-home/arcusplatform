@@ -47,12 +47,12 @@ apply from: file("${rootDir}/gradle/version.gradle")
 subprojects {
    afterEvaluate {
       if (plugins.hasPlugin('java')) {
-         sourceCompatibility = null
-         targetCompatibility = null
-         java {
-            toolchain {
-               languageVersion = JavaLanguageVersion.of(8)
-            }
+         // Target Java 11, the JDK hubs run. --release 11 also rejects APIs newer
+         // than 11, which -source/-target 11 alone would let through.
+         sourceCompatibility = '11'
+         targetCompatibility = '11'
+         tasks.withType(JavaCompile).configureEach {
+            options.release = 11
          }
          // test deps now in gradle/subproject.gradle
 

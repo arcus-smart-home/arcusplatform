@@ -14,14 +14,10 @@ jobs:
     name: Test (JDK ${{ matrix.java-version }})
     steps:
       - uses: actions/checkout@v4
-      # JDK 8 is only for the agent's Java 8 toolchain (found via ~/.m2/toolchains.xml);
-      # the last version listed is the default JDK that runs Gradle.
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
-           java-version: |
-             8
-             ${{ matrix.java-version }}
+           java-version: ${{ matrix.java-version }}
            distribution: 'corretto'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
