@@ -34,7 +34,9 @@ import com.iris.platform.pairing.PairingDeviceDao;
 /**
  * This class depends on the MISPAIRED / MISCONFIGURED cases updating
  * the driver state and the driver errors in the same ValueChange.  Using
- * the DSL plugins this should always be the case.
+ * the DSL plugins this should always be the case.  A mispaired device also
+ * recovers on a change to its errors alone, since clearing a stale
+ * pairing.failed doesn't always change the driver state.
  * @author tweidlin
  *
  */
@@ -55,13 +57,12 @@ public class DeviceChangeListener extends BaseChangeListener {
 	public void onDeviceChanged(PlatformMessage message) {
 		MessageBody changes = message.getValue();
 		@Nullable String driverState = DeviceAdvancedCapability.getDriverstate(changes);
-		if(
-				!(
-					DeviceAdvancedCapability.DRIVERSTATE_PROVISIONING.equals(driverState) ||
-					DeviceAdvancedCapability.DRIVERSTATE_ACTIVE.equals(driverState) ||
-					DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equals(driverState)
-				)
-		) {
+		boolean driverStateChanged =
+				DeviceAdvancedCapability.DRIVERSTATE_PROVISIONING.equals(driverState) ||
+				DeviceAdvancedCapability.DRIVERSTATE_ACTIVE.equals(driverState) ||
+				DeviceAdvancedCapability.DRIVERSTATE_UNSUPPORTED.equals(driverState);
+		boolean errorsChanged = changes.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS);
+		if(!driverStateChanged && !errorsChanged) {
 			// this is not the change you are looking for
 			return;
 		}
@@ -71,6 +72,10 @@ public class DeviceChangeListener extends BaseChangeListener {
 		PairingDevice model = pairingDeviceDao.listByPlace(placeId).stream().filter((p) -> rep.equals(PairingDeviceModel.getDeviceAddress(p))).findAny().orElse(null);
 		if(model == null) {
 			// no pairing device, no worries
+			return;
+		}
+		if(!driverStateChanged && !isMispaired(model)) {
+			// an errors change alone only matters when it may clear pairing.failed
 			return;
 		}
 		updatePairingStatus(model, message.getValue(), model.toMap());

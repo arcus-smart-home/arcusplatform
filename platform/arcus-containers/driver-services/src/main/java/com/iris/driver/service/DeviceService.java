@@ -366,16 +366,14 @@ public class DeviceService {
 
    protected UpgradeDriverResponse doUpgrade(DriverExecutor executor, DeviceDriver driver, boolean connected) {
       if(driver.getDriverId().equals(executor.driver().getDriverId())) {
-         // already on the right driver, but it may still be marked mispaired from a past fallback
-         MispairedRecovery.recover(executor);
          return new UpgradeDriverResponse(false, driver.getDriverId());
       }
       String oldDriverName;
       Device device;
-
+      
       synchronized(executor.context()) {
          device = ((PlatformDeviceDriverContext) executor.context()).getDevice();
-         oldDriverName = device.getDrivername();
+         oldDriverName = device.getDrivername(); 
          registry.associate(device, driver, (newExecutor) -> {
             Runnable afterAdded = () -> {
                updateState(newExecutor, driver, device.getProtocolAttributes(), false);
@@ -390,11 +388,11 @@ public class DeviceService {
                   sendResyncToHub(newExecutor);
                }
             };
-
+            
             synchronized(newExecutor.context()) {
-               // A fallback's pairing.failed may still be set, from this upgrade or an older
-               // one. Clear it before the new driver's onAdded so that can set its own state.
-               MispairedRecovery.clearStalePairingError(newExecutor);
+               // The device may still have a fallback's mispaired state, from this upgrade or
+               // an older one. Clear it before the new driver's onAdded so that can set its own.
+               MispairedRecovery.clearStalePairingState(newExecutor);
                if(!Objects.equals(oldDriverName, driver.getDriverId().getName())) {
                   logger.info("Device {} is changing drivers", device.getAddress());
                   // FIXME should clear all the variables and attributes in this case
@@ -406,7 +404,7 @@ public class DeviceService {
             }
          });
       }
-
+      
       return new UpgradeDriverResponse(true, driver.getDriverId());
    }
 
@@ -523,9 +521,6 @@ public class DeviceService {
             }
          }
          
-         // committed along with the re-add below
-         MispairedRecovery.clearStalePairingError(executor);
-
          logger.info("Attempting to re-add an existing device [{}]", device.getProtocolAddress());
          // ONLINE really means healthy in this case, not necessarilly ONLINE
          executor.context().setAttributeValue(DeviceConnectionCapability.KEY_STATUS, DeviceConnectionCapability.STATUS_ONLINE);

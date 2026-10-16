@@ -93,15 +93,17 @@ public class BaseChangeListener {
 			logger.warn("Ignoring the incoming pairing status update because of the current pairing phase value [{},{}]", currentPairingPhase, currentPairingState);
 			return true;
 		}
-		if(
-				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(currentPairingPhase) &&
-				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(currentPairingState) &&
-				!message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)
-		) {
+		if(isMispaired(model) && !message.getAttributes().containsKey(DeviceAdvancedCapability.ATTR_ERRORS)) {
 			logger.debug("Ignoring the incoming pairing status update for a mispaired device because it doesn't include the device errors");
 			return true;
 		}
 		return false;
+	}
+
+	protected static boolean isMispaired(PairingDevice model) {
+		return
+				PairingDeviceCapability.PAIRINGPHASE_FAILED.equals(PairingDeviceModel.getPairingPhase(model)) &&
+				PairingDeviceCapability.PAIRINGSTATE_MISPAIRED.equals(PairingDeviceModel.getPairingState(model));
 	}
 
 	private void sendChanges(PairingDevice model, Map<String, Object> original) {

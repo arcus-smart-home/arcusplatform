@@ -55,9 +55,7 @@ import com.iris.driver.service.executor.DefaultDriverExecutor;
 import com.iris.driver.service.executor.DriverExecutor;
 import com.iris.driver.service.executor.DriverExecutorRegistry;
 import com.iris.driver.service.registry.DriverRegistry;
-import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
-import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.DeviceConnectionCapability;
@@ -307,30 +305,6 @@ public class TestDeviceServiceUpgradeDriver extends IrisMockTestCase {
       assertTrue(response.isUpgraded());
       assertEquals(Device.STATE_ACTIVE_PROVISIONING, saved.getValue().getState());
       assertEquals(ImmutableMap.of(), associated.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
-
-      verify();
-   }
-
-   @Test
-   public void testUpgradeToSameDriverRecoversStalePairingErrors() throws Exception {
-      // already upgraded to the real driver, but the fallback's errors were never cleared
-      device.setState(Device.STATE_ACTIVE_UNSUPPORTED);
-      initialErrors = MISPAIRED_ERRORS;
-      expectLoadConsumerWithDriver(switchDriver);
-      expectFindByProtocolAttributes().andReturn(switchDriver);
-      expectLoadHubModelForPlace(hubDao);
-      expectUpdateDriverState();
-      Capture<Device> saved = expectSaveDevice();
-      replay();
-
-      UpgradeDriverResponse response = uut.upgradeDriver(Address.fromString(device.getAddress()));
-      assertFalse(response.isUpgraded());
-      assertEquals(Device.STATE_ACTIVE_SUPPORTED, saved.getValue().getState());
-
-      PlatformMessage changed = messages.take();
-      assertEquals(Capability.EVENT_VALUE_CHANGE, changed.getMessageType());
-      assertEquals(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, DeviceAdvancedCapability.getDriverstate(changed.getValue()));
-      assertEquals(ImmutableMap.of(), changed.getValue().getAttributes().get(DeviceAdvancedCapability.ATTR_ERRORS));
 
       verify();
    }

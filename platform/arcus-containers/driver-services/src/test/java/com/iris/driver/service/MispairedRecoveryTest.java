@@ -82,7 +82,7 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       expectUpdateDriverState();
       replay();
 
-      assertTrue(MispairedRecovery.recover(executor));
+      assertTrue(MispairedRecovery.recoverBeforeStart(executor));
 
       assertEquals(Device.STATE_ACTIVE_SUPPORTED, saved.getValue().getState());
       Map<String, String> errors = executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
@@ -108,7 +108,7 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       expectUpdateDriverState();
       replay();
 
-      assertTrue(MispairedRecovery.recover(executor));
+      assertTrue(MispairedRecovery.recoverBeforeStart(executor));
 
       assertEquals(ImmutableMap.of("other.error", "Something else"), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
       verify();
@@ -119,7 +119,7 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       DriverExecutor executor = createExecutor(fallbackDriver, Device.STATE_ACTIVE_UNSUPPORTED, MISPAIRED_ERRORS);
       replay();
 
-      assertFalse(MispairedRecovery.recover(executor));
+      assertFalse(MispairedRecovery.recoverBeforeStart(executor));
 
       assertEquals(MISPAIRED_ERRORS, executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
       assertNull(messages.poll());
@@ -131,18 +131,33 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       DriverExecutor executor = createExecutor(realDriver, Device.STATE_ACTIVE_SUPPORTED, null);
       replay();
 
-      assertFalse(MispairedRecovery.recover(executor));
+      assertFalse(MispairedRecovery.recoverBeforeStart(executor));
 
       assertNull(messages.poll());
       verify();
    }
 
    @Test
-   public void testIgnoresUnsupportedDeviceWithoutPairingError() throws Exception {
+   public void testRecoversUnsupportedStateWithoutPairingError() throws Exception {
+      // UNSUPPORTED alone is stale too: only fallback drivers set it
       DriverExecutor executor = createExecutor(realDriver, Device.STATE_ACTIVE_UNSUPPORTED, ImmutableMap.of("other.error", "Something else"));
+      Capture<Device> saved = expectSaveDevice();
+      expectUpdateDriverState();
       replay();
 
-      assertFalse(MispairedRecovery.recover(executor));
+      assertTrue(MispairedRecovery.recoverBeforeStart(executor));
+
+      assertEquals(Device.STATE_ACTIVE_SUPPORTED, saved.getValue().getState());
+      assertEquals(ImmutableMap.of("other.error", "Something else"), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
+      verify();
+   }
+
+   @Test
+   public void testIgnoresOtherErrorsOnHealthyDevice() throws Exception {
+      DriverExecutor executor = createExecutor(realDriver, Device.STATE_ACTIVE_SUPPORTED, ImmutableMap.of("other.error", "Something else"));
+      replay();
+
+      assertFalse(MispairedRecovery.recoverBeforeStart(executor));
 
       assertNull(messages.poll());
       verify();
@@ -154,7 +169,7 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       expectUpdateDriverState();
       replay();
 
-      assertTrue(MispairedRecovery.recover(executor));
+      assertTrue(MispairedRecovery.recoverBeforeStart(executor));
 
       assertEquals(ImmutableMap.of(), executor.context().getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS));
       assertEquals(Device.STATE_LOST_RECOVERABLE, ((PlatformDeviceDriverContext) executor.context()).getDevice().getState());
@@ -172,7 +187,7 @@ public class MispairedRecoveryTest extends IrisMockTestCase {
       EasyMock.expectLastCall().anyTimes();
       replay();
 
-      assertFalse(MispairedRecovery.recover(executor));
+      assertFalse(MispairedRecovery.recoverBeforeStart(executor));
       verify();
    }
 
