@@ -4,7 +4,8 @@ FROM arcus/java:jdk11
 USER root
 
 # Initial system configuration
-#  python3 is required to run cqlsh
+#  python3 is required to run cqlsh; python3-six and python3-pyasyncore
+#    replace modules that Python 3.12+ broke or removed (see below)
 #  unzip is required to unzip the modelmanager jar
 #  gosu is used to drop privileges at runtime
 RUN \
@@ -12,6 +13,8 @@ RUN \
     apt-get install -y --no-install-recommends \
       wget \
       python3 \
+      python3-six \
+      python3-pyasyncore \
       dnsutils \
       unzip \
       gosu && \
@@ -21,13 +24,15 @@ RUN \
 ENV CASSANDRA_VERSION 4.0.21
 
 # Download and install the required version of Apache Cassandra.
+# The six 1.12 bundled with cqlsh breaks on Python 3.12+, so drop it in favor of python3-six.
 RUN \
     wget https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -O /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     tar xfz /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -C /opt && \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
     rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
-    ln -s /opt/cassandra/bin/nodetool /usr/bin
+    ln -s /opt/cassandra/bin/nodetool /usr/bin && \
+    rm /opt/cassandra/lib/six-*.zip
 
 # Add control script and logging configuration
 ADD cassandra-cmd /usr/bin/

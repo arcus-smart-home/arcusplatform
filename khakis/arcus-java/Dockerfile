@@ -1,9 +1,6 @@
 # Use Debian as the base installation
-FROM debian:bookworm
+FROM debian:trixie
 ARG JAVA_VERSION=21
-
-# Install the latest updates.
-ADD sources.list /etc/apt/
 
 # Setup the default locale to be UTF-8
 RUN apt-get update && apt-get install -y --no-install-recommends locales ca-certificates wget && rm -rf /var/lib/apt/lists/* \
@@ -13,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends locales ca-cert
 RUN \
     mkdir -p /etc/apt/keyrings && \
     wget -qO /etc/apt/keyrings/adoptium.asc https://packages.adoptium.net/artifactory/api/gpg/key/public && \
-    echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb trixie main" > /etc/apt/sources.list.d/adoptium.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends temurin-${JAVA_VERSION}-jre \
         procps less locales && \
