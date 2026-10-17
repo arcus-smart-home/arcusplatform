@@ -70,7 +70,7 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
    @Test
    public void testMispairedDeviceStaysMispairedWhileErrorPresent() throws Exception {
       PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
-      Capture<PairingDevice> saved = expectListAndSave(model);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
       replay();
 
       listener.onDeviceChanged(valueChange(
@@ -78,9 +78,9 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
             ImmutableMap.of(DeviceAdvancedCapability.PairingFailedException.CODE_PAIRING_FAILED, "Driver could not be determined.")
       ));
 
-      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
-      assertEquals(PairingDeviceCapability.PAIRINGPHASE_FAILED, PairingDeviceModel.getPairingPhase(saved.getValue()));
-      // nothing changed, so no value change is sent
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceModel.getPairingState(model));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_FAILED, PairingDeviceModel.getPairingPhase(model));
+      // nothing changed, so nothing is saved or sent (the strict DAO mock fails on a save)
       assertNull(platformBus.poll());
       verify();
    }
@@ -135,6 +135,103 @@ public class DeviceChangeListenerTest extends IrisMockTestCase {
 
       // an unrelated error while provisioning must not mark the device paired
       listener.onDeviceChanged(valueChange(ImmutableMap.of(DeviceAdvancedCapability.ATTR_ERRORS, ImmutableMap.of("other.error", "Something else"))));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRING, PairingDeviceModel.getPairingState(model));
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
+   public void testMispairedDeviceRecoversFromAnnouncedPairingState() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISPAIRED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      Capture<PairingDevice> saved = expectListAndSave(model);
+      replay();
+
+      // what driver services announces when it loads a device whose pairing.failed was cleared long ago,
+      // with the driver state in the lower case the devices table stores
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(
+            DeviceAdvancedCapability.ATTR_DRIVERSTATE, "active",
+            DeviceAdvancedCapability.ATTR_ERRORS, ImmutableMap.of()
+      )));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_PAIRED, PairingDeviceModel.getPairingPhase(saved.getValue()));
+      verify();
+   }
+
+   @Test
+   public void testMisconfiguredDeviceRecoversWhenErrorsCleared() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      Capture<PairingDevice> saved = expectListAndSave(model);
+      replay();
+
+      // the driver called provisioned on an active device, and driver services sends the driver state with the errors
+      listener.onDeviceChanged(valueChange(DeviceAdvancedCapability.DRIVERSTATE_ACTIVE, ImmutableMap.of()));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_PAIRED, PairingDeviceModel.getPairingPhase(saved.getValue()));
+      verify();
+   }
+
+   @Test
+   public void testMisconfiguredDeviceStaysMisconfiguredWhenItComesBack() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      replay();
+
+      // a lost device comes back still misconfigured
+      listener.onDeviceChanged(valueChange(
+            DeviceAdvancedCapability.DRIVERSTATE_ACTIVE,
+            ImmutableMap.of(DeviceAdvancedCapability.PairingMisconfiguredException.CODE_PAIRING_MISCONFIGURED, "Unable to fully configure device")
+      ));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceModel.getPairingState(model));
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
+   public void testMisconfiguredLostDeviceRecoversWhenErrorsCleared() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      Capture<PairingDevice> saved = expectListAndSave(model);
+      replay();
+
+      // what driver services announces when it loads a lost device whose misconfiguration was cleared
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(
+            DeviceAdvancedCapability.ATTR_DRIVERSTATE, "recoverable",
+            DeviceAdvancedCapability.ATTR_ERRORS, ImmutableMap.of()
+      )));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRED, PairingDeviceModel.getPairingState(saved.getValue()));
+      assertEquals(PairingDeviceCapability.PAIRINGPHASE_PAIRED, PairingDeviceModel.getPairingPhase(saved.getValue()));
+      verify();
+   }
+
+   @Test
+   public void testMisconfiguredDeviceIgnoresChangeWithoutErrors() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceCapability.PAIRINGPHASE_FAILED);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      replay();
+
+      // the driver state changed but the errors didn't come with it, so pairing.misconfigured may still be set
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(DeviceAdvancedCapability.ATTR_DRIVERSTATE, DeviceAdvancedCapability.DRIVERSTATE_ACTIVE)));
+
+      assertEquals(PairingDeviceCapability.PAIRINGSTATE_MISCONFIGURED, PairingDeviceModel.getPairingState(model));
+      assertNull(platformBus.poll());
+      verify();
+   }
+
+   @Test
+   public void testPairingDeviceIgnoresLostDevice() throws Exception {
+      PairingDevice model = pairingDevice(PairingDeviceCapability.PAIRINGSTATE_PAIRING, PairingDeviceCapability.PAIRINGPHASE_CONFIGURE);
+      EasyMock.expect(pairingDeviceDao.listByPlace(placeId)).andReturn(ImmutableList.of(model));
+      replay();
+
+      // a device lost while it was being configured hasn't finished pairing
+      listener.onDeviceChanged(valueChange(ImmutableMap.of(
+            DeviceAdvancedCapability.ATTR_DRIVERSTATE, "recoverable",
+            DeviceAdvancedCapability.ATTR_ERRORS, ImmutableMap.of()
+      )));
 
       assertEquals(PairingDeviceCapability.PAIRINGSTATE_PAIRING, PairingDeviceModel.getPairingState(model));
       assertNull(platformBus.poll());

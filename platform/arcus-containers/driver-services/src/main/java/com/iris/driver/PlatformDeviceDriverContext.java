@@ -749,6 +749,24 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
       ServiceLocator.getInstance(PlatformMessageBus.class).send(arg0);
    }
 
+   /**
+    * The attributes a pairing device's state is derived from: the driver state, and the
+    * errors whenever the device has an errors attribute. An empty map is included, because
+    * it is how a listener learns that an error was cleared.
+    */
+   public static Map<String, Object> getPairingStateAttributes(DeviceDriverContext context) {
+      Map<String, Object> attributes = new HashMap<>();
+      String driverState = context.getAttributeValue(DeviceAdvancedCapability.KEY_DRIVERSTATE);
+      if(driverState != null) {
+         attributes.put(DeviceAdvancedCapability.ATTR_DRIVERSTATE, driverState);
+      }
+      Map<String, String> errors = context.getAttributeValue(DeviceAdvancedCapability.KEY_ERRORS);
+      if(errors != null) {
+         attributes.put(DeviceAdvancedCapability.ATTR_ERRORS, errors);
+      }
+      return attributes;
+   }
+
    @Override
    public ListenableFuture<?> broadcast(MessageBody event) {
       String correlationId = getCorrelationId();
@@ -910,6 +928,13 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
       Map<String,Object> dirtyMap = new HashMap<>();
       for (AttributeKey<?> key : dirtyAttributes) {
          dirtyMap.put(key.getName(),getAttributeValue(key));
+      }
+      // DeviceService changes the state on the device directly when a device is lost or upgraded,
+      // so compare with what was saved rather than relying on the dirty attributes alone
+      boolean driverStateChanged = persisted != null && !StringUtils.equalsIgnoreCase(persisted.getState(), device.getState());
+      if(driverStateChanged || dirtyAttributes.contains(DeviceAdvancedCapability.KEY_DRIVERSTATE) || dirtyAttributes.contains(DeviceAdvancedCapability.KEY_ERRORS)) {
+         // the pairing state depends on both, so a listener must never have to guess the one that didn't change
+         dirtyMap.putAll(getPairingStateAttributes(this));
       }
 
       saveDeviceIfDirty(deviceDao);
