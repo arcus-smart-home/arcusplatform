@@ -83,7 +83,6 @@ import com.iris.client.server.rest.FindProductsRESTHandler;
 import com.iris.client.server.rest.GetBrandsRESTHandler;
 import com.iris.client.server.rest.GetCategoriesRESTHandler;
 import com.iris.client.server.rest.GetInvitationRESTHandler;
-import com.iris.client.server.rest.GetInvoiceRESTHandler;
 import com.iris.client.server.rest.GetProductCatalogRESTHandler;
 import com.iris.client.server.rest.GetProductRESTHandler;
 import com.iris.client.server.rest.GetProductsByBrandRESTHandler;
@@ -121,7 +120,6 @@ import com.iris.netty.server.netty.IrisNettyCORSChannelInitializer;
 import com.iris.platform.location.TimezonesModule;
 import com.iris.platform.notification.audit.CassandraAuditor;
 import com.iris.platform.notification.audit.NotificationAuditor;
-import com.iris.platform.subscription.IrisSubscriptionModule;
 import com.iris.population.PlacePopulationCacheModule;
 import com.iris.prodcat.ProductCatalogModule;
 import com.iris.prodcat.ProductCatalogReloadListener;
@@ -194,7 +192,7 @@ public class ClientServerModule extends AbstractIrisModule {
    private ExecutorService executor;
    
    @Inject
-   public ClientServerModule(BridgeConfigModule bridge, ShiroModule shiro, TemplateModule template, IrisSubscriptionModule subscription) {
+   public ClientServerModule(BridgeConfigModule bridge, ShiroModule shiro, TemplateModule template) {
    	this.executor = 
    			new ThreadPoolBuilder()
    				.withMaxPoolSize(threads)
@@ -300,7 +298,6 @@ public class ClientServerModule extends AbstractIrisModule {
       bindHandler(rhBindings, ListTimezonesRESTHandler.class);
       bindHandler(rhBindings, AcceptInvitationCreateLoginRESTHandler.class);
       bindHandler(rhBindings, GetInvitationRESTHandler.class);
-      bindHandler(rhBindings, GetInvoiceRESTHandler.class);
       bindHandler(rhBindings, LockDeviceRESTHandler.class);
       bindHandler(rhBindings, RequestEmailVerificatonRESTHandler.class);
       bindHandler(rhBindings, VerifyEmailRESTHandler.class);
@@ -353,12 +350,6 @@ public class ClientServerModule extends AbstractIrisModule {
       Resource easCodesDirectory = Resources.getResource(easCodesPath);
       return new EasCodeManager(easCodesDirectory);
    }
-   
-   @Provides @Singleton @Named(GetInvoiceRESTHandler.NAME_EXECUTOR)
-   public Executor getInvoiceExecutor() {
-   	return executor;
-   }
-   
    
    @Provides @Singleton @Named(SetActivePlaceHandler.NAME_EXECUTOR)
    public Executor setActivePlaceExecutor() {

@@ -16,7 +16,6 @@
 package com.iris.platform.services.person.handlers;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -27,12 +26,8 @@ import com.iris.util.IrisCollections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
-import com.iris.billing.client.BillingClient;
-import com.iris.billing.client.model.request.AccountRequest;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
 import com.iris.capability.registry.CapabilityRegistry;
 import com.iris.core.dao.AccountDAO;
@@ -44,14 +39,11 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.PersonCapability;
-import com.iris.messages.errors.ErrorEventException;
-import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Person;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.services.AbstractSetAttributesPlatformMessageHandler;
 import com.iris.population.PlacePopulationCacheManager;
-import com.iris.security.ParsedEmail;
 
 @Singleton
 public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMessageHandler<Person> {
@@ -59,12 +51,7 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
 
    private final AccountDAO accountDao;
    private final PersonDAO personDao;
-   private final BillingClient client;
    private final PersonPlaceAssocDAO personPlaceAssocDao;
-
-   @Inject(optional = true)
-   @Named(value = "billing.timeout")
-   private int billingTimeout = 30;
 
    @Inject
    public PersonSetAttributesHandler(
@@ -73,14 +60,12 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
          AccountDAO accountDao,
          PersonDAO personDao,
          PersonPlaceAssocDAO personPlaceAssocDao,
-         BillingClient client,
          PlatformMessageBus platformBus,
          PlacePopulationCacheManager populationCacheMgr
    ) {
       super(capabilityRegistry, personTransformer, platformBus, populationCacheMgr);
       this.accountDao = accountDao;
       this.personDao = personDao;
-      this.client = client;
       this.personPlaceAssocDao = personPlaceAssocDao;
    }
 
@@ -89,24 +74,10 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
       boolean emailUpdated = oldAttributes != null && oldAttributes.containsKey(PersonCapability.ATTR_EMAIL);
       boolean mobileUpdated = oldAttributes != null && !StringUtils.isEmpty( (String) oldAttributes.get(PersonCapability.ATTR_MOBILENUMBER) );
       Account account = getAccount(context);
-      boolean accountOwner = isAccountOwner(context, account);
 
       if(emailUpdated) {
          String oldEmail = (String)oldAttributes.get(PersonCapability.ATTR_EMAIL);
-
-         // keep ReCurly in sync IF this is the account owner
-         if(accountOwner) {
-            personDao.setUpdateFlag(context.getId(), true);
-
-            if(hasBillingSubscriptions(context)){
-               updateRecurlyEmail(context);
-            }
-            personDao.updatePersonAndEmail(context, oldEmail);
-            personDao.setUpdateFlag(context.getId(), false);
-         }
-         else {
-            personDao.updatePersonAndEmail(context, oldEmail);
-         }
+         personDao.updatePersonAndEmail(context, oldEmail);
          if(context.getHasLogin() && Account.AccountState.COMPLETE.equals(account.getState())){
             platformBus.send(createEmailChangeNotification(context, oldEmail, NotificationCapability.NotifyRequest.PRIORITY_LOW));
             platformBus.send(createEmailChangeNotification(context, oldEmail, NotificationCapability.NotifyRequest.PRIORITY_MEDIUM));
@@ -135,32 +106,9 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
       // we have access to the old email address
    }
 
-   protected boolean isAccountOwner(Person person) {
-      if(!person.getHasLogin() || person.getAccountId() == null) {
-         return false;
-      }
-
-      com.iris.messages.model.Account account = accountDao.findById(person.getAccountId());
-      return Objects.equals(account.getOwner(), person.getId());
-   }
-   
    protected Account getAccount(Person person) {
    	return accountDao.findById(person.getAccountId());
    }
-   
-   protected boolean isAccountOwner(Person person, Account account) {
-      if(!person.getHasLogin() || person.getAccountId() == null) {
-         return false;
-      }
-
-      return Objects.equals(account.getOwner(), person.getId());
-   }
-
-   protected boolean hasBillingSubscriptions(Person person) {
-      Account account = accountDao.findById(person.getAccountId());
-      return (account.getSubscriptionIDs() != null && !account.getSubscriptionIDs().isEmpty());
-   }
-   
    
    /**
     * Send the ValueChangeEvent for every place this person belongs to
@@ -187,28 +135,5 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
                .create();
    }
 
-   private void updateRecurlyEmail(Person context) {
-      logger.debug("Changing email in ReCurly for primary account holder, account: [{}] person: [{}]", context.getAccountId(), context.getId());
-
-      // If the email can't be parsed, then it is considered invalid.
-      String newEmail = context.getEmail();
-      ParsedEmail parsedEmail = ParsedEmail.parse(newEmail);
-      if (!parsedEmail.isValid()) {
-         throw new ErrorEventException(Errors.invalidParam(PersonCapability.ATTR_EMAIL));
-      }
-
-      AccountRequest request = new AccountRequest();
-      request.setAccountID(context.getAccountId().toString());
-      request.setEmail(newEmail);
-
-      ListenableFuture<com.iris.billing.client.model.Account> accountFuture = client.updateAccount(request);
-
-      try {
-         accountFuture.get(billingTimeout, TimeUnit.SECONDS);
-      }
-      catch(Exception e) {
-         throw new ErrorEventException( Errors.fromException(e) );
-      }
-   }
 }
 

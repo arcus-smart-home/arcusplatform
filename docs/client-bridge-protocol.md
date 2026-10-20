@@ -123,8 +123,6 @@ Immediately after the handshake completes, the server pushes a `SessionCreated` 
       "requiresPrivacyPolicyConsent": false,
       "smartyAuthID": "<smarty-streets-id>",
       "smartyAuthToken": "<smarty-streets-token>",
-      "tokenURL": "<recurly-token-url>",
-      "publicKey": "<recurly-public-api-key>",
       "cameraPreviewBaseUrl": "<url>",
       "staticResourceBaseUrl": "<url>",
       "secureStaticResourceBaseUrl": "<url>",
@@ -145,8 +143,6 @@ Immediately after the handshake completes, the server pushes a `SessionCreated` 
 | `requiresPrivacyPolicyConsent` | Whether the user must accept updated privacy policy (always `false` for non-owners) |
 | `smartyAuthID` | SmartyStreets address validation auth ID |
 | `smartyAuthToken` | SmartyStreets address validation auth token |
-| `tokenURL` | Recurly billing token URL |
-| `publicKey` | Recurly public API key |
 | `cameraPreviewBaseUrl` | Base URL for camera preview images |
 | `staticResourceBaseUrl` | Base URL for static resources |
 | `secureStaticResourceBaseUrl` | HTTPS base URL for static resources |

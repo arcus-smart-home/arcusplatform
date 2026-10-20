@@ -45,12 +45,11 @@ import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.model.ServiceAddon;
 import com.iris.messages.model.ServiceLevel;
 import com.iris.messages.type.Population;
 import com.iris.platform.address.StreetAddress;
 import com.iris.platform.address.updater.AddressUpdaterFactory;
-import com.iris.platform.subscription.SubscriptionUpdateException;
-import com.iris.platform.subscription.SubscriptionUpdater;
 import com.iris.security.authz.AuthorizationGrant;
 
 @Singleton
@@ -62,7 +61,6 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
    private final AccountDAO accountDao;
    private final PlaceDAO placeDao;
    private final AuthorizationGrantDAO grantDao;
-   private final SubscriptionUpdater subscriptionUpdater;
    private final PlatformMessageBus bus;
    private final AddressUpdaterFactory updaterFactory;
 
@@ -72,7 +70,6 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
          AccountDAO accountDao,
          PlaceDAO placeDao,
          AuthorizationGrantDAO grantDao,
-         SubscriptionUpdater subscriptionUpdater,
          PlatformMessageBus bus,
          AddressUpdaterFactory updaterFactory) {
 
@@ -80,7 +77,6 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       this.accountDao = accountDao;
       this.placeDao = placeDao;
       this.grantDao = grantDao;
-      this.subscriptionUpdater = subscriptionUpdater;
       this.bus = bus;
       this.updaterFactory = updaterFactory;
    }
@@ -104,38 +100,24 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
          return Errors.missingParam(AccountCapability.AddPlaceRequest.ATTR_SERVICELEVEL);
       }
 
-      ServiceLevel serviceLevel = ServiceLevel.valueOf(AccountCapability.AddPlaceRequest.getServiceLevel(body));
+      // All places get PREMIUM_FREE since there is no billing provider
+      ServiceLevel serviceLevel = ServiceLevel.PREMIUM_FREE;
 
-      if(ServiceLevel.isPromon(serviceLevel)) {
-         return Errors.fromCode(Errors.CODE_INVALID_REQUEST, "A place cannot be added at a promonitoring level.");
+      Set<String> addons;
+      try {
+         addons = mapAddons(AccountCapability.AddPlaceRequest.getAddons(body));
       }
-      if(hasPremiumFree(context)) {
-    	  if(serviceLevel == ServiceLevel.PREMIUM) {
-    		  serviceLevel = ServiceLevel.PREMIUM_FREE;
-    	  }
-      }else{
-    	  if(serviceLevel == ServiceLevel.PREMIUM_FREE) {
-    		  //can not have a premium free if there is not an existing one
-    		  return Errors.fromCode(Errors.CODE_INVALID_REQUEST, "Cannot add a PREMIUM FREE place without an existing PREMIUM FREE place or subscription.");
-    	  }
+      catch(IllegalArgumentException e) {
+         return Errors.invalidParam(AccountCapability.AddPlaceRequest.ATTR_ADDONS);
       }
 
-      // bail out if we don't have a billing but are trying to create a place at premium
-      if(!context.hasBillingAccount() && serviceLevel == ServiceLevel.PREMIUM) {
-         return Errors.fromCode(Errors.CODE_INVALID_REQUEST, "Billing information required to add a place at " + serviceLevel);
-      }
-
-      Map<String, Boolean> addons = mapAddons(AccountCapability.AddPlaceRequest.getAddons(body), place);
       //population is always assigned to be general in AddPlace
       String population = Population.NAME_GENERAL;
-      
+
       place.setPopulation(population);
       place.setAccount(context.getId());
-      
-      // Accounts that have billing information provisioned will have service level written by SubscriptionUpdater
-      if (!context.hasBillingAccount()) {
-    	  place.setServiceLevel(serviceLevel);
-      }
+      place.setServiceLevel(serviceLevel);
+      place.setServiceAddons(addons);
 
       Map<String,Object> updates = updaterFactory.updaterFor(place).updateAddress(place, StreetAddress.fromPlace(place));
       if(updates != null && !updates.isEmpty()) {
@@ -146,23 +128,12 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
 
       try {
          context = updateAccount(context, place, false);
-
-         // bailed out earlier if creating a place at premium without a billing account, so only
-         // update subscriptions if a billing account is present
-         if(context.hasBillingAccount()) {
-            subscriptionUpdater.updateSubscription(context, place, serviceLevel, addons, false);
-         }
-
          createGrant(context, place);
-
       }
       catch(Exception e) {
          logger.error("Unable to create new place!", e);
          updateAccount(context, place, true);
          placeDao.delete(place);
-         if(e instanceof SubscriptionUpdateException) {
-            return Errors.fromCode("unable.to.update.recurly", "Billing information could not be updated.");
-         }
          return Errors.fromException(e);
       }
 
@@ -180,6 +151,16 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       notification(context.getOwner(), place.getId(), place.getPopulation());
 
       return AccountCapability.AddPlaceResponse.builder().withPlace(placeTransformer.transform(place)).build();
+   }
+
+   private Set<String> mapAddons(Map<String, Object> addons) {
+      if(addons == null) {
+         return new HashSet<>();
+      }
+      return addons.entrySet().stream()
+            .filter((e) -> Boolean.TRUE.equals(e.getValue()))
+            .map((e) -> ServiceAddon.fromString(e.getKey()).name())
+            .collect(Collectors.toSet());
    }
 
    private void notification(UUID personId, UUID placeId, String population) {
@@ -207,15 +188,6 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       return accountDao.save(account);
    }
 
-   private boolean hasPremiumFree(Account account) {
-      if(account.getSubscriptionIDs() != null && !account.getSubscriptionIDs().isEmpty()) {
-         return account.getSubscriptionIDs().containsKey(ServiceLevel.PREMIUM_FREE) || account.getSubscriptionIDs().containsKey(ServiceLevel.PREMIUM_PROMON_FREE);
-      }
-      // skipped billing creation case requires looking up the places unfortunately
-      List<Place> places = placeDao.findByPlaceIDIn(account.getPlaceIDs());
-      return places.stream().anyMatch((p) -> { return ServiceLevel.isNonBasicFree(p.getServiceLevel()); });
-   }
-
    private void createGrant(Account account, Place newPlace) {
       AuthorizationGrant grant = new AuthorizationGrant();
       grant.setAccountId(account.getId());
@@ -227,19 +199,5 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       grantDao.save(grant);
    }
 
-   private Map<String, Boolean> mapAddons(Map<String, Object> addons, Place place) {
-      Map<String, Boolean> updatedMap = addons != null
-            ? addons.entrySet().stream().collect(Collectors.toMap((e) -> e.getKey(), (e) -> (Boolean)e.getValue()))
-            : new HashMap<>();
-      Set<String> placeAddons = place.getServiceAddons();
-      if (placeAddons != null) {
-         for (String addon : placeAddons) {
-            if (updatedMap.get(addon) == null) {
-               updatedMap.put(addon, true);
-            }
-         }
-      }
-      return updatedMap;
-   }
 }
 

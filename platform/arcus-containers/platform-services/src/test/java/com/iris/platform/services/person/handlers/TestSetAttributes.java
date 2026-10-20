@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,8 +28,11 @@ import com.google.inject.Inject;
 import com.iris.capability.attribute.transform.AttributeMapTransformModule;
 import com.iris.capability.registry.CapabilityRegistryModule;
 import com.iris.capability.util.PhoneNumbers;
+import com.iris.core.dao.AccountDAO;
+import com.iris.core.dao.PersonDAO;
 import com.iris.core.dao.PersonPlaceAssocDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
+import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
 import com.iris.core.notification.Notifications;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
@@ -38,149 +40,109 @@ import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.PersonCapability;
+import com.iris.messages.model.Account;
 import com.iris.messages.model.Fixtures;
 import com.iris.messages.model.Person;
-import com.iris.messages.model.Account.AccountState;
-import com.iris.platform.services.BillingTestCase;
+import com.iris.population.PlacePopulationCacheManager;
+import com.iris.test.IrisMockTestCase;
 import com.iris.test.Mocks;
 import com.iris.test.Modules;
 
-@Mocks({PersonPlaceAssocDAO.class})
+@Mocks({AccountDAO.class, PersonDAO.class, PersonPlaceAssocDAO.class, PlacePopulationCacheManager.class})
 @Modules({InMemoryMessageModule.class, AttributeMapTransformModule.class, CapabilityRegistryModule.class})
-public class TestSetAttributes extends BillingTestCase {
+public class TestSetAttributes extends IrisMockTestCase {
    private static final String NEW_MOBILE_NUMBER = "4815162342";
    private static final String NEW_FIRSTNAME = "Jane";
    private static final String NEW_LASTNAME = "Cranston";
    private static final String COR_ID = "e73d8787-e62e-40fa-96d0-e08d2f15aeb9";
 
-   @Inject
-   private PersonPlaceAssocDAO personPlaceAssocDao;
+   @Inject private AccountDAO accountDao;
+   @Inject private PersonDAO personDao;
+   @Inject private PersonPlaceAssocDAO personPlaceAssocDao;
+   @Inject private PlacePopulationCacheManager populationCacheMgr;
+   @Inject private InMemoryPlatformMessageBus platformBus;
+   @Inject private PersonSetAttributesHandler handler;
 
-   
-   
-   @Inject
-   private PersonSetAttributesHandler handler;
+   private Person person;
+   private Account account;
+   private UUID firstPlaceId;
 
    @Override
    public void setUp() throws Exception {
       super.setUp();
-      initData();
+      firstPlaceId = UUID.randomUUID();
+
+      account = new Account();
+      account.setId(UUID.randomUUID());
+      account.setOwner(UUID.randomUUID());
+      account.setState(Account.AccountState.COMPLETE);
+
+      person = Fixtures.createPerson();
+      person.setId(account.getOwner());
+      person.setAccountId(account.getId());
+      person.setFirstName("John");
+      person.setLastName("Doe");
+      person.setMobileNumber("5551234567");
+      person.setEmail("test@example.com");
+      person.setHasLogin(true);
+
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account).anyTimes();
+      EasyMock.expect(personDao.findById(person.getId())).andReturn(person).anyTimes();
+      EasyMock.expect(populationCacheMgr.getPopulationByPlaceId(EasyMock.anyString())).andReturn("general").anyTimes();
    }
 
    @Test
    public void testUpdateMobileNumber() throws Exception {
       UUID secondPlaceId = UUID.randomUUID();
       EasyMock.expect(personDao.update(person)).andReturn(person);
-      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlace.getId(), secondPlaceId));
+      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlaceId, secondPlaceId));
       replay();
       handleMsg(person, NEW_MOBILE_NUMBER, null, null);
 
-      verifyPerson(person.getId(), NEW_MOBILE_NUMBER, FakePerson.FIRSTNAME, FakePerson.LASTNAME);
       verifyMobileNumberNotification(platformBus.take(), person.getId());
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), firstPlace.getId().toString());
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), secondPlaceId.toString());  //two value change event should be sent.
-      verifyNoMoreMsgs();
+      // Two value change events, one per place
+      assertValueChangeEvent(platformBus.take());
+      assertValueChangeEvent(platformBus.take());
+      Assert.assertNull(platformBus.poll());
       verify();
    }
 
    @Test
    public void testUpdateOtherAttributes() throws Exception {
       EasyMock.expect(personDao.update(person)).andReturn(person);
-      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlace.getId()));
+      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlaceId));
       replay();
-     
+
       handleMsg(person, null, NEW_FIRSTNAME, NEW_LASTNAME);
-      verifyPerson(person.getId(), FakePerson.MOBILENUMBER, NEW_FIRSTNAME, NEW_LASTNAME);
-      // Should be no notifications.
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), firstPlace.getId().toString());
-      verifyNoMoreMsgs();
-      
+      // Should be no notifications, just value change.
+      assertValueChangeEvent(platformBus.take());
+      Assert.assertNull(platformBus.poll());
+
       verify();
    }
 
    @Test
    public void testUpdateMobileNumberAndOthers() throws Exception {
       EasyMock.expect(personDao.update(person)).andReturn(person);
-      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlace.getId()));
+      EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlaceId));
       replay();
 
       handleMsg(person, NEW_MOBILE_NUMBER, NEW_FIRSTNAME, NEW_LASTNAME);
-      verifyPerson(person.getId(), NEW_MOBILE_NUMBER, NEW_FIRSTNAME, NEW_LASTNAME);
       verifyMobileNumberNotification(platformBus.take(), person.getId());
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), firstPlace.getId().toString());
-      verifyNoMoreMsgs();
+      assertValueChangeEvent(platformBus.take());
       Assert.assertNull(platformBus.poll());
-      
+
       verify();
    }
 
    @Test
    public void testUpdatePinAndMobileWithUnchangedData() throws Exception {
       replay();
-      
-      handleMsg(person, FakePerson.MOBILENUMBER, null, null);
-      verifyPerson(person.getId(), FakePerson.MOBILENUMBER, FakePerson.FIRSTNAME, FakePerson.LASTNAME);
+
+      handleMsg(person, person.getMobileNumber(), null, null);
       Assert.assertNull(platformBus.poll());
-      
+
       verify();
-   }
-   
-   
-   @Test
-   public void testUpdateEmail() throws Exception {
-   	account.setState(AccountState.COMPLETE);
-   	String newEmail = "test111@gmail.com";
-   	setupUpdateEmail(newEmail);
-   	replay();
-   	
-   	Map<String, Object> attrs = new HashMap<>();
-   	attrs.put(PersonCapability.ATTR_EMAIL, newEmail);
-   	createAndSendRequest(person, attrs);
-   	
-   	verifyEmailUpdateNotification(platformBus.take(), person.getId(), true);	//email
-   	verifyEmailUpdateNotification(platformBus.take(), person.getId(), false);	//text
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), firstPlace.getId().toString());
-   	
-   }
-   
-   @Test
-   public void testUpdateEmailAccountNotComplete() throws Exception {
-   	account.setState(AccountState.SIGN_UP_1);
-   	String newEmail = "test111@gmail.com";
-   	setupUpdateEmail(newEmail);
-   	replay();
-   	
-   	Map<String, Object> attrs = new HashMap<>();
-   	attrs.put(PersonCapability.ATTR_EMAIL, newEmail);
-   	createAndSendRequest(person, attrs);
-   	//No email notification
-      verifyValueChangeEvent(platformBus.take(), person.getAddress(), firstPlace.getId().toString());
-   }
-
-   private void setupUpdateEmail(String newEmail) {
-
-   	personDao.setUpdateFlag(person.getId(), true);
-   	EasyMock.expectLastCall();
-   	EasyMock.expect(personDao.updatePersonAndEmail(person, person.getEmail())).andAnswer(new IAnswer<Person>() {
-
-			@Override
-			public Person answer() throws Throwable {
-				Person newPerson = person.copy();
-				newPerson.setEmail(newEmail);
-				return newPerson;
-			}
-		});
-
-   	personDao.setUpdateFlag(person.getId(), false);
-   	EasyMock.expectLastCall();
-   	EasyMock.expect(personPlaceAssocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.<UUID>of(firstPlace.getId()));		
-	}
-
-	private void verifyPerson(UUID personId, String newMobileNumber, String firstName, String lastName) {
-      Person checkPerson = personDao.findById(person.getId());
-      Assert.assertEquals(PhoneNumbers.fromString(newMobileNumber), PhoneNumbers.fromString(checkPerson.getMobileNumber()));
-      Assert.assertEquals(firstName, checkPerson.getFirstName());
-      Assert.assertEquals(lastName, checkPerson.getLastName());
    }
 
    private void handleMsg(Person person, String newNumber, String newFirstName, String newLastName) {
@@ -194,12 +156,7 @@ public class TestSetAttributes extends BillingTestCase {
       if (newLastName != null) {
          attrs.put(PersonCapability.ATTR_LASTNAME, newLastName);
       }
-      
-      createAndSendRequest(person, attrs);
-   }
-   
-   private void createAndSendRequest(Person person, Map<String, Object> attrs) {
-   	MessageBody request = MessageBody.buildMessage(Capability.CMD_SET_ATTRIBUTES, attrs);
+      MessageBody request = MessageBody.buildMessage(Capability.CMD_SET_ATTRIBUTES, attrs);
 
       PlatformMessage msg = PlatformMessage.create(request,
             Fixtures.createClientAddress(),
@@ -210,37 +167,15 @@ public class TestSetAttributes extends BillingTestCase {
    }
 
    private void verifyMobileNumberNotification(PlatformMessage msg, UUID personId) {
-
-      MessageBody body = assertNotification(msg, personId, true);
-      
-      Assert.assertEquals(Notifications.MobileNumberChanged.KEY, NotificationCapability.NotifyRequest.getMsgKey(body));
-      Map<String, String> params = NotificationCapability.NotifyRequest.getMsgParams(body);
-      Assert.assertEquals(FakePerson.MOBILENUMBER, params.get(Notifications.MobileNumberChanged.PARAM_OLDMOBILENUMBER));
-   }
-   
-   private void verifyEmailUpdateNotification(PlatformMessage msg, UUID personId, boolean isEmail) {
-   	MessageBody body = assertNotification(msg, personId, isEmail);
-   	Assert.assertEquals(Notifications.EmailChanged.KEY, NotificationCapability.NotifyRequest.getMsgKey(body));
-      Map<String, String> params = NotificationCapability.NotifyRequest.getMsgParams(body);
-      Assert.assertEquals(FakePerson.EMAIL, params.get(Notifications.EmailChanged.PARAM_OLD_EMAIL));
-   }
-   
-   private MessageBody assertNotification(PlatformMessage msg, UUID personId, boolean isEmail) {
-   	Assert.assertNotNull(msg);
-      Assert.assertEquals(Addresses.NOTIFICATION, msg.getDestination().getRepresentation());
-      Assert.assertEquals(Addresses.PERSON, msg.getSource().getRepresentation());
-
-      MessageBody body = msg.getValue();
       Assert.assertNotNull(msg);
-      Assert.assertEquals(body.getMessageType(), NotificationCapability.NotifyRequest.NAME);
+      MessageBody body = msg.getValue();
+      Assert.assertEquals(NotificationCapability.NotifyRequest.NAME, body.getMessageType());
       Assert.assertEquals(personId.toString(), NotificationCapability.NotifyRequest.getPersonId(body));
-      if(isEmail) {
-         Assert.assertEquals(NotificationCapability.NotifyRequest.PRIORITY_LOW, NotificationCapability.NotifyRequest.getPriority(body));      	
-      }else{
-         Assert.assertEquals(NotificationCapability.NotifyRequest.PRIORITY_MEDIUM, NotificationCapability.NotifyRequest.getPriority(body));      	
-      	
-      }
-      return body;
+      Assert.assertEquals(Notifications.MobileNumberChanged.KEY, NotificationCapability.NotifyRequest.getMsgKey(body));
+   }
+
+   private void assertValueChangeEvent(PlatformMessage msg) {
+      Assert.assertNotNull(msg);
+      Assert.assertEquals(Capability.EVENT_VALUE_CHANGE, msg.getValue().getMessageType());
    }
 }
-

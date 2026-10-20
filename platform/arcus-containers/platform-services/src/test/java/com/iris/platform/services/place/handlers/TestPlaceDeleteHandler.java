@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.easymock.EasyMock;
@@ -48,8 +47,6 @@ import com.iris.messages.model.Place;
 import com.iris.messages.type.Population;
 import com.iris.platform.services.PersonDeleter;
 import com.iris.platform.services.PlaceDeleter;
-import com.iris.platform.subscription.SubscriptionUpdateException;
-import com.iris.platform.subscription.SubscriptionUpdater;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.security.authz.AuthorizationGrant;
 import com.iris.test.IrisMockTestCase;
@@ -63,7 +60,6 @@ import com.iris.test.Modules;
    PersonDAO.class,
    AuthorizationGrantDAO.class,
    PreferencesDAO.class,
-   SubscriptionUpdater.class,
    PlacePopulationCacheManager.class
 })
 @Modules({
@@ -79,7 +75,6 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
    @Inject PersonDAO personDao;
    @Inject AuthorizationGrantDAO authGrantDao;
    @Inject PreferencesDAO preferencesDao;
-   @Inject SubscriptionUpdater subUpdater;
    @Inject InMemoryPlatformMessageBus bus;
 
    private Account account;
@@ -98,7 +93,6 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
       super.setUp();
       account = new Account();
       account.setId(UUID.randomUUID());
-      account.setBillingCCLast4("1234");
 
       place = new Place();
       place.setId(UUID.randomUUID());
@@ -141,7 +135,6 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
             authGrantDao,
             apiKeyDao,
             preferencesDao,
-            subUpdater,
             new PersonDeleter(accountDao, personDao, placeDao, authGrantDao, preferencesDao, bus, mockPopulationCacheMgr),
             bus);
       handler = new PlaceDeleteHandler(placeDeleter);
@@ -190,46 +183,20 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
       boolean personDeleteFound = false;
       boolean placeDeletedFound = false;
       
-      System.out.println(halfling.getId());
-      System.out.println(login.getId());
-
-      boolean noMoreMsg = false;
-      while (!noMoreMsg) {
-    	  try {
-    		  PlatformMessage msg = bus.take();
-    		  System.out.println(msg);
-    		  if(Capability.EVENT_VALUE_CHANGE.equals(msg.getMessageType())) {
-    			  ownerValueChangeFound = true;
-    		  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && Objects.equal(halfling.getAddress(), msg.getSource().getRepresentation())) {
-    			  personDeleteFound = true;
-    		  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && place.getAddress().equals(msg.getSource().getRepresentation())) {
-    			  placeDeletedFound = true;
-    		  }
-    	  }catch(TimeoutException e) {
-    		  noMoreMsg = true;
+      PlatformMessage msg = bus.poll();
+      while (msg != null) {
+    	  if(Capability.EVENT_VALUE_CHANGE.equals(msg.getMessageType())) {
+    		  ownerValueChangeFound = true;
+    	  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && Objects.equal(halfling.getAddress(), msg.getSource().getRepresentation())) {
+    		  personDeleteFound = true;
+    	  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && place.getAddress().equals(msg.getSource().getRepresentation())) {
+    		  placeDeletedFound = true;
     	  }
-    	  
+    	  msg = bus.poll();
       }
       assertTrue("expected a value change for the owner", ownerValueChangeFound);
       assertTrue("expected a delete event for the halfling", personDeleteFound);
       assertTrue("expected a delete event for the place", placeDeletedFound);
-   }
-
-	@Test
-   public void testUpdateBillingFails() throws Exception {
-      EasyMock.expect(accountDao.findById(place.getAccount())).andReturn(account);
-      account.setPlaceIDs(ImmutableSet.of());
-      EasyMock.expect(accountDao.save(account)).andReturn(account);
-      subUpdater.removeSubscriptionForPlace(account, place);
-      EasyMock.expectLastCall().andThrow(new SubscriptionUpdateException());
-      account.setPlaceIDs(ImmutableSet.of(place.getId()));
-      EasyMock.expect(accountDao.save(account)).andReturn(account);
-      replay();
-
-      MessageBody body = handler.handleRequest(place, createDelete());
-
-      assertEquals("Error", body.getMessageType());
-      assertEquals("unable.to.update.recurly", body.getAttributes().get("code"));
    }
 
    private void expectRemoveOwnerAccess() {
@@ -256,13 +223,11 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
       EasyMock.expectLastCall();
    }
    
-   private void assertSuccessfulDelete(Account account, List<AuthorizationGrant> grants) throws SubscriptionUpdateException {
+   private void assertSuccessfulDelete(Account account, List<AuthorizationGrant> grants) {
       EasyMock.expect(accountDao.findById(place.getAccount())).andReturn(account);
       if(account != null) {
          account.setPlaceIDs(ImmutableSet.of());
          EasyMock.expect(accountDao.save(account)).andReturn(account);
-         subUpdater.removeSubscriptionForPlace(account, place);
-         EasyMock.expectLastCall();
       }
       EasyMock.expect(authGrantDao.findForPlace(place.getId())).andReturn(grants);
       apiKeyDao.deleteForPlace(place.getId());
@@ -278,14 +243,14 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
    }
 
    private void assertDeletedEvent() throws Exception {
-      PlatformMessage msg = bus.take();
+      PlatformMessage msg = bus.poll();
       boolean found = false;
       while(msg != null && !found) {
     	  if(Capability.EVENT_DELETED.equals(msg.getMessageType())) {
     		  found = true;
     		  assertEquals(place.getAddress(), msg.getSource().getRepresentation());
     	  }else {
-    		  msg = bus.take();
+    		  msg = bus.poll();
     	  }
       }
       assertTrue("expected to get a base:Deleted event", found);

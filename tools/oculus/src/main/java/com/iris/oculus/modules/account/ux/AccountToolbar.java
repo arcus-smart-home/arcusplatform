@@ -49,18 +49,6 @@ public class AccountToolbar extends JPanel {
          onSave();
       }
    };
-   private Action createBillingAccount = new AbstractAction("Create Billing") {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-         controller.promptBillingInformation();
-      }
-   };
-   private Action updateBillingAccount = new AbstractAction("Update Billing") {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-         controller.promptUpdateBillingInformation();
-      }
-   };
    private Action delete = new AbstractAction("Delete") {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -85,10 +73,6 @@ public class AccountToolbar extends JPanel {
       GridBagConstraints gbc = new GridBagConstraints();
 
       gbc.anchor = GridBagConstraints.WEST;
-      gbc.weightx = 0.0;
-      add(new JButton(createBillingAccount), gbc.clone());
-      gbc.weightx = 1.0;
-      add(new JButton(updateBillingAccount), gbc.clone());
       gbc.weightx = 1.0;
       add(new JButton(delete), gbc.clone());
 

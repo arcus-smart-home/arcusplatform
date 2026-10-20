@@ -23,11 +23,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Futures;
 import com.google.inject.Inject;
-import com.iris.billing.client.BillingClient;
-import com.iris.billing.client.model.RecurlyError;
-import com.iris.billing.exception.RecurlyAPIErrorException;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.dao.AuthorizationGrantDAO;
@@ -50,7 +46,6 @@ import com.iris.messages.type.PlaceAccessDescriptor;
 import com.iris.messages.type.Population;
 import com.iris.platform.services.PersonDeleter;
 import com.iris.platform.services.PlaceDeleter;
-import com.iris.platform.subscription.SubscriptionUpdater;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.security.authz.AuthorizationGrant;
 import com.iris.test.IrisMockTestCase;
@@ -64,9 +59,7 @@ import com.iris.test.Modules;
    AuthorizationGrantDAO.class,
    PreferencesDAO.class,
    PersonPlaceAssocDAO.class,
-   BillingClient.class,
    PlaceDAO.class,
-   SubscriptionUpdater.class,
    PlacePopulationCacheManager.class
 })
 @Modules({InMemoryMessageModule.class})
@@ -79,19 +72,17 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
    @Inject PersonDAO personDao;
    @Inject AuthorizationGrantDAO authGrantDao;
    @Inject PreferencesDAO preferencesDao;
-   @Inject BillingClient billingClient;
    @Inject PlaceDAO placeDao;
    @Inject PlacePopulationCacheManager mockPopulationCacheMgr;
    @Inject PersonPlaceAssocDAO personPlaceAssocDao;
-   @Inject SubscriptionUpdater subUpdater;
    @Inject InMemoryPlatformMessageBus bus;
 
    private Account account;
    private Person person;
    private AccountDeleteHandler handler;
    private Place place;
-   
-   
+
+
    @Override
    public void setUp() throws Exception {
       super.setUp();
@@ -101,7 +92,7 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
       place = new Place();
       place.setAccount(account.getId());
       place.setId(UUID.randomUUID());
-      
+
       account.setPlaceIDs(ImmutableSet.of(place.getId()));
       account.setOwner(UUID.randomUUID());
 
@@ -116,13 +107,12 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
             authGrantDao,
             apiKeyDao,
             preferencesDao,
-            subUpdater,
             new PersonDeleter(accountDao, personDao, placeDao, authGrantDao, preferencesDao, bus, mockPopulationCacheMgr),
             bus);
 
       EasyMock.expect(mockPopulationCacheMgr.getPopulationByPlaceId(EasyMock.anyString())).andReturn(Population.NAME_GENERAL).anyTimes();
-      
-      handler = new AccountDeleteHandler(accountDao, personDao, personPlaceAssocDao, authGrantDao, preferencesDao, billingClient, placeDeleter,  bus, mockPopulationCacheMgr);
+
+      handler = new AccountDeleteHandler(accountDao, personDao, personPlaceAssocDao, authGrantDao, preferencesDao, placeDeleter, bus, mockPopulationCacheMgr);
    }
 
    @Override
@@ -132,91 +122,29 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
    }
 
    @Test
-   public void testDeleteWithNoBillingAccountDeletingLogin() throws Exception {
-      assertSuccessfulDelete(true, false);
+   public void testDeleteDeletingLogin() throws Exception {
+      assertSuccessfulDelete(true);
    }
 
    @Test
-   public void testDeleteWithBillingAccountDeletingLogin() throws Exception {
-      assertSuccessfulDelete(true, true);
+   public void testDeleteNotDeletingLogin() throws Exception {
+      assertSuccessfulDelete(false);
    }
 
    @Test
-   public void testDeleteWithNoBillingAccountNotLogin() throws Exception {
-      assertSuccessfulDelete(false, false);
+   public void testDeleteNotDeletingLoginNull() throws Exception {
+      assertSuccessfulDelete(null);
    }
 
-   @Test
-   public void testDeleteWithNoBillingAccountNotLoginNull() throws Exception {
-      assertSuccessfulDelete(null, false);
-   }
-
-   @Test
-   public void testDeleteWithBillingAccountNotLogin() throws Exception {
-      assertSuccessfulDelete(false, true);
-   }
-
-   @Test
-   public void testDeleteWithBillingAccountNotLoginNull() throws Exception {
-      assertSuccessfulDelete(null, true);
-   }
-
-   @Test
-   public void testFailsErrorFindingBillingAccount() throws Exception {
-      EasyMock.expect(billingClient.getAccount(account.getId().toString())).andReturn(Futures.immediateFailedFuture(new Exception()));
-      replay();
-
-      MessageBody body = handler.handleRequest(account, createDelete(true));
-
-      assertEquals("Error", body.getMessageType());
-      assertEquals("account.close.failed", body.getAttributes().get("code"));
-   }
-
-   @Test
-   public void testFailsErrorClosingBillingAccount() throws Exception {
-      EasyMock.expect(billingClient.getAccount(account.getId().toString())).andReturn(Futures.immediateFuture(new com.iris.billing.client.model.Account()));
-      EasyMock.expect(billingClient.closeAccount(account.getId().toString())).andReturn(Futures.immediateFailedFuture(new Exception()));
-
-      replay();
-
-      MessageBody body = handler.handleRequest(account, createDelete(true));
-
-      assertEquals("Error", body.getMessageType());
-      assertEquals("account.close.failed", body.getAttributes().get("code"));
-   }
-
-   @Test
-   public void testFailsClosingBillingAccountReturnsFalse() throws Exception {
-      EasyMock.expect(billingClient.getAccount(account.getId().toString())).andReturn(Futures.immediateFuture(new com.iris.billing.client.model.Account()));
-      EasyMock.expect(billingClient.closeAccount(account.getId().toString())).andReturn(Futures.immediateFuture(false));
-
-      replay();
-
-      MessageBody body = handler.handleRequest(account, createDelete(true));
-
-      assertEquals("Error", body.getMessageType());
-      assertEquals("account.close.failed", body.getAttributes().get("code"));
-   }
-
-   private void assertSuccessfulDelete(Boolean deleteLogin, boolean billingExists) throws Exception {
-      if(billingExists) {
-         EasyMock.expect(billingClient.getAccount(account.getId().toString())).andReturn(Futures.immediateFuture(new com.iris.billing.client.model.Account()));
-         EasyMock.expect(billingClient.closeAccount(account.getId().toString())).andReturn(Futures.immediateFuture(true));
-      } else {
-         RecurlyError error = new RecurlyError();
-         error.setErrorSymbol("not_found");
-         RecurlyAPIErrorException exception = new RecurlyAPIErrorException("foo");
-         exception.getErrors().add(error);
-         EasyMock.expect(billingClient.getAccount(account.getId().toString())).andReturn(Futures.immediateFailedFuture(exception));
-      }
+   private void assertSuccessfulDelete(Boolean deleteLogin) throws Exception {
       accountDao.delete(account);
       EasyMock.expectLastCall();
       EasyMock.expect(personDao.findById(account.getOwner())).andReturn(person);
       EasyMock.expect(placeDao.findById(place.getId())).andReturn(place);
       EasyMock.expect(accountDao.findById(account.getId())).andReturn(null);
-      EasyMock.expect(authGrantDao.findForPlace(place.getId())).andReturn(ImmutableList.<AuthorizationGrant>of());           
+      EasyMock.expect(authGrantDao.findForPlace(place.getId())).andReturn(ImmutableList.<AuthorizationGrant>of());
       if (Boolean.TRUE.equals(deleteLogin)) {
-    	  EasyMock.expect(personPlaceAssocDao.listPlaceAccessForPerson(person.getId())).andReturn(ImmutableList.<PlaceAccessDescriptor>of());
+         EasyMock.expect(personPlaceAssocDao.listPlaceAccessForPerson(person.getId())).andReturn(ImmutableList.<PlaceAccessDescriptor>of());
       }
       apiKeyDao.deleteForPlace(place.getId());
       EasyMock.expectLastCall();
@@ -226,8 +154,8 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
       EasyMock.expectLastCall();
 
       if(Boolean.TRUE.equals(deleteLogin)) {
-      	preferencesDao.deleteForPerson(account.getOwner());
-      	EasyMock.expectLastCall();
+         preferencesDao.deleteForPerson(account.getOwner());
+         EasyMock.expectLastCall();
          authGrantDao.removeGrantsForEntity(account.getOwner());
          EasyMock.expectLastCall();
          personDao.delete(person);
@@ -246,23 +174,23 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
       boolean done = false;
       boolean foundAccountDeletedEvent = false;
       boolean foundPlaceDeletedEvent = false;
-      while(!done) {   
-    	  try{
-    		  msg = bus.take();
-	    	  if(msg.getMessageType().equalsIgnoreCase(Capability.EVENT_DELETED)){
-	    		  if(account.getAddress().equals(msg.getSource().getRepresentation())) {
-	    			  foundAccountDeletedEvent = true;
-	    		  }else if(place.getAddress().equals(msg.getSource().getRepresentation())) {
-	    			  foundPlaceDeletedEvent = true;
-	    		  }
-	    	  }
-    	  }catch(Exception e) {
-    		  done = true;
-    	  }
+      while(!done) {
+         try{
+            msg = bus.take();
+            if(msg.getMessageType().equalsIgnoreCase(Capability.EVENT_DELETED)){
+               if(account.getAddress().equals(msg.getSource().getRepresentation())) {
+                  foundAccountDeletedEvent = true;
+               }else if(place.getAddress().equals(msg.getSource().getRepresentation())) {
+                  foundPlaceDeletedEvent = true;
+               }
+            }
+         }catch(Exception e) {
+            done = true;
+         }
       }
       assertTrue("There should be an Account Deleted event", foundAccountDeletedEvent);
       assertTrue("There should be a Place Deleted event", foundPlaceDeletedEvent);
-      
+
    }
 
    private PlatformMessage createDelete(Boolean deleteLogin) {
@@ -277,4 +205,3 @@ public class TestAccountDeleteHandler extends IrisMockTestCase {
             .create();
    }
 }
-
