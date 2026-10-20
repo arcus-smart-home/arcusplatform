@@ -1,0 +1,138 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.iris.platform.subscription;
+
+import java.util.Map;
+import java.util.UUID;
+
+import org.easymock.Capture;
+import org.easymock.EasyMock;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.inject.Inject;
+import com.iris.core.dao.PlaceDAO;
+import com.iris.core.messaging.memory.InMemoryMessageModule;
+import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
+import com.iris.messages.PlatformMessage;
+import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.PlaceCapability;
+import com.iris.messages.model.Account;
+import com.iris.messages.model.Place;
+import com.iris.messages.model.ServiceAddon;
+import com.iris.messages.model.ServiceLevel;
+import com.iris.messages.type.Population;
+import com.iris.test.IrisMockTestCase;
+import com.iris.test.Mocks;
+import com.iris.test.Modules;
+
+@Mocks({ PlaceDAO.class })
+@Modules({ InMemoryMessageModule.class })
+public class TestSubscriptionUpdaterImpl extends IrisMockTestCase {
+
+   @Inject PlaceDAO placeDao;
+   @Inject InMemoryPlatformMessageBus bus;
+
+   private Account account;
+   private Place place;
+   private SubscriptionUpdaterImpl updater;
+
+   @Override
+   public void setUp() throws Exception {
+      super.setUp();
+
+      account = new Account();
+      account.setId(UUID.randomUUID());
+
+      place = new Place();
+      place.setId(UUID.randomUUID());
+      place.setAccount(account.getId());
+      place.setPopulation(Population.NAME_GENERAL);
+      place.setServiceLevel(ServiceLevel.PREMIUM_FREE);
+
+      account.setPlaceIDs(ImmutableSet.of(place.getId()));
+
+      updater = new SubscriptionUpdaterImpl(placeDao, bus);
+   }
+
+   @Override
+   public void tearDown() throws Exception {
+      verify();
+      super.tearDown();
+   }
+
+   @Test
+   public void testAddonKeysAreNormalized() throws Exception {
+      Capture<Place> saved = expectSave();
+      replay();
+
+      assertTrue(updater.updateSubscription(account, place, ServiceLevel.PREMIUM_FREE, ImmutableMap.of("cellbackup", true), false));
+      assertEquals(ImmutableSet.of(ServiceAddon.CELLBACKUP.name()), saved.getValue().getServiceAddons());
+   }
+
+   @Test
+   public void testAddonCanBeRemoved() throws Exception {
+      place.setServiceAddons(ImmutableSet.of(ServiceAddon.CELLBACKUP.name()));
+      Capture<Place> saved = expectSave();
+      replay();
+
+      assertTrue(updater.updateSubscription(account, place, ServiceLevel.PREMIUM_FREE, ImmutableMap.of("cellbackup", false), false));
+      assertTrue(saved.getValue().getServiceAddons().isEmpty());
+   }
+
+   @Test
+   public void testUnchangedSubscriptionIsNotSaved() throws Exception {
+      place.setServiceAddons(ImmutableSet.of(ServiceAddon.CELLBACKUP.name()));
+      replay();
+
+      assertFalse(updater.updateSubscription(account, place, ServiceLevel.PREMIUM_FREE, ImmutableMap.of("CELLBACKUP", true), false));
+   }
+
+   @Test
+   public void testUnknownAddonIsRejected() throws Exception {
+      replay();
+
+      try {
+         updater.updateSubscription(account, place, ServiceLevel.PREMIUM_FREE, ImmutableMap.of("video100tb", true), false);
+         fail("expected an unknown addon to be rejected");
+      }
+      catch(IllegalArgumentException e) {
+         // expected
+      }
+   }
+
+   @Test
+   public void testServiceLevelChangeIsBroadcast() throws Exception {
+      expectSave();
+      replay();
+
+      assertTrue(updater.updateSubscription(account, place, ServiceLevel.BASIC, null, true));
+
+      PlatformMessage msg = bus.take();
+      assertEquals(Capability.EVENT_VALUE_CHANGE, msg.getMessageType());
+      Map<String, Object> attrs = msg.getValue().getAttributes();
+      assertEquals(ServiceLevel.BASIC.name(), attrs.get(PlaceCapability.ATTR_SERVICELEVEL));
+   }
+
+   private Capture<Place> expectSave() {
+      Place fromDb = place.copy();
+      EasyMock.expect(placeDao.findById(place.getId())).andReturn(fromDb);
+      Capture<Place> saved = EasyMock.newCapture();
+      EasyMock.expect(placeDao.save(EasyMock.capture(saved))).andReturn(fromDb);
+      return saved;
+   }
+}

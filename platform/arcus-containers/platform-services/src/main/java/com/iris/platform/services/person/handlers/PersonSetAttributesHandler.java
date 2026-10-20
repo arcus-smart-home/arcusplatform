@@ -16,7 +16,6 @@
 package com.iris.platform.services.person.handlers;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -75,7 +74,6 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
       boolean emailUpdated = oldAttributes != null && oldAttributes.containsKey(PersonCapability.ATTR_EMAIL);
       boolean mobileUpdated = oldAttributes != null && !StringUtils.isEmpty( (String) oldAttributes.get(PersonCapability.ATTR_MOBILENUMBER) );
       Account account = getAccount(context);
-      boolean accountOwner = isAccountOwner(context, account);
 
       if(emailUpdated) {
          String oldEmail = (String)oldAttributes.get(PersonCapability.ATTR_EMAIL);
@@ -108,27 +106,10 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
       // we have access to the old email address
    }
 
-   protected boolean isAccountOwner(Person person) {
-      if(!person.getHasLogin() || person.getAccountId() == null) {
-         return false;
-      }
-
-      com.iris.messages.model.Account account = accountDao.findById(person.getAccountId());
-      return Objects.equals(account.getOwner(), person.getId());
-   }
-   
    protected Account getAccount(Person person) {
    	return accountDao.findById(person.getAccountId());
    }
    
-   protected boolean isAccountOwner(Person person, Account account) {
-      if(!person.getHasLogin() || person.getAccountId() == null) {
-         return false;
-      }
-
-      return Objects.equals(account.getOwner(), person.getId());
-   }
-
    /**
     * Send the ValueChangeEvent for every place this person belongs to
     */

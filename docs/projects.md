@@ -20,7 +20,6 @@ Contains the agent application that runs on the Arcus hub.  The hub's primary ro
 
 Shared code that may be shared by the platform and/or agent.  In particular, this is the home of a multitude of descriptors that are used to generate code such as capability or service descriptors that act as the primary APIs.
 
-* **arcus-billing**:  Common billing infrastructure used by the platform and integration APIs for Recurly if and only if propery API keys are available
 * **arcus-client**:  Common client for the platform used by the tools and the Android client
 * **arcus-common**:  Suite of common utilities used throughout the platform
 * **arcus-drivers/drivers-commmon**:  Shared set of functionality, interfaces and event definitions for drivers that may run in the platform or hub
@@ -48,7 +47,6 @@ This contains common code used within platform as well as all containers that ge
 
 * **arcus-alarm**:  Common code shared between the subsystem that runs the alarm state machine and the alarm service that manages the tracking of an alarm incident
 * **arcus-containers/alarm-service**:  Microservice that manages the state of alarm incidents that the platform has detected
-* **arcus-containers/billing-callback-server**:  RESTful endpoint that Recurly can hit for delinquent accounts if and only if a Recurly account key is available
 * **arcus-containers/client-bridge**:  The primary entry point for web and mobile clients providing the web socket connection for messaging and RESTful APIs.  This is also responsible for placement of messages on the appropriate bus for handling by internal microservices.
 * **arcus-containers/driver-services**:  Microservice that manages all device drivers and instances of them for handling incoming events or issuing control messages to end devices
 * **arcus-containers/history-service**:  Microservice responsible for consuming events and persisting history for each place and device

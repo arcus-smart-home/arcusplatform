@@ -16,7 +16,6 @@
 package com.iris.platform.subscription;
 
 import java.util.Map;
-import java.util.Set;
 
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
@@ -34,31 +33,4 @@ public interface SubscriptionUpdater {
          Map<String, Boolean> addons,
          boolean sendNotifications
    ) throws SubscriptionUpdateException;
-   
-   //Return true if the subscription was changed.
-   default boolean updateSubscriptions(Account account, ServiceLevel currentServiceLevel, ServiceLevel newServiceLevel) throws SubscriptionUpdateException {
-      return updateSubscriptions(account, currentServiceLevel, newServiceLevel, true);
-   }
-   //  FIXME turn this into a bean
-   boolean updateSubscriptions(
-         Account account,
-         ServiceLevel currentServiceLevel, ServiceLevel newServiceLevel,
-         boolean sendNotifications
-   ) throws SubscriptionUpdateException;
-   
-   //Return true if the subscription was changed.
-   default boolean updateSubscriptions(Account account, Set<Place> places, ServiceLevel serviceLevel) throws SubscriptionUpdateException {
-      return updateSubscriptions(account, places, serviceLevel, true);
-   }
-   //  FIXME turn this into a bean
-   boolean updateSubscriptions(
-         Account account,
-         Set<Place> places, ServiceLevel serviceLevel,
-         boolean sendNotifications
-   ) throws SubscriptionUpdateException;
-   
-   void removeSubscriptionForPlace(Account account, Place place) throws SubscriptionUpdateException;
-   void processDelinquentAccount(Account account) throws SubscriptionUpdateException;
-
 }
-

@@ -22,7 +22,6 @@ Shared between the platform and agent. Contains the core messaging framework, co
 | `arcus-drivers/reflex-generator` | Agent | Generates hub-local reflex (rule) code |
 | `arcus-reflection` | Platform | `MethodInvoker`, `MethodDiscoverer`, `ArgumentResolverFactory` — used by service message dispatch |
 | `arcus-metrics` | Both | Dropwizard Metrics + HDR Histogram wrappers |
-| `arcus-billing` | Platform | JAXB-generated billing webhook models |
 
 ---
 

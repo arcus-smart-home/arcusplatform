@@ -63,14 +63,6 @@ public class HandshakeSessionListener implements SessionListener {
 	private String smartyAuthToken;
 
 	@Inject
-	@Named(value = "billing.public.api.key")
-	private String recurlyPublicAPIKey;
-
-	@Inject
-	@Named(value = "billing.token.url")
-	private String recurlyTokenURL;
-
-	@Inject
 	@Named(value = "camera.preview.baseurl")
 	private String cameraPreviewBaseUrl;
 
@@ -137,8 +129,6 @@ public class HandshakeSessionListener implements SessionListener {
       Map<String, Object> entries = new HashMap<>();
       entries.put("smartyAuthID", String.valueOf(smartyAuthID));
       entries.put("smartyAuthToken", String.valueOf(smartyAuthToken));
-      entries.put("tokenURL", String.valueOf(recurlyTokenURL));
-      entries.put("publicKey", String.valueOf(recurlyPublicAPIKey));
       entries.put("personId", String.valueOf(principal.getUserId()));
       entries.put("cameraPreviewBaseUrl", String.valueOf(cameraPreviewBaseUrl));
       entries.put("staticResourceBaseUrl", String.valueOf(staticResourceBaseUrl));

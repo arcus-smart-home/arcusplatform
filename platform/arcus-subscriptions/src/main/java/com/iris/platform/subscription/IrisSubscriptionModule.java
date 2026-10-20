@@ -21,7 +21,6 @@ public class IrisSubscriptionModule extends AbstractIrisModule {
 
    @Override
    protected void configure() {
-      bind(SubscriptionManager.class).to(SubscriptionManagerImpl.class);
       bind(SubscriptionUpdater.class).to(SubscriptionUpdaterImpl.class);
    }
 }

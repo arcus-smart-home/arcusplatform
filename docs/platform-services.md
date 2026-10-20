@@ -36,13 +36,12 @@
 | `video-download-server` | Video file export/download |
 | `video-purge` | Cleanup of expired/deleted video |
 
-**IVR/Billing:**
+**IVR:**
 
 | Service | Purpose |
 |---------|---------|
 | `ivr-callback-server` | Interactive Voice Response callbacks |
 | `ivr-fallback-server` | IVR fallback routing |
-| `billing-callback-server` | Billing webhook event handling |
 
 ---
 
@@ -59,7 +58,7 @@
 | `arcus-video` | Video recording/streaming management, cloud storage integration |
 | `arcus-oauth` | OAuth 2.0 server library (authorization, token, revocation endpoints) |
 | `arcus-security` | Shiro-based authentication/authorization with Cassandra-backed DAOs |
-| `arcus-subscriptions` | User subscription plans, feature entitlements, billing integration |
+| `arcus-subscriptions` | User subscription plans and feature entitlements |
 | `arcus-hubsession` | WebSocket session management for hub connections |
 | `arcus-modelmanager` | Cassandra schema versioning CLI — applies XML-based changelogs to 3 keyspaces |
 | `arcus-platform-drivers` | Cucumber/BDD driver test infrastructure (Zigbee, Z-Wave, IPCD command builders) |
