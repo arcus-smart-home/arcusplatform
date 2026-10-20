@@ -105,3 +105,15 @@ These scenarios test the functionality of the Zigbee LUX KONOz Thermostat driver
             And the driver should place a therm:changeFilterResponse message on the platform bus
         Then protocol bus should be empty
 
+    Scenario: Driver does not re-report emergency heat on a mode report while already in emergency heat
+        When the device response with thermostat zclreportattributes
+            And with parameter ATTR_SYSTEM_MODE 5
+            And send to driver
+        Then the driver should place a base:ValueChange message on the platform bus
+            And the message's therm:emergencyheat attribute should be ON
+            And the message's therm:hvacmode attribute should be HEAT
+        When the device response with thermostat zclreportattributes
+            And with parameter ATTR_SYSTEM_MODE 5
+            And send to driver
+        Then the capability therm:emergencyheat should be ON
+            And the platform bus should be empty
