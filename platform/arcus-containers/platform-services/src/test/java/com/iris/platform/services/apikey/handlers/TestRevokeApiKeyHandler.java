@@ -100,6 +100,9 @@ public class TestRevokeApiKeyHandler extends IrisMockTestCase {
       assertNotNull(event);
       assertEquals(RevokeApiKeyHandler.EVENT_API_KEY_REVOKED, event.getMessageType());
       assertEquals(keyId.toString(), event.getValue().getAttributes().get("keyId"));
+      assertEquals("test-key", event.getValue().getAttributes().get("label"));
+      assertEquals(Address.platformService(ownerId, "person"), event.getActor());
+      assertEquals(place.getId().toString(), event.getPlaceId());
    }
 
    @Test

@@ -30,10 +30,13 @@ import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
+import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.security.authz.AuthzUtil;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
@@ -49,11 +52,13 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
+   private final PlatformMessageBus bus;
 
    @Inject
-   public CreateApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
+   public CreateApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao, PlatformMessageBus bus) {
       this.apiKeyDao = apiKeyDao;
       this.accountDao = accountDao;
+      this.bus = bus;
    }
 
    @Override
@@ -140,6 +145,9 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       apiKeyDao.save(apiKey);
 
+      // Broadcast so the history service can record who created the key
+      emitApiKeyCreated(context, msg.getActor(), apiKey);
+
       return MessageBody.buildMessage(
             "apikey:CreateResponse",
             ImmutableMap.of(
@@ -163,5 +171,18 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       if (!Objects.equals(actorId, account.getOwner())) {
          throw new ErrorEventException(AuthzUtil.UNAUTHORIZED_CODE, "only the account owner can manage API keys");
       }
+   }
+
+   private void emitApiKeyCreated(Place place, Address actor, ApiKey apiKey) {
+      MessageBody body = ApiKeyService.CreatedEvent.builder()
+            .withKeyId(apiKey.getId().toString())
+            .withLabel(apiKey.getLabel())
+            .build();
+      PlatformMessage event = PlatformMessage.buildBroadcast(body, Address.fromString(place.getAddress()))
+            .withPlaceId(place.getId())
+            .withPopulation(place.getPopulation())
+            .withActor(actor)
+            .create();
+      bus.send(event);
    }
 }
