@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.easymock.EasyMock;
@@ -184,25 +183,16 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
       boolean personDeleteFound = false;
       boolean placeDeletedFound = false;
       
-      System.out.println(halfling.getId());
-      System.out.println(login.getId());
-
-      boolean noMoreMsg = false;
-      while (!noMoreMsg) {
-    	  try {
-    		  PlatformMessage msg = bus.take();
-    		  System.out.println(msg);
-    		  if(Capability.EVENT_VALUE_CHANGE.equals(msg.getMessageType())) {
-    			  ownerValueChangeFound = true;
-    		  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && Objects.equal(halfling.getAddress(), msg.getSource().getRepresentation())) {
-    			  personDeleteFound = true;
-    		  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && place.getAddress().equals(msg.getSource().getRepresentation())) {
-    			  placeDeletedFound = true;
-    		  }
-    	  }catch(TimeoutException e) {
-    		  noMoreMsg = true;
+      PlatformMessage msg = bus.poll();
+      while (msg != null) {
+    	  if(Capability.EVENT_VALUE_CHANGE.equals(msg.getMessageType())) {
+    		  ownerValueChangeFound = true;
+    	  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && Objects.equal(halfling.getAddress(), msg.getSource().getRepresentation())) {
+    		  personDeleteFound = true;
+    	  } else if(Capability.EVENT_DELETED.equals(msg.getMessageType()) && place.getAddress().equals(msg.getSource().getRepresentation())) {
+    		  placeDeletedFound = true;
     	  }
-    	  
+    	  msg = bus.poll();
       }
       assertTrue("expected a value change for the owner", ownerValueChangeFound);
       assertTrue("expected a delete event for the halfling", personDeleteFound);
@@ -253,14 +243,14 @@ public class TestPlaceDeleteHandler extends IrisMockTestCase {
    }
 
    private void assertDeletedEvent() throws Exception {
-      PlatformMessage msg = bus.take();
+      PlatformMessage msg = bus.poll();
       boolean found = false;
       while(msg != null && !found) {
     	  if(Capability.EVENT_DELETED.equals(msg.getMessageType())) {
     		  found = true;
     		  assertEquals(place.getAddress(), msg.getSource().getRepresentation());
     	  }else {
-    		  msg = bus.take();
+    		  msg = bus.poll();
     	  }
       }
       assertTrue("expected to get a base:Deleted event", found);

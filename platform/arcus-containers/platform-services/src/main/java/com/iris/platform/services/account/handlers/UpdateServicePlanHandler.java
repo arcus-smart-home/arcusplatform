@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -44,6 +43,7 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.model.ServiceAddon;
 import com.iris.messages.model.ServiceLevel;
 import com.iris.platform.subscription.SubscriptionUpdateException;
 import com.iris.platform.subscription.SubscriptionUpdater;
@@ -119,7 +119,12 @@ public class UpdateServicePlanHandler implements ContextualRequestMessageHandler
     	  throw new ErrorEventException(Errors.CODE_INVALID_REQUEST, "Can only manually update to a PROMON service level if the place is already PROMON.");
       }
 
-      Map<String, Boolean> addons = mapAddons(msgAddons, currentPlace);
+      Map<String, Boolean> addons;
+      try {
+         addons = mapAddons(msgAddons, currentPlace);
+      } catch(IllegalArgumentException iae) {
+         return Errors.invalidParam(AccountCapability.UpdateServicePlanRequest.ATTR_ADDONS);
+      }
 
       try {
          if (subscriptionUpdater.updateSubscription(context, currentPlace, serviceLevel, addons)) {
@@ -153,19 +158,34 @@ public class UpdateServicePlanHandler implements ContextualRequestMessageHandler
       }
    }
    
+   // Keys are normalized to the ServiceAddon name so that a request and the addons
+   // already stored on the place cannot land in the map under two different spellings.
    private Map<String, Boolean> mapAddons(Map<String, Object> addons, Place place) {
-      Map<String, Boolean> updatedMap = addons != null
-            ? addons.entrySet().stream().collect(Collectors.toMap((e) -> e.getKey(), (e) -> (Boolean)e.getValue()))
-            : new HashMap<>();
+      Map<String, Boolean> updatedMap = new HashMap<>();
+      if (addons != null) {
+         addons.forEach((addon, enabled) -> updatedMap.put(ServiceAddon.fromString(addon).name(), (Boolean)enabled));
+      }
       Set<String> placeAddons = place.getServiceAddons();
       if (placeAddons != null) {
          for (String addon : placeAddons) {
-            if (updatedMap.get(addon) == null) {
-               updatedMap.put(addon, true);
+            String name = addonName(addon);
+            if (name != null && updatedMap.get(name) == null) {
+               updatedMap.put(name, true);
             }
          }
       }
       return updatedMap;
+   }
+
+   // An addon stored under a name that is no longer valid is dropped rather than
+   // failing every subsequent update for the place.
+   private String addonName(String addon) {
+      try {
+         return ServiceAddon.fromString(addon).name();
+      } catch(IllegalArgumentException iae) {
+         logger.warn("Dropping unrecognized service addon [{}]", addon);
+         return null;
+      }
    }
    
    private enum ServiceLevelChange {
