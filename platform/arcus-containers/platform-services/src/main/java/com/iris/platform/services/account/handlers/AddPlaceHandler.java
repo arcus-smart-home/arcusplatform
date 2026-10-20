@@ -45,6 +45,7 @@ import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.model.ServiceAddon;
 import com.iris.messages.model.ServiceLevel;
 import com.iris.messages.type.Population;
 import com.iris.platform.address.StreetAddress;
@@ -102,12 +103,21 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       // All places get PREMIUM_FREE since there is no billing provider
       ServiceLevel serviceLevel = ServiceLevel.PREMIUM_FREE;
 
+      Set<String> addons;
+      try {
+         addons = mapAddons(AccountCapability.AddPlaceRequest.getAddons(body));
+      }
+      catch(IllegalArgumentException e) {
+         return Errors.invalidParam(AccountCapability.AddPlaceRequest.ATTR_ADDONS);
+      }
+
       //population is always assigned to be general in AddPlace
       String population = Population.NAME_GENERAL;
 
       place.setPopulation(population);
       place.setAccount(context.getId());
       place.setServiceLevel(serviceLevel);
+      place.setServiceAddons(addons);
 
       Map<String,Object> updates = updaterFactory.updaterFor(place).updateAddress(place, StreetAddress.fromPlace(place));
       if(updates != null && !updates.isEmpty()) {
@@ -141,6 +151,16 @@ public class AddPlaceHandler implements ContextualRequestMessageHandler<Account>
       notification(context.getOwner(), place.getId(), place.getPopulation());
 
       return AccountCapability.AddPlaceResponse.builder().withPlace(placeTransformer.transform(place)).build();
+   }
+
+   private Set<String> mapAddons(Map<String, Object> addons) {
+      if(addons == null) {
+         return new HashSet<>();
+      }
+      return addons.entrySet().stream()
+            .filter((e) -> Boolean.TRUE.equals(e.getValue()))
+            .map((e) -> ServiceAddon.fromString(e.getKey()).name())
+            .collect(Collectors.toSet());
    }
 
    private void notification(UUID personId, UUID placeId, String population) {

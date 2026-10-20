@@ -23,6 +23,7 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.dao.AccountDAO;
+import com.iris.core.platform.ContextualEventMessageHandler;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
@@ -56,6 +57,9 @@ public class AccountServiceModule extends AbstractIrisModule {
       handlerBinder.addBinding().to(new TypeLiteral<AddTagsHandler<Account>>() {});
       handlerBinder.addBinding().to(new TypeLiteral<RemoveTagsHandler<Account>>() {});
       handlerBinder.addBinding().to(AccountActivateHandler.class);
+
+      // AccountService requires the set to be bound even though no event handlers remain
+      bindSetOf(new TypeLiteral<ContextualEventMessageHandler<Account>>() {});
 
       Multibinder<PlatformService> serviceBinder = bindSetOf(PlatformService.class);
       serviceBinder.addBinding().to(AccountService.class);

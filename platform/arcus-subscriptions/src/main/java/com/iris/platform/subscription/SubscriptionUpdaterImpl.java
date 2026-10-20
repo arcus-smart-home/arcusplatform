@@ -35,6 +35,7 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.model.ServiceAddon;
 import com.iris.messages.model.ServiceLevel;
 
 /**
@@ -63,6 +64,13 @@ public class SubscriptionUpdaterImpl implements SubscriptionUpdater {
 
       if (serviceLevel == null) {
          serviceLevel = currentServiceLevel;
+      }
+
+      // normalize the addon keys so they match the enum names stored on the place
+      if (addons != null && !addons.isEmpty()) {
+         Map<String, Boolean> normalizedAddons = new HashMap<>(addons.size());
+         addons.forEach((k, v) -> normalizedAddons.put(ServiceAddon.fromString(k).name(), v));
+         addons = normalizedAddons;
       }
 
       Set<String> currentAddons = place.getServiceAddons();
