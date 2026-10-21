@@ -31,6 +31,7 @@ import com.iris.platform.history.appender.devvc.DevicePowerAppender;
 import com.iris.platform.history.appender.devvc.DeviceSmokeAppender;
 import com.iris.platform.history.appender.devvc.DeviceSwitchAppender;
 import com.iris.platform.history.appender.devvc.DeviceThermostatAppender;
+import com.iris.platform.history.appender.devvc.DeviceThermostatFanAppender;
 import com.iris.platform.history.appender.devvc.DeviceTiltAppender;
 import com.iris.platform.history.appender.devvc.DeviceValveAppender;
 import com.iris.platform.history.appender.devvc.DeviceWaterLeakAppender;
@@ -59,6 +60,7 @@ public class TestDeviceAppenderModule extends AbstractIrisModule {
 	   bind(DeviceWaterLeakAppender.class);
 	   bind(DeviceWaterSoftenerAppender.class);
 	   bind(DeviceThermostatAppender.class);
+	   bind(DeviceThermostatFanAppender.class);
    }
 
 }

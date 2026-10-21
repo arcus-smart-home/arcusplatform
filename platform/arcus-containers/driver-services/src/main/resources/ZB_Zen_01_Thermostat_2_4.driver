@@ -567,7 +567,8 @@ def decodeThermostatAttributes = { ->
 	// ===========================================
 	// valid hvac mode values are 0 or more
 	if(hvacMode != null && hvacMode >= 0) {
-		Thermostat.emergencyheat "OFF"
+		// set once; setting OFF then ON reports emergencyheat as changed even when it was already ON
+		Thermostat.emergencyheat (hvacMode == thermCluster.SYSTEM_MODE_EMERGENCY_HEAT ? "ON" : "OFF")
 		switch (hvacMode) {
 			case thermCluster.SYSTEM_MODE_OFF: 
 				Thermostat.hvacmode "OFF"
@@ -583,7 +584,6 @@ def decodeThermostatAttributes = { ->
 				break
 			case thermCluster.SYSTEM_MODE_EMERGENCY_HEAT:
 				setActive(true)
-				Thermostat.emergencyheat "ON"
 				Thermostat.hvacmode "HEAT"
 				break
 			default: break;

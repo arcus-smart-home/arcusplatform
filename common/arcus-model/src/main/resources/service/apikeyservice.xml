@@ -93,4 +93,20 @@
 
    </s:methods>
 
+   <s:events>
+      <s:event
+         name="Created"
+         description="Broadcast from the place when an API key is created. The actor is the person who created it.">
+         <s:parameter name="keyId" type="string" description="The UUID of the created API key"/>
+         <s:parameter name="label" type="string" description="The label of the created API key"/>
+      </s:event>
+
+      <s:event
+         name="Revoked"
+         description="Broadcast from the place when an API key is revoked. The actor is the person who revoked it.">
+         <s:parameter name="keyId" type="string" description="The UUID of the revoked API key"/>
+         <s:parameter name="label" type="string" description="The label of the revoked API key"/>
+      </s:event>
+   </s:events>
+
 </s:service>

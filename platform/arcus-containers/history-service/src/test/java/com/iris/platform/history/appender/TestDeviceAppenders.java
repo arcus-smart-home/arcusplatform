@@ -15,6 +15,7 @@
  */
 package com.iris.platform.history.appender;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,8 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.iris.common.alarm.AlertType;
 import com.iris.messages.PlatformMessage;
@@ -68,6 +71,7 @@ import com.iris.platform.history.appender.devvc.DevicePowerAppender;
 import com.iris.platform.history.appender.devvc.DeviceSmokeAppender;
 import com.iris.platform.history.appender.devvc.DeviceSwitchAppender;
 import com.iris.platform.history.appender.devvc.DeviceThermostatAppender;
+import com.iris.platform.history.appender.devvc.DeviceThermostatFanAppender;
 import com.iris.platform.history.appender.devvc.DeviceTiltAppender;
 import com.iris.platform.history.appender.devvc.DeviceValveAppender;
 import com.iris.platform.history.appender.devvc.DeviceWaterLeakAppender;
@@ -107,6 +111,7 @@ public class TestDeviceAppenders extends EventAppenderTestCase {
 	@Inject private DeviceTiltAppender titleAppender;
 	@Inject private DeviceWaterSoftenerAppender softAppender;
 	@Inject private DeviceThermostatAppender thermostatAppender;
+	@Inject private DeviceThermostatFanAppender thermostatFanAppender;
 
 	@Test public void testWaterSoftenerRecharge() {
 		TestContext ctx = ctxbuild("watersoftener.recharging", true)
@@ -877,7 +882,136 @@ public class TestDeviceAppenders extends EventAppenderTestCase {
 				.build();
 		testValueChange(thermostatAppender, ACTOR_RULE, ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_COOL, ctx);
 	}
-	
+
+   @Test public void testThermoModeEco() {
+      TestContext ctx = ctxbuild("thermo.hvacmode.eco", true)
+            .withValue(4, ThermostatCapability.HVACMODE_ECO)
+            .build();
+      testValueChange(thermostatAppender, ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_ECO, ctx);
+   }
+
+   @Test public void testThermoModeEcoPers() {
+      TestContext ctx = ctxbuild("thermo.hvacmode.eco.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.HVACMODE_ECO)
+            .build();
+      testValueChange(thermostatAppender, ACTOR_PERSON, ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_ECO, ctx);
+   }
+
+   @Test public void testThermoEmergencyHeatOn() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.on", true)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_ON)
+            .build();
+      testValueChange(thermostatAppender, ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_ON, ctx);
+   }
+
+   @Test public void testThermoEmergencyHeatOnPers() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.on.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_ON)
+            .build();
+      testValueChange(thermostatAppender, ACTOR_PERSON, ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_ON, ctx);
+   }
+
+   @Test public void testThermoEmergencyHeatOnRule() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.on.rule", true)
+            .withValue(2, RULE_NAME)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_ON)
+            .build();
+      testValueChange(thermostatAppender, ACTOR_RULE, ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_ON, ctx);
+   }
+
+   @Test public void testThermoEmergencyHeatOff() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.off", true)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_OFF)
+            .build();
+      testValueChange(thermostatAppender, ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_OFF, ctx);
+   }
+
+   @Test public void testThermoEmergencyHeatOffPers() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.off.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_OFF)
+            .build();
+      testValueChange(thermostatAppender, ACTOR_PERSON, ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_OFF, ctx);
+   }
+
+   // Drivers switch to emergency heat by reporting hvacmode HEAT and emergencyheat ON together
+   @Test public void testThermoEmergencyHeatOnWinsOverModeHeat() {
+      TestContext ctx = ctxbuild("thermo.emergencyheat.on.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.EMERGENCYHEAT_ON)
+            .build();
+      testValueChanges(thermostatAppender, ACTOR_PERSON, ImmutableMap.of(
+            ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_HEAT,
+            ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_ON), ctx);
+   }
+
+   // Leaving emergency heat for another mode reports emergencyheat OFF with the new hvacmode
+   @Test public void testThermoModeWinsOverEmergencyHeatOff() {
+      TestContext ctx = ctxbuild("thermo.hvacmode.cool.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.HVACMODE_COOL)
+            .build();
+      testValueChanges(thermostatAppender, ACTOR_PERSON, ImmutableMap.of(
+            ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_COOL,
+            ThermostatCapability.ATTR_EMERGENCYHEAT, ThermostatCapability.EMERGENCYHEAT_OFF), ctx);
+   }
+
+   @Test public void testThermoFanModeAuto() {
+      TestContext ctx = ctxbuild("thermo.fanmode.auto", true).build();
+      testValueChange(thermostatFanAppender, ThermostatCapability.ATTR_FANMODE, 0, ctx);
+   }
+
+   @Test public void testThermoFanModeAutoPers() {
+      TestContext ctx = ctxbuild("thermo.fanmode.auto.pers", true)
+            .withValue(2, PERSON_NAME)
+            .build();
+      testValueChange(thermostatFanAppender, ACTOR_PERSON, ThermostatCapability.ATTR_FANMODE, 0, ctx);
+   }
+
+   @Test public void testThermoFanModeAutoRule() {
+      TestContext ctx = ctxbuild("thermo.fanmode.auto.rule", true)
+            .withValue(2, RULE_NAME)
+            .build();
+      testValueChange(thermostatFanAppender, ACTOR_RULE, ThermostatCapability.ATTR_FANMODE, 0, ctx);
+   }
+
+   @Test public void testThermoFanModeAutoAsDouble() {
+      TestContext ctx = ctxbuild("thermo.fanmode.auto", true).build();
+      testValueChange(thermostatFanAppender, ThermostatCapability.ATTR_FANMODE, 0.0, ctx);
+   }
+
+   @Test public void testThermoFanModeOn() {
+      TestContext ctx = ctxbuild("thermo.fanmode.on", true).build();
+      testValueChange(thermostatFanAppender, ThermostatCapability.ATTR_FANMODE, 1, ctx);
+   }
+
+   @Test public void testThermoFanModeOnPers() {
+      TestContext ctx = ctxbuild("thermo.fanmode.on.pers", true)
+            .withValue(2, PERSON_NAME)
+            .build();
+      testValueChange(thermostatFanAppender, ACTOR_PERSON, ThermostatCapability.ATTR_FANMODE, 1, ctx);
+   }
+
+   // Honeywell T6 Pro: 1 is Circulate, 2 is On
+   @Test public void testThermoFanModeHigherSpeedIsOn() {
+      TestContext ctx = ctxbuild("thermo.fanmode.on", true).build();
+      testValueChange(thermostatFanAppender, ThermostatCapability.ATTR_FANMODE, 2, ctx);
+   }
+
+   // The history dispatcher stops at the first appender that matches, in HistoryAppenderModule order
+   @Test public void testThermoModeWinsOverFanMode() {
+      TestContext ctx = ctxbuild("thermo.hvacmode.cool.pers", true)
+            .withValue(2, PERSON_NAME)
+            .withValue(4, ThermostatCapability.HVACMODE_COOL)
+            .build();
+      HistoryAppender dispatcher = HistoryAppenders.dispatcher(ImmutableList.of(thermostatAppender, thermostatFanAppender));
+      testValueChanges(dispatcher, ACTOR_PERSON, ImmutableMap.of(
+            ThermostatCapability.ATTR_HVACMODE, ThermostatCapability.HVACMODE_COOL,
+            ThermostatCapability.ATTR_FANMODE, 1), ctx);
+   }
+
 	@Test public void testPetDoorLocked() {
 		TestContext ctx = ctxbuild("petdoor.locked", true)
 									.build();
@@ -955,7 +1089,16 @@ public class TestDeviceAppenders extends EventAppenderTestCase {
 											Object value,
 											TestContext cxt) {
 		String fullAttr = StringUtils.isEmpty(instance) ? attr : attr + ":" + instance;
-		ValueChangeBuilder builder = valueChangeBuilder().fromDevice().withAttribute(fullAttr, value);
+		testValueChanges(appender, actor, ImmutableMap.of(fullAttr, value), cxt);
+	}
+
+   @SuppressWarnings("unchecked")
+   private void testValueChanges(HistoryAppender appender,
+                                 Address actor,
+                                 Map<String, Object> attributes,
+                                 TestContext cxt) {
+		ValueChangeBuilder builder = valueChangeBuilder().fromDevice();
+		attributes.forEach(builder::withAttribute);
 		if (actor != null) {
 			builder.withActor(actor);
 		}

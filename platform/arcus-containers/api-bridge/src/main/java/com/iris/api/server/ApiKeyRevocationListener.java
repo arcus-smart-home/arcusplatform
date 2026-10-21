@@ -28,6 +28,7 @@ import com.iris.bridge.server.session.ClientToken;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionRegistry;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.security.apikey.ApiKeyPrincipal;
 import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.principal.Principal;
@@ -36,7 +37,7 @@ import com.iris.security.principal.Principal;
 public class ApiKeyRevocationListener implements PlatformBusListener {
    private static final Logger logger = LoggerFactory.getLogger(ApiKeyRevocationListener.class);
 
-   public static final String EVENT_API_KEY_REVOKED = "apikey:Revoked";
+   public static final String EVENT_API_KEY_REVOKED = ApiKeyService.RevokedEvent.NAME;
 
    private final SessionRegistry sessionRegistry;
 

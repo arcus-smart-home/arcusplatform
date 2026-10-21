@@ -32,6 +32,7 @@ import com.google.inject.Inject;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
+import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
@@ -39,6 +40,7 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.security.apikey.ApiKey;
 import com.iris.security.authz.AuthzUtil;
 import com.iris.test.IrisMockTestCase;
@@ -51,6 +53,7 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
 
    @Inject ApiKeyDAO apiKeyDao;
    @Inject AccountDAO accountDao;
+   @Inject InMemoryPlatformMessageBus messageBus;
 
    private CreateApiKeyHandler handler;
    private Place place;
@@ -60,7 +63,7 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
    @Override
    public void setUp() throws Exception {
       super.setUp();
-      handler = new CreateApiKeyHandler(apiKeyDao, accountDao);
+      handler = new CreateApiKeyHandler(apiKeyDao, accountDao, messageBus);
 
       ownerId = UUID.randomUUID();
 
@@ -106,6 +109,15 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
       assertEquals(place.getId(), captured.getPlaceId());
       assertTrue(captured.getPermissions().contains("device:*"));
       assertNull(captured.getExpiresAt());
+
+      PlatformMessage event = messageBus.poll();
+      assertNotNull(event);
+      assertEquals(ApiKeyService.CreatedEvent.NAME, event.getMessageType());
+      assertEquals(Address.fromString(place.getAddress()), event.getSource());
+      assertEquals(Address.platformService(ownerId, "person"), event.getActor());
+      assertEquals(place.getId().toString(), event.getPlaceId());
+      assertEquals(response.getAttributes().get("id"), ApiKeyService.CreatedEvent.getKeyId(event.getValue()));
+      assertEquals("test-label", ApiKeyService.CreatedEvent.getLabel(event.getValue()));
    }
 
    @Test
@@ -235,6 +247,7 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
       } catch (ErrorEventException e) {
          assertEquals("apikey.limit_reached", e.getCode());
       }
+      assertNull(messageBus.poll());
    }
 
    @Test

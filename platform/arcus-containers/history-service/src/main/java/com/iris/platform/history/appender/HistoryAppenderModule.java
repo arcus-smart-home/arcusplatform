@@ -19,6 +19,7 @@
 package com.iris.platform.history.appender;
 
 import com.iris.bootstrap.guice.AbstractIrisModule;
+import com.iris.platform.history.appender.apikey.ApiKeyAppender;
 import com.iris.platform.history.appender.devvc.DeviceButtonAppender;
 import com.iris.platform.history.appender.devvc.DeviceCOAppender;
 import com.iris.platform.history.appender.devvc.DeviceContactAppender;
@@ -34,6 +35,7 @@ import com.iris.platform.history.appender.devvc.DeviceSmokeAppender;
 import com.iris.platform.history.appender.devvc.DeviceSpaceHeaterAppender;
 import com.iris.platform.history.appender.devvc.DeviceSwitchAppender;
 import com.iris.platform.history.appender.devvc.DeviceThermostatAppender;
+import com.iris.platform.history.appender.devvc.DeviceThermostatFanAppender;
 import com.iris.platform.history.appender.devvc.DeviceTamperAppender;
 import com.iris.platform.history.appender.devvc.DeviceTiltAppender;
 import com.iris.platform.history.appender.devvc.DeviceValveAppender;
@@ -86,6 +88,8 @@ public class HistoryAppenderModule extends AbstractIrisModule {
       bind(DeviceSmokeAppender.class);
       bind(DeviceSwitchAppender.class);
       bind(DeviceThermostatAppender.class);
+      // must follow DeviceThermostatAppender, see DeviceThermostatFanAppender
+      bind(DeviceThermostatFanAppender.class);
       bind(DeviceTamperAppender.class);
       bind(DeviceTiltAppender.class);
       bind(DeviceValveAppender.class);
@@ -116,6 +120,7 @@ public class HistoryAppenderModule extends AbstractIrisModule {
       bind(PersonAddedAppender.class);
       bind(PersonRemovedAppender.class);
       bind(InvitationDeclinedAppender.class);
+      bind(ApiKeyAppender.class);
       
    }
 

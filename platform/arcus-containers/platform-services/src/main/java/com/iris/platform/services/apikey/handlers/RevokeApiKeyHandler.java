@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
@@ -33,6 +32,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.security.authz.AuthzUtil;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
@@ -42,7 +42,7 @@ import com.iris.security.apikey.ApiKey;
 public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Place> {
 
    public static final String MESSAGE_TYPE = "apikey:Revoke";
-   public static final String EVENT_API_KEY_REVOKED = "apikey:Revoked";
+   public static final String EVENT_API_KEY_REVOKED = ApiKeyService.RevokedEvent.NAME;
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
@@ -98,8 +98,9 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
       // Expire the key immediately rather than deleting, preserving audit trail
       apiKeyDao.expire(context.getId(), keyId, existing.getKeyHash(), Instant.now());
 
-      // Broadcast revocation so api-bridge instances can disconnect active sessions
-      emitApiKeyRevoked(context, keyId);
+      // Broadcast revocation so api-bridge instances can disconnect active sessions and the history service can
+      // record who revoked the key
+      emitApiKeyRevoked(context, msg.getActor(), existing);
 
       return MessageBody.buildMessage("apikey:RevokeResponse", java.util.Collections.emptyMap());
    }
@@ -120,12 +121,15 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
       }
    }
 
-   private void emitApiKeyRevoked(Place place, UUID keyId) {
-      MessageBody body = MessageBody.buildMessage(EVENT_API_KEY_REVOKED,
-            ImmutableMap.of("keyId", keyId.toString()));
+   private void emitApiKeyRevoked(Place place, Address actor, ApiKey apiKey) {
+      MessageBody body = ApiKeyService.RevokedEvent.builder()
+            .withKeyId(apiKey.getId().toString())
+            .withLabel(apiKey.getLabel())
+            .build();
       PlatformMessage event = PlatformMessage.buildBroadcast(body, Address.fromString(place.getAddress()))
             .withPlaceId(place.getId())
             .withPopulation(place.getPopulation())
+            .withActor(actor)
             .create();
       bus.send(event);
    }

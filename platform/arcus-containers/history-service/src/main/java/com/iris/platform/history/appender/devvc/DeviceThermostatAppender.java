@@ -15,9 +15,13 @@
  */
 package com.iris.platform.history.appender.devvc;
 
+import static com.iris.messages.capability.ThermostatCapability.ATTR_EMERGENCYHEAT;
 import static com.iris.messages.capability.ThermostatCapability.ATTR_HVACMODE;
+import static com.iris.messages.capability.ThermostatCapability.EMERGENCYHEAT_OFF;
+import static com.iris.messages.capability.ThermostatCapability.EMERGENCYHEAT_ON;
 import static com.iris.messages.capability.ThermostatCapability.HVACMODE_AUTO;
 import static com.iris.messages.capability.ThermostatCapability.HVACMODE_COOL;
+import static com.iris.messages.capability.ThermostatCapability.HVACMODE_ECO;
 import static com.iris.messages.capability.ThermostatCapability.HVACMODE_HEAT;
 import static com.iris.messages.capability.ThermostatCapability.HVACMODE_OFF;
 import static com.iris.platform.history.appender.devvc.FanShutoffUtils.buildFanShutoffEntries;
@@ -27,6 +31,7 @@ import java.util.Optional;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.ThermostatCapability;
@@ -48,8 +53,12 @@ import com.iris.platform.history.appender.translator.ValueGetter;
 @Group(DeviceCapability.NAMESPACE)
 @AutoTranslate()
 @EnumValue(attr=ATTR_HVACMODE, 
-				val={HVACMODE_AUTO, HVACMODE_OFF, HVACMODE_HEAT, HVACMODE_COOL}, 
+				val={HVACMODE_AUTO, HVACMODE_OFF, HVACMODE_HEAT, HVACMODE_COOL, HVACMODE_ECO}, 
 				tpl="device.thermo.hvacmode.?", 
+				critical=true)
+@EnumValue(attr=ATTR_EMERGENCYHEAT,
+				val={EMERGENCYHEAT_ON, EMERGENCYHEAT_OFF},
+				tpl="device.thermo.emergencyheat.?",
 				critical=true)
 @AnyValue(attr=ThermostatCapability.ATTR_HEATSETPOINT, tpl="device.thermo.heatsetpoint", critical=true)
 @AnyValue(attr=ThermostatCapability.ATTR_COOLSETPOINT, tpl="device.thermo.coolsetpoint", critical=true)
@@ -65,6 +74,35 @@ public class DeviceThermostatAppender extends AnnotatedDeviceValueChangeAppender
       super(appender, cache);
 
       this.alarmIncidentDao = alarmIncidentDao;
+   }
+
+   @Override
+   protected MatchResults matches(PlatformMessage message)
+   {
+      MatchResults results = super.matches(message);
+
+      if (!results.isMatch())
+      {
+         return results;
+      }
+
+      // Drivers report emergency heat in the same ValueChange as hvacmode, and only one entry is logged per
+      // message.  Emergency heat turning on says more than "Mode switched to Heat"; turning off says less than
+      // the new mode.
+      MessageBody body = message.getValue();
+      String hvacMode = ThermostatCapability.getHvacmode(body);
+
+      if (EMERGENCYHEAT_ON.equals(ThermostatCapability.getEmergencyheat(body)))
+      {
+         return new MatchResults(ATTR_EMERGENCYHEAT, ATTR_EMERGENCYHEAT, EMERGENCYHEAT_ON, body);
+      }
+
+      if (ATTR_EMERGENCYHEAT.equals(results.getBaseAttrib()) && hvacMode != null)
+      {
+         return new MatchResults(ATTR_HVACMODE, ATTR_HVACMODE, hvacMode, body);
+      }
+
+      return results;
    }
 
    @Override
