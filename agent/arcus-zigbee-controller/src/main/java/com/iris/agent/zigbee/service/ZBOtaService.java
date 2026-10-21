@@ -19,17 +19,13 @@
 
 package com.iris.agent.zigbee.service;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.iris.agent.http.HttpService;
 import com.iris.agent.zigbee.ZBServices;
 import com.zsmartsystems.zigbee.IeeeAddress;
 import com.zsmartsystems.zigbee.ZigBeeEndpoint;
@@ -46,7 +42,6 @@ public class ZBOtaService {
    private static final Logger logger = LoggerFactory.getLogger(ZBOtaService.class);
 
    private static final int OTA_CLUSTER_ID = 0x0019;
-   private static final File OTA_DIR = new File("/data/iris/data/tmp/ota");
 
    // Active OTA servers keyed by IEEE address
    private final Map<Long, ZclOtaUpgradeServer> activeServers = new ConcurrentHashMap<>();
@@ -182,21 +177,10 @@ public class ZBOtaService {
    private byte[] downloadFirmware(String url, long ieeeAddr) {
       logger.info("Downloading OTA firmware from {} for IEEE={}", url, String.format("%016X", ieeeAddr));
       try {
-         OTA_DIR.mkdirs();
-         File tempFile = new File(OTA_DIR, String.format("ota_%016X.bin", ieeeAddr));
-
-         URL firmwareUrl = new URL(url);
-         try (InputStream in = firmwareUrl.openStream();
-              FileOutputStream out = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-               out.write(buffer, 0, bytesRead);
-            }
-         }
-
-         byte[] data = Files.readAllBytes(tempFile.toPath());
-         tempFile.delete();
+         // Fetch through HttpService so the download is validated against the
+         // hub truststore. URL.openStream() would use the JVM default store,
+         // which trusts every public CA.
+         byte[] data = HttpService.content(url);
          logger.info("Downloaded {} bytes of OTA firmware for IEEE={}",
                data.length, String.format("%016X", ieeeAddr));
          return data;

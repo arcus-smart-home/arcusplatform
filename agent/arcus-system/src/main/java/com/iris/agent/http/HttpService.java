@@ -90,8 +90,12 @@ public final class HttpService {
          }
 
          try {
+            // Trust only the roots in the hub truststore, the same anchors the
+            // gateway connection uses. Without trust material loaded here the
+            // JVM default store applies, which trusts every public CA.
             SSLContext ctx = new SSLContextBuilder()
                .loadKeyMaterial(SslKeyStore.getKeyStore(), SslKeyStore.getKeyStorePassword())
+               .loadTrustMaterial(SslKeyStore.getTrustStore(), null)
                .useProtocol("TLS")
                .build();
 
