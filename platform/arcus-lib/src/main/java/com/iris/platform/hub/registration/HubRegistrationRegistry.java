@@ -51,13 +51,13 @@ import com.iris.bootstrap.annotations.WarmUp;
 public class HubRegistrationRegistry  {
 	private static final Logger logger = LoggerFactory.getLogger(HubRegistrationRegistry.class);
 
-	// Counts every recorded firmware upgrade failure (resolver said UPGRADE_NEEDED but the hub
-	// couldn't apply it, or the hub itself reported a download/install error). A hub stuck
-	// retrying the same failing upgrade keeps incrementing this on every connect, so a sustained
-	// non-zero rate here - as opposed to a single blip - is what "stuck updating" looks like from
-	// outside; see HubConnectedHandler's firmwareUpgradeSent handling for why a stuck upgrade used
-	// to also silently stop a hub from authorizing at all.
-	private static final Counter firmwareUpgradeFailures = IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.failures");
+   // Counts every recorded firmware upgrade failure (resolver said UPGRADE_NEEDED but the hub
+   // couldn't apply it, or the hub itself reported a download/install error). A hub stuck
+   // retrying the same failing upgrade keeps incrementing this on every connect, so a sustained
+   // non-zero rate here - as opposed to a single blip - is what "stuck updating" looks like from
+   // outside; see HubConnectedHandler's firmwareUpgradeSent handling for why a stuck upgrade used
+   // to also silently stop a hub from authorizing at all.
+   private static final Counter firmwareUpgradeFailures = IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.failures");
 
 	private final HubRegistrationDAO hubRegistrationDao;
 	private final ScheduledExecutorService executor;
@@ -271,7 +271,7 @@ public class HubRegistrationRegistry  {
 	
 	private void firmwareUpgradeFailed(HubRegistration hubReg, String code, String msg, boolean retry) {
 		if (hubReg != null) {
-			firmwareUpgradeFailures.inc();
+         firmwareUpgradeFailures.inc();
 			hubReg.setUpgradeErrorCode(code);
 			hubReg.setUpgradeErrorMessage(msg);
 			hubReg.setUpgradeErrorTime(new Date());

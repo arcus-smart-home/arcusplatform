@@ -154,7 +154,7 @@ public class HubConnectedHandler extends DirectMessageHandler {
          updateUnauthorizedReason(session, UnauthorizedReason.BELOW_MIN_FW);
       }
       if (firmwareUpgradeSent && persistedHub == null) {
-         log.info("Not saving hub [{}] because it is below min version and has not yet been registered", msg.getSource());
+         log.info("Not saving hub [{}] because it has a firmware upgrade outstanding and has not yet been registered", msg.getSource());
          return;
       }
 
