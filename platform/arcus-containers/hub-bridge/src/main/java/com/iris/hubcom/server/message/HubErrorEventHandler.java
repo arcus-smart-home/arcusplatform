@@ -15,9 +15,6 @@
  */
 package com.iris.hubcom.server.message;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.bus.PlatformBusService;
@@ -41,7 +38,6 @@ import com.iris.population.PlacePopulationCacheManager;
  */
 @Singleton
 public class HubErrorEventHandler extends DirectMessageHandler {
-   private static final Logger logger = LoggerFactory.getLogger(HubErrorEventHandler.class);
    private final HubRegistrationMessageHandlerAdaptor hubRegistrationMsgAdaptor;
 
    @Inject
@@ -61,8 +57,6 @@ public class HubErrorEventHandler extends DirectMessageHandler {
 
    @Override
    protected void doHandle(Session session, PlatformMessage msg) {
-      String hubId = ((HubSession) session).getHubId();
-      logger.debug("hub [{}] reported error: {}", hubId, msg.getValue());
-      hubRegistrationMsgAdaptor.handleErrorEvent(hubId, msg);
+      hubRegistrationMsgAdaptor.handleErrorEvent(((HubSession) session).getHubId(), msg);
    }
 }
