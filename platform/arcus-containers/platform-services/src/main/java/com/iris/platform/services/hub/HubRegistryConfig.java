@@ -28,6 +28,7 @@ public class HubRegistryConfig {
    public static final String PROP_OFFLINE_TIMEOUT_MIN = "hub.offlineTimeoutMin";
    public static final String PROP_TIMEOUT_INTERVAL_SEC = "hub.timeoutIntervalSec";
    public static final String PROP_CONNECTED_CHECK_INTERVAL_MIN = "hub.connectedCheckIntervalMin";
+   public static final String PROP_STALE_HEARTBEAT_SEC = "hub.staleHeartbeatSec";
 
    @Inject(optional = true) @Named(PROP_OFFLINE_TIMEOUT_MIN)
    private int offlineTimeoutMin = 10;
@@ -35,6 +36,10 @@ public class HubRegistryConfig {
    private int timeoutIntervalSec = 30;
    @Inject(optional = true) @Named(PROP_CONNECTED_CHECK_INTERVAL_MIN)
    private int connectedCheckIntervalMin = 5;
+   // hubs normally heartbeat about every 30s; a hub quiet for this long is
+   // degraded well before the 10 minute offline timeout removes it
+   @Inject(optional = true) @Named(PROP_STALE_HEARTBEAT_SEC)
+   private int staleHeartbeatSec = 120;
    
    
    /**
@@ -84,6 +89,20 @@ public class HubRegistryConfig {
     */
    public void setConnectedCheckIntervalMin(int connectedCheckIntervalMin) {
       this.connectedCheckIntervalMin = connectedCheckIntervalMin;
+   }
+
+   /**
+    * @return the staleHeartbeatSec
+    */
+   public int getStaleHeartbeatSec() {
+      return staleHeartbeatSec;
+   }
+
+   /**
+    * @param staleHeartbeatSec the staleHeartbeatSec to set
+    */
+   public void setStaleHeartbeatSec(int staleHeartbeatSec) {
+      this.staleHeartbeatSec = staleHeartbeatSec;
    }
 
 }

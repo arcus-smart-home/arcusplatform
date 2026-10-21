@@ -136,6 +136,64 @@ public class TestShiroAuthenticator extends IrisTestCase {
    }
 
    @Test
+   public void testLoginUnknownAccountCounted() throws Exception {
+      long before = counterValue("security.login.failed.unknown_account");
+
+      EasyMock
+         .expect(authenticationDao.findLogin("nobody"))
+         .andReturn(null);
+
+      replay();
+
+      DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.POST,
+            "http://localhost/client",
+            Unpooled.wrappedBuffer("{username:\"nobody\",password:\"password\"}".getBytes("UTF-8"))
+      );
+
+      FullHttpResponse response = authenticator.authenticateRequest(channel, request);
+      org.junit.Assert.assertEquals(HttpResponseStatus.UNAUTHORIZED, response.getStatus());
+      org.junit.Assert.assertEquals(before + 1, counterValue("security.login.failed.unknown_account"));
+
+      verify();
+   }
+
+   @Test
+   public void testLoginWrongPasswordCounted() throws Exception {
+      Login login = new Login();
+      login.setUserId(UUID.randomUUID());
+      login.setUsername("joe");
+      login.setPassword("password");
+
+      long before = counterValue("security.login.failed.bad_credentials");
+
+      EasyMock
+         .expect(authenticationDao.findLogin("joe"))
+         .andReturn(login);
+
+      replay();
+
+      DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.POST,
+            "http://localhost/client",
+            Unpooled.wrappedBuffer("{username:\"joe\",password:\"wrong\"}".getBytes("UTF-8"))
+      );
+
+      FullHttpResponse response = authenticator.authenticateRequest(channel, request);
+      org.junit.Assert.assertEquals(HttpResponseStatus.UNAUTHORIZED, response.getStatus());
+      org.junit.Assert.assertEquals(before + 1, counterValue("security.login.failed.bad_credentials"));
+
+      verify();
+   }
+
+   private static long counterValue(String name) {
+      com.codahale.metrics.Counter counter = com.iris.metrics.IrisMetrics.registry().getCounters().get(name);
+      return counter == null ? 0 : counter.getCount();
+   }
+
+   @Test
    public void testLoginFormEncoded() throws Exception {
       Login login = new Login();
       login.setUserId(UUID.randomUUID());

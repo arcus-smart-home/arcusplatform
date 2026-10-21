@@ -49,6 +49,7 @@ public class BridgeMetrics {
    private final Counter bridgeAuthenticationTriedCounter;
    private final Counter bridgeAuthenticationSucceededCounter;
    private final Counter bridgeAuthenticationFailedCounter;
+   private final Counter bridgeAuthenticationDisplacedCounter;
    private final Counter bridgeAuthorizationTriedCounter;
    private final Counter bridgeAuthorizationSucceededCounter;
    private final Counter bridgeAuthorizationFailedCounter;
@@ -59,6 +60,7 @@ public class BridgeMetrics {
    private final Timer   bridgeAuthorizationTimer;
 
    private final String bridgeHTTPResponseCounterPrefix;
+   private final String bridgeAuthenticationFailedCounterPrefix;
 
    public BridgeMetrics(String bridgeName) {
       this.bridgeName = bridgeName;
@@ -87,6 +89,7 @@ public class BridgeMetrics {
       bridgeAuthenticationTriedCounter     = METRICS.counter("bridge." + bridgeName + ".authentication.tried");
       bridgeAuthenticationSucceededCounter = METRICS.counter("bridge." + bridgeName + ".authentication.succeeded");
       bridgeAuthenticationFailedCounter    = METRICS.counter("bridge." + bridgeName + ".authentication.failed");
+      bridgeAuthenticationDisplacedCounter = METRICS.counter("bridge." + bridgeName + ".authentication.displaced");
       bridgeAuthorizationTriedCounter      = METRICS.counter("bridge." + bridgeName + ".authorization.tried");
       bridgeAuthorizationSucceededCounter  = METRICS.counter("bridge." + bridgeName + ".authorization.succeeded");
       bridgeAuthorizationFailedCounter     = METRICS.counter("bridge." + bridgeName + ".authorization.failed");
@@ -96,6 +99,7 @@ public class BridgeMetrics {
       bridgeAuthenticationTimer            = METRICS.timer("bridge." + bridgeName + ".authentication");
       bridgeAuthorizationTimer             = METRICS.timer("bridge." + bridgeName + ".authorization");
       bridgeHTTPResponseCounterPrefix      = "bridge." + bridgeName + ".http.request.";
+      bridgeAuthenticationFailedCounterPrefix = "bridge." + bridgeName + ".authentication.failed.";
    }
 
    public void incPlatformMsgSentCounter() {
@@ -167,6 +171,18 @@ public class BridgeMetrics {
    public void incAuthenticationSucceededCounter() { bridgeAuthenticationSucceededCounter.inc(); }
 
    public void incAuthenticationFailedCounter() { bridgeAuthenticationFailedCounter.inc(); }
+
+   /**
+    * Increments the overall authentication failure counter plus a per-cause
+    * counter so failure types (unknown account, bad credentials, etc.) can be
+    * alerted on independently.
+    */
+   public void incAuthenticationFailedCounter(String cause) {
+      bridgeAuthenticationFailedCounter.inc();
+      METRICS.counter(bridgeAuthenticationFailedCounterPrefix + cause).inc();
+   }
+
+   public void incAuthenticationDisplacedCounter() { bridgeAuthenticationDisplacedCounter.inc(); }
 
    public void incAuthorizationTriedCounter() { bridgeAuthorizationTriedCounter.inc(); }
 

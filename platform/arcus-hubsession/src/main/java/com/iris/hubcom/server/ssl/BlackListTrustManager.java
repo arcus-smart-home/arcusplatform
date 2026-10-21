@@ -23,10 +23,19 @@ import javax.net.ssl.X509TrustManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.iris.core.dao.HubBlacklistDAO;
+import com.iris.metrics.IrisMetricSet;
+import com.iris.metrics.IrisMetrics;
 
 public class BlackListTrustManager implements X509TrustManager {
    private final static Logger logger = LoggerFactory.getLogger(BlackListTrustManager.class);
+
+   private static final IrisMetricSet METRICS = IrisMetrics.metrics("bridge.hub.ssl");
+   // a blacklisted (revoked) hub cert showing up again is a security event
+   private static final Counter CERT_BLACKLISTED = METRICS.counter("cert.blacklisted");
+   private static final Counter CERT_REJECTED = METRICS.counter("cert.rejected");
+   private static final Counter CERT_MISSING = METRICS.counter("cert.missing");
    private final boolean mutualAuthRequired;
    private final X509TrustManager jdkTrustManager;
    private final HubBlacklistDAO hubBlacklistDAO;
@@ -40,6 +49,7 @@ public class BlackListTrustManager implements X509TrustManager {
    @Override
    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
       if (chain == null || chain.length == 0) {
+         CERT_MISSING.inc();
          if(mutualAuthRequired) {
             logger.debug("Rejecting request with no client certificates");
             throw new CertificateException("No certificate chain exists");
@@ -50,13 +60,15 @@ public class BlackListTrustManager implements X509TrustManager {
       }
 
       if (hubBlacklistDAO.findBlacklistedHubByCertSn(chain[0].getSerialNumber().toString()) != null) {
-         logger.debug("Rejecting blacklisted certificate [{}: {}]", chain[0].getSerialNumber(), chain[0].getSubjectDN());
+         CERT_BLACKLISTED.inc();
+         logger.warn("Rejecting blacklisted certificate [{}: {}]", chain[0].getSerialNumber(), chain[0].getSubjectDN());
          throw new CertificateException("Certficate has been revoked.");
       }
-      
+
       try {
          jdkTrustManager.checkClientTrusted(chain, authType);
       } catch (CertificateException ex) {
+         CERT_REJECTED.inc();
          if (chain.length > 0 && chain[0] != null) {
             logger.error("Client certificate rejected [{}]", chain[0].getSubjectDN());
          }

@@ -73,6 +73,7 @@ public class HubRegistry implements PartitionListener {
    private final long offlineTimeoutMs;
    private final long timeoutIntervalMs;
    private final long connectedCheckIntervalMs;
+   private final long staleHeartbeatMs;
    private final PlacePopulationCacheManager populationCacheMgr;
    
    @Inject
@@ -95,6 +96,7 @@ public class HubRegistry implements PartitionListener {
       this.offlineTimeoutMs = TimeUnit.MINUTES.toMillis(config.getOfflineTimeoutMin());
       this.timeoutIntervalMs = TimeUnit.SECONDS.toMillis(config.getTimeoutIntervalSec());
       this.connectedCheckIntervalMs = TimeUnit.MINUTES.toMillis(config.getConnectedCheckIntervalMin());
+      this.staleHeartbeatMs = TimeUnit.SECONDS.toMillis(config.getStaleHeartbeatSec());
       
       this.executor = ThreadPoolBuilder.newSingleThreadedScheduler("hub-heartbeat-watchdog");
       this.hubs = new ConcurrentHashMap<>();
@@ -113,6 +115,25 @@ public class HubRegistry implements PartitionListener {
    
    public int getOnlineHubs() {
       return hubs.size();
+   }
+
+   /**
+    * Hubs still counted online whose newest heartbeat is older than the stale
+    * threshold. These are degraded before the offline timeout removes them, so
+    * a non-zero value here is the early warning. A rise across many hubs at
+    * once points at the heartbeat pipeline rather than the hubs themselves.
+    */
+   public int getStaleHeartbeatHubs() {
+      long staleBefore = clock.millis() - staleHeartbeatMs;
+      int stale = 0;
+      for(HubState state: hubs.values()) {
+         long lastHeartbeat = state.getLastHeartbeat();
+         // 0 is a transient value while a bridge disconnect is being processed
+         if(lastHeartbeat > 0 && lastHeartbeat < staleBefore) {
+            stale++;
+         }
+      }
+      return stale;
    }
    
    // note this will only be valid for hub ids associated with the given partition
@@ -372,7 +393,11 @@ public class HubRegistry implements PartitionListener {
       int getPartitionId() {
          return partitionId;
       }
-      
+
+      long getLastHeartbeat() {
+         return lastHeartbeat;
+      }
+
       void updateHeartbeat(String hubbridge, long ts) {
          this.lastHeartbeat = ts;
          synchronized(heartbeats) {
@@ -412,6 +437,7 @@ public class HubRegistry implements PartitionListener {
          disconnected = metrics.counter("disconnected");
          timedout = metrics.counter("timedout");
          metrics.gauge("online", (Supplier<Integer>) () -> getOnlineHubs());
+         metrics.gauge("heartbeat.stale", (Supplier<Integer>) () -> getStaleHeartbeatHubs());
       }
       
       public void onDisconnected() {

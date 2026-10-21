@@ -34,9 +34,16 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import org.apache.shiro.authc.AccountException;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.CredentialsException;
+import org.apache.shiro.authc.DisabledAccountException;
+import org.apache.shiro.authc.ExcessiveAttemptsException;
+import org.apache.shiro.authc.ExpiredCredentialsException;
+import org.apache.shiro.authc.LockedAccountException;
 import org.apache.shiro.authc.RememberMeAuthenticationToken;
+import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.session.UnknownSessionException;
 import org.slf4j.Logger;
@@ -115,7 +122,7 @@ public class ShiroAuthenticator implements Authenticator {
       if (token == null) {
          logger.warn("Could not extract authentication token from request - Content-Type: [{}], body bytes: {}",
                req.headers().get("Content-Type"), req.content().readableBytes());
-         metrics.incAuthenticationFailedCounter();
+         metrics.incAuthenticationFailedCounter("token_extraction");
          return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
       }
       return authenticateRequest(channel, token, null);
@@ -128,7 +135,7 @@ public class ShiroAuthenticator implements Authenticator {
          logger.trace("Generating subject.");
          Client currentUser = clientFactory.get(channel);
          if (currentUser == null) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter("unavailable");
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
          }
 
@@ -139,11 +146,12 @@ public class ShiroAuthenticator implements Authenticator {
          try {
             if (currentUser.isAuthenticated()) {
                logger.debug("Logging out old session for [{}] due to new login request", currentUser.getPrincipalName());
+               metrics.incAuthenticationDisplacedCounter();
                currentUser.logout();
             }
          }
          catch (AuthenticationException | UnknownSessionException uae) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter(failureCause(uae));
             logger.error(uae.getMessage(), uae);
             DefaultCookie nettyCookie = expireCookie();
             return createErrorResponse(nettyCookie);
@@ -172,7 +180,7 @@ public class ShiroAuthenticator implements Authenticator {
             return response;
          }
          catch (AuthenticationException | UnknownSessionException uae) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter(failureCause(uae));
             // these are really common, log them at a low-level
             logger.debug("Login failed", uae);
             DefaultCookie nettyCookie = expireCookie();
@@ -181,6 +189,39 @@ public class ShiroAuthenticator implements Authenticator {
       } finally {
          timerContext.stop();
       }
+   }
+
+   /**
+    * Maps an authentication failure to a stable metric name segment. Unknown
+    * accounts are counted separately from bad credentials so enumeration and
+    * credential-stuffing patterns are distinguishable from targeted guessing.
+    */
+   private static String failureCause(Exception e) {
+      if (e instanceof UnknownAccountException) {
+         return "unknown_account";
+      }
+      if (e instanceof ExpiredCredentialsException) {
+         return "expired_credentials";
+      }
+      if (e instanceof CredentialsException) {
+         return "bad_credentials";
+      }
+      if (e instanceof LockedAccountException) {
+         return "locked_account";
+      }
+      if (e instanceof DisabledAccountException) {
+         return "disabled_account";
+      }
+      if (e instanceof ExcessiveAttemptsException) {
+         return "excessive_attempts";
+      }
+      if (e instanceof AccountException) {
+         return "account_error";
+      }
+      if (e instanceof UnknownSessionException) {
+         return "unknown_session";
+      }
+      return "other";
    }
 
    public AuthenticationToken extractToken(Channel channel, FullHttpRequest req) {

@@ -207,10 +207,17 @@ public class TestVerifyPinRESTHandler extends IrisMockTestCase {
       EasyMock.expect(client.getPrincipalId()).andReturn(saved.getId()).anyTimes();
       replay();
 
+      long mismatchedBefore = counterValue("bridge.pin.verify.mismatched");
       FullHttpRequest req = createRequest("1112", person.getCurrPlace().toString());
       FullHttpResponse res = handler.respond(req, ctx);
       assertError(res, "MismatchedPins");
-   }  
+      org.junit.Assert.assertEquals(mismatchedBefore + 1, counterValue("bridge.pin.verify.mismatched"));
+   }
+
+   private static long counterValue(String name) {
+      com.codahale.metrics.Counter counter = com.iris.metrics.IrisMetrics.registry().getCounters().get(name);
+      return counter == null ? 0 : counter.getCount();
+   }
    
    private FullHttpRequest createRequest(String pin, String place) {
       PersonCapability.VerifyPinRequest.Builder builder = PersonCapability.VerifyPinRequest.builder();

@@ -140,6 +140,34 @@ public class TestDefaultHubMessageFilterImpl extends IrisTestCase {
    }
 
    @Test
+   public void testSourceHubIdMismatchRejectedAndCounted() {
+      long before = counterValue("bridge.hub.authz.source.mismatch");
+      clientSession.setState(State.AUTHORIZED);
+      PlatformMessage msg =
+            PlatformMessage
+               .buildMessage(MessageBody.pong(), Address.hubAddress("DEF-5678"), Address.platformService(HubCapability.NAMESPACE))
+               .withPlaceId(placeId)
+               .create();
+      assertFalse(authorizer.acceptFromHub(clientSession, msg));
+      assertEquals(before + 1, counterValue("bridge.hub.authz.source.mismatch"));
+   }
+
+   @Test
+   public void testPlaceMismatchCounted() {
+      long before = counterValue("bridge.hub.authz.place.mismatch.platform");
+      clientSession.setActivePlace(UUID.randomUUID().toString());
+      clientSession.setState(State.AUTHORIZED);
+      PlatformMessage msg = createPlatformMessage(MessageBody.pong());
+      assertFalse(authorizer.acceptFromPlatform(clientSession, msg));
+      assertEquals(before + 1, counterValue("bridge.hub.authz.place.mismatch.platform"));
+   }
+
+   private static long counterValue(String name) {
+      com.codahale.metrics.Counter counter = com.iris.metrics.IrisMetrics.registry().getCounters().get(name);
+      return counter == null ? 0 : counter.getCount();
+   }
+
+   @Test
    public void testAribtraryPlatformMessageLeavesState() {
       State state = clientSession.getState();
       PlatformMessage msg = createPlatformMessage(MessageBody.pong());

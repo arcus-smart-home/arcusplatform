@@ -125,6 +125,30 @@ public class DefaultSessionRegistryImplTest {
    }
 
    @Test
+   public void testDestroyRecordsDuration() {
+      metrics.incSessionCreatedCounter();
+      EasyMock.expectLastCall().once();
+      metrics.incSessionDestroyedCounter();
+      EasyMock.expectLastCall().once();
+      EasyMock.replay(metrics);
+
+      long durationsBefore = com.iris.metrics.IrisMetrics.registry()
+            .getHistograms().get("bridge.sessions.duration").getCount();
+      long shortLivedBefore = com.iris.metrics.IrisMetrics.registry()
+            .getCounters().get("bridge.sessions.shortlived").getCount();
+
+      DefaultSessionImpl session = session("client-1");
+      registry.putSession(session);
+      session.destroy();
+
+      // a session created and destroyed within the test is short-lived
+      assertEquals(durationsBefore + 1, com.iris.metrics.IrisMetrics.registry()
+            .getHistograms().get("bridge.sessions.duration").getCount());
+      assertEquals(shortLivedBefore + 1, com.iris.metrics.IrisMetrics.registry()
+            .getCounters().get("bridge.sessions.shortlived").getCount());
+   }
+
+   @Test
    public void testCountsSessionsAcrossClients() {
       metrics.incSessionCreatedCounter();
       EasyMock.expectLastCall().times(3);
