@@ -156,7 +156,8 @@ public class HubRegistrationRegistry  {
       }
       String firmwareURL = urlBuilder.buildURL(hub, targetFirmware);
 
-      logger.debug("Sending firmware update request with url: {} to hub: {}", firmwareURL, hub.getId());
+      logger.info("Sending firmware update request to hub [{}]: {} -> target [{}], url [{}]",
+            hub.getId(), currentFirmwareVersion, targetFirmware, firmwareURL);
       
       MessageBody upgrade = HubAdvancedCapability.FirmwareUpdateRequest.builder()
     		.withUrl(firmwareURL)

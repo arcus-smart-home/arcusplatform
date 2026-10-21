@@ -143,18 +143,18 @@ public class HubConnectedHandler extends DirectMessageHandler {
       minimalHub.setId(hubId);
       minimalHub.setPlace(persistedHub == null ? null : persistedHub.getPlace());
       minimalHub.setModel(persistedHub == null ? HubCapability.getModel(hubConnectedEvent) : persistedHub.getModel());
-      final boolean firmwareUpgradeSent = upgradeIfNeeded(session, minimalHub, hubConnectedEvent);
+      final boolean isBelowMinimumFirmwareVersion = upgradeIfNeeded(session, minimalHub, hubConnectedEvent);
       if (!session.getClient().isAuthenticated()) {
          updateUnauthorizedReason(session, UnauthorizedReason.UNAUTHENTICATED);
          log.info("Not saving unauthenticated hub at ip [{}]", session.getChannel().remoteAddress());
          return;
       }
-
-      if (firmwareUpgradeSent) {
+      
+      if (isBelowMinimumFirmwareVersion) {
          updateUnauthorizedReason(session, UnauthorizedReason.BELOW_MIN_FW);
       }
-      if (firmwareUpgradeSent && persistedHub == null) {
-         log.info("Not saving hub [{}] because it has a firmware upgrade outstanding and has not yet been registered", msg.getSource());
+      if (isBelowMinimumFirmwareVersion && persistedHub == null) {
+         log.info("Not saving hub [{}] because it is below min version and has not yet been registered", msg.getSource());
          return;
       }
 
@@ -168,7 +168,7 @@ public class HubConnectedHandler extends DirectMessageHandler {
          incomingHub.setId(hubId);
       }
       if(persistedHub == null) {
-         if(!firmwareUpgradeSent) {
+         if(!isBelowMinimumFirmwareVersion) {
 	         if(incomingHub.getAccount() != null) {
 	            log.warn("Orphaned hub detected.  Hub [{}] connected with no record and account id [{}].", incomingHub.getId(), incomingHub.getAccount());
 	            updateUnauthorizedReason(session, UnauthorizedReason.ORPHANED);
@@ -186,7 +186,7 @@ public class HubConnectedHandler extends DirectMessageHandler {
 
       } else {
          log.trace("Verifying hub", hubId );
-         verifyHub(session, persistedHub, incomingHub, msg.getCorrelationId(), firmwareUpgradeSent, hubConnectedEvent);
+         verifyHub(session, persistedHub, incomingHub, msg.getCorrelationId(), isBelowMinimumFirmwareVersion, hubConnectedEvent);
       }
 
       // at this point we have a hub record so we can associate it with the proper partition
@@ -248,7 +248,7 @@ public class HubConnectedHandler extends DirectMessageHandler {
 
   }
 
-   private void verifyHub(Session session, Hub persistedHub, Hub incomingHub, String correlationId, boolean firmwareUpgradeSent, MessageBody evt) {
+   private void verifyHub(Session session, Hub persistedHub, Hub incomingHub, String correlationId, boolean isBelowMinimumFirmwareVersion, MessageBody evt) {
       // update the version information on the persisted hub always to make sure the db is consistent
       // with the value reported by the hub and send ValueChange's to ensure the other systems are in sync as well
       // several of these fields really shouldn't change ever, but just in case...
@@ -268,7 +268,7 @@ public class HubConnectedHandler extends DirectMessageHandler {
 
       // TODO record hub last connected and last authorized timestamps
 
-      if(!firmwareUpgradeSent && persistedHub.getAccount() == null) {
+      if(!isBelowMinimumFirmwareVersion && persistedHub.getAccount() == null) {
          updateUnauthorizedReason(session, UnauthorizedReason.UNREGISTERED);
          persistedHub.setRegistrationState(HubCapability.REGISTRATIONSTATE_UNREGISTERED);
       }
@@ -283,20 +283,10 @@ public class HubConnectedHandler extends DirectMessageHandler {
          hubDao.updateAttributes(persistedHub.getId(), evt.getAttributes());
       }
 
-      // If the persisted hub doesn't have an account yet, then bail because we are waiting for
-      // the client to send the register message.
-      //
-      // Note: we deliberately do NOT bail here just because firmwareUpgradeSent is true. An
-      // available/offered firmware upgrade is routine, not a sign the hub is unsafe to trust -
-      // there's no separate "hard minimum compatible version" concept anywhere in
-      // FirmwareUpdateResolver today, UPGRADE_NEEDED means the same thing whether a hub is one
-      // patch behind or badly out of date. Gating authorization on it meant any hub with an
-      // update pending - which can stay true indefinitely if the update can't complete, e.g. a
-      // download failure - never reached State.AUTHORIZED, and DefaultHubMessageFilterImpl
-      // silently drops every device/alarm/scene message from an unauthorized session. That
-      // effectively "pauses" an otherwise-healthy, already-registered hub for as long as any
-      // upgrade is outstanding.
-      if(persistedHub.getAccount() == null) {
+      // if the persisted hub doesn't have an account yet, then bail because we are waiting for
+      // the client to send the register message. If it is it below the minimum firmware, then bail
+      // as well.
+      if(isBelowMinimumFirmwareVersion || persistedHub.getAccount() == null) {
          return;
       }
 
