@@ -64,6 +64,7 @@ import com.iris.hubcom.bus.PlatformBusServiceImpl;
 import com.iris.hubcom.bus.ProtocolBusServiceImpl;
 import com.iris.hubcom.server.message.DirectMessageHandler;
 import com.iris.hubcom.server.message.HubConnectedHandler;
+import com.iris.hubcom.server.message.HubErrorEventHandler;
 import com.iris.hubcom.server.message.HubFirmwareUpdateResponseHandler;
 import com.iris.hubcom.server.message.HubFirmwareUpgradeProcessEventHandler;
 import com.iris.hubcom.server.message.HubMessageHandler;
@@ -123,6 +124,7 @@ public class HubServerModule extends AbstractIrisModule {
         directHandlers.addBinding().to(HubRegisteredResponseHandler.class);
         directHandlers.addBinding().to(HubFirmwareUpgradeProcessEventHandler.class);
         directHandlers.addBinding().to(HubFirmwareUpdateResponseHandler.class);
+        directHandlers.addBinding().to(HubErrorEventHandler.class);
 
 
         bind(new TypeLiteral<ChannelInitializer<SocketChannel>>() {

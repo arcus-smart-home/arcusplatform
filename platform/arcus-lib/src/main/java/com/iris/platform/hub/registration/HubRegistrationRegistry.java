@@ -30,6 +30,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.HubRegistrationDAO;
@@ -42,12 +43,21 @@ import com.iris.messages.model.Hub;
 import com.iris.messages.model.HubRegistration;
 import com.iris.messages.model.HubRegistration.RegistrationState;
 import com.iris.messages.model.HubRegistrationErrors;
+import com.iris.metrics.IrisMetrics;
 import com.iris.util.ThreadPoolBuilder;
 import com.iris.bootstrap.annotations.WarmUp;
 
 @Singleton
 public class HubRegistrationRegistry  {
-	private static final Logger logger = LoggerFactory.getLogger(HubRegistrationRegistry.class);	
+	private static final Logger logger = LoggerFactory.getLogger(HubRegistrationRegistry.class);
+
+	// Counts every recorded firmware upgrade failure (resolver said UPGRADE_NEEDED but the hub
+	// couldn't apply it, or the hub itself reported a download/install error). A hub stuck
+	// retrying the same failing upgrade keeps incrementing this on every connect, so a sustained
+	// non-zero rate here - as opposed to a single blip - is what "stuck updating" looks like from
+	// outside; see HubConnectedHandler's firmwareUpgradeSent handling for why a stuck upgrade used
+	// to also silently stop a hub from authorizing at all.
+	private static final Counter firmwareUpgradeFailures = IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.failures");
 
 	private final HubRegistrationDAO hubRegistrationDao;
 	private final ScheduledExecutorService executor;
@@ -57,7 +67,7 @@ public class HubRegistrationRegistry  {
 	private final FirmwareUpdateResolver resolver;
 	private final FirmwareURLBuilder<Hub> urlBuilder;
 	private final Hub hubTemplate;
-	
+
 	@Inject
 	public HubRegistrationRegistry(HubRegistrationDAO hubRegistrationDao, HubRegistrationConfig config,
 			FirmwareUpdateResolver resolver, FirmwareURLBuilder<Hub> urlBuilder) {
@@ -261,10 +271,11 @@ public class HubRegistrationRegistry  {
 	
 	private void firmwareUpgradeFailed(HubRegistration hubReg, String code, String msg, boolean retry) {
 		if (hubReg != null) {
+			firmwareUpgradeFailures.inc();
 			hubReg.setUpgradeErrorCode(code);
 			hubReg.setUpgradeErrorMessage(msg);
 			hubReg.setUpgradeErrorTime(new Date());
-			hubReg.setLastConnected(new Date());			
+			hubReg.setLastConnected(new Date());
 			hubRegistrationDao.save(hubReg);
 			logger.warn("Hub with id [{}] firmware upgrade failed, reason - [{}] - [{}]. {}", hubReg.getId(), code, msg, retry?"Will retry.":"Will NOT retry.");
 			if(!retry) {
