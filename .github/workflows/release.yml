@@ -25,6 +25,9 @@ jobs:
           distribution: 'corretto'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          # See the note in test.yml: 'basic' keeps the MIT-licensed cache.
+          cache-provider: basic
       - name: Run tests
         run: ./gradlew test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon
 
@@ -45,6 +48,9 @@ jobs:
           distribution: 'corretto'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          # See the note in test.yml: 'basic' keeps the MIT-licensed cache.
+          cache-provider: basic
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4
