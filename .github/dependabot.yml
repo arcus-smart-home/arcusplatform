@@ -1,0 +1,76 @@
+# Dependabot configuration.
+#
+# Gradle note: library versions live in gradle/dependencies.gradle, which is
+# applied from the root build.gradle with a literal path so Dependabot can
+# follow it (it only reads files pulled in by `apply from` when the path is a
+# plain string and the filename contains "dependencies").
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 8
+    commit-message:
+      prefix: "deps"
+    ignore:
+      # Closed-source jar vendored in libs/, not published to any repository.
+      - dependency-name: "ipcd-lib:ipcd-lib"
+    groups:
+      netty:
+        patterns:
+          - "io.netty:*"
+      jackson:
+        patterns:
+          - "com.fasterxml.jackson*:*"
+      logging:
+        patterns:
+          - "org.slf4j:*"
+          - "ch.qos.logback:*"
+      testing:
+        patterns:
+          - "junit:junit"
+          - "org.easymock:*"
+          - "org.mockito:*"
+          - "org.hamcrest:*"
+          - "io.cucumber:*"
+      gradle-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: docker
+    directories:
+      - "/khakis/arcus-java"
+      - "/khakis/arcus-kairosdb"
+      - "/agent/arcus-hal/hub-v2/docker"
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "docker"
+    ignore:
+      # Built locally by khakis/bin, never pulled from a registry.
+      - dependency-name: "arcus/java"
+      # The kairosdb builder stage is pinned to JDK 11 on purpose: the
+      # KairosDB 1.2.2 build (tablesaw) does not compile on anything newer.
+      # Patch and minor bumps of 11-jdk-jammy are still welcome.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]

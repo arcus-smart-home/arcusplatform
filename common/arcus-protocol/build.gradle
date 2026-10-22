@@ -83,7 +83,7 @@ dependencies {
    api libraries.jacksonDatabind
    api netty_buffer
 
-    testImplementation "org.hamcrest:hamcrest-all:1.3"
+    testImplementation libraries.hamcrest
 }
 
 task generateZigbeeZclSource(type:JavaExec) {

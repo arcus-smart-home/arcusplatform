@@ -55,8 +55,8 @@ dependencies {
    testImplementation libraries.junit
    testImplementation libraries.easymock
    testImplementation libraries.logback
-   testImplementation 'commons-lang:commons-lang:2.6'
-   testImplementation 'org.hamcrest:hamcrest-all:1.3'
+   testImplementation libraries.commons_lang2
+   testImplementation libraries.hamcrest
 }
 
 // Target the JDK running Gradle (common and agent override this to target Java 11 for the hub)
