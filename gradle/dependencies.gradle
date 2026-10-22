@@ -187,8 +187,8 @@ ext.libraries << [
 		commons_lang2: "commons-lang:commons-lang:2.6",
 
 // Apache Shiro
-		shiro: "org.apache.shiro:shiro-core:1.13.0",
-		shiro_guice: "org.apache.shiro:shiro-guice:1.13.0",
+		shiro: "org.apache.shiro:shiro-core:3.0.1",
+		shiro_guice: "org.apache.shiro:shiro-guice:3.0.1",
 
 // Logging
 		slf4j: "org.slf4j:jcl-over-slf4j:2.0.17",
