@@ -21,6 +21,13 @@ docker_build() {
 
     local BUILD_ARGS="--build-arg JAVA_VERSION=${JAVA_MAJOR}"
 
+    # On CI, always re-resolve the base image so a rebuild picks up the current
+    # debian:trixie rather than whatever happens to be on the builder. Left off
+    # for local builds so they still work offline.
+    if [ -n "${CI:-}" ]; then
+        BUILD_ARGS="${BUILD_ARGS} --pull"
+    fi
+
     if [ -z "${is_build_server}" ]; then
         "${DOCKER_BIN}" build ${BUILD_ARGS} -t "${DOCKER_TAG}${DOCKER_VERSION}" -t "${DOCKER_TAG}:latest" "${DOCKER_PATH}"
     else
