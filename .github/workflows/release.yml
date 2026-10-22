@@ -5,8 +5,9 @@ on:
     tags:
       - 'v*'
   schedule:
-    # Mondays, 09:17 UTC. Builds only when the gate in `prepare` says something
-    # changed, with a 30 day floor so quiet months still get a rebuild.
+    # Mondays, 09:17 UTC. Off unless the repository opts in (see `prepare`),
+    # and then builds only when the gate says something changed, with a 30 day
+    # floor so quiet months still get a rebuild.
     - cron: '17 9 * * 1'
   workflow_dispatch:
     inputs:
@@ -31,6 +32,10 @@ jobs:
   # run it decides whether a build is warranted, and if so bumps the version,
   # commits it to master and creates the tag to build.
   prepare:
+    # Tag pushes always build. The scheduled rebuild is opt-in per repository,
+    # so merging this does not start cutting releases wherever it lands: set
+    # the repository variable SCHEDULED_RELEASE to 'true' to enable it.
+    if: github.event_name == 'push' || vars.SCHEDULED_RELEASE == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
