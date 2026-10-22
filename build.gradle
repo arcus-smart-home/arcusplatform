@@ -27,3 +27,10 @@ if (!supportedVersions.contains(jvmVersion)) {
       "  export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64"
    )
 }
+
+// gradle/dependencies.gradle is applied to every subproject through
+// gradle/subproject.gradle. It is applied here too, with a literal relative
+// path, so Dependabot follows it: Dependabot only reads files pulled in by
+// `apply from` when the path is a plain string (no interpolation) and the
+// filename contains "dependencies".
+apply from: 'gradle/dependencies.gradle'
