@@ -114,9 +114,13 @@ subprojects {
             cacheDynamicVersionsFor 60, 'minutes'
             cacheChangingModulesFor 60, 'minutes'
             force 'org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0'
-            force 'com.fasterxml.jackson.core:jackson-core:2.18.6'
-            force 'com.fasterxml.jackson.core:jackson-databind:2.18.6'
-            force 'com.fasterxml.jackson.core:jackson-annotations:2.18.6'
+            // Pin every transitive Jackson consumer to the version declared in
+            // gradle/dependencies.gradle. These were hardcoded, drifted behind
+            // the declared version, and silently forced the common subprojects
+            // back onto the stale one.
+            force libraries.jacksonCore
+            force libraries.jacksonDatabind
+            force libraries.jacksonAnnotations
         }
     }
 
