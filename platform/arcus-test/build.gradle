@@ -32,7 +32,7 @@ dependencies {
 	implementation libraries.junit
 	implementation libraries.easymock
    implementation libraries.javax_annotation_api
-	implementation "org.hamcrest:hamcrest-all:1.3"
+	implementation libraries.hamcrest
 
 	runtimeOnly libraries.commonsIO
 	runtimeOnly libraries.commonsConfig

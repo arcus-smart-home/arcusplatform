@@ -33,4 +33,12 @@ if (!supportedVersions.contains(jvmVersion)) {
 // path, so Dependabot follows it: Dependabot only reads files pulled in by
 // `apply from` when the path is a plain string (no interpolation) and the
 // filename contains "dependencies".
+//
+// Note that applying it at the root publishes its extra properties
+// (`libraries`, `netty_version`, `tcnative_version`, ...) to every project by
+// extra-property inheritance, including the aggregator projects that never
+// applied it themselves. Nothing reads them there today, but a reference to
+// e.g. `netty_version` under agent/ now resolves to the platform default
+// instead of failing with MissingPropertyException; agent/ pins Netty through
+// `netty_override_version` in agent/gradle.properties, which is unaffected.
 apply from: 'gradle/dependencies.gradle'

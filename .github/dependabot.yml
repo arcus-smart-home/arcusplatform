@@ -69,3 +69,8 @@ updates:
     ignore:
       # Built locally by khakis/bin, never pulled from a registry.
       - dependency-name: "arcus/java"
+      # The kairosdb builder stage is pinned to JDK 11 on purpose: the
+      # KairosDB 1.2.2 build (tablesaw) does not compile on anything newer.
+      # Patch and minor bumps of 11-jdk-jammy are still welcome.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]

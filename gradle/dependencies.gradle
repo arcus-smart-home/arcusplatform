@@ -182,6 +182,9 @@ ext.libraries << [
 
 //Junit
 		junit: "junit:junit:4.13.2",
+		hamcrest: "org.hamcrest:hamcrest-all:1.3",
+		// Legacy commons-lang 2.x, distinct from commons_lang (commons-lang3) above.
+		commons_lang2: "commons-lang:commons-lang:2.6",
 
 // Apache Shiro
 		shiro: "org.apache.shiro:shiro-core:1.13.0",
