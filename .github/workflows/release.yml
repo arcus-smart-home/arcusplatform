@@ -43,6 +43,9 @@ jobs:
       build: ${{ steps.decide.outputs.build }}
       ref: ${{ steps.decide.outputs.ref }}
       version: ${{ steps.decide.outputs.version }}
+      branch: ${{ steps.decide.outputs.branch }}
+      base_image: ${{ steps.decide.outputs.base_image }}
+      base_digest: ${{ steps.decide.outputs.base_digest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,7 +77,9 @@ jobs:
           if [ -z "$LAST_TAG" ]; then
             REASONS+=("no release tag found")
           else
-            COMMITS=$(git rev-list --count "${LAST_TAG}..HEAD")
+            # The state file is committed after a successful build, so it is
+            # excluded here: it is bookkeeping, not a change worth releasing.
+            COMMITS=$(git rev-list --count "${LAST_TAG}..HEAD" -- . ":(exclude)${STATE}")
             if [ "$COMMITS" -gt 0 ]; then
               REASONS+=("${COMMITS} commit(s) since ${LAST_TAG}")
             fi
@@ -83,11 +88,17 @@ jobs:
           # 2. The base image moved. Every service image is FROM arcus/java,
           #    which is built from this base, so its digest covers them all.
           BASE=$(awk '/^FROM /{print $2; exit}' khakis/arcus-java/Dockerfile)
+          PREV_DIGEST=$(jq -r '.base_digest // ""' "$STATE" 2>/dev/null || echo "")
           # The plain {{.Manifest.Digest}} form silently falls back to the
           # default listing on some buildx versions; the json form is reliable.
-          DIGEST=$(docker buildx imagetools inspect "$BASE" --format '{{json .Manifest.Digest}}' | tr -d '"')
-          PREV_DIGEST=$(jq -r '.base_digest // ""' "$STATE" 2>/dev/null || echo "")
-          if [ "$DIGEST" != "$PREV_DIGEST" ]; then
+          DIGEST=$(docker buildx imagetools inspect "$BASE" --format '{{json .Manifest.Digest}}' 2>/dev/null | tr -d '"' || true)
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            # An anonymous registry lookup can be rate limited or just down.
+            # That is no reason to fail a run the other checks would pass, and
+            # no reason to overwrite a good digest with a bad one.
+            echo "Could not resolve ${BASE}, skipping the base image check."
+            DIGEST="$PREV_DIGEST"
+          elif [ "$DIGEST" != "$PREV_DIGEST" ]; then
             REASONS+=("${BASE} is now ${DIGEST:0:19}, last built ${PREV_DIGEST:0:19}")
           fi
 
@@ -145,26 +156,24 @@ jobs:
             sed -i -E "s/^major=.*/major=${MAJOR}/; s/^minor=.*/minor=${MINOR}/; s/^patch=.*/patch=${PATCH}/" "$f"
           done
 
-          jq -n \
-            --arg base_image "$BASE" \
-            --arg base_digest "$DIGEST" \
-            --arg last_build "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg last_version "$VERSION" \
-            '{base_image: $base_image, base_digest: $base_digest, last_build: $last_build, last_version: $last_version}' \
-            > "$STATE"
-
+          # The state file is deliberately NOT written here. It is committed by
+          # `record` once the images are actually published, so that a release
+          # that fails to build does not look like a completed one next week.
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add khakis/version.properties platform/version.properties "$STATE"
+          git add khakis/version.properties platform/version.properties
           git commit -m "Release v${VERSION}" -m "$(printf '%s\n' "${REASONS[@]}" | sed 's/^/- /')"
           git tag -a "v${VERSION}" -m "Release v${VERSION}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-          git push origin "v${VERSION}"
+          # One atomic push, so the branch never moves without the tag.
+          git push --atomic origin "HEAD:${GITHUB_REF_NAME}" "v${VERSION}"
 
           {
             echo "build=true"
             echo "ref=v${VERSION}"
             echo "version=${VERSION}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "base_image=${BASE}"
+            echo "base_digest=${DIGEST}"
           } >> "$GITHUB_OUTPUT"
 
   tests:
@@ -234,4 +243,55 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Published \`${{ needs.prepare.outputs.version }}\` from \`${{ needs.prepare.outputs.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+          # Images are tagged from version.properties, not from the ref, so
+          # report what was actually published and flag any disagreement.
+          DOCKER_VERSION=$(sed -nE 's/^(major|minor|patch)=//p' khakis/version.properties | paste -sd. -)
+          echo "Published \`${DOCKER_VERSION}\` from \`${{ needs.prepare.outputs.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "v${DOCKER_VERSION}" != "${{ needs.prepare.outputs.ref }}" ]; then
+            echo "::warning::Images are tagged ${DOCKER_VERSION} from khakis/version.properties, which does not match ${{ needs.prepare.outputs.ref }}"
+          fi
+
+  # Records the base digest and timestamp only once the images are actually
+  # published. Writing it in `prepare` would make a release that failed to
+  # build look complete, and the gate would then skip the retry.
+  record:
+    needs: [prepare, build-and-push-image]
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.branch }}
+
+      - name: Record the release state
+        env:
+          BASE_IMAGE: ${{ needs.prepare.outputs.base_image }}
+          BASE_DIGEST: ${{ needs.prepare.outputs.base_digest }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          BRANCH: ${{ needs.prepare.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg base_image "$BASE_IMAGE" \
+            --arg base_digest "$BASE_DIGEST" \
+            --arg last_build "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg last_version "$VERSION" \
+            '{base_image: $base_image, base_digest: $base_digest, last_build: $last_build, last_version: $last_version}' \
+            > .github/release-state.json
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/release-state.json
+          git commit -m "Record release v${VERSION}"
+
+          # master may have moved while the build was running.
+          for _ in 1 2 3; do
+            if git push origin "HEAD:${BRANCH}"; then
+              exit 0
+            fi
+            git pull --rebase origin "$BRANCH"
+          done
+          exit 1
