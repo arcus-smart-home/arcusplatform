@@ -226,14 +226,17 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 
 
 // Netty Dependencies
+// The literal versions are assigned first, with the -P overrides applied on top,
+// so that Dependabot sees a concrete version: its Gradle parser takes the first
+// assignment it finds for a property, and a reference it cannot resolve makes it
+// drop the dependency altogether.
+ext.netty_version = "4.1.138.Final"
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
-else
-	ext.netty_version = "4.1.138.Final"
+
+ext.tcnative_version = "2.0.75.Final"
 if (project.hasProperty("tcnative_override_version"))
 	ext.tcnative_version = "${tcnative_override_version}"
-else
-	ext.tcnative_version = "2.0.75.Final"
 
 ext.netty_common = "io.netty:netty-common:${netty_version}"
 ext.netty_buffer = "io.netty:netty-buffer:${netty_version}"
