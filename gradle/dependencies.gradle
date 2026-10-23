@@ -138,9 +138,9 @@ ext.libraries << [
 		prometheus_httpserver: "io.prometheus:simpleclient_httpserver:0.8.0",
 
 // misc dependencies
-		guava: "com.google.guava:guava:33.4.0-jre",
-		google_guava_testlib: "com.google.guava:guava-testlib:33.4.0-jre",
-		gson: "com.google.code.gson:gson:2.11.0",
+		guava: "com.google.guava:guava:33.7.2-jre",
+		google_guava_testlib: "com.google.guava:guava-testlib:33.7.2-jre",
+		gson: "com.google.code.gson:gson:2.14.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.18.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0",
 		handlebars: "com.github.jknack:handlebars:2.2.2",

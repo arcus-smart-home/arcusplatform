@@ -27,7 +27,7 @@ dependencies {
    api project(':common:arcus-client')
    api project(':common:arcus-common')
    implementation libraries.guava
-   implementation 'com.google.code.findbugs:jsr305:3.0.1'
+   implementation 'com.google.code.findbugs:jsr305:3.0.2'
    implementation libraries.zsmartsystems_zigbee
    implementation libraries.zsmartsystems_zigbee_ember
 
