@@ -1,5 +1,6 @@
 .gradle
 .idea
+/build/
 agent/arcus-hal/hub-v2/out/
 agent/arcus-hub-controller/out/
 agent/arcus-reflex-controller/out/
