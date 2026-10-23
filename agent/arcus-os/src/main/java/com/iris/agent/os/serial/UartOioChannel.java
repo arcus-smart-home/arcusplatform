@@ -34,8 +34,7 @@ public class UartOioChannel extends OioByteStreamChannel {
    @Nullable
    private UartAddress address;
 
-   @Nullable
-   private UartNative.SerialPort port;
+   private UartNative.@Nullable SerialPort port;
 
    public UartOioChannel() {
       super(null);

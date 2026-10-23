@@ -70,7 +70,7 @@ public enum ZWaveExternalProtocol implements com.iris.protocol.Protocol<Protocol
       INSTANCE;
 
       @Override
-      public byte[] serialize(@Nullable Protocol.Message msg) {
+      public byte[] serialize(Protocol.@Nullable Message msg) {
          Preconditions.checkNotNull(msg);
 
          try {
@@ -87,7 +87,7 @@ public enum ZWaveExternalProtocol implements com.iris.protocol.Protocol<Protocol
       }
 
       @Override
-      public void serialize(@Nullable Protocol.Message msg, @Nullable OutputStream out) throws IOException, IllegalArgumentException {
+      public void serialize(Protocol.@Nullable Message msg, @Nullable OutputStream out) throws IOException, IllegalArgumentException {
          Protocol.Message.serde().ioSerDe().encode(new DataOutputStream(out), msg);
       }
    }

@@ -37,8 +37,8 @@ public final class WatchdogService {
    private static @Nullable Thread thread;
 
    @SuppressWarnings("rawtypes")
-   private static @Nullable HubAttributesService.Attribute<Set> lastFailedWatchdogCheck;
-   private static @Nullable HubAttributesService.Attribute<Long> lastFailedWatchdogCheckTime;
+   private static HubAttributesService.@Nullable Attribute<Set> lastFailedWatchdogCheck;
+   private static HubAttributesService.@Nullable Attribute<Long> lastFailedWatchdogCheckTime;
 
    private WatchdogService() {
    }

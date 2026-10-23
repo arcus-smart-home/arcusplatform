@@ -89,7 +89,7 @@ public class GreatStarKeyPad extends AbstractZigbeeHubDriver {
    private static final Variable<Integer> ALERT_MAXALERTSECS = attribute(DRIVER_NAME, VERSION_2_12, AlertCapability.ATTR_MAXALERTSECS, Integer.class, null);
 
    private ActiveRequestType activeRequestType = ActiveRequestType.NONE;
-   private @Nullable ZigbeeMessage.Zcl activeRequest;
+   private ZigbeeMessage.@Nullable Zcl activeRequest;
    private long panelStatusEndTime = Long.MIN_VALUE;
 
    private int lastBatteryPercent = Integer.MIN_VALUE;

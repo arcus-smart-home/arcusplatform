@@ -598,8 +598,8 @@ public class ReflexDriver {
    }
 
    private static abstract class ProtocolAction implements Action {
-      private final @Nullable Protocol.Message zwaveMessage;
-      private final @Nullable ZigbeeMessage.Protocol zigbeeMessage;
+      private final Protocol.@Nullable Message zwaveMessage;
+      private final ZigbeeMessage.@Nullable Protocol zigbeeMessage;
       private final int reflexVersion;
 
       public ProtocolAction(Protocol.Message zwaveMessage, com.iris.protocol.zigbee.msg.ZigbeeMessage.Protocol zigbeeMessage, int version) {
@@ -625,11 +625,11 @@ public class ReflexDriver {
          }
       }
 
-      protected final @Nullable Protocol.Message getZWaveMessage() { 
+      protected final Protocol.@Nullable Message getZWaveMessage() { 
          return zwaveMessage;
       }
 
-      protected final @Nullable ZigbeeMessage.Protocol getZigbeeMessage() {
+      protected final ZigbeeMessage.@Nullable Protocol getZigbeeMessage() {
          return zigbeeMessage;
       }
 
@@ -659,7 +659,7 @@ public class ReflexDriver {
          return V1;
       }
 
-      private static @Nullable Protocol.Message createZWaveMessage(ReflexActionSendProtocol action) {
+      private static Protocol.@Nullable Message createZWaveMessage(ReflexActionSendProtocol action) {
          try {
             if (action.getType() != ReflexActionSendProtocol.Type.ZWAVE) {
                return null;
@@ -683,7 +683,7 @@ public class ReflexDriver {
          }
       }
 
-      private static @Nullable ZigbeeMessage.Protocol createZigbeeMessage(ReflexActionSendProtocol action) {
+      private static ZigbeeMessage.@Nullable Protocol createZigbeeMessage(ReflexActionSendProtocol action) {
          try {
             if (action.getType() != ReflexActionSendProtocol.Type.ZIGBEE) {
                return null;
@@ -774,7 +774,7 @@ public class ReflexDriver {
          return result;
       }
 
-      private static @Nullable Protocol.Message createZWaveMessage(List<ProtocolAction> subs, Function<Protocol.Message[],Protocol.Message> zwave) {
+      private static Protocol.@Nullable Message createZWaveMessage(List<ProtocolAction> subs, Function<Protocol.Message[],Protocol.Message> zwave) {
          ArrayList<Protocol.Message> zwActions = null;
          for (ProtocolAction act : subs) {
             if (act == null) {
@@ -801,7 +801,7 @@ public class ReflexDriver {
          return zwave.apply(zw);
       }
 
-      private static @Nullable ZigbeeMessage.Protocol createZigbeeMessage(List<ProtocolAction> subs, Function<ZigbeeMessage.Protocol[],ZigbeeMessage.Protocol> zigbee) {
+      private static ZigbeeMessage.@Nullable Protocol createZigbeeMessage(List<ProtocolAction> subs, Function<ZigbeeMessage.Protocol[],ZigbeeMessage.Protocol> zigbee) {
          ArrayList<ZigbeeMessage.Protocol> zbActions = null;
          for (ProtocolAction act : subs) {
             if (act == null) {
@@ -858,7 +858,7 @@ public class ReflexDriver {
          return V1;
       }
 
-      private static @Nullable Protocol.Message createZWaveMessage(long delayTimeInNs, Protocol.Message[] zwaveActions) {
+      private static Protocol.@Nullable Message createZWaveMessage(long delayTimeInNs, Protocol.Message[] zwaveActions) {
          if (zwaveActions == null || zwaveActions.length == 0) {
             return null;
          }
@@ -879,7 +879,7 @@ public class ReflexDriver {
          }
       }
 
-      private static @Nullable ZigbeeMessage.Protocol createZigbeeMessage(long delayTimeInNs, ZigbeeMessage.Protocol[] zigbeeActions) {
+      private static ZigbeeMessage.@Nullable Protocol createZigbeeMessage(long delayTimeInNs, ZigbeeMessage.Protocol[] zigbeeActions) {
          if (zigbeeActions == null || zigbeeActions.length == 0) {
             return null;
          }
@@ -930,7 +930,7 @@ public class ReflexDriver {
          return V1;
       }
 
-      private static @Nullable Protocol.Message createZWaveMessage(Protocol.Message[] zwaveActions) {
+      private static Protocol.@Nullable Message createZWaveMessage(Protocol.Message[] zwaveActions) {
          if (zwaveActions == null || zwaveActions.length == 0) {
             return null;
          }
@@ -950,7 +950,7 @@ public class ReflexDriver {
          }
       }
 
-      private static @Nullable ZigbeeMessage.Protocol createZigbeeMessage(ZigbeeMessage.Protocol[] zigbeeActions) {
+      private static ZigbeeMessage.@Nullable Protocol createZigbeeMessage(ZigbeeMessage.Protocol[] zigbeeActions) {
          if (zigbeeActions == null || zigbeeActions.length == 0) {
             return null;
          }

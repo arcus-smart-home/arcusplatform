@@ -139,7 +139,7 @@ ext.libraries << [
 		google_guava_testlib: "com.google.guava:guava-testlib:33.7.2-jre",
 		gson: "com.google.code.gson:gson:2.14.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
-		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0",
+		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.100",
 		handlebars: "com.github.jknack:handlebars:2.2.2",
 		jna: 'net.java.dev.jna:jna:4.4.0',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',

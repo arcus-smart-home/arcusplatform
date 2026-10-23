@@ -318,7 +318,7 @@ public class MpegTsH264 implements H264Factory.VideoSession {
    // H.264 frame output
    /////////////////////////////////////////////////////////////////////////////
 
-   private void sdp(IrisRtspSdp sdp, @Nullable IrisRtspSdp.Media media) throws IOException {
+   private void sdp(IrisRtspSdp sdp, IrisRtspSdp.@Nullable Media media) throws IOException {
       if (media == null) {
          return;
       }

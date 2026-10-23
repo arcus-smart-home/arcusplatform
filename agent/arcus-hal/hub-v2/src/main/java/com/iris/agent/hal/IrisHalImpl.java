@@ -92,7 +92,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    private static final Logger log = LoggerFactory.getLogger(IrisHalImpl.class);
 
    private static final long NETWORK_UPDATE_MINIMUM = TimeUnit.NANOSECONDS.convert(5, TimeUnit.SECONDS);
-   private static volatile @Nullable IrisHal.NetworkInfo currentNetworkInfo = null;
+   private static volatile IrisHal.@Nullable NetworkInfo currentNetworkInfo = null;
    private static long lastNetworkInfoFetch = Long.MIN_VALUE;
 
    // NOTE: These exit codes must match up with what is in the
