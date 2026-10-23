@@ -22,8 +22,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import com.iris.platform.partition.PlatformPartition;
 import com.iris.platform.partition.io.PlatformPartitionSerializer;
 
-import kafka.utils.VerifiableProperties;
-
 public class KafkaPlatformPartitionSerializer implements Serializer<PlatformPartition> {
 	public static KafkaPlatformPartitionSerializer instance() {
 		return Holder.Instance;
@@ -32,9 +30,6 @@ public class KafkaPlatformPartitionSerializer implements Serializer<PlatformPart
 	private final PlatformPartitionSerializer delegate = new PlatformPartitionSerializer();
 
 	public KafkaPlatformPartitionSerializer() { }
-
-	public KafkaPlatformPartitionSerializer(VerifiableProperties props) {
-	}
 
 	@Override
 	public void configure(Map<String, ?> configs, boolean isKey) {

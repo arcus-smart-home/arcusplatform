@@ -46,19 +46,7 @@ public class KafkaOpsConfig extends AbstractKafkaConfig {
       return "kafkaops.eyeris:9092";
    }
 
-   @Override
-   protected String getDefaultSerializer() {
-      return "kafka.serializer.StringEncoder";
-   }
 
-   @Override
-   protected String getDefaultKeySerializer() {
-      return null;
-   }
 
-   @Override
-   protected String getDefaultPartitioner() {
-      return null;
-   }
 }
 
