@@ -86,8 +86,8 @@ ext.libraries << [
 		sunrise_sunset_calc: "com.luckycatlabs:SunriseSunsetCalculator:1.2",
 
 // JAXB Dependencies
-		jaxb_xjc: "org.glassfish.jaxb:jaxb-xjc:2.3.9",
-		jaxb_impl: "org.glassfish.jaxb:jaxb-runtime:2.3.9",
+		jaxb_xjc: "org.glassfish.jaxb:jaxb-xjc:4.0.9",
+		jaxb_impl: "org.glassfish.jaxb:jaxb-runtime:4.0.9",
 		jaxb_api: "javax.xml.bind:jaxb-api:2.3.1",
 
 // Encryption via Bouncy Castle
