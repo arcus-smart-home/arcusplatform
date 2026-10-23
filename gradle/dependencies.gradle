@@ -103,8 +103,9 @@ ext.libraries << [
 		// guice-multibindings merged into core guice jar in 5.x
 
 // jackson dependencies
-		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.18.11",
-		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.18.11",
+		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.22.4",
+		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.22.4",
+		jacksonAnnotations: "com.fasterxml.jackson.core:jackson-annotations:2.22",
 
 // kafka dependencies
 		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
