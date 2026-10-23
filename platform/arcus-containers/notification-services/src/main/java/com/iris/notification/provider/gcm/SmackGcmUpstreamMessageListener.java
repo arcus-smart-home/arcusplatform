@@ -21,8 +21,8 @@ import org.jivesoftware.smack.PacketListener;
 import org.jivesoftware.smack.SmackException.NotConnectedException;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.ParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +33,8 @@ import com.iris.platform.notification.NotificationMethod;
 public class SmackGcmUpstreamMessageListener implements PacketListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SmackGcmUpstreamMessageListener.class);
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {};
 
     private final UpstreamNotificationResponder upstreamResponder;
     protected volatile boolean connectionDraining = false; // indicates connection is shutting down; no more connections
@@ -49,7 +51,7 @@ public class SmackGcmUpstreamMessageListener implements PacketListener {
         String json = gcmPacket.getJson();
         try {
 
-            Map<String, Object> jsonObject = (Map<String, Object>) JSONValue.parseWithException(json);
+            Map<String, Object> jsonObject = JSON.readValue(json, MAP_TYPE);
             Object messageType = jsonObject.get("message_type");
 
             if ("ack".equals(messageType.toString())) {
@@ -64,7 +66,7 @@ public class SmackGcmUpstreamMessageListener implements PacketListener {
                 logger.warn("Unrecognized message type " + messageType.toString());
             }
 
-        } catch (ParseException e1) {
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e1) {
             logger.error("Error parsing JSON " + json, e1);
         } catch (Exception e2) {
             logger.error("Failed to process packet", e2);

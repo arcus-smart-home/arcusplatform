@@ -27,7 +27,6 @@ dependencies {
 	implementation libraries.mailgun
 	implementation libraries.sendgridJava
 	implementation libraries.sendgridHTTP
-	implementation libraries.httpClient
 	implementation libraries.pushy
 	implementation libraries.smackCore
 	implementation libraries.smackTCP
