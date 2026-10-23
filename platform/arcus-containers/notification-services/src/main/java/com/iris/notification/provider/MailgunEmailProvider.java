@@ -72,8 +72,16 @@ public class MailgunEmailProvider implements EmailProvider {
    
    @Inject
    public MailgunEmailProvider(@Named("email.provider.apikey") String mailgunApiKey, @Named("email.provider.domain") String domain, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
+      this(MailgunClient.config(mailgunApiKey).createApi(MailgunMessagesApi.class), domain, personDao, placeDao, accountDao, messageRenderer, responder);
+   }
+
+   /**
+    * Seam for tests, which need to supply their own {@link MailgunMessagesApi}
+    * rather than static-mock {@link MailgunClient} to intercept its creation.
+    */
+   MailgunEmailProvider(MailgunMessagesApi mailgunMessagesApi, String domain, PersonDAO personDao, PlaceDAO placeDao, AccountDAO accountDao, NotificationMessageRenderer messageRenderer, UpstreamNotificationResponder responder) {
       this.domain = domain;
-      this.mailgunMessagesApiUS = MailgunClient.config(mailgunApiKey).createApi(MailgunMessagesApi.class);
+      this.mailgunMessagesApiUS = mailgunMessagesApi;
       this.personDao = personDao;
       this.placeDao = placeDao;
       this.accountDao = accountDao;

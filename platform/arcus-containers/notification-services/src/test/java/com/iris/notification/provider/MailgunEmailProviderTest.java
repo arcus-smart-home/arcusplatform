@@ -38,7 +38,6 @@ import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
 import com.iris.platform.notification.provider.NotificationProviderUtil;
 import com.mailgun.api.v3.MailgunMessagesApi;
-import com.mailgun.client.MailgunClient;
 import com.mailgun.model.message.Message;
 
 import org.slf4j.Logger;
@@ -93,7 +92,6 @@ public class MailgunEmailProviderTest {
    private final static String SUBJECT_SECTION = "subject";
    private final static String HTML_BODY_SECTION = "html-body";
 
-   private MockedStatic<MailgunClient> mockedMailgunClient;
    private MockedStatic<LoggerFactory> mockedLoggerFactory;
 
    @Before
@@ -117,12 +115,8 @@ public class MailgunEmailProviderTest {
       entityMap.put(NotificationProviderUtil.RECIPIENT_KEY, person);
       entityMap.put(NotificationProviderUtil.PLACE_KEY, place);
 
-      mockedMailgunClient = Mockito.mockStatic(MailgunClient.class);
       mockedLoggerFactory = Mockito.mockStatic(LoggerFactory.class);
       mockedLoggerFactory.when(() -> LoggerFactory.getLogger(MailgunEmailProvider.class)).thenReturn(logger);
-      MailgunClient.MailgunClientBuilder mockMailgunClientBuilder = Mockito.mock(MailgunClient.MailgunClientBuilder.class);
-      mockedMailgunClient.when(() -> MailgunClient.config(Mockito.any(String.class))).thenReturn(mockMailgunClientBuilder);
-      Mockito.when(mockMailgunClientBuilder.createApi(MailgunMessagesApi.class)).thenReturn(mailgunMessagesApi);
 
       Mockito.when(personDao.findById(Mockito.any())).thenReturn(person);
       Mockito.when(placeDao.findById(placeId)).thenReturn(place);
@@ -132,7 +126,7 @@ public class MailgunEmailProviderTest {
       Mockito.when(messageRenderer.renderMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(expectedEmailBody);
       Mockito.when(messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, entityMap)).thenReturn(renderedParts);
       Mockito.when(mailgunMessagesApi.sendMessage(Mockito.any(String.class), Mockito.any(Message.class))).thenReturn(messageResponse);
-      mockMailgunEmailProvider = new MailgunEmailProvider("fakeApiKey", "testDomain", personDao, placeDao, accountDao, messageRenderer, responder);
+      mockMailgunEmailProvider = new MailgunEmailProvider(mailgunMessagesApi, "testDomain", personDao, placeDao, accountDao, messageRenderer, responder);
 
       setField(mockMailgunEmailProvider, "logger", logger);
    }
@@ -140,7 +134,6 @@ public class MailgunEmailProviderTest {
    @After
    public void tearDown() {
       mockedLoggerFactory.close();
-      mockedMailgunClient.close();
    }
 
    @Test
