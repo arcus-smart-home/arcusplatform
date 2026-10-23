@@ -21,12 +21,14 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
@@ -50,14 +52,13 @@ public class TwilioSender {
    private final static String IRIS_ACK_EVENT_HANDLER_PATH="/ivr/event/ack";
    private final static String CUSTOM_MESSAGE_PARAM_NAME = "customMessage";
    private final static String SCRIPT_PARAM_NAME = "script";
+   private final static Set<String> MACHINE_DETECTION_VALUES = ImmutableSet.of("Enable", "DetectMessageEnd");
 
    @Inject @Named("twilio.account.from") private String twilioAccountFrom;
    @Inject @Named("twilio.callback.serverurl") private String twilioCallbackServerUrl;
    @Inject(optional = true) @Named("twilio.applicationSid") private String twilioApplicationSid;
    @Inject(optional = true) @Named("twilio.fallbackUrl") private String twilioFallbackUrl;
-   // NOTE: The old IfMachine parameter has been replaced by MachineDetection.
-   // Old values "Continue"/"Hangup" should be updated to "Enable" or "DetectMessageEnd".
-   @Inject(optional = true) @Named("twilio.machineDetection") String machineDetection;
+   private String machineDetection;
    @Inject(optional = true) @Named("twilio.recordCalls") boolean recordCalls=false;
    @Inject(optional = true) @Named("twilio.param.prefix") private String twilioNotificationParamPrefix="_";
 
@@ -66,6 +67,23 @@ public class TwilioSender {
    @Inject
    public TwilioSender(@Named("twilio.account.sid") String twilioAccountSid, @Named("twilio.account.auth") String twilioAccountAuth) {
       this.twilioClient = new TwilioRestClient.Builder(twilioAccountSid, twilioAccountAuth).build();
+   }
+
+   /**
+    * Replaces the old twilio.ifmachine setting. IfMachine no longer exists on
+    * the Calls API, and MachineDetection does not take the same values, so a
+    * mechanically renamed setting would otherwise be rejected by Twilio on
+    * every call rather than at startup. Note that IfMachine=Hangup has no
+    * equivalent: MachineDetection only reports AnsweredBy to the callback.
+    */
+   @Inject(optional = true)
+   public void setMachineDetection(@Named("twilio.machineDetection") String machineDetection) {
+      if(machineDetection != null && !MACHINE_DETECTION_VALUES.contains(machineDetection)) {
+         throw new IllegalArgumentException(format(
+               "twilio.machineDetection must be one of %s, got [%s]",
+               MACHINE_DETECTION_VALUES, machineDetection));
+      }
+      this.machineDetection = machineDetection;
    }
 
    public String sendIVR(Notification notification, Person recipient) throws DispatchUnsupportedByUserException {
