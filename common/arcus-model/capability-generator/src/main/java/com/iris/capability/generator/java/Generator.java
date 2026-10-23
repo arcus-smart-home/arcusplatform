@@ -34,7 +34,7 @@ public class Generator {
    public final static Logger logger = LoggerFactory.getLogger(Generator.class);
    
    public static class Arguments {
-      @Parameter(names={ "-i", "--input"}, description="Input path for capability definition xml files", variableArity =  true, required = true)
+      @Parameter(names={ "-i", "--input"}, description="Input path for capability definition xml files", arity = 1, required = true)
       private List<String> input;
       
       @Parameter(names={"-t", "--template"}, description="Name of a template to execute, template folder must be on the classpath", arity=1, required=true)
