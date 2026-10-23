@@ -24,13 +24,39 @@ updates:
     schedule:
       interval: weekly
       day: sunday
-    open-pull-requests-limit: 8
+    # More groups means more PRs; the previous limit of 8 was being hit, which
+    # silently held back whatever did not fit.
+    open-pull-requests-limit: 12
     commit-message:
       prefix: "deps"
     ignore:
       # Closed-source jar vendored in libs/, not published to any repository.
       - dependency-name: "ipcd-lib:ipcd-lib"
+
+      # ANTLR is pinned by handlebars, not by our grammars. handlebars 2.2.2
+      # ships a precompiled HbsLexer whose serialized ATN is version 3, and any
+      # runtime past 4.5 rejects it ("Could not deserialize ATN with version 3
+      # (expected 4)"), which breaks every protoc codegen task. Unpinning means
+      # bumping handlebars 2.2.2 -> 4.x first, then both together.
+      - dependency-name: "org.antlr:antlr4"
+      - dependency-name: "org.antlr:antlr4-runtime"
+
+      # Cucumber is frozen at 6.10.4 because io.cucumber:cucumber-groovy was
+      # discontinued: its last release is 6.10.4 (June 2021) and there is no
+      # 7.x or 8.x artifact at all. cucumber-junit and cucumber-java have to
+      # stay on the same core version, so none of the three can move until the
+      # Groovy step definitions behind the driver tests are ported to
+      # cucumber-java.
+      - dependency-name: "io.cucumber:*"
+
+      # Shiro 2.x/3.x is a known migration, not a bump. Patch and minor on the
+      # 1.13 line are still welcome.
+      - dependency-name: "org.apache.shiro:*"
+        update-types: ["version-update:semver-major"]
     groups:
+      # Keep coupled artifacts in one PR, and keep unrelated ones out of it, so
+      # that one stuck library cannot hold the rest hostage. The catch-all below
+      # is deliberately last and deliberately small.
       netty:
         patterns:
           - "io.netty:*"
@@ -47,7 +73,27 @@ updates:
           - "org.easymock:*"
           - "org.mockito:*"
           - "org.hamcrest:*"
-          - "io.cucumber:*"
+      apache-commons:
+        patterns:
+          - "commons-*:*"
+          - "org.apache.commons:*"
+      metrics:
+        patterns:
+          - "io.dropwizard.metrics:*"
+          - "io.prometheus:*"
+          - "org.hdrhistogram:*"
+          - "org.mpierce.metrics.reservoir:*"
+      google:
+        patterns:
+          - "com.google.guava:*"
+          - "com.google.inject*:*"
+          - "com.google.code.gson:*"
+          - "com.google.code.findbugs:*"
+      datastore:
+        patterns:
+          - "com.datastax.oss:*"
+          - "org.apache.kafka:*"
+          - "org.apache.zookeeper:*"
       gradle-minor-and-patch:
         patterns:
           - "*"
