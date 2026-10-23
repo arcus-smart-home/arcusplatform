@@ -1059,8 +1059,5 @@ public abstract class AbstractKafkaConfig {
    }
 
    protected abstract String getDefaultBootstrapServers();
-   protected abstract String getDefaultSerializer();
-   protected abstract String getDefaultKeySerializer();
-   protected abstract String getDefaultPartitioner();
 }
 

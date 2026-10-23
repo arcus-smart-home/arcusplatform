@@ -23,7 +23,6 @@ dependencies {
 
 	implementation libraries.guiceCore
 
-	implementation libraries.kafka
 
 	implementation libraries.slf4j
 
