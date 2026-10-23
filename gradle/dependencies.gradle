@@ -203,9 +203,6 @@ ext.libraries << [
 		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
                         exclude group: "io.netty", module: "netty-all"
                 },
-		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
-		smackTCP: "org.igniterealtime.smack:smack-tcp:4.0.7",
-		smackExt: "org.igniterealtime.smack:smack-extensions:4.0.7",
 		twilio: dependencies.create("com.twilio.sdk:twilio:13.1.0") {
 			exclude group: "org.slf4j"
 		},

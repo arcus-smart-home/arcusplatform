@@ -28,9 +28,6 @@ dependencies {
 	implementation libraries.sendgridJava
 	implementation libraries.sendgridHTTP
 	implementation libraries.pushy
-	implementation libraries.smackCore
-	implementation libraries.smackTCP
-	implementation libraries.smackExt
 	implementation libraries.twilio
 	implementation libraries.apacheCommonsValidator
 	implementation netty_all
