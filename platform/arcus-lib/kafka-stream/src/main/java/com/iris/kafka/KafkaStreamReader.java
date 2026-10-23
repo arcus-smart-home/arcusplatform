@@ -15,138 +15,227 @@
  */
 package com.iris.kafka;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.Set;
 import java.util.function.Supplier;
 
-import kafka.api.OffsetRequest;
-import kafka.cluster.Broker;
-import kafka.cluster.BrokerEndPoint;
-import kafka.common.TopicAndPartition;
-import kafka.javaapi.PartitionMetadata;
-import kafka.javaapi.TopicMetadata;
-import kafka.javaapi.TopicMetadataRequest;
-import kafka.javaapi.TopicMetadataResponse;
-import kafka.javaapi.consumer.SimpleConsumer;
-
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.net.HostAndPort;
-import com.iris.kafka.KafkaLeaderReader.ScanSearch;
 
+/**
+ * Reads every partition of the configured topics through a single consumer.
+ *
+ * The broker works out which of its peers leads which partition, so there is
+ * no leader discovery or per-broker reader here.
+ */
 public class KafkaStreamReader implements Runnable {
    private static final Logger logger = LoggerFactory.getLogger(KafkaStreamReader.class);
-   
+
+   /** Sentinels carried in an Instant, matching the old OffsetRequest constants. */
+   static final long EARLIEST_TIME = -2L;
+   static final long LATEST_TIME = -1L;
+
    private final KafkaConsumerConfig config;
-   private final KafkaConsumer handler;
-   private final Supplier<SimpleConsumer> consumerFactory;
-   private ExecutorService executor;
-   private Instant timestamp = Instant.ofEpochMilli(OffsetRequest.EarliestTime());
-   private ScanSearch<? extends Object> search;
+   private final KafkaConsumerFactory handlerFactory;
+   private final Supplier<org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>> consumerFactory;
+   private Instant timestamp;
+   private ScanSearch<? extends Comparable<?>> search;
 
    public KafkaStreamReader(
          KafkaConsumerConfig config,
          KafkaConsumer handler,
-         Supplier<SimpleConsumer> consumerFactory
+         Supplier<org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>> consumerFactory
+   ) {
+      this(config, (tap) -> handler, consumerFactory);
+   }
+
+   public KafkaStreamReader(
+         KafkaConsumerConfig config,
+         KafkaConsumerFactory handlerFactory,
+         Supplier<org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>> consumerFactory
    ) {
       this.config = new KafkaConsumerConfig(config);
-      this.handler = handler;
+      this.handlerFactory = handlerFactory;
       this.consumerFactory = consumerFactory;
-      this.executor = Executors.newCachedThreadPool();
-      this.timestamp = config.getOffset().orElse(Instant.ofEpochMilli(kafka.api.OffsetRequest.LatestTime()));
+      this.timestamp = config.getOffset().orElse(Instant.ofEpochMilli(LATEST_TIME));
       this.search = config.getScanSearch().orElse(null);
    }
-   
+
    public KafkaStreamReader scanToEarliest() {
-      this.timestamp = Instant.ofEpochMilli(kafka.api.OffsetRequest.EarliestTime());
+      this.timestamp = Instant.ofEpochMilli(EARLIEST_TIME);
       return this;
    }
-   
+
    public KafkaStreamReader scanToLatest() {
-      this.timestamp = Instant.ofEpochMilli(kafka.api.OffsetRequest.LatestTime());
+      this.timestamp = Instant.ofEpochMilli(LATEST_TIME);
       return this;
    }
-   
+
    public KafkaStreamReader scanBefore(Instant timestamp) {
       Preconditions.checkNotNull(timestamp);
       this.timestamp = timestamp;
       return this;
    }
-   
-   public KafkaStreamReader scanTo(ScanSearch<? extends Object> search) {
+
+   public KafkaStreamReader scanTo(ScanSearch<? extends Comparable<?>> search) {
       this.search = search;
       return this;
    }
-   
+
+   @Override
    public void run() {
-      SimpleConsumer consumer = consumerFactory.get();
-      try {
-         List<TopicMetadata> metadatums = getMetadata(consumer);
-         Map<BrokerEndPoint, List<TopicAndPartition>> leaders = new LinkedHashMap<BrokerEndPoint, List<TopicAndPartition>>();
-         for(TopicMetadata topic: metadatums) {
-            for(PartitionMetadata partition: topic.partitionsMetadata()) {
-               leaders
-                  .computeIfAbsent(partition.leader(), (b) -> new ArrayList<>())
-                  .add(new TopicAndPartition(topic.topic(), partition.partitionId()));
-            }
+      try(org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer = consumerFactory.get()) {
+         List<TopicPartition> partitions = assign(consumer);
+         if(partitions.isEmpty()) {
+            logger.warn("No partitions found for topics: {}", config.getTopics());
+            return;
          }
-         
-         List<Future<?>> results = new ArrayList<>();
-         for(Map.Entry<BrokerEndPoint, List<TopicAndPartition>> entry: leaders.entrySet()) {
-            KafkaLeaderReader reader = new KafkaLeaderReader(
-                  config, 
-                  handler, 
-                  () -> connect(entry.getKey()), 
-                  entry.getValue()
-            );
-            final Instant timestamp = this.timestamp;
-            final ScanSearch<? extends Object> search = this.search;
-            @SuppressWarnings("unchecked")
-            Future<?> result = executor.submit(() -> {
-               if(search == null) {
-                  reader.scanBefore(timestamp);
-               }
-               else {
-                  reader.scanTo(timestamp, (ScanSearch) search);
-               }
-               reader.run();
-            });
-            results.add(result);
-         }
-         for(Future<?> result: results) {
-            try {
-               result.get();
-            }
-            catch (InterruptedException|ExecutionException e) {
-               logger.warn("Error waiting for task to complete", e);
-            }
-         }
+         seek(consumer, partitions);
+         read(consumer, partitions);
       }
       finally {
-         consumer.close();
+         logger.info("shutting down stream reader: {}", config.getTopics());
       }
    }
 
-   private List<TopicMetadata> getMetadata(SimpleConsumer consumer) {
-      TopicMetadataRequest request = new TopicMetadataRequest(ImmutableList.copyOf(config.getTopics()));
-      TopicMetadataResponse response = consumer.send(request);
-      return response.topicsMetadata();
+   private List<TopicPartition> assign(org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer) {
+      List<TopicPartition> partitions = new ArrayList<>();
+      for(String topic: config.getTopics()) {
+         List<PartitionInfo> infos = consumer.partitionsFor(topic);
+         if(infos == null || infos.isEmpty()) {
+            logger.warn("No partitions found for topic: [{}]", topic);
+            continue;
+         }
+         for(PartitionInfo info: infos) {
+            partitions.add(new TopicPartition(info.topic(), info.partition()));
+         }
+      }
+      consumer.assign(partitions);
+      return partitions;
    }
-   
-   private SimpleConsumer connect(BrokerEndPoint leader) {
-      HostAndPort broker = config.getBrokerOverride(leader.id()).orElse(HostAndPort.fromParts(leader.host(), leader.port()));
-      return new SimpleConsumer(broker.getHost(), broker.getPortOrDefault(9092), config.getSoTimeoutMs(), config.getBufferSize(), config.getClientId());
-   }
-   
-}
 
+   private void seek(
+         org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer,
+         List<TopicPartition> partitions
+   ) {
+      long millis = timestamp.toEpochMilli();
+      if(millis == EARLIEST_TIME) {
+         consumer.seekToBeginning(partitions);
+         return;
+      }
+      if(millis == LATEST_TIME) {
+         consumer.seekToEnd(partitions);
+         return;
+      }
+
+      Map<TopicPartition, Long> request = new HashMap<>();
+      for(TopicPartition tap: partitions) {
+         request.put(tap, millis);
+      }
+
+      Map<TopicPartition, OffsetAndTimestamp> offsets = consumer.offsetsForTimes(request);
+      for(TopicPartition tap: partitions) {
+         OffsetAndTimestamp offset = offsets.get(tap);
+         if(offset == null) {
+            // nothing at or after that time, so there is nothing to read here
+            logger.debug("No offset at or after [{}] for topic: [{}] partition: [{}], starting at the end",
+                  timestamp, tap.topic(), tap.partition());
+            consumer.seekToEnd(Collections.singletonList(tap));
+         }
+         else {
+            consumer.seek(tap, offset.offset());
+         }
+      }
+   }
+
+   private void read(
+         org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> consumer,
+         List<TopicPartition> partitions
+   ) {
+      Set<TopicPartition> active = new LinkedHashSet<>(partitions);
+      Map<TopicPartition, KafkaConsumer> handlers = new HashMap<>();
+      Set<TopicPartition> skipping = search == null ? Collections.emptySet() : new LinkedHashSet<>(partitions);
+      Duration pollTime = Duration.ofMillis(config.getSoTimeoutMs());
+
+      long attempt = 0;
+      long lastReadTime = System.nanoTime();
+      long emptyReadWait = config.getEmptyWaitTime();
+      long emptyReadMax = config.getEmptyWaitMaxTime();
+      long emptyExitTime = config.getEmptyExitTime();
+
+      while(!active.isEmpty()) {
+         ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTime);
+         int numDispatched = 0;
+
+         for(TopicPartition tap: new ArrayList<>(active)) {
+            for(ConsumerRecord<byte[], byte[]> record: records.records(tap)) {
+               if(skipping.contains(tap)) {
+                  if(search.isBefore(record)) {
+                     continue;
+                  }
+                  skipping.remove(tap);
+               }
+
+               numDispatched++;
+               KafkaConsumer handler = handlers.computeIfAbsent(tap, handlerFactory);
+               if(!handler.apply(tap, record)) {
+                  active.remove(tap);
+                  consumer.pause(Collections.singletonList(tap));
+                  break;
+               }
+            }
+         }
+
+         if(emptyExitTime != Long.MAX_VALUE) {
+            long cur = System.nanoTime();
+            if(numDispatched != 0) {
+               lastReadTime = cur;
+            }
+
+            if((cur - lastReadTime) > emptyExitTime) {
+               logger.info("shutting down because the reader has been idle for too long...");
+               break;
+            }
+         }
+
+         if(numDispatched == 0) {
+            if(emptyReadWait == 0 || emptyReadMax == 0) {
+               continue;
+            }
+
+            try {
+               long waitNanos = (long)(emptyReadWait*Math.pow(2, attempt));
+               if(waitNanos > emptyReadMax) {
+                  waitNanos = emptyReadMax;
+               }
+
+               Thread.sleep(waitNanos/1000000, (int)(waitNanos % 1000000));
+            }
+            catch(InterruptedException ex) {
+               Thread.currentThread().interrupt();
+               break;
+            }
+
+            attempt++;
+         }
+         else {
+            attempt = 0;
+         }
+      }
+   }
+
+}

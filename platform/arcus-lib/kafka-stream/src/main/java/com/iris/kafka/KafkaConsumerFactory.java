@@ -17,10 +17,9 @@ package com.iris.kafka;
 
 import java.util.function.Function;
 
-import kafka.common.TopicAndPartition;
+import org.apache.kafka.common.TopicPartition;
 
 // TODO make it Optional<KafkaConsumer> to skip topics and/or partitions
-public interface KafkaConsumerFactory extends Function<TopicAndPartition, KafkaConsumer> {
+public interface KafkaConsumerFactory extends Function<TopicPartition, KafkaConsumer> {
 
 }
-

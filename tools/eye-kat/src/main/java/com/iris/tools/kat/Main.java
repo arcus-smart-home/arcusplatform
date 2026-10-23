@@ -66,7 +66,7 @@ public class Main {
             converter = StartTimeConverter.class,
             required = false
       )
-      private Instant start = Instant.ofEpochMilli(kafka.api.OffsetRequest.EarliestTime());
+      private Instant start = KafkaStream.EARLIEST;
       @Parameter(
             names = { "-e", "--end" },
             description = "End time as 'now', 'YYYY-MM-DDTHH:MM:SS' or '+/-#d#h#m#s'.",

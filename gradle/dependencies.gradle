@@ -109,11 +109,6 @@ ext.libraries << [
 		jacksonAnnotations: "com.fasterxml.jackson.core:jackson-annotations:2.22",
 
 // kafka dependencies
-		eyekatkafka: dependencies.create("org.apache.kafka:kafka_2.11:0.10.0.0") {
-			exclude group: "org.apache.zookeeper", module: "zookeeper"
-			exclude group: "log4j", module: "log4j"
-			exclude group: "org.slf4j", module: "slf4j-log4j12"
-		},
 		kafka: "org.apache.kafka:kafka-clients:2.8.2",
 		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.9.6") {
 			exclude group: "org.slf4j", module: "slf4j-log4j12"

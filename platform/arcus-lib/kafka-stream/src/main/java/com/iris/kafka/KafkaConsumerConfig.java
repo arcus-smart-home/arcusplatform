@@ -27,7 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
-import com.iris.kafka.KafkaLeaderReader.ScanSearch;
 
 public class KafkaConsumerConfig {
    private HostAndPort broker = HostAndPort.fromParts("localhost", 9092);
@@ -103,16 +102,6 @@ public class KafkaConsumerConfig {
 
    public List<HostAndPort> getBrokerOverrides() {
       return brokerOverrides;
-   }
-
-   public Optional<HostAndPort> getBrokerOverride(int brokerId) {
-      Preconditions.checkArgument(brokerId > 0);
-      if(brokerOverrides.size() < brokerId) {
-         return Optional.empty();
-      }
-      else {
-         return Optional.of(brokerOverrides.get(brokerId - 1));
-      }
    }
 
    public void setBrokerOverrides(@Nullable List<HostAndPort> brokerOverrides) {
