@@ -202,12 +202,12 @@ ext.libraries << [
 		mailgun: "com.mailgun:mailgun-java:1.0.9",
 		sendgridJava: "com.sendgrid:sendgrid-java:4.10.3",
 		sendgridHTTP: "com.sendgrid:java-http-client:4.5.1",
-		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
+		pushy: dependencies.create("com.eatthepath:pushy:0.15.6") {
                         exclude group: "io.netty", module: "netty-all"
                 },
-		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
-		smackTCP: "org.igniterealtime.smack:smack-tcp:4.0.7",
-		smackExt: "org.igniterealtime.smack:smack-extensions:4.0.7",
+		smackCore: "org.igniterealtime.smack:smack-core:4.5.0",
+		smackTCP: "org.igniterealtime.smack:smack-tcp:4.5.0",
+		smackExt: "org.igniterealtime.smack:smack-extensions:4.5.0",
 		twilio: dependencies.create("com.twilio.sdk:twilio:13.1.0") {
 			exclude group: "org.slf4j"
 		},
