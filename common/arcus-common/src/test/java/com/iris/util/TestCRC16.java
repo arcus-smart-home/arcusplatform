@@ -21,7 +21,7 @@ import org.junit.runners.JUnit4;
 
 import static org.junit.Assert.*;
 
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 
 @RunWith(JUnit4.class)
 public class TestCRC16 {

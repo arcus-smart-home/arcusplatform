@@ -85,10 +85,12 @@ ext.libraries << [
 		javaxServlet: "javax.servlet:javax.servlet-api:3.1.0",
 		sunrise_sunset_calc: "com.luckycatlabs:SunriseSunsetCalculator:1.2",
 
-// JAXB Dependencies
-		jaxb_xjc: "org.glassfish.jaxb:jaxb-xjc:2.3.9",
-		jaxb_impl: "org.glassfish.jaxb:jaxb-runtime:2.3.9",
-		jaxb_api: "javax.xml.bind:jaxb-api:2.3.1",
+// JAXB Dependencies. 4.x is the Jakarta line: the API artifact is
+// jakarta.xml.bind:jakarta.xml.bind-api and the package is jakarta.xml.bind.*,
+// so the api and the runtime have to move together.
+		jaxb_xjc: "org.glassfish.jaxb:jaxb-xjc:4.0.9",
+		jaxb_impl: "org.glassfish.jaxb:jaxb-runtime:4.0.9",
+		jaxb_api: "jakarta.xml.bind:jakarta.xml.bind-api:4.0.5",
 
 // Encryption via Bouncy Castle
 		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.86",
