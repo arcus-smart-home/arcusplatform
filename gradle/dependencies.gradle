@@ -229,7 +229,7 @@ libraries.cucumber = [ libraries.cucumber_junit, libraries.cucumber_groovy, libr
 // so that Dependabot sees a concrete version: its Gradle parser takes the first
 // assignment it finds for a property, and a reference it cannot resolve makes it
 // drop the dependency altogether.
-ext.netty_version = "4.1.139.Final"
+ext.netty_version = "4.2.19.Final"
 if (project.hasProperty("netty_override_version"))
 	ext.netty_version = "${netty_override_version}"
 
