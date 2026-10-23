@@ -22,12 +22,16 @@ import org.slf4j.LoggerFactory;
 
 import com.iris.platform.notification.Notification;
 
+/**
+ * Drops Android notifications on the floor, which is the honest behaviour while
+ * there is no working transport. See {@link GcmSender} for what reviving it means.
+ */
 public class NoopGcmSender implements GcmSender {
     private static final Logger logger = LoggerFactory.getLogger(NoopGcmSender.class);
 
     @Override
     public void sendMessage(Notification notification, String toDevice, Map<String, Object> payload) {
-       logger.warn("noop apns sender dropping notification: {} - {}", notification, payload);
+       logger.warn("noop gcm sender dropping notification: {} - {}", notification, payload);
     }
 }
 

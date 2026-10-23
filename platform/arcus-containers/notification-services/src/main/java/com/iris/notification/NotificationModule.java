@@ -43,7 +43,6 @@ import com.iris.notification.provider.apns.NoopApnsSender;
 import com.iris.notification.provider.apns.PushyApnsSender;
 import com.iris.notification.provider.gcm.GcmSender;
 import com.iris.notification.provider.gcm.NoopGcmSender;
-import com.iris.notification.provider.gcm.SmackGcmSender;
 import com.iris.notification.retry.BackoffRetryManager;
 import com.iris.notification.retry.RetryManager;
 import com.iris.notification.retry.RetryProcessor;
@@ -59,10 +58,6 @@ public class NotificationModule extends AbstractIrisModule {
    @Inject(optional=true)
    @Named("notificationservice.sender.apns")
    private String apnsSender = "default";
-
-   @Inject(optional=true)
-   @Named("notificationservice.sender.gcm")
-   private String gcmSender = "default";
 
    @Inject(optional=true)
    @Named("notificationservice.sender.email")
@@ -94,22 +89,17 @@ public class NotificationModule extends AbstractIrisModule {
            break;
         }
 
-        switch (gcmSender) {
-        default:
-           logger.warn("unknown gcm sender implementation {}: using default instead");
-           // fall through
-           
-        case "default":
-        case "smack":
-           logger.info("using smack gcm sender");
-           bind(GcmSender.class).to(SmackGcmSender.class);
-           break;
-
-        case "noop":
-           logger.warn("using noop gcm sender");
-           bind(GcmSender.class).to(NoopGcmSender.class);
-           break;
-        }
+        // Android push has no working transport. The only implementation was
+        // Smack, which spoke GCM's XMPP protocol (CCS) to gcm.googleapis.com:5235
+        // -- an endpoint Google shut down in 2024. There is nothing to choose
+        // between, so there is no longer a notificationservice.sender.gcm switch.
+        //
+        // TODO: reviving Android push means writing a GcmSender against FCM's
+        // HTTP v1 API, which is a different protocol with OAuth2 service-account
+        // credentials rather than an API key, and a different error vocabulary.
+        // GCMProvider, the GCM NotificationMethod and the -gcm.hbs templates are
+        // all kept so that only the transport has to be written.
+        bind(GcmSender.class).to(NoopGcmSender.class);
 
         switch (emailSender) {
          default:
