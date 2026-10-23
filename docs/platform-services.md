@@ -16,10 +16,9 @@
 |---------|---------|
 | `platform-services` | Account, device, and place registry — core data model |
 | `driver-services` | Loads and runs Groovy device drivers; manages device lifecycle |
-| `subsystem-service` | Feature subsystems (security, safety, care, climate, water, presence, weather) |
+| `subsystem-service` | Feature subsystems (security, safety, care, climate, water, presence, weather) plus alarm incident notifications (call tree/IVR escalation, formerly the separate `alarm-service`) |
 | `rule-service` | Executes user-defined automation rules and triggers |
 | `scheduler-service` | Schedules timed events, reminders, and recurring tasks |
-| `alarm-service` | Professional monitoring integration and incident tracking |
 | `history-service` | Records device state changes and events for historical replay |
 | `notification-services` | Multi-channel notifications: SMS (Twilio), email (SendGrid/Mailgun), push (GCM/APNS), XMPP |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |

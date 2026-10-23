@@ -45,8 +45,7 @@ Set of core docker containers required to run the platform (kafka, cassandra, zo
 
 This contains common code used within platform as well as all containers that get deployed into production.
 
-* **arcus-alarm**:  Common code shared between the subsystem that runs the alarm state machine and the alarm service that manages the tracking of an alarm incident
-* **arcus-containers/alarm-service**:  Microservice that manages the state of alarm incidents that the platform has detected
+* **arcus-alarm**:  The alarm notification service (call tree/IVR escalation for alarm incidents, hosted by subsystem-service) along with the call tree DAO shared with other services
 * **arcus-containers/client-bridge**:  The primary entry point for web and mobile clients providing the web socket connection for messaging and RESTful APIs.  This is also responsible for placement of messages on the appropriate bus for handling by internal microservices.
 * **arcus-containers/driver-services**:  Microservice that manages all device drivers and instances of them for handling incoming events or issuing control messages to end devices
 * **arcus-containers/history-service**:  Microservice responsible for consuming events and persisting history for each place and device
