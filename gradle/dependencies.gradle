@@ -73,12 +73,12 @@ ext.libraries << [
 
 
 // Reactive
-		rxjava: "io.reactivex:rxjava:1.2.10",
+		rxjava: "io.reactivex:rxjava:1.3.8",
 		rxjava_async: "io.reactivex:rxjava-async-util:0.21.0",
 
 
 // J Commander
-		jcommander: "com.beust:jcommander:1.35",
+		jcommander: "com.beust:jcommander:1.82",
 
 // Miscellaneous
 		azure_storage: "com.microsoft.azure:azure-storage:3.0.0",
@@ -144,19 +144,19 @@ ext.libraries << [
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0",
 		handlebars: "com.github.jknack:handlebars:2.2.2",
 		jna: 'net.java.dev.jna:jna:4.4.0',
-		janino: 'org.codehaus.janino:commons-compiler:3.0.12',
+		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
 		oshi_core: 'com.github.oshi:oshi-core:3.4.3',
 		kxml2: 'kxml2:kxml2:2.3.0',
 		jetty_servlet: 'org.eclipse.jetty:jetty-servlet:9.2.22.v20170606',
 
 
 		//Swing
-		swingx: "org.swinglabs:swingx:1.6",
+		swingx: "org.swinglabs:swingx:1.6.1",
 
 		// Natty
-		natty: "com.joestelmach:natty:0.12",
+		natty: "com.joestelmach:natty:0.13",
 
-		antlr: "org.antlr:antlr-runtime:3.5.2",
+		antlr: "org.antlr:antlr-runtime:3.5.3",
 		antlr4: "org.antlr:antlr4:4.5",
 		antlr4_runtime: "org.antlr:antlr4-runtime:4.5",
 
@@ -202,22 +202,22 @@ ext.libraries << [
 		mailgun: "com.mailgun:mailgun-java:1.0.9",
 		sendgridJava: "com.sendgrid:sendgrid-java:4.10.3",
 		sendgridHTTP: "com.sendgrid:java-http-client:4.5.1",
-		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
+		pushy: dependencies.create("com.eatthepath:pushy:0.15.6") {
                         exclude group: "io.netty", module: "netty-all"
                 },
-		smackCore: "org.igniterealtime.smack:smack-core:4.0.7",
-		smackTCP: "org.igniterealtime.smack:smack-tcp:4.0.7",
-		smackExt: "org.igniterealtime.smack:smack-extensions:4.0.7",
+		smackCore: "org.igniterealtime.smack:smack-core:4.5.0",
+		smackTCP: "org.igniterealtime.smack:smack-tcp:4.5.0",
+		smackExt: "org.igniterealtime.smack:smack-extensions:4.5.0",
 		twilio: dependencies.create("com.twilio.sdk:twilio:13.1.0") {
 			exclude group: "org.slf4j"
 		},
 
 
 // Open CSV
-		opencsv: "com.opencsv:opencsv:5.10",
+		opencsv: "com.opencsv:opencsv:5.12.0",
 
 		//Joda
-		joda: "joda-time:joda-time:2.14.0",
+		joda: "joda-time:joda-time:2.15.0",
 
 
 // Azure Dependencies
