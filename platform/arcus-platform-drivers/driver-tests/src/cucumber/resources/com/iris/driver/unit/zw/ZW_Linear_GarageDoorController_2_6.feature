@@ -43,6 +43,8 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter barrierstate -1
 		Then the driver variable lastCommandTime should be recent
 			And the driver variable lastCommandMode should be -1
+		Then the driver should cancel event SettleDoor
+			And the driver should schedule event CheckDoor in 120 seconds
 		Then the driver should place a EmptyMessage message on the platform bus
 		Then both busses should be empty
 
@@ -53,6 +55,8 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And with parameter barrierstate 0
 		Then the driver variable lastCommandTime should be recent
 			And the driver variable lastCommandMode should be 0
+		Then the driver should cancel event SettleDoor
+			And the driver should schedule event CheckDoor in 120 seconds
 		Then the driver should place a EmptyMessage message on the platform bus
 		Then both busses should be empty
 
@@ -149,13 +153,65 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And send to driver
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
+		Then the driver should cancel event SettleDoor
+			And the driver should schedule event CheckDoor in 120 seconds
 		Then the driver should place a base:ValueChange message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 		Examples:
 		  |before   | mode | barrier_state | door_state  |
 		  | CLOSED  |  -1  | -2            | OPENING     |
 		  | OPEN    |  0   | -4            | CLOSING     |
+
+	# The hub drops a report of the state it already holds, and it never holds OPENING/CLOSING.
+	# A door that fails to move reports where it started, so the platform has to settle it.
+	Scenario Outline: Door is still moving when the move should be over
+		Given the driver attribute motdoor:doorstate is <state>
+		When event CheckDoor triggers
+		Then the driver should send barrier_operator get
+			And the driver should schedule event SettleDoor in 15 seconds
+		Then nothing else should happen
+
+		Examples:
+		  | state   |
+		  | OPENING |
+		  | CLOSING |
+
+	Scenario Outline: Door finished moving before the check
+		Given the driver attribute motdoor:doorstate is <state>
+		When event CheckDoor triggers
+		Then nothing should happen
+
+		Examples:
+		  | state       |
+		  | OPEN        |
+		  | CLOSED      |
+		  | OBSTRUCTION |
+
+	Scenario Outline: Door never finished moving
+		Given the driver attribute motdoor:doorstate is <before>
+		When event SettleDoor triggers
+		Then the capability motdoor:doorstate should be <after>
+			And the capability motdoor:doorstatechanged should be recent
+		Then the driver should place a base:ValueChange message on the platform bus
+		Then nothing else should happen
+
+		Examples:
+		  | before  | after  |
+		  | OPENING | CLOSED |
+		  | CLOSING | OPEN   |
+
+	Scenario Outline: Door finished moving after the check
+		Given the driver attribute motdoor:doorstate is <state>
+		When event SettleDoor triggers
+		Then the capability motdoor:doorstate should be <state>
+		Then nothing should happen
+
+		Examples:
+		  | state       |
+		  | OPEN        |
+		  | CLOSED      |
+		  | OBSTRUCTION |
 
 	Scenario Outline: Device reports an incorrect door state
 		Given the driver attribute motdoor:doorstate is <before>
@@ -166,7 +222,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			And send to driver
 		Then the driver should not place a base:ValueChange message on the platform bus
 			And the capability motdoor:doorstate should be <door_state>
-		Then both busses should be empty
+		Then nothing else should happen
 
 		Examples:
 		  |before      |  time           |  mode | barrier_state | door_state  |
