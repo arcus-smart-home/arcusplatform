@@ -37,13 +37,13 @@ public class Main {
       CommandLineParser cliParser = new GnuParser();
       CommandLine cmd = cliParser.parse(options, args);
 
-      String testPath = cmd.getOptionValue('t', null);
-      String outputPath = cmd.getOptionValue('o', null);
+      String testPath = cmd.getOptionValue('t');
+      String outputPath = cmd.getOptionValue('o');
       if (outputPath == null) {
          throw new IllegalArgumentException("You must specify the output directory using -o");
       }
 
-      String packageName = cmd.getOptionValue('p', null);
+      String packageName = cmd.getOptionValue('p');
       if (packageName == null) {
          throw new IllegalArgumentException("You must specify the package name using -p");
       }
