@@ -220,10 +220,10 @@ public final class UartNative {
          throw new RuntimeException("serial port must be opened first");
       }
 
-      @SuppressWarnings("deprecation")
       public void open() throws IOException {
-         Native.setPreserveLastError(true);
-
+         // JNA 5 removed Native.setPreserveLastError(): errno is now always
+         // captured after every native call, so Native.getLastError() below
+         // works without opting in.
          int ofd = IMPL.open(port, IMPL.constants().getOpenFlags());
          if (ofd < 0) {
             throw new IOException("cannot open serial port: " + port);

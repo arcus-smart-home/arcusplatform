@@ -141,7 +141,7 @@ public enum WatchdogNativeLinux implements WatchdogNative.Impl {
    }
 
    public interface LINCLibrary extends Library {
-      LINCLibrary INSTANCE = (LINCLibrary)Native.loadLibrary("c", LINCLibrary.class);
+      LINCLibrary INSTANCE = Native.load("c", LINCLibrary.class);
 
       public int fcntl(int fd, int cmd, Object... args);
       public int ioctl(int fd, NativeLong reqeust, Object... args);
@@ -157,7 +157,7 @@ public enum WatchdogNativeLinux implements WatchdogNative.Impl {
          }
 
          @Override
-         protected List getFieldOrder() {
+         protected List<String> getFieldOrder() {
             return Arrays.asList("options", "firmware_version", "identity");
          }
 

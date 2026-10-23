@@ -399,7 +399,7 @@ public enum UartNativeOsx implements UartNative.Impl {
    }
 
    public interface OSXCLibrary extends Library {
-      OSXCLibrary INSTANCE = (OSXCLibrary)Native.loadLibrary((Platform.isWindows() ? "msvcrt" : "c"), OSXCLibrary.class);
+      OSXCLibrary INSTANCE = Native.load((Platform.isWindows() ? "msvcrt" : "c"), OSXCLibrary.class);
 
       public int open(String path, int flags);
       public int close(int fd);
@@ -444,7 +444,7 @@ public enum UartNativeOsx implements UartNative.Impl {
          }
 
          @Override
-         protected List getFieldOrder() {
+         protected List<String> getFieldOrder() {
             return Arrays.asList("c_iflag", "c_oflag", "c_cflag", "c_lflag", "c_cc", "c_ispeed", "c_ospeed");
          }
 
