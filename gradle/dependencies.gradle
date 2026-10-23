@@ -99,7 +99,6 @@ ext.libraries << [
 
 // guice dependencies
 		guiceCore: "com.google.inject:guice:6.0.0",
-		guiceServlet: "com.google.inject.extensions:guice-servlet:6.0.0",
 		// guice-multibindings merged into core guice jar in 5.x
 
 // jackson dependencies
@@ -147,7 +146,6 @@ ext.libraries << [
 		jna: 'net.java.dev.jna:jna:4.4.0',
 		janino: 'org.codehaus.janino:commons-compiler:3.0.12',
 		oshi_core: 'com.github.oshi:oshi-core:3.4.3',
-		jctools: 'org.jctools:jctools-core:2.0.2',
 		kxml2: 'kxml2:kxml2:2.3.0',
 		jetty_servlet: 'org.eclipse.jetty:jetty-servlet:9.2.22.v20170606',
 
