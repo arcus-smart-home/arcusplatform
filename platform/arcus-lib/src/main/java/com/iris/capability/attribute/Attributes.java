@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.bind.ValidationException;
+import jakarta.xml.bind.ValidationException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
