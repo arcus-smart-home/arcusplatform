@@ -141,7 +141,7 @@ ext.libraries << [
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.100",
 		handlebars: "com.github.jknack:handlebars:2.2.2",
-		jna: 'net.java.dev.jna:jna:4.4.0',
+		jna: 'net.java.dev.jna:jna:5.19.1',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
 		oshi_core: 'com.github.oshi:oshi-core:3.4.3',
 		kxml2: 'kxml2:kxml2:2.3.0',
