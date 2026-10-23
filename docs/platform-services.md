@@ -41,7 +41,7 @@
 | `arcus-prodcat` | Product/device catalog with Lucene search, pairing metadata, capability mappings |
 | `arcus-subsystems` | Subsystem state machine implementations (alarm, care, climate, etc.) |
 | `arcus-rules` | Rule compilation and evaluation framework |
-| `arcus-alarm` | Alarm state machine, incident tracking, call tree/escalation |
+| `arcus-alarm` | Alarm notification service (call tree/IVR escalation, hosted by subsystem-service) and call tree DAO |
 | `arcus-oauth` | OAuth 2.0 server library (authorization, token, revocation endpoints) |
 | `arcus-security` | Shiro-based authentication/authorization with Cassandra-backed DAOs |
 | `arcus-subscriptions` | User subscription plans and feature entitlements |
