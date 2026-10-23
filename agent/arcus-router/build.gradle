@@ -22,7 +22,6 @@ dependencies {
    api project(':common:arcus-protocol')
    api project(':common:arcus-common')
 
-   implementation libraries.jctools
    implementation libraries.guava
 
    testImplementation project(':agent:arcus-test-agent')

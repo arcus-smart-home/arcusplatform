@@ -22,7 +22,6 @@ dependencies {
 	api project(':common:arcus-model:platform-messages')
 
 	implementation libraries.guiceCore
-	implementation libraries.guiceServlet
 
 	implementation libraries.kafka
 
