@@ -71,7 +71,7 @@ task generateSource(type: JavaExec) {
 	outputs.dir outputDir
 	classpath = configurations.generator
 	mainClass = 'com.iris.capability.generator.java.Generator'
-	args '-t', templateName, '-i', capabilityDir, internalCapabilityDir, '-o', generatedSrcDir
+	args '-t', templateName, '-i', capabilityDir, '-i', internalCapabilityDir, '-o', generatedSrcDir
 
 	doFirst {
 		delete(outputDir)
