@@ -946,7 +946,7 @@ public final class RxIris {
 
    public static abstract class Operator<T,R> implements Observable.Operator<T,R> {
       @Override
-      public rx.Subscriber<? super R> call(@Nullable rx.Subscriber<? super T> s) {
+      public rx.Subscriber<? super R> call(rx.@Nullable Subscriber<? super T> s) {
          if (s == null) {
             throw new NullPointerException();
          }
@@ -1113,7 +1113,7 @@ public final class RxIris {
 
    public static abstract class OnSubscribe<T> implements Observable.OnSubscribe<T> {
       @Override
-      public void call(@Nullable rx.Subscriber<? super T> sub) {
+      public void call(rx.@Nullable Subscriber<? super T> sub) {
          if (sub == null) {
             return;
          }

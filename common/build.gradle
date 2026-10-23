@@ -113,7 +113,7 @@ subprojects {
         resolutionStrategy {
             cacheDynamicVersionsFor 60, 'minutes'
             cacheChangingModulesFor 60, 'minutes'
-            force 'org.eclipse.jdt:org.eclipse.jdt.annotation:1.1.0'
+            force libraries.eclipse_annotation
             // Pin every transitive Jackson consumer to the version declared in
             // gradle/dependencies.gradle. These were hardcoded, drifted behind
             // the declared version, and silently forced the common subprojects
