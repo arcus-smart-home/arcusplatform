@@ -182,11 +182,14 @@ public class TestVerifyPinRESTHandler extends IrisMockTestCase {
       EasyMock.expect(grantDao.findForEntity(person.getId())).andReturn(Arrays.asList(grant)).anyTimes();
       EasyMock.expect(client.getAuthorizationContext()).andReturn(ctxt).anyTimes();
       EasyMock.expect(client.getPrincipalId()).andReturn(saved.getId()).anyTimes();
+      metrics.incPinVerifySucceededCounter();
+      EasyMock.expectLastCall().once();
       replay();
 
       FullHttpRequest req = createRequest("1111", person.getCurrPlace().toString());
       FullHttpResponse res = handler.respond(req, ctx);
       assertOk(res, true);
+      verify();
    }
    
    @Test
@@ -205,18 +208,14 @@ public class TestVerifyPinRESTHandler extends IrisMockTestCase {
       EasyMock.expect(grantDao.findForEntity(person.getId())).andReturn(Arrays.asList(grant)).anyTimes();
       EasyMock.expect(client.getAuthorizationContext()).andReturn(ctxt).anyTimes();
       EasyMock.expect(client.getPrincipalId()).andReturn(saved.getId()).anyTimes();
+      metrics.incPinVerifyMismatchedCounter();
+      EasyMock.expectLastCall().once();
       replay();
 
-      long mismatchedBefore = counterValue("bridge.pin.verify.mismatched");
       FullHttpRequest req = createRequest("1112", person.getCurrPlace().toString());
       FullHttpResponse res = handler.respond(req, ctx);
       assertError(res, "MismatchedPins");
-      org.junit.Assert.assertEquals(mismatchedBefore + 1, counterValue("bridge.pin.verify.mismatched"));
-   }
-
-   private static long counterValue(String name) {
-      com.codahale.metrics.Counter counter = com.iris.metrics.IrisMetrics.registry().getCounters().get(name);
-      return counter == null ? 0 : counter.getCount();
+      verify();
    }
    
    private FullHttpRequest createRequest(String pin, String place) {

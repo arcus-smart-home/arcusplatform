@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.codahale.metrics.Counter;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.metrics.BridgeMetrics;
@@ -36,15 +35,13 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.model.Person;
-import com.iris.metrics.IrisMetrics;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.security.authz.AuthorizationGrant;
 
 @Singleton
 @HttpPost("/person/VerifyPin")
 public class VerifyPinRESTHandler extends BasePinRESTHandler {
-   private static final Counter VERIFY_SUCCEEDED = IrisMetrics.metrics("bridge.pin").counter("verify.succeeded");
-   private static final Counter VERIFY_MISMATCHED = IrisMetrics.metrics("bridge.pin").counter("verify.mismatched");
+   private final BridgeMetrics metrics;
 
    @Inject
    VerifyPinRESTHandler(
@@ -58,6 +55,7 @@ public class VerifyPinRESTHandler extends BasePinRESTHandler {
    		RESTHandlerConfig restHandlerConfig
 	) {
       super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(VerifyPinRESTHandler.class, metrics), authorizer, restHandlerConfig, true);
+      this.metrics = metrics;
    }
 
    @Override
@@ -68,12 +66,12 @@ public class VerifyPinRESTHandler extends BasePinRESTHandler {
       boolean isMatching = !StringUtils.isBlank(pin) && pin.equals(currentPin);
 
       if (isMatching) {
-         VERIFY_SUCCEEDED.inc();
+         metrics.incPinVerifySucceededCounter();
          return buildResponseBody(true);
       } else {
          // every failure surfaces as a generic HTTP 500, so this counter is the
          // only visible signal of someone guessing PINs
-         VERIFY_MISMATCHED.inc();
+         metrics.incPinVerifyMismatchedCounter();
          throw new ErrorEventException("MismatchedPins", "the pins do not match");
       }
    }

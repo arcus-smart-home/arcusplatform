@@ -53,6 +53,8 @@ public class BridgeMetrics {
    private final Counter bridgeAuthorizationTriedCounter;
    private final Counter bridgeAuthorizationSucceededCounter;
    private final Counter bridgeAuthorizationFailedCounter;
+   private final Counter bridgePinVerifySucceededCounter;
+   private final Counter bridgePinVerifyMismatchedCounter;
 
    private final Timer   bridgeProcessHttpRequestTimer;
    private final Timer   bridgeProcessWsRequestTimer;
@@ -93,6 +95,8 @@ public class BridgeMetrics {
       bridgeAuthorizationTriedCounter      = METRICS.counter("bridge." + bridgeName + ".authorization.tried");
       bridgeAuthorizationSucceededCounter  = METRICS.counter("bridge." + bridgeName + ".authorization.succeeded");
       bridgeAuthorizationFailedCounter     = METRICS.counter("bridge." + bridgeName + ".authorization.failed");
+      bridgePinVerifySucceededCounter      = METRICS.counter("bridge." + bridgeName + ".pin.verify.succeeded");
+      bridgePinVerifyMismatchedCounter     = METRICS.counter("bridge." + bridgeName + ".pin.verify.mismatched");
 
       bridgeProcessHttpRequestTimer        = METRICS.timer("bridge." + bridgeName + ".process.http.request");
       bridgeProcessWsRequestTimer          = METRICS.timer("bridge." + bridgeName + ".process.ws.request");
@@ -183,6 +187,10 @@ public class BridgeMetrics {
    }
 
    public void incAuthenticationDisplacedCounter() { bridgeAuthenticationDisplacedCounter.inc(); }
+
+   public void incPinVerifySucceededCounter() { bridgePinVerifySucceededCounter.inc(); }
+
+   public void incPinVerifyMismatchedCounter() { bridgePinVerifyMismatchedCounter.inc(); }
 
    public void incAuthorizationTriedCounter() { bridgeAuthorizationTriedCounter.inc(); }
 

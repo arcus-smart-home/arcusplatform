@@ -77,7 +77,12 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
 
       if(!Objects.equals(hubId, messageAddress.getHubId())) {
          SOURCE_MISMATCH.inc();
-         logger.warn("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]", messageAddress, messageAddress.getHubId(), session);
+         // warn once per session so a misbehaving hub can't flood the log at message rate
+         if(session.firstSourceMismatch()) {
+            logger.warn("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]; further mismatches on this session log at debug", messageAddress, messageAddress.getHubId(), session);
+         } else {
+            logger.debug("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]", messageAddress, messageAddress.getHubId(), session);
+         }
          return false;
       }
 

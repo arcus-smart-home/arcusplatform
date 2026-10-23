@@ -17,6 +17,7 @@ package com.iris.platform.hub.registration;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Counter;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.core.dao.HubRegistrationDAO;
@@ -70,6 +72,23 @@ public class HubRegistrationRegistry  {
    // every FirmwareUpdateRequest sent to a hub; compare against the failure
    // counters to see whether offered upgrades are completing
    private final Counter firmwareUpgradesOffered = IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.offered");
+
+   // per-code failure counters, keyed off the bounded HubRegistrationErrors enum; hubs
+   // report free-form error codes, and feeding those into metric names would let a
+   // misbehaving hub grow the metric registry without bound, so unrecognized codes all
+   // land in "other"
+   private static final Map<String, Counter> FIRMWARE_UPGRADE_FAILURES_BY_CODE = failureCountersByCode();
+   private static final Counter FIRMWARE_UPGRADE_FAILURES_OTHER =
+         IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.failures.other");
+
+   private static Map<String, Counter> failureCountersByCode() {
+      ImmutableMap.Builder<String, Counter> counters = ImmutableMap.builder();
+      for (HubRegistrationErrors error : HubRegistrationErrors.values()) {
+         counters.put(error.getCode(), IrisMetrics.metrics("hub.registration")
+               .counter("firmware.upgrade.failures." + error.getCode().toLowerCase()));
+      }
+      return counters.build();
+   }
 
 	@Inject
 	public HubRegistrationRegistry(HubRegistrationDAO hubRegistrationDao, HubRegistrationConfig config,
@@ -288,7 +307,8 @@ public class HubRegistrationRegistry  {
 		if (hubReg != null) {
          firmwareUpgradeFailures.inc();
          // per-code counter so a refused update can be told apart from a download error
-         IrisMetrics.metrics("hub.registration").counter("firmware.upgrade.failures." + sanitizeCode(code)).inc();
+         Counter byCode = code == null ? null : FIRMWARE_UPGRADE_FAILURES_BY_CODE.get(code);
+         (byCode != null ? byCode : FIRMWARE_UPGRADE_FAILURES_OTHER).inc();
 			hubReg.setUpgradeErrorCode(code);
 			hubReg.setUpgradeErrorMessage(msg);
 			hubReg.setUpgradeErrorTime(new Date());
@@ -299,13 +319,6 @@ public class HubRegistrationRegistry  {
 				hubsInRegistration.remove(hubReg.getId());
 			}
 		}
-	}
-
-	private static String sanitizeCode(String code) {
-		if (code == null || code.isEmpty()) {
-			return "unknown";
-		}
-		return code.toLowerCase().replaceAll("[^a-z0-9.]", "_");
 	}
 
 }

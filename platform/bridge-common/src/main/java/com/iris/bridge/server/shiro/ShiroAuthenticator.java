@@ -143,11 +143,12 @@ public class ShiroAuthenticator implements Authenticator {
           *  user is logging in again, so if currently authenticated,
           *  end that authentication and start a new one
           */
+         boolean displaced = false;
          try {
             if (currentUser.isAuthenticated()) {
                logger.debug("Logging out old session for [{}] due to new login request", currentUser.getPrincipalName());
-               metrics.incAuthenticationDisplacedCounter();
                currentUser.logout();
+               displaced = true;
             }
          }
          catch (AuthenticationException | UnknownSessionException uae) {
@@ -175,6 +176,10 @@ public class ShiroAuthenticator implements Authenticator {
             else{
                response.content().writeBytes(responseContentIfSuccess);
             }
+            if (displaced) {
+               // count the displacement only once the replacement login has succeeded
+               metrics.incAuthenticationDisplacedCounter();
+            }
             metrics.incAuthenticationSucceededCounter();
             logger.debug("Login request for {} processed sucessfully.", currentUser.getPrincipalName());
             return response;
@@ -195,8 +200,24 @@ public class ShiroAuthenticator implements Authenticator {
     * Maps an authentication failure to a stable metric name segment. Unknown
     * accounts are counted separately from bad credentials so enumeration and
     * credential-stuffing patterns are distinguishable from targeted guessing.
+    * A realm may wrap the specific failure in a generic AuthenticationException,
+    * so the cause chain is searched for the most specific type. (When multiple
+    * realms are configured Shiro discards realm exceptions entirely and failures
+    * land in "other"; the realm-level security.login.* counters stay accurate
+    * in that case.)
     */
    private static String failureCause(Exception e) {
+      int depth = 0;
+      for (Throwable t = e; t != null && depth < 8; t = t.getCause(), depth++) {
+         String cause = causeName(t);
+         if (cause != null) {
+            return cause;
+         }
+      }
+      return "other";
+   }
+
+   private static String causeName(Throwable e) {
       if (e instanceof UnknownAccountException) {
          return "unknown_account";
       }
@@ -221,7 +242,7 @@ public class ShiroAuthenticator implements Authenticator {
       if (e instanceof UnknownSessionException) {
          return "unknown_session";
       }
-      return "other";
+      return null;
    }
 
    public AuthenticationToken extractToken(Channel channel, FullHttpRequest req) {

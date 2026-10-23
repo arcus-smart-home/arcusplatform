@@ -74,10 +74,11 @@ public class GuicedIrisRealm extends AuthorizingRealm {
 
    private static final Logger log = LoggerFactory.getLogger(GuicedIrisRealm.class);
 
-   // counted here rather than in the bridges because Shiro's multi-realm
-   // authenticator replaces realm exceptions with a generic one, hiding the cause
+   // failure causes are counted here rather than in the bridges because Shiro's
+   // multi-realm authenticator replaces realm exceptions with a generic one,
+   // hiding the cause; successful logins are counted by the bridge once the
+   // login actually completes
    private static final IrisMetricSet METRICS = IrisMetrics.metrics("security.login");
-   private static final Counter LOGIN_SUCCEEDED = METRICS.counter("succeeded");
    private static final Counter LOGIN_UNKNOWN_ACCOUNT = METRICS.counter("failed.unknown_account");
    private static final Counter LOGIN_BAD_CREDENTIALS = METRICS.counter("failed.bad_credentials");
    private static final Counter LOGIN_NO_USERNAME = METRICS.counter("failed.no_username");
@@ -138,10 +139,11 @@ public class GuicedIrisRealm extends AuthorizingRealm {
             info.setCredentialsSalt(credentialHashStrategy.saltAsBytes(login.getPasswordSalt()));
          }
 
+      } catch (UnknownAccountException e) {
+         // propagate unwrapped so single-realm bridges can classify the failure cause
+         throw e;
       } catch (Exception e) {
-         if (!(e instanceof UnknownAccountException)) {
-            LOGIN_ERROR.inc();
-         }
+         LOGIN_ERROR.inc();
          final String message = "There was an error while authenticating user [" + username + "]";
          log.error(message, e);
          // Rethrow any SQL errors as an authentication exception
@@ -156,7 +158,6 @@ public class GuicedIrisRealm extends AuthorizingRealm {
    protected void assertCredentialsMatch(AuthenticationToken token, AuthenticationInfo info) throws AuthenticationException {
       try {
          super.assertCredentialsMatch(token, info);
-         LOGIN_SUCCEEDED.inc();
       } catch (AuthenticationException e) {
          LOGIN_BAD_CREDENTIALS.inc();
          throw e;

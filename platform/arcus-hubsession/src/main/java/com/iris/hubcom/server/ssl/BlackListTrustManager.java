@@ -35,6 +35,7 @@ public class BlackListTrustManager implements X509TrustManager {
    // a blacklisted (revoked) hub cert showing up again is a security event
    private static final Counter CERT_BLACKLISTED = METRICS.counter("cert.blacklisted");
    private static final Counter CERT_REJECTED = METRICS.counter("cert.rejected");
+   // counted only when the missing cert causes a rejection, i.e. mutual auth is required
    private static final Counter CERT_MISSING = METRICS.counter("cert.missing");
    private final boolean mutualAuthRequired;
    private final X509TrustManager jdkTrustManager;
@@ -49,8 +50,8 @@ public class BlackListTrustManager implements X509TrustManager {
    @Override
    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
       if (chain == null || chain.length == 0) {
-         CERT_MISSING.inc();
          if(mutualAuthRequired) {
+            CERT_MISSING.inc();
             logger.debug("Rejecting request with no client certificates");
             throw new CertificateException("No certificate chain exists");
          } else {

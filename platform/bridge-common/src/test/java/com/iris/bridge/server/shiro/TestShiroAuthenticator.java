@@ -138,6 +138,10 @@ public class TestShiroAuthenticator extends IrisTestCase {
    @Test
    public void testLoginUnknownAccountCounted() throws Exception {
       long before = counterValue("security.login.failed.unknown_account");
+      // two realms are bound here (like client-bridge), so Shiro swallows the realm
+      // exception and the bridge sees only a generic failure; the per-cause breakdown
+      // lives in the security.login.* counters above
+      long bridgeBefore = counterValue("com.iris.bridge.metrics.bridge-metrics.bridge.test.authentication.failed");
 
       EasyMock
          .expect(authenticationDao.findLogin("nobody"))
@@ -155,6 +159,7 @@ public class TestShiroAuthenticator extends IrisTestCase {
       FullHttpResponse response = authenticator.authenticateRequest(channel, request);
       org.junit.Assert.assertEquals(HttpResponseStatus.UNAUTHORIZED, response.getStatus());
       org.junit.Assert.assertEquals(before + 1, counterValue("security.login.failed.unknown_account"));
+      org.junit.Assert.assertEquals(bridgeBefore + 1, counterValue("com.iris.bridge.metrics.bridge-metrics.bridge.test.authentication.failed"));
 
       verify();
    }

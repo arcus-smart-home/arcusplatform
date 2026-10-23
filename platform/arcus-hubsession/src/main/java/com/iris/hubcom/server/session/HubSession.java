@@ -56,6 +56,7 @@ public class HubSession extends DefaultSessionImpl {
    // setState fires the session listener on every call, so onAuthorized can run
    // more than once per session; this lets listeners act only on the first one
    private final AtomicBoolean authorized = new AtomicBoolean(false);
+   private final AtomicBoolean sourceMismatchWarned = new AtomicBoolean(false);
 
    /**
     * @param channel
@@ -97,6 +98,14 @@ public class HubSession extends DefaultSessionImpl {
     */
    public boolean firstAuthorization() {
       return authorized.compareAndSet(false, true);
+   }
+
+   /**
+    * True the first time this is called, so a source-address mismatch can be
+    * logged loudly once per session rather than once per dropped message.
+    */
+   public boolean firstSourceMismatch() {
+      return sourceMismatchWarned.compareAndSet(false, true);
    }
 
    public void setConnectionType(String connType) {
