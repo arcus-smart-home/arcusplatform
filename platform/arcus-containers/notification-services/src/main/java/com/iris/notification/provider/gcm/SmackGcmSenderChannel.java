@@ -33,7 +33,7 @@ import org.jivesoftware.smack.provider.ProviderManager;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smackx.ping.PingFailedListener;
 import org.jivesoftware.smackx.ping.PingManager;
-import org.json.simple.JSONValue;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +52,7 @@ public class SmackGcmSenderChannel implements PingFailedListener {
 
     private static final IrisMetricSet METRICS = IrisMetrics.metrics(NotificationService.SERVICE_NAME);
     private static final Logger logger = LoggerFactory.getLogger(SmackGcmSenderChannel.class);
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private XMPPConnection connection;
     private PingManager pingManager;
@@ -126,7 +127,11 @@ public class SmackGcmSenderChannel implements PingFailedListener {
         	message.put(key, payload.get(key));
         }
 
-        return JSONValue.toJSONString(message);
+        try {
+            return JSON.writeValueAsString(message);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize GCM message", e);
+        }
     }
 
     /**
