@@ -35,7 +35,6 @@ import com.google.inject.Key;
 import com.google.inject.name.Names;
 import com.iris.info.IrisApplicationInfo;
 import com.iris.resource.Resources;
-import com.iris.resource.azure.AzureResourceModule;
 import com.iris.resource.classpath.ClassPathResourceFactory;
 import com.iris.resource.environment.EnvironmentVariableResourceFactory;
 import com.iris.resource.filesystem.FileSystemResourceFactory;
@@ -165,19 +164,7 @@ public class IrisApplicationModule extends AbstractModule {
       Resources.registerFactory(fs);
       Resources.registerFactory(new ClassPathResourceFactory());
       Resources.registerFactory(new EnvironmentVariableResourceFactory());
-      registerAzureResourceFactory();
    }
-
-   private void registerAzureResourceFactory() {
-   	try {
-   		AzureResourceModule azureResourceModule = new AzureResourceModule();
-   		binder().requestInjection(azureResourceModule);
-   		install(azureResourceModule);
-
-   	}catch(Exception e) {
-   		logger.warn("Unable to register AzureResourceFactory with Resources", e);
-   	}
-	}
 
 	/*
     * Since all environment properties (-D) get bound automatically to their name.  We don't want to bind these props if they
