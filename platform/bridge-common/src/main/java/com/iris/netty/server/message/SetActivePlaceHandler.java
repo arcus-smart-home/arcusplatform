@@ -103,9 +103,11 @@ public class SetActivePlaceHandler extends BaseClientRequestHandler
          throw new ErrorEventException(AuthzUtil.createUnauthorizedEvent());
       }
 
-      log(session, "session", "place.setactive", "Set active place");
       String oldPlace = session.getActivePlace();
       SessionUtil.setPlace(placeUuid, session);
+      // log after the switch so the line carries the new place, not the one being left
+      boolean switched = oldPlace != null && !StringUtils.equals(oldPlace, placeId);
+      log(session, "session", "place.setactive", switched ? "Set active place (was " + oldPlace + ")" : "Set active place");
 
       Channel ch = session.getChannel();
       if (ch != null)
