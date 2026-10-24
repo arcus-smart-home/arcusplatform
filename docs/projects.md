@@ -61,13 +61,6 @@ This contains common code used within platform as well as all containers that ge
 * **arcus-containers/scheduler-service**:  Microservice that runs and enforcees any scheduling that end users have configured
 * **arcus-containers/subsystem-service**:  Microservice that runs all primary business logic for the end users, including security/safety alarms, irrigation, lights & switches, doors and locks, etc.
 * **arcus-containers/tag-service**:  Microservice that accepts tagged messages from web and mobile clients for tracking metrics around application usage
-* **arcus-containers/video-download-server**:  HTTPs endpoint that allows users to download recording videos
-* **arcus-containers/video-preview-server**:  HTTPs endpoint that allows users to fetch preview images from their cameras
-* **arcus-containers/video-preview-ul-server**:  HTTPs endpoint for hubs to upload image snapshots from cameras
-* **arcus-containers/video-purge**:  Schedulable background job that purges videos that have been deleted from physical storage
-* **arcus-containers/video-recording-server**:  HTTPs endpoint where supported cameras can upload video for recording or live streaming
-* **arcus-containers/video-service**:  Microservice that provides web and mobile clients information regarding recordings as well as orchestration of the recording flows
-* **arcus-containers/video-streaming-server**:  HTTPs endpoint that playback clients interact with to retrieve HLS playlists for video playback
 * **arcus-hubsession**:  Code used by hub bridge for managing hub sessions
 * **arcus-info**:  Common code used by Arcus applications providing infromation such as the version
 * **arcus-khakis**:  Utilities for building/deploying docker containers for developers
@@ -81,7 +74,6 @@ This contains common code used within platform as well as all containers that ge
 * **arcus-security**:  Common code used by bridges for authenticating and authorizing users
 * **arcus-subsystems**:  Code used by the subsystem-service for executing several of the subsystems, such as irrigation
 * **arcus-test**:  Common set of base test cases classes
-* **arcus-video**:  Common video infrastructure code such as database access used by all video services
 * bridge-common**:  Common code and building blocks for all bridges within the platform.  In particular, wiring up Netty and applying security policies.
 * ipcd-common**:  Common code used for managing IPCD devices
 

@@ -62,7 +62,7 @@ Four major sections with ~86 subprojects:
 | Section | Projects | Description |
 |---------|----------|-------------|
 | `common/` | 14 | Shared libraries: messaging, model, protocol, drivers, metrics |
-| `platform/` | 46 | Cloud services: bridges, subsystems, rules, video, voice |
+| `platform/` | 46 | Cloud services: bridges, subsystems, rules |
 | `agent/` | 18 | Hub agent: controllers, HAL, router, gateway |
 | `tools/` | 3 | Oculus, eye-kat, arcus-captools |
 | `khakis/` | 1 | Docker infrastructure orchestration |

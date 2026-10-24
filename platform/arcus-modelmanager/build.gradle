@@ -40,7 +40,7 @@ distZip.enabled = false
 ext.dockerGroup = 'arcus'
 ext.containerTag = "${project.dockerGroup}/${project.applicationName}"
 
-def schemas = [ "platform", "video", "history" ]
+def schemas = [ "platform", "history" ]
 
 dependencies {
 
@@ -159,5 +159,4 @@ schemas.each() { target ->
 
 run.dependsOn 'run-platform'
 run.dependsOn 'run-history'
-run.dependsOn 'run-video'
 

@@ -8,7 +8,6 @@ All keyspaces use `SimpleStrategy` with a configurable replication factor (defau
 |----------|---------|
 | `dev` (configurable via `$CASSANDRA_KEYSPACE`) | Primary application data — all core entities |
 | `history` | Event history / audit log |
-| `video` | Video recording data |
 | `support` | Support tooling |
 | `analytics` | Analytics (currently empty) |
 
@@ -19,7 +18,6 @@ Schema is managed by **arcus-modelmanager**, a Liquibase-inspired tool using XML
 - **Keyspace creation:** `khakis/arcus-cassandra/cassandra-provision` (shell script with inline CQL)
 - **Primary keyspace changelogs:** `platform/arcus-modelmanager/src/main/resources/changelogs/`
 - **History changelogs:** `platform/arcus-modelmanager/src/dist/history-resources/changelogs/`
-- **Video changelogs:** `platform/arcus-modelmanager/src/dist/video-resources/changelogs/`
 
 The modelmanager tracks applied migrations in `changeset` and `versionhistory` tables (created automatically in each managed keyspace).
 
@@ -269,20 +267,9 @@ Each table shares a common structure: partition key scopes the entity, `time` (t
 | `histlog_alarm_detailed` | `incidentId` | Events per alarm incident |
 | `histlog_care_activity` | `placeId` | Care subsystem sensor activity |
 
-## Video Keyspace
+## Video Keyspace (removed)
 
-Video uses V2 tables (V1 tables were dropped in 2018.9.0). Recordings are stored as time-series segments with `TimeWindowCompactionStrategy`.
-
-| Table | Purpose | PK |
-|-------|---------|-----|
-| `recording_v2` | Video segment data | `(recordingid, expiration, ts, bo)` |
-| `recording_metadata_v2` | Metadata fields per recording | `(recordingid, expiration, field)` |
-| `place_recording_index_v2` | Recordings indexed by place | `((placeid, field), value, recordingid)` |
-| `recording_v2_favorite` | Favorited recording data (no TTL) | `(recordingid, ts, bo)` |
-| `recording_metadata_v2_favorite` | Favorite metadata | `(recordingid, field)` |
-| `place_recording_index_v2_favorite` | Favorite recordings by place | `((placeid, field), value, recordingid)` |
-| `purge_recordings_v2` | Scheduled deletion queue | `((deletetime, partitionid), recordingid, placeid)` |
-| `place_purge_recording` | Places with recordings to purge | `(deletetime, placeid)` |
+The video services and their `video` keyspace have been removed. A deployment provisioned before that may still have the keyspace; nothing reads or migrates it, so it can be dropped.
 
 ## Key Source Files
 
@@ -290,10 +277,8 @@ Video uses V2 tables (V1 tables were dropped in 2018.9.0). Recordings are stored
 |------|---------|
 | `platform/arcus-modelmanager/src/main/resources/changelogs/` | Primary keyspace schema changelogs |
 | `platform/arcus-modelmanager/src/dist/history-resources/changelogs/` | History keyspace changelogs |
-| `platform/arcus-modelmanager/src/dist/video-resources/changelogs/` | Video keyspace changelogs |
 | `khakis/arcus-cassandra/cassandra-provision` | Keyspace creation script |
 | `platform/arcus-lib/src/main/java/com/iris/core/dao/cassandra/` | Core DAO implementations |
 | `platform/arcus-lib/src/main/java/com/iris/platform/history/cassandra/` | History DAO and table definitions |
 | `platform/arcus-lib/src/main/java/com/iris/platform/scheduler/cassandra/` | Scheduler tables |
 | `platform/arcus-oauth/src/main/java/com/iris/oauth/dao/CassandraOAuthDAO.java` | OAuth token DAO |
-| `platform/arcus-video/src/main/java/com/iris/video/cql/v2/` | Video table Java classes |

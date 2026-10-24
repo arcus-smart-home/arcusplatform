@@ -25,17 +25,6 @@
 | `tag-service` | User-defined device tagging/labeling |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |
 
-**Video Services:**
-
-| Service | Purpose |
-|---------|---------|
-| `video-service` | Core video streaming and recording management |
-| `video-streaming-server` | RTMP/live streaming protocol handler |
-| `video-recording-server` | Recording storage and retrieval |
-| `video-preview-server` | Thumbnail/preview generation |
-| `video-download-server` | Video file export/download |
-| `video-purge` | Cleanup of expired/deleted video |
-
 **IVR:**
 
 | Service | Purpose |
@@ -52,10 +41,9 @@
 | `arcus-lib` | Central framework: Kafka dispatchers, message bus, Cassandra DAOs, Guice wiring, OTA firmware, scene/action catalog |
 | `bridge-common` | Netty networking, Shiro auth, protocol handling shared by all bridge services |
 | `arcus-prodcat` | Product/device catalog with Lucene search, pairing metadata, capability mappings |
-| `arcus-subsystems` | Subsystem state machine implementations (alarm, care, climate, cameras, etc.) |
+| `arcus-subsystems` | Subsystem state machine implementations (alarm, care, climate, etc.) |
 | `arcus-rules` | Rule compilation and evaluation framework |
 | `arcus-alarm` | Alarm state machine, incident tracking, call tree/escalation |
-| `arcus-video` | Video recording/streaming management, cloud storage integration |
 | `arcus-oauth` | OAuth 2.0 server library (authorization, token, revocation endpoints) |
 | `arcus-security` | Shiro-based authentication/authorization with Cassandra-backed DAOs |
 | `arcus-subscriptions` | User subscription plans and feature entitlements |
@@ -98,14 +86,13 @@ Managed by `arcus-modelmanager` using XML changelog files (similar to Liquibase)
 | Keyspace | Data |
 |----------|------|
 | `platform` | Places, people, devices, rules, scenes, scheduler, subsystem state, authorization grants, pairing |
-| `video` | Recording metadata, streaming sessions, preview data, cloud storage references |
 | `history` | Device attribute change history and event analytics, partitioned by time for retention |
 
 ```bash
 ./gradlew :platform:arcus-modelmanager:run   # Apply schema migrations
 ```
 
-Changelog files: `arcus-modelmanager/src/dist/{platform,video,history}-resources/changelogs/*.xml`
+Changelog files: `arcus-modelmanager/src/main/resources/changelogs/*.xml` (platform) and `arcus-modelmanager/src/dist/history-resources/changelogs/*.xml`
 
 ---
 
