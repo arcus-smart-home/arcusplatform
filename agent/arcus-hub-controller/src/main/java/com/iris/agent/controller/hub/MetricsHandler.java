@@ -775,7 +775,7 @@ enum MetricsHandler implements PortHandler {
    private Gauge<Long> procAgentRss = new DerivativeGauge<OSProcess,Long>(procAgent) {
       @Override
       public @Nullable Long transform(@Nullable OSProcess proc) {
-         return (proc == null) ? null : proc.getResidentSetSize();
+         return (proc == null) ? null : proc.getResidentMemory();
       }
    };
 
