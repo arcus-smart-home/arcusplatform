@@ -53,6 +53,7 @@ public class RoleAuthorizerTest {
    private AuthzMetrics metrics;
    private RoleAuthorizer authorizer;
    private Logger logger;
+   private Level originalLevel;
    private ListAppender<ILoggingEvent> appender;
 
    @Before
@@ -61,6 +62,8 @@ public class RoleAuthorizerTest {
       authorizer = new RoleAuthorizer(metrics);
 
       logger = (Logger) LoggerFactory.getLogger(RoleAuthorizer.class);
+      originalLevel = logger.getLevel();
+      logger.setLevel(Level.WARN);
       appender = new ListAppender<>();
       appender.start();
       logger.addAppender(appender);
@@ -69,7 +72,7 @@ public class RoleAuthorizerTest {
    @After
    public void tearDown() {
       logger.detachAppender(appender);
-      EasyMock.verify(metrics);
+      logger.setLevel(originalLevel);
    }
 
    @Test
@@ -140,7 +143,21 @@ public class RoleAuthorizerTest {
 
       PlatformMessage message = request(Capability.CMD_GET_ATTRIBUTES, ImmutableMap.of(), Address.platformService(placeId, PlaceCapability.NAMESPACE));
       assertTrue(authorizer.isAuthorized(context, placeId.toString(), message));
+      EasyMock.verify(metrics);
       assertTrue(appender.list.isEmpty());
+   }
+
+   @Test
+   public void testNewlinesInClientValuesStripped() {
+      metrics.onUnauthorizedNoPlace();
+      EasyMock.replay(metrics);
+
+      PlatformMessage message = request("base:GetAttributes\nI1024 forged", ImmutableMap.of(), Address.platformService(placeId, PlaceCapability.NAMESPACE));
+      assertFalse(authorizer.isAuthorized(context, null, message));
+      EasyMock.verify(metrics);
+      String line = appender.list.get(0).getFormattedMessage();
+      assertFalse(line, line.contains("\n"));
+      assertContains(line, "type=base:GetAttributes_I1024 forged");
    }
 
    private PlatformMessage request(String type, Map<String, Object> attributes, Address destination) {
@@ -151,6 +168,7 @@ public class RoleAuthorizerTest {
    }
 
    private void assertDenied(String reason, PlatformMessage message, String... fields) {
+      EasyMock.verify(metrics);
       assertEquals(1, appender.list.size());
       ILoggingEvent event = appender.list.get(0);
       assertEquals(Level.WARN, event.getLevel());

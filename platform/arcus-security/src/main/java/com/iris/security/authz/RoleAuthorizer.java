@@ -188,8 +188,13 @@ public class RoleAuthorizer implements Authorizer {
    // reason matches the bridge.authz.unauthorized.<reason> counter so log lines and metrics line up
    private boolean deny(String reason, String activePlace, Object requestedPlace, PlatformMessage message) {
       logger.warn("authz denied reason={} type={} actor={} destination={} activePlace={} requestedPlace={}",
-            reason, message.getMessageType(), message.getActor(), message.getDestination(), activePlace, requestedPlace);
+            reason, clean(message.getMessageType()), message.getActor(), clean(message.getDestination()), activePlace, clean(requestedPlace));
       return false;
+   }
+
+   // type, destination and requested place come from the client, so strip CR/LF to keep a request from forging log lines
+   private static String clean(Object value) {
+      return value == null ? null : StringUtils.replaceChars(value.toString(), "\r\n", "__");
    }
 
    private boolean isSelf(PlatformMessage message) {
