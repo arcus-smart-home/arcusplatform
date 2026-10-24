@@ -503,7 +503,7 @@ public enum UartNativeLinux implements UartNative.Impl {
    }
 
    public interface LINCLibrary extends Library {
-      LINCLibrary INSTANCE = (LINCLibrary)Native.loadLibrary("c", LINCLibrary.class);
+      LINCLibrary INSTANCE = Native.load("c", LINCLibrary.class);
 
       public int open(String path, int flags);
       public int close(int fd);
@@ -543,7 +543,7 @@ public enum UartNativeLinux implements UartNative.Impl {
          }
 
          @Override
-         protected List getFieldOrder() {
+         protected List<String> getFieldOrder() {
             return Arrays.asList("c_iflag", "c_oflag", "c_cflag", "c_lflag", "c_line", "c_cc", "c_ispeed", "c_ospeed");
          }
 
