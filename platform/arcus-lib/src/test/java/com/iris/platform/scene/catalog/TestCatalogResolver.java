@@ -35,7 +35,6 @@ import com.iris.common.rule.action.Action;
 import com.iris.io.xml.JAXBUtil;
 import com.iris.messages.MessagesModule;
 import com.iris.messages.PlatformMessage;
-import com.iris.messages.capability.CameraCapability;
 import com.iris.messages.capability.DimmerCapability;
 import com.iris.messages.capability.FanCapability;
 import com.iris.messages.capability.SecuritySubsystemCapability;
@@ -271,18 +270,6 @@ public class TestCatalogResolver extends SceneCatalogBaseTest {
       BlockingQueue<PlatformMessage> messages = context.getMessages();
       PlatformMessage message = messages.remove();
       assertEquals("subsecurity:ArmBypassed",message.getMessageType());
-   }
-   
-   @Test
-   public void testCameraResolver() {
-      resolver=resolverMap.get("camera");
-      Model testSecurity = addDevice(CameraCapability.NAMESPACE);
-      Map<String,Object>variables=ImmutableMap.of("duration","30");
-      Action action = resolver.generate(context, testSecurity.getAddress(),variables);
-      action.execute(context);
-      BlockingQueue<PlatformMessage> messages = context.getMessages();
-      PlatformMessage message = messages.remove();
-      assertEquals("video:StartRecording",message.getMessageType());
    }
    
    @Test

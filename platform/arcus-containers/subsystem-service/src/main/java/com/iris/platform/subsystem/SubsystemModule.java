@@ -31,7 +31,6 @@ import com.iris.common.scheduler.Scheduler;
 import com.iris.common.subsystem.Subsystem;
 import com.iris.common.subsystem.SubsystemContext.ResponseAction;
 import com.iris.common.subsystem.alarm.AlarmSubsystem;
-import com.iris.common.subsystem.cameras.CamerasSubsystem;
 import com.iris.common.subsystem.care.CareSubsystem;
 import com.iris.common.subsystem.climate.ClimateSubsystem;
 import com.iris.common.subsystem.doorsnlocks.DoorsNLocksSubsystem;
@@ -107,7 +106,6 @@ public class SubsystemModule extends AbstractIrisModule {
       subsystems.addBinding().to(SecuritySubsystem.class);
       subsystems.addBinding().to(ClimateSubsystem.class).asEagerSingleton();
       subsystems.addBinding().to(DoorsNLocksSubsystem.class);
-      subsystems.addBinding().to(CamerasSubsystem.class);
       subsystems.addBinding().to(PlaceMonitorSubsystem.class);
       subsystems.addBinding().to(PresenceSubsystem.class);
       subsystems.addBinding().to(LightsNSwitchesSubsystem.class);

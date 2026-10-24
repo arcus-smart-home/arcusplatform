@@ -38,11 +38,8 @@ import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.service.SessionService;
 import com.iris.messages.service.SessionService.SetActivePlaceRequest;
-import com.iris.netty.bus.IrisNettyPlatformBusListener;
 import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.authz.AuthzUtil;
-
-import io.netty.channel.Channel;
 
 @Singleton
 public class SetActivePlaceHandler extends BaseClientRequestHandler
@@ -95,12 +92,6 @@ public class SetActivePlaceHandler extends BaseClientRequestHandler
       // log after the switch so the line carries the new place, not the one being left
       boolean switched = oldPlace != null && !StringUtils.equals(oldPlace, placeId);
       log(session, "session", "place.setactive", switched ? "Set active place (was " + oldPlace + ")" : "Set active place");
-
-      Channel ch = session.getChannel();
-      if (ch != null)
-      {
-         ch.attr(IrisNettyPlatformBusListener.CACHED_LIST_RECORDINGS_RESPONSE).remove();
-      }
 
       UUID personUuid = session.getClient().getPrincipalId();
       Map<String, Object> prefs = preferencesDao.findById(personUuid, placeUuid);

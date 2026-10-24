@@ -130,16 +130,7 @@ public class TestSendAction extends Assert {
       context.putModel(new SimpleModel(ImmutableMap.<String,Object>of("base:address", destination.getRepresentation()))); 
       assertTrue(action.isSatisfiable(context));
    }
-   @Test
-   public void testSendActionSatisfiablityVideo() throws Exception {
-      SendAction action =
-            new SendAction.Builder("test:Action")
-               .withDestination("SERV:video:ce07c9ab-bc69-4433-b0ca-6c56ecb3c5be")
-               .withAttribute("test:value", "test")
-               .build();
-      assertTrue(action.isSatisfiable(context));
-   }
-   
+
    @Test
    public void testSendActionWithNoAttributes() throws Exception {
       SendAction action =

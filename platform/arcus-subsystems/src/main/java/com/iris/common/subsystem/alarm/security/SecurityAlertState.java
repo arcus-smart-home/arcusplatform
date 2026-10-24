@@ -21,8 +21,8 @@ package com.iris.common.subsystem.alarm.security;
 import java.util.Date;
 
 import com.iris.common.subsystem.SubsystemContext;
+import com.iris.common.subsystem.alarm.AlarmUtil;
 import com.iris.common.subsystem.alarm.ArmingInfo;
-import com.iris.common.subsystem.alarm.RecordOnSecurityAdapter;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.AlarmCapability;
@@ -77,8 +77,7 @@ public class SecurityAlertState extends SecurityState {
    @Override
    public String onEnter(SubsystemContext<? extends AlarmSubsystemModel> context, String name)
    {
-      RecordOnSecurityAdapter adapter = new RecordOnSecurityAdapter(context);
-      adapter.sendRecordMessageIfNecessary();
+      AlarmUtil.clearActorOnAlert(context);
       return super.onEnter(context, name);
    }
 	

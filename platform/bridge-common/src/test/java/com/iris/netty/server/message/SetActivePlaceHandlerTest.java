@@ -100,7 +100,6 @@ public class SetActivePlaceHandlerTest extends IrisMockTestCase
       expect(mockSession.getClient()).andReturn(mockClient).anyTimes();
       expect(mockSession.getClientToken()).andReturn(mockClientToken).anyTimes();
       expect(mockSession.getAuthorizationContext(true)).andReturn(context).anyTimes();
-      expect(mockSession.getChannel()).andReturn(null).anyTimes();
       expect(mockSession.getActivePlace()).andAnswer(activePlace::get).anyTimes();
       mockSession.setActivePlace(EasyMock.anyString());
       expectLastCall().andAnswer(() -> {

@@ -92,6 +92,16 @@ public class TestPanicAlarm_Ready extends PanicAlarmTestCase {
 		assertEquals(addressesOf(), AlarmModel.getOfflineDevices(PanicAlarm.NAME, context.model()));
 		assertEquals(addressesOf(), AlarmModel.getTriggeredDevices(PanicAlarm.NAME, context.model()));
 	}
-	
+
+	// the alert's ValueChange has always gone out from the subsystem, not whatever triggered it
+	@Test
+	public void testTriggerClearsActor() {
+		context.setActor(panicRule.getAddress());
+		alarm.onTriggered(context, panicRule.getAddress(), TriggerEvent.RULE);
+
+		assertEquals(AlarmCapability.ALERTSTATE_ALERT, AlarmModel.getAlertState(PanicAlarm.NAME, model));
+		assertNull(contextActor);
+	}
+
 }
 

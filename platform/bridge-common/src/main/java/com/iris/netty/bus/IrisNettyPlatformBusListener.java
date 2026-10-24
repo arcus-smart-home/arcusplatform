@@ -37,7 +37,6 @@ import com.iris.io.json.JSON;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.Message;
 import com.iris.messages.MessageBody;
-import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.AccountCapability.AddPlaceResponse;
@@ -46,22 +45,16 @@ import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.SessionService;
 import com.iris.messages.service.SessionService.PreferencesChangedEvent;
-import com.iris.messages.service.VideoService;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.netty.server.message.IrisNettyMessageUtil;
 import com.iris.security.authz.Authorizer;
 import com.iris.util.MdcContext.MdcContextReference;
 
-import io.netty.channel.Channel;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
 
 public class IrisNettyPlatformBusListener implements PlatformBusListener {
    private static final Logger logger = LoggerFactory.getLogger(IrisNettyPlatformBusListener.class);
    private static final Address SessionServiceAddress = Address.platformService(SessionService.NAMESPACE);
    
-   public static final AttributeKey<MessageBody> CACHED_LIST_RECORDINGS_RESPONSE = AttributeKey.newInstance("ListRecordingsRequestCache");
-
    private final Authorizer authorizer;
    private final IrisNettyMessageUtil messageUtil;
    private final SessionRegistry sessionRegistry;
@@ -269,30 +262,6 @@ public class IrisNettyPlatformBusListener implements PlatformBusListener {
       try {
          PlatformMessage filtered = authorizer.filter(session.getAuthorizationContext(), session.getActivePlace(), msg);
          if(filtered != null) {
-            
-            Address source = msg.getSource();
-            if (source != null && MessageConstants.SERVICE.equals(source.getNamespace()) && VideoService.NAMESPACE.equals(source.getGroup())) {
-               Channel ch = session.getChannel();
-               Attribute<MessageBody> attr = (ch != null) ? ch.attr(CACHED_LIST_RECORDINGS_RESPONSE) : null;
-               if (attr != null) {
-                  switch (filtered.getMessageType()) {
-                  case VideoService.ListRecordingsResponse.NAME:
-                     attr.set(msg.getValue());
-                     break;
-
-                  case VideoService.DeleteAllResponse.NAME:
-                  case Capability.EVENT_ADDED:
-                  case Capability.EVENT_DELETED:
-                  case Capability.EVENT_VALUE_CHANGE:
-                     attr.remove();
-                     break;
-
-                  default:
-                     break;
-                  }
-               }
-            }
-
             return JSON.toJson(messageUtil.convertPlatformToClient(filtered));
          } else {
             logger.debug("Dropped message [{}]:  msg place {} != session place {}", msg, msg.getPlaceId(), session.getActivePlace());

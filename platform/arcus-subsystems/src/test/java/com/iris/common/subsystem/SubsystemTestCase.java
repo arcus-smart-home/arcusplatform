@@ -91,7 +91,9 @@ public class SubsystemTestCase<M extends SubsystemModel> extends Assert {
    protected Capture<Address> sendAddresses = EasyMock.newCapture(CaptureType.ALL);
    protected Capture<MessageBody> sends = EasyMock.newCapture(CaptureType.ALL);
    protected List<String> requestIds = new ArrayList<>();
-   
+   // the actor the subsystem last left on the context
+   protected Address contextActor = null;
+
    protected List<SendAndExpect> sendAndExpectOperations = new ArrayList<>();
    
    public final class SendAndExpect {
@@ -180,6 +182,17 @@ public class SubsystemTestCase<M extends SubsystemModel> extends Assert {
       EasyMock.expect(context.getLocalTime()).andReturn(Calendar.getInstance()).anyTimes();
 
       EasyMock.expect(context.logger()).andReturn(LoggerFactory.getLogger(getClass())).anyTimes();
+      context.setActor(EasyMock.anyObject(Address.class));
+      EasyMock
+         .expectLastCall()
+         .andAnswer(new IAnswer<Void>() {
+            @Override
+            public Void answer() {
+               contextActor = (Address) EasyMock.getCurrentArguments()[0];
+               return null;
+            }
+         })
+         .anyTimes();
       context.sendResponse(EasyMock.isA(PlatformMessage.class), EasyMock.capture(responses));
       EasyMock
          .expectLastCall()

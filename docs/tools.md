@@ -46,7 +46,6 @@ Each module appears as a tab in the main window:
 | Products | Product catalog browser |
 | Rules | View and edit automation rules |
 | Scenes | Smart scene management |
-| Video | Video recording/playback |
 | Person | User account management |
 | Place | Place/location management |
 | Account | Account settings |

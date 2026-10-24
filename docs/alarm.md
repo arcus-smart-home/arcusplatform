@@ -145,7 +145,6 @@ Motion triggers use a sensitivity threshold: the alarm only fires when the count
 |--------|-------------|----------------|
 | Siren activation | All | `AlertCapability.STATE_ALERTING` sent to siren devices |
 | Hub sounder | All | `HubSoundsCapability.PlayToneRequest` |
-| Camera recording | Security, Panic | `RecordOnSecurityAdapter` |
 | Fan shutoff | Smoke, CO | `FanShutoffAdapter` (if enabled) |
 | Water valve shutoff | Water | `AlarmUtil.shutoffValvesIfNeeded()` (if enabled) |
 
@@ -228,7 +227,6 @@ Platform sends state updates to keypads:
 | Has arming/disarming | Yes | No | No | No | No |
 | Has entry/exit delay | Yes | No | No | No | No |
 | Monitored (default) | Yes | Yes | Yes | Yes | No |
-| Camera recording | Yes | Yes | No | No | No |
 | Fan shutoff | No | No | Yes | Yes | No |
 | Valve shutoff | No | No | No | No | Yes |
 | Dispatch type | Police | Police | Fire | Fire | — |
@@ -240,7 +238,7 @@ Platform sends state updates to keypads:
 3. Hub: `DISARMED → ARMING` — exit delay sound plays, keypad shows arming
 4. Exit delay expires → Hub: `ARMING → READY` — keypad shows armed
 5. Contact sensor opens → Hub: `READY → PREALERT` — entry delay sound plays
-6. Entry delay expires → Hub: `PREALERT → ALERT` — siren fires, cameras record
+6. Entry delay expires → Hub: `PREALERT → ALERT` — siren fires
 7. Platform creates incident, notifies monitoring center
 8. User enters PIN on keypad → Hub: `ALERT → PENDING_CLEAR`
 9. Platform cancels incident, sends `ClearIncidentRequest` to hub
@@ -272,4 +270,3 @@ Platform sends state updates to keypads:
 | `platform/arcus-subsystems/.../alarm/CancelAlarmMessageTable.java` | Cancel warning message decision table |
 | `platform/arcus-subsystems/.../alarm/KeyPad.java` | Keypad command dispatch |
 | `platform/arcus-subsystems/.../alarm/FanShutoffAdapter.java` | Fan shutoff on smoke/CO |
-| `platform/arcus-subsystems/.../alarm/RecordOnSecurityAdapter.java` | Camera recording on security/panic |

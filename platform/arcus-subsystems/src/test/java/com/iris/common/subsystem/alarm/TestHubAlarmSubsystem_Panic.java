@@ -89,6 +89,21 @@ public class TestHubAlarmSubsystem_Panic extends HubAlarmSubsystemTestCase {
 		verify();
 	}
 
+	// the alert's ValueChange has always gone out from the subsystem, not whatever triggered it
+	@Test
+	public void testPanicAlertClearsActor() throws Exception {
+		expectAddAlert(PanicAlarm.NAME);
+		expectUpdateIncident();
+		stageDisarmed(ImmutableSet.<String>of());
+		start();
+
+		context.setActor(ruleAddress);
+		reportPanicAlert(incidentAddress);
+
+		assertNull(contextActor);
+		verify();
+	}
+
 	@Test
 	public void testPanicFromNowhere() throws Exception {
 		Capture<List<IncidentTrigger>> triggersCapture = expectAddAlert(PanicAlarm.NAME);

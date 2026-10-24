@@ -16,7 +16,7 @@
 package com.iris.common.subsystem.alarm.panic;
 
 import com.iris.common.subsystem.SubsystemContext;
-import com.iris.common.subsystem.alarm.RecordOnSecurityAdapter;
+import com.iris.common.subsystem.alarm.AlarmUtil;
 import com.iris.common.subsystem.alarm.generic.AlertState;
 import com.iris.messages.model.subs.AlarmSubsystemModel;
 import com.iris.messages.model.subs.SubsystemModel;
@@ -37,8 +37,7 @@ public class PanicAlertState extends AlertState {
    public String onEnter(SubsystemContext<? extends SubsystemModel> context, String name)
    {
       if(context.model() instanceof AlarmSubsystemModel) {
-         RecordOnSecurityAdapter adapter = new RecordOnSecurityAdapter((SubsystemContext<? extends AlarmSubsystemModel>) context);
-         adapter.sendRecordMessageIfNecessary();
+         AlarmUtil.clearActorOnAlert(context);
       }
       return super.onEnter(context, name);      
       
