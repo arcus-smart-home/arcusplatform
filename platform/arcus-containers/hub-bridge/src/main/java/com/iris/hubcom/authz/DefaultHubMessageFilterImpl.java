@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.google.common.base.Predicate;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -34,12 +35,23 @@ import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.HubAdvancedCapability;
+import com.iris.metrics.IrisMetricSet;
+import com.iris.metrics.IrisMetrics;
 import com.iris.protocol.ProtocolMessage;
 import com.iris.security.authz.AuthzUtil;
 
 @Singleton
 public class DefaultHubMessageFilterImpl implements HubMessageFilter {
    private static final Logger logger = LoggerFactory.getLogger(DefaultHubMessageFilterImpl.class);
+
+   private static final IrisMetricSet METRICS = IrisMetrics.metrics("bridge.hub.authz");
+   // a hub claiming another hub's address is a security event, not an operational blip
+   private static final Counter SOURCE_MISMATCH = METRICS.counter("source.mismatch");
+   private static final Counter UNAUTHORIZED_PLATFORM_DROPPED = METRICS.counter("unauthorized.platform.dropped");
+   private static final Counter UNAUTHORIZED_PROTOCOL_DROPPED = METRICS.counter("unauthorized.protocol.dropped");
+   private static final Counter ADMIN_ONLY_REJECTED = METRICS.counter("adminonly.rejected");
+   private static final Counter PLACE_MISMATCH_PLATFORM = METRICS.counter("place.mismatch.platform");
+   private static final Counter PLACE_MISMATCH_PROTOCOL = METRICS.counter("place.mismatch.protocol");
 
    public static final String ADMIN_ADDRESS_PROP = "hub.bridge.admin.address.predicate";
    public static final String ADMIN_ONLY_MESSAGES_PROP = "hub.bridge.admin.only.message.predicate";
@@ -64,7 +76,13 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
       Address messageAddress = msg.getSource();
 
       if(!Objects.equals(hubId, messageAddress.getHubId())) {
-         logger.debug("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]", messageAddress, messageAddress.getHubId(), session);
+         SOURCE_MISMATCH.inc();
+         // warn once per session so a misbehaving hub can't flood the log at message rate
+         if(session.firstSourceMismatch()) {
+            logger.warn("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]; further mismatches on this session log at debug", messageAddress, messageAddress.getHubId(), session);
+         } else {
+            logger.debug("Dropping message because source address [{}] with hubId [{}] does not match session address [{}]", messageAddress, messageAddress.getHubId(), session);
+         }
          return false;
       }
 
@@ -90,6 +108,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
          return true;
       }
 
+      UNAUTHORIZED_PLATFORM_DROPPED.inc();
       logger.debug("Dropping message because hub is not authorized yet: {}", session);
       session.metrics().incPlatformMsgDiscardedCounter();
       return false;
@@ -97,7 +116,11 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
 
    @Override
    public boolean acceptFromHub(HubSession session, ProtocolMessage msg) {
-      return session.getState() == State.AUTHORIZED;
+      if(session.getState() == State.AUTHORIZED) {
+         return true;
+      }
+      UNAUTHORIZED_PROTOCOL_DROPPED.inc();
+      return false;
    }
 
    @Override
@@ -114,6 +137,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
       }
 
       if (adminOnlyMessage.apply(msg.getMessageType())) {
+         ADMIN_ONLY_REJECTED.inc();
          logger.warn("Rejecting admin only message from non-admin client: [{}]", msg.getMessageType());
          if (msg.isRequest()) {
             MessageBody body = AuthzUtil.createUnauthorizedEvent();
@@ -128,6 +152,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
          return true;
       }
 
+      PLACE_MISMATCH_PLATFORM.inc();
       logger.warn("Rejecting message with incorrect place header [{}] from [{}]", placeId, msg.getSource());
       return false;
    }
@@ -139,6 +164,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
          return true;
       }
 
+      PLACE_MISMATCH_PROTOCOL.inc();
       logger.warn("Rejecting protocol message with incorrect place header [{}] from [{}]", placeId, msg.getSource());
       return false;
    }

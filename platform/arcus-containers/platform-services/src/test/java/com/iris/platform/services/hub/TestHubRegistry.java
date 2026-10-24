@@ -316,6 +316,30 @@ public class TestHubRegistry extends IrisMockTestCase {
    }
    
    @Test
+   public void testStaleHeartbeatGauge() throws Exception {
+      expectConnected(hub1.getId());
+      EasyMock.expect(mockClock.millis()).andReturn(1000L).once(); // partitions assigned
+      EasyMock.expect(mockClock.millis()).andReturn(2000L).once(); // connected() HubState
+      EasyMock.expect(mockClock.millis()).andReturn(2000L).once(); // heartbeat
+      EasyMock.expect(mockClock.millis()).andReturn(3000L).once(); // stale check: still fresh
+      EasyMock.expect(mockClock.millis()).andReturn(2000L + TimeUnit.SECONDS.toMillis(121)).once(); // stale check: past the 120s default
+      expectStreamPartitionAndReturn(0, ImmutableList.of());
+      replay();
+
+      PartitionChangedEvent event = new PartitionChangedEvent();
+      event.setAddedPartitions(ImmutableSet.of(0));
+      event.setRemovedPartitions(ImmutableSet.of());
+      event.setPartitions(ImmutableSet.of(new DefaultPartition(0)));
+      registry.onPartitionsChanged(event);
+
+      registry.online(hub1.getId(), 0, "hub-bridge-0");
+      assertEquals(0, registry.getStaleHeartbeatHubs());
+      assertEquals(1, registry.getStaleHeartbeatHubs());
+
+      verify();
+   }
+
+   @Test
    public void testOffline() throws Exception {
       EasyMock.expect(mockClock.millis()).andReturn(1000L).once(); // partitions assigned
       EasyMock.expect(mockClock.millis()).andReturn(1001L).once(); // timeout check

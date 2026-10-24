@@ -34,9 +34,16 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import org.apache.shiro.authc.AccountException;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.CredentialsException;
+import org.apache.shiro.authc.DisabledAccountException;
+import org.apache.shiro.authc.ExcessiveAttemptsException;
+import org.apache.shiro.authc.ExpiredCredentialsException;
+import org.apache.shiro.authc.LockedAccountException;
 import org.apache.shiro.authc.RememberMeAuthenticationToken;
+import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.session.UnknownSessionException;
 import org.slf4j.Logger;
@@ -115,7 +122,7 @@ public class ShiroAuthenticator implements Authenticator {
       if (token == null) {
          logger.warn("Could not extract authentication token from request - Content-Type: [{}], body bytes: {}",
                req.headers().get("Content-Type"), req.content().readableBytes());
-         metrics.incAuthenticationFailedCounter();
+         metrics.incAuthenticationFailedCounter("token_extraction");
          return new DefaultFullHttpResponse(HTTP_1_1, BAD_REQUEST);
       }
       return authenticateRequest(channel, token, null);
@@ -128,7 +135,7 @@ public class ShiroAuthenticator implements Authenticator {
          logger.trace("Generating subject.");
          Client currentUser = clientFactory.get(channel);
          if (currentUser == null) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter("unavailable");
             return new DefaultFullHttpResponse(HTTP_1_1, SERVICE_UNAVAILABLE);
          }
 
@@ -136,14 +143,16 @@ public class ShiroAuthenticator implements Authenticator {
           *  user is logging in again, so if currently authenticated,
           *  end that authentication and start a new one
           */
+         boolean displaced = false;
          try {
             if (currentUser.isAuthenticated()) {
                logger.debug("Logging out old session for [{}] due to new login request", currentUser.getPrincipalName());
                currentUser.logout();
+               displaced = true;
             }
          }
          catch (AuthenticationException | UnknownSessionException uae) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter(failureCause(uae));
             logger.error(uae.getMessage(), uae);
             DefaultCookie nettyCookie = expireCookie();
             return createErrorResponse(nettyCookie);
@@ -167,12 +176,16 @@ public class ShiroAuthenticator implements Authenticator {
             else{
                response.content().writeBytes(responseContentIfSuccess);
             }
+            if (displaced) {
+               // count the displacement only once the replacement login has succeeded
+               metrics.incAuthenticationDisplacedCounter();
+            }
             metrics.incAuthenticationSucceededCounter();
             logger.debug("Login request for {} processed sucessfully.", currentUser.getPrincipalName());
             return response;
          }
          catch (AuthenticationException | UnknownSessionException uae) {
-            metrics.incAuthenticationFailedCounter();
+            metrics.incAuthenticationFailedCounter(failureCause(uae));
             // these are really common, log them at a low-level
             logger.debug("Login failed", uae);
             DefaultCookie nettyCookie = expireCookie();
@@ -181,6 +194,55 @@ public class ShiroAuthenticator implements Authenticator {
       } finally {
          timerContext.stop();
       }
+   }
+
+   /**
+    * Maps an authentication failure to a stable metric name segment. Unknown
+    * accounts are counted separately from bad credentials so enumeration and
+    * credential-stuffing patterns are distinguishable from targeted guessing.
+    * A realm may wrap the specific failure in a generic AuthenticationException,
+    * so the cause chain is searched for the most specific type. (When multiple
+    * realms are configured Shiro discards realm exceptions entirely and failures
+    * land in "other"; the realm-level security.login.* counters stay accurate
+    * in that case.)
+    */
+   private static String failureCause(Exception e) {
+      int depth = 0;
+      for (Throwable t = e; t != null && depth < 8; t = t.getCause(), depth++) {
+         String cause = causeName(t);
+         if (cause != null) {
+            return cause;
+         }
+      }
+      return "other";
+   }
+
+   private static String causeName(Throwable e) {
+      if (e instanceof UnknownAccountException) {
+         return "unknown_account";
+      }
+      if (e instanceof ExpiredCredentialsException) {
+         return "expired_credentials";
+      }
+      if (e instanceof CredentialsException) {
+         return "bad_credentials";
+      }
+      if (e instanceof LockedAccountException) {
+         return "locked_account";
+      }
+      if (e instanceof DisabledAccountException) {
+         return "disabled_account";
+      }
+      if (e instanceof ExcessiveAttemptsException) {
+         return "excessive_attempts";
+      }
+      if (e instanceof AccountException) {
+         return "account_error";
+      }
+      if (e instanceof UnknownSessionException) {
+         return "unknown_session";
+      }
+      return null;
    }
 
    public AuthenticationToken extractToken(Channel channel, FullHttpRequest req) {

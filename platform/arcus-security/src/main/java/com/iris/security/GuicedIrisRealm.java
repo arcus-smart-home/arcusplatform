@@ -41,9 +41,12 @@ import org.apache.shiro.subject.PrincipalCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.iris.metrics.IrisMetricSet;
+import com.iris.metrics.IrisMetrics;
 import com.iris.security.credentials.CredentialsHashingStrategy;
 import com.iris.security.dao.AuthenticationDAO;
 import com.iris.security.dao.AuthorizationDAO;
@@ -70,6 +73,16 @@ public class GuicedIrisRealm extends AuthorizingRealm {
    //TODO - complete JavaDoc
 
    private static final Logger log = LoggerFactory.getLogger(GuicedIrisRealm.class);
+
+   // failure causes are counted here rather than in the bridges because Shiro's
+   // multi-realm authenticator replaces realm exceptions with a generic one,
+   // hiding the cause; successful logins are counted by the bridge once the
+   // login actually completes
+   private static final IrisMetricSet METRICS = IrisMetrics.metrics("security.login");
+   private static final Counter LOGIN_UNKNOWN_ACCOUNT = METRICS.counter("failed.unknown_account");
+   private static final Counter LOGIN_BAD_CREDENTIALS = METRICS.counter("failed.bad_credentials");
+   private static final Counter LOGIN_NO_USERNAME = METRICS.counter("failed.no_username");
+   private static final Counter LOGIN_ERROR = METRICS.counter("failed.error");
 
    /*--------------------------------------------
    |    I N S T A N C E   V A R I A B L E S    |
@@ -106,6 +119,7 @@ public class GuicedIrisRealm extends AuthorizingRealm {
       // Null username is invalid
       if (username == null) {
       	log.warn("Null usernames are not allowed");
+         LOGIN_NO_USERNAME.inc();
          throw new AccountException("Null usernames are not allowed by this realm.");
       }
 
@@ -115,6 +129,7 @@ public class GuicedIrisRealm extends AuthorizingRealm {
 
          if (login == null) {
          	log.warn("No account found for user [" + username + "]");
+            LOGIN_UNKNOWN_ACCOUNT.inc();
             throw new UnknownAccountException("No account found for user [" + username + "]");
          }
 
@@ -124,7 +139,11 @@ public class GuicedIrisRealm extends AuthorizingRealm {
             info.setCredentialsSalt(credentialHashStrategy.saltAsBytes(login.getPasswordSalt()));
          }
 
+      } catch (UnknownAccountException e) {
+         // propagate unwrapped so single-realm bridges can classify the failure cause
+         throw e;
       } catch (Exception e) {
+         LOGIN_ERROR.inc();
          final String message = "There was an error while authenticating user [" + username + "]";
          log.error(message, e);
          // Rethrow any SQL errors as an authentication exception
@@ -133,6 +152,16 @@ public class GuicedIrisRealm extends AuthorizingRealm {
 
       log.debug("Got AuthenticationInfo from Realm {}", info);
       return info;
+   }
+
+   @Override
+   protected void assertCredentialsMatch(AuthenticationToken token, AuthenticationInfo info) throws AuthenticationException {
+      try {
+         super.assertCredentialsMatch(token, info);
+      } catch (AuthenticationException e) {
+         LOGIN_BAD_CREDENTIALS.inc();
+         throw e;
+      }
    }
 
    /**

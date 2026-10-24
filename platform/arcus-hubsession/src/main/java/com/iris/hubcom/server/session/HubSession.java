@@ -21,6 +21,7 @@ package com.iris.hubcom.server.session;
 import io.netty.channel.Channel;
 
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -52,6 +53,10 @@ public class HubSession extends DefaultSessionImpl {
    private volatile String connType;
    private volatile String simId;
    private volatile String firmwareVersion;
+   // setState fires the session listener on every call, so onAuthorized can run
+   // more than once per session; this lets listeners act only on the first one
+   private final AtomicBoolean authorized = new AtomicBoolean(false);
+   private final AtomicBoolean sourceMismatchWarned = new AtomicBoolean(false);
 
    /**
     * @param channel
@@ -86,6 +91,21 @@ public class HubSession extends DefaultSessionImpl {
    public void setState(State state) {
       this.state = state;
       this.lastStateChange = new Date();
+   }
+
+   /**
+    * True the first time this is called, false afterwards.
+    */
+   public boolean firstAuthorization() {
+      return authorized.compareAndSet(false, true);
+   }
+
+   /**
+    * True the first time this is called, so a source-address mismatch can be
+    * logged loudly once per session rather than once per dropped message.
+    */
+   public boolean firstSourceMismatch() {
+      return sourceMismatchWarned.compareAndSet(false, true);
    }
 
    public void setConnectionType(String connType) {

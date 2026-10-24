@@ -16,14 +16,18 @@
 package com.iris.bridge.server.session;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -118,6 +122,22 @@ public class DefaultSessionRegistryImpl implements SessionRegistry  {
    private static void countDestroyed(Session session) {
       if(session instanceof DefaultSessionImpl) {
          ((DefaultSessionImpl) session).countDestroyed();
+         recordDuration(session);
+      }
+   }
+
+   // covers both the destroy path and a reconnect replacing an old session;
+   // a replaced session's later destroy() fails the map remove, so it is
+   // never recorded twice
+   private static void recordDuration(Session session) {
+      Date start = session.getSessionStartTime();
+      if(start == null) {
+         return;
+      }
+      long durationMs = System.currentTimeMillis() - start.getTime();
+      SessionMetrics.DURATION_SEC.update(TimeUnit.MILLISECONDS.toSeconds(durationMs));
+      if(durationMs < SessionMetrics.SHORT_SESSION_MS) {
+         SessionMetrics.SHORT_LIVED.inc();
       }
    }
    
@@ -127,6 +147,12 @@ public class DefaultSessionRegistryImpl implements SessionRegistry  {
     */
    private static class SessionMetrics {
       private static final AtomicReference<DefaultSessionRegistryImpl> REGISTRY = new AtomicReference<>();
+
+      // sessions shorter than this at destroy count as short-lived; a sustained
+      // rate of these means a client or hub is stuck in a connect/drop loop
+      static final long SHORT_SESSION_MS = TimeUnit.SECONDS.toMillis(60);
+      static final Histogram DURATION_SEC = IrisMetrics.metrics("bridge.sessions").histogram("duration");
+      static final Counter SHORT_LIVED = IrisMetrics.metrics("bridge.sessions").counter("shortlived");
 
       static {
          IrisMetrics.metrics("bridge.sessions").gauge("active", SessionMetrics::getSessionCount, REGISTRY);

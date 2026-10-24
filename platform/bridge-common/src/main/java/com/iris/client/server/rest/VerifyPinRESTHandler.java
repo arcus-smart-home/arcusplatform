@@ -41,6 +41,7 @@ import com.iris.security.authz.AuthorizationGrant;
 @Singleton
 @HttpPost("/person/VerifyPin")
 public class VerifyPinRESTHandler extends BasePinRESTHandler {
+   private final BridgeMetrics metrics;
 
    @Inject
    VerifyPinRESTHandler(
@@ -54,6 +55,7 @@ public class VerifyPinRESTHandler extends BasePinRESTHandler {
    		RESTHandlerConfig restHandlerConfig
 	) {
       super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(VerifyPinRESTHandler.class, metrics), authorizer, restHandlerConfig, true);
+      this.metrics = metrics;
    }
 
    @Override
@@ -64,8 +66,12 @@ public class VerifyPinRESTHandler extends BasePinRESTHandler {
       boolean isMatching = !StringUtils.isBlank(pin) && pin.equals(currentPin);
 
       if (isMatching) {
+         metrics.incPinVerifySucceededCounter();
          return buildResponseBody(true);
       } else {
+         // every failure surfaces as a generic HTTP 500, so this counter is the
+         // only visible signal of someone guessing PINs
+         metrics.incPinVerifyMismatchedCounter();
          throw new ErrorEventException("MismatchedPins", "the pins do not match");
       }
    }

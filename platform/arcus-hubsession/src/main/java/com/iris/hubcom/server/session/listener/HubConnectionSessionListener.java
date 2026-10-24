@@ -23,10 +23,12 @@ import java.net.SocketAddress;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.iris.bridge.server.session.Session;
@@ -44,6 +46,7 @@ import com.iris.messages.capability.HubConnectionCapability;
 import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.messages.model.Place;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.metrics.IrisMetrics;
 import com.iris.platform.hub.registration.HubRegistrationRegistry;
 import com.iris.platform.partition.Partitioner;
 import com.iris.population.PlacePopulationCacheManager;
@@ -55,6 +58,11 @@ import io.netty.channel.Channel;
  */
 public class HubConnectionSessionListener extends HubSessionAdapter {
    private static final Logger logger = LoggerFactory.getLogger(HubConnectionSessionListener.class);
+
+   // socket accept to AUTHORIZED; a climbing latency means hubs connect but get
+   // stuck handshaking or registering before they come online
+   private static final Timer AUTHORIZED_LATENCY =
+         IrisMetrics.metrics("bridge.hub.sessions").timer("authorized.latency");
 
    private final Partitioner partitioner; // just need this for the id, kind of annoying
    private final PlatformMessageBus platformBus;
@@ -92,6 +100,9 @@ public class HubConnectionSessionListener extends HubSessionAdapter {
    @Override
    public void onAuthorized(HubSession session) {
       super.onAuthorized(session);
+      if(session.firstAuthorization() && session.getSessionStartTime() != null) {
+         AUTHORIZED_LATENCY.update(System.currentTimeMillis() - session.getSessionStartTime().getTime(), TimeUnit.MILLISECONDS);
+      }
       broadcastState(session, HubConnectionCapability.STATE_ONLINE);
       broadcast(session, HubCapability.HubConnectedEvent.instance());
 
