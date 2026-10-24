@@ -29,10 +29,8 @@ import com.iris.notification.upstream.UpstreamNotificationResponder;
 import com.iris.platform.notification.Notification;
 import com.iris.platform.notification.NotificationMethod;
 
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-
 import java.io.File;
+import java.util.concurrent.ExecutionException;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
@@ -74,8 +72,11 @@ public class PushyApnsSender implements ApnsSender {
     public void shutdown() {
         try {
             logger.info("Shutting down APNS provider.");
-            apnsClient.close().await();
+            apnsClient.close().get();
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warn("APNS provider failed to shut down gracefully.", e);
+        } catch (ExecutionException e) {
             logger.warn("APNS provider failed to shut down gracefully.", e);
         }
     }
@@ -86,21 +87,41 @@ public class PushyApnsSender implements ApnsSender {
         PushNotificationFuture<SimpleApnsPushNotification, PushNotificationResponse<SimpleApnsPushNotification>>
                 sendNotificationFuture = apnsClient.sendNotification(new IrisApnsPushNotification(notification, token, topic, payload));
 
-        sendNotificationFuture.addListener((GenericFutureListener<Future<PushNotificationResponse>>) future -> {
-            final PushNotificationResponse response = future.getNow();
-            if (response.isAccepted()) {
-                upstreamResponder.handleHandOff(notification);
-            } else {
-                logger.warn("Notification rejected by the APNs gateway: " +
-                        response.getRejectionReason());
+        sendNotificationFuture.whenComplete(
+              (response, cause) -> handleResponse(upstreamResponder, notification, token, response, cause));
+    }
 
-                if (response.getTokenInvalidationTimestamp() != null) {
-                    upstreamResponder.handleDeviceUnregistered(NotificationMethod.APNS, token);
-                } else {
-                    upstreamResponder.handleError(notification, true, response.getRejectionReason());
-                }
-            }
-        });
+    /**
+     * Package-private so the outcome handling can be tested without a client,
+     * which would otherwise need a real Apple certificate to construct.
+     */
+    static void handleResponse(
+            UpstreamNotificationResponder upstreamResponder,
+            Notification notification,
+            String token,
+            PushNotificationResponse<SimpleApnsPushNotification> response,
+            Throwable cause) {
+
+        if (cause != null) {
+            // the notification never reached Apple at all
+            logger.warn("Failed to send notification to the APNs gateway.", cause);
+            upstreamResponder.handleError(notification, true, cause.getMessage());
+            return;
+        }
+
+        if (response.isAccepted()) {
+            upstreamResponder.handleHandOff(notification);
+            return;
+        }
+
+        String rejectionReason = response.getRejectionReason().orElse("unknown");
+        logger.warn("Notification rejected by the APNs gateway: {}", rejectionReason);
+
+        if (response.getTokenInvalidationTimestamp().isPresent()) {
+            upstreamResponder.handleDeviceUnregistered(NotificationMethod.APNS, token);
+        } else {
+            upstreamResponder.handleError(notification, true, rejectionReason);
+        }
     }
 }
 
