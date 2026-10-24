@@ -21,7 +21,6 @@ package com.iris.core.messaging.kafka;
 import com.google.inject.Inject;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.messaging.MessagesModule;
-import com.iris.core.platform.AnalyticsMessageBus;
 import com.iris.core.platform.IntraServiceMessageBus;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.protocol.ProtocolMessageBus;
@@ -54,7 +53,6 @@ public class KafkaModule extends AbstractIrisModule {
 
 		bind(PlatformMessageBus.class).to(KafkaPlatformMessageBus.class).asEagerSingleton();;
 		bind(ProtocolMessageBus.class).to(KafkaProtocolMessageBus.class).asEagerSingleton();;
-		bind(AnalyticsMessageBus.class).to(KafkaAnalyticsMessageBus.class).asEagerSingleton();
 		bind(IntraServiceMessageBus.class).to(KafkaIntraServiceMessageBus.class).asEagerSingleton();;
 	}
 	

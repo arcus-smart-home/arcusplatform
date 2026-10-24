@@ -60,7 +60,6 @@ This contains common code used within platform as well as all containers that ge
 * **arcus-containers/rule-service**:  Microservice that runs the Arcus rule engine
 * **arcus-containers/scheduler-service**:  Microservice that runs and enforcees any scheduling that end users have configured
 * **arcus-containers/subsystem-service**:  Microservice that runs all primary business logic for the end users, including security/safety alarms, irrigation, lights & switches, doors and locks, etc.
-* **arcus-containers/tag-service**:  Microservice that accepts tagged messages from web and mobile clients for tracking metrics around application usage
 * **arcus-hubsession**:  Code used by hub bridge for managing hub sessions
 * **arcus-info**:  Common code used by Arcus applications providing infromation such as the version
 * **arcus-khakis**:  Utilities for building/deploying docker containers for developers

@@ -43,7 +43,6 @@ import com.iris.common.rule.RuleContext;
 import com.iris.common.rule.action.stateful.StatefulAction;
 import com.iris.common.rule.condition.Condition;
 import com.iris.common.scheduler.ExecutorScheduler;
-import com.iris.core.platform.AnalyticsMessageBus;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.PlaceCapability;
@@ -54,7 +53,6 @@ import com.iris.platform.rule.RuleDao;
 import com.iris.platform.rule.RuleDefinition;
 import com.iris.platform.rule.RuleEnvironment;
 import com.iris.platform.rule.RuleEnvironmentDao;
-import com.iris.platform.rule.analytics.SimpleRuleAnalyticsWrapper;
 import com.iris.platform.rule.catalog.RuleCatalog;
 import com.iris.platform.rule.catalog.RuleTemplate;
 import com.iris.platform.rule.service.RuleCatalogLoader;
@@ -83,7 +81,6 @@ public class DefaultPlaceExecutorFactory implements PlaceExecutorFactory {
    private String ruleCascadeMode = "DISABLE";
 
    private final PlatformMessageBus platformBus;
-   private final AnalyticsMessageBus analyticsBus;
    private final RuleDao ruleDefDao;
    private final RuleEnvironmentDao ruleEnvDao;
    private final RuleCatalogLoader ruleCatalogLoader;
@@ -97,7 +94,6 @@ public class DefaultPlaceExecutorFactory implements PlaceExecutorFactory {
    @Inject
    public DefaultPlaceExecutorFactory(
          PlatformMessageBus platformBus,
-         AnalyticsMessageBus analyticsBus,
          RuleDao ruleDefDao,
          RuleEnvironmentDao ruleEnvDao,
          RuleCatalogLoader ruleCatalogLoader,
@@ -107,7 +103,6 @@ public class DefaultPlaceExecutorFactory implements PlaceExecutorFactory {
          PlaceExecutorRegistry registry
    ) {
       this.platformBus = platformBus;
-      this.analyticsBus = analyticsBus;
       this.ruleDefDao = ruleDefDao;
       this.ruleEnvDao = ruleEnvDao;
       this.ruleCatalogLoader = ruleCatalogLoader;
@@ -310,7 +305,7 @@ public class DefaultPlaceExecutorFactory implements PlaceExecutorFactory {
       Condition condition = definition.createCondition(environment);
       StatefulAction action = definition.createAction(environment);
       
-      return new SimpleRuleAnalyticsWrapper(analyticsBus, definition, context, condition, action, ruleAddress);
+      return new TimedSimpleRule(definition, context, condition, action, ruleAddress);
    }
 
 }
