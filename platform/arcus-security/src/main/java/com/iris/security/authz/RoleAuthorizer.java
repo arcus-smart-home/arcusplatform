@@ -70,7 +70,7 @@ public class RoleAuthorizer implements Authorizer {
       case NotificationCapability.NotifyCustomRequest.NAME:
       case NotificationCapability.EmailRequest.NAME:
    		this.metrics.onUnauthorizedSupport();
-         return false;
+         return deny("supportrequest", placeId, null, message);
       
       // requires owner
       //// billing
@@ -96,7 +96,7 @@ public class RoleAuthorizer implements Authorizer {
          }
          else {
             this.metrics.onUnauthorizedNonAccountHolder();
-            return false;
+            return deny("notowner", placeId, targetPlace, message);
          }
          
       // open to anyone
@@ -122,7 +122,7 @@ public class RoleAuthorizer implements Authorizer {
       case PersonCapability.SetSecurityAnswersRequest.NAME:
          if(selfRequired && !isSelf(message)) {
             this.metrics.onUnauthorizedWrongPerson();
-            return false;
+            return deny("wrongperson", placeId, null, message);
          }
          else {
             this.metrics.onAuthorized();
@@ -134,7 +134,7 @@ public class RoleAuthorizer implements Authorizer {
       // require a place header
       if(placeHeaderRequired && StringUtils.isEmpty(placeId)) {
          this.metrics.onUnauthorizedNoPlace();
-         return false;
+         return deny("noplace", placeId, null, message);
       }
       
       // service requests
@@ -160,7 +160,7 @@ public class RoleAuthorizer implements Authorizer {
       		}
       		if(placeUuid == null || !hasAccessToPlace(placeUuid, context)) {
                this.metrics.onUnauthorizedWrongPlace();
-               return false;
+               return deny("wrongplace", placeId, requestedPlaceId, message);
             }
       		break;
       		
@@ -177,12 +177,19 @@ public class RoleAuthorizer implements Authorizer {
          UUID placeUuid = (UUID) message.getDestination().getId();
          if(!hasAccessToPlace(placeUuid, context)) {
       		this.metrics.onUnauthorizedWrongPlace();
-      		return false;
+      		return deny("wrongplace", placeId, placeUuid, message);
          }
       }
       
       this.metrics.onAuthorized();
       return true;
+   }
+
+   // reason matches the bridge.authz.unauthorized.<reason> counter so log lines and metrics line up
+   private boolean deny(String reason, String activePlace, Object requestedPlace, PlatformMessage message) {
+      logger.warn("authz denied reason={} type={} actor={} destination={} activePlace={} requestedPlace={}",
+            reason, message.getMessageType(), message.getActor(), message.getDestination(), activePlace, requestedPlace);
+      return false;
    }
 
    private boolean isSelf(PlatformMessage message) {
