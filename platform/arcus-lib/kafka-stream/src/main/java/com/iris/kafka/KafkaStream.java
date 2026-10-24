@@ -17,10 +17,12 @@ package com.iris.kafka;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
@@ -28,19 +30,23 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import kafka.javaapi.consumer.SimpleConsumer;
-import kafka.message.Message;
-
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
-import com.iris.kafka.KafkaLeaderReader.ScanSearch;
 import com.iris.kafka.util.ImmutableMapEntry;
 
 public class KafkaStream<K, V> {
+   /** Start at the oldest retained message. */
+   public static final Instant EARLIEST = Instant.ofEpochMilli(KafkaStreamReader.EARLIEST_TIME);
+   /** Start at the next message produced. */
+   public static final Instant LATEST = Instant.ofEpochMilli(KafkaStreamReader.LATEST_TIME);
+
    private KafkaConsumerConfig config;
    // TODO optional?
    private Function<ByteBuffer, K> keyDeserializer;
@@ -143,13 +149,13 @@ public class KafkaStream<K, V> {
       final BiPredicate<? super K, ? super V> keepGoing = this.keepGoing.orElse((k, v) -> true);
       new KafkaStreamReader(
             config,
-            (tap, message) -> {
+            (tap, record) -> {
                K key = null;
                V value;
-               if(message.hasKey()) {
-                  key = keyDeserializer.apply(message.key());
+               if(record.key() != null) {
+                  key = keyDeserializer.apply(ByteBuffer.wrap(record.key()));
                }
-               value = valueDeserializer.apply(message.payload());
+               value = valueDeserializer.apply(ByteBuffer.wrap(record.value()));
                if(!keepGoing.test(key, value)) {
                   return false;
                }
@@ -173,8 +179,25 @@ public class KafkaStream<K, V> {
       return forEach((k, v) -> consumer.accept(v));
    }
 
-   private SimpleConsumer connect(KafkaConsumerConfig config) {
-      return new SimpleConsumer(config.getHost(), config.getPort(), config.getSoTimeoutMs(), config.getBufferSize(), config.getClientId());
+   private org.apache.kafka.clients.consumer.Consumer<byte[], byte[]> connect(KafkaConsumerConfig config) {
+      List<String> bootstrap = new ArrayList<>();
+      bootstrap.add(config.getBroker().toString());
+      for(HostAndPort override: config.getBrokerOverrides()) {
+         bootstrap.add(override.toString());
+      }
+
+      Properties props = new Properties();
+      props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, String.join(",", bootstrap));
+      props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+      props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+      props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+      props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+      props.put(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, config.getFetchSize());
+      props.put(ConsumerConfig.RECEIVE_BUFFER_CONFIG, config.getBufferSize());
+      if(config.getClientId() != null) {
+         props.put(ConsumerConfig.CLIENT_ID_CONFIG, config.getClientId());
+      }
+      return new org.apache.kafka.clients.consumer.KafkaConsumer<>(props);
    }
    // TODO stream function
 
@@ -310,13 +333,11 @@ public class KafkaStream<K, V> {
       }
 
       public Builder<K, V> scanToEarliest() {
-         Instant ts = Instant.ofEpochMilli(kafka.api.OffsetRequest.EarliestTime());
-         return scanBefore(ts);
+         return scanBefore(EARLIEST);
       }
 
       public Builder<K, V> scanToLatest() {
-         Instant ts = Instant.ofEpochMilli(kafka.api.OffsetRequest.LatestTime());
-         return scanBefore(ts);
+         return scanBefore(LATEST);
       }
 
       public Builder<K, V> scanBefore(@Nullable Instant timestamp) {
@@ -339,24 +360,24 @@ public class KafkaStream<K, V> {
          return this;
       }
 
-      private <C extends Comparable<? super C>> Function<Message, C> wrapMapGetter(Function<Map.Entry<K, V>, C> delegate) {
-         return (message) -> {
-            K key = keyDeserializer.apply(message.key());
-            V value = valueDeserializer.apply(message.buffer());
+      private <C extends Comparable<? super C>> Function<ConsumerRecord<byte[], byte[]>, C> wrapMapGetter(Function<Map.Entry<K, V>, C> delegate) {
+         return (record) -> {
+            K key = record.key() == null ? null : keyDeserializer.apply(ByteBuffer.wrap(record.key()));
+            V value = valueDeserializer.apply(ByteBuffer.wrap(record.value()));
             return delegate.apply(new ImmutableMapEntry<>(key, value));
          };
       }
 
-      private <C extends Comparable<? super C>> Function<Message, C> wrapKeyGetter(Function<? super K, C> delegate) {
-         return (message) -> {
-            K key = keyDeserializer.apply(message.key());
+      private <C extends Comparable<? super C>> Function<ConsumerRecord<byte[], byte[]>, C> wrapKeyGetter(Function<? super K, C> delegate) {
+         return (record) -> {
+            K key = record.key() == null ? null : keyDeserializer.apply(ByteBuffer.wrap(record.key()));
             return delegate.apply(key);
          };
       }
 
-      private <C extends Comparable<? super C>> Function<Message, C> wrapValueGetter(Function<? super V, C> delegate) {
-         return (message) -> {
-            V value = valueDeserializer.apply(message.payload());
+      private <C extends Comparable<? super C>> Function<ConsumerRecord<byte[], byte[]>, C> wrapValueGetter(Function<? super V, C> delegate) {
+         return (record) -> {
+            V value = valueDeserializer.apply(ByteBuffer.wrap(record.value()));
             return delegate.apply(value);
          };
       }

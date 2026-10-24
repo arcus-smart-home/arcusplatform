@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 /**
- * 
+ *
  */
 package com.iris.kafka;
 
-import kafka.common.TopicAndPartition;
-import kafka.message.Message;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
 
 /**
- * 
+ *
  */
 public interface KafkaConsumer {
 
-   boolean apply(TopicAndPartition tap, Message message);
+   /**
+    * @return false to stop reading the given partition.
+    */
+   boolean apply(TopicPartition tap, ConsumerRecord<byte[], byte[]> record);
 }
-

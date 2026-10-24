@@ -62,15 +62,6 @@ updates:
       # javax.inject transitively. Minor and patch on 6.x are still welcome.
       - dependency-name: "com.google.inject*:*"
         update-types: ["version-update:semver-major"]
-
-      # Kafka is pinned by platform/arcus-lib/kafka-stream, which is written
-      # against the old Scala client: kafka.javaapi.consumer.SimpleConsumer,
-      # kafka.api.FetchRequestBuilder, kafka.message.ByteBufferMessageSet,
-      # kafka.cluster.Broker. None of those survive into the 2.x line, which is
-      # why eyekatkafka sits on 0.10.0.0 while everything else is on 2.8.2.
-      # Unpinning means porting kafka-stream to the modern consumer API.
-      - dependency-name: "org.apache.kafka:*"
-        update-types: ["version-update:semver-major"]
     groups:
       # Keep coupled artifacts in one PR, and keep unrelated ones out of it, so
       # that one stuck library cannot hold the rest hostage. The catch-all below

@@ -23,6 +23,7 @@ import java.time.Instant;
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.ParameterException;
+import com.iris.kafka.KafkaStream;
 import com.iris.kafka.util.Instants;
 
 /**
@@ -35,11 +36,11 @@ public class StartTimeConverter implements IStringConverter<Instant>, IParameter
    @Override
    public Instant convert(String value) {
       if(EARLIEST.equalsIgnoreCase(value)) {
-         return Instant.ofEpochMilli(kafka.api.OffsetRequest.EarliestTime());
+         return KafkaStream.EARLIEST;
       }
       
       if(LATEST.equalsIgnoreCase(value)) {
-         return Instant.ofEpochMilli(kafka.api.OffsetRequest.LatestTime());
+         return KafkaStream.LATEST;
       }
       
       try {
