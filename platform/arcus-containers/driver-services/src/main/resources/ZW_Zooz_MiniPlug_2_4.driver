@@ -60,6 +60,7 @@ matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0003, 'ZWAV:P
 capabilities    DevicePower, Switch, PowerUse
 
 importCapability 'zwave/GenericZWaveVersion'
+importCapability 'zwave/GenericZWaveMeter'
 
 
 DevicePower.source               DevicePower.SOURCE_LINE
@@ -217,41 +218,14 @@ onZWaveMessage.configuration.report {
 
 
 onZWaveMessage.meter.report {
-	log.trace "Meter Report: {}", message
-
-	byte meterType = message.command.get('MeterType') & 0x1F	// only lower 5 bits
-	byte scaleByte = message.command.get('Scale')
-	
-	def prec = (scaleByte >> 5)					// bits 5-7 are precision
-	def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
-	def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
-	log.trace "MeterType: {}, Precision: {}, Scale: {}, Size: {}", meterType, prec, scale, vSize
-
-	if ((1 == meterType) && (4 == vSize)) {		// if electrical meter, and device sometimes reports invalid values that are only 2 bytes long, ignore those and only process values 4 bytes long
-		// read int value
-		int val1 = message.command.get('Value1')
-		if (0 > val1) val1 = 256 + val1
-		val1 *= 256 * 256 * 256
-		int val2 = message.command.get('Value2')
-		if (0 > val2) val2 = 256 + val2
-		val2 *= 256 * 256
-		int val3 = message.command.get('Value3')
-		if (0 > val3) val3 = 256 + val3
-		val3 *= 256
-		int val4 = message.command.get('Value4')
-		if (0 > val4) val4 = 256 + val4
-		int val = val1 + val2 + val3 + val4
-		log.trace "Meter Val: {}", val
-
-		if (0 == scale) {			// kWh cumulative reading reported
-			double kwh = val / Math.pow( 10, prec )
-			log.trace "Cumulative kWh: {}", kwh
-			PowerUse.cumulative kwh * 1000			// capability units are Watt Hours, not kWh
-		} else if (2 == scale) {		// Watts instantanious power reading reported
-			double watts = val / Math.pow( 10, prec )
-			log.trace "Instantaneous Watts: {}", watts
-			PowerUse.instantaneous watts
-		}
+	def report = GenericZWaveMeter.decodeElectricReport(this, 'Zooz Mini Plug', message)
+	if (null == report || 4 != report.size) {	// device sometimes reports invalid values that are only 2 bytes long, so only process 4 byte values
+		return
+	}
+	if (GenericZWaveMeter.isEnergy(report)) {
+		PowerUse.cumulative report.value * 1000		// capability units are Watt Hours, not kWh
+	} else {
+		PowerUse.instantaneous report.value
 	}
 }
 

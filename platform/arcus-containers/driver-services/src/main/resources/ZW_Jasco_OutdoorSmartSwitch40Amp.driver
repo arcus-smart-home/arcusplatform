@@ -33,6 +33,7 @@ capabilities	DevicePower, Switch, PowerUse
 
 importCapability 'zwave/GenericZWaveSwitch'
 importCapability 'zwave/GenericZWaveVersion'
+importCapability 'zwave/GenericZWaveMeter'
 
 // Generic Device Class:    GENERIC_TYPE_SWITCH_BINARY
 // Specific Device Class:   SPECIFIC_TYPE_POWER_SWITCH_BINARY
@@ -162,45 +163,14 @@ onZWaveMessage {
 
 
 onZWaveMessage.meter.report {
-	log.debug "{} sent meter report: {}", DEVICE_NAME, message
-	byte[] bytes = message.command.recvBytes
-	log.debug "MsgBytes: ${bytes}"
-
-	def byte meterType = message.command.get('MeterType')
-	def byte scaleByte = message.command.get('Scale')
-
-	if (6 <= bytes.length) {
-		// read int value
-		def int val1 = bytes[2]
-		if (0 > val1) val1 = 256 + val1
-		val1 *= 256 * 256 * 256
-		def int val2 = bytes[3]
-		if (0 > val2) val2 = 256 + val2
-		val2 *= 256 * 256
-		def int val3 = bytes[4]
-		if (0 > val3) val3 = 256 + val3
-		val3 *= 256
-		def int val4 = bytes[5]
-		if (0 > val4) val4 = 256 + val4
-		def int val = val1 + val2 + val3 + val4
-		log.debug "MeterType:{}, Scale:{}, Val:{}", meterType, scaleByte, val
-	
-		def prec = (scaleByte >> 5)					// bits 5-7 are precision
-		def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
-		def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
-		log.debug "Precision:{}, Scale:{}, Size:{}", prec, scale, vSize
-	
-		if (0 == scale) {			// kWh cumulative reading reported
-			def double kwh = val / Math.pow( 10, prec )
-			log.debug "Cumulative kWh:{}", kwh
-			PowerUse.cumulative kwh * 1000		// capability units are Watt Hours, not kWh
-		} else if (2 == scale) {		// Watts instantanious power reading reported
-			def double watts = val / Math.pow( 10, prec )
-			log.debug "Instantaneous Watts:{}", watts
-			if (Switch.STATE_ON == Switch.state.get()) {
-				PowerUse.instantaneous watts
-			}
-		}
+	def report = GenericZWaveMeter.decodeElectricReport(this, DEVICE_NAME, message)
+	if (null == report) {
+		return
+	}
+	if (GenericZWaveMeter.isEnergy(report)) {
+		PowerUse.cumulative report.value * 1000		// capability units are Watt Hours, not kWh
+	} else if (Switch.STATE_ON == Switch.state.get()) {
+		PowerUse.instantaneous report.value
 	}
 }
 

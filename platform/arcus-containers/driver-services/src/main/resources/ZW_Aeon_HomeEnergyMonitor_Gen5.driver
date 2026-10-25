@@ -47,6 +47,8 @@ matcher			'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0102, 'ZWAV:Product
 
 capabilities	DevicePower, PowerUse
 
+importCapability 'zwave/GenericZWaveMeter'
+
 
 // Generic Device Class:    Meter
 // Specific Device Class:   Simple Meter
@@ -340,30 +342,7 @@ onZWaveMessage.configuration.report {
 
 
 onZWaveMessage.meter.report {
-	log.debug "Aeon Labs Home Energy Monitor Gen5 sent meter report: {}", message
-	byte[] bytes = message.command.recvBytes
-	log.debug "MsgBytes: ${bytes}"
-	def byte meterType = bytes[0]
-	def byte scaleByte = bytes[1]
-	
-	def prec = (scaleByte >> 5)					     // bits 5-7 are precision
-	def scale = ((scaleByte >> 3) & 0b00000011)      // bits 3-4 are scale (0=kWh, 2=Watts)
-	def vSize = (scaleByte & 0b00000111)             // bits 0-2 are size (should be 4 bytes)
-
-	// read int value
-	def int val1 = java.nio.ByteBuffer.wrap(bytes, 2, vSize).getInt()
-	log.debug "MeterType: {}, Scale: {}, IntVal: {}", meterType, scaleByte, val1
-	log.debug "Precision: {}, Scale: {}, Size: {}", prec, scale, vSize
-	
-	if (0 == scale) {			    // kWh cumulative reading reported
-		def double kwh = val1 / Math.pow( 10, prec )
-		log.debug "Cumulative kWh: {}", kwh
-		PowerUse.cumulative kwh * 1000		// capability units are Watt Hours, not kWh
-	} else if (2 == scale) {		// Watts instantanious power reading reported
-		def double watts = val1 / Math.pow( 10, prec )
-		log.debug "Instantaneous Watts: {}", watts
-		PowerUse.instantaneous watts
-	}
+	GenericZWaveMeter.handleMeterReport(this, 'Aeon Labs Home Energy Monitor Gen5', message)
 }
 
 onZWaveMessage.meter.supported_report {

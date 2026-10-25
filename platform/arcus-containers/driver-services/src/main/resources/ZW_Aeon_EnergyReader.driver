@@ -134,10 +134,11 @@ onZWaveMessage.battery.report {
 
 onZWaveMessage.meter.report  {
 	//log.debug "meter report " + message.command
+	def meterType = message.command.get("MeterType")
 	def precisionScaleSize = message.command.get("Scale")
 
 	double precision = (precisionScaleSize & 0xE0) >> 5
-	double scale	 = (precisionScaleSize & 0x18) >> 3
+	double scale	 = ((meterType & 0x80) >> 5) | ((precisionScaleSize & 0x18) >> 3)	// meter type bit 7 is scale bit 2
 	double size      = (precisionScaleSize & 0x07)
 
 	def byte[] vals = new byte[size]
@@ -151,7 +152,7 @@ onZWaveMessage.meter.report  {
 		value /= Math.pow(10, precision)
 		log.debug "precision:{}, scale:{}, value:{} watts", precision, scale, value
 		PowerUse.instantaneous value
-	} else {
+	} else if (0 == scale) {
 		// The device report in term of kWh
 		// PowerUse capability is in terms of watt/hour
 		log.debug "precision:{}, scale:{}, value:{} watts/hour", precision, scale, value
