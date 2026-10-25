@@ -29,7 +29,6 @@ import com.iris.common.rule.event.ModelRemovedEvent;
 import com.iris.common.rule.event.RuleEvent;
 import com.iris.common.scene.Scene;
 import com.iris.common.scene.SceneContext;
-import com.iris.common.scene.SceneImpl;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.handlers.AddTagsModelRequestHandler;
 import com.iris.core.platform.handlers.GetAttributesModelRequestHandler;
@@ -271,12 +270,12 @@ public class SceneHandler implements PlaceEventHandler {
 
    private void rebuild() {
       try {
-         this.scene = new SceneImpl(getAddress(), getContext(), create());
+         this.scene = new TimedScene(getAddress(), getContext(), create());
          this.context.model().setAttribute(SceneCapability.ATTR_ENABLED, isAvailable());
       }
       catch(Exception e) {
          this.context.logger().warn("Unable to build scene", e);
-         this.scene = new SceneImpl(getAddress(), getContext(), null);
+         this.scene = new TimedScene(getAddress(), getContext(), null);
          this.context.model().setAttribute(SceneCapability.ATTR_ENABLED, false);
       }
    }
