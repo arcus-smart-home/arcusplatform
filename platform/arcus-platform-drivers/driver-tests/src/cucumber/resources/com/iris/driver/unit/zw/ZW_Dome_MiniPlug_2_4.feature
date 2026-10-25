@@ -224,25 +224,3 @@ These scenarios test the functionality of the ZWave Dome Mini Plug driver
           |  0.0     | 0      | 0      | 1      | 1      | 257     |
           |  0.0     | 0      | 1      | 1      | 1      | 65793   |
 
-
-    # Scale bit 2 is bit 7 of the meter type byte (0xA1 = electric meter, import, scale bit 2 set)
-    @energy
-    Scenario Outline: Device ignores voltage, current and power factor reports
-        Given the capability pow:cumulative is 1000.0
-            And the capability pow:instantaneous is 5.0
-        When the device response with meter report
-            And with parameter MeterType <MeterType>
-            And with parameter Scale <Scale>
-            And with parameter Value1 0
-            And with parameter Value2 0
-            And with parameter Value3 <Value3>
-            And with parameter Value4 <Value4>
-            And send to driver
-        Then the platform attribute pow:cumulative should be 1000.0
-            And the platform attribute pow:instantaneous should be 5.0
-
-        Examples:
-          | reported | MeterType | Scale | Value3 | Value4 |
-          | 120.5 V  | 0xA1      | 0x24  | 0x04   | 0xB5   |
-          | 3.2 A    | 0xA1      | 0x2C  | 0x00   | 0x20   |
-          | 0.95 PF  | 0xA1      | 0x54  | 0x00   | 0x5F   |

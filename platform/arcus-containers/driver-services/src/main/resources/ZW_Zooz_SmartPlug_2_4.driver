@@ -59,6 +59,8 @@ matcher         'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0101, 'ZWAV:P
 
 capabilities    DevicePower, Switch, PowerUse
 
+importCapability 'zwave/GenericZWaveMeter'
+
 
 DevicePower.source               DevicePower.SOURCE_LINE
 DevicePower.linecapable          true
@@ -204,42 +206,14 @@ onZWaveMessage.configuration.report {
 
 
 onZWaveMessage.meter.report {
-    log.trace "Meter Report: {}", message
-
-    byte meterTypeByte = message.command.get('MeterType')
-    byte meterType = meterTypeByte & 0x1F    // only lower 5 bits
-    byte scaleByte = message.command.get('Scale')
-
-    def prec = (scaleByte >> 5) & 0b111              // bits 5-7 are precision
-    def scale = ((meterTypeByte & 0x80) >> 5) | ((scaleByte >> 3) & 0b11)    // bits 3-4 are scale bits 0-1, meter type bit 7 is scale bit 2 (0=kWh, 2=Watts, 4=Volts)
-    def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
-    log.trace "MeterType: {}, Precision: {}, Scale: {}, Size: {}", meterType, prec, scale, vSize
-
-    if ((1 == meterType) && (4 == vSize)) {        // if electrical meter, and 4 bytes long
-        // read int value
-        int val1 = message.command.get('Value1')
-        if (0 > val1) val1 = 256 + val1
-        val1 *= 256 * 256 * 256
-        int val2 = message.command.get('Value2')
-        if (0 > val2) val2 = 256 + val2
-        val2 *= 256 * 256
-        int val3 = message.command.get('Value3')
-        if (0 > val3) val3 = 256 + val3
-        val3 *= 256
-        int val4 = message.command.get('Value4')
-        if (0 > val4) val4 = 256 + val4
-        int val = val1 + val2 + val3 + val4
-        log.trace "Meter Val: {}", val
-
-        if (0 == scale) {            // kWh cumulative reading reported
-            double kwh = val / Math.pow( 10, prec )
-            log.trace "Cumulative kWh: {}", kwh
-            PowerUse.cumulative kwh * 1000            // capability units are Watt Hours, not kWh
-        } else if (2 == scale) {     // Watts instantanious power reading reported
-            double watts = val / Math.pow( 10, prec )
-            log.trace "Instantaneous Watts: {}", watts
-            PowerUse.instantaneous watts
-        }
+    def report = GenericZWaveMeter.decodeElectricReport(this, 'Zooz Smart Plug', message)
+    if (null == report || 4 != report.size) {    // only process 4 byte values
+        return
+    }
+    if (GenericZWaveMeter.isEnergy(report)) {
+        PowerUse.cumulative report.value * 1000    // capability units are Watt Hours, not kWh
+    } else {
+        PowerUse.instantaneous report.value
     }
 }
 

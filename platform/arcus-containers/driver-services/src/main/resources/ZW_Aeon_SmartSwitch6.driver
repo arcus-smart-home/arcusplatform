@@ -67,6 +67,8 @@ matcher         'ZWAV:Manufacturer':   -122, 'ZWAV:ProductType': 0x0103, 'ZWAV:P
 
 capabilities    DevicePower, Switch, PowerUse
 
+importCapability 'zwave/GenericZWaveMeter'
+
 // Device Type:
 //		Switch Binary
 //
@@ -327,46 +329,7 @@ setAttributes('swit') {
 
 
 onZWaveMessage.meter.report {
-	log.debug "Meter Report: {}", message
-	byte[] bytes = message.command.recvBytes
-	log.debug "MsgBytes: ${bytes}"
-
-	def byte meterType = message.command.get('MeterType')
-	def byte scaleByte = message.command.get('Scale')
-
-	// read int value
-//	def int val = message.command.get('Value1')
-	def int val1 = bytes[2]
-	if (0 > val1) val1 = 256 + val1
-	val1 *= 256 * 256 * 256
-	def int val2 = bytes[3]
-	if (0 > val2) val2 = 256 + val2
-	val2 *= 256 * 256
-	def int val3 = bytes[4]
-	if (0 > val3) val3 = 256 + val3
-	val3 *= 256
-	def int val4 = 0 // bytes[5]		// TODO: need Meter 'report' command class fixed to return all 4 bytes of value
-	if (0 > val4) val4 = 256 + val4
-	def int val = val1 + val2 + val3 + val4
-	log.debug "MeterType: {}, Scale: {}, Val: {}", meterType, scaleByte, val
-
-	def prec = (scaleByte >> 5) & 0b111			// bits 5-7 are precision
-	def scale = ((meterType & 0x80) >> 5) | ((scaleByte >> 3) & 0b11)	// bits 3-4 are scale bits 0-1, meter type bit 7 is scale bit 2 (0=kWh, 2=Watts, 4=Volts)
-	def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
-	log.debug "Precision: {}, Scale: {}, Size: {}", prec, scale, vSize
-	if (4 != vSize) {			// the value is always read as 4 bytes, which would pull in the bytes after a 1 or 2 byte value
-		return
-	}
-
-	if (0 == scale) {			// kWh cumulative reading reported
-		def double kwh = val / Math.pow( 10, prec )
-		log.debug "Cumulative kWh: {}", kwh
-		PowerUse.cumulative kwh * 1000			// capability units are Watt Hours, not kWh
-	} else if (2 == scale) {		// Watts instantanious power reading reported
-		def double watts = val / Math.pow( 10, prec )
-		log.debug "Instantaneous Watts: {}", watts
-		PowerUse.instantaneous watts
-	}
+	GenericZWaveMeter.handleMeterReport(this, 'Aeon Smart Switch 6', message)
 }
 
 onZWaveMessage.meter.supported_report {
