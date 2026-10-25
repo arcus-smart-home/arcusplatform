@@ -189,6 +189,9 @@ onZWaveMessage.meter.report {
 		def scale = ((meterType & 0x80) >> 5) | ((scaleByte >> 3) & 0b11)	// bits 3-4 are scale bits 0-1, meter type bit 7 is scale bit 2 (0=kWh, 2=Watts, 4=Volts)
 		def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
 		log.debug "Precision:{}, Scale:{}, Size:{}", prec, scale, vSize
+		if (4 != vSize) {			// the value is always read as 4 bytes, which would pull in the bytes after a 1 or 2 byte value
+			return
+		}
 	
 		if (0 == scale) {			// kWh cumulative reading reported
 			def double kwh = val / Math.pow( 10, prec )
