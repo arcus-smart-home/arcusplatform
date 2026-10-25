@@ -66,14 +66,12 @@ public class CatalogActionTemplateResolver extends BaseCatalogResolver{
    private static final Logger logger = LoggerFactory.getLogger(CatalogActionTemplateResolver.class);
    
    private static final String SECURITY_RESOLVER_KEY="security";
-   private static final String CAMERA_RESOLVER_KEY="camera";
    private static final String THEMOSTAT_RESOLVER_KEY="thermostat";
    private static final String BLIND_RESOLVER_KEY="blind";
-   
+
    private final static Map<String,ActionResolver>staticResolvers=
          ImmutableMap.of(  SECURITY_RESOLVER_KEY, new SecurityAlarmResolver(),
                            THEMOSTAT_RESOLVER_KEY, new ThermostatResolver(),
-                           CAMERA_RESOLVER_KEY, new CameraResolver(),
                            BLIND_RESOLVER_KEY, new ShadeResolver());
    
    private static final LoadingCache<String, Predicate<Model>> queryCache = CacheBuilder.newBuilder()

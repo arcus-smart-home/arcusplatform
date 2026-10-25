@@ -207,11 +207,7 @@ ext.libraries << [
 		opencsv: "com.opencsv:opencsv:5.12.0",
 
 		//Joda
-		joda: "joda-time:joda-time:2.15.0",
-
-
-// Azure Dependencies
-		azure_mgmt_storage: "com.microsoft.azure:azure-mgmt-storage:0.8.0"
+		joda: "joda-time:joda-time:2.15.0"
 
 ]
 

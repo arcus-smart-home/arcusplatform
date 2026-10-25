@@ -71,7 +71,6 @@ import com.iris.oculus.modules.session.SessionController;
 import com.iris.oculus.modules.status.StatusController;
 import com.iris.oculus.modules.subsystem.SubsystemController;
 import com.iris.oculus.modules.subsystem.SubsystemSection;
-import com.iris.oculus.modules.video.VideoSection;
 import com.iris.oculus.util.ComponentWrapper;
 import com.iris.oculus.util.SwingExecutorService;
 import com.iris.oculus.view.SimpleViewModel;
@@ -145,7 +144,6 @@ public class OculusModule extends AbstractIrisModule {
       bind(RuleSection.class);
       bind(SceneSection.class);
       bind(PersonSection.class);
-      bind(VideoSection.class);
       bind(PlaceSection.class);
       bind(AccountSection.class);
       bind(SchedulerSection.class);

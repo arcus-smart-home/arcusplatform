@@ -93,6 +93,15 @@ public class TestSecurityAlarm_PreAlert extends SecurityAlarmTestCase {
 		assertAlerting(ready, triggered);
 	}
 	
+	// the alert's ValueChange has always gone out from the subsystem, not whatever triggered it
+	@Test
+	public void testOnTimeoutClearsActor() {
+		context.setActor(contact.getAddress());
+		alarm.onTimeout(context, new ScheduledEvent(model.getAddress(), SecurityPreAlertState.instance().getTimeout(context).getTime()));
+		assertAlerting(ready, triggered);
+		assertNull(contextActor);
+	}
+
 	@Test
 	public void testOnTimeoutAllSensorsTriggered() {
 		trigger(motion1);

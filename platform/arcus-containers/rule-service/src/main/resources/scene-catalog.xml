@@ -124,10 +124,6 @@
             </selector>
         </actionTemplate>
         
-        <actionTemplate id="cameras" type-hint="camera" name="Record Video From Cameras" satifisable-if="base:caps contains 'camera'" default-scenes="home" premium="false">
-            <selector name="duration" type="duration" query="base:caps contains 'camera'" min="30" max="600" step="30" unit="SEC"/>
-        </actionTemplate>
-
        <actionTemplate id="thermostats" type-hint="thermostat" name="Set Thermostats" satifisable-if="base:caps contains 'therm'" default-scenes="home"  premium="false" >
             <selector name="thermostat" type="thermostat" query="base:caps contains 'therm'"/>
         </actionTemplate>        

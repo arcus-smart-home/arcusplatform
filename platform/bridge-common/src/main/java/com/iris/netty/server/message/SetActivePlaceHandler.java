@@ -30,50 +30,34 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionUtil;
-import com.iris.core.dao.HubDAO;
 import com.iris.core.dao.PlaceDAO;
 import com.iris.core.dao.PreferencesDAO;
-import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
-import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
-import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.errors.ErrorEventException;
-import com.iris.messages.model.Hub;
 import com.iris.messages.service.SessionService;
 import com.iris.messages.service.SessionService.SetActivePlaceRequest;
-import com.iris.netty.bus.IrisNettyPlatformBusListener;
 import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.authz.AuthzUtil;
-
-import io.netty.channel.Channel;
 
 @Singleton
 public class SetActivePlaceHandler extends BaseClientRequestHandler
 {
    public static final String NAME_EXECUTOR = "executor.setactiveplace";
 
-   private final HubDAO hubDao;
    private final PreferencesDAO preferencesDao;
-   private final PlatformMessageBus messageBus;
    private final PlaceDAO placeDao;
 
-   @Inject @Named("video.preview.upload.url")
-   private String videoPreviewUploadUrl;
-
    @Inject
-   public SetActivePlaceHandler(HubDAO hubDao, PreferencesDAO preferencesDao, PlaceDAO placeDao, PlatformMessageBus messageBus,
-      @Named(NAME_EXECUTOR) Executor executor)
+   public SetActivePlaceHandler(PreferencesDAO preferencesDao, PlaceDAO placeDao, @Named(NAME_EXECUTOR) Executor executor)
    {
       // FIXME: Temporarily disabling background thread pool due to issues observed in devtest
       //super(executor);
       super(directExecutor());
 
-      this.hubDao = hubDao;
       this.placeDao = placeDao;
       this.preferencesDao = preferencesDao;
-      this.messageBus = messageBus;
    }
 
    @Override
@@ -109,18 +93,6 @@ public class SetActivePlaceHandler extends BaseClientRequestHandler
       boolean switched = oldPlace != null && !StringUtils.equals(oldPlace, placeId);
       log(session, "session", "place.setactive", switched ? "Set active place (was " + oldPlace + ")" : "Set active place");
 
-      Channel ch = session.getChannel();
-      if (ch != null)
-      {
-         ch.attr(IrisNettyPlatformBusListener.CACHED_LIST_RECORDINGS_RESPONSE).remove();
-      }
-
-      if (!StringUtils.equals(oldPlace, placeId))
-      {
-         sendStopCameraPreviewsToHub(oldPlace);
-      }
-      sendStartCameraPreviewsToHub(placeId);
-
       UUID personUuid = session.getClient().getPrincipalId();
       Map<String, Object> prefs = preferencesDao.findById(personUuid, placeUuid);
 
@@ -128,37 +100,6 @@ public class SetActivePlaceHandler extends BaseClientRequestHandler
          .withPlaceId(placeId)
          .withPreferences(prefs)
          .build();
-   }
-
-   private void sendStopCameraPreviewsToHub(String placeId)
-   {
-      if (StringUtils.isBlank(placeId)) return;
-
-      Hub hub = hubDao.findHubForPlace(UUID.fromString(placeId));
-
-      if (hub == null) return;
-
-      MessageBody body = HubAdvancedCapability.StopUploadingCameraPreviewsEvent.instance();
-
-      PlatformMessage msg = PlatformMessage.create(body, address(), Address.fromString(hub.getAddress()), null);
-
-      messageBus.send(msg);
-   }
-
-   private void sendStartCameraPreviewsToHub(String placeId)
-   {
-      if (StringUtils.isBlank(placeId)) return;
-
-      Hub hub = hubDao.findHubForPlace(UUID.fromString(placeId));
-
-      if (hub == null) return;
-
-      MessageBody body = HubAdvancedCapability.StartUploadingCameraPreviewsEvent.builder()
-         .withUploadUrl(videoPreviewUploadUrl).build();
-
-      PlatformMessage msg = PlatformMessage.create(body, address(), Address.fromString(hub.getAddress()), null);
-
-      messageBus.send(msg);
    }
 
    @Override

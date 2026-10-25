@@ -193,7 +193,6 @@ Each subsystem has its own fixture classes in its test directory:
 |---------------|-----------|
 | `SecurityFixtures` | Security alarm |
 | `DoorsNLocksFixtures` | Doors & Locks |
-| `CamerasFixtures` | Cameras |
 | `ClimateFixtures` | Climate |
 | `BehaviorFixtures` | Care behaviors |
 | `LawnNGardenFixtures` | Lawn & Garden |

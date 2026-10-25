@@ -60,7 +60,6 @@ import com.iris.messages.capability.AlarmSubsystemCapability;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.HubConnectionCapability;
 import com.iris.messages.capability.KeyPadCapability;
-import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.capability.RuleCapability;
 import com.iris.messages.capability.SafetySubsystemCapability;
 import com.iris.messages.capability.SecurityAlarmModeCapability;
@@ -136,8 +135,6 @@ public class PlatformAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
 		context.model().setFanShutoffOnCO(AlarmSubsystem.FAN_SHUTOFF_ON_CO_DEFAULT);  
 		context.model().setFanShutoffOnSmoke(AlarmSubsystem.FAN_SHUTOFF_ON_SMOKE_DEFAULT);  
 		context.model().setRecordingSupported(false);
-		context.model().setRecordingDurationSec(RecordOnSecurityAdapter.RECORDING_DURATION_DEFAULT); 
-		context.model().setRecordOnSecurity(RecordOnSecurityAdapter.RECORD_ON_SECURITY_DEFAULT);
 	}
 
 	@Override
@@ -157,7 +154,7 @@ public class PlatformAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
 		AlarmSubsystemState.start(context);
 		SubsystemUtils.restoreTimeout(context, "cancel");
 		AlarmUtil.syncFanShutoff(context);
-		AlarmUtil.syncRecordOnSecurity(context);
+		AlarmUtil.syncRecordingUnsupported(context);
 		SubsystemUtils.setIfNull(context.model(), AlarmSubsystemCapability.ATTR_REQUESTEDALARMPROVIDER, AlarmSubsystemCapability.REQUESTEDALARMPROVIDER_HUB);
 	}   
 
@@ -513,22 +510,6 @@ public class PlatformAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
 		AlarmUtil.syncFanShutoffSupported(context);
    }
 
-	@OnAdded(query = RecordOnSecurityAdapter.QUERY_CAMERA_DEVICE)
-   public void onCameraDeviceAdded(ModelAddedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
-		AlarmUtil.syncRecordOnSecuritySupported(context);
-   }
-
-   @OnRemoved(query = RecordOnSecurityAdapter.QUERY_CAMERA_DEVICE)
-   public void onCameraDeviceRemoved(ModelRemovedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
-		AlarmUtil.syncRecordOnSecuritySupported(context);
-   }
-   
-   @OnValueChanged(attributes = { PlaceCapability.ATTR_SERVICELEVEL })
-   public void onSubscriptionLevelChange(ModelChangedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
-      context.logger().info("Detected a subscription level change {}", event);
-      AlarmUtil.syncRecordOnSecuritySupported(context);
-   }
-   
    @OnValueChanged(attributes={AlarmSubsystemCapability.ATTR_REQUESTEDALARMPROVIDER})
 	public void onRequestedAlarmProviderChanged(ModelChangedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
 		syncAlarmProviderIfNecessary(context, true, null, CheckSecurityModeOption.DISARMED_OR_INACTIVE);

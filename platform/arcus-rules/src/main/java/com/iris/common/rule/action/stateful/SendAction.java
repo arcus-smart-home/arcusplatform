@@ -33,7 +33,6 @@ import com.iris.messages.address.Address;
 import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.SubsystemCapability;
 import com.iris.messages.model.Model;
-import com.iris.messages.service.VideoService;
 import com.iris.util.IrisCollections;
 import com.iris.util.IrisFunctions;
 import com.iris.util.TypeMarker;
@@ -137,21 +136,10 @@ public class SendAction extends BaseStatefulAction {
    public boolean isSatisfiable(ActionContext context) {
       Address toAddress =to.apply(context);
       Model model = context.getModelByAddress(toAddress);
-      String group = toAddress.getGroup()!=null?toAddress.getGroup().toString():"";
-      boolean isSatisfiable = false;
       if(toAddress.getId() == null || toAddress.getId().equals(Address.ZERO_UUID)){
-         isSatisfiable = true;
+         return true;
       }
-      else{
-         switch(group){
-            case VideoService.NAMESPACE:
-               isSatisfiable = true;
-               break;
-            default:
-               isSatisfiable = model != null;
-         }
-      }
-      return isSatisfiable;
+      return model != null;
    }
    
    @Override

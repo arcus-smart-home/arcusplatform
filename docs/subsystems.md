@@ -1,6 +1,6 @@
 # Subsystem Internals
 
-Subsystems are the platform's feature modules — each one manages a specific domain (security, climate, cameras, etc.) for a place. They run in the `subsystem-service` container, react to device attribute changes via annotation-driven event handlers, and persist state to Cassandra. All subsystems for a given place share a single-threaded event loop, ensuring consistent, race-free state transitions.
+Subsystems are the platform's feature modules — each one manages a specific domain (security, climate, water, etc.) for a place. They run in the `subsystem-service` container, react to device attribute changes via annotation-driven event handlers, and persist state to Cassandra. All subsystems for a given place share a single-threaded event loop, ensuring consistent, race-free state transitions.
 
 ---
 
@@ -70,7 +70,6 @@ Subsystem<M>
           ├─ DoorsNLocksSubsystem
           ├─ PresenceSubsystem
           ├─ WaterSubsystem
-          ├─ CamerasSubsystem
           ├─ LightsNSwitchesSubsystem
           ├─ WeatherSubsystem
           ├─ LawnNGardenSubsystem
@@ -330,14 +329,13 @@ Configured in `SubsystemModule.java`:
 | 6 | [Doors & Locks](#doors--locks) | `subdoorlock` | 1 | Locks, motorized doors, pet doors |
 | 7 | [Presence](#presence) | `subpres` | 2 | People/device at-home/away tracking |
 | 8 | [Water](#water) | `subwater` | 1 | Water heaters, softeners, valves |
-| 9 | [Cameras](#cameras) | `subcameras` | 2 | Camera devices, streaming, recording |
-| 10 | [Lights & Switches](#lights--switches) | `sublightsnswitches` | 1 | Lights, dimmers, switches |
-| 11 | [Weather](#weather) | `subweather` | 1 | NOAA weather radio alerts |
-| 12 | [Lawn & Garden](#lawn--garden) | `sublawnngarden` | 1 | Irrigation scheduling, zone control |
-| 13 | [Cell Backup](#cell-backup) | `subcellbackup` | 1 | 4G cellular backup monitoring |
-| 14 | [Pairing](#pairing) | `subpairing` | 1 | Device pairing workflow state machine |
-| 15 | [Place Monitor](#place-monitor) | `subplacemonitor` | 1 | Connectivity, battery, OTA, smart home alerts |
-| 16 | Alarm (hub-side) | — | — | See Alarm (provider switching) |
+| 9 | [Lights & Switches](#lights--switches) | `sublightsnswitches` | 1 | Lights, dimmers, switches |
+| 10 | [Weather](#weather) | `subweather` | 1 | NOAA weather radio alerts |
+| 11 | [Lawn & Garden](#lawn--garden) | `sublawnngarden` | 1 | Irrigation scheduling, zone control |
+| 12 | [Cell Backup](#cell-backup) | `subcellbackup` | 1 | 4G cellular backup monitoring |
+| 13 | [Pairing](#pairing) | `subpairing` | 1 | Device pairing workflow state machine |
+| 14 | [Place Monitor](#place-monitor) | `subplacemonitor` | 1 | Connectivity, battery, OTA, smart home alerts |
+| 15 | Alarm (hub-side) | — | — | See Alarm (provider switching) |
 
 ---
 
@@ -481,19 +479,6 @@ Tracks people and presence devices at home vs. away.
 - `waterHeater` / `waterSoftener` — Primary device designations
 
 **Events:** `ContinuousWaterUseEvent`, `ExcessiveWaterUseEvent`, `LowSaltEvent`
-
----
-
-### Cameras
-
-**Namespace:** `subcameras` | **Version:** 2
-
-**Tracked Sets:**
-- `cameras` — All camera devices
-- `offlineCameras` — Disconnected cameras
-- `maxSimultaneousStreams` — Configurable stream limit
-
-Uses `CameraStatusAdapter` for per-camera state tracking, recording monitoring, and OTA updates.
 
 ---
 

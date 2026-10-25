@@ -245,7 +245,7 @@ public class HubAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
       SubsystemUtils.restoreTimeout(context, AlarmUtil.TO_CANCEL);
       SubsystemUtils.restoreTimeout(context, TO_PREALERTTIMER);
       AlarmUtil.syncFanShutoff(context);
-      AlarmUtil.syncRecordOnSecurity(context);
+      AlarmUtil.syncRecordingUnsupported(context);
       KeyPad.bind(context);
       syncMonitored(context);
 
@@ -931,7 +931,7 @@ public class HubAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
                addAlert(context, alertType);
                handleValveShutoff(context, alertType);
                handleFanShutoff(context, alertType);
-               handleRecording(context, alertType);
+               clearActorOnSecurityOrPanic(context, alertType);
             }
 
             updateAlertIfNewTriggers(context, alertType);
@@ -987,11 +987,11 @@ public class HubAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
       }
    }
 
-   private void handleRecording(SubsystemContext<AlarmSubsystemModel> context, String alertType) {
+   private void clearActorOnSecurityOrPanic(SubsystemContext<AlarmSubsystemModel> context, String alertType) {
       switch(alertType) {
          case PanicAlarm.NAME:
          case SecurityAlarm.NAME:
-            new RecordOnSecurityAdapter(context).sendRecordMessageIfNecessary();
+            AlarmUtil.clearActorOnAlert(context);
             break;
          default:
             break;
@@ -1538,20 +1538,9 @@ public class HubAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
       AlarmUtil.syncFanShutoffSupported(context);
    }
 
-   @OnAdded(query = RecordOnSecurityAdapter.QUERY_CAMERA_DEVICE)
-   public void onCameraDeviceAdded(ModelAddedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
-      AlarmUtil.syncRecordOnSecuritySupported(context);
-   }
-
-   @OnRemoved(query = RecordOnSecurityAdapter.QUERY_CAMERA_DEVICE)
-   public void onCameraDeviceRemoved(ModelRemovedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
-      AlarmUtil.syncRecordOnSecuritySupported(context);
-   }
-
    @OnValueChanged(attributes = { PlaceCapability.ATTR_SERVICELEVEL })
    public void onSubscriptionLevelChange(ModelChangedEvent event, SubsystemContext<AlarmSubsystemModel> context) {
       context.logger().info("Detected a subscription level change {}", event);
-      AlarmUtil.syncRecordOnSecuritySupported(context);
       syncMonitored(context);
    }
 

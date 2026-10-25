@@ -286,14 +286,6 @@
          <p>You can change this by visiting the Rules section in the Iris Web Portal or Mobile Application.</p>
       </customization>
 
-      <!-- iris branded cameras -->
-      <customization
-              type="rule"
-              query="dev:productId == '606501' OR dev:productId == '242a43' OR dev:productId == '5c3966'"
-      >
-         <rule-templates>05f8a5,a9242b,669619</rule-templates>
-      </customization>
-
       <!-- for initial launch only allow iris branded contact sensors -->
       <customization
               type="rule"

@@ -17,7 +17,6 @@ package com.iris.netty.server.message;
 
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static com.iris.netty.server.message.SetActivePlaceHandler.NAME_EXECUTOR;
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 
@@ -38,7 +37,6 @@ import com.google.inject.name.Named;
 import com.iris.bridge.server.client.Client;
 import com.iris.bridge.server.session.ClientToken;
 import com.iris.bridge.server.session.Session;
-import com.iris.core.dao.HubDAO;
 import com.iris.core.dao.PlaceDAO;
 import com.iris.core.dao.PreferencesDAO;
 import com.iris.core.platform.PlatformMessageBus;
@@ -54,8 +52,8 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
-// places have no hub, so the camera preview events are skipped and only the session log is under test
-@Mocks({Session.class, Client.class, ClientToken.class, HubDAO.class, PreferencesDAO.class, PlaceDAO.class, PlatformMessageBus.class})
+// PlatformMessageBus is mocked with no expectations so verify() fails if the handler sends anything
+@Mocks({Session.class, Client.class, ClientToken.class, PreferencesDAO.class, PlaceDAO.class, PlatformMessageBus.class})
 public class SetActivePlaceHandlerTest extends IrisMockTestCase
 {
    private static final UUID PERSON_ID = UUID.randomUUID();
@@ -65,7 +63,6 @@ public class SetActivePlaceHandlerTest extends IrisMockTestCase
    @Inject private Session mockSession;
    @Inject private Client mockClient;
    @Inject private ClientToken mockClientToken;
-   @Inject private HubDAO mockHubDao;
    @Inject private PreferencesDAO mockPreferencesDao;
 
    @Inject private SetActivePlaceHandler componentUnderTest;
@@ -81,13 +78,6 @@ public class SetActivePlaceHandlerTest extends IrisMockTestCase
    public Executor executor()
    {
       return directExecutor();
-   }
-
-   @Provides
-   @Named("video.preview.upload.url")
-   public String videoPreviewUploadUrl()
-   {
-      return "https://preview.example.com/upload";
    }
 
    @Override
@@ -110,7 +100,6 @@ public class SetActivePlaceHandlerTest extends IrisMockTestCase
       expect(mockSession.getClient()).andReturn(mockClient).anyTimes();
       expect(mockSession.getClientToken()).andReturn(mockClientToken).anyTimes();
       expect(mockSession.getAuthorizationContext(true)).andReturn(context).anyTimes();
-      expect(mockSession.getChannel()).andReturn(null).anyTimes();
       expect(mockSession.getActivePlace()).andAnswer(activePlace::get).anyTimes();
       mockSession.setActivePlace(EasyMock.anyString());
       expectLastCall().andAnswer(() -> {
@@ -122,7 +111,6 @@ public class SetActivePlaceHandlerTest extends IrisMockTestCase
       expect(mockClient.getPrincipalName()).andReturn("person").anyTimes();
       expect(mockClientToken.getRepresentation()).andReturn("token").anyTimes();
       expect(mockPreferencesDao.findById(PERSON_ID, NEW_PLACE_ID)).andReturn(ImmutableMap.of()).anyTimes();
-      expect(mockHubDao.findHubForPlace(anyObject(UUID.class))).andReturn(null).anyTimes();
    }
 
    @Override

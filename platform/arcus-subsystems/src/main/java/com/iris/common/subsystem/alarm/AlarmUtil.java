@@ -306,20 +306,22 @@ public class AlarmUtil {
       }
    }
 
-   public static void syncRecordOnSecurity(@NonNull SubsystemContext<AlarmSubsystemModel> context) {
-      SubsystemUtils.setIfNull(context.model(), AlarmSubsystemCapability.ATTR_RECORDINGSUPPORTED, Boolean.FALSE);
-      SubsystemUtils.setIfNull(context.model(), AlarmSubsystemCapability.ATTR_RECORDINGDURATIONSEC, RecordOnSecurityAdapter.RECORDING_DURATION_DEFAULT);
-      SubsystemUtils.setIfNull(context.model(), AlarmSubsystemCapability.ATTR_RECORDONSECURITY, RecordOnSecurityAdapter.RECORD_ON_SECURITY_DEFAULT);
-      syncRecordOnSecuritySupported(context);
+   /**
+    * Camera recording has been removed. The attribute stays in the capability, so keep reporting it as
+    * unsupported and clients will hide the record-on-security option.
+    */
+   public static void syncRecordingUnsupported(SubsystemContext<AlarmSubsystemModel> context) {
+      context.model().setRecordingSupported(false);
    }
 
-   public static void syncRecordOnSecuritySupported(SubsystemContext<AlarmSubsystemModel> context) {
-      RecordOnSecurityAdapter adapter = new RecordOnSecurityAdapter(context);
-      if(adapter.isRecordingSupported()) {
-         context.model().setRecordingSupported(true);
-      }else{
-         context.model().setRecordingSupported(false);
-      }
+   /**
+    * Camera recording used to run on entry to a security or panic alert, and it always finished by
+    * clearing the actor, so everything the subsystem sent for the rest of that dispatch, including the
+    * alert's ValueChange, came from the subsystem rather than the trigger. Recording is gone; keep
+    * clearing the actor at the same point so alert attribution does not change.
+    */
+   public static void clearActorOnAlert(SubsystemContext<?> context) {
+      context.setActor(null);
    }
 
    public static void shutoffValvesIfNeeded(SubsystemContext<? extends SubsystemModel> context) {

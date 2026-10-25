@@ -102,7 +102,6 @@ import com.iris.client.server.rest.SessionLogRESTHandler;
 import com.iris.client.server.rest.VerifyEmailRESTHandler;
 import com.iris.client.server.rest.VerifyPinRESTHandler;
 import com.iris.client.server.session.HandshakeSessionListener;
-import com.iris.client.server.session.StopCameraPreviewsUploadSessionListener;
 import com.iris.core.template.TemplateModule;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
@@ -240,7 +239,6 @@ public class ClientServerModule extends AbstractIrisModule {
       
       Multibinder<SessionListener> slBindings = Multibinder.newSetBinder(binder(), SessionListener.class);
       slBindings.addBinding().to(HandshakeSessionListener.class);
-      slBindings.addBinding().to(StopCameraPreviewsUploadSessionListener.class);
 
       bind(ChannelInboundHandler.class).toProvider(WebSocketServerHandlerProvider.class);
       bind(new TypeLiteral<ChannelInitializer<SocketChannel>>(){})

@@ -98,7 +98,6 @@ Provisioning is idempotent — skipped if `/data/install/.eyeris-kafka` exists (
 |----------|---------|
 | `dev` (configurable via `CASSANDRA_KEYSPACE`) | Primary platform data (places, people, devices, rules, subsystems) |
 | `support` | Support/operational data |
-| `video` | Recording metadata, streaming sessions, previews |
 | `history` | Device attribute change history, partitioned by time |
 | `analytics` | Analytics events |
 

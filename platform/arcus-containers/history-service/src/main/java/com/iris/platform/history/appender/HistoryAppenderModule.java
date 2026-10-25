@@ -58,7 +58,6 @@ import com.iris.platform.history.appender.subsys.PresenceSubsystemAppender;
 import com.iris.platform.history.appender.subsys.SafetySubsystemAppender;
 import com.iris.platform.history.appender.subsys.SecuritySubsystemEventsAppender;
 import com.iris.platform.history.appender.subsys.WaterSubsystemEventsAppender;
-import com.iris.platform.history.appender.video.VideoAddedAppender;
 
 /**
  *
@@ -116,7 +115,6 @@ public class HistoryAppenderModule extends AbstractIrisModule {
       bind(AlertEventAppender.class);
       bind(HistoryAddedAppender.class);
       
-      bind(VideoAddedAppender.class);
       bind(PersonAddedAppender.class);
       bind(PersonRemovedAppender.class);
       bind(InvitationDeclinedAppender.class);

@@ -34,7 +34,6 @@ public class PlatformConstants {
    public static final String SERVICE_POPULATION = "population";
    public static final String SERVICE_PRODUCTCATALOG = "prodcat";
    public static final String SERVICE_STATUS = "status";
-   public static final String SERVICE_VIDEO = "video";
    public static final String SERVICE_I18N = "i18n";
    public static final String SERVICE_RULE = "rule";
    public static final String SERVICE_PRODUCT = "product";
