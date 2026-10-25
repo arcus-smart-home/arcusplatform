@@ -35,12 +35,13 @@ import com.iris.messages.service.SessionService.TagResponse;
 
 /**
  * Acknowledges the usage tags clients still send. They used to be published for the tag-service,
- * which has been removed, so now they are only logged.
+ * which has been removed. Nothing consumes them now, so they are discarded; the handler stays
+ * only so that clients get an answer instead of an unsupported-message error.
  */
 @Singleton
 public class TagHandler extends BaseClientRequestHandler
 {
-   private static final Logger tagLog = getLogger("tag");
+   private static final Logger logger = getLogger(TagHandler.class);
 
    @Inject
    public TagHandler()
@@ -62,7 +63,7 @@ public class TagHandler extends BaseClientRequestHandler
       String tagName = TagRequest.getName(requestBody);
       Map<String, String> tagContext = TagRequest.getContext(requestBody);
 
-      tagLog.info("Tag {} : {}", tagName, tagContext);
+      logger.debug("Tag {} : {}", tagName, tagContext);
 
       return TagResponse.instance();
    }
