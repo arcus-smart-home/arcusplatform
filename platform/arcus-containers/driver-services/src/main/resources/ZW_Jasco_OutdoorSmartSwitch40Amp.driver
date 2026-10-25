@@ -185,8 +185,8 @@ onZWaveMessage.meter.report {
 		def int val = val1 + val2 + val3 + val4
 		log.debug "MeterType:{}, Scale:{}, Val:{}", meterType, scaleByte, val
 	
-		def prec = (scaleByte >> 5)					// bits 5-7 are precision
-		def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
+		def prec = (scaleByte >> 5) & 0b111			// bits 5-7 are precision
+		def scale = ((meterType & 0x80) >> 5) | ((scaleByte >> 3) & 0b11)	// bits 3-4 are scale bits 0-1, meter type bit 7 is scale bit 2 (0=kWh, 2=Watts, 4=Volts)
 		def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
 		log.debug "Precision:{}, Scale:{}, Size:{}", prec, scale, vSize
 	

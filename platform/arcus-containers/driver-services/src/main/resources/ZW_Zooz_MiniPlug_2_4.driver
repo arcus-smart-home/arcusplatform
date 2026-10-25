@@ -219,11 +219,12 @@ onZWaveMessage.configuration.report {
 onZWaveMessage.meter.report {
 	log.trace "Meter Report: {}", message
 
-	byte meterType = message.command.get('MeterType') & 0x1F	// only lower 5 bits
+	byte meterTypeByte = message.command.get('MeterType')
+	byte meterType = meterTypeByte & 0x1F	// only lower 5 bits
 	byte scaleByte = message.command.get('Scale')
 	
-	def prec = (scaleByte >> 5)					// bits 5-7 are precision
-	def scale = ((scaleByte >> 3) & 0b11)       // bits 3-4 are scale (0=kWh, 2=Watts)
+	def prec = (scaleByte >> 5) & 0b111				// bits 5-7 are precision
+	def scale = ((meterTypeByte & 0x80) >> 5) | ((scaleByte >> 3) & 0b11)    // bits 3-4 are scale bits 0-1, meter type bit 7 is scale bit 2 (0=kWh, 2=Watts, 4=Volts)
 	def vSize = (scaleByte & 0b111)             // bits 0-2 are size (should be 4 bytes)
 	log.trace "MeterType: {}, Precision: {}, Scale: {}, Size: {}", meterType, prec, scale, vSize
 
