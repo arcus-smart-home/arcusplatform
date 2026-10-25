@@ -54,7 +54,6 @@ dependencies {
 
    implementation libraries.jcommander
 
-   implementation libraries.azure_storage
    implementation libraries.commons_beanutils
    api libraries.bouncycastle
    implementation libraries.slf4jJul
