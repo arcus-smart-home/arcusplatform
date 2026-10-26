@@ -4,13 +4,253 @@ on:
   push:
     tags:
       - 'v*'
+  schedule:
+    # Mondays, 09:17 UTC. Off unless the repository opts in (see `prepare`),
+    # and then builds only when the gate says something changed, with a 30 day
+    # floor so quiet months still get a rebuild.
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build even if nothing has changed'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+permissions:
+  contents: read
+
+concurrency:
+  # Only the scheduled and manual paths commit to master, so only those need to
+  # be mutually exclusive. A single group for every event also covered tag
+  # pushes, and GitHub keeps just the newest pending run per group, so pushing
+  # -rc1 and then the final during a long build dropped the -rc1 build.
+  group: release-${{ github.event_name == 'push' && github.ref || 'scheduled' }}
+  cancel-in-progress: false
+
 jobs:
+  # For a tag push this just passes the tag through. For a scheduled or manual
+  # run it decides whether a build is warranted, and if so bumps the version,
+  # commits it to master and creates the tag to build.
+  prepare:
+    # Tag pushes always build. The scheduled rebuild is opt-in per repository,
+    # so merging this does not start cutting releases wherever it lands: set
+    # the repository variable SCHEDULED_RELEASE to 'true' to enable it.
+    if: github.event_name == 'push' || vars.SCHEDULED_RELEASE == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      ref: ${{ steps.decide.outputs.ref }}
+      version: ${{ steps.decide.outputs.version }}
+      branch: ${{ steps.decide.outputs.branch }}
+      base_image: ${{ steps.decide.outputs.base_image }}
+      base_digest: ${{ steps.decide.outputs.base_digest }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Decide what to build
+        id: decide
+        env:
+          FORCE: ${{ inputs.force }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "push" ]; then
+            echo "Tag push: building ${GITHUB_REF_NAME}"
+            {
+              echo "build=true"
+              echo "ref=${GITHUB_REF_NAME}"
+              echo "version=${GITHUB_REF_NAME#v}"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          prop() { grep -m1 "^$2=" "$1" | cut -d= -f2- | tr -d '[:space:]'; }
+
+          # Stay out of the way of a release someone is driving by hand.
+          #
+          # version.properties names the version being worked toward, not the
+          # last one shipped: a cycle runs as v<version>-b1, -b2, -rc1 and then
+          # v<version>, all off the same unchanged file. So the version named
+          # there having no final tag means someone owns it, and there is no
+          # good move available here. Bumping the patch would jump past the
+          # cycle and leave it unfinishable: the next hand-cut v<version> tag
+          # would publish its images over the ones this run had already pushed,
+          # since image tags come from version.properties. Tagging the version
+          # itself would be worse - it decides a beta is ready, which is not a
+          # decision a timer should make.
+          #
+          # The test is the missing final tag rather than the presence of
+          # prerelease tags, because the bump lands well before the first -b1:
+          # for 2026.10.3 it was 19 hours and three merged PRs ahead of it. A
+          # run in that window would have seen a bumped file with nothing
+          # tagged, and taken the version.
+          CURRENT="$(prop khakis/version.properties major).$(prop khakis/version.properties minor).$(prop khakis/version.properties patch)"
+          if ! git rev-parse -q --verify "refs/tags/v${CURRENT}" >/dev/null; then
+            PRERELEASES=$(git tag -l "v${CURRENT}-*" | paste -sd' ' -)
+
+            # How long it has been owned: the bump commit, or the newest
+            # prerelease tag if that is later. Cycles here do sometimes end
+            # without a final tag - v2026.3.2 stopped at -rc1 and v2026.10.1 at
+            # -rc3 - and the guard would otherwise stay armed until the next
+            # bump, with the 30 day security floor never evaluated in between.
+            # Past the stale window it says so loudly and releases anyway.
+            STALE_DAYS=45
+            LIMBO_EPOCH=$(git log -1 --format=%ct -- khakis/version.properties || true)
+            NEWEST_PRE=$(git tag -l "v${CURRENT}-*" --format='%(creatordate:unix)' | sort -n | tail -1)
+            if [ -n "$NEWEST_PRE" ] && [ "$NEWEST_PRE" -gt "${LIMBO_EPOCH:-0}" ]; then
+              LIMBO_EPOCH=$NEWEST_PRE
+            fi
+            # An unknown age means "just bumped", so the cautious branch wins.
+            LIMBO_DAYS=$(( ( $(date -u +%s) - ${LIMBO_EPOCH:-$(date -u +%s)} ) / 86400 ))
+
+            if [ "${FORCE:-false}" = "true" ]; then
+              echo "v${CURRENT} has no final tag, but this run was forced; continuing."
+            elif [ "$LIMBO_DAYS" -lt "$STALE_DAYS" ]; then
+              echo "v${CURRENT} has no final tag yet (${LIMBO_DAYS} days, prereleases: ${PRERELEASES:-none})."
+              echo "Leaving the release to whoever is driving it; not building."
+              echo "build=false" >> "$GITHUB_OUTPUT"
+              {
+                echo "### Skipped: \`v${CURRENT}\` is mid-release"
+                echo
+                echo "\`khakis/version.properties\` names \`${CURRENT}\`, which has no \`v${CURRENT}\` tag"
+                echo "after ${LIMBO_DAYS} day(s). Prereleases: \`${PRERELEASES:-none}\`."
+                echo
+                echo "Scheduled rebuilds resume once that tag is pushed, the version is bumped,"
+                echo "or ${STALE_DAYS} days pass. A forced dispatch overrides this."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            else
+              echo "::warning::v${CURRENT} has had no final tag for ${LIMBO_DAYS} days; releasing past it."
+              {
+                echo "### \`v${CURRENT}\` was abandoned mid-release"
+                echo
+                echo "No \`v${CURRENT}\` tag after ${LIMBO_DAYS} days (prereleases: \`${PRERELEASES:-none}\`),"
+                echo "past the ${STALE_DAYS} day window, so this run releases past it."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          STATE=.github/release-state.json
+          REASONS=()
+
+          # 1. Code changes since the last release.
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+          if [ -z "$LAST_TAG" ]; then
+            REASONS+=("no release tag found")
+          else
+            # The state file is committed after a successful build, so it is
+            # excluded here: it is bookkeeping, not a change worth releasing.
+            COMMITS=$(git rev-list --count "${LAST_TAG}..HEAD" -- . ":(exclude)${STATE}")
+            if [ "$COMMITS" -gt 0 ]; then
+              REASONS+=("${COMMITS} commit(s) since ${LAST_TAG}")
+            fi
+          fi
+
+          # 2. The base image moved. Every service image is FROM arcus/java,
+          #    which is built from this base, so its digest covers them all.
+          BASE=$(awk '/^FROM /{print $2; exit}' khakis/arcus-java/Dockerfile)
+          PREV_DIGEST=$(jq -r '.base_digest // ""' "$STATE" 2>/dev/null || echo "")
+          # The plain {{.Manifest.Digest}} form silently falls back to the
+          # default listing on some buildx versions; the json form is reliable.
+          DIGEST=$(docker buildx imagetools inspect "$BASE" --format '{{json .Manifest.Digest}}' 2>/dev/null | tr -d '"' || true)
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            # An anonymous registry lookup can be rate limited or just down.
+            # That is no reason to fail a run the other checks would pass, and
+            # no reason to overwrite a good digest with a bad one.
+            echo "Could not resolve ${BASE}, skipping the base image check."
+            DIGEST="$PREV_DIGEST"
+          elif [ "$DIGEST" != "$PREV_DIGEST" ]; then
+            REASONS+=("${BASE} is now ${DIGEST:0:19}, last built ${PREV_DIGEST:0:19}")
+          fi
+
+          # 3. Monthly floor.
+          LAST_BUILD=$(jq -r '.last_build // ""' "$STATE" 2>/dev/null || echo "")
+          # An unreadable timestamp has to mean "build", not "skip", or a
+          # corrupt state file would quietly switch the floor off.
+          LAST_EPOCH=$(date -u -d "$LAST_BUILD" +%s 2>/dev/null || echo "")
+          if [ -z "$LAST_EPOCH" ]; then
+            REASONS+=("no usable build timestamp recorded")
+          else
+            AGE=$(( ( $(date -u +%s) - LAST_EPOCH ) / 86400 ))
+            if [ "$AGE" -ge 30 ]; then
+              REASONS+=("${AGE} days since the last build")
+            fi
+          fi
+
+          if [ "${FORCE:-false}" = "true" ]; then
+            REASONS+=("manually forced")
+          fi
+
+          if [ ${#REASONS[@]} -eq 0 ]; then
+            echo "Nothing has changed, not building."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf 'Building because:\n'
+          printf '  - %s\n' "${REASONS[@]}"
+
+          # Image tags come from version.properties, not from the git tag, so
+          # the version has to be bumped or this run would overwrite the images
+          # of the last release. Patch bump within the month, reset on a new one.
+          MAJOR=$(prop khakis/version.properties major)
+          MINOR=$(prop khakis/version.properties minor)
+          PATCH=$(prop khakis/version.properties patch)
+
+          YEAR=$(date -u +%Y)
+          MONTH=$(date -u +%-m)
+          if [ "$MAJOR" = "$YEAR" ] && [ "$MINOR" = "$MONTH" ]; then
+            PATCH=$((PATCH + 1))
+          else
+            MAJOR=$YEAR
+            MINOR=$MONTH
+            PATCH=0
+          fi
+          # Skip any version already tagged, prereleases included: a v<X>-b1
+          # without a final tag is a cycle someone started, not a free slot.
+          while git rev-parse -q --verify "refs/tags/v${MAJOR}.${MINOR}.${PATCH}" >/dev/null \
+                || [ -n "$(git tag -l "v${MAJOR}.${MINOR}.${PATCH}-*")" ]; do
+            PATCH=$((PATCH + 1))
+          done
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "Releasing v${VERSION}"
+
+          for f in khakis/version.properties platform/version.properties; do
+            sed -i -E "s/^major=.*/major=${MAJOR}/; s/^minor=.*/minor=${MINOR}/; s/^patch=.*/patch=${PATCH}/" "$f"
+          done
+
+          # The state file is deliberately NOT written here. It is committed by
+          # `record` once the images are actually published, so that a release
+          # that fails to build does not look like a completed one next week.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add khakis/version.properties platform/version.properties
+          git commit -m "Release v${VERSION}" -m "$(printf '%s\n' "${REASONS[@]}" | sed 's/^/- /')"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          # One atomic push, so the branch never moves without the tag.
+          git push --atomic origin "HEAD:${GITHUB_REF_NAME}" "v${VERSION}"
+
+          {
+            echo "build=true"
+            echo "ref=v${VERSION}"
+            echo "version=${VERSION}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "base_image=${BASE}"
+            echo "base_digest=${DIGEST}"
+          } >> "$GITHUB_OUTPUT"
+
   tests:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,6 +258,8 @@ jobs:
     name: Test (JDK ${{ matrix.java-version }})
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v6
         with:
@@ -32,7 +274,7 @@ jobs:
         run: ./gradlew test -x spotbugsMain -x spotbugsTest -x spotbugsJmh --no-daemon
 
   build-and-push-image:
-    needs: tests
+    needs: [prepare, tests]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,6 +283,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+          fetch-depth: 0
       - name: Set up JDK 21
         uses: actions/setup-java@v6
         with:
@@ -67,3 +312,64 @@ jobs:
         env:
           REGISTRY_NAME: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           REGISTRY_SEPARATOR: '-'
+
+      - name: Summary
+        env:
+          # Through the environment, not interpolated into the script: a ref is
+          # a tag name on a push, and git permits \", ; and $ in those.
+          REF: ${{ needs.prepare.outputs.ref }}
+        run: |
+          # Images are tagged from version.properties, not from the ref, so
+          # report what was actually published and flag any disagreement.
+          DOCKER_VERSION=$(sed -nE 's/^(major|minor|patch)=//p' khakis/version.properties | paste -sd. -)
+          echo "Published \`${DOCKER_VERSION}\` from \`${REF}\`" >> "$GITHUB_STEP_SUMMARY"
+          # A prerelease publishes images without its suffix by design, so
+          # v2026.10.3-b1 tagging 2026.10.3 is agreement, not a mismatch.
+          if [ "v${DOCKER_VERSION}" != "${REF%%-*}" ]; then
+            echo "::warning::Images are tagged ${DOCKER_VERSION} from khakis/version.properties, which does not match ${REF}"
+          fi
+
+  # Records the base digest and timestamp only once the images are actually
+  # published. Writing it in `prepare` would make a release that failed to
+  # build look complete, and the gate would then skip the retry.
+  record:
+    needs: [prepare, build-and-push-image]
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.branch }}
+
+      - name: Record the release state
+        env:
+          BASE_IMAGE: ${{ needs.prepare.outputs.base_image }}
+          BASE_DIGEST: ${{ needs.prepare.outputs.base_digest }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          BRANCH: ${{ needs.prepare.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg base_image "$BASE_IMAGE" \
+            --arg base_digest "$BASE_DIGEST" \
+            --arg last_build "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg last_version "$VERSION" \
+            '{base_image: $base_image, base_digest: $base_digest, last_build: $last_build, last_version: $last_version}' \
+            > .github/release-state.json
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/release-state.json
+          git commit -m "Record release v${VERSION}"
+
+          # master may have moved while the build was running.
+          for _ in 1 2 3; do
+            if git push origin "HEAD:${BRANCH}"; then
+              exit 0
+            fi
+            git pull --rebase origin "$BRANCH"
+          done
+          exit 1

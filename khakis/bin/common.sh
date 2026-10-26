@@ -21,6 +21,15 @@ docker_build() {
 
     local BUILD_ARGS="--build-arg JAVA_VERSION=${JAVA_MAJOR}"
 
+    # On CI, re-resolve the base image so a rebuild picks up the current
+    # debian:trixie rather than whatever happens to be on the builder. Left off
+    # for local builds so they still work offline, and off for anything built
+    # FROM arcus/*, which exists only in this daemon and was built moments ago
+    # by build.sh: --pull would try to resolve it against a registry and fail.
+    if [ -n "${CI:-}" ] && ! grep -qE '^FROM[[:space:]]+arcus/' "${DOCKER_PATH}/Dockerfile"; then
+        BUILD_ARGS="${BUILD_ARGS} --pull"
+    fi
+
     if [ -z "${is_build_server}" ]; then
         "${DOCKER_BIN}" build ${BUILD_ARGS} -t "${DOCKER_TAG}${DOCKER_VERSION}" -t "${DOCKER_TAG}:latest" "${DOCKER_PATH}"
     else
