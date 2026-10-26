@@ -1,10 +1,10 @@
-   {{#.}}
+   {{#this}}
 {{> platform/type}}
-   {{/.}}
-   {{#.}}{{#enumValues}}
+   {{/this}}
+   {{#this}}{{#enumValues}}
    public static final String {{toUpperCase name}}_{{toUpperCase .}} = "{{.}}";
-   {{/enumValues}}{{/.}}
-   {{#.}}
+   {{/enumValues}}{{/this}}
+   {{#this}}
    /** {{description}} */
    public static {{{javaTypeOf type}}} get{{capitalize name}}(com.iris.messages.MessageBody message) {
       if(message == null) { 
@@ -22,4 +22,4 @@
       }
       return ({{{javaTypeOf type}}}) v;
    }
-   {{/.}}
+   {{/this}}

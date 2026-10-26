@@ -1,4 +1,4 @@
-{{#file . "com/iris/client/bean/{{name}}.java"}}
+{{#file this "com/iris/client/bean/{{name}}.java"}}
 package com.iris.client.bean;
 
 import java.util.Map;
@@ -50,7 +50,7 @@ public class {{name}} {
    {{/attributes}}
 
    public Map<String, Object> toMap() {
-      Map<String, Object> map = new java.util.HashMap<String, Object>({{attributes.length}});
+      Map<String, Object> map = new java.util.HashMap<String, Object>({{length attributes}});
       {{#attributes}}
       map.put("{{name}}", _{{name}});
       {{/attributes}}

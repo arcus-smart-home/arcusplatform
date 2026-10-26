@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Context;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
@@ -56,6 +57,7 @@ public class ObjCProcessor {
       handlebars =
             new Handlebars()
                .with(new ConcurrentMapTemplateCache())
+               .with(EscapingStrategy.HBS3)
                ;
       handlebars.registerHelper("equals", new Helper<String>() {
          @Override

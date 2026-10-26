@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
@@ -44,7 +45,10 @@ public class BackboneViewProcessor {
     private final Handlebars handlebars;
 
     public BackboneViewProcessor(String outputDirectoryName) throws IOException {
-        handlebars = new Handlebars();
+        // handlebars 4.x changed the default escaping strategy (and redefined
+        // HTML_ENTITY) to also escape '=' as &#x3D;. HBS3 is the pre-4.x strategy
+        // and keeps rendered output byte-identical to handlebars 2.2.2.
+        handlebars = new Handlebars().with(EscapingStrategy.HBS3);
         handlebars.registerHelper("docs", new Helper<AttributeDefinition>() {
             @Override
             public CharSequence apply(AttributeDefinition context, Options options) throws IOException {

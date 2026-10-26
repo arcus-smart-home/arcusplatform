@@ -1,4 +1,4 @@
-{{#file . "com/iris/client/capability/{{name}}.java"}}
+{{#file this "com/iris/client/capability/{{name}}.java"}}
 package com.iris.client.capability;
 
 public interface {{name}} extends {{#if enhances}}{{enhances}}{{else}}Capability{{/if}} {
