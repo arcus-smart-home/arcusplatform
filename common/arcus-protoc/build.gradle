@@ -33,6 +33,8 @@ dependencies {
    antlr libraries.antlr4
 
    implementation libraries.handlebars
+   // used directly by the java/groovy generators; handlebars happened to leak it
+   implementation libraries.commons_lang
    implementation libraries.commons_cli
    implementation libraries.guava
    implementation libraries.groovy
