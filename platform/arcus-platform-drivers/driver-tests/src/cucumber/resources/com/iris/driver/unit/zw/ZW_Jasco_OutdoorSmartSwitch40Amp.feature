@@ -21,11 +21,14 @@ Feature: Unit Tests for the ZWJascoOutdoor40AmpSwitchDriver
       Then the platform attribute <attr> should change to <reading>
          And the driver should place a base:ValueChange message on the platform bus
 
+      # The last two rows are the reports the switch sends: rate type 1 (consumed) for kWh, 2 (produced) for W
       Examples:
          | reported    | MeterType | Scale | Value2 | Value3 | Value4 | attr              | reading |
          | 29.000 kWh  | 0x21      | 0x64  | 0x00   | 0x71   | 0x48   | pow:cumulative    | 29000.0 |
          | 30.0000 kWh | 0x21      | 0x84  | 0x04   | 0x93   | 0xE0   | pow:cumulative    | 30000.0 |
          | 2450.0 W    | 0x21      | 0x34  | 0x00   | 0x5F   | 0xB4   | pow:instantaneous | 2450.0  |
+         | 29.570 kWh  | 0x21      | 0x64  | 0x00   | 0x73   | 0x82   | pow:cumulative    | 29570.0 |
+         | 37.7 W      | 0x41      | 0x34  | 0x00   | 0x01   | 0x79   | pow:instantaneous | 37.7    |
 
    @energy
    Scenario: Device ignores power while the switch is off
