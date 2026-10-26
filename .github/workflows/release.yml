@@ -69,6 +69,39 @@ jobs:
             exit 0
           fi
 
+          prop() { grep -m1 "^$2=" "$1" | cut -d= -f2- | tr -d '[:space:]'; }
+
+          # Stay out of the way of a release someone is driving by hand.
+          #
+          # version.properties names the version being worked toward, not the
+          # last one shipped: a cycle runs as v<version>-b1, -b2, -rc1 and then
+          # v<version>, all off the same unchanged file. So prerelease tags for
+          # that version with no final tag yet means a cycle is in flight, and
+          # there is no good move available here. Bumping the patch would jump
+          # past the cycle and leave it unfinishable: the next hand-cut
+          # v<version> tag would publish its images over the ones this run had
+          # already pushed, since image tags come from version.properties.
+          # Tagging the version itself would be worse - it decides a beta is
+          # ready, which is not a decision a timer should make.
+          #
+          # A forced dispatch is itself someone driving by hand, so it passes.
+          CURRENT="$(prop khakis/version.properties major).$(prop khakis/version.properties minor).$(prop khakis/version.properties patch)"
+          PRERELEASES=$(git tag -l "v${CURRENT}-*" | paste -sd' ' -)
+          if [ "${FORCE:-false}" != "true" ] \
+             && [ -n "$PRERELEASES" ] \
+             && ! git rev-parse -q --verify "refs/tags/v${CURRENT}" >/dev/null; then
+            echo "v${CURRENT} is in prerelease (${PRERELEASES}) and has no final tag yet."
+            echo "Leaving the release to whoever is driving it; not building."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Skipped: \`v${CURRENT}\` is mid-release"
+              echo
+              echo "Prerelease tags exist (\`${PRERELEASES}\`) but \`v${CURRENT}\` does not."
+              echo "Scheduled rebuilds resume once that tag is pushed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           STATE=.github/release-state.json
           REASONS=()
 
@@ -132,7 +165,6 @@ jobs:
           # Image tags come from version.properties, not from the git tag, so
           # the version has to be bumped or this run would overwrite the images
           # of the last release. Patch bump within the month, reset on a new one.
-          prop() { grep -m1 "^$2=" "$1" | cut -d= -f2- | tr -d '[:space:]'; }
           MAJOR=$(prop khakis/version.properties major)
           MINOR=$(prop khakis/version.properties minor)
           PATCH=$(prop khakis/version.properties patch)
