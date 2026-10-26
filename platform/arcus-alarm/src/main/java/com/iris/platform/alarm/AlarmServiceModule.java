@@ -21,6 +21,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
+import com.iris.core.dao.cassandra.CassandraAlarmIncidentDAOModule;
 import com.iris.core.dao.cassandra.CassandraPlaceDAOModule;
 import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
@@ -35,14 +36,13 @@ import com.iris.bootstrap.annotations.Modules;
 
 /**
  * Binds the alarm notification service (call tree execution for alarm
- * incidents) onto the platform bus. The host container must provide an
- * {@code AlarmIncidentDAO} binding (subsystem-service gets it from
- * {@code AlarmIncidentModule}, which is why it is not bound here).
+ * incidents) onto the platform bus.
  */
 @Modules(include = {
       KafkaModule.class,
       CassandraResourceBundleDAOModule.class,
       CassandraPlaceDAOModule.class,
+      CassandraAlarmIncidentDAOModule.class,
       ModelDaoModule.class,
       CassandraNotificationDaoModule.class,
       CassandraHistoryDAOModule.class,

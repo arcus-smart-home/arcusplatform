@@ -20,15 +20,18 @@ package com.iris.platform.subsystem.incident;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.iris.bootstrap.annotations.Modules;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.common.subsystem.alarm.incident.AlarmIncidentService;
-import com.iris.platform.alarm.incident.AlarmIncidentDAO;
-import com.iris.platform.alarm.incident.CassandraAlarmIncidentDAO;
+import com.iris.core.dao.cassandra.CassandraAlarmIncidentDAOModule;
 
 /**
  * @author tweidlin
  *
  */
+@Modules(include = {
+      CassandraAlarmIncidentDAOModule.class
+})
 public class AlarmIncidentModule extends AbstractIrisModule {
 	@Inject(optional=true)
 	@Named("alarm.incident.threads")
@@ -40,7 +43,6 @@ public class AlarmIncidentModule extends AbstractIrisModule {
 
 	@Override
 	protected void configure() {
-      bind(AlarmIncidentDAO.class).to(CassandraAlarmIncidentDAO.class);
 		bind(AlarmIncidentServiceImpl.class);
 		bind(AlarmIncidentService.class).to(AlarmIncidentServiceDispatcher.class);
 		bind(AlarmIncidentHistoryListener.class).to(PlatformIncidentHistoryListener.class);
