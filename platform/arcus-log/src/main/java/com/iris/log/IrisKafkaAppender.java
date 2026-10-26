@@ -84,12 +84,9 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
    private Integer retries = 0;
    private Integer batchSize = 128 * 1024;
    private Integer maxRequestSize = 1 * 1024 * 1024;
-   private Integer timeoutMs = 30 * 1000;
-   private Boolean blockOnBufferFull = false;
 
    private Long bufferMemory = 32L * 1024L * 1024L;
    private Long lingerMs = 1 * 1000L;
-   private Long metadataFetchTimeoutMs = 60L * 1000L;
    private Long metadataMaxAgeMs = 5L * 60L * 1000L;
    private Long reconnectBackoffMs = 10L;
    private Long retryBackoffMs = 100L;
@@ -222,9 +219,6 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
       putIf(props, "max.request.size", getMaxRequestSize());
       putIf(props, "send.buffer.bytes", getSendBufferBytes());
       putIf(props, "receive.buffer.bytes", getRecvBufferBytes());
-      putIf(props, "timeout.ms", getTimeoutMs());
-      putIf(props, "block.on.buffer.full", getBlockOnBufferFull());
-      putIf(props, "metadata.fetch.timeout.ms", getMetadataFetchTimeoutMs());
       putIf(props, "metadata.max.age.ms", getMetadataMaxAgeMs());
       putIf(props, "reconnect.backoff.ms", getReconnectBackoffMs());
       putIf(props, "retry.backoff.ms", getRetryBackoffMs());
@@ -301,30 +295,6 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
 
    public void setMaxRequestSize(Integer maxRequestSize) {
       this.maxRequestSize = maxRequestSize;
-   }
-
-   public Integer getTimeoutMs() {
-      return timeoutMs;
-   }
-
-   public void setTimeoutMs(Integer timeoutMs) {
-      this.timeoutMs = timeoutMs;
-   }
-
-   public Boolean getBlockOnBufferFull() {
-      return blockOnBufferFull;
-   }
-
-   public void setBlockOnBufferFull(Boolean blockOnBufferFull) {
-      this.blockOnBufferFull = blockOnBufferFull;
-   }
-
-   public Long getMetadataFetchTimeoutMs() {
-      return metadataFetchTimeoutMs;
-   }
-
-   public void setMetadataFetchTimeoutMs(Long metadataFetchTimeoutMs) {
-      this.metadataFetchTimeoutMs = metadataFetchTimeoutMs;
    }
 
    public Long getMetadataMaxAgeMs() {

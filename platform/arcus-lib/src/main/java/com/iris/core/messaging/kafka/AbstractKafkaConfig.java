@@ -57,6 +57,9 @@ public abstract class AbstractKafkaConfig {
             .put("auto.commit.interval.ms", "autoCommitIntervalMs")
             .put("batch.size", "batchNumMessages")
             .put("bootstrap.servers", "brokers")
+            // buffer.memory and heartbeat.interval.ms were misspelled here for
+            // years, so the misspellings are honoured as deprecated aliases
+            .put("buffer.memory", "buffer")
             .put("client.id", "clientId")
             .put("compression.type", "compressionCodec")
             .put("default.timeout.ms", "defaultTimeoutMs")
@@ -64,6 +67,7 @@ public abstract class AbstractKafkaConfig {
             .put("fetch.max.wait.ms", "fetchWaitMaxMs")
             .put("fetch.min.bytes", "fetchMinBytes")
             .put("group.id", "group")
+            .put("heartbeat.interval.ms", "heart.beat.interval.ms")
             .put("linger.ms", "queueBufferingMaxMs")
             .put("max.block.ms", "queueEnqueueTimeoutMs")
             .put("max.partition.fetch.bytes", "fetchMessageMaxBytes")
@@ -92,6 +96,11 @@ public abstract class AbstractKafkaConfig {
                "rebalanceMaxRetries",
                "refreshLeaderBackoffMs",
                "socketTimeoutMs",
+               // dropped with the old producer; use request.timeout.ms and
+               // max.block.ms, both of which are configurable above
+               "timeout.ms",
+               "block.on.buffer.full",
+               "metadata.fetch.timeout.ms",
                "queuedMaxMessageChunks",
                "queueBufferingMaxMessages"
             );
@@ -142,8 +151,8 @@ public abstract class AbstractKafkaConfig {
    private String groupId = "eyeris";
    @Consumer @Named("fetch.min.bytes")
    private Integer fetchMinBytes;
-   @Consumer @Named("heart.beat.interval.ms")
-   private Integer heartBeatIntervalMs;
+   @Consumer @Named("heartbeat.interval.ms")
+   private Integer heartbeatIntervalMs;
    @Consumer @Named("max.partition.fetch.bytes")
    private Integer maxPartitionFetchBytes = 1024 * 1024; // largest message that can be read
    @Consumer @Named("session.timeout.ms")
@@ -168,8 +177,8 @@ public abstract class AbstractKafkaConfig {
    // nu producer properties
    @Producer @Named("acks")
    private String acks; // yes, its a string to support `all`
-   @Producer @Named("buffer")
-   private Long buffer;
+   @Producer @Named("buffer.memory")
+   private Long bufferMemory;
    @Producer @Named("compression.type")
    private String compressionType;
    @Producer @Named("retries")
@@ -182,14 +191,8 @@ public abstract class AbstractKafkaConfig {
    private Long maxBlockMs;
    @Producer @Named("max.request.size")
    private Integer maxRequestSize;
-   @Producer @Named("timeout.ms")
-   private Integer timeoutMs;
-   @Producer @Named("block.on.buffer.full")
-   private Boolean blockOnBufferFull;
    @Producer @Named("max.in.flight.requests.per.connection")
    private Integer maxInFlightRequestsPerConnection;
-   @Producer @Named("metadata.fetch.timeout.ms")
-   private Long metadataFetchTimeoutMs;
    
    // shared metrics config
    @Consumer @Producer @Named("metric.reporters")
@@ -466,12 +469,12 @@ public abstract class AbstractKafkaConfig {
       this.fetchMinBytes = fetchMinBytes;
    }
 
-   public Integer getHeartBeatIntervalMs() {
-      return heartBeatIntervalMs;
+   public Integer getHeartbeatIntervalMs() {
+      return heartbeatIntervalMs;
    }
 
-   public void setHeartBeatIntervalMs(Integer heartBeatIntervalMs) {
-      this.heartBeatIntervalMs = heartBeatIntervalMs;
+   public void setHeartbeatIntervalMs(Integer heartbeatIntervalMs) {
+      this.heartbeatIntervalMs = heartbeatIntervalMs;
    }
 
    public Integer getMaxPartitionFetchBytes() {
@@ -562,12 +565,12 @@ public abstract class AbstractKafkaConfig {
       this.acks = acks;
    }
 
-   public Long getBuffer() {
-      return buffer;
+   public Long getBufferMemory() {
+      return bufferMemory;
    }
 
-   public void setBuffer(Long buffer) {
-      this.buffer = buffer;
+   public void setBufferMemory(Long bufferMemory) {
+      this.bufferMemory = bufferMemory;
    }
 
    public String getCompressionType() {
@@ -618,36 +621,12 @@ public abstract class AbstractKafkaConfig {
       this.maxRequestSize = maxRequestSize;
    }
 
-   public Integer getTimeoutMs() {
-      return timeoutMs;
-   }
-
-   public void setTimeoutMs(Integer timeoutMs) {
-      this.timeoutMs = timeoutMs;
-   }
-
-   public Boolean getBlockOnBufferFull() {
-      return blockOnBufferFull;
-   }
-
-   public void setBlockOnBufferFull(Boolean blockOnBufferFull) {
-      this.blockOnBufferFull = blockOnBufferFull;
-   }
-
    public Integer getMaxInFlightRequestsPerConnection() {
       return maxInFlightRequestsPerConnection;
    }
 
    public void setMaxInFlightRequestsPerConnection(Integer maxInFlightRequestsPerConnection) {
       this.maxInFlightRequestsPerConnection = maxInFlightRequestsPerConnection;
-   }
-
-   public Long getMetadataFetchTimeoutMs() {
-      return metadataFetchTimeoutMs;
-   }
-
-   public void setMetadataFetchTimeoutMs(Long metadataFetchTimeoutMs) {
-      this.metadataFetchTimeoutMs = metadataFetchTimeoutMs;
    }
 
    public String getMetricReporters() {
