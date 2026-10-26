@@ -185,7 +185,10 @@ public abstract class AbstractKafkaConfig {
    
    // nu producer properties
    @Producer @Named("acks")
-   private String acks; // yes, its a string to support `all`
+   // yes, its a string to support `all`.  Pinned to "1" because KIP-679 changed the
+   // kafka-clients default from "1" to "all" in 3.0; leaving it unset would silently put
+   // the cross-datacenter replica link in the path of every produce.
+   private String acks = "1";
    @Producer @Named("buffer.memory")
    private Long bufferMemory;
    @Producer @Named("compression.type")

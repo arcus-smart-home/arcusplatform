@@ -20,5 +20,8 @@ dependencies {
 	api libraries.guava
 	api libraries.gson
 	implementation libraries.eclipse_annotation
+	// kafka-clients 3.x declares slf4j-api at runtime scope, so it is no longer on the
+	// compile classpath transitively the way kafka-clients 2.8 put it there
+	implementation libraries.slf4jApi
 }
 
