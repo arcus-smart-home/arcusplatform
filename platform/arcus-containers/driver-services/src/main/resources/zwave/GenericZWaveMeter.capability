@@ -64,13 +64,18 @@ static Map decodeMeterReport(byte[] bytes) {
 static Map decodeElectricReport(ctx, name, message) {
    def report = decodeMeterReport(message.command.recvBytes)
    ctx.log.debug "{} meter report: {}", name, report
-   if (null == report || METER_TYPE_ELECTRIC != report.meterType || RATE_TYPE_EXPORT == report.rateType) {
+   if (null == report || METER_TYPE_ELECTRIC != report.meterType) {
       return null
    }
-   if (SCALE_KWH != report.scale && SCALE_WATTS != report.scale) {
-      return null
+   if (SCALE_WATTS == report.scale) {
+      // the rate type is not checked for power: the GE/Jasco 40A switch marks its W reports as produced (rate type 2)
+      // while it is drawing power
+      return report
    }
-   return report
+   if (SCALE_KWH == report.scale && RATE_TYPE_EXPORT != report.rateType) {
+      return report
+   }
+   return null
 }
 
 /**

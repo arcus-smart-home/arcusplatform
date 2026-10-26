@@ -117,6 +117,7 @@ Feature: Z-Wave Meter Report decoding in GenericZWaveMeter
          | 2450.0 W in 2 bytes      | 0x21      | 0x32  | 0x5F   | 0xB4   | 0x00   | 0x3C   | pow:instantaneous | 2450.0  |
          | 100 W in 1 byte          | 0x21      | 0x11  | 0x64   | 0x00   | 0x3C   | 0x00   | pow:instantaneous | 100.0   |
          | -200 W in 2 bytes        | 0x21      | 0x12  | 0xFF   | 0x38   | 0x00   | 0x3C   | pow:instantaneous | -200.0  |
+         | 37.7 W marked produced   | 0x41      | 0x34  | 0x00   | 0x00   | 0x01   | 0x79   | pow:instantaneous | 37.7    |
 
    Scenario Outline: Ignores <reported>
       Given the ZW_Aeon_SmartEnergySwitch.driver has been initialized
