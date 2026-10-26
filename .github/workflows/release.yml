@@ -24,7 +24,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: release
+  # Only the scheduled and manual paths commit to master, so only those need to
+  # be mutually exclusive. A single group for every event also covered tag
+  # pushes, and GitHub keeps just the newest pending run per group, so pushing
+  # -rc1 and then the final during a long build dropped the -rc1 build.
+  group: release-${{ github.event_name == 'push' && github.ref || 'scheduled' }}
   cancel-in-progress: false
 
 jobs:
@@ -75,31 +79,64 @@ jobs:
           #
           # version.properties names the version being worked toward, not the
           # last one shipped: a cycle runs as v<version>-b1, -b2, -rc1 and then
-          # v<version>, all off the same unchanged file. So prerelease tags for
-          # that version with no final tag yet means a cycle is in flight, and
-          # there is no good move available here. Bumping the patch would jump
-          # past the cycle and leave it unfinishable: the next hand-cut
-          # v<version> tag would publish its images over the ones this run had
-          # already pushed, since image tags come from version.properties.
-          # Tagging the version itself would be worse - it decides a beta is
-          # ready, which is not a decision a timer should make.
+          # v<version>, all off the same unchanged file. So the version named
+          # there having no final tag means someone owns it, and there is no
+          # good move available here. Bumping the patch would jump past the
+          # cycle and leave it unfinishable: the next hand-cut v<version> tag
+          # would publish its images over the ones this run had already pushed,
+          # since image tags come from version.properties. Tagging the version
+          # itself would be worse - it decides a beta is ready, which is not a
+          # decision a timer should make.
           #
-          # A forced dispatch is itself someone driving by hand, so it passes.
+          # The test is the missing final tag rather than the presence of
+          # prerelease tags, because the bump lands well before the first -b1:
+          # for 2026.10.3 it was 19 hours and three merged PRs ahead of it. A
+          # run in that window would have seen a bumped file with nothing
+          # tagged, and taken the version.
           CURRENT="$(prop khakis/version.properties major).$(prop khakis/version.properties minor).$(prop khakis/version.properties patch)"
-          PRERELEASES=$(git tag -l "v${CURRENT}-*" | paste -sd' ' -)
-          if [ "${FORCE:-false}" != "true" ] \
-             && [ -n "$PRERELEASES" ] \
-             && ! git rev-parse -q --verify "refs/tags/v${CURRENT}" >/dev/null; then
-            echo "v${CURRENT} is in prerelease (${PRERELEASES}) and has no final tag yet."
-            echo "Leaving the release to whoever is driving it; not building."
-            echo "build=false" >> "$GITHUB_OUTPUT"
-            {
-              echo "### Skipped: \`v${CURRENT}\` is mid-release"
-              echo
-              echo "Prerelease tags exist (\`${PRERELEASES}\`) but \`v${CURRENT}\` does not."
-              echo "Scheduled rebuilds resume once that tag is pushed."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+          if ! git rev-parse -q --verify "refs/tags/v${CURRENT}" >/dev/null; then
+            PRERELEASES=$(git tag -l "v${CURRENT}-*" | paste -sd' ' -)
+
+            # How long it has been owned: the bump commit, or the newest
+            # prerelease tag if that is later. Cycles here do sometimes end
+            # without a final tag - v2026.3.2 stopped at -rc1 and v2026.10.1 at
+            # -rc3 - and the guard would otherwise stay armed until the next
+            # bump, with the 30 day security floor never evaluated in between.
+            # Past the stale window it says so loudly and releases anyway.
+            STALE_DAYS=45
+            LIMBO_EPOCH=$(git log -1 --format=%ct -- khakis/version.properties || true)
+            NEWEST_PRE=$(git tag -l "v${CURRENT}-*" --format='%(creatordate:unix)' | sort -n | tail -1)
+            if [ -n "$NEWEST_PRE" ] && [ "$NEWEST_PRE" -gt "${LIMBO_EPOCH:-0}" ]; then
+              LIMBO_EPOCH=$NEWEST_PRE
+            fi
+            # An unknown age means "just bumped", so the cautious branch wins.
+            LIMBO_DAYS=$(( ( $(date -u +%s) - ${LIMBO_EPOCH:-$(date -u +%s)} ) / 86400 ))
+
+            if [ "${FORCE:-false}" = "true" ]; then
+              echo "v${CURRENT} has no final tag, but this run was forced; continuing."
+            elif [ "$LIMBO_DAYS" -lt "$STALE_DAYS" ]; then
+              echo "v${CURRENT} has no final tag yet (${LIMBO_DAYS} days, prereleases: ${PRERELEASES:-none})."
+              echo "Leaving the release to whoever is driving it; not building."
+              echo "build=false" >> "$GITHUB_OUTPUT"
+              {
+                echo "### Skipped: \`v${CURRENT}\` is mid-release"
+                echo
+                echo "\`khakis/version.properties\` names \`${CURRENT}\`, which has no \`v${CURRENT}\` tag"
+                echo "after ${LIMBO_DAYS} day(s). Prereleases: \`${PRERELEASES:-none}\`."
+                echo
+                echo "Scheduled rebuilds resume once that tag is pushed, the version is bumped,"
+                echo "or ${STALE_DAYS} days pass. A forced dispatch overrides this."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            else
+              echo "::warning::v${CURRENT} has had no final tag for ${LIMBO_DAYS} days; releasing past it."
+              {
+                echo "### \`v${CURRENT}\` was abandoned mid-release"
+                echo
+                echo "No \`v${CURRENT}\` tag after ${LIMBO_DAYS} days (prereleases: \`${PRERELEASES:-none}\`),"
+                echo "past the ${STALE_DAYS} day window, so this run releases past it."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
           STATE=.github/release-state.json
@@ -178,7 +215,10 @@ jobs:
             MINOR=$MONTH
             PATCH=0
           fi
-          while git rev-parse -q --verify "refs/tags/v${MAJOR}.${MINOR}.${PATCH}" >/dev/null; do
+          # Skip any version already tagged, prereleases included: a v<X>-b1
+          # without a final tag is a cycle someone started, not a free slot.
+          while git rev-parse -q --verify "refs/tags/v${MAJOR}.${MINOR}.${PATCH}" >/dev/null \
+                || [ -n "$(git tag -l "v${MAJOR}.${MINOR}.${PATCH}-*")" ]; do
             PATCH=$((PATCH + 1))
           done
           VERSION="${MAJOR}.${MINOR}.${PATCH}"
@@ -274,13 +314,19 @@ jobs:
           REGISTRY_SEPARATOR: '-'
 
       - name: Summary
+        env:
+          # Through the environment, not interpolated into the script: a ref is
+          # a tag name on a push, and git permits \", ; and $ in those.
+          REF: ${{ needs.prepare.outputs.ref }}
         run: |
           # Images are tagged from version.properties, not from the ref, so
           # report what was actually published and flag any disagreement.
           DOCKER_VERSION=$(sed -nE 's/^(major|minor|patch)=//p' khakis/version.properties | paste -sd. -)
-          echo "Published \`${DOCKER_VERSION}\` from \`${{ needs.prepare.outputs.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
-          if [ "v${DOCKER_VERSION}" != "${{ needs.prepare.outputs.ref }}" ]; then
-            echo "::warning::Images are tagged ${DOCKER_VERSION} from khakis/version.properties, which does not match ${{ needs.prepare.outputs.ref }}"
+          echo "Published \`${DOCKER_VERSION}\` from \`${REF}\`" >> "$GITHUB_STEP_SUMMARY"
+          # A prerelease publishes images without its suffix by design, so
+          # v2026.10.3-b1 tagging 2026.10.3 is agreement, not a mismatch.
+          if [ "v${DOCKER_VERSION}" != "${REF%%-*}" ]; then
+            echo "::warning::Images are tagged ${DOCKER_VERSION} from khakis/version.properties, which does not match ${REF}"
           fi
 
   # Records the base digest and timestamp only once the images are actually
