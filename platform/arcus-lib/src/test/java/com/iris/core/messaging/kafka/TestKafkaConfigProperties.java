@@ -16,6 +16,7 @@
 package com.iris.core.messaging.kafka;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -42,7 +43,7 @@ import com.iris.core.messaging.kafka.AbstractKafkaConfig.Producer;
 public class TestKafkaConfigProperties {
 
    private KafkaConfig config(Properties props) {
-      props.setProperty("kafka.group", "test");
+      props.setProperty("kafka.group.id", "test");
       // toNu*Properties() resolves the brokers, and the default host does not
       // exist outside a deployment
       props.setProperty("kafka.bootstrap.servers", "localhost:9092");
@@ -75,7 +76,8 @@ public class TestKafkaConfigProperties {
 
    @Test
    public void testEmittedPropertiesAreKnownToKafka() {
-      // every property set, so that nothing is skipped for being null
+      // the two renamed properties are set explicitly; the rest carry their
+      // code defaults, and a property left null is never emitted at all
       Properties props = new Properties();
       props.setProperty("kafka.buffer.memory", "16777216");
       props.setProperty("kafka.heartbeat.interval.ms", "2000");
@@ -107,17 +109,34 @@ public class TestKafkaConfigProperties {
    }
 
    @Test
-   public void testPropertiesDroppedWithTheOldProducerAreRejected() {
+   public void testPropertiesDroppedWithTheOldProducerAreIgnored() {
+      // a deployment that still sets one of these has to keep starting: the
+      // values they carried were the client defaults, so ignoring them is
+      // behaviour preserving, while refusing to start is not
       for(String name: new String[] { "timeout.ms", "block.on.buffer.full", "metadata.fetch.timeout.ms" }) {
          Properties props = new Properties();
          props.setProperty("kafka." + name, "1000");
-         try {
-            config(props);
-            fail("expected kafka." + name + " to be rejected");
-         }
-         catch(IllegalStateException e) {
-            assertTrue(e.getMessage(), e.getMessage().contains("kafka." + name));
-         }
+
+         KafkaConfig config = config(props);
+
+         assertFalse(name + " was passed through to the consumer",
+               config.toNuConsumerProperties().containsKey(name));
+         assertFalse(name + " was passed through to the producer",
+               config.toNuProducerProperties().containsKey(name));
+      }
+   }
+
+   @Test
+   public void testPropertiesDroppedWithTheOldConsumerAreStillRejected() {
+      // the older unsupported names predate this check and stay fatal
+      Properties props = new Properties();
+      props.setProperty("kafka.producerType", "async");
+      try {
+         config(props);
+         fail("expected kafka.producerType to be rejected");
+      }
+      catch(IllegalStateException e) {
+         assertTrue(e.getMessage(), e.getMessage().contains("kafka.producerType"));
       }
    }
 }

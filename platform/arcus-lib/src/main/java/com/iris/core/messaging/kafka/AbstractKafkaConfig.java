@@ -96,13 +96,22 @@ public abstract class AbstractKafkaConfig {
                "rebalanceMaxRetries",
                "refreshLeaderBackoffMs",
                "socketTimeoutMs",
-               // dropped with the old producer; use request.timeout.ms and
-               // max.block.ms, both of which are configurable above
-               "timeout.ms",
-               "block.on.buffer.full",
-               "metadata.fetch.timeout.ms",
                "queuedMaxMessageChunks",
                "queueBufferingMaxMessages"
+            );
+
+   // Dropped with the old producer, and replaced by request.timeout.ms and
+   // max.block.ms, both of which are configurable above. These only warn
+   // rather than join UnsupportedProperties: the values they carried were the
+   // client's own defaults, so a deployment that still names one is harmless,
+   // and failing to start over a stale property nobody has to set is worse
+   // than ignoring it.
+   private static final Set<String> IgnoredProperties =
+         ImmutableSet
+            .of(
+               "timeout.ms",
+               "block.on.buffer.full",
+               "metadata.fetch.timeout.ms"
             );
       
    @Retention(RUNTIME)
@@ -281,6 +290,11 @@ public abstract class AbstractKafkaConfig {
       for(String unsupportedProperty: UnsupportedProperties) {
          if(has(configProvider, prefix, unsupportedProperty)) {
             throw new IllegalStateException("The property " + prefix + unsupportedProperty + " is no longer supported, please remove it");
+         }
+      }
+      for(String ignoredProperty: IgnoredProperties) {
+         if(has(configProvider, prefix, ignoredProperty)) {
+            log.warn("Property [{}{}] is no longer supported by the kafka client and is being ignored, please remove it", prefix, ignoredProperty);
          }
       }
    }
