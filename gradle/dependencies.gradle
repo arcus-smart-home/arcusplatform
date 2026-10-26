@@ -137,7 +137,7 @@ ext.libraries << [
 		// handlebars 4.2+ dropped ANTLR, but declares nashorn-core for the optional
 		// JavaScript helper API (registerHelpers over a .js file). Every helper here
 		// is a Java class, so keep nashorn and its asm 7.3.1 out of the images.
-		handlebars: dependencies.create("com.github.jknack:handlebars:4.4.0") {
+		handlebars: dependencies.create("com.github.jknack:handlebars:4.5.5") {
 			exclude group: "org.openjdk.nashorn"
 		},
 		jna: 'net.java.dev.jna:jna:5.19.1',
