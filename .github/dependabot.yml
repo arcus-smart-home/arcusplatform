@@ -95,6 +95,14 @@ updates:
           - "com.datastax.oss:*"
           - "org.apache.kafka:*"
           - "org.apache.zookeeper:*"
+      # The antlr4 tool and antlr4-runtime have to move together: a generated
+      # parser records the serialized-ATN version it was built with and the
+      # runtime refuses to load one it does not recognise, so a split update
+      # breaks the build at startup rather than at compile time.
+      antlr:
+        patterns:
+          - "org.antlr:antlr4"
+          - "org.antlr:antlr4-runtime"
       gradle-minor-and-patch:
         patterns:
           - "*"
