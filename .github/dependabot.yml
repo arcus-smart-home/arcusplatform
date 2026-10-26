@@ -33,14 +33,6 @@ updates:
       # Closed-source jar vendored in libs/, not published to any repository.
       - dependency-name: "ipcd-lib:ipcd-lib"
 
-      # ANTLR is pinned by handlebars, not by our grammars. handlebars 2.2.2
-      # ships a precompiled HbsLexer whose serialized ATN is version 3, and any
-      # runtime past 4.5 rejects it ("Could not deserialize ATN with version 3
-      # (expected 4)"), which breaks every protoc codegen task. Unpinning means
-      # bumping handlebars 2.2.2 -> 4.x first, then both together.
-      - dependency-name: "org.antlr:antlr4"
-      - dependency-name: "org.antlr:antlr4-runtime"
-
       # Cucumber is frozen at 6.10.4 because io.cucumber:cucumber-groovy was
       # discontinued: its last release is 6.10.4 (June 2021) and there is no
       # 7.x or 8.x artifact at all. cucumber-junit and cucumber-java have to

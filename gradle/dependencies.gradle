@@ -149,8 +149,8 @@ ext.libraries << [
 		natty: "com.joestelmach:natty:0.13",
 
 		antlr: "org.antlr:antlr-runtime:3.5.3",
-		antlr4: "org.antlr:antlr4:4.5",
-		antlr4_runtime: "org.antlr:antlr4-runtime:4.5",
+		antlr4: "org.antlr:antlr4:4.13.2",
+		antlr4_runtime: "org.antlr:antlr4-runtime:4.13.2",
 
 // Formerly included in JDK
       javax_activation_api: 'javax.activation:javax.activation-api:1.2.0',
