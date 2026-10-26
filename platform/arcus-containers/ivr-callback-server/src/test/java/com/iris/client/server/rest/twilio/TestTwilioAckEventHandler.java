@@ -30,7 +30,7 @@ import java.util.UUID;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.shiro.codec.Base64;
+import org.apache.shiro.lang.codec.Base64;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;

@@ -41,8 +41,9 @@ updates:
       # cucumber-java.
       - dependency-name: "io.cucumber:*"
 
-      # Shiro 2.x/3.x is a known migration, not a bump. Patch and minor on the
-      # 1.13 line are still welcome.
+      # Shiro 3.x is a known migration, not a bump (the 2.x move relocated
+      # org.apache.shiro.lang.* and removed Md5Hash). Patch and minor on the
+      # 2.x line are still welcome.
       - dependency-name: "org.apache.shiro:*"
         update-types: ["version-update:semver-major"]
 
