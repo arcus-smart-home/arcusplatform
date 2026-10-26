@@ -216,11 +216,14 @@ public class AES {
    }
 
    // XXX: why is this called sha1?
-   private byte[] sha1(String key, String salt) throws Exception {
+   // Package-private so AESKnownAnswerTest can pin the exact bytes: these two
+   // helpers derive the AES key and the AES-CBC IV for data already encrypted
+   // at rest, so their output must never change.
+   static byte[] sha1(String key, String salt) throws Exception {
       return new Sha256Hash(key, salt).getBytes();
    }
 
-   private byte[] md5(String str) throws Exception {
+   static byte[] md5(String str) throws Exception {
       return new Md5Hash(str).getBytes();
    }
 }
