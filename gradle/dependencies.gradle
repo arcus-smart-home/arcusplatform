@@ -134,10 +134,15 @@ ext.libraries << [
 		gson: "com.google.code.gson:gson:2.14.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.100",
-		// handlebars 4.2+ dropped ANTLR, but declares nashorn-core for the optional
-		// JavaScript helper API (registerHelpers over a .js file). Every helper here
-		// is a Java class, so keep nashorn and its asm 7.3.1 out of the images.
-		handlebars: dependencies.create("com.github.jknack:handlebars:4.4.0") {
+		// 4.3.1 is the newest release still compiled for Java 8. 4.4.0 moved to
+		// Java 17 bytecode, which javac 11 cannot read at all, so it breaks the
+		// JDK 11 leg of the build that exists because hubs run JDK 11. 4.1.0+
+		// already shades antlr4-runtime into
+		// com.github.jknack.handlebars.internal.antlr, so the antlr4 pin stays
+		// gone either way. handlebars also declares nashorn-core for the optional
+		// JavaScript helper API (registerHelpers over a .js file); every helper
+		// here is a Java class, so keep nashorn and its asm out of the images.
+		handlebars: dependencies.create("com.github.jknack:handlebars:4.3.1") {
 			exclude group: "org.openjdk.nashorn"
 		},
 		jna: 'net.java.dev.jna:jna:5.19.1',
