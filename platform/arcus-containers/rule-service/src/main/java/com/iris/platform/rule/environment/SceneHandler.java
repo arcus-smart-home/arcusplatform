@@ -29,7 +29,6 @@ import com.iris.common.rule.event.ModelRemovedEvent;
 import com.iris.common.rule.event.RuleEvent;
 import com.iris.common.scene.Scene;
 import com.iris.common.scene.SceneContext;
-import com.iris.core.platform.AnalyticsMessageBus;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.handlers.AddTagsModelRequestHandler;
 import com.iris.core.platform.handlers.GetAttributesModelRequestHandler;
@@ -45,7 +44,6 @@ import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.serv.SceneModel;
 import com.iris.messages.type.ActionTemplate;
-import com.iris.platform.rule.analytics.SceneAnalyticsWrapper;
 import com.iris.platform.scene.catalog.SceneCatalog;
 import com.iris.platform.scene.catalog.SceneTemplate;
 import com.iris.platform.scene.resolver.ActionResolver;
@@ -59,7 +57,6 @@ public class SceneHandler implements PlaceEventHandler {
    private volatile Scene scene;
    
    private final SceneContext context;
-   private final AnalyticsMessageBus analyticsBus;
    private final Map<String, ContextualRequestMessageHandler<Model>> modelHandlers;
    private final SceneCatalog sceneCatalog;
    
@@ -72,11 +69,9 @@ public class SceneHandler implements PlaceEventHandler {
       SetAttributesModelRequestHandler setAttributesHandler,
       AddTagsModelRequestHandler addTagsHandler,
       RemoveTagsModelRequestHandler removeTagsHandler,
-      AnalyticsMessageBus analyticsBus, 
       SceneCatalog sceneCatalog
    ) {
       this.context = context;
-      this.analyticsBus = analyticsBus;
       this.sceneCatalog = sceneCatalog;
       this.modelHandlers = 
             ImmutableMap
@@ -275,12 +270,12 @@ public class SceneHandler implements PlaceEventHandler {
 
    private void rebuild() {
       try {
-         this.scene = new SceneAnalyticsWrapper(analyticsBus, getAddress(), getContext(), create());
+         this.scene = new TimedScene(getAddress(), getContext(), create());
          this.context.model().setAttribute(SceneCapability.ATTR_ENABLED, isAvailable());
       }
       catch(Exception e) {
          this.context.logger().warn("Unable to build scene", e);
-         this.scene = new SceneAnalyticsWrapper(analyticsBus, getAddress(), getContext(), null);
+         this.scene = new TimedScene(getAddress(), getContext(), null);
          this.context.model().setAttribute(SceneCapability.ATTR_ENABLED, false);
       }
    }

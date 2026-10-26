@@ -22,7 +22,6 @@
 | `alarm-service` | Professional monitoring integration and incident tracking |
 | `history-service` | Records device state changes and events for historical replay |
 | `notification-services` | Multi-channel notifications: SMS (Twilio), email (SendGrid/Mailgun), push (GCM/APNS), XMPP |
-| `tag-service` | User-defined device tagging/labeling |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |
 
 **IVR:**

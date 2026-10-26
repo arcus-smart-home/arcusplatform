@@ -12,7 +12,6 @@ fi
 KEYSPACE=${CASSANDRA_KEYSPACE:-dev}
 SUPPORT_KEYSPACE=support
 HISTORY_KEYSPACE=history
-ANALYTICS_KEYSPACE=analytics
 CASSANDRA_HOSTNAME=${CASSANDRA_HOSTNAME:-$HOSTNAME}
 CASSANDRA_REPLICATION=${CASSANDRA_REPLICATION:-3}
 
@@ -60,13 +59,6 @@ echo "Creating history keyspace $HISTORY_KEYSPACE"
 echo "create keyspace $HISTORY_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
 if [ $? != 0 ] ; then
    echo "ERROR Unable to create support keyspace $HISTORY_KEYSPACE"
-   exit -1
-fi
-
-echo "Creating analytics keyspace $ANALYTICS_KEYSPACE"
-echo "create keyspace $ANALYTICS_KEYSPACE with replication = {'class':'SimpleStrategy', 'replication_factor':${CASSANDRA_REPLICATION}};" | cqlsh $CASSANDRA_HOSTNAME
-if [ $? != 0 ] ; then
-   echo "ERROR Unable to create support keyspace $ANALYTICS_KEYSPACE"
    exit -1
 fi
 

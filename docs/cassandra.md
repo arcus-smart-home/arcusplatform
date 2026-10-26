@@ -9,7 +9,6 @@ All keyspaces use `SimpleStrategy` with a configurable replication factor (defau
 | `dev` (configurable via `$CASSANDRA_KEYSPACE`) | Primary application data — all core entities |
 | `history` | Event history / audit log |
 | `support` | Support tooling |
-| `analytics` | Analytics (currently empty) |
 
 ## Schema Management
 

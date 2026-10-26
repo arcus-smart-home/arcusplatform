@@ -16,12 +16,9 @@
 package com.iris.netty.server.message;
 
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.upperCase;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Map;
-import java.util.UUID;
 
 import javax.inject.Singleton;
 
@@ -29,37 +26,27 @@ import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import com.iris.bridge.server.session.Session;
-import com.iris.core.platform.AnalyticsMessageBus;
 import com.iris.messages.ClientMessage;
 import com.iris.messages.MessageBody;
-import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
-import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.service.SessionService;
 import com.iris.messages.service.SessionService.TagRequest;
 import com.iris.messages.service.SessionService.TagResponse;
-import com.iris.messages.service.SessionService.TaggedEvent;
-import com.iris.population.PlacePopulationCacheManager;
 
+/**
+ * Acknowledges the usage tags clients still send. They used to be published for the tag-service,
+ * which has been removed. Nothing consumes them now, so they are discarded; the handler stays
+ * only so that clients get an answer instead of an unsupported-message error.
+ */
 @Singleton
 public class TagHandler extends BaseClientRequestHandler
 {
-   private static final Logger tagLog = getLogger("tag");
-
-   public static final String KEY_SERVICE_LEVEL = "service.level";
-
-   private final IrisNettyMessageUtil messageUtil;
-   private final AnalyticsMessageBus tagBus;
-   private final PlacePopulationCacheManager populationCacheMgr;
+   private static final Logger logger = getLogger(TagHandler.class);
 
    @Inject
-   public TagHandler(IrisNettyMessageUtil messageUtil, AnalyticsMessageBus tagBus, PlacePopulationCacheManager populationCacheMgr)
+   public TagHandler()
    {
       super(directExecutor());
-
-      this.messageUtil = messageUtil;
-      this.tagBus = tagBus;
-      this.populationCacheMgr = populationCacheMgr;
    }
 
    @Override
@@ -76,37 +63,7 @@ public class TagHandler extends BaseClientRequestHandler
       String tagName = TagRequest.getName(requestBody);
       Map<String, String> tagContext = TagRequest.getContext(requestBody);
 
-      tagLog.info("Tag {} : {}", tagName, tagContext);
-
-      // These two will be null for UI tags before the user logs in
-      String placeId = session.getActivePlace();
-      UUID personId = session.getClient().getPrincipalId();
-
-      String serviceLevel = tagContext.get(KEY_SERVICE_LEVEL);
-      if (isBlank(serviceLevel))
-      {
-         serviceLevel = null;
-      }
-
-      MessageBody eventBody = TaggedEvent.builder()
-         .withName(tagName)
-         .withPlaceId(placeId)
-         .withPersonId(personId == null ? null : personId.toString())
-         .withSource(upperCase(session.getClientType()))
-         .withVersion(session.getClientVersion())
-         .withServiceLevel(serviceLevel)
-         .build();
-
-      Address clientAddress = Address.fromString(messageUtil.buildId(session.getClientToken().getRepresentation()));
-      Address personAddress = personId == null ? null : Address.platformService(personId, PersonCapability.NAMESPACE);
-
-      PlatformMessage.Builder msgBuilder = PlatformMessage.buildEvent(eventBody, clientAddress)
-         .withPlaceId(placeId)
-         .withActor(personAddress);
-      if (placeId != null) {
-         msgBuilder.withPopulation(populationCacheMgr.getPopulationByPlaceId(UUID.fromString(placeId)));
-      }
-      tagBus.send(msgBuilder.create());
+      logger.debug("Tag {} : {}", tagName, tagContext);
 
       return TagResponse.instance();
    }
@@ -117,4 +74,3 @@ public class TagHandler extends BaseClientRequestHandler
    	return SessionService.ADDRESS;
    }
 }
-

@@ -99,7 +99,6 @@ Provisioning is idempotent — skipped if `/data/install/.eyeris-kafka` exists (
 | `dev` (configurable via `CASSANDRA_KEYSPACE`) | Primary platform data (places, people, devices, rules, subsystems) |
 | `support` | Support/operational data |
 | `history` | Device attribute change history, partitioned by time |
-| `analytics` | Analytics events |
 
 Tables within these keyspaces are created by `arcus-modelmanager` (schema migration tool) which runs as part of `startPlatform`.
 

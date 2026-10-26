@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
-import com.iris.core.platform.AnalyticsMessageBus;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.handlers.AddTagsModelRequestHandler;
 import com.iris.core.platform.handlers.GetAttributesModelRequestHandler;
@@ -41,7 +40,6 @@ import com.iris.platform.scene.SceneDefinition;
 @Singleton
 public class SceneHandlerFactory {
    private final PlatformMessageBus platformBus;
-   private final AnalyticsMessageBus analyticsBus;
    private final SceneDao sceneDao;
    private final BeanAttributesTransformer<SceneDefinition> transformer;
    private final GetAttributesModelRequestHandler getAttributesHandler;
@@ -53,7 +51,6 @@ public class SceneHandlerFactory {
    @Inject
    public SceneHandlerFactory(
          PlatformMessageBus platformBus,
-         AnalyticsMessageBus analyticsBus,
          SceneDao sceneDao,
          BeanAttributesTransformer<SceneDefinition> transformer,
          GetAttributesModelRequestHandler getAttributesHandler,
@@ -63,7 +60,6 @@ public class SceneHandlerFactory {
          SceneCatalogLoader sceneCatalogLoader
    ) { 
       this.platformBus = platformBus;
-      this.analyticsBus = analyticsBus;
       this.sceneDao = sceneDao;
       this.transformer = transformer;
       this.getAttributesHandler = getAttributesHandler;
@@ -104,7 +100,6 @@ public class SceneHandlerFactory {
                   setAttributesHandler,
                   addTagsHandler,
                   removeTagsHandler,
-                  analyticsBus,
                   sceneCatalogLoader.getCatalogForPlace(environment.getPlaceId())
             ));
          }

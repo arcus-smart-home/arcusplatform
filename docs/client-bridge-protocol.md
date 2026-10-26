@@ -362,14 +362,14 @@ Submit a client log entry. Logged server-side at INFO level. Works before and af
 
 #### `sess:Tag`
 
-Submit an analytics tag. Emits a `sess:Tagged` event to the analytics bus. Works before and after setting an active place.
+Submit a UI usage tag. The bridge logs it to the `tag` logger and acknowledges it; nothing else consumes tags. Works before and after setting an active place.
 
 **Request attributes:**
 
 | Attribute | Type | Required | Description |
 |---|---|---|---|
 | `name` | string | yes | Tag name |
-| `context` | map&lt;string, string&gt; | no | Additional key-value context. A `service.level` key, if present, is extracted into the event's `serviceLevel` field. |
+| `context` | map&lt;string, string&gt; | no | Additional key-value context, included in the log line. |
 
 **Response:** Empty body.
 
