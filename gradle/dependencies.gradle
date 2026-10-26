@@ -194,7 +194,7 @@ ext.libraries << [
 		mailgun: "com.mailgun:mailgun-java:2.4.2",
 		sendgridJava: "com.sendgrid:sendgrid-java:4.10.3",
 		sendgridHTTP: "com.sendgrid:java-http-client:4.5.1",
-		pushy: dependencies.create("com.eatthepath:pushy:0.13.11") {
+		pushy: dependencies.create("com.eatthepath:pushy:0.15.6") {
                         exclude group: "io.netty", module: "netty-all"
                 },
 		twilio: dependencies.create("com.twilio.sdk:twilio:13.1.0") {

@@ -36,6 +36,7 @@ import com.iris.platform.notification.audit.NotificationAuditor;
 import com.iris.platform.notification.provider.NotificationProviderUtil;
 import com.iris.util.TypeMarker;
 import com.eatthepath.pushy.apns.util.ApnsPayloadBuilder;
+import com.eatthepath.pushy.apns.util.SimpleApnsPayloadBuilder;
 
 @Singleton
 public class ApnsProvider extends AbstractPushNotificationProvider implements NotificationProvider {
@@ -92,7 +93,7 @@ public class ApnsProvider extends AbstractPushNotificationProvider implements No
 
     private String generatePayload(Notification notification, String notificationMessage, Map<String,BaseEntity<?,?>> additionalEntityParams) {
        Map<String,String> msg = JSON.fromJson(notificationMessage, TypeMarker.mapOf(String.class));
-       ApnsPayloadBuilder builder = new ApnsPayloadBuilder()
+       ApnsPayloadBuilder builder = new SimpleApnsPayloadBuilder()
           .setAlertBody(msg.get("body"))
           .setAlertTitle(msg.get("title"))       
           .setSound(ApnsPayloadBuilder.DEFAULT_SOUND_FILENAME)
@@ -110,7 +111,7 @@ public class ApnsProvider extends AbstractPushNotificationProvider implements No
     	   builder.addCustomProperty("place_name", ((Place) additionalEntityParams.get(NotificationProviderUtil.PLACE_KEY)).getName());
        }       
           
-       return builder.buildWithDefaultMaximumLength();
+       return builder.build();
     }
 
     private void sendNotificationToDevice(Notification notification, String deviceToken, String payload) {
