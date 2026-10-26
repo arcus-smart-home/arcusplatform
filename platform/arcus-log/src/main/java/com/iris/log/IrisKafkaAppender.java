@@ -54,10 +54,15 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
    //    by enabling a fire and forget mode. This setting also means that
    //    retries will never be peformed.
    //
-   // * Block On Buffer Full = False
+   // * Max Block Ms = 1000
    //    Making sure every single log makes it to the log server is not
    //    as important as ensuring the platform remains functional even
-   //    when the kafka servers for logging are down.
+   //    when the kafka servers for logging are down. send() blocks while it
+   //    waits for topic metadata or for room in the record accumulator, so
+   //    cap that wait at one second and let the record be dropped instead
+   //    of holding up the thread that logged it. The block.on.buffer.full
+   //    flag that used to express this was removed from the client in 0.10,
+   //    which left the 60 second default in force.
    //
    // * Compression = Snappy
    //    Snappy compression is beneficial for producers and consumers since
@@ -84,12 +89,10 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
    private Integer retries = 0;
    private Integer batchSize = 128 * 1024;
    private Integer maxRequestSize = 1 * 1024 * 1024;
-   private Integer timeoutMs = 30 * 1000;
-   private Boolean blockOnBufferFull = false;
 
    private Long bufferMemory = 32L * 1024L * 1024L;
    private Long lingerMs = 1 * 1000L;
-   private Long metadataFetchTimeoutMs = 60L * 1000L;
+   private Long maxBlockMs = 1 * 1000L;
    private Long metadataMaxAgeMs = 5L * 60L * 1000L;
    private Long reconnectBackoffMs = 10L;
    private Long retryBackoffMs = 100L;
@@ -209,7 +212,7 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
    // Kafka Configuration
    /////////////////////////////////////////////////////////////////////////////
 
-   private Properties getKafkaProducerProperties() {
+   Properties getKafkaProducerProperties() {
       Properties props = new Properties();
       putIf(props, "bootstrap.servers", expandHostAndPort(getBootstrapServers()));
       putIf(props, "acks", getAcks());
@@ -219,12 +222,10 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
       putIf(props, "batch.size", getBatchSize());
       putIf(props, "client.id", getClientId());
       putIf(props, "linger.ms", getLingerMs());
+      putIf(props, "max.block.ms", getMaxBlockMs());
       putIf(props, "max.request.size", getMaxRequestSize());
       putIf(props, "send.buffer.bytes", getSendBufferBytes());
       putIf(props, "receive.buffer.bytes", getRecvBufferBytes());
-      putIf(props, "timeout.ms", getTimeoutMs());
-      putIf(props, "block.on.buffer.full", getBlockOnBufferFull());
-      putIf(props, "metadata.fetch.timeout.ms", getMetadataFetchTimeoutMs());
       putIf(props, "metadata.max.age.ms", getMetadataMaxAgeMs());
       putIf(props, "reconnect.backoff.ms", getReconnectBackoffMs());
       putIf(props, "retry.backoff.ms", getRetryBackoffMs());
@@ -295,36 +296,20 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
       this.lingerMs = lingerMs;
    }
 
+   public Long getMaxBlockMs() {
+      return maxBlockMs;
+   }
+
+   public void setMaxBlockMs(Long maxBlockMs) {
+      this.maxBlockMs = maxBlockMs;
+   }
+
    public Integer getMaxRequestSize() {
       return maxRequestSize;
    }
 
    public void setMaxRequestSize(Integer maxRequestSize) {
       this.maxRequestSize = maxRequestSize;
-   }
-
-   public Integer getTimeoutMs() {
-      return timeoutMs;
-   }
-
-   public void setTimeoutMs(Integer timeoutMs) {
-      this.timeoutMs = timeoutMs;
-   }
-
-   public Boolean getBlockOnBufferFull() {
-      return blockOnBufferFull;
-   }
-
-   public void setBlockOnBufferFull(Boolean blockOnBufferFull) {
-      this.blockOnBufferFull = blockOnBufferFull;
-   }
-
-   public Long getMetadataFetchTimeoutMs() {
-      return metadataFetchTimeoutMs;
-   }
-
-   public void setMetadataFetchTimeoutMs(Long metadataFetchTimeoutMs) {
-      this.metadataFetchTimeoutMs = metadataFetchTimeoutMs;
    }
 
    public Long getMetadataMaxAgeMs() {
@@ -370,10 +355,6 @@ public class IrisKafkaAppender<E> extends UnsynchronizedAppenderBase<E> implemen
 
    private Boolean putIf(Properties props, String name, @Nullable Number value) {
       return putIf(props, name, toString(value));
-   }
-
-   private Boolean putIf(Properties props, String name, @Nullable Boolean value) {
-      return putIf(props, name, (value == null) ? null : (value ? "true" : "false"));
    }
 
    private Boolean putIf(Properties props, String name, @Nullable String value) {
