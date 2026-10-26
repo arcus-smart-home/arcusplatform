@@ -41,6 +41,7 @@ public class SwiftProcessor {
       handlebars =
             new Handlebars()
                .with(new ConcurrentMapTemplateCache())
+               .with(EscapingStrategy.HBS3)
                ;
       handlebars.registerHelper("equals", new Helper<String>() {
          @Override

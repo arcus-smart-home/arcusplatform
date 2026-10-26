@@ -1,4 +1,4 @@
-   {{#.}}
+   {{#this}}
    /** {{description}} */
    public static final String ATTR_{{toUpperCase name}} = "{{name}}";
    {{#enumValues}}
@@ -11,4 +11,4 @@
    {{else}}
       com.iris.capability.definition.AttributeTypes.parse("{{{type.representation}}}");
    {{/if}}
-   {{/.}}
+   {{/this}}

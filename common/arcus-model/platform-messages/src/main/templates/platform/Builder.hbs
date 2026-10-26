@@ -1,4 +1,4 @@
-{{#if .}}
+{{#if this}}
       public static Builder builder() {
          return new Builder();
       }
@@ -8,9 +8,9 @@
       }
       
       public static class Builder {
-         {{#.}}
+         {{#this}}
          private {{{javaTypeOf type}}} _{{name}};
-         {{/.}}
+         {{/this}}
 
          Builder() {
          }
@@ -21,13 +21,13 @@
 
          Builder(java.util.Map<String, Object> attributes) {
             if(attributes != null) {
-	           {{#.}}
+	           {{#this}}
 	           this._{{name}} = ({{{javaTypeOf type}}}) TYPE_{{toUpperCase name}}.coerce(attributes.get(ATTR_{{toUpperCase name}}));
-	           {{/.}}
+	           {{/this}}
             }
          }
 
-         {{#.}}
+         {{#this}}
          public {{{javaTypeOf type}}} get{{capitalize name}}() {
             return _{{name}};
          }
@@ -36,14 +36,14 @@
             this._{{name}} = value;
             return this;
          }
-         {{/.}}
+         {{/this}}
       
          public com.iris.messages.MessageBody build() {
             java.util.Map<String, Object> attributes = 
                new java.util.HashMap<String, Object>({{hashsize this}},0.75f);
-            {{#.}}
+            {{#this}}
             attributes.put(ATTR_{{toUpperCase name}}, _{{name}});
-            {{/.}}
+            {{/this}}
             return com.iris.messages.MessageBody.buildMessage(NAME, attributes);
          }
       }

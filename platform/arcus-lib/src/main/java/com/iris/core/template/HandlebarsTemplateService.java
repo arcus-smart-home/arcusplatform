@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
+import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Template;
@@ -74,6 +75,7 @@ public class HandlebarsTemplateService implements TemplateService {
 		TemplateLoader loader=new IrisResourceLoader(prefix, cacheSize);
 		handlebars=new Handlebars(loader)
 			.with(templateCache)
+			.with(EscapingStrategy.HBS3)
 			.registerHelper(EnumHelper.NAME, EnumHelper.INSTANCE)
 			.registerHelper(IfEqualHelper.NAME, IfEqualHelper.INSTANCE)
 			.registerHelpers(HandlebarsHelpersSource.class)

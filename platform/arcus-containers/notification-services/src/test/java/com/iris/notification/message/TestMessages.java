@@ -24,6 +24,7 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.helper.StringHelpers;
@@ -190,6 +191,7 @@ public class TestMessages extends IrisMockTestCase {
 			templates.put(MSG_KEY_THING + "-apns", TEMPLATE_THING);
 			templates.put(MSG_KEY_ENUM + "-apns", TEMPLATE_ENUM);
 			handlebars = new Handlebars()
+				.with(EscapingStrategy.HBS3)
 				.registerHelper(EnumHelper.NAME, EnumHelper.INSTANCE)
 				.registerHelpers(HandlebarsHelpersSource.class)
 				.registerHelpers(StringHelpers.class);

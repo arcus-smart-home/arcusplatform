@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Context;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
@@ -42,6 +43,7 @@ public class TestTemplatesCompile extends IrisTestCase {
       TemplateLoader loader = new IrisResourceLoader("templates", 0);
       Handlebars handlebars = 
             new Handlebars(loader)
+               .with(EscapingStrategy.HBS3)
                .registerHelper(EnumHelper.NAME, EnumHelper.INSTANCE)
                .registerHelpers(HandlebarsHelpersSource.class)
                .registerHelper(IfEqualHelper.NAME, IfEqualHelper.INSTANCE)

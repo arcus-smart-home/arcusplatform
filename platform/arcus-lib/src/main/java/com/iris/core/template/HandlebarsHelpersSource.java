@@ -35,7 +35,10 @@ public class HandlebarsHelpersSource {
 		.append(String.format("!--%s---", sectionName));
 		return sb.toString();
 	}
-	public static CharSequence timestampFormat(String timestampVar, Options options) throws IOException {
+	// handlebars 4.x widened Helper#apply (and so StringHelpers#apply) from
+	// CharSequence to Object, so this delegation returns Object as well. The
+	// value is rendered by handlebars exactly as any other helper result.
+	public static Object timestampFormat(String timestampVar, Options options) throws IOException {
 		Date timestampDateValue = new Date(Long.parseLong(timestampVar));
 		return StringHelpers.dateFormat.apply(timestampDateValue, options);
 	}

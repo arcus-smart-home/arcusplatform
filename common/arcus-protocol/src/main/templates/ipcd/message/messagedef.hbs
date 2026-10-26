@@ -1,4 +1,4 @@
-{{#file . "com/iris/protocol/ipcd/message/model/Ipcd{{capitalize name}}.java"}}
+{{#file this "com/iris/protocol/ipcd/message/model/Ipcd{{capitalize name}}.java"}}
 package com.iris.protocol.ipcd.message.model;
 
 import java.util.HashMap;
@@ -32,7 +32,7 @@ public {{#if virtual}}abstract{{/if}} class Ipcd{{capitalize name}} implements I
 		return null;
 	}{{/unless}}
 	
-	{{#if virtual}}{{#virtualProperties}}public abstract {{{Type}}} {{toGetter name}};
+	{{#if virtual}}{{#virtualProperties}}public abstract {{{type}}} {{toGetter name}};
 	{{/virtualProperties}}{{/if}}
 	
 	{{#properties}}

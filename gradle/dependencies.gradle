@@ -134,7 +134,12 @@ ext.libraries << [
 		gson: "com.google.code.gson:gson:2.14.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.100",
-		handlebars: "com.github.jknack:handlebars:2.2.2",
+		// handlebars 4.2+ dropped ANTLR, but declares nashorn-core for the optional
+		// JavaScript helper API (registerHelpers over a .js file). Every helper here
+		// is a Java class, so keep nashorn and its asm 7.3.1 out of the images.
+		handlebars: dependencies.create("com.github.jknack:handlebars:4.4.0") {
+			exclude group: "org.openjdk.nashorn"
+		},
 		jna: 'net.java.dev.jna:jna:5.19.1',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
 		oshi_core: 'com.github.oshi:oshi-core:7.7.2',
@@ -149,8 +154,8 @@ ext.libraries << [
 		natty: "com.joestelmach:natty:0.13",
 
 		antlr: "org.antlr:antlr-runtime:3.5.3",
-		antlr4: "org.antlr:antlr4:4.5",
-		antlr4_runtime: "org.antlr:antlr4-runtime:4.5",
+		antlr4: "org.antlr:antlr4:4.13.2",
+		antlr4_runtime: "org.antlr:antlr4-runtime:4.13.2",
 
 // Formerly included in JDK
       javax_activation_api: 'javax.activation:javax.activation-api:1.2.0',
