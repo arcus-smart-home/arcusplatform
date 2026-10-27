@@ -46,7 +46,7 @@ dependencies {
     reflexGeneratorRuntime 'org.apache.xbean:xbean-finder:3.11.1'
     reflexGeneratorRuntime 'aopalliance:aopalliance:1.0'
     reflexGeneratorRuntime 'javax.validation:validation-api:2.0.1.Final'
-    reflexGeneratorRuntime 'org.hibernate:hibernate-validator:4.1.0.Final'
+    reflexGeneratorRuntime 'org.hibernate:hibernate-validator:8.0.6.Final'
     reflexGeneratorRuntime 'commons-io:commons-io:2.22.0'
     reflexGeneratorRuntime 'org.codehaus.jsr166-mirror:jsr166y:1.7.0'
     reflexGeneratorRuntime libraries.jacksonAnnotations
