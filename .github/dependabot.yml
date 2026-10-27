@@ -54,6 +54,14 @@ updates:
       - dependency-name: "com.github.jknack:handlebars"
         versions: [">= 4.4"]
 
+      # Lucene 10 is compiled for Java 21 and javac 11 cannot read a major 65
+      # class file, so arcus-prodcat fails the JDK 11 build that hubs require.
+      # 9.12.3 is the newest release still built for Java 11. Revisit if the
+      # JDK 11 leg goes away. The 10.x API the search code would need is
+      # already in use, so that move should be a version bump alone.
+      - dependency-name: "org.apache.lucene:*"
+        versions: [">= 10"]
+
       # Guice 7 dropped javax.inject in favour of jakarta.inject. 63 files here
       # import javax.inject (42 @Inject, 30 @Singleton, 6 @Named), and some of
       # the @Named uses are not injection at all: ReflectiveCapabilityBuilder
@@ -111,6 +119,12 @@ updates:
         patterns:
           - "org.antlr:antlr4"
           - "org.antlr:antlr4-runtime"
+      # lucene-queryparser depends on lucene-analysis-common at its own version,
+      # so a split update asks for an analysis-common that was never published
+      # and fails to resolve rather than to compile.
+      lucene:
+        patterns:
+          - "org.apache.lucene:*"
       gradle-minor-and-patch:
         patterns:
           - "*"

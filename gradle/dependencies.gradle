@@ -67,9 +67,11 @@ ext.libraries << [
 		asyncHTTPClient: "org.asynchttpclient:async-http-client:2.16.1",
 
 // Apache Lucene
-		luceneCore: "org.apache.lucene:lucene-core:8.11.4",
-		luceneAnalyzer: "org.apache.lucene:lucene-analyzers-common:8.11.4",
-		luceneParser: "org.apache.lucene:lucene-queryparser:8.11.4",
+		// 9.12.3 is the newest release still compiled for Java 11. Lucene 10 is
+		// compiled for Java 21, which the JDK 11 build cannot read.
+		luceneCore: "org.apache.lucene:lucene-core:9.12.3",
+		luceneAnalyzer: "org.apache.lucene:lucene-analysis-common:9.12.3",
+		luceneParser: "org.apache.lucene:lucene-queryparser:9.12.3",
 
 
 // Reactive

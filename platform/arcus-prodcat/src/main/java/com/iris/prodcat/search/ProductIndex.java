@@ -31,6 +31,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -74,9 +75,10 @@ public class ProductIndex {
 		
 		TopDocs docs = searcher.search(query, 100);
 		ScoreDoc[] hits = docs.scoreDocs;
+		StoredFields storedFields = searcher.storedFields();
 		
 		for (ScoreDoc sd: hits) {
-			Document doc = searcher.doc(sd.doc);
+			Document doc = storedFields.document(sd.doc);
 			results.add(prodcat.getProductById(doc.get("id")));
 		}
 		reader.close();
