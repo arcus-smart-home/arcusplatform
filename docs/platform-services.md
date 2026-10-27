@@ -16,10 +16,9 @@
 |---------|---------|
 | `platform-services` | Account, device, and place registry — core data model |
 | `driver-services` | Loads and runs Groovy device drivers; manages device lifecycle |
-| `subsystem-service` | Feature subsystems (security, safety, care, climate, water, presence, weather) |
+| `subsystem-service` | Feature subsystems (security, safety, care, climate, water, presence, weather) plus alarm incident notifications (call tree/IVR escalation, formerly the separate `alarm-service`) |
 | `rule-service` | Executes user-defined automation rules and triggers |
 | `scheduler-service` | Schedules timed events, reminders, and recurring tasks |
-| `alarm-service` | Professional monitoring integration and incident tracking |
 | `history-service` | Records device state changes and events for historical replay |
 | `notification-services` | Multi-channel notifications: SMS (Twilio), email (SendGrid/Mailgun), push (GCM/APNS), XMPP |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |
@@ -42,7 +41,7 @@
 | `arcus-prodcat` | Product/device catalog with Lucene search, pairing metadata, capability mappings |
 | `arcus-subsystems` | Subsystem state machine implementations (alarm, care, climate, etc.) |
 | `arcus-rules` | Rule compilation and evaluation framework |
-| `arcus-alarm` | Alarm state machine, incident tracking, call tree/escalation |
+| `arcus-alarm` | Alarm notification service (call tree/IVR escalation, hosted by subsystem-service) and call tree DAO |
 | `arcus-oauth` | OAuth 2.0 server library (authorization, token, revocation endpoints) |
 | `arcus-security` | Shiro-based authentication/authorization with Cassandra-backed DAOs |
 | `arcus-subscriptions` | User subscription plans and feature entitlements |

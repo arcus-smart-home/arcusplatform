@@ -18,6 +18,7 @@ apply from: file("${rootDir}/gradle/container.gradle")
 
 dependencies {
    api project (':platform:arcus-lib')
+   api project (':platform:arcus-alarm')
    api project (':platform:arcus-subsystems')
    api project (':common:arcus-common')
    api project(':common:arcus-model:platform-messages')

@@ -21,11 +21,10 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.bootstrap.guice.AbstractIrisModule;
+import com.iris.core.dao.cassandra.CassandraAlarmIncidentDAOModule;
 import com.iris.core.dao.cassandra.CassandraPlaceDAOModule;
 import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
-import com.iris.platform.alarm.incident.AlarmIncidentDAO;
-import com.iris.platform.alarm.incident.CassandraAlarmIncidentDAO;
 import com.iris.platform.alarm.notification.calltree.cassandra.CassandraNotificationDaoModule;
 import com.iris.platform.alarm.service.AlarmService;
 import com.iris.platform.history.cassandra.CassandraHistoryDAOModule;
@@ -35,10 +34,15 @@ import com.iris.population.PlacePopulationCacheModule;
 import com.iris.util.ThreadPoolBuilder;
 import com.iris.bootstrap.annotations.Modules;
 
+/**
+ * Binds the alarm notification service (call tree execution for alarm
+ * incidents) onto the platform bus.
+ */
 @Modules(include = {
       KafkaModule.class,
       CassandraResourceBundleDAOModule.class,
       CassandraPlaceDAOModule.class,
+      CassandraAlarmIncidentDAOModule.class,
       ModelDaoModule.class,
       CassandraNotificationDaoModule.class,
       CassandraHistoryDAOModule.class,
@@ -49,7 +53,6 @@ public class AlarmServiceModule extends AbstractIrisModule {
 
    @Override
    protected void configure() {
-      bind(AlarmIncidentDAO.class).to(CassandraAlarmIncidentDAO.class);
       bind(AlarmService.class).asEagerSingleton();
    }
 
@@ -67,4 +70,3 @@ public class AlarmServiceModule extends AbstractIrisModule {
                   .build();
    }
 }
-

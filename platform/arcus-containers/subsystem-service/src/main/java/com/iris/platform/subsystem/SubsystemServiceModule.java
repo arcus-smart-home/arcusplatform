@@ -29,6 +29,7 @@ import com.iris.core.template.TemplateModule;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.service.SubsystemService;
+import com.iris.platform.alarm.AlarmServiceModule;
 import com.iris.platform.history.cassandra.CassandraHistoryDAOModule;
 import com.iris.platform.manufacture.kitting.dao.ManufactureKittingDaoModule;
 import com.iris.platform.model.ModelDaoModule;
@@ -52,6 +53,7 @@ import com.iris.bootstrap.annotations.Modules;
       ModelDaoModule.class,
       SubsystemModule.class,
       AlarmIncidentModule.class,
+      AlarmServiceModule.class,
       ManufactureKittingDaoModule.class,
       PlacePopulationCacheModule.class
 })
