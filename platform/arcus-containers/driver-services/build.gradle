@@ -43,7 +43,7 @@ dependencies {
     reflexGeneratorRuntime project(':common:arcus-protocol')
     reflexGeneratorRuntime project(':common:arcus-protoc-runtime')
     reflexGeneratorRuntime 'javax.inject:javax.inject:1'
-    reflexGeneratorRuntime 'org.apache.xbean:xbean-finder:3.11.1'
+    reflexGeneratorRuntime 'org.apache.xbean:xbean-finder:5.0.0'
     reflexGeneratorRuntime 'aopalliance:aopalliance:1.0'
     reflexGeneratorRuntime 'javax.validation:validation-api:2.0.1.Final'
     reflexGeneratorRuntime 'org.hibernate:hibernate-validator:4.1.0.Final'
