@@ -119,9 +119,10 @@ updates:
         patterns:
           - "org.antlr:antlr4"
           - "org.antlr:antlr4-runtime"
-      # lucene-queryparser depends on lucene-analysis-common at its own version,
-      # so a split update asks for an analysis-common that was never published
-      # and fails to resolve rather than to compile.
+      # Major updates fall outside the minor-and-patch catch-all below, so
+      # dependabot proposes them one artifact at a time: #454 and #458 were
+      # byte-identical rewrites of all three coordinates, opened as two PRs.
+      # Group them so a Lucene move is one PR to judge rather than three.
       lucene:
         patterns:
           - "org.apache.lucene:*"
