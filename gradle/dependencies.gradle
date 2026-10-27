@@ -60,7 +60,7 @@ ext.libraries << [
 		httpCore: "org.apache.httpcomponents:httpcore:4.4.16",
 		httpMime: "org.apache.httpcomponents:httpmime:4.5.14",
 		
-		apacheCurator: dependencies.create("org.apache.curator:curator-test:2.7.0") {
+		apacheCurator: dependencies.create("org.apache.curator:curator-test:5.9.0") {
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 			exclude group: "log4j", module: "log4j"
 		},
