@@ -36,8 +36,8 @@ dependencies {
 
 	jmh libraries.jacksonCore
 	jmh libraries.jacksonDatabind
-	jmh 'org.msgpack:jackson-dataformat-msgpack:0.9.12'
-	jmh 'com.fasterxml.jackson.module:jackson-module-afterburner:2.22.4'
+	jmh libraries.msgpackJackson
+	jmh libraries.jacksonAfterburner
 }
 
 jmh {

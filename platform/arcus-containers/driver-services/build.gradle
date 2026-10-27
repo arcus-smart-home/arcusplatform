@@ -42,13 +42,13 @@ dependencies {
     reflexGeneratorRuntime project(':common:arcus-drivers:drivers-common')
     reflexGeneratorRuntime project(':common:arcus-protocol')
     reflexGeneratorRuntime project(':common:arcus-protoc-runtime')
-    reflexGeneratorRuntime 'javax.inject:javax.inject:1'
-    reflexGeneratorRuntime 'org.apache.xbean:xbean-finder:5.0.0'
-    reflexGeneratorRuntime 'aopalliance:aopalliance:1.0'
-    reflexGeneratorRuntime 'javax.validation:validation-api:2.0.1.Final'
-    reflexGeneratorRuntime 'org.hibernate:hibernate-validator:8.0.6.Final'
-    reflexGeneratorRuntime 'commons-io:commons-io:2.22.0'
-    reflexGeneratorRuntime 'org.codehaus.jsr166-mirror:jsr166y:1.7.0'
+    reflexGeneratorRuntime libraries.javax_inject
+    reflexGeneratorRuntime libraries.xbeanFinder
+    reflexGeneratorRuntime libraries.aopalliance
+    reflexGeneratorRuntime libraries.validation_api
+    reflexGeneratorRuntime libraries.hibernateValidator
+    reflexGeneratorRuntime libraries.commonsIO
+    reflexGeneratorRuntime libraries.jsr166y
     reflexGeneratorRuntime libraries.jacksonAnnotations
     reflexGeneratorRuntime "io.netty:netty-buffer:${netty_version}"
     reflexGeneratorRuntime "io.netty:netty-common:${netty_version}"
@@ -56,7 +56,7 @@ dependencies {
     reflexGeneratorRuntime libraries.jacksonCore
     reflexGeneratorRuntime libraries.jacksonDatabind
     reflexGeneratorRuntime libraries.slf4jApi
-    reflexGeneratorRuntime 'org.slf4j:slf4j-nop:2.0.20'
+    reflexGeneratorRuntime libraries.slf4jNop
     reflexGeneratorRuntime libraries.guiceCore
     reflexGeneratorRuntime libraries.guava
     reflexGeneratorRuntime libraries.groovy

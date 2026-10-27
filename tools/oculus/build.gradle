@@ -30,7 +30,7 @@ dependencies {
    implementation libraries.httpClient
    implementation libraries.natty
    implementation libraries.antlr
-   implementation 'com.google.code.findbugs:jsr305:3.0.2'
+   implementation libraries.jsr305
 
    testImplementation libraries.mockito
 }
