@@ -58,8 +58,11 @@ public class TestActionList {
 
    @Test
    public void testSingleActionTakesAwhile() {
-      RuleEvent event1 = new ScheduledEvent();
-      RuleEvent event2 = new ScheduledEvent();
+      // ScheduledEvent#equals compares only the timestamp and the no-arg constructor stamps
+      // System.currentTimeMillis(), so events built back to back are equal unless the clock
+      // ticks between them -- the mock argument matching below needs them to stay distinct
+      RuleEvent event1 = new ScheduledEvent(1000L);
+      RuleEvent event2 = new ScheduledEvent(2000L);
       
       StatefulAction action = EasyMock.createMock(StatefulAction.class);
       EasyMock
@@ -70,7 +73,6 @@ public class TestActionList {
          .andReturn(ActionState.FIRING);
       EasyMock
          .expect(action.keepFiring(new NamespaceContext("0", context), event2, true))
-
          .andReturn(ActionState.IDLE);
       
       EasyMock.replay(action);
@@ -79,7 +81,7 @@ public class TestActionList {
       
       assertEquals(ActionState.FIRING, list.execute(context));
       assertEquals(ActionState.FIRING, list.keepFiring(context, event1, true));
-      assertEquals(ActionState.IDLE, list.keepFiring(context, event1, true));
+      assertEquals(ActionState.IDLE, list.keepFiring(context, event2, true));
       
       EasyMock.verify(action);
    }
@@ -115,9 +117,9 @@ public class TestActionList {
 
    @Test
    public void testChainedActionAllWait() {
-      RuleEvent event1 = new ScheduledEvent();
-      RuleEvent event2 = new ScheduledEvent();
-      RuleEvent event3 = new ScheduledEvent();
+      RuleEvent event1 = new ScheduledEvent(1000L);
+      RuleEvent event2 = new ScheduledEvent(2000L);
+      RuleEvent event3 = new ScheduledEvent(3000L);
 
       StatefulAction action1 = EasyMock.createMock(StatefulAction.class);
       StatefulAction action2 = EasyMock.createMock(StatefulAction.class);
