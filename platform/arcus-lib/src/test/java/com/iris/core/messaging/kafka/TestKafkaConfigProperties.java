@@ -26,8 +26,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Test;
 
 import com.google.inject.name.Named;
@@ -50,6 +52,19 @@ public class TestKafkaConfigProperties {
       KafkaConfig config = new KafkaConfig(new PropertiesConfigurationProvider(props));
       config.init();
       return config;
+   }
+
+   /**
+    * The serializers are supplied where the producer is built rather than by
+    * the config class, but {@link ProducerConfig} refuses to parse without
+    * them, so add them to inspect what the config class emitted.
+    */
+   private ProducerConfig parse(Properties producer) {
+      Properties props = new Properties();
+      props.putAll(producer);
+      props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+      props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+      return new ProducerConfig(props);
    }
 
    @Test
@@ -92,6 +107,46 @@ public class TestKafkaConfigProperties {
 
       assertEquals("16777216", config.toNuProducerProperties().get(ProducerConfig.BUFFER_MEMORY_CONFIG));
       assertEquals("2000", config.toNuConsumerProperties().get(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG));
+   }
+
+   /**
+    * The three defaults 3.x changed under us. Without these pins a later edit
+    * that drops an initializer, or a bump that changes the auto-disable rule,
+    * flips every produce in the platform with a green suite.
+    */
+   @Test
+   public void testThreeDotXDefaultsStayAtTheirTwoDotEightBehaviour() {
+      Properties producer = config(new Properties()).toNuProducerProperties();
+
+      // KIP-679 moved this to "all" in 3.0
+      assertEquals("1", producer.get(ProducerConfig.ACKS_CONFIG));
+      // and an idempotent producer is only legal with acks=all, so this has to
+      // be off for the acks pin above to mean anything
+      assertEquals("false", producer.get(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG));
+      assertFalse("the idempotent producer path must stay off",
+            parse(producer).getBoolean(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG));
+
+      // KIP-714 telemetry, which the 2.8 ZooKeeper-mode brokers cannot serve
+      assertEquals("false", producer.get(CommonClientConfigs.ENABLE_METRICS_PUSH_CONFIG));
+      assertEquals("false",
+            config(new Properties()).toNuConsumerProperties().get(CommonClientConfigs.ENABLE_METRICS_PUSH_CONFIG));
+   }
+
+   /**
+    * acks carries a deprecated alias, so the pin has to survive arriving under
+    * the old name too.
+    */
+   @Test
+   public void testAcksAliasStillResolvesToTheIdempotenceRule() {
+      Properties props = new Properties();
+      props.setProperty("kafka.requestRequiredAcks", "all");
+      Properties producer = config(props).toNuProducerProperties();
+
+      assertEquals("all", producer.get(ProducerConfig.ACKS_CONFIG));
+      // acks=all makes the idempotent producer legal, which is exactly the
+      // silent 3.x behaviour change the explicit pin exists to prevent
+      assertFalse("acks=all must not switch on the idempotent producer",
+            parse(producer).getBoolean(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG));
    }
 
    @Test
