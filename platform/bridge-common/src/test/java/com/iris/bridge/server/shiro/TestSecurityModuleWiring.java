@@ -38,6 +38,14 @@ import com.iris.test.Modules;
  * {@code ShiroClient}, so Shiro's own session validation scheduler must stay
  * off: if it came back on it would walk every session in the DAO on a timer.
  * </p>
+ *
+ * <p>
+ * This covers {@code SecurityModule}'s own session manager only. client-bridge
+ * and api-bridge both override {@code bindSessionManager} without calling
+ * {@code super}, so they never bind the constants asserted here and turn the
+ * scheduler off via {@code GuicySessionManager.init()} instead; that path is
+ * pinned by {@code GuicySessionManagerTest}.
+ * </p>
  */
 @Modules({ MockDaoSecurityModule.class, ShiroModule.class })
 public class TestSecurityModuleWiring extends IrisTestCase {

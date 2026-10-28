@@ -46,6 +46,10 @@ updates:
       # 2.x line are still welcome.
       - dependency-name: "org.apache.shiro:*"
         update-types: ["version-update:semver-major"]
+      # shiro-core 2.x pulls shiro-hashes-argon2 and shiro-hashes-bcrypt from a
+      # separate group, which the rule above does not match.
+      - dependency-name: "org.apache.shiro.crypto:*"
+        update-types: ["version-update:semver-major"]
 
       # handlebars past 4.3.1 is compiled for Java 17, and javac 11 cannot read
       # those class files, so it fails the JDK 11 build that hubs require. The
