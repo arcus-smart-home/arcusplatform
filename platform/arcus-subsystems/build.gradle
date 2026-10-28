@@ -22,7 +22,7 @@ dependencies {
     api project(':common:arcus-model:platform-messages')
     api project(':common:arcus-model:model-query')
     implementation libraries.jaxb_api
-    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation libraries.jsr305
 
     runtimeOnly libraries.commons_lang
     runtimeOnly libraries.jaxb_impl

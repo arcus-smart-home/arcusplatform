@@ -26,7 +26,7 @@ dependencies {
    api project(':common:arcus-drivers:drivers-common')
 
    api libraries.guiceCore
-   api 'commons-lang:commons-lang:2.6'
+   api libraries.commons_lang2
    api libraries.commonsIO
    api libraries.commonsCodec
    api libraries.sqlite4java
