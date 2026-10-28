@@ -210,8 +210,8 @@ ext.libraries << [
 // Apache Shiro
 		// shiro-core 2.x pulls shiro-lang, shiro-cache, shiro-crypto-* and
 		// shiro-config-* transitively; there is no shiro-web dependency here.
-		shiro: "org.apache.shiro:shiro-core:2.2.0",
-		shiro_guice: "org.apache.shiro:shiro-guice:2.2.0",
+		shiro: "org.apache.shiro:shiro-core:2.2.1",
+		shiro_guice: "org.apache.shiro:shiro-guice:2.2.1",
 
 // Logging
 		slf4j: "org.slf4j:jcl-over-slf4j:2.0.20",
