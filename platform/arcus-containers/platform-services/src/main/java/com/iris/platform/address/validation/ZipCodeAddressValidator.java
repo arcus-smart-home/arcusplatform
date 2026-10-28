@@ -15,29 +15,34 @@
  */
 package com.iris.platform.address.validation;
 
+import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 import static org.apache.commons.lang3.StringUtils.trim;
 
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.platform.address.StreetAddress;
-import com.iris.platform.address.StreetAddressLenientComparator;
 import com.iris.platform.location.LocationService;
 import com.iris.platform.location.PlaceLocation;
 
 /**
- * Checks an address against the bundled ZIP code table. It is valid when the ZIP code is known and the city and state
- * match the table's. The street lines can't be checked offline.
+ * Checks an address against the bundled ZIP code table. It is valid when the ZIP code is well formed, is in the table,
+ * and is in the state given. The city isn't checked: a ZIP code can cover several city names and the table only has
+ * the primary one. The street lines can't be checked offline.
  *
- * The address as entered is always among the suggestions: a ZIP code can cover several city names, and the table
- * only knows the primary one. When the city or state differs, the table's version comes first.
+ * When the state is wrong, the only suggestion is the table's city and state for the ZIP code. Otherwise the address
+ * is returned as entered, since clients treat an empty suggestion list as a failure.
  */
 @Singleton
 public class ZipCodeAddressValidator implements AddressValidator {
 
-   private static final StreetAddressLenientComparator COMPARATOR = new StreetAddressLenientComparator();
+   // StreetAddress.toPlaceAttributes keeps the first five characters of anything longer as the ZIP code, so anything
+   // not in this form would be saved broken.
+   private static final Pattern ZIP_PATTERN = Pattern.compile("^(\\d{5})(-\\d{4})?$");
 
    private final LocationService locationService;
 
@@ -53,20 +58,24 @@ public class ZipCodeAddressValidator implements AddressValidator {
          return new AddressValidationResult(ImmutableList.of(address), false);
       }
 
+      if(equalsIgnoreCase(trim(address.getState()), location.get().getState())) {
+         return new AddressValidationResult(ImmutableList.of(address), true);
+      }
+
       StreetAddress suggestion = address.copy();
       suggestion.setCity(location.get().getPrimaryCity());
       suggestion.setState(location.get().getState());
-      if(COMPARATOR.compare(suggestion, address) == 0) {
-         return new AddressValidationResult(ImmutableList.of(address), true);
-      }
-      return new AddressValidationResult(ImmutableList.of(suggestion, address), false);
+      return new AddressValidationResult(ImmutableList.of(suggestion), false);
    }
 
    private Optional<PlaceLocation> lookup(String zip) {
-      zip = trim(zip);
-      if(zip == null || zip.length() < 5) {
+      if(zip == null) {
          return Optional.empty();
       }
-      return locationService.getForZipCode(zip.substring(0, 5));
+      Matcher matcher = ZIP_PATTERN.matcher(zip);
+      if(!matcher.matches()) {
+         return Optional.empty();
+      }
+      return locationService.getForZipCode(matcher.group(1));
    }
 }

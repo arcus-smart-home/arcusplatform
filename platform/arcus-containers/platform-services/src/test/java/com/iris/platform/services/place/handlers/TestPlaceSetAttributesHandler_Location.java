@@ -179,6 +179,51 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       assertMessageLocationMatches(null, location, Place.GEOPRECISION_UNKNOWN);
    }
 
+   // StreetAddress.fromPlace prefers a stored ZIP+4, so a stale one would bring the old ZIP code back on the next edit.
+   @Test
+   public void testZipChangeClearsOldZipPlus4() throws Exception {
+      place.setZipCode("66047");
+      place.setZipPlus4("66047-4069");
+      GeoLocation location = GeoLocation.fromCoordinates(34.1, -118.4);
+      PlaceLocation placeLocation = new PlaceLocation("90210", location, "Beverly Hills", "CA", "Los Angeles", getTimeZone("America/Los_Angeles"));
+
+      EasyMock
+         .expect(locationService.getForZipCode("90210"))
+         .andReturn(Optional.of(placeLocation))
+         .times(2);
+      replay();
+
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_ZIPCODE, "90210")));
+      assertEquals("", savedPlaces.getValue().getZipPlus4());
+
+      savedPlaces.reset();
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_CITY, "Beverly Hills")));
+      Place saved = savedPlaces.getValue();
+      assertEquals("90210", saved.getZipCode());
+      assertEquals("America/Los_Angeles", saved.getTzId());
+   }
+
+   @Test
+   public void testAddressChangeClearsSmartyStreetsAttributes() throws Exception {
+      String zipCode = "66047";
+      PlaceLocation placeLocation = new PlaceLocation(zipCode, GeoLocation.fromCoordinates(38.9, -95.3), "Lawrence", "KS", "Douglas", getTimeZone("America/Chicago"));
+
+      EasyMock
+         .expect(locationService.getForZipCode(zipCode))
+         .andReturn(Optional.of(placeLocation));
+      replay();
+
+      // The fixture place carries the values SmartyStreets used to supply.
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_ZIPCODE, zipCode)));
+
+      Place saved = savedPlaces.getValue();
+      assertEquals("", saved.getAddrType());
+      assertEquals("", saved.getAddrZipType());
+      assertEquals("", saved.getAddrRDI());
+      assertEquals("", saved.getAddrCountyFIPS());
+      assertEquals(Boolean.FALSE, saved.getAddrValidated());
+   }
+
    private void assertSavedLocationMatches(String zipCode, GeoLocation location, String geoprecision) {
       Place saved = savedPlaces.getValue();
       if(zipCode != null) {

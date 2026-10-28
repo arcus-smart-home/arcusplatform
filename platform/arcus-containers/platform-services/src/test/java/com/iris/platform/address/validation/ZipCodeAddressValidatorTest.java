@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.easymock.EasyMock;
@@ -53,9 +54,32 @@ public class ZipCodeAddressValidatorTest {
    }
 
    @Test
-   public void testMatchingCityAndStateIsValid() {
+   public void testMatchingStateIsValid() {
       expectZip("66047", LAWRENCE);
       StreetAddress address = address("lawrence", "ks", "66047");
+
+      AddressValidationResult result = validator.validate(address);
+
+      assertTrue(result.isValid());
+      assertEquals(ImmutableList.of(address), result.getSuggestions());
+   }
+
+   @Test
+   public void testStateIsTrimmed() {
+      expectZip("66047", LAWRENCE);
+      StreetAddress address = address("Lawrence", " KS ", "66047");
+
+      AddressValidationResult result = validator.validate(address);
+
+      assertTrue(result.isValid());
+      assertEquals(ImmutableList.of(address), result.getSuggestions());
+   }
+
+   // A ZIP code can cover several city names and the table only has the primary one.
+   @Test
+   public void testOtherCityNameIsValid() {
+      expectZip("66047", LAWRENCE);
+      StreetAddress address = address("Eudora", "KS", "66047");
 
       AddressValidationResult result = validator.validate(address);
 
@@ -75,36 +99,25 @@ public class ZipCodeAddressValidatorTest {
    }
 
    @Test
-   public void testOtherCityNameSuggestsTableCityAndKeepsEntered() {
+   public void testWrongStateSuggestsTableCityAndState() {
       expectZip("66047", LAWRENCE);
-      StreetAddress address = address("Eudora", "KS", "66047");
+      StreetAddress address = address("Kansas City", "MO", "66047");
 
       AddressValidationResult result = validator.validate(address);
 
       assertFalse(result.isValid());
-      assertEquals(ImmutableList.of(address("Lawrence", "KS", "66047"), address), result.getSuggestions());
+      assertEquals(ImmutableList.of(address("Lawrence", "KS", "66047")), result.getSuggestions());
    }
 
    @Test
-   public void testWrongStateSuggestsTableState() {
+   public void testMissingStateSuggestsTableCityAndState() {
       expectZip("66047", LAWRENCE);
-      StreetAddress address = address("Lawrence", "MO", "66047");
+      StreetAddress address = address("Lawrence", null, "66047");
 
       AddressValidationResult result = validator.validate(address);
 
       assertFalse(result.isValid());
-      assertEquals(ImmutableList.of(address("Lawrence", "KS", "66047"), address), result.getSuggestions());
-   }
-
-   @Test
-   public void testMissingCityIsFilledFromTable() {
-      expectZip("66047", LAWRENCE);
-      StreetAddress address = address(null, "KS", "66047");
-
-      AddressValidationResult result = validator.validate(address);
-
-      assertFalse(result.isValid());
-      assertEquals(ImmutableList.of(address("Lawrence", "KS", "66047"), address), result.getSuggestions());
+      assertEquals(ImmutableList.of(address("Lawrence", "KS", "66047")), result.getSuggestions());
    }
 
    // Clients treat an empty suggestion list as a failure, so an unknown ZIP code still offers the address as entered.
@@ -119,26 +132,18 @@ public class ZipCodeAddressValidatorTest {
       assertEquals(ImmutableList.of(address), result.getSuggestions());
    }
 
+   // These would be saved as a broken ZIP code, so none of them may pass on the strength of their first five digits.
    @Test
-   public void testShortZipIsNotLookedUp() {
+   public void testMalformedZipIsNotLookedUp() {
       EasyMock.replay(locationService);
-      StreetAddress address = address("Lawrence", "KS", "660");
+      for(String zip : Arrays.asList(null, "", "660", "660471", "66047abc", " 66047", "66047 ", "66047-40", "660474069")) {
+         StreetAddress address = address("Lawrence", "KS", zip);
 
-      AddressValidationResult result = validator.validate(address);
+         AddressValidationResult result = validator.validate(address);
 
-      assertFalse(result.isValid());
-      assertEquals(ImmutableList.of(address), result.getSuggestions());
-   }
-
-   @Test
-   public void testMissingZipIsNotLookedUp() {
-      EasyMock.replay(locationService);
-      StreetAddress address = address("Lawrence", "KS", null);
-
-      AddressValidationResult result = validator.validate(address);
-
-      assertFalse(result.isValid());
-      assertEquals(ImmutableList.of(address), result.getSuggestions());
+         assertFalse(zip, result.isValid());
+         assertEquals(zip, ImmutableList.of(address), result.getSuggestions());
+      }
    }
 
    private void expectZip(String zip, PlaceLocation location) {
