@@ -33,7 +33,7 @@ import org.junit.Test;
  * 
  * The test validates the correct operation of the comparator for use as a
  * conditional equality test in <code>PremiseService#validateAddress</code> and
- * <code>SmartyStreetsValidator#validate</code>
+ * <code>ZipCodeAddressValidator#validate</code>
  * 
  * Basic tests should guarantee that two <code>StreetAddress</code> are
  * conditionally equal if the backing fields meet the requirements of equality
@@ -102,7 +102,7 @@ public class TestStreetAddressComparator {
 	 * Test that <code>List#contains</code> fails due to zip=9 differences and
 	 * that the comparator returns 0 in a short-circuiting terminal operation.
 	 * This mimics contains using the comparator for an equality like test as in
-	 * <code>SmartyStreetsValidator#validate</code>
+	 * <code>ZipCodeAddressValidator#validate</code>
 	 */
 	@Test
 	public void testListOperations() {

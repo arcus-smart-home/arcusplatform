@@ -26,11 +26,15 @@ import com.iris.platform.location.LocationService;
 
 import static com.iris.messages.capability.PlaceCapability.ATTR_ADDRVALIDATED;
 
+/**
+ * Saves the address as entered. The base class fills in county, coordinates and time zone from the bundled ZIP code
+ * table. Nothing checks that the street address exists, so the place is never marked validated.
+ */
 @Singleton
-public class NoopAddressUpdater extends AddressUpdater {
+public class ZipCodeAddressUpdater extends AddressUpdater {
 
    @Inject
-   public NoopAddressUpdater(BeanAttributesTransformer<Place> transformer, LocationService locationService) {
+   public ZipCodeAddressUpdater(BeanAttributesTransformer<Place> transformer, LocationService locationService) {
       super(transformer, locationService);
    }
 
