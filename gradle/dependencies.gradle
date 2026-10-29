@@ -189,7 +189,7 @@ ext.libraries << [
 
 // Groovy (4.x moved from org.codehaus.groovy to org.apache.groovy;
 // groovy-all is now a BOM, so depend on the core jar directly)
-		groovy: "org.apache.groovy:groovy:4.0.30",
+		groovy: "org.apache.groovy:groovy:6.0.0",
 
 // Cucumber
 		cucumber_junit: "io.cucumber:cucumber-junit:6.10.4",
