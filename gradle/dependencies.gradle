@@ -148,7 +148,7 @@ ext.libraries << [
 // misc dependencies
 		guava: "com.google.guava:guava:33.7.2-jre",
 		google_guava_testlib: "com.google.guava:guava-testlib:33.7.2-jre",
-		gson: "com.google.code.gson:gson:2.14.0",
+		gson: "com.google.code.gson:gson:2.15.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
 		eclipse_annotation: "org.eclipse.jdt:org.eclipse.jdt.annotation:2.4.100",
 		// 4.3.1 is the newest release still compiled for Java 8. 4.4.0 moved to
