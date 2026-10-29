@@ -154,6 +154,14 @@ public abstract class AbstractKafkaConfig {
    private Integer reconnectBackoffMs;
    @Consumer @Producer @Named("retry.backoff.ms")
    private Long retryBackoffMs;
+   @Consumer @Producer @Named("enable.metrics.push")
+   // KIP-714 client telemetry, new in 3.x and on by default. The brokers here are
+   // 2.8 in ZooKeeper mode and advertise neither telemetry API, so every client
+   // would re-arm a subscription attempt every 300s forever. Nothing reaches the
+   // broker -- NetworkClient throws UnsupportedVersionException from the cached
+   // ApiVersions and logs at debug -- so this is dead work rather than breakage,
+   // but there is no reason to carry it. Revisit if the brokers move to KRaft.
+   private String enableMetricsPush = "false";
 
    // nu consumer properties
    @Consumer @Named("group.id")
@@ -185,7 +193,18 @@ public abstract class AbstractKafkaConfig {
    
    // nu producer properties
    @Producer @Named("acks")
-   private String acks; // yes, its a string to support `all`
+   // yes, its a string to support `all`.  Pinned to "1" because KIP-679 changed the
+   // kafka-clients default from "1" to "all" in 3.0; leaving it unset would silently put
+   // the cross-datacenter replica link in the path of every produce.
+   private String acks = "1";
+   @Producer @Named("enable.idempotence")
+   // 3.0 also flipped this default to true, and an idempotent producer is only
+   // legal with acks=all. kafka-clients auto-disables it when acks is left at "1",
+   // but pinning it keeps that implicit rule out of the picture: an operator who
+   // sets kafka.acks=all would otherwise get the idempotent path -- InitProducerId,
+   // sequencing, forced retries -- which 2.8 never did here, and a
+   // max.in.flight.requests.per.connection above 5 becomes fatal in 4.x.
+   private String enableIdempotence = "false";
    @Producer @Named("buffer.memory")
    private Long bufferMemory;
    @Producer @Named("compression.type")
