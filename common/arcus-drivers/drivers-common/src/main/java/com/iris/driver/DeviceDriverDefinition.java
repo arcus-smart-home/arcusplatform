@@ -20,14 +20,17 @@ package com.iris.driver;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.iris.device.model.AttributeDefinition;
 import com.iris.device.model.CapabilityDefinition;
@@ -63,6 +66,7 @@ public class DeviceDriverDefinition {
    private final Set<String> populations;
    private final ReflexDriverDefinition reflexes;
    private final DriverConfigurationStateMachine configuration;
+   private final Map<String, Object> matcherAttributes;
 
    DeviceDriverDefinition(
          String name,
@@ -78,7 +82,8 @@ public class DeviceDriverDefinition {
          List<ReflexDefinition> reflexes,
          List<String> populations,
          DriverConfigurationStateMachine configuration,
-         long offlineTimeout
+         long offlineTimeout,
+         Map<String, Object> matcherAttributes
    ) {
       this.id = new DriverId(name, version);
       this.description = description;
@@ -91,6 +96,7 @@ public class DeviceDriverDefinition {
       this.populations = populations!=null?ImmutableSet.copyOf(populations):null;
       this.reflexes = new ReflexDriverDefinition(name, version, hash, offlineTimeout, capabilities, mode, reflexes);
       this.configuration = configuration;
+      this.matcherAttributes = matcherAttributes != null ? ImmutableMap.copyOf(matcherAttributes) : ImmutableMap.of();
    }
 
    public DriverId getId() {
@@ -169,6 +175,10 @@ public class DeviceDriverDefinition {
       return reflexes.getOfflineTimeout();
    }
 
+   public Map<String, Object> getMatcherAttributes() {
+      return matcherAttributes;
+   }
+
    @Override
    public String toString() {
       return "DeviceDriverDefinition [id=" + id + ", description="
@@ -192,6 +202,7 @@ public class DeviceDriverDefinition {
       private List<String> populations = null;
       private DriverConfigurationStateMachine configuration = null;
       private long offlineTimeout = Long.MAX_VALUE;
+      private Map<String, Object> matcherAttributes = null;
 
       /**
        * Live view of the associated attributes so that DeviceDriverBuilder
@@ -293,9 +304,14 @@ public class DeviceDriverDefinition {
          return this;
       }
 
+      public Builder withMatcherAttributes(Map<String, Object> matcherAttributes) {
+         this.matcherAttributes = matcherAttributes;
+         return this;
+      }
+
       public DeviceDriverDefinition create() {
          Preconditions.checkArgument(StringUtils.isNotEmpty(name), "Must specify a name");
-         return new DeviceDriverDefinition(name, description, version, commit, hash, attributes, commands, events, capabilities, reflexRunMode, reflexes, populations, configuration, offlineTimeout);
+         return new DeviceDriverDefinition(name, description, version, commit, hash, attributes, commands, events, capabilities, reflexRunMode, reflexes, populations, configuration, offlineTimeout, matcherAttributes);
       }
 
    }
