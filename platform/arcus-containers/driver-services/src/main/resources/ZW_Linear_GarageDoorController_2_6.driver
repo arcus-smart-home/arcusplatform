@@ -71,8 +71,16 @@ final int  LIFELINE_GET_DELAY   = 1000
 @Field final String ERR_OBSTRUCTION_KEY = 'ERR_OBSTRUCTION'
 @Field final String ERR_OBSTRUCTION_VALUE = 'Garage door may be obstructed'
 
-//Used for removing unwanted OPENING/CLOSING reports
+//Used for removing unwanted OPENING/CLOSING reports, and as the longest a move takes
 @Field final int COMMAND_WINDOW_MS = 120000 //2 Minutes
+
+//OPENING/CLOSING are set here on the platform, so the hub's copy of the door state never
+//holds them, and the hub only reports a state that differs from its copy. When a move fails
+//and the door reports where it started, the hub drops that report and the door would stay
+//OPENING/CLOSING. These events settle a door that is still moving when the move should be over.
+@Field final String EVENT_CHECK_DOOR = 'CheckDoor'
+@Field final String EVENT_SETTLE_DOOR = 'SettleDoor'
+@Field final int SETTLE_DOOR_DELAY_MS = 15000 //Time for the door to answer a get
 
 // Barrier Operator States
 // Note: Barrier Operator States 0x01 - 0x63 (Barrier Stopped with position) are not supported by this device
@@ -369,6 +377,7 @@ onZWaveMessage.barrier_operator.report {
 			if (closingRequest()){
 				log.trace 'Reports door closing.'
 				MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSING
+				scheduleDoorCheck()
 			} else {
 				log.info "Unexpected closing report, ignoring"
 			}
@@ -377,6 +386,7 @@ onZWaveMessage.barrier_operator.report {
 			if (openingRequest()){
 				log.info 'Reports door opening.'
 				MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPENING
+				scheduleDoorCheck()
 			} else {
 				log.info "Unexpected opening report, ignoring "     //ITWO-11625
 			}
@@ -400,6 +410,26 @@ onEvent(EVENT_GET_LIFELINE){
 	ZWave.association.get(LIFELINE_GROUP)
 }
 
+//If the door got where it was going, its answer differs from the hub's copy and the hub reports it
+onEvent(EVENT_CHECK_DOOR){
+	if (doorMoving()) {
+		log.info 'Door still {} when the move should be over, checking its state', MotorizedDoor.doorstate.get()
+		ZWave.barrier_operator.get()
+		Scheduler.scheduleIn(EVENT_SETTLE_DOOR, SETTLE_DOOR_DELAY_MS)
+	}
+}
+
+//Still moving, so the door is where it started, which is the state the hub holds
+onEvent(EVENT_SETTLE_DOOR){
+	if (MotorizedDoor.DOORSTATE_OPENING == MotorizedDoor.doorstate.get()) {
+		log.info 'Door never finished opening, setting it back to CLOSED'
+		MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_CLOSED
+	} else if (MotorizedDoor.DOORSTATE_CLOSING == MotorizedDoor.doorstate.get()) {
+		log.info 'Door never finished closing, setting it back to OPEN'
+		MotorizedDoor.doorstate MotorizedDoor.DOORSTATE_OPEN
+	}
+}
+
 
 ///////////////////////////////////////////////
 // Local Var Handlers
@@ -409,6 +439,18 @@ void setCommanded(state) {
 	vars.lastCommandTime = now();
 	vars.lastCommandMode = state;
 	log.trace "Set last command to [{}]  at time [{}]", vars.lastCommandMode, vars.lastCommandTime
+	scheduleDoorCheck()
+}
+
+//Rescheduling replaces a pending check, so the check follows the latest command or move
+void scheduleDoorCheck() {
+	Scheduler.cancel(EVENT_SETTLE_DOOR)
+	Scheduler.scheduleIn(EVENT_CHECK_DOOR, COMMAND_WINDOW_MS)
+}
+
+boolean doorMoving() {
+	def state = MotorizedDoor.doorstate.get()
+	return MotorizedDoor.DOORSTATE_OPENING == state || MotorizedDoor.DOORSTATE_CLOSING == state
 }
 
 boolean openingRequest() {
