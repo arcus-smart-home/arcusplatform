@@ -208,8 +208,14 @@ ext.libraries << [
 		commons_lang2: "commons-lang:commons-lang:2.6",
 
 // Apache Shiro
-		shiro: "org.apache.shiro:shiro-core:1.13.0",
-		shiro_guice: "org.apache.shiro:shiro-guice:1.13.0",
+		// shiro-core 2.x pulls shiro-lang, shiro-cache, shiro-crypto-* and
+		// shiro-config-* transitively; there is no shiro-web dependency here.
+		// shiro-crypto-hash also declares bcprov-jdk18on at compile scope, so
+		// BouncyCastle's version is partly driven by shiro: the pin below wins
+		// today, but check it on a shiro bump because com.iris.security.crypto
+		// requests the provider by name ("BC").
+		shiro: "org.apache.shiro:shiro-core:2.2.1",
+		shiro_guice: "org.apache.shiro:shiro-guice:2.2.1",
 
 // Logging
 		slf4j: "org.slf4j:jcl-over-slf4j:2.0.20",

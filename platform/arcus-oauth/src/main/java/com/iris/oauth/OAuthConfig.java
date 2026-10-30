@@ -17,7 +17,7 @@ package com.iris.oauth;
 
 import java.util.Set;
 
-import org.apache.shiro.util.StringUtils;
+import org.apache.shiro.lang.util.StringUtils;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

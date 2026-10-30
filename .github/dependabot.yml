@@ -41,9 +41,14 @@ updates:
       # cucumber-java.
       - dependency-name: "io.cucumber:*"
 
-      # Shiro 2.x/3.x is a known migration, not a bump. Patch and minor on the
-      # 1.13 line are still welcome.
+      # Shiro 3.x is a known migration, not a bump (the 2.x move relocated
+      # org.apache.shiro.lang.* and removed Md5Hash). Patch and minor on the
+      # 2.x line are still welcome.
       - dependency-name: "org.apache.shiro:*"
+        update-types: ["version-update:semver-major"]
+      # shiro-core 2.x pulls shiro-hashes-argon2 and shiro-hashes-bcrypt from a
+      # separate group, which the rule above does not match.
+      - dependency-name: "org.apache.shiro.crypto:*"
         update-types: ["version-update:semver-major"]
 
       # handlebars past 4.3.1 is compiled for Java 17, and javac 11 cannot read
