@@ -3434,7 +3434,7 @@
       "name" : "get",
       "id" : 1,
       "SendVars" : [ ],
-      "ReceiveVars" : [ "properties", "encapcc", "encapcmd", "encaplength" ]
+      "ReceiveVars" : [ "properties", "encaplength", "encapcc", "encapcmd" ]
     }, {
       "name" : "report",
       "id" : 2,

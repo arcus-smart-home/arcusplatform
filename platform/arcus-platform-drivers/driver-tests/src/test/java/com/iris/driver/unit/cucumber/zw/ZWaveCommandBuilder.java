@@ -98,18 +98,31 @@ public class ZWaveCommandBuilder extends CommandBuilder {
 
 	}
 	
+	/**
+	 * Sets the whole received payload as raw bytes, for commands whose payload
+	 * runs past their named receive variables, such as an encapsulating
+	 * Supervision Get. Each entry is a decimal or 0x-prefixed byte.
+	 */
 	@Override
 	public CommandBuilder addPayload(String[] actualStrings) {
-		// TODO Auto-generated method stub
-		return null;
+		byte[] bytes = new byte[actualStrings.length];
+		for (int i = 0; i < actualStrings.length; i++) {
+			bytes[i] = DataTypeUtilities.byteValueOf(actualStrings[i].trim());
+		}
+		rawPayload = bytes;
+		return this;
 	}
+
+	private byte[] rawPayload;
 
 	//ZWaveCommand.payload() returns the send bytes, and we are trying to load receive bytes.
 	private class ZWaveTestCommand extends ZWaveCommand{
 	private static final long serialVersionUID = 1L;
 	private LinkedHashMap<String, MutableByte> receiveVariables;
-	
+	private final byte[] raw;
+
 	   public ZWaveTestCommand(ZWaveCommand clone) {
+		      this.raw = rawPayload;
 		      this.commandName = clone.commandName;
 		      this.commandClass = clone.commandClass;
 		      this.commandNumber = clone.commandNumber;
@@ -133,7 +146,10 @@ public class ZWaveCommandBuilder extends CommandBuilder {
 
 	   	//loads the receive variables into the payload vs send variable in parentclass
 		public byte[] payload() {
-			      
+			if (raw != null) {
+				return raw;
+			}
+
 			byte[] payload = new byte[receiveVariables.size()];
 			
 			int idx = 0;

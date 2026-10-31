@@ -246,6 +246,18 @@ onZWaveMessage.entry_control.notification {
 // The Ring Keypad wraps subsequent Entry Control events in Supervision CC
 // (0x6C). This handler unwraps the encapsulated command and sends back a
 // Supervision Report to acknowledge receipt.
+//
+// Supervision Get (Supervision CC v1):
+//   [0] = properties: bit 7 status updates requested, bit 6 reserved,
+//         bits 0-5 session id
+//   [1] = encapsulated command length, counting its command class and
+//         command bytes
+//   [2] = encapsulated command class
+//   [3] = encapsulated command
+//   [4..] = encapsulated command payload
+//
+// The Report must echo the session id in the same low six bits, or the
+// keypad treats it as unanswered and sends the Get again.
 ////////////////////////////////////////////////////////////////////////////////
 
 onZWaveMessage.supervision.get {
@@ -255,23 +267,24 @@ onZWaveMessage.supervision.get {
       return
    }
 
-   int sessionId = (bytes[0] & 0xFC) >> 2
-   int encapCC   = bytes[1] & 0xFF
-   int encapCmd  = bytes[2] & 0xFF
-   int encapLen  = bytes[3] & 0xFF
+   int sessionId = bytes[0] & 0x3F
+   int encapLen  = bytes[1] & 0xFF
+   int encapCC   = bytes[2] & 0xFF
+   int encapCmd  = bytes[3] & 0xFF
 
    log.debug "{} Supervision Get - sessionId:{}, encapCC:0x{}, encapCmd:0x{}, encapLen:{}",
       DEVICE_NAME, sessionId, Integer.toHexString(encapCC), Integer.toHexString(encapCmd), encapLen
 
-   // Send Supervision Report: status=0xFF (success), duration=0x00
+   // Send Supervision Report: status=0xFF (success), duration=0x00, no more updates
    ZWave.sendCommand((byte)0x6C, (byte)0x02,
-      (byte)(sessionId << 2), (byte)0xFF, (byte)0x00)
+      (byte)sessionId, (byte)0xFF, (byte)0x00)
 
    // Handle encapsulated Entry Control notification
    if (encapCC == 0x6F && encapCmd == 0x01) {
-      // Extract the encapsulated payload starting at byte 4
-      byte[] innerPayload = new byte[encapLen]
-      System.arraycopy(bytes, 4, innerPayload, 0, Math.min(encapLen, bytes.length - 4))
+      // The encapsulated payload follows its command class and command bytes
+      int innerLen = Math.max(0, Math.min(encapLen - 2, bytes.length - 4))
+      byte[] innerPayload = new byte[innerLen]
+      System.arraycopy(bytes, 4, innerPayload, 0, innerLen)
       handleEntryControlNotification(innerPayload, 0)
    } else {
       log.debug "{} Supervision: unhandled encapsulated CC=0x{}, CMD=0x{}",

@@ -374,37 +374,35 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    /////////////////////////////////////////////////////////////////////////////
 
    private void handleSupervisionGet(byte nodeId, byte[] payload) {
-      // Supervision Get payload:
-      // [0] = properties (upper 6 bits = session ID, bit 1 = status updates, bit 0 = reserved)
-      // [1] = encapsulated CC
-      // [2] = encapsulated command
-      // [3] = encapsulated length
-      // [4..] = encapsulated payload
+      // Supervision Get payload (Supervision CC v1):
+      // [0] = properties: bit 7 status updates requested, bit 6 reserved, bits 0-5 session id
+      // [1] = encapsulated command length, counting its command class and command bytes
+      // [2] = encapsulated command class
+      // [3] = encapsulated command
+      // [4..] = encapsulated command payload
       if (payload.length < 4) {
          log.warn("supervision get too short: {} bytes", payload.length);
          return;
       }
 
-      int sessionId = (payload[0] & 0xFC) >> 2;
-      int encapCC   = payload[1] & 0xFF;
-      int encapCmd  = payload[2] & 0xFF;
-      int encapLen  = payload[3] & 0xFF;
+      int sessionId = payload[0] & 0x3F;
+      int encapLen  = payload[1] & 0xFF;
+      int encapCC   = payload[2] & 0xFF;
+      int encapCmd  = payload[3] & 0xFF;
 
       log.info("supervision get: sessionId={}, encapCC=0x{}, encapCmd=0x{}, encapLen={}",
          sessionId, String.format("%02X", encapCC), String.format("%02X", encapCmd), encapLen);
 
-      // Send Supervision Report: status=0xFF (success), duration=0x00
+      // Send Supervision Report: session id in the low six bits, status=0xFF (success),
+      // duration=0x00. A report with another session id is ignored and the keypad resends.
       zwaveSend(CC_SUPERVISION, SUPERVISION_REPORT,
-         (byte)(sessionId << 2), SUPERVISION_STATUS_SUCCESS, (byte) 0x00);
+         (byte) sessionId, SUPERVISION_STATUS_SUCCESS, (byte) 0x00);
 
-      // Extract encapsulated payload and re-dispatch
-      if (encapLen > 0 && payload.length >= 4 + encapLen) {
-         byte[] innerPayload = new byte[encapLen];
-         System.arraycopy(payload, 4, innerPayload, 0, encapLen);
-         handleZWaveCommand(nodeId, (byte) encapCC, (byte) encapCmd, innerPayload);
-      } else {
-         handleZWaveCommand(nodeId, (byte) encapCC, (byte) encapCmd, new byte[0]);
-      }
+      // The encapsulated payload follows its command class and command bytes
+      int innerLen = Math.max(0, Math.min(encapLen - 2, payload.length - 4));
+      byte[] innerPayload = new byte[innerLen];
+      System.arraycopy(payload, 4, innerPayload, 0, innerLen);
+      handleZWaveCommand(nodeId, (byte) encapCC, (byte) encapCmd, innerPayload);
    }
 
    /////////////////////////////////////////////////////////////////////////////
