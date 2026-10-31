@@ -279,6 +279,44 @@
                optional="false"/>
          </c:parameters>
       </c:method> 
+      <c:method
+         name="SubmitS2Pin"
+         description="Answers a S2PinRequired event with the PIN the user typed. Only the pairing subsystem of the hub's place may send this: the hub bridge drops it from any other source. The body is a secret, see docs/zwave-s2-pin-pairing.md.">
+         <c:parameters>
+            <c:parameter
+               name="requestId"
+               type="string"
+               description="The requestId of the S2PinRequired event being answered."
+               optional="false"/>
+            <c:parameter
+               name="node"
+               type="int"
+               description="The node id of the S2PinRequired event being answered."
+               optional="false"/>
+            <c:parameter
+               name="pin"
+               type="string"
+               description="The five decimal digits printed on the device, 00000 to 65535."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
+
+      <c:method
+         name="CancelS2Pin"
+         description="Gives up on a S2PinRequired event. The hub ends the key exchange as if the user had declined. Only the pairing subsystem of the hub's place may send this. Answering an unknown or finished request is not an error.">
+         <c:parameters>
+            <c:parameter
+               name="requestId"
+               type="string"
+               description="The requestId of the S2PinRequired event to give up on."
+               optional="false"/>
+            <c:parameter
+               name="node"
+               type="int"
+               description="The node id of the S2PinRequired event to give up on."
+               optional="false"/>
+         </c:parameters>
+      </c:method>
    </c:methods>
    
    <c:events>
@@ -286,6 +324,50 @@
          name="HealComplete"
          description="Indicates that the requested Z-Wave network heal operation has completed.">
       </c:event> 
+      <c:event
+         name="S2PinRequired"
+         description="A joining node asked for S2 Authenticated or Access Control and the hub needs the PIN printed on it. The hub sends this to SERV:subpairing:placeId and never as a broadcast. The body is a secret, see docs/zwave-s2-pin-pairing.md.">
+         <c:parameter
+            name="requestId"
+            type="string"
+            description="Identifies this wait for a PIN. New for every wait: letters, digits and dashes, at most 64 characters."
+            optional="false"/>
+         <c:parameter
+            name="node"
+            type="int"
+            description="The node id waiting for its PIN."
+            optional="false"/>
+         <c:parameter
+            name="dsk"
+            type="string"
+            description="The DSK as eight dash separated groups of five digits. The first group is 00000 because the node blanks the PIN."
+            optional="false"/>
+         <c:parameter
+            name="timeoutMs"
+            type="long"
+            description="How long the hub will wait for an answer, from the moment it sent this event."
+            optional="false"/>
+      </c:event>
+      <c:event
+         name="S2PinFinished"
+         description="The hub stopped waiting for this request, or the key exchange it started has ended. The hub sends this to SERV:subpairing:placeId and never as a broadcast.">
+         <c:parameter
+            name="requestId"
+            type="string"
+            description="The requestId of the S2PinRequired event that has finished."
+            optional="false"/>
+         <c:parameter
+            name="node"
+            type="int"
+            description="The node id of the S2PinRequired event that has finished."
+            optional="false"/>
+         <c:parameter
+            name="result"
+            type="enum"
+            values="GRANTED,FAILED,TIMEOUT,CANCELLED"
+            description="GRANTED: the node holds its S2 keys. FAILED: a PIN was supplied and the key exchange still failed, usually a wrong PIN. TIMEOUT: nothing answered in time. CANCELLED: the hub received CancelS2Pin or left the key exchange before a PIN arrived."
+            optional="false"/>
+      </c:event>
    </c:events>
    
 </c:capability>
