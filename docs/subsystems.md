@@ -565,6 +565,7 @@ State machine managing device pairing workflows.
 - `ListPairingDevicesRequest` — List available devices
 - `ListHelpStepsRequest` — Get pairing instructions
 - `GetKitInformationRequest` — Kit device information
+- `GetS2PinRequest`, `SubmitS2Pin`, `CancelS2Pin` — Z-Wave S2 PIN entry, see [zwave-s2-pin-pairing.md](zwave-s2-pin-pairing.md)
 
 **Protocols:** ZigBee, Z-Wave, WiFi, Bluetooth, IPCD, OAuth
 
