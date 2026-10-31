@@ -19,7 +19,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 import com.iris.agent.hal.IrisHal;
-import com.iris.agent.util.ByteUtils;
 import com.iris.messages.address.ProtocolDeviceId;
 
 import io.netty.buffer.ByteBuf;
@@ -32,7 +31,6 @@ public class ZWUtils {
    }
    
    public static ProtocolDeviceId getDeviceId(long homeIdAsLong, int nodeIdAsInt) {
-      int homeId = ByteUtils.from32BitToInt(ByteUtils.to32Bits(homeIdAsLong));
       byte nodeId = (byte)nodeIdAsInt;
       byte[] hubId = ZWConfig.HAS_AGENT 
             ? IrisHal.getHubId().getBytes(StandardCharsets.UTF_8)
@@ -40,7 +38,7 @@ public class ZWUtils {
       ByteBuf buffer = Unpooled.buffer(hubId.length + 6, hubId.length + 6).order(ByteOrder.BIG_ENDIAN);
       buffer.writeByte(nodeId);
       buffer.writeBytes(hubId);
-      buffer.writeInt(homeId);
+      buffer.writeInt((int)homeIdAsLong);
       buffer.writeByte(nodeId);
       return ProtocolDeviceId.fromBytes(buffer.array());
    }
