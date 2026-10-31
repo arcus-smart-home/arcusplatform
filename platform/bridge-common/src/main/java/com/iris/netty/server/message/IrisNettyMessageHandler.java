@@ -81,14 +81,16 @@ public class IrisNettyMessageHandler implements DeviceMessageHandler<String> {
 
    @Override
    public String handleMessage(Session session, String message) {
-      logger.debug("Received message from client [{}]", message);
       Client client = session.getClient();
       if(client == null || !client.isAuthenticated()) {
+         logger.debug("Dropping a message of [{}] chars from a session that is not logged in", message.length());
          session.disconnect(Constants.SESSION_EXPIRED_STATUS);
          return null;
       }
 
       ClientMessage clientMsg = JSON.fromJson(message, ClientMessage.class);
+      // not the raw frame, which can hold a Z-Wave S2 PIN that the parsed message redacts
+      logger.debug("Received message from client [{}]", clientMsg);
       if(clientMsg.isRequest()) {
          session.getClient().requestReceived();
       }

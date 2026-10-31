@@ -134,11 +134,18 @@ public class HubMessageHandler implements Closeable, DeviceMessageHandler<ByteBu
    public ByteBuf handleMessage(Session session, ByteBuf byteBuf) {
       HubMessage msgObj = byteBufToObject(byteBuf);
       if(logger.isTraceEnabled()) {
-        logger.trace("Received hub message type: [{}] message: [{}]", msgObj.getType(), new String(msgObj.getPayload(), Charsets.UTF_8));
+        // a platform message is logged in full once parsed, since its raw form can hold a Z-Wave S2 DSK
+        if(msgObj.getType() == HubMessage.Type.PLATFORM) {
+          logger.trace("Received hub message type: [{}] of [{}] bytes", msgObj.getType(), msgObj.getPayload().length);
+        }
+        else {
+          logger.trace("Received hub message type: [{}] message: [{}]", msgObj.getType(), new String(msgObj.getPayload(), Charsets.UTF_8));
+        }
       }
       switch (msgObj.getType()) {
       case PLATFORM:
          PlatformMessage platformMsg = bytesToPlatform(msgObj.getPayload(), session.getActivePlace());
+         logger.trace("Received hub message type: [{}] message: [{}]", msgObj.getType(), platformMsg);
          if(filter.acceptFromHub((HubSession) session, platformMsg)) {
             PlatformMessage copy = ensureTimestamp(session, platformMsg);
             try (MdcContextReference context = BridgeMdcUtil.captureAndInitializeContext(session,copy)) {
