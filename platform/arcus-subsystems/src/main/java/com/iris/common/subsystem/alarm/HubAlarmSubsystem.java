@@ -1220,11 +1220,9 @@ public class HubAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
       MessageBody request = message.getValue();
       String mode = KeyPadCapability.ArmPressedEvent.getMode(request);
       KeyPad keypad = KeyPad.get(context, message.getSource());
-      if(keypad.isBypassed()) {
-         doArm(context, message, mode, true, message.getSource());
-      } else {
-         doArm(context, message, mode, false, message.getSource());
-      }
+      // A second press inside the window bypasses, or the keypad can ask for it outright
+      boolean bypass = keypad.isBypassed() || KeyPadCapability.ArmPressedEvent.getBypass(request, false);
+      doArm(context, message, mode, bypass, message.getSource());
    }
 
    private static final Function<Pair<AlarmIncidentModel, SubsystemContext<AlarmSubsystemModel>>, MessageBody> DISARM_RESPONSE_SUPPLIER = new Function<Pair<AlarmIncidentModel, SubsystemContext<AlarmSubsystemModel>>, MessageBody>() {

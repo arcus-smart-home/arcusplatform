@@ -143,6 +143,13 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    // Remaining time tracking for arming/soaking delays
    private long panelStatusEndTime = Long.MIN_VALUE;
 
+   // After a refused arm the keypad highlights its OK button, which then asks to
+   // arm with bypass. The offer lapses so a stray OK later can't arm the alarm.
+   private static final long BYPASS_OFFER_MS = 30 * 1000;
+   private @Nullable String lastArmMode;
+   private @Nullable String bypassOfferMode;
+   private long bypassOfferedAt;
+
    public RingKeyPad(ReflexController parent, Address addr) {
       super(parent, addr);
    }
@@ -300,6 +307,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       case KeyPadCapability.BeginArmingRequest.NAME:
          Integer exitDelay = KeyPadCapability.BeginArmingRequest.getDelayInS(msg);
          setRemainingTime(exitDelay);
+         bypassOfferMode = null;
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMING);
          set(KEYPAD_ALARMMODE, KeyPadCapability.BeginArmingRequest.getAlarmMode(msg));
          sendCountdownIndicator(IND_EXIT_DELAY, exitDelay);
@@ -316,6 +324,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          break;
       case KeyPadCapability.DisarmedRequest.NAME:
          clearRemainingTime();
+         bypassOfferMode = null;
          // The hub alarm delivers this more than once for a single disarm
          boolean disarmedChanged = set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
          disarmedChanged |= set(KEYPAD_ALARMMODE, KeyPadCapability.ALARMMODE_OFF);
@@ -338,6 +347,8 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          setIndicator(IND_ALARM_BURGLAR);
          break;
       case KeyPadCapability.ArmingUnavailableRequest.NAME:
+         bypassOfferMode = lastArmMode;
+         bypassOfferedAt = System.currentTimeMillis();
          setIndicator(IND_BYPASS_NEEDED);
          break;
       case IdentifyCapability.IdentifyRequest.NAME:
@@ -476,7 +487,10 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          break;
       case EC_EVENT_ENTER:
          log.info("ring keypad: enter pressed, pin={}", pin != null && !pin.isEmpty() ? "yes" : "no");
-         if (pin != null && !pin.isEmpty()) {
+         String bypassMode = takeBypassOffer();
+         if (bypassMode != null) {
+            handleArm(pin, bypassMode, true);
+         } else if (pin != null && !pin.isEmpty()) {
             handleDisarm(pin);
          }
          break;
@@ -533,7 +547,15 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       }
    }
 
+   private @Nullable String takeBypassOffer() {
+      String mode = bypassOfferMode;
+      bypassOfferMode = null;
+      return System.currentTimeMillis() - bypassOfferedAt < BYPASS_OFFER_MS ? mode : null;
+   }
+
    private void handleArm(String pin, String mode, boolean bypass) {
+      lastArmMode = mode;
+
       // Arm does not require PIN validation, but if provided, set the actor
       UUID user = null;
       if (pin != null && !pin.isEmpty()) {

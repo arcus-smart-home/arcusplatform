@@ -378,7 +378,8 @@ public class PlatformAlarmSubsystem extends BaseSubsystem<AlarmSubsystemModel> {
 		String mode = KeyPadCapability.ArmPressedEvent.getMode(request);
 		KeyPad keypad = KeyPad.get(context, message.getSource());
 		try {
-			if(keypad.isBypassed()) {
+			// A second press inside the window bypasses, or the keypad can ask for it outright
+			if(keypad.isBypassed() || KeyPadCapability.ArmPressedEvent.getBypass(request, false)) {
 				security.armBypassed(context, message, mode);
 			}
 			else {

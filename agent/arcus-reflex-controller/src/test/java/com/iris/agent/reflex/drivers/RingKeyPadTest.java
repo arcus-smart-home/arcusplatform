@@ -70,6 +70,39 @@ public class RingKeyPadTest {
    }
 
    @Test
+   public void okAfterARefusedArmAsksToBypassInTheSameMode() {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 1, 2, 0x06, 0 });
+      keypad.handleCommand(KeyPadCapability.ArmingUnavailableRequest.instance());
+      keypad.emitted.clear();
+
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 2, 2, 0x02, 0 });
+
+      assertEquals(1, keypad.emitted.size());
+      assertEquals(KeyPadCapability.ArmPressedEvent.NAME, keypad.emitted.get(0).getMessageType());
+      assertEquals(KeyPadCapability.ArmPressedEvent.MODE_PARTIAL, KeyPadCapability.ArmPressedEvent.getMode(keypad.emitted.get(0)));
+      assertEquals(Boolean.TRUE, KeyPadCapability.ArmPressedEvent.getBypass(keypad.emitted.get(0)));
+   }
+
+   @Test
+   public void okOnlyAnswersOneRefusedArm() {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 1, 2, 0x05, 0 });
+      keypad.handleCommand(KeyPadCapability.ArmingUnavailableRequest.instance());
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 2, 2, 0x02, 0 });
+      keypad.emitted.clear();
+
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 3, 2, 0x02, 0 });
+
+      assertTrue(keypad.emitted.isEmpty());
+   }
+
+   @Test
+   public void okWithNothingOfferedDoesNotArm() {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 1, 2, 0x02, 0 });
+
+      assertTrue(keypad.emitted.isEmpty());
+   }
+
+   @Test
    public void aDisarmDeliveredTwiceIsSpokenOnce() {
       keypad.handleCommand(KeyPadCapability.ArmedRequest.builder()
          .withAlarmMode(KeyPadCapability.ArmedRequest.ALARMMODE_ON)
