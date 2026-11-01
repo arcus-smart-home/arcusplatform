@@ -45,4 +45,22 @@ public class CloseWindowShortcutTest {
    public void onlyTheKeyPressCounts() {
       assertFalse(CloseWindowShortcut.isCloseShortcut(KeyEvent.KEY_RELEASED, KeyEvent.VK_W, COMMAND, COMMAND));
    }
+
+   @Test
+   public void aHeldKeyClosesOneWindow() {
+      CloseWindowShortcut.RepeatFilter repeats = new CloseWindowShortcut.RepeatFilter();
+
+      assertTrue(repeats.isNewPress(1000));
+      assertFalse(repeats.isNewPress(1500));
+      assertFalse(repeats.isNewPress(1540));
+      assertFalse(repeats.isNewPress(1580));
+   }
+
+   @Test
+   public void aSeparatePressClosesAnother() {
+      CloseWindowShortcut.RepeatFilter repeats = new CloseWindowShortcut.RepeatFilter();
+
+      assertTrue(repeats.isNewPress(1000));
+      assertTrue(repeats.isNewPress(1000 + CloseWindowShortcut.REPEAT_WINDOW_MS));
+   }
 }

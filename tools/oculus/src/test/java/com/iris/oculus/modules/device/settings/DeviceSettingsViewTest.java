@@ -262,7 +262,7 @@ public class DeviceSettingsViewTest {
 
       changeAttribute(model, attribute(enumEntry("ledMode", 0, 2)));
 
-      assertTrue(showsText("Attribute shows Follows Switch (2)"));
+      assertTrue(showsText("Sent Follows Switch (2), not confirmed by the device"));
       assertTrue(showsText("Follows Switch (2)"));
    }
 
@@ -498,7 +498,7 @@ public class DeviceSettingsViewTest {
 
       changeAttribute(model, attribute(enumEntry("ledMode", 0, 2)));
 
-      assertTrue(showsText("Attribute shows Follows Switch (2)"));
+      assertTrue(showsText("Sent Follows Switch (2), not confirmed by the device"));
 
       view.actionRefresh().actionPerformed(null);
       assertEquals(Capability.CMD_GET_ATTRIBUTES, lastRequest().getCommand());

@@ -35,8 +35,27 @@ public final class CloseWindowShortcut {
    private CloseWindowShortcut() {
    }
 
+   /** Shorter than a person repeating the shortcut, longer than a key's auto-repeat gap. */
+   static final long REPEAT_WINDOW_MS = 600;
+
+   /**
+    * True for a press, not the auto-repeat of a held key, which would close every
+    * window in turn. This goes by time because macOS sends no key release for W
+    * while Command stays down.
+    */
+   static final class RepeatFilter {
+      private long lastPress = Long.MIN_VALUE;
+
+      boolean isNewPress(long when) {
+         boolean fresh = lastPress == Long.MIN_VALUE || when - lastPress >= REPEAT_WINDOW_MS;
+         lastPress = when;
+         return fresh;
+      }
+   }
+
    public static void install(Window mainWindow) {
       int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+      RepeatFilter repeats = new RepeatFilter();
       KeyboardFocusManager focus = KeyboardFocusManager.getCurrentKeyboardFocusManager();
       focus.addKeyEventDispatcher((event) -> {
          if (!isCloseShortcut(event.getID(), event.getKeyCode(), event.getModifiersEx(), shortcut)) {
@@ -46,7 +65,9 @@ public final class CloseWindowShortcut {
          if (active == null || active == mainWindow) {
             return false;
          }
-         active.dispatchEvent(new WindowEvent(active, WindowEvent.WINDOW_CLOSING));
+         if (repeats.isNewPress(event.getWhen())) {
+            active.dispatchEvent(new WindowEvent(active, WindowEvent.WINDOW_CLOSING));
+         }
          return true;
       });
    }

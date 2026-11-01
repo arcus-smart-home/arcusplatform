@@ -22,11 +22,13 @@ import java.util.Objects;
  * user has changed and how far the last request got.
  *
  * The driver stores a value as soon as it sends it and reports the attribute
- * again when the device answers, so the attribute can match the request before
- * the device has applied it and can change again afterwards. requested is kept
- * after a match so that later report still shows up as a mismatch. An attribute
- * change can also arrive before the SetParam response, or be for another param
- * entirely, because the attribute holds the whole list.
+ * again when the device answers, so the attribute matches the request before
+ * the device has applied it, and a device that applied it changes nothing. A
+ * PENDING write can therefore never be shown as confirmed: it stays unconfirmed,
+ * can be sent again, and only a later report that differs shows up, which is why
+ * requested is kept after a match. An attribute change can also arrive before
+ * the SetParam response, or be for another param entirely, because the attribute
+ * holds the whole list.
  */
 public class DeviceSettingEdit {
    public enum Status { NONE, OK, PENDING, WARNING, ERROR }
@@ -46,6 +48,11 @@ public class DeviceSettingEdit {
    /** The last value the driver accepted. */
    private String requested;
    private boolean awaitingAttribute;
+   /** The last write went to the device and nothing has shown it arrived. */
+   private boolean unconfirmed;
+   /** The edit a Reset replaced, put back if the Reset fails. */
+   private String draftBeforeReset;
+   private String restoredDraft;
    private boolean reading;
    private boolean awaitingRead;
    private Status status = Status.NONE;
@@ -88,12 +95,13 @@ public class DeviceSettingEdit {
       return sending == null;
    }
 
+   /** An unconfirmed write can be sent again, a sleeping device may never have had it. */
    public boolean canSave() {
-      return draft != null && sending == null;
+      return (draft != null || (unconfirmed && invalid == null)) && sending == null && !reading;
    }
 
    public boolean canReset() {
-      return sending == null && param.validate(param.getDefault()) == null;
+      return sending == null && !reading && param.validate(param.getDefault()) == null;
    }
 
    public boolean canRead() {
@@ -112,20 +120,37 @@ public class DeviceSettingEdit {
 
    /** @return the value to send with SetParam */
    public String beginSave() {
-      return beginSet(draft);
+      return beginSet(draft != null ? draft : requested);
    }
 
    /** @return the value to send with SetParam */
    public String beginReset() {
+      draftBeforeReset = draft;
       draft = null;
       invalid = null;
       return beginSet(param.getDefault());
+   }
+
+   /** The edit put back by a failed Reset, once, for the editor to show again. */
+   public String takeRestoredDraft() {
+      String restored = restoredDraft;
+      restoredDraft = null;
+      return restored;
+   }
+
+   private void restoreDraft() {
+      if(draftBeforeReset != null) {
+         draft = draftBeforeReset;
+         restoredDraft = draftBeforeReset;
+         draftBeforeReset = null;
+      }
    }
 
    private String beginSet(String value) {
       sending = value;
       requested = null;
       awaitingAttribute = false;
+      unconfirmed = false;
       awaitingRead = false;
       setStatus(Status.NONE, "Sending...");
       return value;
@@ -136,6 +161,7 @@ public class DeviceSettingEdit {
       sending = null;
       if(RESPONSE_OK.equals(response) || RESPONSE_PENDING.equals(response)) {
          draft = null;
+         draftBeforeReset = null;
          requested = value;
          awaitingAttribute = !value.equals(param.getValue());
          if(RESPONSE_OK.equals(response)) {
@@ -145,22 +171,26 @@ public class DeviceSettingEdit {
             setStatus(Status.PENDING, RESPONSE_PENDING + ", waiting for the attribute to change");
          }
          else {
-            setApplied();
+            setUnconfirmed();
          }
       }
       else if(RESPONSE_INVALID_VALUE.equals(response)) {
+         restoreDraft();
          setStatus(Status.ERROR, response + ": the driver rejected " + param.describe(value));
       }
       else if(RESPONSE_INVALID_PARAM.equals(response)) {
+         restoreDraft();
          setStatus(Status.ERROR, response + ": the driver does not have this setting");
       }
       else {
+         restoreDraft();
          setStatus(Status.ERROR, "Unexpected status: " + response);
       }
    }
 
    public void onSetFailed(String message) {
       sending = null;
+      restoreDraft();
       setStatus(Status.ERROR, "Failed: " + message);
    }
 
@@ -206,17 +236,22 @@ public class DeviceSettingEdit {
       if(value != null && value.equals(draft)) {
          draft = null;
       }
+      // Text that can't be sent gives way, or reverting it would save the old value back
+      if(changed) {
+         invalid = null;
+      }
 
       if(requested != null && requested.equals(value)) {
          awaitingAttribute = false;
          if(status == Status.PENDING) {
-            setApplied();
+            setUnconfirmed();
          }
       }
       else if(requested != null && changed) {
          setStatus(Status.WARNING, "Attribute changed to " + param.describe(value) + " after requesting " + param.describe(requested));
          requested = null;
          awaitingAttribute = false;
+         unconfirmed = false;
       }
       else if(awaitingRead && changed) {
          setStatus(Status.OK, "Attribute changed to " + param.describe(value));
@@ -227,8 +262,9 @@ public class DeviceSettingEdit {
       }
    }
 
-   private void setApplied() {
-      setStatus(Status.OK, "Attribute shows " + param.describe(requested));
+   private void setUnconfirmed() {
+      unconfirmed = true;
+      setStatus(Status.PENDING, "Sent " + param.describe(requested) + ", not confirmed by the device");
    }
 
    private void setStatus(Status status, String text) {

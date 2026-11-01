@@ -78,10 +78,15 @@ public class DeviceSettingsView extends BaseComponentWrapper<JPanel> {
    private static final int COLUMN_BUTTONS = 4;
    private static final int COLUMN_COUNT = 5;
 
-   private final Action refresh = Actions.build("Refresh", this::onRefresh);
-   private final JLabel message = new JLabel();
    private static final int DESCRIPTION_WIDTH_PX = 330;
 
+   private final Action refresh = Actions
+         .builder()
+         .withName("Refresh")
+         .withRunnableAction(this::onRefresh)
+         .withToolTip("Re-read " + DeviceSettings.ATTR_PARAMS + " with base:GetAttributes")
+         .build();
+   private final JLabel message = new JLabel();
    private final JPanel rowsPanel = new JPanel(new GridBagLayout());
    private final Map<String, ParamRow> rows = new LinkedHashMap<>();
 
@@ -89,7 +94,6 @@ public class DeviceSettingsView extends BaseComponentWrapper<JPanel> {
    private ListenerRegistration modelListener;
 
    public DeviceSettingsView() {
-      refresh.putValue(Action.SHORT_DESCRIPTION, "Re-read " + DeviceSettings.ATTR_PARAMS + " with base:GetAttributes");
       refresh.setEnabled(false);
    }
 
@@ -153,7 +157,10 @@ public class DeviceSettingsView extends BaseComponentWrapper<JPanel> {
          .onSuccess((event) -> {
             if(target == model) {
                refresh.setEnabled(true);
-               showParams(target.get(DeviceSettings.ATTR_PARAMS));
+               // the model listener has shown any change; this ends "Loading settings..."
+               if(rows.isEmpty()) {
+                  showParams(target.get(DeviceSettings.ATTR_PARAMS));
+               }
             }
          })
          .onFailure((error) -> {
@@ -260,17 +267,29 @@ public class DeviceSettingsView extends BaseComponentWrapper<JPanel> {
       private final Editor editor;
       private final JLabel current = new JLabel();
       private final JLabel status = new JLabel(" ");
-      private final Action save = Actions.build("Save", this::onSave);
-      private final Action reset = Actions.build("Reset", this::onReset);
-      private final Action read = Actions.build("Read", this::onRead);
+      private final Action save = Actions
+            .builder()
+            .withName("Save")
+            .withRunnableAction(this::onSave)
+            .withToolTip("Send this value with " + DeviceSettings.CMD_SETPARAM)
+            .build();
+      private final Action reset = Actions
+            .builder()
+            .withName("Reset")
+            .withRunnableAction(this::onReset)
+            .withToolTip("Send the default with " + DeviceSettings.CMD_SETPARAM)
+            .build();
+      private final Action read = Actions
+            .builder()
+            .withName("Read")
+            .withRunnableAction(this::onRead)
+            .withToolTip("Ask for this value with " + DeviceSettings.CMD_GETPARAM)
+            .build();
 
       ParamRow(Model target, DeviceSettingParam param) {
          this.target = target;
          this.edit = new DeviceSettingEdit(param);
          this.editor = DeviceSettingEditors.create(param, this);
-         this.save.putValue(Action.SHORT_DESCRIPTION, "Send this value with " + DeviceSettings.CMD_SETPARAM);
-         this.reset.putValue(Action.SHORT_DESCRIPTION, "Send the default with " + DeviceSettings.CMD_SETPARAM);
-         this.read.putValue(Action.SHORT_DESCRIPTION, "Ask for this value with " + DeviceSettings.CMD_GETPARAM);
          render();
       }
 
@@ -348,7 +367,11 @@ public class DeviceSettingsView extends BaseComponentWrapper<JPanel> {
       }
 
       private void render() {
-         if(!edit.hasUnsavedEdit()) {
+         String restored = edit.takeRestoredDraft();
+         if(restored != null) {
+            editor.setValue(restored);
+         }
+         else if(!edit.hasUnsavedEdit()) {
             editor.setValue(edit.getEditorValue());
          }
          renderState();

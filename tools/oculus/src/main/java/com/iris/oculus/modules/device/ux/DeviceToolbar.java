@@ -171,10 +171,10 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
       settings.setEnabled(hasSettings);
       if (settingsDialog != null && settingsDialog.isVisible()) {
          if (hasSettings) {
-            settingsDialog.show(model);
+            settingsDialog.follow(model);
          }
          else {
-            settingsDialog.close();
+            settingsDialog.followWithoutSettings(model);
          }
       }
    }
@@ -187,7 +187,7 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
          mockActionsDialog.setVisible(false);
       }
       if (settingsDialog != null) {
-         settingsDialog.close();
+         settingsDialog.clear();
       }
       settings.setEnabled(false);
       actions.setEnabled(false);

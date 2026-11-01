@@ -196,7 +196,7 @@ public final class DeviceSettingEditors {
          if(maximum != null && initial > maximum) {
             initial = maximum;
          }
-         return new SpinnerNumberModel(initial, minimum, maximum, Long.valueOf(1));
+         return new OutOfRangeSpinnerModel(initial, minimum, maximum);
       }
 
       private void queueCheck() {
@@ -264,6 +264,39 @@ public final class DeviceSettingEditors {
       @Override
       public void setEnabled(boolean enabled) {
          spinner.setEnabled(enabled);
+      }
+   }
+
+   /**
+    * A device can report a value outside the bounds, and SpinnerNumberModel then
+    * has no next or previous value, leaving both arrows dead. Here an arrow that
+    * moves towards the range goes to the nearest bound.
+    */
+   @SuppressWarnings("serial")
+   private static class OutOfRangeSpinnerModel extends SpinnerNumberModel {
+      private final Long minimum;
+      private final Long maximum;
+
+      OutOfRangeSpinnerModel(Long initial, Long minimum, Long maximum) {
+         super(initial, minimum, maximum, Long.valueOf(1));
+         this.minimum = minimum;
+         this.maximum = maximum;
+      }
+
+      @Override
+      public Object getNextValue() {
+         if(minimum != null && getNumber().longValue() < minimum) {
+            return minimum;
+         }
+         return super.getNextValue();
+      }
+
+      @Override
+      public Object getPreviousValue() {
+         if(maximum != null && getNumber().longValue() > maximum) {
+            return maximum;
+         }
+         return super.getPreviousValue();
       }
    }
 

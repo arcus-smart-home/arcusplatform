@@ -286,4 +286,18 @@ public class DeviceSettingEditorsTest {
 
       assertFalse(editor.getComponent().isEnabled());
    }
+
+   @Test
+   public void testAnArrowMovesAnOutOfBoundsValueBackIntoRange() {
+      Editor editor = create(rangeEntry("level", 0, 99, 10, 50));
+      JSpinner spinner = (JSpinner) editor.getComponent();
+
+      editor.setValue("255");
+      assertEquals(Long.valueOf(99), spinner.getPreviousValue());
+      assertEquals(null, spinner.getNextValue());
+
+      editor.setValue("-5");
+      assertEquals(Long.valueOf(0), spinner.getNextValue());
+      assertEquals(null, spinner.getPreviousValue());
+   }
 }

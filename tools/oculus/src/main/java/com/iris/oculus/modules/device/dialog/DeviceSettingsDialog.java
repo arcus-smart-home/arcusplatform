@@ -63,9 +63,29 @@ public class DeviceSettingsDialog extends JDialog {
    }
 
    public void show(DeviceModel model) {
-      setTitle("Device Settings: " + Objects.toString(Models.nameOf(model), model.getAddress()));
-      view.setModel(model);
+      follow(model);
       setVisible(true);
+   }
+
+   /** Moves to another device without raising the window, which would take focus from the main one. */
+   public void follow(DeviceModel model) {
+      setTitle(titleFor(model));
+      view.setModel(model);
+   }
+
+   /** Stays open on a device without settings, so it can follow the next one that has them. */
+   public void followWithoutSettings(DeviceModel model) {
+      setTitle(titleFor(model));
+      view.clearModel();
+   }
+
+   public void clear() {
+      setTitle("Device Settings");
+      view.clearModel();
+   }
+
+   private static String titleFor(DeviceModel model) {
+      return "Device Settings: " + Objects.toString(Models.nameOf(model), model.getAddress());
    }
 
    public void close() {

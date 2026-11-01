@@ -92,7 +92,7 @@ public class DeviceSettingEditTest {
    }
 
    @Test
-   public void testPendingResolvesWhenTheAttributeShowsTheValue() {
+   public void testAMatchingAttributeIsNotProofTheDeviceHasIt() {
       edit.onEdit("60");
       edit.beginSave();
 
@@ -105,7 +105,7 @@ public class DeviceSettingEditTest {
 
       changeAttribute(60);
 
-      assertStatus(Status.OK, "Attribute shows 60");
+      assertStatus(Status.PENDING, "Sent 60, not confirmed by the device");
       assertEquals("60", edit.getEditorValue());
    }
 
@@ -129,7 +129,7 @@ public class DeviceSettingEditTest {
 
       edit.onSetResponse("PENDING");
 
-      assertStatus(Status.OK, "Attribute shows 60");
+      assertStatus(Status.PENDING, "Sent 60, not confirmed by the device");
       assertEquals("60", edit.getEditorValue());
    }
 
@@ -233,7 +233,7 @@ public class DeviceSettingEditTest {
       edit.onSetResponse("PENDING");
       changeAttribute(10);
 
-      assertStatus(Status.OK, "Attribute shows 10");
+      assertStatus(Status.PENDING, "Sent 10, not confirmed by the device");
    }
 
    @Test
@@ -253,7 +253,8 @@ public class DeviceSettingEditTest {
 
       atDefault.onSetResponse("PENDING");
 
-      assertEquals(Status.OK, atDefault.getStatus());
+      assertEquals("Sent 10, not confirmed by the device", atDefault.getStatusText());
+      assertTrue(atDefault.canSave());
    }
 
    @Test
@@ -381,6 +382,110 @@ public class DeviceSettingEditTest {
 
       changeAttribute(60);
 
-      assertStatus(Status.OK, "Attribute shows 60");
+      assertStatus(Status.PENDING, "Sent 60, not confirmed by the device");
+   }
+
+   @Test
+   public void testAnUnconfirmedWriteCanBeSentAgain() {
+      edit.onEdit("60");
+      edit.beginSave();
+      changeAttribute(60);
+      edit.onSetResponse("PENDING");
+
+      assertTrue(edit.canSave());
+      assertEquals("60", edit.beginSave());
+      assertEquals("60", edit.getEditorValue());
+   }
+
+   @Test
+   public void testALaterReportThatDiffersEndsTheResend() {
+      edit.onEdit("60");
+      edit.beginSave();
+      changeAttribute(60);
+      edit.onSetResponse("PENDING");
+
+      changeAttribute(70);
+
+      assertEquals(Status.WARNING, edit.getStatus());
+      assertFalse(edit.canSave());
+   }
+
+   @Test
+   public void testADriverSettingIsConfirmedAndHasNothingToResend() {
+      edit.onEdit("60");
+      edit.beginSave();
+      changeAttribute(60);
+
+      edit.onSetResponse("OK");
+
+      assertEquals(Status.OK, edit.getStatus());
+      assertFalse(edit.canSave());
+   }
+
+   @Test
+   public void testInvalidTextGivesWayToANewValue() {
+      edit.onInvalidEdit("too big");
+
+      changeAttribute(70);
+
+      assertFalse(edit.hasUnsavedEdit());
+      assertEquals("70", edit.getEditorValue());
+   }
+
+   @Test
+   public void testInvalidTextStaysWhenTheAttributeDidNotChange() {
+      edit.onInvalidEdit("too big");
+
+      changeAttribute(50);
+
+      assertTrue(edit.hasUnsavedEdit());
+   }
+
+   @Test
+   public void testNothingIsSentWhileAReadIsOutstanding() {
+      edit.onEdit("60");
+      edit.beginRead();
+
+      assertFalse(edit.canSave());
+      assertFalse(edit.canReset());
+
+      edit.onReadResponse("PENDING", "50");
+
+      assertTrue(edit.canSave());
+      assertTrue(edit.canReset());
+   }
+
+   @Test
+   public void testAFailedResetPutsTheEditBack() {
+      edit.onEdit("60");
+      edit.beginReset();
+
+      edit.onSetFailed("timed out");
+
+      assertTrue(edit.hasUnsavedEdit());
+      assertTrue(edit.canSave());
+      assertEquals("60", edit.takeRestoredDraft());
+      assertEquals(null, edit.takeRestoredDraft());
+   }
+
+   @Test
+   public void testARefusedResetPutsTheEditBack() {
+      edit.onEdit("60");
+      edit.beginReset();
+
+      edit.onSetResponse("INVALID_VALUE");
+
+      assertEquals("60", edit.takeRestoredDraft());
+   }
+
+   @Test
+   public void testAnAcceptedResetDropsTheEdit() {
+      edit.onEdit("60");
+      edit.beginReset();
+
+      edit.onSetResponse("PENDING");
+
+      assertEquals(null, edit.takeRestoredDraft());
+      assertFalse(edit.hasUnsavedEdit());
    }
 }
