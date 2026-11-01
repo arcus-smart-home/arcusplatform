@@ -123,7 +123,7 @@ ext.libraries << [
 		msgpackJackson: "org.msgpack:jackson-dataformat-msgpack:0.9.12",
 
 // kafka dependencies
-		kafka: "org.apache.kafka:kafka-clients:3.9.2",
+		kafka: "org.apache.kafka:kafka-clients:4.4.0",
 		zookeeper: dependencies.create("org.apache.zookeeper:zookeeper:3.9.6") {
 			exclude group: "org.slf4j", module: "slf4j-log4j12"
 			exclude group: "log4j", module: "log4j"
