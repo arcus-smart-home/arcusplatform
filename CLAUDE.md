@@ -21,6 +21,8 @@ Java IoT platform (Iris by Lowe's fork). Gradle 8.12, Java 11/17/21 (agent + com
 ./gradlew :platform:arcus-khakis:startPlatform  # Start Docker infra
 ```
 
+Gradle must run on JDK 11, 17, or 21; on a newer JDK it fails with either the Arcus version error or `Unsupported class file major version`. On macOS, select one with `export JAVA_HOME=$(/usr/libexec/java_home -v 21)`.
+
 ## Coding Conventions
 
 - **Java** — Gradle runs on 11, 17, or 21; platform targets the running JDK (`platform/build.gradle`). `common` and `agent` compile with `--release 11` because hubs run JDK 11, so code there must stay Java 11 compatible
