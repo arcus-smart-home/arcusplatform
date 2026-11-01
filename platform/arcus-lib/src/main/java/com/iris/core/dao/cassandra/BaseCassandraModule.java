@@ -66,6 +66,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
     private String contactPoints;
     private int port;
     private String keyspace;
+    private String localDatacenter;
     private DefaultConsistencyLevel consistencyLevel;
 
     @Inject
@@ -100,9 +101,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
         String defaultKeyspace = (name != null) ? name : CassandraConstants.CASSANDRA_KEYSPACE_DEFAULT;
         this.keyspace = getConfig(propKeyspace, String.class, defaultKeyspace);
+        this.localDatacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
 
         LOGGER.info("Establishing Cassandra connection at {} for keyspace {} with local datacenter {}",
-              contactPoints, keyspace, getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT));
+              contactPoints, keyspace, localDatacenter);
         if (StringUtils.isBlank(contactPoints)) {
             throw new RuntimeException("Unable to configure Cassandra cluster, please specify the cassandra.contactPoints configuration");
         }
@@ -178,11 +180,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
         }
 
         // Build session
-        String datacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
         CqlSessionBuilder sessionBuilder = CqlSession.builder()
                 .withConfigLoader(configBuilder.build())
                 .addContactPoints(parseContactPointsWithPort(contactPoints, port))
-                .withLocalDatacenter(datacenter)
+                .withLocalDatacenter(localDatacenter)
                 .withKeyspace(keyspace)
                 .withNodeStateListener(CassandraHealth.instance())
                 .addTypeCodecs(ExtraTypeCodecs.TIMESTAMP_MILLIS_SYSTEM);
@@ -260,6 +261,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
     protected String getKeyspace() {
         return keyspace;
+    }
+
+    protected String getLocalDatacenter() {
+        return localDatacenter;
     }
 
     protected DefaultConsistencyLevel getConsistencyLevel() {

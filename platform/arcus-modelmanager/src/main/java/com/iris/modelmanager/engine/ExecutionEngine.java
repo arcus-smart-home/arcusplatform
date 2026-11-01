@@ -198,7 +198,7 @@ public class ExecutionEngine {
       for(InetAddress node : profile.getNodes()) {
          builder.addContactPoint(new InetSocketAddress(node, profile.getPort()));
       }
-      builder.withLocalDatacenter("datacenter1");
+      builder.withLocalDatacenter(profile.getLocalDatacenter());
 
       if(!StringUtils.isBlank(profile.getUsername()) && !StringUtils.isBlank(profile.getPassword())) {
          builder.withAuthCredentials(profile.getUsername(), profile.getPassword());

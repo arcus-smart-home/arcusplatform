@@ -36,6 +36,7 @@ public abstract class ModelManagerBaseCassandraModule extends BaseCassandraModul
     public Profile getProfile() {
         Profile profile = new Profile();
         profile.setKeyspace(getKeyspace());
+        profile.setLocalDatacenter(getLocalDatacenter());
 
         if(StringUtils.isNotBlank(getContactPoints())) {
             profile.setNodes(parseContactPoints(getContactPoints()));

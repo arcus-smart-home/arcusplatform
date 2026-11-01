@@ -20,6 +20,8 @@ Schema is managed by **arcus-modelmanager**, a Liquibase-inspired tool using XML
 
 The modelmanager tracks applied migrations in `changeset` and `versionhistory` tables (created automatically in each managed keyspace).
 
+Like the services, it connects to the datacenter named by `cassandra.local.datacenter`, or `cassandra.<schema>.local.datacenter` for a named schema such as `history`. The default is `datacenter1`, so a cluster with any other datacenter name has to set these, for example with `CASSANDRA_LOCAL_DATACENTER` in the environment.
+
 ## Primary Keyspace Tables
 
 ### Account / Person / Login
