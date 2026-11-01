@@ -49,17 +49,16 @@
  *   0x98 (-104) Security
  *   0x9F  (-97) Security 2
  *
- * KNOWN LIMITATION - Z-Wave S2 Required:
- *   The Ring Keypad requires Z-Wave S2 (Security 2) for full functionality.
- *   The Arcus hub uses a ZW500 (5th gen) controller which only supports S0.
- *   The first button press after pairing works (sent as a bare Entry Control
- *   CC message), but subsequent presses are sent inside S2-encrypted frames
- *   that the ZW500 cannot decrypt — they never reach the platform. The keypad
- *   also wraps Entry Control events in Supervision CC (0x6C) as part of the
- *   S2 application framework; this driver handles Supervision unwrapping, but
- *   the underlying S2 transport issue prevents the messages from arriving.
- *   Full support requires either implementing S2 in software on the host or
- *   upgrading to a ZW700/800 series controller.
+ * SECURITY:
+ *   The keypad asks for S2 Access Control or S0. S2 Access Control needs the
+ *   device's PIN during pairing, so without PIN entry the hub grants S0. It
+ *   wraps Entry Control events in Supervision CC (0x6C) either way.
+ *
+ * HUB DRIVER:
+ *   The hub alarm only reaches keypads through a hub driver, so this driver is
+ *   a builtin reflex backed by com.iris.agent.reflex.drivers.RingKeyPad. Keep
+ *   the two in step. The Z-Wave handlers here run only if a message is forwarded
+ *   by the hub; the keypad commands here are the ones the platform sends.
  *
  *   Reference: https://github.com/ImSorryButWho/HomeAssistantNotes/blob/main/RingKeypadV2.md
  */
@@ -100,6 +99,10 @@ def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 @Field def final byte EC_EVENT_ARM_AWAY          = 0x05
 @Field def final byte EC_EVENT_ARM_HOME          = 0x06
 @Field def final byte EC_EVENT_EXIT_DELAY        = 0x07
+@Field def final byte EC_EVENT_FIRE              = 0x10
+@Field def final byte EC_EVENT_POLICE            = 0x11
+@Field def final byte EC_EVENT_ALERT_PANIC       = 0x12
+@Field def final byte EC_EVENT_ALERT_MEDICAL     = 0x13
 @Field def final byte EC_EVENT_CANCEL            = 0x19
 
 // Entry Control data types
@@ -124,6 +127,10 @@ def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 @Field def final byte IND_ENTRY_DELAY     = (byte) 0x11
 @Field def final byte IND_EXIT_DELAY      = (byte) 0x12
 @Field def final byte IND_NODE_IDENTIFY   = (byte) 0x50
+@Field def final byte IND_CHIME           = (byte) 0x60   // Generic sound 1: the keypad's "ding ding"
+
+// Volume for sounds, 10 to 100 on the keypad
+@Field def final byte CHIME_VOLUME        = (byte) 0x32
 
 // Indicator CC V3 property ids
 @Field def final byte PROP_MULTILEVEL      = (byte) 0x01
@@ -132,6 +139,7 @@ def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 @Field def final byte PROP_ON_TIME         = (byte) 0x05
 @Field def final byte PROP_TIMEOUT_MINUTES = (byte) 0x06
 @Field def final byte PROP_TIMEOUT_SECONDS = (byte) 0x07
+@Field def final byte PROP_SOUND_LEVEL     = (byte) 0x09
 
 // clear the accumulated PIN after 5 minutes of no activity
 @Field def final String EVENT_CLEAR_PIN     = "ClearPin"
@@ -164,13 +172,113 @@ KeyPad {
 ////////////////////////////////////////////////////////////////////////////////
 
 ZWave {
-   // builtin reflex  // disabled: hub zwaveSend lacks S0 encapsulation
+   builtin reflex
    offlineTimeout 180, MINUTES
+}
 
-   poll reflex {
-      after 20, MINUTES
-      send manufacturer_specific.get
-   }
+
+////////////////////////////////////////////////////////////////////////////////
+// Device settings
+//
+// Left out on purpose: 1-3 and 21 tune Z-Wave retries and the heartbeat offline
+// detection depends on, 23 is read-only and 24 is a one-shot speaker calibration.
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'announcementVolume', id: 4, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 4: Voice announcement volume',
+       dflt: 7
+
+   param name: 'keyToneVolume', id: 5, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 5: Key press tone volume',
+       dflt: 6
+
+   param name: 'sirenVolume', id: 6, size: 1,
+       type: 'range', min: 0, max: 10,
+       description: 'Parameter 6: Siren volume',
+       dflt: 10
+
+   param name: 'emergencyLongPress', id: 7, size: 1,
+       type: 'range', min: 2, max: 5,
+       description: 'Parameter 7: Hold time for the Police, Fire and Medical buttons (seconds)',
+       dflt: 3
+
+   param name: 'numberPadLongPress', id: 8, size: 1,
+       type: 'range', min: 2, max: 5,
+       description: 'Parameter 8: Hold time for a number pad long press (seconds)',
+       dflt: 3
+
+   param name: 'proximityDisplayTimeout', id: 9, size: 1,
+       type: 'range', min: 0, max: 30,
+       description: 'Parameter 9: Time the display stays on after proximity is detected (seconds)',
+       dflt: 5
+
+   param name: 'buttonDisplayTimeout', id: 10, size: 1,
+       type: 'range', min: 0, max: 30,
+       description: 'Parameter 10: Time the display stays on after a button press (seconds)',
+       dflt: 5
+
+   param name: 'statusDisplayTimeout', id: 11, size: 1,
+       type: 'range', min: 1, max: 30,
+       description: 'Parameter 11: Time the display stays on after a status change (seconds)',
+       dflt: 5
+
+   param name: 'securityModeBrightness', id: 12, size: 1,
+       type: 'range', min: 0, max: 100,
+       description: 'Parameter 12: Security mode light brightness (%)',
+       dflt: 100
+
+   param name: 'keyBacklightBrightness', id: 13, size: 1,
+       type: 'range', min: 0, max: 100,
+       description: 'Parameter 13: Key backlight brightness (%)',
+       dflt: 100
+
+   param name: 'keyBacklightAmbientLevel', id: 14, size: 1,
+       type: 'range', min: 0, max: 100,
+       description: 'Parameter 14: Ambient light level above which the key backlight stays off (%)',
+       dflt: 20
+
+   param name: 'proximityDetection', id: 15, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 15: Proximity detection',
+       dflt: 1
+
+   param name: 'ledRampTime', id: 16, size: 1,
+       type: 'range', min: 0, max: 255,
+       description: 'Parameter 16: LED ramp time',
+       dflt: 50
+
+   param name: 'batteryLowThreshold', id: 17, size: 1,
+       type: 'range', min: 0, max: 100,
+       description: 'Parameter 17: Low battery threshold (%)',
+       dflt: 15
+
+   param name: 'language', id: 18, size: 1,
+       type: 'enum', values: ['0': 'English', '2': 'French', '5': 'Spanish', '30': 'Keypad default'],
+       description: 'Parameter 18: Voice prompt language',
+       dflt: 30
+
+   param name: 'batteryWarningThreshold', id: 19, size: 1,
+       type: 'range', min: 0, max: 100,
+       description: 'Parameter 19: Battery warning threshold (%)',
+       dflt: 5
+
+   param name: 'securityModeBlinkDuration', id: 20, size: 1,
+       type: 'range', min: 1, max: 60,
+       description: 'Parameter 20: Security mode blink duration',
+       dflt: 2
+
+   param name: 'securityModeDisplay', id: 22, size: 2,
+       type: 'range', min: 0, max: 601,
+       description: 'Parameter 22: Security mode display (0=always off, 601=always on)',
+       dflt: 0
+
+   param name: 'motionTimeout', id: 26, size: 1,
+       type: 'range', min: 0, max: 60,
+       description: 'Parameter 26: Motion sensor timeout (seconds)',
+       dflt: 3
 }
 
 
@@ -353,6 +461,14 @@ void handleEntryControlNotification(byte[] payload, int offset) {
          }
          break
 
+      case EC_EVENT_FIRE:
+      case EC_EVENT_POLICE:
+      case EC_EVENT_ALERT_PANIC:
+      case EC_EVENT_ALERT_MEDICAL:
+         log.info "{} Panic button held, event type: {}", DEVICE_NAME, eventType
+         emit KeyPad.PanicPressed
+         break
+
       case EC_EVENT_CANCEL:
          log.debug "{} Cancel pressed", DEVICE_NAME
          vars.'lastEnteredPIN' = ''
@@ -522,7 +638,7 @@ onKeyPad.Alerting {
 
 onKeyPad.Chime {
    log.debug "{} Chime()", DEVICE_NAME
-   // The keypad has no chime indicator; re-announcing a state here would be wrong
+   playSound(IND_CHIME, CHIME_VOLUME)
    sendResponse 'keypad:ChimeResponse', [:]
 }
 
@@ -717,6 +833,18 @@ void setIndicator(byte indicatorId) {
       (byte) 0x87, (byte) 0x01,
       (byte) 0x00, (byte) 0x01,
       indicatorId, PROP_MULTILEVEL, (byte) 0xFF
+   )
+}
+
+/**
+ * Play one of the keypad's sounds. It starts them from the sound level property
+ * alone, with no multilevel object.
+ */
+void playSound(byte indicatorId, byte volume) {
+   ZWave.sendCommand(
+      (byte) 0x87, (byte) 0x01,
+      (byte) 0x00, (byte) 0x01,
+      indicatorId, PROP_SOUND_LEVEL, volume
    )
 }
 

@@ -71,6 +71,10 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final int EC_EVENT_ARM_AWAY        = 0x05;
    private static final int EC_EVENT_ARM_HOME        = 0x06;
    private static final int EC_EVENT_EXIT_DELAY      = 0x07;
+   private static final int EC_EVENT_FIRE            = 0x10;
+   private static final int EC_EVENT_POLICE          = 0x11;
+   private static final int EC_EVENT_ALERT_PANIC     = 0x12;
+   private static final int EC_EVENT_ALERT_MEDICAL   = 0x13;
    private static final int EC_EVENT_CANCEL          = 0x19;
 
    // Entry Control data types
@@ -108,6 +112,10 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final byte IND_ENTRY_DELAY     = 0x11;
    private static final byte IND_EXIT_DELAY      = 0x12;
    private static final byte IND_NODE_IDENTIFY   = 0x50;
+   private static final byte IND_CHIME           = 0x60;   // Generic sound 1: the keypad's "ding ding"
+
+   // Volume for sounds, 10 to 100 on the keypad
+   private static final byte CHIME_VOLUME        = 0x32;
 
    // Indicator CC V3 property ids
    private static final byte PROP_MULTILEVEL      = 0x01;
@@ -116,6 +124,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final byte PROP_ON_TIME         = 0x05;
    private static final byte PROP_TIMEOUT_MINUTES = 0x06;
    private static final byte PROP_TIMEOUT_SECONDS = 0x07;
+   private static final byte PROP_SOUND_LEVEL     = 0x09;
 
    // State variables
    private static final Variable<String> KEYPAD_ALARMSTATE = attribute(DRIVER_NAME, VERSION_1_0, KeyPadCapability.ATTR_ALARMSTATE, String.class, KeyPadCapability.ALARMSTATE_DISARMED);
@@ -331,7 +340,8 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          sendIdentifyBlink();
          break;
       case KeyPadCapability.ChimeRequest.NAME:
-         // the keypad has no chime indicator; re-announcing a state here would be wrong
+         // the keypad starts its sounds from the sound level property alone
+         sendIndicatorSetV3(IND_CHIME, PROP_SOUND_LEVEL, CHIME_VOLUME);
          break;
       default:
          break;
@@ -440,8 +450,9 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       int eventType = payload[2] & 0xFF;
       int dataLength = payload[3] & 0xFF;
 
-      log.info("entry control: seq={}, dataType={}, eventType=0x{}, dataLen={}, payload={}",
-         sequenceNumber, dataType, String.format("%02X", eventType), dataLength, bytesToHex(payload));
+      // The data bytes hold the PIN, so they must never reach the log
+      log.info("entry control: seq={}, dataType={}, eventType=0x{}, dataLen={}",
+         sequenceNumber, dataType, String.format("%02X", eventType), dataLength);
 
       // Extract PIN from data bytes
       String pin = extractPin(payload, dataType, dataLength);
@@ -468,6 +479,14 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       case EC_EVENT_DISARM:
          log.info("ring keypad: disarm pressed, pin={}", pin != null && !pin.isEmpty() ? "yes" : "no");
          handleDisarm(pin);
+         break;
+      case EC_EVENT_FIRE:
+      case EC_EVENT_POLICE:
+      case EC_EVENT_ALERT_PANIC:
+      case EC_EVENT_ALERT_MEDICAL:
+         // keypad:PanicPressed is the only panic event a keypad has
+         log.info("ring keypad: panic button held, event=0x{}", String.format("%02X", eventType));
+         emit(KeyPadCapability.PanicPressedEvent.instance());
          break;
       case EC_EVENT_CANCEL:
          log.info("ring keypad: cancel pressed");
@@ -720,14 +739,5 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       panelStatusEndTime = (time == null)
          ? Long.MIN_VALUE
          : System.currentTimeMillis() + (1000L * time);
-   }
-
-   private static String bytesToHex(byte[] bytes) {
-      StringBuilder sb = new StringBuilder(bytes.length * 3);
-      for (byte b : bytes) {
-         if (sb.length() > 0) sb.append(' ');
-         sb.append(String.format("%02X", b & 0xFF));
-      }
-      return sb.toString();
    }
 }

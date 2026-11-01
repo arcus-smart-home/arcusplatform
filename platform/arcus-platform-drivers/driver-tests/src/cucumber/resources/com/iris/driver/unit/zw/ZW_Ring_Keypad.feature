@@ -126,6 +126,15 @@ These scenarios test the functionality of the ZWave Ring Alarm Keypad driver
         Then both busses should be empty
 
     @indicator
+    Scenario: A chime plays the keypad's ding ding sound
+        When the capability method keypad:Chime
+            And send to driver
+        Then the driver should send indicator set
+            And with payload 0,1,96,9,50
+        Then the driver should place a keypad:ChimeResponse message on the platform bus
+        Then both busses should be empty
+
+    @indicator
     Scenario: Disarm without a PIN lights the code-rejected indicator
         When the device response with supervision get
             And with payload 4,6,111,1,1,0,3,0
@@ -136,6 +145,72 @@ These scenarios test the functionality of the ZWave Ring Alarm Keypad driver
             And with payload 0,1,9,1,255
         Then the driver should place a keypad:InvalidPinEntered message on the platform bus
         Then both busses should be empty
+
+############################################################
+# Panic buttons
+#
+# Police, Fire and Medical are Entry Control events sent after a long press.
+# keypad:PanicPressed is the only panic event a keypad has.
+############################################################
+
+    @panic
+    Scenario Outline: Holding a panic button raises a panic
+        When the device response with supervision get
+            And with payload 8,6,111,1,1,0,<event>,0
+            And send to driver
+        Then the driver should send supervision report
+            And with parameter properties 8
+        Then the driver should place a keypad:PanicPressed message on the platform bus
+        Then both busses should be empty
+
+        Examples:
+          | button  | event |
+          | Fire    | 16    |
+          | Police  | 17    |
+          | Panic   | 18    |
+          | Medical | 19    |
+
+############################################################
+# Device settings
+############################################################
+
+    @settings
+    Scenario Outline: Setting a parameter writes it to the keypad and reads it back
+        When the capability method devsettings:SetParam
+            And attribute paramId is "<paramId>"
+            And attribute value is "<value>"
+            And send to driver
+        Then the driver should send configuration set
+            And with payload <setPayload>
+        Then the driver should send configuration get
+            And with payload <param>
+        Then the driver should place a devsettings:SetParamResponse message on the platform bus
+            And the message's status attribute should be PENDING
+        Then the driver should place a base:ValueChange message on the platform bus
+        Then both busses should be empty
+
+        Examples:
+          | paramId             | value | param | setPayload |
+          | sirenVolume         | 4     | 6     | 6,1,4      |
+          | proximityDetection  | 0     | 15    | 15,1,0     |
+          | ledRampTime         | 255   | 16    | 16,1,255   |
+          | securityModeDisplay | 601   | 22    | 22,2,2,89  |
+
+    @settings
+    Scenario Outline: A value the keypad would not accept is refused without touching it
+        When the capability method devsettings:SetParam
+            And attribute paramId is "<paramId>"
+            And attribute value is "<value>"
+            And send to driver
+        Then the driver should place a devsettings:SetParamResponse message on the platform bus
+            And the message's status attribute should be <status>
+        Then both busses should be empty
+
+        Examples:
+          | paramId     | value | status        |
+          | sirenVolume | 11    | INVALID_VALUE |
+          | language    | 1     | INVALID_VALUE |
+          | heartbeat   | 5     | INVALID_PARAM |
 
     @supervision
     Scenario: A Supervision Get wrapping another command class is still acknowledged
