@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -27,6 +28,7 @@ import com.iris.messages.MessageBody;
 public class HubDeviceService {
    private static final ConcurrentMap<String, DeviceProvider> deviceProviders = new ConcurrentHashMap<>();
    private static final Map<String,DeviceProvider> deviceView = Collections.unmodifiableMap(deviceProviders);
+   private static final CopyOnWriteArraySet<Listener> listeners = new CopyOnWriteArraySet<>();
 
    public static DeviceProvider find(String protocol) {
       DeviceProvider prov = deviceProviders.get(protocol);
@@ -45,6 +47,26 @@ public class HubDeviceService {
       if (deviceProviders.putIfAbsent(protocol,provider) != null) {
          throw new IllegalStateException("attempted to register two device providers for protocol: " + protocol);
       }
+
+      for (Listener listener : listeners) {
+         listener.deviceProviderRegistered(protocol);
+      }
+   }
+
+   public static void addListener(Listener listener) {
+      listeners.add(listener);
+   }
+
+   public static void removeListener(Listener listener) {
+      listeners.remove(listener);
+   }
+
+   /**
+    * Told when a protocol's devices become available. A radio can register
+    * long after startup, once it has finished bootstrapping.
+    */
+   public static interface Listener {
+      void deviceProviderRegistered(String protocol);
    }
 
    public static interface DeviceInfo {

@@ -173,7 +173,9 @@ port thread:
 
 ### Hub ↔ Platform Sync Sequence
 
-Triggered when the hub transitions to the `AUTHORIZED` lifecycle state, and again after device add/remove operations.
+Triggered when the hub transitions to the `AUTHORIZED` lifecycle state, after a device is added, when the platform sends `hubrflx:SyncNeeded` (a driver upgrade or a PIN change), and when a radio registers with `HubDeviceService` after authorization. A radio's devices are only reported once it has registered, so a sync that ran before then covers the other radios only, and the drivers it stores are theirs alone; the sync on registering restores the rest. `SyncNeeded` and radio registration requests that arrive within 5 s of each other share one sync.
+
+A radio registering also reloads the stored reflexes, since the load at startup skips devices whose radio hasn't registered yet. This is what starts them on a hub that can't reach the platform.
 
 ```
 Hub                                              Platform (driver-services)
