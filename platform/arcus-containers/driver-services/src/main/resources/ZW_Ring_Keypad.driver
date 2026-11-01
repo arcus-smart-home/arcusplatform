@@ -130,7 +130,7 @@ def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 @Field def final byte IND_CHIME           = (byte) 0x60   // Generic sound 1: the keypad's "ding ding"
 
 // Volume for sounds, 10 to 100 on the keypad
-@Field def final byte CHIME_VOLUME        = (byte) 0x32
+@Field def final byte CHIME_VOLUME        = (byte) 0x50
 
 // Indicator CC V3 property ids
 @Field def final byte PROP_MULTILEVEL      = (byte) 0x01

@@ -115,7 +115,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final byte IND_CHIME           = 0x60;   // Generic sound 1: the keypad's "ding ding"
 
    // Volume for sounds, 10 to 100 on the keypad
-   private static final byte CHIME_VOLUME        = 0x32;
+   private static final byte CHIME_VOLUME        = 0x50;
 
    // Indicator CC V3 property ids
    private static final byte PROP_MULTILEVEL      = 0x01;

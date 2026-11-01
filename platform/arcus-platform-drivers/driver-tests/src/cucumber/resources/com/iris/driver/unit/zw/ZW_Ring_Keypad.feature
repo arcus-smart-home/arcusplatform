@@ -130,7 +130,7 @@ These scenarios test the functionality of the ZWave Ring Alarm Keypad driver
         When the capability method keypad:Chime
             And send to driver
         Then the driver should send indicator set
-            And with payload 0,1,96,9,50
+            And with payload 0,1,96,9,80
         Then the driver should place a keypad:ChimeResponse message on the platform bus
         Then both busses should be empty
 

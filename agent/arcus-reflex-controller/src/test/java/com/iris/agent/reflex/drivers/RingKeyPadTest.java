@@ -66,7 +66,7 @@ public class RingKeyPadTest {
       keypad.handleCommand(KeyPadCapability.ChimeRequest.instance());
 
       assertEquals(1, keypad.sent.size());
-      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x60, 0x09, 0x32 }, keypad.sent.get(0));
+      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x60, 0x09, 0x50 }, keypad.sent.get(0));
    }
 
    @Test
