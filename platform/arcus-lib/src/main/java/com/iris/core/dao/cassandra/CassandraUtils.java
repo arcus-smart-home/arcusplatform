@@ -55,5 +55,14 @@ public class CassandraUtils
         ConfigurationKey propPass = toKey(CassandraConstants.CASSANDRA_PASSWORD_PROP, CassandraConstants.CASSANDRA_X_PASSWORD_PROP, name);
         return getConfig(config, propPass, String.class, null);
     }
+
+    /**
+     * A named keyspace reads only its own property: it doesn't fall back to
+     * cassandra.local.datacenter.
+     */
+    public static String getLocalDatacenter(ConfigurationProvider config, String name) {
+        ConfigurationKey propLocalDc = toKey(CassandraConstants.CASSANDRA_LOCAL_DC_PROP, CassandraConstants.CASSANDRA_X_LOCAL_DC_PROP, name);
+        return getConfig(config, propLocalDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
+    }
 }
 

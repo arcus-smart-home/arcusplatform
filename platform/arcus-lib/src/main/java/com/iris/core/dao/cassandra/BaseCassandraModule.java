@@ -66,7 +66,6 @@ public abstract class BaseCassandraModule extends AbstractModule {
     private String contactPoints;
     private int port;
     private String keyspace;
-    private String localDatacenter;
     private DefaultConsistencyLevel consistencyLevel;
 
     @Inject
@@ -82,7 +81,6 @@ public abstract class BaseCassandraModule extends AbstractModule {
         ConfigurationKey propKeyspace = toKey(CassandraConstants.CASSANDRA_KEYSPACE_PROP, CassandraConstants.CASSANDRA_X_KEYSPACE_PROP, name);
 
         ConfigurationKey useSsl = toKey(CassandraConstants.CASSANDRA_SSL_PROP, CassandraConstants.CASSANDRA_X_SSL_PROP, name);
-        ConfigurationKey localDc = toKey(CassandraConstants.CASSANDRA_LOCAL_DC_PROP, CassandraConstants.CASSANDRA_X_LOCAL_DC_PROP, name);
 
         ConfigurationKey poolCore = toKey(CassandraConstants.CASSANDRA_POOL_CONN_CORE_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_CORE_PROP, name);
         ConfigurationKey poolMax = toKey(CassandraConstants.CASSANDRA_POOL_CONN_MAX_PROP, CassandraConstants.CASSANDRA_X_POOL_CONN_MAX_PROP, name);
@@ -101,10 +99,10 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
         String defaultKeyspace = (name != null) ? name : CassandraConstants.CASSANDRA_KEYSPACE_DEFAULT;
         this.keyspace = getConfig(propKeyspace, String.class, defaultKeyspace);
-        this.localDatacenter = getConfig(localDc, String.class, CassandraConstants.CASSANDRA_LOCAL_DC_DEFAULT);
+        String datacenter = CassandraUtils.getLocalDatacenter(config, name);
 
         LOGGER.info("Establishing Cassandra connection at {} for keyspace {} with local datacenter {}",
-              contactPoints, keyspace, localDatacenter);
+              contactPoints, keyspace, datacenter);
         if (StringUtils.isBlank(contactPoints)) {
             throw new RuntimeException("Unable to configure Cassandra cluster, please specify the cassandra.contactPoints configuration");
         }
@@ -183,7 +181,7 @@ public abstract class BaseCassandraModule extends AbstractModule {
         CqlSessionBuilder sessionBuilder = CqlSession.builder()
                 .withConfigLoader(configBuilder.build())
                 .addContactPoints(parseContactPointsWithPort(contactPoints, port))
-                .withLocalDatacenter(localDatacenter)
+                .withLocalDatacenter(datacenter)
                 .withKeyspace(keyspace)
                 .withNodeStateListener(CassandraHealth.instance())
                 .addTypeCodecs(ExtraTypeCodecs.TIMESTAMP_MILLIS_SYSTEM);
@@ -261,10 +259,6 @@ public abstract class BaseCassandraModule extends AbstractModule {
 
     protected String getKeyspace() {
         return keyspace;
-    }
-
-    protected String getLocalDatacenter() {
-        return localDatacenter;
     }
 
     protected DefaultConsistencyLevel getConsistencyLevel() {

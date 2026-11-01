@@ -17,26 +17,43 @@ package com.iris.modelmanager.context;
 
 import static org.junit.Assert.assertEquals;
 
-import org.easymock.EasyMock;
+import java.util.Properties;
+
 import org.junit.Test;
 
-import com.iris.bootstrap.config.ConfigurationProvider;
+import com.iris.bootstrap.config.PropertiesConfigurationProvider;
 
 public class ModelManagerBaseCassandraModuleTest {
 
-   /** ExecutionEngine opens its own session from the profile, so a cluster whose datacenter isn't datacenter1 depends on this. */
    @Test
-   public void testProfileCarriesLocalDatacenter() {
-      ConfigurationProvider config = EasyMock.createNiceMock(ConfigurationProvider.class);
-      EasyMock.replay(config);
+   public void testLocalDatacenterDefaultsToDatacenter1() {
+      assertEquals("datacenter1", localDatacenter(null, new Properties()));
+   }
 
-      ModelManagerBaseCassandraModule module = new ModelManagerBaseCassandraModule(config, null) {
-         @Override
-         protected String getLocalDatacenter() {
-            return "DC1";
-         }
-      };
+   @Test
+   public void testLocalDatacenterComesFromConfig() {
+      assertEquals("DC1", localDatacenter(null, properties("cassandra.local.datacenter", "DC1")));
+   }
 
-      assertEquals("DC1", module.getProfile().getLocalDatacenter());
+   @Test
+   public void testNamedSchemaReadsItsOwnLocalDatacenter() {
+      assertEquals("DC2", localDatacenter("history", properties("cassandra.history.local.datacenter", "DC2")));
+   }
+
+   @Test
+   public void testNamedSchemaDoesNotFallBackToPlainProperty() {
+      assertEquals("datacenter1", localDatacenter("history", properties("cassandra.local.datacenter", "DC1")));
+   }
+
+   private static String localDatacenter(String schema, Properties properties) {
+      return new ModelManagerBaseCassandraModule(new PropertiesConfigurationProvider(properties), schema) {}
+            .getProfile()
+            .getLocalDatacenter();
+   }
+
+   private static Properties properties(String key, String value) {
+      Properties properties = new Properties();
+      properties.setProperty(key, value);
+      return properties;
    }
 }
