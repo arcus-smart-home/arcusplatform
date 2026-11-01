@@ -17,7 +17,7 @@ package com.iris.security.credentials;
 
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.authc.credential.SimpleCredentialsMatcher;
-import org.apache.shiro.util.ByteSource;
+import org.apache.shiro.lang.util.ByteSource;
 
 import com.google.inject.Singleton;
 

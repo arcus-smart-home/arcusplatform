@@ -23,7 +23,6 @@ import javax.crypto.spec.GCMParameterSpec;
 
 import com.google.common.primitives.Bytes;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.shiro.crypto.hash.Md5Hash;
 import org.apache.shiro.crypto.hash.Sha256Hash;
 
 import com.google.common.base.Preconditions;
@@ -33,6 +32,8 @@ import com.iris.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -216,11 +217,26 @@ public class AES {
    }
 
    // XXX: why is this called sha1?
-   private byte[] sha1(String key, String salt) throws Exception {
+   // Package-private so AESKnownAnswerTest can pin the exact bytes: these two
+   // helpers derive the AES key and the AES-CBC IV for data already encrypted
+   // at rest, so their output must never change.
+   static byte[] sha1(String key, String salt) throws Exception {
       return new Sha256Hash(key, salt).getBytes();
    }
 
-   private byte[] md5(String str) throws Exception {
-      return new Md5Hash(str).getBytes();
+   /**
+    * Replacement for Shiro's {@code Md5Hash}, which Shiro 2.x removed.
+    *
+    * <p>
+    * {@code new Md5Hash(str).getBytes()} was a single, unsalted MD5 pass over
+    * the UTF-8 bytes of {@code str} -- Shiro's {@code CodecSupport} always
+    * decoded Strings as UTF-8 -- so this is byte-for-byte the same digest.
+    * {@code AESKnownAnswerTest} pins it against values captured from the
+    * 1.13.0 build; it must stay identical because the result is the AES-CBC IV
+    * for data that is already encrypted at rest.
+    * </p>
+    */
+   static byte[] md5(String str) throws Exception {
+      return MessageDigest.getInstance("MD5").digest(str.getBytes(StandardCharsets.UTF_8));
    }
 }

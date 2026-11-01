@@ -17,11 +17,11 @@ package com.iris.security.credentials;
 
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.authc.credential.HashedCredentialsMatcher;
-import org.apache.shiro.codec.Base64;
 import org.apache.shiro.crypto.RandomNumberGenerator;
 import org.apache.shiro.crypto.SecureRandomNumberGenerator;
 import org.apache.shiro.crypto.hash.Sha256Hash;
-import org.apache.shiro.util.ByteSource;
+import org.apache.shiro.lang.codec.Base64;
+import org.apache.shiro.lang.util.ByteSource;
 
 import com.google.inject.Singleton;
 

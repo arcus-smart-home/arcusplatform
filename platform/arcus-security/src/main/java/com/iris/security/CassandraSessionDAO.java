@@ -23,15 +23,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.apache.shiro.ShiroException;
-import org.apache.shiro.io.DefaultSerializer;
-import org.apache.shiro.io.Serializer;
+import org.apache.shiro.lang.ShiroException;
+import org.apache.shiro.lang.io.DefaultSerializer;
+import org.apache.shiro.lang.io.Serializer;
+import org.apache.shiro.lang.util.Destroyable;
+import org.apache.shiro.lang.util.Initializable;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.session.UnknownSessionException;
 import org.apache.shiro.session.mgt.SimpleSession;
 import org.apache.shiro.session.mgt.eis.AbstractSessionDAO;
-import org.apache.shiro.util.Destroyable;
-import org.apache.shiro.util.Initializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
