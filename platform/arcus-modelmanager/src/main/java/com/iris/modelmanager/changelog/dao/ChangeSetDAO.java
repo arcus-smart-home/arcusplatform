@@ -61,7 +61,7 @@ public class ChangeSetDAO {
             formatUpdateStatements(changeset.getCommands()),
             formatRollbackStatements(changeset.getCommands()),
             changeset.getStatus().toString(),
-            changeset.getTimestamp(),
+            changeset.getTimestamp().toInstant(),
             changeset.getSource(),
             changeset.getVersion()
       ));
