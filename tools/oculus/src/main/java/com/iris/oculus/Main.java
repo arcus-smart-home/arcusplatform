@@ -47,6 +47,7 @@ import com.iris.client.session.HandoffTokenCredentials;
 import com.iris.client.session.SessionTokenCredentials;
 import com.iris.core.IrisApplicationModule;
 import com.iris.io.json.gson.GsonModule;
+import com.iris.oculus.util.CloseWindowShortcut;
 import com.iris.oculus.modules.session.SessionController;
 import com.iris.oculus.modules.session.ux.StatusBar;
 import com.iris.oculus.modules.status.StatusController;
@@ -123,6 +124,7 @@ public class Main {
 
       window.setVisible(true);
       Oculus.setMainWindow(window);
+      CloseWindowShortcut.install(window);
       return window;
    }
 
