@@ -67,8 +67,10 @@ public class DeviceSettingsGetParamHandler implements ContextualEventHandler<Obj
          return true;
       }
 
-      // Send Z-Wave configuration.get to refresh the value
-      sendConfigurationGet(context, param.getZwaveParamNo());
+      if (!param.isDriverOnly()) {
+         // Send Z-Wave configuration.get to refresh the value
+         sendConfigurationGet(context, param.getZwaveParamNo());
+      }
 
       // Return last known value
       Object currentValue = null;
@@ -78,8 +80,12 @@ public class DeviceSettingsGetParamHandler implements ContextualEventHandler<Obj
          // variable not set yet
       }
 
+      if (currentValue == null && param.isDriverOnly()) {
+         currentValue = param.getDefaultValue();
+      }
+
       DeviceSettingsCapability.GetParamResponse.Builder response = DeviceSettingsCapability.GetParamResponse.builder()
-            .withStatus("PENDING");
+            .withStatus(param.isDriverOnly() ? "OK" : "PENDING");
       if (currentValue != null) {
          response.withValue(String.valueOf(param.decodeStored(currentValue)));
       }

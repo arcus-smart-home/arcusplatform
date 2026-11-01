@@ -197,6 +197,28 @@ These scenarios test the functionality of the ZWave Ring Alarm Keypad driver
           | securityModeDisplay | 601   | 22    | 22,2,2,89  |
 
     @settings
+    Scenario Outline: The chime uses its settings, which stay in the driver
+        When the capability method devsettings:SetParam
+            And attribute paramId is "<paramId>"
+            And attribute value is "<value>"
+            And send to driver
+        Then the driver should place a devsettings:SetParamResponse message on the platform bus
+            And the message's status attribute should be OK
+        Then the driver should place a base:ValueChange message on the platform bus
+        Then both busses should be empty
+        When the capability method keypad:Chime
+            And send to driver
+        Then the driver should send indicator set
+            And with payload <payload>
+        Then the driver should place a keypad:ChimeResponse message on the platform bus
+        Then both busses should be empty
+
+        Examples:
+          | paramId     | value | payload       |
+          | chimeTone   | 100   | 0,1,100,9,80  |
+          | chimeVolume | 40    | 0,1,96,9,40   |
+
+    @settings
     Scenario Outline: A value the keypad would not accept is refused without touching it
         When the capability method devsettings:SetParam
             And attribute paramId is "<paramId>"
@@ -210,6 +232,7 @@ These scenarios test the functionality of the ZWave Ring Alarm Keypad driver
           | paramId     | value | status        |
           | sirenVolume | 11    | INVALID_VALUE |
           | language    | 1     | INVALID_VALUE |
+          | chimeTone   | 95    | INVALID_VALUE |
           | heartbeat   | 5     | INVALID_PARAM |
 
     @supervision

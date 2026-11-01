@@ -279,6 +279,17 @@ deviceSettings {
        type: 'range', min: 0, max: 60,
        description: 'Parameter 26: Motion sensor timeout (seconds)',
        dflt: 3
+
+   // The keypad's sounds are indicators, so these two live in the driver
+   param name: 'chimeTone', driverOnly: true,
+       type: 'enum', values: ['96': 'Ding ding', '97': 'Guitar riff', '98': 'Wind chimes', '99': 'Echoing bing bong', '100': 'Ring doorbell chime'],
+       description: 'Sound played for a chime',
+       dflt: 96
+
+   param name: 'chimeVolume', driverOnly: true,
+       type: 'range', min: 10, max: 100,
+       description: 'Chime volume (%)',
+       dflt: 80
 }
 
 
@@ -638,7 +649,7 @@ onKeyPad.Alerting {
 
 onKeyPad.Chime {
    log.debug "{} Chime()", DEVICE_NAME
-   playSound(IND_CHIME, CHIME_VOLUME)
+   playSound((byte) (vars.'devsettings:chimeTone' ?: IND_CHIME), (byte) (vars.'devsettings:chimeVolume' ?: CHIME_VOLUME))
    sendResponse 'keypad:ChimeResponse', [:]
 }
 

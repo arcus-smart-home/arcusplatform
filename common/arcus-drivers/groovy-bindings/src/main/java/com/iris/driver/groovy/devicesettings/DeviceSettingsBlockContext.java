@@ -43,6 +43,10 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
     * </pre>
     * Add {@code products: [[0x4F44, 0x3032], ...]} (Z-Wave product type, product id)
     * when the parameter only exists on some of the products the driver matches.
+    * <p>
+    * A setting that isn't a Z-Wave configuration parameter, such as a sound the
+    * driver sends in another command, is declared {@code driverOnly: true} with
+    * no {@code id} or {@code size}. The driver stores it and never asks the device.
     */
    @SuppressWarnings("unchecked")
    public void param(Map<String, Object> args) {
@@ -51,12 +55,16 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
          throw new IllegalArgumentException("deviceSettings param requires a 'name'");
       }
 
+      boolean driverOnly = Boolean.TRUE.equals(args.get("driverOnly"));
       Number id = (Number) args.get("id");
-      if (id == null) {
+      Number size = (Number) args.get("size");
+      if (driverOnly && (id != null || size != null)) {
+         throw new IllegalArgumentException("deviceSettings param '" + name + "' is driverOnly, so it has no Z-Wave parameter 'id' or 'size'");
+      }
+      if (id == null && !driverOnly) {
          throw new IllegalArgumentException("deviceSettings param '" + name + "' requires an 'id' (Z-Wave parameter number)");
       }
 
-      Number size = (Number) args.get("size");
       String typeStr = (String) args.get("type");
       String description = (String) args.get("description");
       Number dflt = (Number) args.get("dflt");
@@ -72,8 +80,12 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
 
       DeviceSettingsParamDefinition.Builder builder = DeviceSettingsParamDefinition.builder()
             .withParamId(name)
-            .withZwaveParamNo(id.intValue())
+            .withDriverOnly(driverOnly)
             .withType(type);
+
+      if (id != null) {
+         builder.withZwaveParamNo(id.intValue());
+      }
 
       if (size != null) {
          builder.withZwaveParamSize(size.intValue());

@@ -78,23 +78,22 @@ public class DeviceSettingsSetParamHandler implements ContextualEventHandler<Obj
       }
 
       long longValue = Long.parseLong(value);
-      int paramNo = param.getZwaveParamNo();
-      int paramSize = param.getZwaveParamSize();
 
       // Store pending value in driver variables
       context.setVariable(param.getVariableKey(), longValue);
 
-      // Send Z-Wave configuration.set
-      sendConfigurationSet(context, paramNo, paramSize, longValue);
-
-      // Send Z-Wave configuration.get for readback
-      sendConfigurationGet(context, paramNo);
+      if (!param.isDriverOnly()) {
+         // Send Z-Wave configuration.set, then configuration.get for readback
+         sendConfigurationSet(context, param.getZwaveParamNo(), param.getZwaveParamSize(), longValue);
+         sendConfigurationGet(context, param.getZwaveParamNo());
+      }
 
       // Emit value change
       DeviceSettingsUtil.emitParamsValueChange(context, settingsContext);
 
+      // A driver-only setting is already final; a device one waits for its report
       context.respondToPlatform(DeviceSettingsCapability.SetParamResponse.builder()
-            .withStatus("PENDING")
+            .withStatus(param.isDriverOnly() ? "OK" : "PENDING")
             .build());
       return true;
    }

@@ -63,9 +63,14 @@ public class DeviceSettingsContext {
          if (idMap.put(p.getParamId(), p) != null) {
             throw new IllegalArgumentException("deviceSettings param name '" + p.getParamId() + "' is declared twice");
          }
+         filters |= p.hasProductFilter();
+         if (p.isDriverOnly()) {
+            // kept by the driver, so it has no parameter number to clash with or be found by
+            continue;
+         }
          for (int j = 0; j < i; j++) {
             DeviceSettingsParamDefinition q = this.params.get(j);
-            if (q.getZwaveParamNo() == p.getZwaveParamNo()) {
+            if (!q.isDriverOnly() && q.getZwaveParamNo() == p.getZwaveParamNo()) {
                if (p.sharesProductWith(q)) {
                   throw new IllegalArgumentException("deviceSettings params '" + q.getParamId() + "' and '"
                         + p.getParamId() + "' both use parameter " + p.getZwaveParamNo() + " on the same product");
@@ -74,7 +79,6 @@ public class DeviceSettingsContext {
             }
          }
          noMap.put(p.getZwaveParamNo(), p);
-         filters |= p.hasProductFilter();
       }
       // A number used by different products means nothing until narrowed with forProduct
       noMap.keySet().removeAll(reused);
