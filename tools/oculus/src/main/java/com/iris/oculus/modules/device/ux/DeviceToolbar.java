@@ -25,9 +25,11 @@ import javax.swing.JPanel;
 import com.iris.bootstrap.ServiceLocator;
 import com.iris.client.capability.DeviceAdvanced;
 import com.iris.client.capability.DeviceMock;
+import com.iris.client.capability.DeviceSettings;
 import com.iris.client.model.DeviceModel;
 import com.iris.oculus.Oculus;
 import com.iris.oculus.modules.BaseToolbar;
+import com.iris.oculus.modules.device.dialog.DeviceSettingsDialog;
 import com.iris.oculus.modules.device.dialog.MockActionsDialog;
 import com.iris.oculus.modules.device.mockaction.MockActionsNexus;
 import com.iris.oculus.modules.scheduler.SchedulerController;
@@ -45,10 +47,13 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
    private Action schedule = Actions.build("Schedule", this::onSchedule);
    private Action actions = Actions.build("Mock Actions", this::onActions);
    private Action upgradeDriver = Actions.build("Upgrade Driver", this::onUpgradeDriver);
+   private Action settings = Actions.build("Device Settings", this::onSettings);
 
    private MockActionsDialog mockActionsDialog = null;
+   private DeviceSettingsDialog settingsDialog = null;
 
    public DeviceToolbar() {
+      settings.setEnabled(false);
    }
 
    @Override
@@ -58,6 +63,7 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
             .builder()
             .left().addButton(actions)
             .left().addButton(upgradeDriver)
+            .left().addButton(settings)
             .right().addButton(schedule)
             .right().addButton(delete)
             .right().addButton(forceDelete)
@@ -68,6 +74,13 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
 
    protected void onActions() {
       getMockActionsDialog(true).show(model());
+   }
+
+   protected void onSettings() {
+      if (settingsDialog == null) {
+         settingsDialog = new DeviceSettingsDialog();
+      }
+      settingsDialog.show(model());
    }
 
    protected void onUpgradeDriver() {
@@ -154,6 +167,16 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
       else {
          actions.setEnabled(false);
       }
+      boolean hasSettings = model.getCaps().contains(DeviceSettings.NAMESPACE);
+      settings.setEnabled(hasSettings);
+      if (settingsDialog != null && settingsDialog.isVisible()) {
+         if (hasSettings) {
+            settingsDialog.follow(model);
+         }
+         else {
+            settingsDialog.followWithoutSettings(model);
+         }
+      }
    }
 
    @Override
@@ -163,6 +186,10 @@ public class DeviceToolbar extends BaseToolbar<DeviceModel> {
       if (actionsDialog != null) {
          mockActionsDialog.setVisible(false);
       }
+      if (settingsDialog != null) {
+         settingsDialog.clear();
+      }
+      settings.setEnabled(false);
       actions.setEnabled(false);
       upgradeDriver.setEnabled(false);
       delete.setEnabled(false);
