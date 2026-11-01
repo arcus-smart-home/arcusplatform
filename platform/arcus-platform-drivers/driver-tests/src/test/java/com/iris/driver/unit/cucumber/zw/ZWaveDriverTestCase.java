@@ -51,7 +51,16 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
 	
 	private ZWaveCommand command;
 	private byte[] commandPayload;
-	
+
+	/**
+	 * Lets the "with payload" step check what a Z-Wave driver sent, as it does
+	 * for ZigBee. Named send variables only cover fixed-layout commands; this
+	 * is for the rest, such as an Indicator Set V3 with its list of objects.
+	 */
+	public void validatePayload(String[] actualStrings) {
+		checkSentPayload(String.join(",", actualStrings));
+	}
+
     public ZWaveDriverTestCase() {
         node = new ZWaveNode((byte)10);
     }

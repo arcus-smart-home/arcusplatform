@@ -88,28 +88,34 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final int NOTIF_TYPE_POWER_MANAGEMENT = 0x08;
    private static final int NOTIF_TYPE_SYSTEM           = 0x09;
 
-   // Power management events
-   private static final int POWER_EVENT_AC_CONNECTED    = 0x01;
-   private static final int POWER_EVENT_AC_DISCONNECTED = 0x02;
-   private static final int POWER_EVENT_BATTERY_LOW     = 0x03;
+   // Power management events (Notification CC event ids)
+   private static final int POWER_EVENT_POWER_APPLIED     = 0x01;
+   private static final int POWER_EVENT_AC_DISCONNECTED   = 0x02;
+   private static final int POWER_EVENT_AC_RECONNECTED    = 0x03;
+   private static final int POWER_EVENT_REPLACE_BATTERY_SOON = 0x0A;
+   private static final int POWER_EVENT_REPLACE_BATTERY_NOW  = 0x0B;
+   private static final byte NOTIF_GET = (byte) 0x04;
 
-   // Indicator V1 values for keypad LED/sound feedback
-   private static final byte INDICATOR_DISARMED    = 0x00;
-   private static final byte INDICATOR_ARMED_AWAY  = 0x01;
-   private static final byte INDICATOR_ARMED_HOME  = 0x02;
-   private static final byte INDICATOR_ARMING      = 0x03;
-   private static final byte INDICATOR_ALERTING    = 0x04;
-   private static final byte INDICATOR_ENTRY_DELAY = 0x05;
-   private static final byte INDICATOR_ERROR       = 0x06;
+   // Indicator CC V3 indicator ids (SDS13781 table, as zwave-js lists them). The
+   // keypad only understands V3 indicator objects; a V1 Indicator Set value means
+   // nothing to it. The ids drive both the keypad's lights and its voice prompts.
+   private static final byte IND_DISARMED        = 0x02;   // Not armed / disarmed
+   private static final byte IND_CODE_REJECTED   = 0x09;   // Code not accepted
+   private static final byte IND_ARMED_STAY      = 0x0A;
+   private static final byte IND_ARMED_AWAY      = 0x0B;
+   private static final byte IND_ALARM_BURGLAR   = 0x0D;   // Alarming: Burglar
+   private static final byte IND_BYPASS_NEEDED   = 0x10;   // Bypass challenge (sensors open)
+   private static final byte IND_ENTRY_DELAY     = 0x11;
+   private static final byte IND_EXIT_DELAY      = 0x12;
+   private static final byte IND_NODE_IDENTIFY   = 0x50;
 
-   // Indicator CC V3 indicator IDs (SDS13781) for countdown support
-   private static final byte INDICATOR_V3_EXIT_DELAY  = 0x14;
-   private static final byte INDICATOR_V3_ENTRY_DELAY = 0x13;
-
-   // Indicator CC V3 property IDs
-   private static final byte INDICATOR_PROP_MULTILEVEL  = 0x01;
-   private static final byte INDICATOR_PROP_TIMEOUT_MIN = 0x07;
-   private static final byte INDICATOR_PROP_TIMEOUT_SEC = 0x08;
+   // Indicator CC V3 property ids
+   private static final byte PROP_MULTILEVEL      = 0x01;
+   private static final byte PROP_ON_OFF_PERIOD   = 0x03;
+   private static final byte PROP_ON_OFF_CYCLES   = 0x04;
+   private static final byte PROP_ON_TIME         = 0x05;
+   private static final byte PROP_TIMEOUT_MINUTES = 0x06;
+   private static final byte PROP_TIMEOUT_SECONDS = 0x07;
 
    // State variables
    private static final Variable<String> KEYPAD_ALARMSTATE = attribute(DRIVER_NAME, VERSION_1_0, KeyPadCapability.ATTR_ALARMSTATE, String.class, KeyPadCapability.ALARMSTATE_DISARMED);
@@ -191,6 +197,9 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
 
       // Request battery level
       sendBatteryGet();
+
+      // The keypad only reports power changes, so ask whether it is on mains now
+      zwaveSend(CC_NOTIFICATION, NOTIF_GET, (byte) 0x00, (byte) NOTIF_TYPE_POWER_MANAGEMENT, (byte) 0x00);
 
       // Sync indicator to current alarm state
       updateIndicator();
@@ -286,41 +295,43 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          setRemainingTime(exitDelay);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMING);
          set(KEYPAD_ALARMMODE, KeyPadCapability.BeginArmingRequest.getAlarmMode(msg));
-         sendCountdownIndicator(INDICATOR_V3_EXIT_DELAY, INDICATOR_ARMING, exitDelay);
+         sendCountdownIndicator(IND_EXIT_DELAY, exitDelay);
          break;
       case KeyPadCapability.ArmedRequest.NAME:
          clearRemainingTime();
          String armedMode = KeyPadCapability.ArmedRequest.getAlarmMode(msg);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMED);
          set(KEYPAD_ALARMMODE, armedMode);
-         sendIndicatorSet(KeyPadCapability.ALARMMODE_PARTIAL.equals(armedMode) ? INDICATOR_ARMED_HOME : INDICATOR_ARMED_AWAY);
+         setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(armedMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
          break;
       case KeyPadCapability.DisarmedRequest.NAME:
          clearRemainingTime();
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
          set(KEYPAD_ALARMMODE, KeyPadCapability.ALARMMODE_OFF);
-         sendIndicatorSet(INDICATOR_DISARMED);
+         setIndicator(IND_DISARMED);
          break;
       case KeyPadCapability.SoakingRequest.NAME:
          Integer entryDelay = KeyPadCapability.SoakingRequest.getDurationInS(msg);
          setRemainingTime(entryDelay);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_SOAKING);
          set(KEYPAD_ALARMMODE, KeyPadCapability.SoakingRequest.getAlarmMode(msg));
-         sendCountdownIndicator(INDICATOR_V3_ENTRY_DELAY, INDICATOR_ENTRY_DELAY, entryDelay);
+         sendCountdownIndicator(IND_ENTRY_DELAY, entryDelay);
          break;
       case KeyPadCapability.AlertingRequest.NAME:
          clearRemainingTime();
          String alertMode = KeyPadCapability.AlertingRequest.getAlarmMode(msg);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ALERTING);
          set(KEYPAD_ALARMMODE, "PANIC".equals(alertMode) ? KeyPadCapability.ALARMMODE_OFF : alertMode);
-         sendIndicatorSet(INDICATOR_ALERTING);
+         setIndicator(IND_ALARM_BURGLAR);
          break;
       case KeyPadCapability.ArmingUnavailableRequest.NAME:
-         sendIndicatorSet(INDICATOR_ERROR);
+         setIndicator(IND_BYPASS_NEEDED);
          break;
       case IdentifyCapability.IdentifyRequest.NAME:
+         sendIdentifyBlink();
+         break;
       case KeyPadCapability.ChimeRequest.NAME:
-         sendIndicatorSet(INDICATOR_DISARMED);
+         // the keypad has no chime indicator; re-announcing a state here would be wrong
          break;
       default:
          break;
@@ -532,7 +543,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       if (pin == null || pin.isEmpty()) {
          log.warn("disarm at keypad failed: no pin provided");
          emit(KeyPadCapability.InvalidPinEnteredEvent.instance());
-         sendIndicatorSet(INDICATOR_ERROR);
+         setIndicator(IND_CODE_REJECTED);
          return;
       }
 
@@ -546,7 +557,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       } else {
          log.warn("disarm at keypad failed: could not verify pin");
          emit(KeyPadCapability.InvalidPinEnteredEvent.instance());
-         sendIndicatorSet(INDICATOR_ERROR);
+         setIndicator(IND_CODE_REJECTED);
       }
    }
 
@@ -597,7 +608,8 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       switch (notificationType) {
       case NOTIF_TYPE_POWER_MANAGEMENT:
          switch (event) {
-         case POWER_EVENT_AC_CONNECTED:
+         case POWER_EVENT_POWER_APPLIED:
+         case POWER_EVENT_AC_RECONNECTED:
             log.info("ring keypad: AC power connected");
             emit(ImmutableMap.of(DevicePowerCapability.ATTR_SOURCE, DevicePowerCapability.SOURCE_LINE));
             break;
@@ -605,7 +617,8 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
             log.info("ring keypad: running on battery");
             emit(ImmutableMap.of(DevicePowerCapability.ATTR_SOURCE, DevicePowerCapability.SOURCE_BATTERY));
             break;
-         case POWER_EVENT_BATTERY_LOW:
+         case POWER_EVENT_REPLACE_BATTERY_SOON:
+         case POWER_EVENT_REPLACE_BATTERY_NOW:
             log.warn("ring keypad: battery low");
             sendBatteryGet();
             break;
@@ -635,55 +648,64 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       String alarmMode = get(KEYPAD_ALARMMODE);
 
       if (alarmState == null) {
-         sendIndicatorSet(INDICATOR_DISARMED);
+         setIndicator(IND_DISARMED);
          return;
       }
 
       switch (alarmState) {
       case KeyPadCapability.ALARMSTATE_DISARMED:
-         sendIndicatorSet(INDICATOR_DISARMED);
+         setIndicator(IND_DISARMED);
          break;
       case KeyPadCapability.ALARMSTATE_ARMING:
-         sendIndicatorSet(INDICATOR_ARMING);
+      case KeyPadCapability.ALARMSTATE_SOAKING:
+         // the remaining delay is unknown here; the next state refreshes the keypad
          break;
       case KeyPadCapability.ALARMSTATE_ARMED:
-         sendIndicatorSet(KeyPadCapability.ALARMMODE_PARTIAL.equals(alarmMode) ? INDICATOR_ARMED_HOME : INDICATOR_ARMED_AWAY);
-         break;
-      case KeyPadCapability.ALARMSTATE_SOAKING:
-         sendIndicatorSet(INDICATOR_ENTRY_DELAY);
+         setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(alarmMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
          break;
       case KeyPadCapability.ALARMSTATE_ALERTING:
-         sendIndicatorSet(INDICATOR_ALERTING);
+         setIndicator(IND_ALARM_BURGLAR);
          break;
       default:
-         sendIndicatorSet(INDICATOR_DISARMED);
+         setIndicator(IND_DISARMED);
          break;
       }
    }
 
    /**
-    * Send an indicator with a countdown timer using Indicator CC V3. Falls back
-    * to the V1 indicator value if no duration is provided.
+    * Turns an indicator on: one V3 object with the multilevel property at 0xFF.
     */
-   private void sendCountdownIndicator(byte v3IndicatorId, byte v1Fallback, @Nullable Integer durationSecs) {
+   private void setIndicator(byte indicatorId) {
+      sendIndicatorSetV3(indicatorId, PROP_MULTILEVEL, (byte) 0xFF);
+   }
+
+   /**
+    * Starts an indicator's countdown, as zwave-js does for its "timeout" value:
+    * minutes in property 0x06 and seconds in property 0x07. Nothing is sent for
+    * a zero duration, since the state that follows carries its own indicator.
+    */
+   private void sendCountdownIndicator(byte indicatorId, @Nullable Integer durationSecs) {
       if (durationSecs == null || durationSecs <= 0) {
-         sendIndicatorSet(v1Fallback);
          return;
       }
-      int minutes = durationSecs / 60;
+      int minutes = Math.min(durationSecs / 60, 255);
       int seconds = durationSecs % 60;
-      if (minutes > 0) {
-         sendIndicatorSetV3(
-            v3IndicatorId, INDICATOR_PROP_TIMEOUT_MIN, (byte) Math.min(minutes, 255),
-            v3IndicatorId, INDICATOR_PROP_TIMEOUT_SEC, (byte) seconds,
-            v3IndicatorId, INDICATOR_PROP_MULTILEVEL, (byte) 0xFF
-         );
-      } else {
-         sendIndicatorSetV3(
-            v3IndicatorId, INDICATOR_PROP_TIMEOUT_SEC, (byte) seconds,
-            v3IndicatorId, INDICATOR_PROP_MULTILEVEL, (byte) 0xFF
-         );
-      }
+      sendIndicatorSetV3(
+         indicatorId, PROP_TIMEOUT_MINUTES, (byte) minutes,
+         indicatorId, PROP_TIMEOUT_SECONDS, (byte) seconds
+      );
+   }
+
+   /**
+    * Blinks the keypad to identify it: Node Identify with a 1 s on/off period,
+    * three cycles, half of each period on.
+    */
+   private void sendIdentifyBlink() {
+      sendIndicatorSetV3(
+         IND_NODE_IDENTIFY, PROP_ON_OFF_PERIOD, (byte) 0x0A,
+         IND_NODE_IDENTIFY, PROP_ON_OFF_CYCLES, (byte) 0x03,
+         IND_NODE_IDENTIFY, PROP_ON_TIME, (byte) 0x05
+      );
    }
 
    /////////////////////////////////////////////////////////////////////////////

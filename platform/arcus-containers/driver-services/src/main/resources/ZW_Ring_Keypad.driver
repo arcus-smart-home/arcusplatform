@@ -112,23 +112,26 @@ def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 @Field def final byte EC_KEY_CACHE_SIZE          = 0x04     // 4-digit PIN
 @Field def final byte EC_KEY_CACHE_TIMEOUT       = 0x05     // 5-second timeout
 
-// Indicator V1 values for keypad LED/sound feedback
-@Field def final byte INDICATOR_DISARMED         = 0x00
-@Field def final byte INDICATOR_ARMED_AWAY       = 0x01
-@Field def final byte INDICATOR_ARMED_HOME       = 0x02
-@Field def final byte INDICATOR_ARMING           = 0x03
-@Field def final byte INDICATOR_ALERTING         = 0x04
-@Field def final byte INDICATOR_ENTRY_DELAY      = 0x05
-@Field def final byte INDICATOR_ERROR            = 0x06
+// Indicator CC V3 indicator ids (SDS13781 table, as zwave-js lists them). The
+// keypad only understands V3 indicator objects; a V1 Indicator Set value means
+// nothing to it. The ids drive both the keypad's lights and its voice prompts.
+@Field def final byte IND_DISARMED        = (byte) 0x02   // Not armed / disarmed
+@Field def final byte IND_CODE_REJECTED   = (byte) 0x09   // Code not accepted
+@Field def final byte IND_ARMED_STAY      = (byte) 0x0A
+@Field def final byte IND_ARMED_AWAY      = (byte) 0x0B
+@Field def final byte IND_ALARM_BURGLAR   = (byte) 0x0D   // Alarming: Burglar
+@Field def final byte IND_BYPASS_NEEDED   = (byte) 0x10   // Bypass challenge (sensors open)
+@Field def final byte IND_ENTRY_DELAY     = (byte) 0x11
+@Field def final byte IND_EXIT_DELAY      = (byte) 0x12
+@Field def final byte IND_NODE_IDENTIFY   = (byte) 0x50
 
-// Indicator CC V3 indicator IDs (SDS13781) for countdown support
-@Field def final byte INDICATOR_V3_EXIT_DELAY    = (byte) 0x14
-@Field def final byte INDICATOR_V3_ENTRY_DELAY   = (byte) 0x13
-
-// Indicator CC V3 property IDs
-@Field def final byte INDICATOR_PROP_MULTILEVEL  = (byte) 0x01
-@Field def final byte INDICATOR_PROP_TIMEOUT_MIN = (byte) 0x07
-@Field def final byte INDICATOR_PROP_TIMEOUT_SEC = (byte) 0x08
+// Indicator CC V3 property ids
+@Field def final byte PROP_MULTILEVEL      = (byte) 0x01
+@Field def final byte PROP_ON_OFF_PERIOD   = (byte) 0x03
+@Field def final byte PROP_ON_OFF_CYCLES   = (byte) 0x04
+@Field def final byte PROP_ON_TIME         = (byte) 0x05
+@Field def final byte PROP_TIMEOUT_MINUTES = (byte) 0x06
+@Field def final byte PROP_TIMEOUT_SECONDS = (byte) 0x07
 
 // clear the accumulated PIN after 5 minutes of no activity
 @Field def final String EVENT_CLEAR_PIN     = "ClearPin"
@@ -192,6 +195,9 @@ onConnected {
    // poll for battery status
    ZWave.battery.get()
    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
+
+   // the keypad only reports power changes, so ask whether it is on mains now
+   ZWave.alarm.get((byte) 0x00, (byte) 0x08, (byte) 0x00)
 
    // set the keypad indicator to match the current alarm state
    updateIndicator()
@@ -394,7 +400,7 @@ void handleDisarm(String pin) {
    if (pin.length() == 0) {
       log.debug "{} Disarm pressed with no PIN", DEVICE_NAME
       emit KeyPad.InvalidPinEntered
-      ZWave.indicator.set(INDICATOR_ERROR)
+      setIndicator(IND_CODE_REJECTED)
       return
    }
 
@@ -404,7 +410,7 @@ void handleDisarm(String pin) {
    } else {
       log.debug "{} Invalid PIN entered", DEVICE_NAME
       emit KeyPad.InvalidPinEntered
-      ZWave.indicator.set(INDICATOR_ERROR)
+      setIndicator(IND_CODE_REJECTED)
    }
 
    // clear the cached PIN after use
@@ -474,7 +480,7 @@ onKeyPad.BeginArming {
    log.debug "{} BeginArming( delayInS:{}, alarmMode:{} )", DEVICE_NAME, delaySecs, alarmMode
    KeyPad.alarmState KeyPad.ALARMSTATE_ARMING
    KeyPad.alarmMode  alarmMode
-   sendCountdownIndicator(INDICATOR_V3_EXIT_DELAY, INDICATOR_ARMING, delaySecs)
+   sendCountdownIndicator(IND_EXIT_DELAY, delaySecs)
    sendResponse 'keypad:BeginArmingResponse', [:]
 }
 
@@ -483,7 +489,7 @@ onKeyPad.Armed {
    log.debug "{} Armed( alarmMode:{} )", DEVICE_NAME, alarmMode
    KeyPad.alarmState KeyPad.ALARMSTATE_ARMED
    KeyPad.alarmMode  alarmMode
-   ZWave.indicator.set(alarmMode == KeyPad.ALARMMODE_PARTIAL ? INDICATOR_ARMED_HOME : INDICATOR_ARMED_AWAY)
+   setIndicator(alarmMode == KeyPad.ALARMMODE_PARTIAL ? IND_ARMED_STAY : IND_ARMED_AWAY)
    sendResponse 'keypad:ArmedResponse', [:]
 }
 
@@ -491,7 +497,7 @@ onKeyPad.Disarmed {
    log.debug "{} Disarmed()", DEVICE_NAME
    KeyPad.alarmState KeyPad.ALARMSTATE_DISARMED
    KeyPad.alarmMode KeyPad.ALARMMODE_OFF
-   ZWave.indicator.set(INDICATOR_DISARMED)
+   setIndicator(IND_DISARMED)
    sendResponse 'keypad:DisarmedResponse', [:]
 }
 
@@ -501,7 +507,7 @@ onKeyPad.Soaking {
    log.debug "{} Soaking( durationInS:{}, alarmMode:{} )", DEVICE_NAME, durationSecs, alarmMode
    KeyPad.alarmState KeyPad.ALARMSTATE_SOAKING
    KeyPad.alarmMode  alarmMode
-   sendCountdownIndicator(INDICATOR_V3_ENTRY_DELAY, INDICATOR_ENTRY_DELAY, durationSecs)
+   sendCountdownIndicator(IND_ENTRY_DELAY, durationSecs)
    sendResponse 'keypad:SoakingResponse', [:]
 }
 
@@ -510,20 +516,19 @@ onKeyPad.Alerting {
    log.debug "{} Alerting( alarmMode:{} )", DEVICE_NAME, alarmMode
    KeyPad.alarmState KeyPad.ALARMSTATE_ALERTING
    KeyPad.alarmMode alarmMode == "PANIC" ? KeyPad.ALARMMODE_OFF : alarmMode
-   ZWave.indicator.set(INDICATOR_ALERTING)
+   setIndicator(IND_ALARM_BURGLAR)
    sendResponse 'keypad:AlertingResponse', [:]
 }
 
 onKeyPad.Chime {
    log.debug "{} Chime()", DEVICE_NAME
-   // briefly activate the indicator for a chime tone
-   ZWave.indicator.set(INDICATOR_DISARMED)
+   // The keypad has no chime indicator; re-announcing a state here would be wrong
    sendResponse 'keypad:ChimeResponse', [:]
 }
 
 onKeyPad.ArmingUnavailable {
    log.debug "{} ArmingUnavailable()", DEVICE_NAME
-   ZWave.indicator.set(INDICATOR_ERROR)
+   setIndicator(IND_BYPASS_NEEDED)
    sendResponse 'keypad:ArmingUnavailableResponse', [:]
 }
 
@@ -570,7 +575,7 @@ setAttributes('alert') {
          case Alert.state:
             Alert.state attribute.value
             if (attribute.value == Alert.STATE_ALERTING) {
-               ZWave.indicator.set(INDICATOR_ALERTING)
+               setIndicator(IND_ALARM_BURGLAR)
             } else {
                updateIndicator()
             }
@@ -588,8 +593,8 @@ setAttributes('alert') {
 
 onIdentify.Identify {
    log.debug "{} Identify", DEVICE_NAME
-   // flash the indicator briefly to identify the device
-   ZWave.indicator.set(INDICATOR_ARMING)
+   // blink the keypad, then put its state indicator back
+   sendIdentifyBlink()
    Scheduler.scheduleIn 'IdentifyDone', 5000
    sendResponse 'ident:IdentifyResponse', [:]
 }
@@ -613,17 +618,19 @@ onZWaveMessage.alarm.report {
    log.debug "{} Alarm Report - type:{}, event:{}", DEVICE_NAME, notificationType, event
 
    switch (notificationType) {
-      case 0x08:  // Power Management
+      case 0x08:  // Power Management (Notification CC event ids)
          switch (event) {
-            case 0x01:  // AC power applied
+            case 0x01:  // Power has been applied
+            case 0x03:  // AC mains re-connected
                log.info "{} AC power connected", DEVICE_NAME
                DevicePower.source DevicePower.SOURCE_LINE
                break
-            case 0x02:  // AC power disconnected / on battery
+            case 0x02:  // AC mains disconnected
                log.info "{} Running on battery", DEVICE_NAME
                DevicePower.source DevicePower.SOURCE_BATTERY
                break
-            case 0x03:  // Battery low
+            case 0x0A:  // Replace battery soon
+            case 0x0B:  // Replace battery now
                log.warn "{} Battery low", DEVICE_NAME
                ZWave.battery.get()
                break
@@ -702,33 +709,48 @@ onZWaveMessage.device_reset_locally.notification {
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Send an indicator with a countdown timer using Indicator CC V3. Falls back
- * to the V1 indicator value if no duration is provided.
+ * Turn an indicator on. Indicator Set V3: [v1 value=0x00] [object count] then
+ * one (indicator id, property id, value) triplet per object.
  */
-void sendCountdownIndicator(byte v3IndicatorId, byte v1Fallback, int durationSecs) {
+void setIndicator(byte indicatorId) {
+   ZWave.sendCommand(
+      (byte) 0x87, (byte) 0x01,
+      (byte) 0x00, (byte) 0x01,
+      indicatorId, PROP_MULTILEVEL, (byte) 0xFF
+   )
+}
+
+/**
+ * Start an indicator's countdown, as zwave-js does for its "timeout" value:
+ * minutes in property 0x06 and seconds in property 0x07. Nothing is sent for a
+ * zero duration, since the state that follows carries its own indicator.
+ */
+void sendCountdownIndicator(byte indicatorId, int durationSecs) {
    if (durationSecs <= 0) {
-      ZWave.indicator.set(v1Fallback)
       return
    }
-   int minutes = (int)(durationSecs / 60)
+   int minutes = Math.min((int)(durationSecs / 60), 255)
    int seconds = durationSecs % 60
-   if (minutes > 0) {
-      // Indicator Set V3: [v1_value=0x00] [obj_count] [id,prop,val]...
-      ZWave.sendCommand(
-         (byte) 0x87, (byte) 0x01,
-         (byte) 0x00, (byte) 0x03,
-         v3IndicatorId, INDICATOR_PROP_TIMEOUT_MIN, (byte) Math.min(minutes, 255),
-         v3IndicatorId, INDICATOR_PROP_TIMEOUT_SEC, (byte) seconds,
-         v3IndicatorId, INDICATOR_PROP_MULTILEVEL, (byte) 0xFF
-      )
-   } else {
-      ZWave.sendCommand(
-         (byte) 0x87, (byte) 0x01,
-         (byte) 0x00, (byte) 0x02,
-         v3IndicatorId, INDICATOR_PROP_TIMEOUT_SEC, (byte) seconds,
-         v3IndicatorId, INDICATOR_PROP_MULTILEVEL, (byte) 0xFF
-      )
-   }
+   ZWave.sendCommand(
+      (byte) 0x87, (byte) 0x01,
+      (byte) 0x00, (byte) 0x02,
+      indicatorId, PROP_TIMEOUT_MINUTES, (byte) minutes,
+      indicatorId, PROP_TIMEOUT_SECONDS, (byte) seconds
+   )
+}
+
+/**
+ * Blink the keypad to identify it: Node Identify with a 1 s on/off period,
+ * three cycles, half of each period on.
+ */
+void sendIdentifyBlink() {
+   ZWave.sendCommand(
+      (byte) 0x87, (byte) 0x01,
+      (byte) 0x00, (byte) 0x03,
+      IND_NODE_IDENTIFY, PROP_ON_OFF_PERIOD, (byte) 0x0A,
+      IND_NODE_IDENTIFY, PROP_ON_OFF_CYCLES, (byte) 0x03,
+      IND_NODE_IDENTIFY, PROP_ON_TIME, (byte) 0x05
+   )
 }
 
 void updateIndicator() {
@@ -737,22 +759,20 @@ void updateIndicator() {
 
    switch (alarmState) {
       case KeyPad.ALARMSTATE_DISARMED:
-         ZWave.indicator.set(INDICATOR_DISARMED)
+         setIndicator(IND_DISARMED)
          break
       case KeyPad.ALARMSTATE_ARMING:
-         ZWave.indicator.set(INDICATOR_ARMING)
+      case KeyPad.ALARMSTATE_SOAKING:
+         // the remaining delay is unknown here; the next state refreshes the keypad
          break
       case KeyPad.ALARMSTATE_ARMED:
-         ZWave.indicator.set(alarmMode == KeyPad.ALARMMODE_PARTIAL ? INDICATOR_ARMED_HOME : INDICATOR_ARMED_AWAY)
-         break
-      case KeyPad.ALARMSTATE_SOAKING:
-         ZWave.indicator.set(INDICATOR_ENTRY_DELAY)
+         setIndicator(alarmMode == KeyPad.ALARMMODE_PARTIAL ? IND_ARMED_STAY : IND_ARMED_AWAY)
          break
       case KeyPad.ALARMSTATE_ALERTING:
-         ZWave.indicator.set(INDICATOR_ALERTING)
+         setIndicator(IND_ALARM_BURGLAR)
          break
       default:
-         ZWave.indicator.set(INDICATOR_DISARMED)
+         setIndicator(IND_DISARMED)
          break
    }
 }
