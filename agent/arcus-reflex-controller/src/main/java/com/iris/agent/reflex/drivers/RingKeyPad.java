@@ -18,6 +18,7 @@ package com.iris.agent.reflex.drivers;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.iris.messages.capability.AlertCapability;
 import com.iris.messages.capability.DevicePowerCapability;
 import com.iris.messages.capability.IdentifyCapability;
 import com.iris.messages.capability.KeyPadCapability;
+import com.iris.messages.capability.MotionCapability;
 import com.iris.model.Version;
 import com.iris.util.IrisAttributeLookup;
 import com.iris.util.IrisUUID;
@@ -89,11 +91,11 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final byte NOTIF_REPORT      = (byte) 0x05;
 
    // Notification types
+   private static final int NOTIF_TYPE_HOME_SECURITY    = 0x07;
    private static final int NOTIF_TYPE_POWER_MANAGEMENT = 0x08;
    private static final int NOTIF_TYPE_SYSTEM           = 0x09;
 
    // Power management events (Notification CC event ids)
-   private static final int POWER_EVENT_POWER_APPLIED     = 0x01;
    private static final int POWER_EVENT_AC_DISCONNECTED   = 0x02;
    private static final int POWER_EVENT_AC_RECONNECTED    = 0x03;
    private static final int POWER_EVENT_REPLACE_BATTERY_SOON = 0x0A;
@@ -138,7 +140,8 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    // Cached PIN from Entry Control caching
    private String cachedPin = "";
    private long cachedPinTimestamp = 0;
-   private static final long PIN_CACHE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+   // Long enough to reach a button after the digits, and no longer: anyone can press Disarm
+   private static final long PIN_CACHE_TIMEOUT_MS = 10 * 1000;
 
    // Remaining time tracking for arming/soaking delays
    private long panelStatusEndTime = Long.MIN_VALUE;
@@ -146,9 +149,27 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    // After a refused arm the keypad highlights its OK button, which then asks to
    // arm with bypass. The offer lapses so a stray OK later can't arm the alarm.
    private static final long BYPASS_OFFER_MS = 30 * 1000;
+   private static final long ARM_PRESS_WINDOW_MS = 10 * 1000;
    private @Nullable String lastArmMode;
+   private long lastArmPressAt;
    private @Nullable String bypassOfferMode;
    private long bypassOfferedAt;
+
+   // The keypad repeats a Supervision Get whose report it missed, with the same session id
+   private static final long SUPERVISION_REPEAT_MS = 60 * 1000;
+   private int lastSupervisionSession = -1;
+   private long lastSupervisionAt;
+
+   // The alarm reaches this driver as alert:state and as AlertingRequest, in either
+   // order relative to the sound settings, and the keypad should only sound once
+   private boolean alertIndicatorSent;
+
+   // Motion is reported to the platform, but stays out of CAPS on purpose. AlarmSecurity
+   // refuses to arm while a hub device with Motion is triggered, whether or not it
+   // participates, and anyone arming at the keypad is standing in front of this one.
+   private static final int HOME_SECURITY_IDLE   = 0x00;
+   private static final int HOME_SECURITY_MOTION = 0x08;
+   private @Nullable String lastMotion;
 
    public RingKeyPad(ReflexController parent, Address addr) {
       super(parent, addr);
@@ -277,6 +298,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
 
             // Sync the alarm state with the alert state
             if (value.toString().equals(AlertCapability.STATE_QUIET) && get(KEYPAD_ALARMSTATE).equals(KeyPadCapability.ALARMSTATE_ALERTING)) {
+               alertIndicatorSent = false;
                if (get(KEYPAD_ALARMMODE).equals(KeyPadCapability.ALARMMODE_OFF)) {
                   set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
                } else {
@@ -310,25 +332,30 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          bypassOfferMode = null;
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMING);
          set(KEYPAD_ALARMMODE, KeyPadCapability.BeginArmingRequest.getAlarmMode(msg));
-         sendCountdownIndicator(IND_EXIT_DELAY, exitDelay);
+         if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_ARMING)) {
+            sendCountdownIndicator(IND_EXIT_DELAY, exitDelay);
+         }
          break;
       case KeyPadCapability.ArmedRequest.NAME:
          clearRemainingTime();
+         clearBypassOffer();
+         alertIndicatorSent = false;
          String armedMode = KeyPadCapability.ArmedRequest.getAlarmMode(msg);
          // The keypad speaks every indicator, so only a change is sent
          boolean armedChanged = set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMED);
          armedChanged |= set(KEYPAD_ALARMMODE, armedMode);
-         if (armedChanged) {
+         if (armedChanged && soundEnabled(KeyPadCapability.ENABLEDSOUNDS_ARMED)) {
             setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(armedMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
          }
          break;
       case KeyPadCapability.DisarmedRequest.NAME:
          clearRemainingTime();
-         bypassOfferMode = null;
+         clearBypassOffer();
+         alertIndicatorSent = false;
          // The hub alarm delivers this more than once for a single disarm
          boolean disarmedChanged = set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
          disarmedChanged |= set(KEYPAD_ALARMMODE, KeyPadCapability.ALARMMODE_OFF);
-         if (disarmedChanged) {
+         if (disarmedChanged && soundEnabled(KeyPadCapability.ENABLEDSOUNDS_DISARMED)) {
             setIndicator(IND_DISARMED);
          }
          break;
@@ -337,19 +364,29 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          setRemainingTime(entryDelay);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_SOAKING);
          set(KEYPAD_ALARMMODE, KeyPadCapability.SoakingRequest.getAlarmMode(msg));
-         sendCountdownIndicator(IND_ENTRY_DELAY, entryDelay);
+         clearBypassOffer();
+         if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_SOAKING)) {
+            sendCountdownIndicator(IND_ENTRY_DELAY, entryDelay);
+         }
          break;
       case KeyPadCapability.AlertingRequest.NAME:
          clearRemainingTime();
          String alertMode = KeyPadCapability.AlertingRequest.getAlarmMode(msg);
          set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ALERTING);
          set(KEYPAD_ALARMMODE, "PANIC".equals(alertMode) ? KeyPadCapability.ALARMMODE_OFF : alertMode);
-         setIndicator(IND_ALARM_BURGLAR);
+         clearBypassOffer();
+         sendAlertIndicator();
          break;
       case KeyPadCapability.ArmingUnavailableRequest.NAME:
-         bypassOfferMode = lastArmMode;
-         bypassOfferedAt = System.currentTimeMillis();
-         setIndicator(IND_BYPASS_NEEDED);
+         // The hub tells every keypad; only the one that was just pressed has anything to offer
+         if (lastArmMode != null && System.currentTimeMillis() - lastArmPressAt < ARM_PRESS_WINDOW_MS) {
+            bypassOfferMode = lastArmMode;
+            bypassOfferedAt = System.currentTimeMillis();
+            lastArmMode = null;
+            if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_ARMING)) {
+               setIndicator(IND_BYPASS_NEEDED);
+            }
+         }
          break;
       case IdentifyCapability.IdentifyRequest.NAME:
          sendIdentifyBlink();
@@ -423,6 +460,10 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
 
       int sessionId = payload[0] & 0x3F;
       int encapLen  = payload[1] & 0xFF;
+      long now = System.currentTimeMillis();
+      boolean repeat = sessionId == lastSupervisionSession && now - lastSupervisionAt < SUPERVISION_REPEAT_MS;
+      lastSupervisionSession = sessionId;
+      lastSupervisionAt = now;
       int encapCC   = payload[2] & 0xFF;
       int encapCmd  = payload[3] & 0xFF;
 
@@ -433,6 +474,12 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       // duration=0x00. A report with another session id is ignored and the keypad resends.
       zwaveSend(CC_SUPERVISION, SUPERVISION_REPORT,
          (byte) sessionId, SUPERVISION_STATUS_SUCCESS, (byte) 0x00);
+
+      // Report again, since it is the report that went missing, but act only once:
+      // a repeated Disarm has already used the PIN, and a repeated panic is a second alarm
+      if (repeat) {
+         return;
+      }
 
       // The encapsulated payload follows its command class and command bytes
       int innerLen = Math.max(0, Math.min(encapLen - 2, payload.length - 4));
@@ -553,13 +600,32 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       return System.currentTimeMillis() - bypassOfferedAt < BYPASS_OFFER_MS ? mode : null;
    }
 
+   private void clearBypassOffer() {
+      bypassOfferMode = null;
+      lastArmMode = null;
+   }
+
+   /**
+    * The PIN typed just before a button, which arrives ahead of the button press.
+    * It goes with that press whatever the press was, so it can't disarm later.
+    */
+   private String takeCachedPin() {
+      String pin = System.currentTimeMillis() - cachedPinTimestamp < PIN_CACHE_TIMEOUT_MS ? cachedPin : "";
+      cachedPin = "";
+      return pin;
+   }
+
    private void handleArm(String pin, String mode, boolean bypass) {
       lastArmMode = mode;
+      lastArmPressAt = System.currentTimeMillis();
+
+      String cached = takeCachedPin();
+      String actorPin = (pin != null && !pin.isEmpty()) ? pin : cached;
 
       // Arm does not require PIN validation, but if provided, set the actor
       UUID user = null;
-      if (pin != null && !pin.isEmpty()) {
-         user = verifyPinCode(pin);
+      if (!actorPin.isEmpty()) {
+         user = verifyPinCode(actorPin);
       }
 
       log.info("arm at keypad: mode={}, bypass={}, user={}", mode, bypass, user == null ? null : IrisUUID.toString(user));
@@ -574,21 +640,16 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    }
 
    private void handleDisarm(String pin) {
-      // Use provided PIN, or fall back to cached PIN
-      if ((pin == null || pin.isEmpty()) && !cachedPin.isEmpty()) {
-         long elapsed = System.currentTimeMillis() - cachedPinTimestamp;
-         if (elapsed < PIN_CACHE_TIMEOUT_MS) {
-            pin = cachedPin;
-         }
+      // Use provided PIN, or fall back to cached PIN, which is used up either way
+      String cached = takeCachedPin();
+      if (pin == null || pin.isEmpty()) {
+         pin = cached;
       }
 
-      // Clear cached PIN after use
-      cachedPin = "";
-
-      if (pin == null || pin.isEmpty()) {
+      if (pin.isEmpty()) {
          log.warn("disarm at keypad failed: no pin provided");
          emit(KeyPadCapability.InvalidPinEnteredEvent.instance());
-         setIndicator(IND_CODE_REJECTED);
+         signalCodeRejected();
          return;
       }
 
@@ -602,7 +663,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       } else {
          log.warn("disarm at keypad failed: could not verify pin");
          emit(KeyPadCapability.InvalidPinEnteredEvent.instance());
-         setIndicator(IND_CODE_REJECTED);
+         signalCodeRejected();
       }
    }
 
@@ -653,7 +714,6 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       switch (notificationType) {
       case NOTIF_TYPE_POWER_MANAGEMENT:
          switch (event) {
-         case POWER_EVENT_POWER_APPLIED:
          case POWER_EVENT_AC_RECONNECTED:
             log.info("ring keypad: AC power connected");
             emit(ImmutableMap.of(DevicePowerCapability.ATTR_SOURCE, DevicePowerCapability.SOURCE_LINE));
@@ -672,8 +732,14 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
             break;
          }
          break;
-      case 0x07: // Home Security (proximity sensor)
-         log.trace("ring keypad: home security event: {}", event);
+      case NOTIF_TYPE_HOME_SECURITY:
+         if (event == HOME_SECURITY_MOTION) {
+            reportMotion(MotionCapability.MOTION_DETECTED);
+         } else if (event == HOME_SECURITY_IDLE) {
+            reportMotion(MotionCapability.MOTION_NONE);
+         } else {
+            log.trace("ring keypad: home security event: {}", event);
+         }
          break;
       case NOTIF_TYPE_SYSTEM:
          log.trace("ring keypad: system notification event: {}", event);
@@ -684,36 +750,55 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       }
    }
 
+   private void reportMotion(String motion) {
+      if (!motion.equals(lastMotion)) {
+         lastMotion = motion;
+         emit(ImmutableMap.of(MotionCapability.ATTR_MOTION, motion, MotionCapability.ATTR_MOTIONCHANGED, new Date()));
+      }
+   }
+
    /////////////////////////////////////////////////////////////////////////////
    // Indicator Management
    /////////////////////////////////////////////////////////////////////////////
+
+   private boolean soundEnabled(String sound) {
+      Set<?> sounds = get(KEYPAD_ENABLEDSOUNDS);
+      return sounds == null || sounds.contains(sound);
+   }
+
+   private void signalCodeRejected() {
+      if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_BUTTONS)) {
+         setIndicator(IND_CODE_REJECTED);
+      }
+   }
+
+   /**
+    * Sounds the keypad's alarm once. A silent alarm takes ALERTING out of the
+    * enabled sounds, and must send nothing: this indicator is loud enough to warn
+    * an intruder, and the keypad has no silent form of it that we know of.
+    */
+   private void sendAlertIndicator() {
+      if (!alertIndicatorSent && soundEnabled(KeyPadCapability.ENABLEDSOUNDS_ALERTING)) {
+         alertIndicatorSent = true;
+         setIndicator(IND_ALARM_BURGLAR);
+      }
+   }
 
    private void updateIndicator() {
       String alarmState = get(KEYPAD_ALARMSTATE);
       String alarmMode = get(KEYPAD_ALARMMODE);
 
-      if (alarmState == null) {
-         setIndicator(IND_DISARMED);
-         return;
-      }
-
-      switch (alarmState) {
-      case KeyPadCapability.ALARMSTATE_DISARMED:
-         setIndicator(IND_DISARMED);
-         break;
-      case KeyPadCapability.ALARMSTATE_ARMING:
-      case KeyPadCapability.ALARMSTATE_SOAKING:
-         // the remaining delay is unknown here; the next state refreshes the keypad
-         break;
-      case KeyPadCapability.ALARMSTATE_ARMED:
-         setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(alarmMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
-         break;
-      case KeyPadCapability.ALARMSTATE_ALERTING:
-         setIndicator(IND_ALARM_BURGLAR);
-         break;
-      default:
-         setIndicator(IND_DISARMED);
-         break;
+      if (KeyPadCapability.ALARMSTATE_ALERTING.equals(alarmState)) {
+         sendAlertIndicator();
+      } else if (KeyPadCapability.ALARMSTATE_ARMED.equals(alarmState)) {
+         if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_ARMED)) {
+            setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(alarmMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
+         }
+      } else if (!KeyPadCapability.ALARMSTATE_ARMING.equals(alarmState) && !KeyPadCapability.ALARMSTATE_SOAKING.equals(alarmState)) {
+         // During a delay the remaining time is unknown here; the next state refreshes the keypad
+         if (soundEnabled(KeyPadCapability.ENABLEDSOUNDS_DISARMED)) {
+            setIndicator(IND_DISARMED);
+         }
       }
    }
 

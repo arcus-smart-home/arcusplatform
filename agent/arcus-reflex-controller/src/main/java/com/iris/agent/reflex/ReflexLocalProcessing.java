@@ -96,11 +96,12 @@ public class ReflexLocalProcessing {
       log.info("disarmed");
       // Clear alarm in case still sounding
       IrisHal.setSounderMode(SounderMode.NO_SOUND);
+      // Disarmed goes first: a keypad that sees quiet while alerting goes back to armed
+      reflex.deliver(KeyPadCapability.DisarmedRequest.instance());
       reflex.deliver(
          MessageBody.buildMessage(Capability.CMD_SET_ATTRIBUTES, ImmutableMap.of(
             AlertCapability.ATTR_STATE, AlertCapability.STATE_QUIET
          )));
-      reflex.deliver(KeyPadCapability.DisarmedRequest.instance());
    }
 
    public void onArming(int exitDelay, boolean silent, boolean soundsEnabled, String alertState) {

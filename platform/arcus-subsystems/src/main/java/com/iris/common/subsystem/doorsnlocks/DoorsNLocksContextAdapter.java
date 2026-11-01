@@ -513,7 +513,7 @@ class DoorsNLocksContextAdapter {
       if(DoorsNLocksPredicates.IS_HUB_CHIME.apply(m)) {
          return HubChimeCapability.chimeRequest.instance();
       }
-      return KeyPadCapability.ChimeRequest.instance();
+      return KeyPadCapability.ChimeRequest.builder().build();
    }
 
 

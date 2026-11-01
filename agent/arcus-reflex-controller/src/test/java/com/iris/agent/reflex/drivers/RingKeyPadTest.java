@@ -17,16 +17,24 @@ package com.iris.agent.reflex.drivers;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.iris.messages.MessageBody;
 import com.iris.messages.address.Address;
+import com.iris.messages.capability.AlertCapability;
+import com.iris.messages.capability.DevicePowerCapability;
 import com.iris.messages.capability.KeyPadCapability;
+import com.iris.messages.capability.MotionCapability;
 
 public class RingKeyPadTest {
    private static final byte NODE = 10;
@@ -63,10 +71,137 @@ public class RingKeyPadTest {
 
    @Test
    public void aChimePlaysDingDingFromTheSoundLevelProperty() {
-      keypad.handleCommand(KeyPadCapability.ChimeRequest.instance());
+      keypad.handleCommand(KeyPadCapability.ChimeRequest.builder().build());
 
       assertEquals(1, keypad.sent.size());
       assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x60, 0x09, 0x50 }, keypad.sent.get(0));
+   }
+
+   private static byte[] typedPin() {
+      return new byte[] { 1, 2, 0x01, 4, '1', '2', '3', '4' };
+   }
+
+   private void press(int seq, int event) {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { (byte) seq, 2, (byte) event, 0 });
+   }
+
+   private void typePin() {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, typedPin());
+   }
+
+   private MessageBody lastEmitted() {
+      return keypad.emitted.get(keypad.emitted.size() - 1);
+   }
+
+   @Test
+   public void aPinTypedThenDisarmDisarms() {
+      typePin();
+      press(2, 0x03);
+
+      assertEquals(KeyPadCapability.DisarmPressedEvent.NAME, lastEmitted().getMessageType());
+   }
+
+   @Test
+   public void aPinUsedToArmCanNotThenDisarm() {
+      typePin();
+      press(2, 0x05);
+      press(3, 0x03);
+
+      assertEquals(KeyPadCapability.InvalidPinEnteredEvent.NAME, lastEmitted().getMessageType());
+   }
+
+   @Test
+   public void aPinIsUsedForOneDisarmOnly() {
+      typePin();
+      press(2, 0x03);
+      press(3, 0x03);
+
+      assertEquals(KeyPadCapability.InvalidPinEnteredEvent.NAME, lastEmitted().getMessageType());
+   }
+
+   @Test
+   public void aPinTypedBeforeArmAttributesTheArmToThatPerson() {
+      typePin();
+      press(2, 0x05);
+
+      assertEquals(RecordingKeyPad.PERSON, keypad.lastPerson);
+   }
+
+   @Test
+   public void aSilentAlarmSendsTheKeypadNothing() {
+      keypad.handleSetAttributes(ImmutableMap.<String, Object>of(KeyPadCapability.ATTR_ENABLEDSOUNDS, ImmutableSet.of("ARMED", "DISARMED")));
+
+      keypad.handleCommand(KeyPadCapability.AlertingRequest.builder().withAlarmMode(KeyPadCapability.AlertingRequest.ALARMMODE_ON).build());
+
+      assertTrue(keypad.sent.isEmpty());
+   }
+
+   @Test
+   public void soundsOffSilencesThePrompts() {
+      keypad.handleSetAttributes(ImmutableMap.<String, Object>of(KeyPadCapability.ATTR_ENABLEDSOUNDS, ImmutableSet.of()));
+
+      keypad.handleCommand(KeyPadCapability.BeginArmingRequest.builder()
+         .withAlarmMode(KeyPadCapability.BeginArmingRequest.ALARMMODE_ON).withDelayInS(30).build());
+      keypad.handleCommand(KeyPadCapability.ArmedRequest.builder().withAlarmMode(KeyPadCapability.ArmedRequest.ALARMMODE_ON).build());
+      keypad.handleCommand(KeyPadCapability.DisarmedRequest.instance());
+
+      assertTrue(keypad.sent.isEmpty());
+   }
+
+   @Test
+   public void anAudibleAlarmSoundsOnceHoweverItArrives() {
+      keypad.handleSetAttributes(ImmutableMap.<String, Object>of(AlertCapability.ATTR_STATE, AlertCapability.STATE_ALERTING));
+      keypad.handleCommand(KeyPadCapability.AlertingRequest.builder().withAlarmMode(KeyPadCapability.AlertingRequest.ALARMMODE_ON).build());
+
+      assertEquals(1, keypad.sent.size());
+      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x0D, 0x01, (byte) 0xFF }, keypad.sent.get(0));
+   }
+
+   @Test
+   public void aRepeatedSupervisionGetIsReportedButNotActedOn() {
+      byte[] panic = { 4, 6, CC_ENTRY_CONTROL, 0x01, 9, 0, 0x11, 0 };
+
+      keypad.handleZWaveCommand(NODE, CC_SUPERVISION, (byte) 0x01, panic);
+      keypad.handleZWaveCommand(NODE, CC_SUPERVISION, (byte) 0x01, panic);
+
+      assertEquals(2, keypad.sent.size());
+      assertEquals(1, keypad.emitted.size());
+   }
+
+   @Test
+   public void aDisarmFromAnAlarmDoesNotSayArmed() {
+      keypad.handleCommand(KeyPadCapability.AlertingRequest.builder().withAlarmMode(KeyPadCapability.AlertingRequest.ALARMMODE_ON).build());
+      keypad.sent.clear();
+
+      // The order ReflexLocalProcessing.onDisarmed delivers them in
+      keypad.handleCommand(KeyPadCapability.DisarmedRequest.instance());
+      keypad.handleSetAttributes(ImmutableMap.<String, Object>of(AlertCapability.ATTR_STATE, AlertCapability.STATE_QUIET));
+
+      assertEquals(1, keypad.sent.size());
+      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x02, 0x01, (byte) 0xFF }, keypad.sent.get(0));
+   }
+
+   @Test
+   public void aRefusedArmOnAnotherKeypadOffersNothingHere() {
+      keypad.handleCommand(KeyPadCapability.ArmingUnavailableRequest.instance());
+      press(1, 0x02);
+
+      assertTrue(keypad.sent.isEmpty());
+      assertTrue(keypad.emitted.isEmpty());
+   }
+
+   @Test
+   public void powerAppliedDoesNotMeanMains() {
+      keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05, new byte[] { 0, 0, 0, (byte) 0xFF, 0x08, 0x01 });
+
+      assertTrue(keypad.attributes.isEmpty());
+   }
+
+   @Test
+   public void acReconnectedMeansMains() {
+      keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05, new byte[] { 0, 0, 0, (byte) 0xFF, 0x08, 0x03 });
+
+      assertEquals(DevicePowerCapability.SOURCE_LINE, keypad.attributes.get(0).get(DevicePowerCapability.ATTR_SOURCE));
    }
 
    @Test
@@ -136,17 +271,31 @@ public class RingKeyPadTest {
    }
 
    @Test
-   public void proximityReportsStayOnTheHub() {
-      boolean handled = keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05,
-         new byte[] { 0, 0, 0, (byte) 0xFF, 0x07, 0x08 });
+   public void proximityIsReportedAsMotionOnlyWhenItChanges() {
+      byte[] detected = { 0, 0, 0, (byte) 0xFF, 0x07, 0x08 };
+      byte[] cleared = { 0, 0, 0, (byte) 0xFF, 0x07, 0x00 };
 
-      assertTrue(handled);
-      assertTrue(keypad.emitted.isEmpty());
+      assertTrue(keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05, detected));
+      keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05, detected);
+      keypad.handleZWaveCommand(NODE, CC_NOTIFICATION, (byte) 0x05, cleared);
+
+      assertEquals(2, keypad.attributes.size());
+      assertEquals(MotionCapability.MOTION_DETECTED, keypad.attributes.get(0).get(MotionCapability.ATTR_MOTION));
+      assertEquals(MotionCapability.MOTION_NONE, keypad.attributes.get(1).get(MotionCapability.ATTR_MOTION));
+   }
+
+   @Test
+   public void motionStaysOutOfTheHubCapabilities() {
+      // AlarmSecurity refuses to arm while a hub device with Motion is triggered
+      assertFalse(RingKeyPad.CAPS.contains(MotionCapability.NAME));
    }
 
    private static final class RecordingKeyPad extends RingKeyPad {
       private final List<byte[]> sent = new ArrayList<>();
       private final List<MessageBody> emitted = new ArrayList<>();
+      private final List<Map<String, Object>> attributes = new ArrayList<>();
+      private static final UUID PERSON = UUID.randomUUID();
+      private UUID lastPerson;
 
       private RecordingKeyPad() {
          super(null, Address.fromString("PROT:ZWAV-ABC-1234:AAAAAAAAAAAAAAAAAAAAAAAAAAA="));
@@ -162,6 +311,11 @@ public class RingKeyPadTest {
       }
 
       @Override
+      public void emit(Map<String, Object> attrs) {
+         attributes.add(attrs);
+      }
+
+      @Override
       public void emit(MessageBody msg) {
          emitted.add(msg);
       }
@@ -169,6 +323,12 @@ public class RingKeyPadTest {
       @Override
       public void emit(MessageBody msg, java.util.UUID person) {
          emitted.add(msg);
+         lastPerson = person;
+      }
+
+      @Override
+      public UUID verifyPinCode(String pin) {
+         return "1234".equals(pin) ? PERSON : null;
       }
    }
 }

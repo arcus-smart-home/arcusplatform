@@ -25,13 +25,12 @@
  *   Press and hold the reset button (pinhole on back) for 10 seconds.
  *
  * PAIR:
- *   1. Remove the back cover.
- *   2. Press the pairing button once.
- *   3. The LED ring will flash indicating pairing mode.
+ *   1. Keep the keypad plugged in; it does not pair on batteries.
+ *   2. Press and hold the 1 button for about 3 seconds, then release. The green
+ *      Connection light blinks three times, repeatedly, during inclusion.
  *
  * UNPAIR:
- *   1. Remove the back cover.
- *   2. Press the pairing button once while hub is in exclusion mode.
+ *   With the hub in exclusion mode, tap the pinhole button on the back.
  *
  * Command Classes:
  *   0x5E   (94) Z-Wave+ Info
@@ -50,15 +49,15 @@
  *   0x9F  (-97) Security 2
  *
  * SECURITY:
- *   The keypad asks for S2 Access Control or S0. S2 Access Control needs the
- *   device's PIN during pairing, so without PIN entry the hub grants S0. It
- *   wraps Entry Control events in Supervision CC (0x6C) either way.
+ *   The buttons need S2 Access Control, which takes the device's PIN at pairing.
+ *   On S0 the keypad receives indicators but sends no button presses at all, so
+ *   Arm, Disarm and the panic buttons silently do nothing.
  *
  * HUB DRIVER:
- *   The hub alarm only reaches keypads through a hub driver, so this driver is
- *   a builtin reflex backed by com.iris.agent.reflex.drivers.RingKeyPad. Keep
- *   the two in step. The Z-Wave handlers here run only if a message is forwarded
- *   by the hub; the keypad commands here are the ones the platform sends.
+ *   This is a builtin reflex backed by com.iris.agent.reflex.drivers.RingKeyPad,
+ *   which owns the buttons, PINs, indicators, power and motion reports. This
+ *   driver forwards alarm state to it. Only the chime and identify stay here,
+ *   because this driver keeps the chime settings itself.
  *
  *   Reference: https://github.com/ImSorryButWho/HomeAssistantNotes/blob/main/RingKeypadV2.md
  */
@@ -78,8 +77,9 @@ model           "5AT2S7"
 
 // Ring Alarm Keypad Gen 2
 matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0101, 'ZWAV:ProductId': 0x0301
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0101, 'ZWAV:ProductId': 0x0401
 
-capabilities    DevicePower, KeyPad, Alert, Identify
+capabilities    DevicePower, KeyPad, Alert, Identify, Motion
 
 
 // ########### constants ##################
@@ -90,63 +90,29 @@ def final int OFFLINE_TIMEOUT_SECS     = 10800        // 3 hours
 def final int POLLING_INTERVAL_SEC     = 3600         // 60 minutes
 def final int BATTERY_POLLING_SEC      = 86400        // 24 hours
 
-// Entry Control event types (from Z-Wave Entry Control CC spec, SDS13891)
-@Field def final byte EC_EVENT_CACHING_STARTED   = 0x00
-@Field def final byte EC_EVENT_CACHING_ENDED     = 0x01
-@Field def final byte EC_EVENT_ENTER             = 0x02
-@Field def final byte EC_EVENT_DISARM            = 0x03
-@Field def final byte EC_EVENT_ARM_ALL           = 0x04
-@Field def final byte EC_EVENT_ARM_AWAY          = 0x05
-@Field def final byte EC_EVENT_ARM_HOME          = 0x06
-@Field def final byte EC_EVENT_EXIT_DELAY        = 0x07
-@Field def final byte EC_EVENT_FIRE              = 0x10
-@Field def final byte EC_EVENT_POLICE            = 0x11
-@Field def final byte EC_EVENT_ALERT_PANIC       = 0x12
-@Field def final byte EC_EVENT_ALERT_MEDICAL     = 0x13
-@Field def final byte EC_EVENT_CANCEL            = 0x19
-
-// Entry Control data types
-@Field def final byte EC_DATATYPE_NA             = 0x00
-@Field def final byte EC_DATATYPE_RAW            = 0x01
-@Field def final byte EC_DATATYPE_ASCII          = 0x02
-@Field def final byte EC_DATATYPE_MD5            = 0x03
-
-// Entry Control configuration
-@Field def final byte EC_KEY_CACHE_SIZE          = 0x04     // 4-digit PIN
-@Field def final byte EC_KEY_CACHE_TIMEOUT       = 0x05     // 5-second timeout
-
-// Indicator CC V3 indicator ids (SDS13781 table, as zwave-js lists them). The
-// keypad only understands V3 indicator objects; a V1 Indicator Set value means
-// nothing to it. The ids drive both the keypad's lights and its voice prompts.
-@Field def final byte IND_DISARMED        = (byte) 0x02   // Not armed / disarmed
-@Field def final byte IND_CODE_REJECTED   = (byte) 0x09   // Code not accepted
-@Field def final byte IND_ARMED_STAY      = (byte) 0x0A
-@Field def final byte IND_ARMED_AWAY      = (byte) 0x0B
-@Field def final byte IND_ALARM_BURGLAR   = (byte) 0x0D   // Alarming: Burglar
-@Field def final byte IND_BYPASS_NEEDED   = (byte) 0x10   // Bypass challenge (sensors open)
-@Field def final byte IND_ENTRY_DELAY     = (byte) 0x11
-@Field def final byte IND_EXIT_DELAY      = (byte) 0x12
+// Indicator CC V3 indicator ids
 @Field def final byte IND_NODE_IDENTIFY   = (byte) 0x50
 @Field def final byte IND_CHIME           = (byte) 0x60   // Generic sound 1: the keypad's "ding ding"
+
+// The keypad's chimes. Its other indicators include the alarms, so a chime request
+// must not reach them: indicator 13 is the siren.
+@Field def final List CHIME_SOUNDS        = [96, 97, 98, 99, 100]
 
 // Volume for sounds, 10 to 100 on the keypad
 @Field def final byte CHIME_VOLUME        = (byte) 0x50
 
 // Indicator CC V3 property ids
-@Field def final byte PROP_MULTILEVEL      = (byte) 0x01
 @Field def final byte PROP_ON_OFF_PERIOD   = (byte) 0x03
 @Field def final byte PROP_ON_OFF_CYCLES   = (byte) 0x04
 @Field def final byte PROP_ON_TIME         = (byte) 0x05
-@Field def final byte PROP_TIMEOUT_MINUTES = (byte) 0x06
-@Field def final byte PROP_TIMEOUT_SECONDS = (byte) 0x07
 @Field def final byte PROP_SOUND_LEVEL     = (byte) 0x09
 
-// clear the accumulated PIN after 5 minutes of no activity
-@Field def final String EVENT_CLEAR_PIN     = "ClearPin"
-@Field def final long CLEAR_PIN_DELAY_MS    = 5 * 60 * 1000
-
-
 // ########### initial attribute values ##################
+
+// Reported for rules and integrations. The alarm leaves keypads out of its security
+// devices. RingKeyPad must not list Motion: the hub refuses to arm while any motion
+// device it knows of is triggered, and you are standing at this one to arm.
+Motion.motion                    Motion.MOTION_NONE
 
 DevicePower {
    source DevicePower.SOURCE_BATTERY
@@ -157,6 +123,13 @@ DevicePower {
 
 Alert {
    state Alert.STATE_QUIET
+
+   handle setattr {
+      on Alert.state
+      on Alert.maxAlertSecs
+
+      forward
+   }
 }
 
 KeyPad {
@@ -164,6 +137,57 @@ KeyPad {
    alarmMode KeyPad.ALARMMODE_ON
    alarmSounder KeyPad.ALARMSOUNDER_ON
    enabledSounds (["BUTTONS", "DISARMED", "ARMED", "ARMING", "SOAKING", "ALERTING"])
+
+   handle setattr {
+      on KeyPad.alarmState
+      on KeyPad.alarmMode
+      on KeyPad.alarmSounder
+      on KeyPad.enabledSounds
+
+      forward
+   }
+
+   handle request {
+      on KeyPad.BeginArming
+
+      forward
+      sendResponse 'keypad:BeginArmingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Armed
+
+      forward
+      sendResponse 'keypad:ArmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Disarmed
+
+      forward
+      sendResponse 'keypad:DisarmedResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Soaking
+
+      forward
+      sendResponse 'keypad:SoakingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.Alerting
+
+      forward
+      sendResponse 'keypad:AlertingResponse', [:]
+   }
+
+   handle request {
+      on KeyPad.ArmingUnavailable
+
+      forward
+      sendResponse 'keypad:ArmingUnavailableResponse', [:]
+   }
 }
 
 
@@ -300,6 +324,7 @@ deviceSettings {
 onAdded {
    vars.'CURRENT_NAME' = DEVICE_NAME
    log.debug "{} added", DEVICE_NAME
+   Motion.motionchanged now()
 }
 
 onConnected {
@@ -308,18 +333,8 @@ onConnected {
 
    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
 
-   // configure Entry Control to cache up to 4 digits with a 5 second timeout
-   ZWave.entry_control.config_set( EC_KEY_CACHE_SIZE, EC_KEY_CACHE_TIMEOUT )
-
-   // poll for battery status
-   ZWave.battery.get()
+   // RingKeyPad configures Entry Control and asks for the current state on connect
    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
-
-   // the keypad only reports power changes, so ask whether it is on mains now
-   ZWave.alarm.get((byte) 0x00, (byte) 0x08, (byte) 0x00)
-
-   // The hub driver sets the keypad's indicator on connect; a second one here
-   // would make the keypad speak its state twice
 }
 
 onDisconnected {
@@ -341,376 +356,23 @@ onZWaveNodeInfo {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Entry Control Notification Handler
+// Chime
 //
-// This is the primary input handler for the Ring Keypad. When a user enters a
-// PIN and presses an action button (Arm Away, Arm Home, Disarm), the keypad
-// sends an Entry Control notification with the event type and PIN data.
+// Not forwarded: this driver keeps the tone and volume settings itself.
 ////////////////////////////////////////////////////////////////////////////////
-
-onZWaveMessage.entry_control.notification {
-   byte[] bytes = message.command.recvBytes
-   // Entry Control Notification payload: [seqNo, dataType, eventType, dataLen, ...data]
-   if (bytes.length < 4) {
-      log.warn "{} Entry Control notification too short: {} bytes", DEVICE_NAME, bytes.length
-      return
-   }
-   int dataType   = bytes[1] & 0xFF
-   int eventType  = bytes[2] & 0xFF
-   int dataLength = bytes[3] & 0xFF
-
-   log.debug "{} Entry Control notification - eventType:{}, dataType:{}, dataLength:{}", DEVICE_NAME, eventType, dataType, dataLength
-
-   handleEntryControlNotification(bytes, 0)
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Supervision CC Handler
-//
-// The Ring Keypad wraps subsequent Entry Control events in Supervision CC
-// (0x6C). This handler unwraps the encapsulated command and sends back a
-// Supervision Report to acknowledge receipt.
-//
-// Supervision Get (Supervision CC v1):
-//   [0] = properties: bit 7 status updates requested, bit 6 reserved,
-//         bits 0-5 session id
-//   [1] = encapsulated command length, counting its command class and
-//         command bytes
-//   [2] = encapsulated command class
-//   [3] = encapsulated command
-//   [4..] = encapsulated command payload
-//
-// The Report must echo the session id in the same low six bits, or the
-// keypad treats it as unanswered and sends the Get again.
-////////////////////////////////////////////////////////////////////////////////
-
-onZWaveMessage.supervision.get {
-   byte[] bytes = message.command.recvBytes
-   if (bytes.length < 4) {
-      log.warn "{} Supervision Get too short: {} bytes", DEVICE_NAME, bytes.length
-      return
-   }
-
-   int sessionId = bytes[0] & 0x3F
-   int encapLen  = bytes[1] & 0xFF
-   int encapCC   = bytes[2] & 0xFF
-   int encapCmd  = bytes[3] & 0xFF
-
-   log.debug "{} Supervision Get - sessionId:{}, encapCC:0x{}, encapCmd:0x{}, encapLen:{}",
-      DEVICE_NAME, sessionId, Integer.toHexString(encapCC), Integer.toHexString(encapCmd), encapLen
-
-   // Send Supervision Report: status=0xFF (success), duration=0x00, no more updates
-   ZWave.sendCommand((byte)0x6C, (byte)0x02,
-      (byte)sessionId, (byte)0xFF, (byte)0x00)
-
-   // Handle encapsulated Entry Control notification
-   if (encapCC == 0x6F && encapCmd == 0x01) {
-      // The encapsulated payload follows its command class and command bytes
-      int innerLen = Math.max(0, Math.min(encapLen - 2, bytes.length - 4))
-      byte[] innerPayload = new byte[innerLen]
-      System.arraycopy(bytes, 4, innerPayload, 0, innerLen)
-      handleEntryControlNotification(innerPayload, 0)
-   } else {
-      log.debug "{} Supervision: unhandled encapsulated CC=0x{}, CMD=0x{}",
-         DEVICE_NAME, Integer.toHexString(encapCC), Integer.toHexString(encapCmd)
-   }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Entry Control Notification Dispatcher
-//
-// Shared handler called from both the direct Entry Control handler and the
-// Supervision unwrapper. The payload parameter contains the raw Entry Control
-// notification bytes starting at the given offset:
-//   [offset+0] = sequence number
-//   [offset+1] = data type
-//   [offset+2] = event type
-//   [offset+3] = data length
-//   [offset+4..] = data bytes
-////////////////////////////////////////////////////////////////////////////////
-
-void handleEntryControlNotification(byte[] payload, int offset) {
-   if (payload.length - offset < 4) {
-      log.warn "{} Entry Control payload too short", DEVICE_NAME
-      return
-   }
-
-   int dataType   = payload[offset + 1] & 0xFF
-   int eventType  = payload[offset + 2] & 0xFF
-   int dataLength = payload[offset + 3] & 0xFF
-
-   String pin = extractPin(payload, offset + 4, dataType, dataLength)
-
-   switch (eventType) {
-      case EC_EVENT_ARM_AWAY:
-         log.debug "{} Arm Away pressed", DEVICE_NAME
-         handleArm(pin, KeyPad.ALARMMODE_ON, false)
-         break
-
-      case EC_EVENT_ARM_HOME:
-         log.debug "{} Arm Home pressed", DEVICE_NAME
-         handleArm(pin, KeyPad.ALARMMODE_PARTIAL, false)
-         break
-
-      case EC_EVENT_ARM_ALL:
-         log.debug "{} Arm All pressed", DEVICE_NAME
-         handleArm(pin, KeyPad.ALARMMODE_ON, false)
-         break
-
-      case EC_EVENT_DISARM:
-         log.debug "{} Disarm pressed", DEVICE_NAME
-         handleDisarm(pin)
-         break
-
-      case EC_EVENT_ENTER:
-         log.debug "{} Enter pressed", DEVICE_NAME
-         // Enter with no specific action — treat as disarm if PIN provided
-         if (pin != null && pin.length() > 0) {
-            handleDisarm(pin)
-         }
-         break
-
-      case EC_EVENT_FIRE:
-      case EC_EVENT_POLICE:
-      case EC_EVENT_ALERT_PANIC:
-      case EC_EVENT_ALERT_MEDICAL:
-         log.info "{} Panic button held, event type: {}", DEVICE_NAME, eventType
-         emit KeyPad.PanicPressed
-         break
-
-      case EC_EVENT_CANCEL:
-         log.debug "{} Cancel pressed", DEVICE_NAME
-         vars.'lastEnteredPIN' = ''
-         break
-
-      case EC_EVENT_CACHING_STARTED:
-         log.trace "{} PIN entry started", DEVICE_NAME
-         break
-
-      case EC_EVENT_CACHING_ENDED:
-         log.trace "{} PIN cached: length={}", DEVICE_NAME, dataLength
-         if (pin != null && pin.length() > 0) {
-            vars.'lastEnteredPIN' = pin
-            Scheduler.scheduleIn EVENT_CLEAR_PIN, CLEAR_PIN_DELAY_MS
-         }
-         break
-
-      default:
-         log.warn "{} Unhandled Entry Control event type: {}", DEVICE_NAME, eventType
-         break
-   }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Arm / Disarm Handlers
-////////////////////////////////////////////////////////////////////////////////
-
-void handleArm(String pin, String mode, boolean bypass) {
-   // arm does not require PIN validation - the platform decides whether to allow it
-   // but if a PIN was provided, try to set the actor for attribution
-   if (pin != null && pin.length() > 0) {
-      checkPinAndSetActor(pin)
-   }
-   emit KeyPad.ArmPressed, ["mode": mode, "bypass": bypass]
-}
-
-void handleDisarm(String pin) {
-   // disarm requires a valid PIN
-   if (pin == null || pin.length() == 0) {
-      // check if there is a cached PIN from a previous entry
-      pin = vars.'lastEnteredPIN' ?: ''
-   }
-
-   if (pin.length() == 0) {
-      log.debug "{} Disarm pressed with no PIN", DEVICE_NAME
-      emit KeyPad.InvalidPinEntered
-      setIndicator(IND_CODE_REJECTED)
-      return
-   }
-
-   if (checkPinAndSetActor(pin)) {
-      log.debug "{} Valid PIN, emitting DisarmPressed", DEVICE_NAME
-      emit KeyPad.DisarmPressed
-   } else {
-      log.debug "{} Invalid PIN entered", DEVICE_NAME
-      emit KeyPad.InvalidPinEntered
-      setIndicator(IND_CODE_REJECTED)
-   }
-
-   // clear the cached PIN after use
-   vars.'lastEnteredPIN' = ''
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// PIN Management
-////////////////////////////////////////////////////////////////////////////////
-
-boolean checkPinAndSetActor(String pin) {
-   if (pin == null || pin.length() == 0) {
-      return false
-   }
-   try {
-      def person = PinManagement.validatePin(pin)
-      if (person != null) {
-         PinManagement.setActor(person)
-         return true
-      }
-      return false
-   } catch (e) {
-      log.debug "Error validating pin", e
-      return false
-   }
-}
-
-String extractPin(byte[] payload, int offset, int dataType, int dataLength) {
-   if (dataLength <= 0 || payload.length < offset + dataLength) {
-      return ''
-   }
-
-   StringBuilder pin = new StringBuilder()
-   for (int i = 0; i < dataLength; i++) {
-      int b = payload[offset + i] & 0xFF
-      if (dataType == EC_DATATYPE_ASCII) {
-         pin.append((char) b)
-      } else {
-         pin.append(Integer.toString(b))
-      }
-   }
-   return pin.toString()
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Scheduled Events
-////////////////////////////////////////////////////////////////////////////////
-
-onEvent(EVENT_CLEAR_PIN) {
-   log.trace "{} Clearing cached PIN", DEVICE_NAME
-   vars.'lastEnteredPIN' = ''
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// KeyPad Capability Handlers
-//
-// These are called by the alarm subsystem to update the keypad's display and
-// sound state to match the current alarm state.
-////////////////////////////////////////////////////////////////////////////////
-
-onKeyPad.BeginArming {
-   int delaySecs = message.attributes['delayInS'] ?: 0
-   def alarmMode = message.attributes['alarmMode']
-   log.debug "{} BeginArming( delayInS:{}, alarmMode:{} )", DEVICE_NAME, delaySecs, alarmMode
-   KeyPad.alarmState KeyPad.ALARMSTATE_ARMING
-   KeyPad.alarmMode  alarmMode
-   sendCountdownIndicator(IND_EXIT_DELAY, delaySecs)
-   sendResponse 'keypad:BeginArmingResponse', [:]
-}
-
-onKeyPad.Armed {
-   def alarmMode = message.attributes['alarmMode']
-   log.debug "{} Armed( alarmMode:{} )", DEVICE_NAME, alarmMode
-   KeyPad.alarmState KeyPad.ALARMSTATE_ARMED
-   KeyPad.alarmMode  alarmMode
-   setIndicator(alarmMode == KeyPad.ALARMMODE_PARTIAL ? IND_ARMED_STAY : IND_ARMED_AWAY)
-   sendResponse 'keypad:ArmedResponse', [:]
-}
-
-onKeyPad.Disarmed {
-   log.debug "{} Disarmed()", DEVICE_NAME
-   KeyPad.alarmState KeyPad.ALARMSTATE_DISARMED
-   KeyPad.alarmMode KeyPad.ALARMMODE_OFF
-   setIndicator(IND_DISARMED)
-   sendResponse 'keypad:DisarmedResponse', [:]
-}
-
-onKeyPad.Soaking {
-   int durationSecs = message.attributes['durationInS'] ?: 0
-   def alarmMode = message.attributes['alarmMode']
-   log.debug "{} Soaking( durationInS:{}, alarmMode:{} )", DEVICE_NAME, durationSecs, alarmMode
-   KeyPad.alarmState KeyPad.ALARMSTATE_SOAKING
-   KeyPad.alarmMode  alarmMode
-   sendCountdownIndicator(IND_ENTRY_DELAY, durationSecs)
-   sendResponse 'keypad:SoakingResponse', [:]
-}
-
-onKeyPad.Alerting {
-   def alarmMode = message.attributes['alarmMode']
-   log.debug "{} Alerting( alarmMode:{} )", DEVICE_NAME, alarmMode
-   KeyPad.alarmState KeyPad.ALARMSTATE_ALERTING
-   KeyPad.alarmMode alarmMode == "PANIC" ? KeyPad.ALARMMODE_OFF : alarmMode
-   setIndicator(IND_ALARM_BURGLAR)
-   sendResponse 'keypad:AlertingResponse', [:]
-}
 
 onKeyPad.Chime {
    log.debug "{} Chime()", DEVICE_NAME
-   playSound((byte) (vars.'devsettings:chimeTone' ?: IND_CHIME), (byte) (vars.'devsettings:chimeVolume' ?: CHIME_VOLUME))
+   def requested = message.attributes['sound']
+   if (requested != null && !CHIME_SOUNDS.contains(requested as int)) {
+      sendResponse 'Error', ['code': 'request.param.invalid', 'message': 'Not a chime sound: ' + requested]
+      return
+   }
+   if (KeyPad.alarmSounder.get() != KeyPad.ALARMSOUNDER_OFF) {
+      def sound = requested ?: vars.'devsettings:chimeTone' ?: IND_CHIME
+      playSound((byte) (sound as int), (byte) (vars.'devsettings:chimeVolume' ?: CHIME_VOLUME))
+   }
    sendResponse 'keypad:ChimeResponse', [:]
-}
-
-onKeyPad.ArmingUnavailable {
-   log.debug "{} ArmingUnavailable()", DEVICE_NAME
-   setIndicator(IND_BYPASS_NEEDED)
-   sendResponse 'keypad:ArmingUnavailableResponse', [:]
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// KeyPad / Alert Attribute Handlers
-////////////////////////////////////////////////////////////////////////////////
-
-setAttributes('keypad') {
-   def attributes = message.attributes
-   log.debug "{} setAttributes:keypad - {}", DEVICE_NAME, attributes
-   for (attribute in attributes) {
-      switch (attribute.key) {
-         case KeyPad.alarmState:
-            KeyPad.alarmState attribute.value
-            break
-         case KeyPad.alarmMode:
-            KeyPad.alarmMode attribute.value
-            break
-         case KeyPad.alarmSounder:
-            KeyPad.alarmSounder attribute.value
-            if (attribute.value == KeyPad.ALARMSOUNDER_ON) {
-               KeyPad.enabledSounds (["BUTTONS", "DISARMED", "ARMED", "ARMING", "SOAKING", "ALERTING"])
-            } else {
-               KeyPad.enabledSounds ([])
-            }
-            break
-         case KeyPad.enabledSounds:
-            KeyPad.enabledSounds attribute.value
-            KeyPad.alarmSounder attribute.value.size() == 0 ? KeyPad.ALARMSOUNDER_OFF : KeyPad.ALARMSOUNDER_ON
-            break
-         default:
-            break
-      }
-   }
-   updateIndicator()
-}
-
-setAttributes('alert') {
-   def attributes = message.attributes
-   log.debug "{} setAttributes:alert - {}", DEVICE_NAME, attributes
-   for (attribute in attributes) {
-      switch (attribute.key) {
-         case Alert.state:
-            Alert.state attribute.value
-            if (attribute.value == Alert.STATE_ALERTING) {
-               setIndicator(IND_ALARM_BURGLAR)
-            } else {
-               updateIndicator()
-            }
-            break
-         default:
-            break
-      }
-   }
 }
 
 
@@ -731,69 +393,6 @@ onIdentify.Identify {
 
 onZWaveMessage.battery.report {
    GenericZWaveBattery.handleBatteryReport(this, DEVICE_NAME, message)
-}
-
-onZWaveMessage.alarm.report {
-   def notificationType = message.command.get('notificationtype') & 0xFF
-   def event = message.command.get('event') & 0xFF
-   log.debug "{} Alarm Report - type:{}, event:{}", DEVICE_NAME, notificationType, event
-
-   switch (notificationType) {
-      case 0x08:  // Power Management (Notification CC event ids)
-         switch (event) {
-            case 0x01:  // Power has been applied
-            case 0x03:  // AC mains re-connected
-               log.info "{} AC power connected", DEVICE_NAME
-               DevicePower.source DevicePower.SOURCE_LINE
-               break
-            case 0x02:  // AC mains disconnected
-               log.info "{} Running on battery", DEVICE_NAME
-               DevicePower.source DevicePower.SOURCE_BATTERY
-               break
-            case 0x0A:  // Replace battery soon
-            case 0x0B:  // Replace battery now
-               log.warn "{} Battery low", DEVICE_NAME
-               ZWave.battery.get()
-               break
-            default:
-               log.debug "{} Unhandled power management event: {}", DEVICE_NAME, event
-               break
-         }
-         break
-
-      case 0x09:  // System
-         switch (event) {
-            case 0x05:  // Heartbeat
-               log.trace "{} Heartbeat", DEVICE_NAME
-               break
-            default:
-               log.debug "{} Unhandled system event: {}", DEVICE_NAME, event
-               break
-         }
-         break
-
-      case 0x07:  // Home Security (proximity sensor)
-         switch (event) {
-            case 0x00:  // State idle
-               log.trace "{} Motion cleared", DEVICE_NAME
-               break
-            case 0x08:  // Motion detected
-               log.trace "{} Motion detected (proximity wake)", DEVICE_NAME
-               break
-            default:
-               log.debug "{} Home Security event: {}", DEVICE_NAME, event
-               break
-         }
-         break
-
-      case 0x06:  // Access Control
-         log.debug "{} Access Control event: {}", DEVICE_NAME, event
-         break
-
-      default:
-         log.debug "{} Unhandled notification type:{}, event:{}", DEVICE_NAME, notificationType, event
-         break
-   }
 }
 
 onZWaveMessage.configuration.report {
@@ -830,18 +429,6 @@ onZWaveMessage.device_reset_locally.notification {
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Turn an indicator on. Indicator Set V3: [v1 value=0x00] [object count] then
- * one (indicator id, property id, value) triplet per object.
- */
-void setIndicator(byte indicatorId) {
-   ZWave.sendCommand(
-      (byte) 0x87, (byte) 0x01,
-      (byte) 0x00, (byte) 0x01,
-      indicatorId, PROP_MULTILEVEL, (byte) 0xFF
-   )
-}
-
-/**
  * Play one of the keypad's sounds. It starts them from the sound level property
  * alone, with no multilevel object.
  */
@@ -850,25 +437,6 @@ void playSound(byte indicatorId, byte volume) {
       (byte) 0x87, (byte) 0x01,
       (byte) 0x00, (byte) 0x01,
       indicatorId, PROP_SOUND_LEVEL, volume
-   )
-}
-
-/**
- * Start an indicator's countdown, as zwave-js does for its "timeout" value:
- * minutes in property 0x06 and seconds in property 0x07. Nothing is sent for a
- * zero duration, since the state that follows carries its own indicator.
- */
-void sendCountdownIndicator(byte indicatorId, int durationSecs) {
-   if (durationSecs <= 0) {
-      return
-   }
-   int minutes = Math.min((int)(durationSecs / 60), 255)
-   int seconds = durationSecs % 60
-   ZWave.sendCommand(
-      (byte) 0x87, (byte) 0x01,
-      (byte) 0x00, (byte) 0x02,
-      indicatorId, PROP_TIMEOUT_MINUTES, (byte) minutes,
-      indicatorId, PROP_TIMEOUT_SECONDS, (byte) seconds
    )
 }
 
@@ -884,28 +452,4 @@ void sendIdentifyBlink() {
       IND_NODE_IDENTIFY, PROP_ON_OFF_CYCLES, (byte) 0x03,
       IND_NODE_IDENTIFY, PROP_ON_TIME, (byte) 0x05
    )
-}
-
-void updateIndicator() {
-   def alarmState = KeyPad.alarmState.get()
-   def alarmMode = KeyPad.alarmMode.get()
-
-   switch (alarmState) {
-      case KeyPad.ALARMSTATE_DISARMED:
-         setIndicator(IND_DISARMED)
-         break
-      case KeyPad.ALARMSTATE_ARMING:
-      case KeyPad.ALARMSTATE_SOAKING:
-         // the remaining delay is unknown here; the next state refreshes the keypad
-         break
-      case KeyPad.ALARMSTATE_ARMED:
-         setIndicator(alarmMode == KeyPad.ALARMMODE_PARTIAL ? IND_ARMED_STAY : IND_ARMED_AWAY)
-         break
-      case KeyPad.ALARMSTATE_ALERTING:
-         setIndicator(IND_ALARM_BURGLAR)
-         break
-      default:
-         setIndicator(IND_DISARMED)
-         break
-   }
 }
