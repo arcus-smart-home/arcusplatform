@@ -220,7 +220,7 @@ ext.libraries << [
 		// Binds slf4j to nothing: the code generators run with it so that the
 		// "no providers were found" banner stays out of the build output.
 		slf4jNop: "org.slf4j:slf4j-nop:2.0.20",
-		logback: "ch.qos.logback:logback-classic:1.6.5",
+		logback: "ch.qos.logback:logback-classic:1.6.6",
 
 
 // Notifications
