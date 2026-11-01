@@ -97,9 +97,13 @@ OpenJDK Runtime Environment Corretto-21.0.12.12.1 (build 21.0.12.1+12-LTS)
 OpenJDK 64-Bit Server VM Corretto-21.0.12.12.1 (build 21.0.12.1+12-LTS, mixed mode, sharing)
 ```
 
-Using gradle with a custom version of Java (needed on each gradle command):
+If gradle stops with `Arcus requires Java 11, 17, or 21` or `Unsupported class file major version`, it is running on an unsupported JDK. Pointing gradle at a specific JDK (needed in each new shell, or put it in your shell profile):
 ```
-./gradlew -Dorg.gradle.java.home=/usr/lib/jvm/java-8-openjdk-amd64/
+# macOS
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+
+# Linux (the path depends on your distro and JDK package)
+export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
 ```
 
 ## General process

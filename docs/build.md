@@ -71,7 +71,7 @@ Four major sections with ~86 subprojects:
 
 Applied to all subprojects:
 - **Group:** `com.arcussmarthome`
-- **Java:** Gradle must run on Java 11, 17, or 21 (fails fast on other versions). Platform modules target that JDK; `common` and `agent` compile with `--release 11` for the hub
+- **Java:** Gradle must run on Java 11, 17, or 21 (see [Java setup](overview.md#java) for selecting a JDK on macOS or Linux). Platform modules target that JDK; `common` and `agent` compile with `--release 11` for the hub
 - **Repositories:** Maven Central, JCenter (optional `mavenLocal` via `use_maven_local=true`)
 - **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13.2, Logback (test), Eclipse annotations
 - **Global exclusions:** commons-logging, findbugs annotations, log4j, duplicate metrics-core
@@ -308,8 +308,7 @@ Docker images are tagged as `arcus/{service-name}:{major}.{minor}.{patch}`.
 The agent targets **Java 11** (`--release 11` in `agent/build.gradle`), the JDK the hub OS ships. Any JDK that runs Gradle can build it:
 
 ```bash
-JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64 \
-  ./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar
+./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar
 ```
 
 ### Building with Closed-Source Controller Jars
@@ -321,8 +320,7 @@ The original Iris hub firmware included closed-source controller jars for ZigBee
 2. **Build with external jars:**
 
 ```bash
-JAVA_HOME=/usr/lib/jvm/temurin-8-jdk-amd64 \
-  ./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar \
+./gradlew :agent:arcus-agent:arcus-agent-hub-v2:distTar \
   -Pexternal_jars_dir=/path/to/extracted/hub/libs
 ```
 

@@ -24,7 +24,8 @@ if (!supportedVersions.contains(jvmVersion)) {
    throw new GradleException(
       "Arcus requires Java 11, 17, or 21 to build. Current JVM is Java ${jvmVersion}.\n" +
       "Set JAVA_HOME to a supported JDK, e.g.:\n" +
-      "  export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64"
+      "  macOS: export JAVA_HOME=\$(/usr/libexec/java_home -v 21)\n" +
+      "  Linux: export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64"
    )
 }
 
