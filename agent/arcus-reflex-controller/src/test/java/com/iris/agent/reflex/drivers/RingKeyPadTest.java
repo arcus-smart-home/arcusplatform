@@ -70,6 +70,20 @@ public class RingKeyPadTest {
    }
 
    @Test
+   public void aDisarmDeliveredTwiceIsSpokenOnce() {
+      keypad.handleCommand(KeyPadCapability.ArmedRequest.builder()
+         .withAlarmMode(KeyPadCapability.ArmedRequest.ALARMMODE_ON)
+         .build());
+      keypad.sent.clear();
+
+      keypad.handleCommand(KeyPadCapability.DisarmedRequest.instance());
+      keypad.handleCommand(KeyPadCapability.DisarmedRequest.instance());
+
+      assertEquals(1, keypad.sent.size());
+      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x02, 0x01, (byte) 0xFF }, keypad.sent.get(0));
+   }
+
+   @Test
    public void anExitDelaySendsACountdownNotAnAlarm() {
       keypad.handleCommand(KeyPadCapability.BeginArmingRequest.builder()
          .withAlarmMode(KeyPadCapability.BeginArmingRequest.ALARMMODE_ON)

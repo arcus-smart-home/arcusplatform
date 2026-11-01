@@ -232,14 +232,12 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          switch (attr.getKey()) {
          case KeyPadCapability.ATTR_ALARMSTATE:
             if (value != null) {
-               set(KEYPAD_ALARMSTATE, value.toString());
-               sendIndicator = true;
+               sendIndicator |= set(KEYPAD_ALARMSTATE, value.toString());
             }
             break;
          case KeyPadCapability.ATTR_ALARMMODE:
             if (value != null) {
-               set(KEYPAD_ALARMMODE, value.toString());
-               sendIndicator = true;
+               sendIndicator |= set(KEYPAD_ALARMMODE, value.toString());
             }
             break;
          case KeyPadCapability.ATTR_ALARMSOUNDER:
@@ -309,15 +307,21 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       case KeyPadCapability.ArmedRequest.NAME:
          clearRemainingTime();
          String armedMode = KeyPadCapability.ArmedRequest.getAlarmMode(msg);
-         set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMED);
-         set(KEYPAD_ALARMMODE, armedMode);
-         setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(armedMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
+         // The keypad speaks every indicator, so only a change is sent
+         boolean armedChanged = set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_ARMED);
+         armedChanged |= set(KEYPAD_ALARMMODE, armedMode);
+         if (armedChanged) {
+            setIndicator(KeyPadCapability.ALARMMODE_PARTIAL.equals(armedMode) ? IND_ARMED_STAY : IND_ARMED_AWAY);
+         }
          break;
       case KeyPadCapability.DisarmedRequest.NAME:
          clearRemainingTime();
-         set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
-         set(KEYPAD_ALARMMODE, KeyPadCapability.ALARMMODE_OFF);
-         setIndicator(IND_DISARMED);
+         // The hub alarm delivers this more than once for a single disarm
+         boolean disarmedChanged = set(KEYPAD_ALARMSTATE, KeyPadCapability.ALARMSTATE_DISARMED);
+         disarmedChanged |= set(KEYPAD_ALARMMODE, KeyPadCapability.ALARMMODE_OFF);
+         if (disarmedChanged) {
+            setIndicator(IND_DISARMED);
+         }
          break;
       case KeyPadCapability.SoakingRequest.NAME:
          Integer entryDelay = KeyPadCapability.SoakingRequest.getDurationInS(msg);

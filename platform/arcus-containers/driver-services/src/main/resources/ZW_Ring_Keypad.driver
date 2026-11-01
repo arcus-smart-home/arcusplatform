@@ -318,8 +318,8 @@ onConnected {
    // the keypad only reports power changes, so ask whether it is on mains now
    ZWave.alarm.get((byte) 0x00, (byte) 0x08, (byte) 0x00)
 
-   // set the keypad indicator to match the current alarm state
-   updateIndicator()
+   // The hub driver sets the keypad's indicator on connect; a second one here
+   // would make the keypad speak its state twice
 }
 
 onDisconnected {
@@ -720,14 +720,8 @@ setAttributes('alert') {
 
 onIdentify.Identify {
    log.debug "{} Identify", DEVICE_NAME
-   // blink the keypad, then put its state indicator back
    sendIdentifyBlink()
-   Scheduler.scheduleIn 'IdentifyDone', 5000
    sendResponse 'ident:IdentifyResponse', [:]
-}
-
-onEvent('IdentifyDone') {
-   updateIndicator()
 }
 
 
