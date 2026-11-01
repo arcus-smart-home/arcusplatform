@@ -53,14 +53,6 @@ import com.iris.security.principal.Principal;
 @Singleton
 public class HandshakeSessionListener implements SessionListener {
 	private static final Logger logger = LoggerFactory.getLogger(HandshakeSessionListener.class);
-	
-	@Inject
-	@Named( value = "smarty.auth.id")
-	private String smartyAuthID;
-
-	@Inject
-	@Named( value = "smarty.auth.token")
-	private String smartyAuthToken;
 
 	@Inject
 	@Named(value = "camera.preview.baseurl")
@@ -127,8 +119,6 @@ public class HandshakeSessionListener implements SessionListener {
       Boolean requiresPrivacyPolicyConsent = isRequiresConsent(curPerson.getPrivacyPolicyAgreed(), privacyPolicyVersion);
 
       Map<String, Object> entries = new HashMap<>();
-      entries.put("smartyAuthID", String.valueOf(smartyAuthID));
-      entries.put("smartyAuthToken", String.valueOf(smartyAuthToken));
       entries.put("personId", String.valueOf(principal.getUserId()));
       entries.put("cameraPreviewBaseUrl", String.valueOf(cameraPreviewBaseUrl));
       entries.put("staticResourceBaseUrl", String.valueOf(staticResourceBaseUrl));

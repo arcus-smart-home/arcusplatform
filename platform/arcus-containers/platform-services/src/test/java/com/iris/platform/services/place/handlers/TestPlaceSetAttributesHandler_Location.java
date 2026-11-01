@@ -18,14 +18,10 @@
  */
 package com.iris.platform.services.place.handlers;
 
-import static java.util.Arrays.asList;
 import static java.util.TimeZone.getTimeZone;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
 
 import java.util.Date;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.easymock.Capture;
@@ -35,9 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
-import com.google.inject.Module;
 import com.iris.capability.attribute.transform.AttributeMapTransformModule;
 import com.iris.common.sunrise.GeoLocation;
 import com.iris.core.dao.PlaceDAO;
@@ -51,10 +45,7 @@ import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.model.Fixtures;
 import com.iris.messages.model.Place;
 import com.iris.platform.address.updater.AddressUpdaterFactory;
-import com.iris.platform.address.updater.SmartyStreetsAddressUpdater;
-import com.iris.platform.address.validation.smartystreets.DetailedStreetAddress;
-import com.iris.platform.address.validation.smartystreets.HttpSmartyStreetsClient;
-import com.iris.platform.address.validation.smartystreets.SmartyStreetsClient;
+import com.iris.platform.address.updater.ZipCodeAddressUpdater;
 import com.iris.platform.location.LocationService;
 import com.iris.platform.location.PlaceLocation;
 import com.iris.platform.location.TimezonesModule;
@@ -65,37 +56,19 @@ import com.iris.test.Modules;
 /**
  * 
  */
-@Mocks({ PlaceDAO.class, LocationService.class, AddressUpdaterFactory.class, HttpSmartyStreetsClient.class})
+@Mocks({ PlaceDAO.class, LocationService.class, AddressUpdaterFactory.class })
 @Modules({ AttributeMapTransformModule.class, InMemoryMessageModule.class, TimezonesModule.class})
 public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
    @Inject PlaceDAO placeDao;
    @Inject LocationService locationService;
    @Inject InMemoryPlatformMessageBus platformBus;
-   @Inject SmartyStreetsAddressUpdater smartyStreetsAddressUpdater;
+   @Inject ZipCodeAddressUpdater zipCodeAddressUpdater;
    @Inject AddressUpdaterFactory factory;
-   @Inject SmartyStreetsClient smartyStreetsClient;
 
    @Inject PlaceSetAttributesHandler handler;
    
    Place place;
    Capture<Place> savedPlaces;
-   
-   @Override
-   protected Set<Module> modules()
-   {
-      Set<Module> modules = super.modules();
-
-      modules.add(new AbstractModule()
-      {
-         @Override
-         protected void configure()
-         {
-            bind(SmartyStreetsClient.class).to(HttpSmartyStreetsClient.class);
-         }
-      });
-
-      return modules;
-   }
    
    @Before
    public void initPlace() {
@@ -105,7 +78,7 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       place.setAddrLatitude(0.0);
       place.setAddrLongitude(0.0);
       place.setAddrGeoPrecision(null);
-      EasyMock.expect(factory.updaterFor(place)).andReturn(smartyStreetsAddressUpdater).anyTimes();
+      EasyMock.expect(factory.updaterFor(place)).andReturn(zipCodeAddressUpdater).anyTimes();
    }
    
    @Before
@@ -127,22 +100,6 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       GeoLocation location = GeoLocation.fromCoordinates(-10.0, +20.0);
       PlaceLocation placeLocation = new PlaceLocation(zipCode, location, "Lawrence", "KS", "Douglas", getTimeZone("America/Chicago"));
 
-      DetailedStreetAddress detailedSuggestedAddress = new DetailedStreetAddress();
-      detailedSuggestedAddress.setLine1("1651 Naismith Drive");
-      detailedSuggestedAddress.setLine2("Suite 1000");
-      detailedSuggestedAddress.setCity("Lawrence");
-      detailedSuggestedAddress.setState("home");
-      detailedSuggestedAddress.setZip("66047");
-      detailedSuggestedAddress.setZipPlus4("66047-4069");
-      detailedSuggestedAddress.setCountry("US");
-      detailedSuggestedAddress.setAddrType("S");
-      detailedSuggestedAddress.setAddrZipType("Unique");
-      detailedSuggestedAddress.setAddrRDI("Commercial");
-      detailedSuggestedAddress.setAddrCountyFIPS("20045");
-      EasyMock
-         .expect(smartyStreetsClient.getDetailedSuggestions(anyObject()))
-         .andReturn(asList(detailedSuggestedAddress));
-
       EasyMock
          .expect(locationService.getForZipCode(zipCode))
          .andReturn(Optional.of(placeLocation));
@@ -163,22 +120,6 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       String zipCode = "66047";
       GeoLocation location = GeoLocation.fromCoordinates(-10.0, +20.0);
       PlaceLocation placeLocation = new PlaceLocation(zipCode, location, "Lawrence", "KS", "Douglas", getTimeZone("America/Chicago"));
-
-      DetailedStreetAddress detailedSuggestedAddress = new DetailedStreetAddress();
-      detailedSuggestedAddress.setLine1("1651 Naismith Drive");
-      detailedSuggestedAddress.setLine2("Suite 1000");
-      detailedSuggestedAddress.setCity("Lawrence");
-      detailedSuggestedAddress.setState("home");
-      detailedSuggestedAddress.setZip("66047");
-      detailedSuggestedAddress.setZipPlus4("66047-4069");
-      detailedSuggestedAddress.setCountry("US");
-      detailedSuggestedAddress.setAddrType("S");
-      detailedSuggestedAddress.setAddrZipType("Unique");
-      detailedSuggestedAddress.setAddrRDI("Commercial");
-      detailedSuggestedAddress.setAddrCountyFIPS("20045");
-      EasyMock
-         .expect(smartyStreetsClient.getDetailedSuggestions(anyObject()))
-         .andReturn(asList(detailedSuggestedAddress));
 
       EasyMock
             .expect(locationService.getForZipCode(zipCode))
@@ -202,22 +143,6 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       String zipCode = "66047";
       GeoLocation location = GeoLocation.fromCoordinates(-10.0, +20.0);
       PlaceLocation placeLocation = new PlaceLocation(zipCode, location, "Lawrence", "KS", "Douglas", getTimeZone("America/Chicago"));
-
-      DetailedStreetAddress detailedSuggestedAddress = new DetailedStreetAddress();
-      detailedSuggestedAddress.setLine1("1651 Naismith Drive");
-      detailedSuggestedAddress.setLine2("Suite 1000");
-      detailedSuggestedAddress.setCity("Lawrence");
-      detailedSuggestedAddress.setState("home");
-      detailedSuggestedAddress.setZip("66047");
-      detailedSuggestedAddress.setZipPlus4("66047-4069");
-      detailedSuggestedAddress.setCountry("US");
-      detailedSuggestedAddress.setAddrType("S");
-      detailedSuggestedAddress.setAddrZipType("Unique");
-      detailedSuggestedAddress.setAddrRDI("Commercial");
-      detailedSuggestedAddress.setAddrCountyFIPS("20045");
-      EasyMock
-         .expect(smartyStreetsClient.getDetailedSuggestions(anyObject()))
-         .andReturn(asList(detailedSuggestedAddress));
 
       EasyMock
             .expect(locationService.getForZipCode(zipCode))
@@ -252,6 +177,51 @@ public class TestPlaceSetAttributesHandler_Location extends IrisMockTestCase {
       assertEquals(MessageBody.emptyMessage(), body);
       assertSavedLocationMatches(null, location, Place.GEOPRECISION_UNKNOWN);
       assertMessageLocationMatches(null, location, Place.GEOPRECISION_UNKNOWN);
+   }
+
+   // StreetAddress.fromPlace prefers a stored ZIP+4, so a stale one would bring the old ZIP code back on the next edit.
+   @Test
+   public void testZipChangeClearsOldZipPlus4() throws Exception {
+      place.setZipCode("66047");
+      place.setZipPlus4("66047-4069");
+      GeoLocation location = GeoLocation.fromCoordinates(34.1, -118.4);
+      PlaceLocation placeLocation = new PlaceLocation("90210", location, "Beverly Hills", "CA", "Los Angeles", getTimeZone("America/Los_Angeles"));
+
+      EasyMock
+         .expect(locationService.getForZipCode("90210"))
+         .andReturn(Optional.of(placeLocation))
+         .times(2);
+      replay();
+
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_ZIPCODE, "90210")));
+      assertEquals("", savedPlaces.getValue().getZipPlus4());
+
+      savedPlaces.reset();
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_CITY, "Beverly Hills")));
+      Place saved = savedPlaces.getValue();
+      assertEquals("90210", saved.getZipCode());
+      assertEquals("America/Los_Angeles", saved.getTzId());
+   }
+
+   @Test
+   public void testAddressChangeClearsSmartyStreetsAttributes() throws Exception {
+      String zipCode = "66047";
+      PlaceLocation placeLocation = new PlaceLocation(zipCode, GeoLocation.fromCoordinates(38.9, -95.3), "Lawrence", "KS", "Douglas", getTimeZone("America/Chicago"));
+
+      EasyMock
+         .expect(locationService.getForZipCode(zipCode))
+         .andReturn(Optional.of(placeLocation));
+      replay();
+
+      // The fixture place carries the values SmartyStreets used to supply.
+      handler.handleRequest(place, createSetAttributes(ImmutableMap.of(PlaceCapability.ATTR_ZIPCODE, zipCode)));
+
+      Place saved = savedPlaces.getValue();
+      assertEquals("", saved.getAddrType());
+      assertEquals("", saved.getAddrZipType());
+      assertEquals("", saved.getAddrRDI());
+      assertEquals("", saved.getAddrCountyFIPS());
+      assertEquals(Boolean.FALSE, saved.getAddrValidated());
    }
 
    private void assertSavedLocationMatches(String zipCode, GeoLocation location, String geoprecision) {

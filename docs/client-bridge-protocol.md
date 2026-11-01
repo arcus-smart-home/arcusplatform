@@ -121,8 +121,6 @@ Immediately after the handshake completes, the server pushes a `SessionCreated` 
       ],
       "requiresTermsAndConditionsConsent": false,
       "requiresPrivacyPolicyConsent": false,
-      "smartyAuthID": "<smarty-streets-id>",
-      "smartyAuthToken": "<smarty-streets-token>",
       "cameraPreviewBaseUrl": "<url>",
       "staticResourceBaseUrl": "<url>",
       "secureStaticResourceBaseUrl": "<url>",
@@ -141,8 +139,6 @@ Immediately after the handshake completes, the server pushes a `SessionCreated` 
 | `places` | List of places the user can access, each with `placeId`, `placeName`, `accountId`, and `role` |
 | `requiresTermsAndConditionsConsent` | Whether the user must accept updated terms (always `false` for non-owners) |
 | `requiresPrivacyPolicyConsent` | Whether the user must accept updated privacy policy (always `false` for non-owners) |
-| `smartyAuthID` | SmartyStreets address validation auth ID |
-| `smartyAuthToken` | SmartyStreets address validation auth token |
 | `cameraPreviewBaseUrl` | Base URL for camera preview images |
 | `staticResourceBaseUrl` | Base URL for static resources |
 | `secureStaticResourceBaseUrl` | HTTPS base URL for static resources |

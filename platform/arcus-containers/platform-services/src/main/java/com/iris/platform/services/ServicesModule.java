@@ -21,7 +21,6 @@ package com.iris.platform.services;
 import com.google.inject.multibindings.Multibinder;
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.platform.PlatformService;
-import com.iris.platform.address.validation.smartystreets.HttpSmartyStreetsModule;
 import com.iris.platform.pairing.PairingDeviceObjectModule;
 import com.iris.platform.pairing.PairingDeviceServiceModule;
 import com.iris.platform.services.account.AccountServiceModule;
@@ -43,7 +42,6 @@ import com.iris.bootstrap.annotations.Modules;
  */
 @Modules(include={
       AccountServiceModule.class,
-      HttpSmartyStreetsModule.class,
       SubsystemDaoModule.class,
       HubServiceModule.class,
       IpcdServiceModule.class,

@@ -28,8 +28,6 @@ public class SessionInfo {
 	private final String username;
 	private final String personId;
 	private final List<PlaceDescriptor> places;
-	private final String smartyAuthToken;
-	private final String smartyAuthID;
 	private final String previewURLBase;
 	private final String staticResourceBaseUrl;
 	private final String secureStaticResourceBaseUrl;
@@ -63,8 +61,6 @@ public class SessionInfo {
 		}
 		this.billingPublicKey = billingPublicKey;
 		this.tokenURL = tokenURL;
-		this.smartyAuthToken = null;
-		this.smartyAuthID = null;
 		this.previewURLBase = null;
 		this.staticResourceBaseUrl = null;
 		this.honeywellLoginBaseUrl = null;
@@ -98,8 +94,6 @@ public class SessionInfo {
 
 		billingPublicKey = (String) event.getAttribute("publicKey");
 		tokenURL = (String) event.getAttribute("tokenURL");
-		smartyAuthToken = (String) event.getAttribute("smartyAuthToken");
-		smartyAuthID = (String) event.getAttribute("smartyAuthID");
 		previewURLBase = (String) event.getAttribute("cameraPreviewBaseUrl");
 		staticResourceBaseUrl = (String) event.getAttribute("staticResourceBaseUrl");
 		secureStaticResourceBaseUrl = (String) event.getAttribute("secureStaticResourceBaseUrl");
@@ -113,14 +107,6 @@ public class SessionInfo {
 		this.redirectBaseUrl = (String)event.getAttribute("redirectBaseUrl");
 		this.webLaunchUrl = (String)event.getAttribute("webLaunchUrl");
 		this.androidLaunchUrl = (String)event.getAttribute("androidLaunchUrl");
-	}
-
-	public String getSmartyAuthToken() {
-		return smartyAuthToken;
-	}
-
-	public String getSmartyAuthID() {
-		return smartyAuthID;
 	}
 
 	public String getTokenURL() {
@@ -215,8 +201,6 @@ public class SessionInfo {
 				", username='" + username + '\'' +
 				", personId='" + personId + '\'' +
 				", places=" + places +
-				", smartyAuthToken='" + smartyAuthToken + '\'' +
-				", smartyAuthID='" + smartyAuthID + '\'' +
 				", previewURLBase='" + previewURLBase + '\'' +
 				", staticResourceBaseUrl='" + staticResourceBaseUrl + '\'' +
 				", secureStaticResourceBaseUrl='" + secureStaticResourceBaseUrl + '\'' +
@@ -247,9 +231,6 @@ public class SessionInfo {
 		if (username != null ? !username.equals(that.username) : that.username != null) return false;
 		if (personId != null ? !personId.equals(that.personId) : that.personId != null) return false;
 		if (places != null ? !places.equals(that.places) : that.places != null) return false;
-		if (smartyAuthToken != null ? !smartyAuthToken.equals(that.smartyAuthToken) : that.smartyAuthToken != null)
-			return false;
-		if (smartyAuthID != null ? !smartyAuthID.equals(that.smartyAuthID) : that.smartyAuthID != null) return false;
 		if (previewURLBase != null ? !previewURLBase.equals(that.previewURLBase) : that.previewURLBase != null)
 			return false;
 		if (staticResourceBaseUrl != null ? !staticResourceBaseUrl.equals(that.staticResourceBaseUrl) : that.staticResourceBaseUrl != null)
@@ -277,7 +258,7 @@ public class SessionInfo {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(billingPublicKey, tokenURL, sessionToken, username, personId, places, smartyAuthToken, smartyAuthID, previewURLBase, staticResourceBaseUrl, secureStaticResourceBaseUrl, honeywellRedirectUri, honeywellLoginBaseUrl, honeywellClientId, lutronLoginBaseUrl, webLaunchUrl, androidLaunchUrl, requiresTermsAndConditionsConsent, requiresPrivacyPolicyConsent, promonAdUrl, redirectBaseUrl);
+		return Objects.hash(billingPublicKey, tokenURL, sessionToken, username, personId, places, previewURLBase, staticResourceBaseUrl, secureStaticResourceBaseUrl, honeywellRedirectUri, honeywellLoginBaseUrl, honeywellClientId, lutronLoginBaseUrl, webLaunchUrl, androidLaunchUrl, requiresTermsAndConditionsConsent, requiresPrivacyPolicyConsent, promonAdUrl, redirectBaseUrl);
 	}
 
 	public static class PlaceDescriptor {
