@@ -30,6 +30,7 @@ public class Profile {
    private String username;
    private String password;
    private String keyspace;
+   private String localDatacenter;
    private DefaultConsistencyLevel consistencyLevel;
 
    void setNodes(List<InetAddress> nodes) {
@@ -64,6 +65,10 @@ public class Profile {
       this.keyspace = keyspace;
    }
 
+   void setLocalDatacenter(String localDatacenter) {
+      this.localDatacenter = localDatacenter;
+   }
+
    public List<InetAddress> getNodes() {
       return nodes;
    }
@@ -86,5 +91,9 @@ public class Profile {
 
    public String getKeyspace() {
       return keyspace;
+   }
+
+   public String getLocalDatacenter() {
+      return localDatacenter;
    }
 }

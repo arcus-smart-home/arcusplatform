@@ -17,6 +17,7 @@ package com.iris.modelmanager.engine;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -188,17 +189,22 @@ public class ExecutionEngine {
       }
    }
 
-   private CqlSession createSession(Profile profile) {
+   static DriverConfigLoader driverConfig(Profile profile) {
       ProgrammaticDriverConfigLoaderBuilder configBuilder = DriverConfigLoader.programmaticBuilder();
       configBuilder.withString(DefaultDriverOption.REQUEST_CONSISTENCY, profile.getConsistencyLevel().name());
+      configBuilder.withString(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, profile.getLocalDatacenter());
+      // the driver's default is 2s, too short for migrations; matches BaseCassandraModule
+      configBuilder.withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(12));
+      return configBuilder.build();
+   }
 
+   private CqlSession createSession(Profile profile) {
       CqlSessionBuilder builder = CqlSession.builder();
-      builder.withConfigLoader(configBuilder.build());
+      builder.withConfigLoader(driverConfig(profile));
 
       for(InetAddress node : profile.getNodes()) {
          builder.addContactPoint(new InetSocketAddress(node, profile.getPort()));
       }
-      builder.withLocalDatacenter("datacenter1");
 
       if(!StringUtils.isBlank(profile.getUsername()) && !StringUtils.isBlank(profile.getPassword())) {
          builder.withAuthCredentials(profile.getUsername(), profile.getPassword());

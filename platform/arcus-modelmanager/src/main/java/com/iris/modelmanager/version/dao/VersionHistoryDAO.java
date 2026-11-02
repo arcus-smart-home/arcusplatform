@@ -49,7 +49,7 @@ public class VersionHistoryDAO {
       BoundStatement boundStatement = insert.bind(
             IDENTIFIER,
             history.getVersion(),
-            history.getTimestamp(),
+            history.getTimestamp().toInstant(),
             history.getStatus().toString(),
             history.getUsername()
       ).setConsistencyLevel(DefaultConsistencyLevel.ALL);
