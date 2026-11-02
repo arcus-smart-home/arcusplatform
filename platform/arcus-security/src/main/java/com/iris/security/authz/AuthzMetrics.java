@@ -26,7 +26,8 @@ public class AuthzMetrics {
    private final Counter unauthorizedWrongPerson;
    private final Counter unauthorizedWrongPlace;
    private final Counter unauthorizedSupportRequest;
-   
+   private final Counter unauthorizedDisabled;
+
    public AuthzMetrics() {
       this(IrisMetrics.metrics("bridge.authz"));
    }
@@ -38,6 +39,11 @@ public class AuthzMetrics {
       unauthorizedWrongPerson = metrics.counter("unauthorized.wrongperson");
       unauthorizedWrongPlace = metrics.counter("unauthorized.wrongplace");
       unauthorizedSupportRequest = metrics.counter("unauthorized.supportrequest");
+      unauthorizedDisabled = metrics.counter("unauthorized.disabled");
+   }
+
+   public void onUnauthorizedDisabled() {
+      unauthorizedDisabled.inc();
    }
 
    public void onAuthorized() {

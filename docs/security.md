@@ -79,6 +79,36 @@ Fine-grained Shiro permission checking:
 1. Extracts required permissions from the message via `PermissionExtractorRegistry`
 2. Checks instance-specific permissions first (per-device overrides), then wildcard permissions
 
+### Disabling Operations
+
+Instances can switch off what they don't use. Both settings are read at startup and turn nothing off by default. Each disabled entry logs a warning at startup, so confirm the lines after a change. A misspelled variable name is ignored like any unknown variable.
+
+**`client.disabled.handlers`** (env `CLIENT_DISABLED_HANDLERS`, client-bridge) removes REST handlers by class name, and the path then returns 404. A mistyped handler is ignored, so check the log.
+
+| To disable | Handlers |
+|---|---|
+| Account creation | `CreateAccountRESTHandler` |
+| Password reset | `SendPasswordResetRESTHandler,ResetPasswordRESTHandler` |
+
+**`authz.disabled.risky.operations`** (env `AUTHZ_DISABLED_RISKY_OPERATIONS`, client-bridge and api-bridge) refuses risky operations from clients, comma separated, or `all`. A mistyped operation stops the bridge from starting. Only client requests are affected, so deleting a place still removes its hubs. Refusals on client-bridge count toward `bridge.authz.unauthorized.disabled`, and both bridges log them.
+
+| Name | Refuses |
+|---|---|
+| `email.change` | `base:SetAttributes` with `person:email`, for anyone including the person themselves |
+| `phone.change` | `base:SetAttributes` with `person:mobileNumber`, for anyone including the person themselves |
+| `account.delete` | `account:Delete` |
+| `place.delete` | `place:Delete` |
+| `hub.delete` | `hub:Delete` |
+| `hub.factoryreset` | `FactoryReset` on the hub, ZigBee and Z-Wave |
+| `person.delete` | `person:Delete`, `person:RemoveFromPlace` |
+| `login.delete` | `person:DeleteLogin` |
+
+Alarm and device control aren't on this list, deliberately.
+
+The mobile apps send name, phone and email together on every contact save, so `email.change` or `phone.change` refuses the whole save even if that field didn't change. The web client only sends what changed. `phone.change` also stops anyone adding or correcting a number, and the alarm call tree only lists people who have one.
+
+Whatever this setting says, the scheduler never sends these operations or anything addressed to a hub. `FireCommand` returns an error, and a timer logs a warning and moves on to the next fire time.
+
 ### Runtime Authorization Context
 
 At WebSocket session establishment, `SubscriberAuthorizationContextLoader` builds an `AuthorizationContext` by loading all `AuthorizationGrant`s for the authenticated user from Cassandra. This context caches parsed permissions per place:

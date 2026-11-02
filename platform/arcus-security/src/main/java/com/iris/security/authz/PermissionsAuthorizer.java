@@ -39,15 +39,27 @@ public class PermissionsAuthorizer implements Authorizer {
 
    private final PermissionExtractorRegistry extractorRegistry;
    private final MessageFilterRegistry filterRegistry;
+   private final DisabledRiskyOperations disabledOperations;
 
    @Inject
-   public PermissionsAuthorizer(PermissionExtractorRegistry extractorRegistry, MessageFilterRegistry filterRegistry) {
+   public PermissionsAuthorizer(
+         PermissionExtractorRegistry extractorRegistry,
+         MessageFilterRegistry filterRegistry,
+         DisabledRiskyOperations disabledOperations
+   ) {
       this.extractorRegistry = extractorRegistry;
       this.filterRegistry = filterRegistry;
+      this.disabledOperations = disabledOperations;
    }
 
    @Override
    public boolean isAuthorized(AuthorizationContext context, String placeId, PlatformMessage message) {
+
+      // api-bridge runs this authorizer on its own, so API keys have to be refused here too
+      if(disabledOperations.isDisabled(message)) {
+         logger.warn("authz denied reason=disabled type={} actor={}", message.getMessageType(), message.getActor());
+         return false;
+      }
 
       // always reject the message if no place is set or it does not equal the platform
       if(placeId == null || !Objects.equals(placeId, message.getPlaceId())) {
