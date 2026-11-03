@@ -21,21 +21,91 @@ package com.iris.platform.services.person.handlers;
 import java.util.Date;
 import java.util.UUID;
 
+import org.easymock.EasyMock;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
+import com.iris.core.dao.PersonPlaceAssocDAO;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
 import com.iris.messages.capability.PersonCapability;
+import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.model.Fixtures;
 import com.iris.messages.model.Person;
+import com.iris.platform.PagedResults;
+import com.iris.platform.history.HistoryLogDAO;
+import com.iris.platform.history.HistoryLogEntry;
 import com.iris.platform.history.HistoryLogEntryType;
 import com.iris.test.ListHistoryEntriesHandlerTestCase;
+import com.iris.test.Mocks;
 
 /**
- * 
+ *
  */
+@Mocks(PersonPlaceAssocDAO.class)
 public class TestListHistoryEntriesHandler extends ListHistoryEntriesHandlerTestCase<Person> {
    @Inject ListHistoryEntriesHandler handler;
-   
+   @Inject PersonPlaceAssocDAO assocDao;
+   @Inject HistoryLogDAO logDao;
+
+   private final UUID actorId = UUID.randomUUID();
+
+   // the base class's requests are the person looking at their own history
+   @Override
+   protected PlatformMessage createRequest(Person context, Integer limit, String token) {
+      return asActor(context, getAddress(context), limit, token);
+   }
+
+   private PlatformMessage asActor(Person context, Address actor, Integer limit, String token) {
+      return PlatformMessage.builder(super.createRequest(context, limit, token)).withActor(actor).create();
+   }
+
+   private void expectPlaces(UUID actorPlace, UUID personPlace) {
+      Person person = createPersonWithLogin();
+      EasyMock.expect(assocDao.findPlaceIdsByPerson(actorId)).andReturn(ImmutableSet.of(actorPlace));
+      EasyMock.expect(assocDao.findPlaceIdsByPerson(person.getId())).andReturn(ImmutableSet.of(personPlace));
+   }
+
+   private Person personWithLogin;
+
+   private Person createPersonWithLogin() {
+      if(personWithLogin == null) {
+         personWithLogin = createContext();
+         personWithLogin.setHasLogin(true);
+      }
+      return personWithLogin;
+   }
+
+   @Test
+   public void testStrangerCannotListAPersonsHistory() {
+      expectPlaces(UUID.randomUUID(), UUID.randomUUID());
+      replay();
+
+      Person person = createPersonWithLogin();
+      try {
+         handleRequest(person, asActor(person, Address.platformService(actorId, PersonCapability.NAMESPACE), null, null));
+         fail("expected the person not to be found");
+      }
+      catch(ErrorEventException e) {
+         // expected
+      }
+      verify(); // strict mock: the log wasn't read
+   }
+
+   @Test
+   public void testSomeoneAtTheSamePlaceCanListAPersonsHistory() {
+      UUID place = UUID.randomUUID();
+      expectPlaces(place, place);
+      EasyMock.expect(logDao.listEntriesByQuery(EasyMock.anyObject())).andReturn(PagedResults.<HistoryLogEntry>emptyPage());
+      replay();
+
+      Person person = createPersonWithLogin();
+      handleRequest(person, asActor(person, Address.platformService(actorId, PersonCapability.NAMESPACE), null, null));
+      verify();
+   }
+
    /* (non-Javadoc)
     * @see com.iris.platform.services.ListHistoryEntriesHandlerTestCase#createContext()
     */

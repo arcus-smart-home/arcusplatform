@@ -206,7 +206,18 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
    protected MessageBody handleRequest(PlatformMessage message) throws Exception {
       UUID placeId = message.getPlaceId() == null ? null : UUID.fromString(message.getPlaceId());
       Address destination = message.getDestination();
-      
+
+      // a rule address names the place it belongs to, and a client chose the destination,
+      // so refuse anything addressed to a rule at another place
+      Object destinationId = destination.getId();
+      if(
+            PlatformConstants.SERVICE_RULE.equals(destination.getGroup())
+            && destinationId instanceof UUID
+            && !Address.ZERO_UUID.equals(destinationId)
+      ) {
+         Errors.assertPlaceMatches(message, (UUID) destinationId);
+      }
+
       // dispatch to the specific rule -- move more in here
       if(
             RuleCapability.EnableRequest.NAME.equals(message.getMessageType()) ||
@@ -220,20 +231,24 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
          return null;
       }
       
-      // rule service requests
+      // rule service requests; these carry the place in the body, which must match the message's place
       if(com.iris.messages.service.RuleService.ListRuleTemplatesRequest.NAME.equals(message.getMessageType())) {
+         assertPlaceMatches(placeId, destination, message.getValue());
          return handleListRuleTemplates(message.getValue());
       }
       if(com.iris.messages.service.RuleService.ListRulesRequest.NAME.equals(message.getMessageType())) {
+         assertPlaceMatches(placeId, destination, message.getValue());
          return handleListRules(message.getValue());
       }
       if(com.iris.messages.service.RuleService.GetCategoriesRequest.NAME.equals(message.getMessageType())) {
+         assertPlaceMatches(placeId, destination, message.getValue());
          return handleGetCategories(message.getValue());
       }
       if(com.iris.messages.service.RuleService.GetRuleTemplatesByCategoryRequest.NAME.equals(message.getMessageType())) {
+         assertPlaceMatches(placeId, destination, message.getValue());
          return handleGetRuleTemplatesByCategory(message.getValue());
       }
-      
+
       // rule template requests
       if(RuleTemplateCapability.ResolveRequest.NAME.equals(message.getMessageType())) {
       	MessageBody body = message.getValue();
@@ -244,11 +259,6 @@ public class RuleService extends AbstractPlatformMessageListener implements Part
       	MessageBody body = message.getValue();
       	assertPlaceMatches(placeId, destination, body);
          return handleCreateRule(message.getDestination(), message.getDestination().getId(), body);
-      }
-      if(com.iris.messages.service.RuleService.ListRulesRequest.NAME.equals(message.getMessageType())) {
-      	MessageBody body = message.getValue();
-      	assertPlaceMatches(placeId, destination, body);
-         return handleListRules(message.getValue());
       }
       
       // rule requests

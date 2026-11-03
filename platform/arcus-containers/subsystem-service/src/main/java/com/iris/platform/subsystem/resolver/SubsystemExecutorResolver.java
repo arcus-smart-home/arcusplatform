@@ -113,7 +113,16 @@ public class SubsystemExecutorResolver implements ArgumentResolverFactory<Platfo
          return getPlaceIdFromServiceRequest(message);
       }
       if(AlarmIncidentCapability.NAMESPACE.equals(message.getDestination().getGroup())) {
-      	id = UUID.fromString(message.getPlaceId());
+         // an incident is loaded from the message's place; without a usable place header there's nothing to load it from
+         if(StringUtils.isEmpty(message.getPlaceId())) {
+            throw new NotFoundException(message.getDestination());
+         }
+         try {
+            id = UUID.fromString(message.getPlaceId());
+         }
+         catch(IllegalArgumentException e) {
+            throw new NotFoundException(message.getDestination());
+         }
       }
       if(!(id instanceof UUID)) {
          throw new NotFoundException(message.getDestination());

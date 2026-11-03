@@ -107,6 +107,36 @@ public class SubsystemExecutorResolverTest {
    }
 
    @Test
+   public void testAnIncidentRequestWithoutAPlaceHeaderIsNotFound() {
+      EasyMock.replay(registry);
+      try {
+         resolver.apply(request(AlarmIncidentCapability.CancelRequest.NAME, Address.platformService(UUID.randomUUID(), AlarmIncidentCapability.NAMESPACE), null));
+         fail("expected an incident request without a place header to be refused");
+      }
+      catch(com.iris.messages.errors.NotFoundException e) {
+         // expected
+      }
+      EasyMock.verify(registry);
+   }
+
+   @Test
+   public void testAnIncidentRequestWithAMalformedPlaceHeaderIsNotFound() {
+      EasyMock.replay(registry);
+      PlatformMessage message = PlatformMessage
+            .buildRequest(AlarmIncidentCapability.CancelRequest.NAME, ImmutableMap.of(), Address.clientAddress("android", "1"), Address.platformService(UUID.randomUUID(), AlarmIncidentCapability.NAMESPACE))
+            .withPlaceId("not-a-place-id")
+            .create();
+      try {
+         resolver.apply(message);
+         fail("expected an incident request with a malformed place header to be refused");
+      }
+      catch(com.iris.messages.errors.NotFoundException e) {
+         // expected
+      }
+      EasyMock.verify(registry);
+   }
+
+   @Test
    public void testIncidentsAreLoadedFromTheActivePlaceWhateverIdIsAddressed() {
       expectLoad(activePlace);
       EasyMock.replay(registry);

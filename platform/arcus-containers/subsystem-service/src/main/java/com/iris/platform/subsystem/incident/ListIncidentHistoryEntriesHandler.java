@@ -15,6 +15,10 @@
  */
 package com.iris.platform.subsystem.incident;
 
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.Utils;
@@ -25,8 +29,10 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.AlarmIncidentCapability.ListHistoryEntriesRequest;
 import com.iris.messages.capability.AlarmIncidentCapability.ListHistoryEntriesResponse;
+import com.iris.messages.errors.Errors;
 import com.iris.messages.listener.annotation.Request;
 import com.iris.platform.PagedResults;
+import com.iris.platform.alarm.incident.AlarmIncidentDAO;
 import com.iris.platform.history.HistoryLogDAO;
 import com.iris.platform.history.HistoryLogDAO.ListEntriesQuery;
 import com.iris.platform.history.HistoryLogEntry;
@@ -38,21 +44,28 @@ public class ListIncidentHistoryEntriesHandler {
    
    private final BeanListTransformer<HistoryLogEntry> transformer;
    private final HistoryLogDAO logDao;
+   private final AlarmIncidentDAO incidentDao;
 
    @Inject
    public ListIncidentHistoryEntriesHandler(
          BeanAttributesTransformer<HistoryLogEntry> transformer,
-         HistoryLogDAO logDao
+         HistoryLogDAO logDao,
+         AlarmIncidentDAO incidentDao
    ) {
       this.transformer = new BeanListTransformer<>(transformer);
       this.logDao = logDao;
+      this.incidentDao = incidentDao;
    }
 
    @Request(ListHistoryEntriesRequest.NAME)
    public MessageBody handleRequest(PlatformMessage message, PlatformMessage msg) {
    	Address address = message.getDestination();
       Utils.assertNotNull(address, "Incident address is required to list history log entries");
-      
+      // the log is keyed by incident alone, which says nothing about whose incident it is
+      if(!StringUtils.isEmpty(message.getPlaceId())) {
+         Errors.assertFound(incidentDao.findById(UUID.fromString(message.getPlaceId()), (UUID) address.getId()), address);
+      }
+
       MessageBody request = msg.getValue();
       String token = ListHistoryEntriesRequest.getToken(request);
       Integer limit = ListHistoryEntriesRequest.getLimit(request);

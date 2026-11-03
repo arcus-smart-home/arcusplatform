@@ -25,6 +25,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.bridge.metrics.BridgeMetrics;
+import com.iris.bridge.server.client.Client;
 import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.config.RESTHandlerConfig;
 import com.iris.bridge.server.http.HttpSender;
@@ -43,6 +44,7 @@ import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.capability.PersonCapability.SendVerificationEmailRequest;
 import com.iris.messages.errors.NotFoundException;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Person;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.person.PersonHandlerHelper;
@@ -95,18 +97,13 @@ public class RequestEmailVerificatonRESTHandler extends RESTHandler {
    	if(curPerson == null) {
    		throw new NotFoundException(Address.fromString(destinationStr));
    	}
-   	/**
-   	 * The following security check is commented out due to I2-3123.  Ideally we would like the client to re-authenticate 
-   	 * after email address change since email address is considered to be the username.  But it is too much work to 
-   	 * make the change at this moment.  4/5/18
-   	 */
-   	//ensure person's email matches with the session principal name.  Only the person himself can perform this operation
-   	/* Client client = clientFactory.get(ctx.channel());
-   	String actor = client.getPrincipalName();   	
-   	if(!Objects.equal(actor, curPerson.getEmail())) {
-   		throw new ErrorEventException(Errors.invalidRequest());
-   	}*/	
-   	
+   	//only the person can do this.  compared by id because the session's principal name is still
+   	//the old address after an email change (I2-3123)
+   	Client client = clientFactory.get(ctx.channel());
+   	if(!curPerson.getId().equals(client.getPrincipalId())) {
+   		throw new UnauthorizedRequestException(Address.fromString(destinationStr), "Only the person can request verification of their email");
+   	}
+
    	//generate token and update person
    	String newToken = TokenUtil.randomTokenString(tokenLength);
    	curPerson.setEmailVerificationToken(newToken);

@@ -73,6 +73,7 @@ public abstract class AbstractSetAttributesPlatformMessageHandler<B> implements 
    @Override
    public MessageBody handleRequest(B context, PlatformMessage msg) {
       Utils.assertNotNull(context, "No context found, the object identified does not exist!");
+      assertAccessible(context, msg);
       MessageBody request = msg.getValue();
       Map<String,Object> attributes = request.getAttributes();
 

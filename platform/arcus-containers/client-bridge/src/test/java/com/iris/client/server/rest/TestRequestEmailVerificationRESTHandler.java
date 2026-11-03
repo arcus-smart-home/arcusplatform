@@ -225,21 +225,37 @@ public class TestRequestEmailVerificationRESTHandler extends IrisMockTestCase {
       FullHttpResponse response = handler.respond(request, ctx);   
       
       MessageBody mb = toClientRequest(response);
-      //Due to I2-3123, we allow it for now
-      //assertEquals(ErrorEvent.MESSAGE_TYPE, mb.getMessageType());     
-      assertEquals(MessageConstants.MSG_EMPTY_MESSAGE, mb.getMessageType());
+      assertEquals(ErrorEvent.MESSAGE_TYPE, mb.getMessageType());
+      assertNull(curPerson.getEmailVerificationToken());
+      assertTrue(platformMsgCapture.getValues().isEmpty());
    }
-   
+
+   // the person is matched by id, so this still works after they change their email (I2-3123)
+   @Test
+   public void testRequestEmailVerification_AfterEmailChange() throws Exception {
+      Person curPerson = createPerson();
+
+      mockSetup(curPerson, true, true, PersonCapability.SendVerificationEmailRequest.SOURCE_WEB, 1);
+      curPerson.setEmail("changed@example.com");
+
+      replay();
+
+      FullHttpResponse response = handler.respond(request, ctx);
+
+      assertEquals(MessageConstants.MSG_EMPTY_MESSAGE, toClientRequest(response).getMessageType());
+      assertNotNull(curPerson.getEmailVerificationToken());
+   }
+
    private Capture<Person> mockSetup(Person curPerson, boolean personExist, String source, int times) {
    	return mockSetup(curPerson, personExist, true, source, times);
    }
    
    private Capture<Person> mockSetup(Person curPerson, boolean personExist, boolean principalMatch, String source, int times) {
-   	EasyMock.expect(client.getPrincipalId()).andReturn(curPerson.getId()).times(times);
+   	EasyMock.expect(client.getPrincipalId()).andReturn(principalMatch ? curPerson.getId() : UUID.randomUUID()).anyTimes();
       EasyMock.expect(request.content()).andReturn(Unpooled.copiedBuffer(generateClientMessage(curPerson.getId(), generateRequest(source)).getBytes())).times(times);
-      EasyMock.expect(ctx.channel()).andReturn(channel).times(times);
+      EasyMock.expect(ctx.channel()).andReturn(channel).anyTimes();
 
-      EasyMock.expect(clientFactory.get(channel)).andReturn(client).times(times);
+      EasyMock.expect(clientFactory.get(channel)).andReturn(client).anyTimes();
       platformMsgCapture = EasyMock.newCapture(CaptureType.ALL);     
       EasyMock.expect(platformBus.send(EasyMock.capture(platformMsgCapture))).andAnswer(
          () -> {
@@ -252,12 +268,7 @@ public class TestRequestEmailVerificationRESTHandler extends IrisMockTestCase {
       client.logout();
    	EasyMock.expectLastCall().times(times);   	  	
    	EasyMock.expect(authenticator.expireCookie()).andReturn(new DefaultCookie("test", "test")).times(times);
-   	
-   	if(principalMatch) {
-   		EasyMock.expect(client.getPrincipalName()).andReturn(curPerson.getEmail()).times(times);   	
-   	}else{
-   		EasyMock.expect(client.getPrincipalName()).andReturn("wrongemail@gmail.com").times(times); 
-   	}
+
    	if(personExist) {
    		EasyMock.expect(personDao.findById(curPerson.getId())).andReturn(curPerson).times(times);
    	}else{

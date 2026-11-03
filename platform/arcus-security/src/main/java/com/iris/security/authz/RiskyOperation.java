@@ -24,6 +24,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.AccountCapability;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.HubAdvancedCapability;
+import com.iris.messages.capability.HubBackupCapability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.capability.HubZigbeeCapability;
 import com.iris.messages.capability.HubZwaveCapability;
@@ -56,7 +57,11 @@ public enum RiskyOperation {
    HUB_FACTORY_RESET("hub.factoryreset",
          HubAdvancedCapability.FactoryResetRequest.NAME,
          HubZigbeeCapability.FactoryResetRequest.NAME,
-         HubZwaveCapability.FactoryResetRequest.NAME),
+         HubZwaveCapability.FactoryResetRequest.NAME,
+         // resetting a radio or restoring a backup rewinds or tears down the networks too
+         HubZigbeeCapability.ResetRequest.NAME,
+         HubZwaveCapability.ResetRequest.NAME,
+         HubBackupCapability.RestoreRequest.NAME),
    PERSON_DELETE("person.delete", PersonCapability.DeleteRequest.NAME, PersonCapability.RemoveFromPlaceRequest.NAME),
    LOGIN_DELETE("login.delete", PersonCapability.DeleteLoginRequest.NAME);
 
@@ -81,8 +86,16 @@ public enum RiskyOperation {
             && message.getValue().getAttributes().containsKey(attribute);
    }
 
+   // values() clones the array, so keep one copy for the per-message checks
+   private static final RiskyOperation[] VALUES = values();
+
    public static boolean isRisky(PlatformMessage message) {
-      return Arrays.stream(values()).anyMatch((operation) -> operation.matches(message));
+      for(RiskyOperation operation : VALUES) {
+         if(operation.matches(message)) {
+            return true;
+         }
+      }
+      return false;
    }
 
    public static RiskyOperation fromConfigName(String name) {

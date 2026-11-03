@@ -59,25 +59,48 @@ Grants are stored in two Cassandra tables kept in sync via batch writes:
 
 When an account is created, the owner gets `accountOwner=true` with `permissions=["*:*:*"]`. When an invitation is accepted, the invitee gets `accountOwner=false` with `permissions=["*:*:*"]` (FULL_ACCESS).
 
-### Two-Layer Authorization
+### Client Message Authorization
 
-Every platform message passes through two authorization layers:
+Each bridge binds one `Authorizer`, chosen by `authz.algorithm`. A client chooses the destination of every message, so authorization has to decide whether that destination is within the session's scope as well as whether the message is allowed.
 
-**Layer 1 — RoleAuthorizer** (`platform/arcus-security/.../authz/RoleAuthorizer.java`):
+| Bridge | `authz.algorithm` | Runs |
+|---|---|---|
+| client-bridge | `role` | RoleAuthorizer |
+| api-bridge | `layered` | RoleAuthorizer, then PermissionsAuthorizer |
 
-Coarse-grained checks based on message type:
+**RoleAuthorizer** (`platform/arcus-security/.../authz/RoleAuthorizer.java`):
 
-- Certain messages (e.g., `IssueInvoiceRefundRequest`) are always denied to end users (reserved for internal support)
-- Account-mutating messages (billing, place deletion) require `accountOwner=true`
-- "Self" methods (add mobile device, delete login) require the message actor to match the destination
+Scope checks, using only the session's grants:
+
+- Certain messages (e.g., `IssueInvoiceRefundRequest`, population changes) are always denied to clients (reserved for internal support)
+- Account-mutating messages (billing, place deletion) require `accountOwner=true`, on the addressed account when the destination is an account
+- "Self" methods (add mobile device, delete login, invitations) require the message actor to match the destination
+- Place, account and mobile device destinations require a grant on that place or account, or for a mobile device to be the actor's own
 - Place-scoped service requests verify the user has at least one permission for the target place
 
-**Layer 2 — PermissionsAuthorizer** (`platform/arcus-security/.../authz/PermissionsAuthorizer.java`):
+**PermissionsAuthorizer** (`platform/arcus-security/.../authz/PermissionsAuthorizer.java`):
 
 Fine-grained Shiro permission checking:
 
 1. Extracts required permissions from the message via `PermissionExtractorRegistry`
 2. Checks instance-specific permissions first (per-device overrides), then wildcard permissions
+
+It doesn't look at where the destination belongs, so it isn't enough by itself: a key with `*:*:*` on one place would pass for any object.
+
+**Services** check whatever needs a lookup. A service that loads an object from a client-chosen address must compare the object's place to the message's place header with `Errors.assertPlaceMatches`, or refuse it some other way. RoleAuthorizer can't do this, so a new handler on one of these paths has to:
+
+| Destination | Checked by |
+|---|---|
+| Devices | `MessageHandler`; remove, force remove, lost, upgrade and history have their own handlers, which each compare the device's place |
+| Subsystems | `SubsystemExecutorResolver` |
+| Alarm incidents | Looked up by place, `ListIncidentHistoryEntriesHandler` |
+| Hubs | hub-bridge `acceptFromPlatform`, `OfflineHubRequestHandler`, `HubDeleteHandler` |
+| Rules | `RuleService` — a rule address names its place, which must match the message |
+| Scenes, schedulers, pairing devices | Their handlers |
+| IPCD devices | `IpcdService` |
+| People | `PersonAccess` (see below) |
+
+**People:** someone with a login manages their own record, because their email is their username. Anyone sharing a place may maintain someone without a login. The web, iOS and Android clients all follow the same rule. Reading a person needs a shared place. A stranger gets `not found`, so these can't be used to test person ids.
 
 ### Disabling Operations
 
@@ -90,7 +113,7 @@ Instances can switch off what they don't use. Both settings are read at startup 
 | Account creation | `CreateAccountRESTHandler` |
 | Password reset | `SendPasswordResetRESTHandler,ResetPasswordRESTHandler` |
 
-**`authz.disabled.risky.operations`** (env `AUTHZ_DISABLED_RISKY_OPERATIONS`, client-bridge and api-bridge) refuses risky operations from clients, comma separated, or `all`. A mistyped operation stops the bridge from starting. Only client requests are affected, so deleting a place still removes its hubs. Refusals on client-bridge count toward `bridge.authz.unauthorized.disabled`, and both bridges log them.
+**`authz.disabled.risky.operations`** (env `AUTHZ_DISABLED_RISKY_OPERATIONS`, client-bridge and api-bridge) refuses risky operations from clients, comma separated, or `all`. A mistyped operation stops the bridge from starting, and so does combining the switch with `authz.algorithm=none`, which couldn't enforce it. Only client requests are affected, so deleting a place still removes its hubs. Both bridges run RoleAuthorizer, so refusals on either count toward `bridge.authz.unauthorized.disabled`, and both log them.
 
 | Name | Refuses |
 |---|---|
@@ -99,7 +122,7 @@ Instances can switch off what they don't use. Both settings are read at startup 
 | `account.delete` | `account:Delete` |
 | `place.delete` | `place:Delete` |
 | `hub.delete` | `hub:Delete` |
-| `hub.factoryreset` | `FactoryReset` on the hub, ZigBee and Z-Wave |
+| `hub.factoryreset` | `FactoryReset` on the hub, ZigBee and Z-Wave, plus `hubzigbee:Reset`, `hubzwave:Reset` and `hubbackup:Restore`, which tear down or rewind the networks |
 | `person.delete` | `person:Delete`, `person:RemoveFromPlace` |
 | `login.delete` | `person:DeleteLogin` |
 

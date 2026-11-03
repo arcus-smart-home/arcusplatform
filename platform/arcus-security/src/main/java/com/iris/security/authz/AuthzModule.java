@@ -38,10 +38,15 @@ public class AuthzModule extends AbstractIrisModule {
    public static final String AUTHZ_ALGORITHM_NONE = "none";
    public static final String AUTHZ_ALGORITHM_PERMISSIONS = "permissions";
    public static final String AUTHZ_ALGORITHM_ROLE = "role";
+   public static final String AUTHZ_ALGORITHM_LAYERED = "layered";
 
    @Inject(optional = true)
    @Named(AUTHZ_ALGORITHM_PROP)
    private String algorithm = AUTHZ_ALGORITHM_PERMISSIONS;
+
+   @Inject(optional = true)
+   @Named(DisabledRiskyOperations.PROP_DISABLED_RISKY_OPERATIONS)
+   private String disabledRiskyOperations = "";
 
    @Override
    protected void configure() {
@@ -58,13 +63,26 @@ public class AuthzModule extends AbstractIrisModule {
       bind(MessageFilterRegistry.class);
 
       if(algorithm.equalsIgnoreCase(AUTHZ_ALGORITHM_NONE)) {
+         // none can't enforce the risky operations switch, so refuse the contradiction instead of silently lifting it
+         assertNoDisabledRiskyOperations(disabledRiskyOperations);
          bind(Authorizer.class).to(NoopAuthorizer.class);
       } else if(algorithm.equalsIgnoreCase(AUTHZ_ALGORITHM_ROLE)) {
          bind(Authorizer.class).to(RoleAuthorizer.class);
+      } else if(algorithm.equalsIgnoreCase(AUTHZ_ALGORITHM_LAYERED)) {
+         bind(Authorizer.class).to(LayeredAuthorizer.class);
       } else {
          bind(Authorizer.class).to(PermissionsAuthorizer.class);
       }
 
+   }
+
+   static void assertNoDisabledRiskyOperations(String disabledRiskyOperations) {
+      if(disabledRiskyOperations != null && !disabledRiskyOperations.trim().isEmpty()) {
+         throw new IllegalStateException(
+               "refusing to start: " + AUTHZ_ALGORITHM_PROP + "=" + AUTHZ_ALGORITHM_NONE +
+               " would skip " + DisabledRiskyOperations.PROP_DISABLED_RISKY_OPERATIONS +
+               "; clear one of the two settings");
+      }
    }
 
    @Provides
