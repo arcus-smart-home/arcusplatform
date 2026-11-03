@@ -26,6 +26,7 @@ import com.iris.messages.capability.*;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.*;
+import com.iris.security.apikey.ApiKeyPrincipal;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +35,13 @@ import java.util.Collection;
 import java.util.UUID;
 
 /**
- * Currently only checks that the actor is the account owner for a select number of messages that
- * would impact billing.
+ * Decides whether a client's message is within the scope of its session. The destination comes
+ * from the client, so anything that can be checked from the session's grants is checked here:
+ * the actor is the account owner for sensitive messages, the person for self methods, and has a
+ * grant on the addressed place or account.
+ *
+ * Objects whose owner needs a lookup are checked by their service, which has to compare the
+ * object's place to the message's place header. See docs/security.md.
  */
 @Singleton
 public class RoleAuthorizer implements Authorizer {
@@ -69,13 +75,17 @@ public class RoleAuthorizer implements Authorizer {
 
       // things that can bypass place header
       switch(message.getMessageType()) {
-      
+
       // not allowed
       case AccountCapability.IssueInvoiceRefundRequest.NAME:
       case AccountCapability.IssueCreditRequest.NAME:
       case NotificationCapability.NotifyRequest.NAME:
       case NotificationCapability.NotifyCustomRequest.NAME:
       case NotificationCapability.EmailRequest.NAME:
+      case PopulationService.AddPlacesRequest.NAME:
+      case PopulationService.RemovePlacesRequest.NAME:
+      //// clients create accounts through /account/CreateAccount, which doesn't come through here
+      case MessageConstants.MSG_CREATE_ACCOUNT:
    		this.metrics.onUnauthorizedSupport();
          return deny("supportrequest", placeId, null, message);
       
@@ -97,7 +107,7 @@ public class RoleAuthorizer implements Authorizer {
       //// sensitive
       case PlaceCapability.DeleteRequest.NAME:
 
-         if(isAccountOwner(context, targetPlace)) {
+         if(isAccountOwner(context, targetPlace) && ownsDestinationAccount(context, message)) {
             this.metrics.onAuthorized();
             return true;
          }
@@ -105,20 +115,21 @@ public class RoleAuthorizer implements Authorizer {
             this.metrics.onUnauthorizedNonAccountHolder();
             return deny("notowner", placeId, targetPlace, message);
          }
-         
+
       // open to anyone
-      //// invitations can be handled by anyone who has the token & the email
-      case PersonCapability.AcceptInvitationRequest.NAME:
-      case PersonCapability.PendingInvitationsRequest.NAME: 
-      case PersonCapability.RejectInvitationRequest.NAME:
       case PlaceService.ValidateAddressRequest.NAME:
       //// anyone can send a ping
       case MessageConstants.MSG_PING_REQUEST:
          this.metrics.onAuthorized();
          return true;
-         
+
       // self methods
-      // FIXME should this include SetAttributes to person?
+      // SetAttributes to a person isn't one of these, people without a login are maintained by
+      // others at their place, see PersonAccess
+      //// invitations bypass the place header because a new login may not have a place yet
+      case PersonCapability.AcceptInvitationRequest.NAME:
+      case PersonCapability.PendingInvitationsRequest.NAME:
+      case PersonCapability.RejectInvitationRequest.NAME:
       case PersonCapability.AddMobileDeviceRequest.NAME:
       case PersonCapability.DeleteLoginRequest.NAME:
       case PersonCapability.GetSecurityAnswersRequest.NAME:
@@ -127,7 +138,7 @@ public class RoleAuthorizer implements Authorizer {
       case PersonCapability.PromoteToAccountRequest.NAME:
       case PersonCapability.RemoveMobileDeviceRequest.NAME:
       case PersonCapability.SetSecurityAnswersRequest.NAME:
-         if(selfRequired && !isSelf(message)) {
+         if(selfRequired && !isSelf(context, message)) {
             this.metrics.onUnauthorizedWrongPerson();
             return deny("wrongperson", placeId, null, message);
          }
@@ -159,12 +170,7 @@ public class RoleAuthorizer implements Authorizer {
       	case VideoService.GetQuotaRequest.NAME:
       	case VideoService.DeleteAllRequest.NAME:
       		String requestedPlaceId = (String) message.getValue().getAttributes().get("placeId");
-      		UUID placeUuid = null;
-      		try{
-         		placeUuid = StringUtils.isEmpty(requestedPlaceId) ? null : UUID.fromString(requestedPlaceId);         		
-      		}catch(Exception e) {
-      		   throw new ErrorEventException(Errors.invalidParam("placeId"), e);
-      		}
+      		UUID placeUuid = parsePlaceId(requestedPlaceId);
       		if(placeUuid == null || !hasAccessToPlace(placeUuid, context)) {
                this.metrics.onUnauthorizedWrongPlace();
                return deny("wrongplace", placeId, requestedPlaceId, message);
@@ -187,9 +193,45 @@ public class RoleAuthorizer implements Authorizer {
       		return deny("wrongplace", placeId, placeUuid, message);
          }
       }
-      
+
+      // account requests
+      else if(AccountCapability.NAMESPACE.equals(message.getDestination().getGroup())) {
+         if(!hasAccessToAccount(message.getDestination().getId(), context)) {
+            this.metrics.onUnauthorizedWrongPlace();
+            return deny("wrongplace", placeId, null, message);
+         }
+      }
+
+      // a mobile device is addressed by the id of the person it belongs to
+      else if(MobileDeviceCapability.NAMESPACE.equals(message.getDestination().getGroup())) {
+         if(selfRequired && !isActor(message.getDestination().getId(), message)) {
+            this.metrics.onUnauthorizedWrongPerson();
+            return deny("wrongperson", placeId, null, message);
+         }
+      }
+
+      // the place is in the body, so the destination checks above don't cover it. a blank place
+      // means the active place
+      if(PersonCapability.RemoveFromPlaceRequest.NAME.equals(message.getMessageType())) {
+         String requestedPlaceId = PersonCapability.RemoveFromPlaceRequest.getPlaceId(message.getValue());
+         UUID placeUuid = parsePlaceId(requestedPlaceId);
+         if(placeUuid != null && !hasAccessToPlace(placeUuid, context)) {
+            this.metrics.onUnauthorizedWrongPlace();
+            return deny("wrongplace", placeId, requestedPlaceId, message);
+         }
+      }
+
       this.metrics.onAuthorized();
       return true;
+   }
+
+   private UUID parsePlaceId(String placeId) {
+      try {
+         return StringUtils.isEmpty(placeId) ? null : UUID.fromString(placeId);
+      }
+      catch(Exception e) {
+         throw new ErrorEventException(Errors.invalidParam("placeId"), e);
+      }
    }
 
    // reason matches the bridge.authz.unauthorized.<reason> counter so log lines and metrics line up
@@ -204,11 +246,24 @@ public class RoleAuthorizer implements Authorizer {
       return value == null ? null : StringUtils.replaceChars(value.toString(), "\r\n", "__");
    }
 
-   private boolean isSelf(PlatformMessage message) {
+   private boolean isSelf(AuthorizationContext context, PlatformMessage message) {
       if(message.getActor() == null) {
          return false;
       }
-      return message.getActor().equals(message.getDestination());
+      if(message.getActor().equals(message.getDestination())) {
+         return true;
+      }
+      // an API key's session reports its creator as the person, and clients list places through
+      // them. ApiPlatformBusListener narrows the response to the key's own place.
+      return PersonCapability.ListAvailablePlacesRequest.NAME.equals(message.getMessageType())
+            && context.getPrincipal() instanceof ApiKeyPrincipal
+            && Objects.equal(((ApiKeyPrincipal) context.getPrincipal()).getPersonId(), message.getDestination().getId());
+   }
+
+   private boolean isActor(Object personId, PlatformMessage message) {
+      return message.getActor() != null
+            && PersonCapability.NAMESPACE.equals(message.getActor().getGroup())
+            && Objects.equal(message.getActor().getId(), personId);
    }
 
    private String extractPlaceId(String sessionPlaceId, PlatformMessage msg) {
@@ -228,6 +283,22 @@ public class RoleAuthorizer implements Authorizer {
       });
    }
    
+   // the owner checks above look at the active place, which on its own says nothing about an
+   // account that was addressed directly
+   private boolean ownsDestinationAccount(AuthorizationContext context, PlatformMessage message) {
+      Address destination = message.getDestination();
+      if(!AccountCapability.NAMESPACE.equals(destination.getGroup())) {
+         return true;
+      }
+      return context.getGrants().stream().anyMatch((g) -> {
+         return g.isAccountOwner() && Objects.equal(g.getAccountId(), destination.getId());
+      });
+   }
+
+   private boolean hasAccessToAccount(Object accountId, AuthorizationContext context) {
+      return context.getGrants().stream().anyMatch((g) -> Objects.equal(g.getAccountId(), accountId));
+   }
+
    private boolean hasAccessToPlace(UUID placeId, AuthorizationContext context) {
    	Collection<?> permissions = context.getNonInstancePermissions(placeId);
    	if(permissions != null && !permissions.isEmpty()) {

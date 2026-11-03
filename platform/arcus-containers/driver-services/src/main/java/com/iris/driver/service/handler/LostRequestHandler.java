@@ -30,6 +30,7 @@ import com.iris.messages.address.Address;
 import com.iris.messages.address.DeviceDriverAddress;
 import com.iris.messages.capability.DeviceConnectionCapability.LostDeviceRequest;
 import com.iris.messages.capability.DeviceConnectionCapability.LostDeviceResponse;
+import com.iris.messages.errors.Errors;
 import com.iris.messages.errors.NotFoundException;
 import com.iris.messages.model.Device;
 
@@ -56,6 +57,9 @@ public class LostRequestHandler implements DriverServiceRequestHandler{
          logger.warn("Message sent to non-existent device [{}]", (deviceId));
          throw new NotFoundException(destination);
       }
+      // a client chose the destination, so refuse it unless the device is at the message's place;
+      // String.valueOf: a device without a place matches no place header
+      Errors.assertPlaceMatches(message, String.valueOf(dev.getPlace()));
       return dev;
    }
 

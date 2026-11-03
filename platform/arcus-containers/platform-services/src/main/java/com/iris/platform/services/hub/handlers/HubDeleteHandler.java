@@ -15,6 +15,7 @@
  */
 package com.iris.platform.services.hub.handlers;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -27,11 +28,13 @@ import com.iris.core.dao.HubDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubCapability;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Hub;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.population.PlacePopulationCacheManager;
@@ -57,8 +60,19 @@ public class HubDeleteHandler implements ContextualRequestMessageHandler<Hub> {
 
    @Override
    public MessageBody handleRequest(Hub context, PlatformMessage msg) {
+      assertClientAtHubPlace(context, msg);
       deleteHub(context);
       return HubCapability.DeleteResponse.instance();
+   }
+
+   // SERV:hub:<id> reaches this through HubService, without OfflineHubRequestHandler's place check
+   private void assertClientAtHubPlace(Hub hub, PlatformMessage msg) {
+      if(!MessageConstants.CLIENT.equals(msg.getSource().getNamespace())) {
+         return;
+      }
+      if(hub.getPlace() == null || !Objects.equals(hub.getPlace().toString(), msg.getPlaceId())) {
+         throw new UnauthorizedRequestException(msg.getDestination(), "Actor " + msg.getActor() + " not authorized to delete hub " + msg.getDestination());
+      }
    }
 
    protected void deleteHub(Hub hub) {

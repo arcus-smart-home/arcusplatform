@@ -43,6 +43,7 @@ import com.iris.messages.model.Account;
 import com.iris.messages.model.Person;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.services.AbstractSetAttributesPlatformMessageHandler;
+import com.iris.platform.services.person.PersonAccess;
 import com.iris.population.PlacePopulationCacheManager;
 
 @Singleton
@@ -52,6 +53,7 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
    private final AccountDAO accountDao;
    private final PersonDAO personDao;
    private final PersonPlaceAssocDAO personPlaceAssocDao;
+   private final PersonAccess personAccess;
 
    @Inject
    public PersonSetAttributesHandler(
@@ -61,12 +63,20 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
          PersonDAO personDao,
          PersonPlaceAssocDAO personPlaceAssocDao,
          PlatformMessageBus platformBus,
-         PlacePopulationCacheManager populationCacheMgr
+         PlacePopulationCacheManager populationCacheMgr,
+         PersonAccess personAccess
    ) {
       super(capabilityRegistry, personTransformer, platformBus, populationCacheMgr);
       this.accountDao = accountDao;
       this.personDao = personDao;
       this.personPlaceAssocDao = personPlaceAssocDao;
+      this.personAccess = personAccess;
+   }
+
+   @Override
+   protected void assertAccessible(Person context, PlatformMessage msg) {
+      super.assertAccessible(context, msg);
+      personAccess.assertEditable(context, msg);
    }
 
    @Override
@@ -78,7 +88,8 @@ public class PersonSetAttributesHandler extends AbstractSetAttributesPlatformMes
       if(emailUpdated) {
          String oldEmail = (String)oldAttributes.get(PersonCapability.ATTR_EMAIL);
          personDao.updatePersonAndEmail(context, oldEmail);
-         if(context.getHasLogin() && Account.AccountState.COMPLETE.equals(account.getState())){
+         // people who joined by invitation have a login but no account of their own
+         if(context.getHasLogin() && (account == null || Account.AccountState.COMPLETE.equals(account.getState()))){
             platformBus.send(createEmailChangeNotification(context, oldEmail, NotificationCapability.NotifyRequest.PRIORITY_LOW));
             platformBus.send(createEmailChangeNotification(context, oldEmail, NotificationCapability.NotifyRequest.PRIORITY_MEDIUM));
          }

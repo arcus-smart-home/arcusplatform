@@ -30,20 +30,24 @@ import com.iris.platform.history.HistoryLogDAO;
 import com.iris.platform.history.HistoryLogDAO.ListEntriesQuery;
 import com.iris.platform.history.HistoryLogEntry;
 import com.iris.platform.history.HistoryLogEntryType;
+import com.iris.platform.services.person.PersonAccess;
 
 public class ListHistoryEntriesHandler implements ContextualRequestMessageHandler<Person> {
    public static final int DFLT_LIMIT = 10;
-   
+
    private final BeanListTransformer<HistoryLogEntry> transformer;
    private final HistoryLogDAO logDao;
+   private final PersonAccess personAccess;
 
    @Inject
    public ListHistoryEntriesHandler(
          BeanAttributesTransformer<HistoryLogEntry> transformer,
-         HistoryLogDAO logDao
+         HistoryLogDAO logDao,
+         PersonAccess personAccess
    ) {
       this.transformer = new BeanListTransformer<>(transformer);
       this.logDao = logDao;
+      this.personAccess = personAccess;
    }
 
    @Override
@@ -54,7 +58,8 @@ public class ListHistoryEntriesHandler implements ContextualRequestMessageHandle
    @Override
    public MessageBody handleRequest(Person context, PlatformMessage msg) {
       Utils.assertNotNull(context, "Person is required to list history log entries");
-      
+      personAccess.assertReadable(context, msg);
+
       MessageBody request = msg.getValue();
       String token = ListHistoryEntriesRequest.getToken(request);
       Integer limit = ListHistoryEntriesRequest.getLimit(request);

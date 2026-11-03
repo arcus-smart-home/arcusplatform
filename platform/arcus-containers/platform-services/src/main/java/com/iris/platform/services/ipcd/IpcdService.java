@@ -121,9 +121,9 @@ public class IpcdService extends AbstractPlatformMessageListener {
       case ListDeviceTypesRequest.NAME:
          return handleListDeviceTypes();
       case FindDeviceRequest.NAME:
-         return handleFindDevice(message.getValue());
+         return handleFindDevice(message);
       case ForceUnregisterRequest.NAME:
-         return handleForceUnregister(message.getValue());
+         return handleForceUnregister(message);
       default:
          return super.handleRequest(message);
       }
@@ -178,7 +178,16 @@ public class IpcdService extends AbstractPlatformMessageListener {
             .build();
    }
 
-   private MessageBody handleFindDevice(MessageBody body) {
+   // these name a device by serial number, so a client may only reach one at its own place.
+   // a device with no place hasn't been claimed by anyone.
+   private void assertClientAtDevicePlace(PlatformMessage message, IpcdDevice device) {
+      if(MessageConstants.CLIENT.equals(message.getSource().getNamespace()) && device.getPlaceId() != null) {
+         Errors.assertPlaceMatches(message, device.getPlaceId());
+      }
+   }
+
+   private MessageBody handleFindDevice(PlatformMessage message) {
+      MessageBody body = message.getValue();
       Map<String,Object> devTypeMap = FindDeviceRequest.getDeviceType(body);
       if(devTypeMap == null || devTypeMap.isEmpty()) {
          throw new ErrorEventException(Errors.missingParam(FindDeviceRequest.ATTR_DEVICETYPE));
@@ -200,6 +209,7 @@ public class IpcdService extends AbstractPlatformMessageListener {
       if(ipcdDev == null) {
          throw new ErrorEventException(Errors.notFound(protocolAddress));
       }
+      assertClientAtDevicePlace(message, ipcdDev);
       com.iris.messages.model.Device dev = devDao.findByProtocolAddress(protocolAddress.getRepresentation());
       FindDeviceResponse.Builder b = FindDeviceResponse.builder()
             .withIpcdDevice(createIpcdDev(ipcdDev));
@@ -209,8 +219,8 @@ public class IpcdService extends AbstractPlatformMessageListener {
       return b.build();
    }
 
-   private MessageBody handleForceUnregister(MessageBody body) {
-      String protocolAddress = ForceUnregisterRequest.getProtocolAddress(body);
+   private MessageBody handleForceUnregister(PlatformMessage message) {
+      String protocolAddress = ForceUnregisterRequest.getProtocolAddress(message.getValue());
       if(StringUtils.isBlank(protocolAddress)) {
          throw new ErrorEventException(Errors.missingParam(ForceUnregisterRequest.ATTR_PROTOCOLADDRESS));
       }
@@ -218,6 +228,7 @@ public class IpcdService extends AbstractPlatformMessageListener {
       if(device == null) {
          throw new ErrorEventException(Errors.notFound(Address.fromString(protocolAddress)));
       }
+      assertClientAtDevicePlace(message, device);
       if(IpcdDevice.RegistrationState.UNREGISTERED != device.getRegistrationState()) {
          com.iris.messages.model.Device dev = devDao.findByProtocolAddress(protocolAddress);
          if(dev != null) {

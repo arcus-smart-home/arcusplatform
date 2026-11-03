@@ -34,6 +34,7 @@ import com.iris.messages.capability.AlarmSubsystemCapability;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.HubAdvancedCapability;
+import com.iris.messages.capability.HubBackupCapability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.capability.HubZigbeeCapability;
 import com.iris.messages.capability.HubZwaveCapability;
@@ -152,7 +153,10 @@ public class DisabledRiskyOperationsTest {
       assertDisabledBy("hub.factoryreset",
             message(HubAdvancedCapability.FactoryResetRequest.NAME, hub),
             message(HubZigbeeCapability.FactoryResetRequest.NAME, hub),
-            message(HubZwaveCapability.FactoryResetRequest.NAME, hub));
+            message(HubZwaveCapability.FactoryResetRequest.NAME, hub),
+            message(HubZigbeeCapability.ResetRequest.NAME, hub),
+            message(HubZwaveCapability.ResetRequest.NAME, hub),
+            message(HubBackupCapability.RestoreRequest.NAME, hub));
    }
 
    @Test

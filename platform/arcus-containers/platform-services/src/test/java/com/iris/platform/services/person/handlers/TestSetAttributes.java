@@ -158,10 +158,11 @@ public class TestSetAttributes extends IrisMockTestCase {
       }
       MessageBody request = MessageBody.buildMessage(Capability.CMD_SET_ATTRIBUTES, attrs);
 
-      PlatformMessage msg = PlatformMessage.create(request,
-            Fixtures.createClientAddress(),
-            Address.fromString(person.getAddress()),
-            COR_ID);
+      Address address = Address.fromString(person.getAddress());
+      PlatformMessage msg = PlatformMessage.buildMessage(request, Fixtures.createClientAddress(), address)
+            .withCorrelationId(COR_ID)
+            .withActor(address)
+            .create();
 
       handler.handleRequest(person, msg);
    }

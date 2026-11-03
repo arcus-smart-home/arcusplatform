@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.Permission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,16 +41,19 @@ public class PermissionsAuthorizer implements Authorizer {
    private final PermissionExtractorRegistry extractorRegistry;
    private final MessageFilterRegistry filterRegistry;
    private final DisabledRiskyOperations disabledOperations;
+   private final AuthzMetrics metrics;
 
    @Inject
    public PermissionsAuthorizer(
          PermissionExtractorRegistry extractorRegistry,
          MessageFilterRegistry filterRegistry,
-         DisabledRiskyOperations disabledOperations
+         DisabledRiskyOperations disabledOperations,
+         AuthzMetrics metrics
    ) {
       this.extractorRegistry = extractorRegistry;
       this.filterRegistry = filterRegistry;
       this.disabledOperations = disabledOperations;
+      this.metrics = metrics;
    }
 
    @Override
@@ -57,7 +61,10 @@ public class PermissionsAuthorizer implements Authorizer {
 
       // api-bridge runs this authorizer on its own, so API keys have to be refused here too
       if(disabledOperations.isDisabled(message)) {
-         logger.warn("authz denied reason=disabled type={} actor={}", message.getMessageType(), message.getActor());
+         this.metrics.onUnauthorizedDisabled();
+         // the type comes from the client, so strip CR/LF to keep a request from forging log lines
+         logger.warn("authz denied reason=disabled type={} actor={}",
+               StringUtils.replaceChars(message.getMessageType(), "\r\n", "__"), message.getActor());
          return false;
       }
 

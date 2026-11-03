@@ -210,6 +210,9 @@ public class TestAlarmIncidentServiceImpl extends IrisMockTestCase {
 	public void testListHistoryEntries() throws Exception {
 		PlatformMessage request = listHistory();
 		EasyMock
+			.expect(alarmIncidentDao.findById(placeId, incident.getId()))
+			.andReturn(incident);
+		EasyMock
 			.expect(historyLogDao.listEntriesByQuery(EasyMock.notNull()))
 			.andReturn(PagedResults.emptyPage());
 					

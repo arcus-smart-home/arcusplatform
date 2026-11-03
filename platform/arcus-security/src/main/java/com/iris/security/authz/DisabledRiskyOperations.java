@@ -57,6 +57,15 @@ public class DisabledRiskyOperations {
    }
 
    public boolean isDisabled(PlatformMessage message) {
-      return disabled.stream().anyMatch((operation) -> operation.matches(message));
+      // this runs for every client message, and most instances disable nothing
+      if(disabled.isEmpty()) {
+         return false;
+      }
+      for(RiskyOperation operation : disabled) {
+         if(operation.matches(message)) {
+            return true;
+         }
+      }
+      return false;
    }
 }
