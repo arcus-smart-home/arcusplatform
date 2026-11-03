@@ -59,7 +59,7 @@ public class RoleAuthorizerTest {
    @Before
    public void setUp() {
       metrics = EasyMock.createMock(AuthzMetrics.class);
-      authorizer = new RoleAuthorizer(metrics);
+      authorizer = new RoleAuthorizer(metrics, new DisabledRiskyOperations());
 
       logger = (Logger) LoggerFactory.getLogger(RoleAuthorizer.class);
       originalLevel = logger.getLevel();

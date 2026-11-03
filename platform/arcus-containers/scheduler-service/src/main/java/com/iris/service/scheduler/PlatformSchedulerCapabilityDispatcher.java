@@ -38,6 +38,7 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.HubCapability;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.capability.ScheduleCapability;
 import com.iris.messages.capability.SchedulerCapability;
@@ -58,6 +59,7 @@ import com.iris.messages.service.SchedulerService.ScheduleWeeklyCommandRequest;
 import com.iris.messages.service.SchedulerService.UpdateWeeklyCommandRequest;
 import com.iris.messages.type.TimeOfDayCommand;
 import com.iris.platform.model.ModelEntity;
+import com.iris.security.authz.RiskyOperation;
 import com.iris.platform.scheduler.SchedulerModelDao;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.service.scheduler.handlers.SchedulerRequestHandler;
@@ -257,8 +259,15 @@ class PlatformSchedulerCapabilityDispatcher extends BaseModelHandler implements 
          logger.debug("No requests to send for command [{}]", commandId);
          return;
       }
-      
-      sendRequest(request.get());
+
+      try {
+         sendRequest(request.get());
+      }
+      catch(ErrorEventException e) {
+         // carry on so the commit still moves the schedule to its next fire time
+         logger.warn("Not sending command [{}] from [{}]: {} to {}", commandId, scheduler.getAddress(),
+               clean(request.get().getMessageType()), clean(SchedulerModel.getTarget(scheduler)));
+      }
    }
    
    private void handleRequest(PlatformMessage message) {
@@ -516,9 +525,23 @@ class PlatformSchedulerCapabilityDispatcher extends BaseModelHandler implements 
                .withActor(scheduler.getAddress())
                .withPayload(request)
                .create();
+      assertSchedulable(message);
       platformBus.send(message);
-      
+
    }
-   
+
+   // schedules run device, rule, scene and subsystem commands, never hub methods or risky operations
+   private void assertSchedulable(PlatformMessage message) {
+      Address target = message.getDestination();
+      if(target.isHubAddress() || HubCapability.NAMESPACE.equals(target.getGroup()) || RiskyOperation.isRisky(message)) {
+         throw new ErrorEventException(Errors.invalidRequest("This command can't be scheduled"));
+      }
+   }
+
+   // a client stored the command and its target, so strip CR/LF to keep them from forging log lines
+   private static String clean(String value) {
+      return StringUtils.replaceChars(value, "\r\n", "__");
+   }
+
 }
 

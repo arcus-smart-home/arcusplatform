@@ -48,10 +48,12 @@ public class RoleAuthorizer implements Authorizer {
    private boolean selfRequired = true;
    
    private final AuthzMetrics metrics;
-   
+   private final DisabledRiskyOperations disabledOperations;
+
    @Inject
-   public RoleAuthorizer(AuthzMetrics metrics) {
+   public RoleAuthorizer(AuthzMetrics metrics, DisabledRiskyOperations disabledOperations) {
       this.metrics = metrics;
+      this.disabledOperations = disabledOperations;
    }
 
    @Override
@@ -59,6 +61,11 @@ public class RoleAuthorizer implements Authorizer {
       String targetPlace = extractPlaceId(placeId, message);
       logger.trace("checking authorization for {} @ {} invoked by {}", message.getMessageType(), targetPlace, message.getActor().getRepresentation());
       Address actor = message.getActor();
+
+      if(disabledOperations.isDisabled(message)) {
+         this.metrics.onUnauthorizedDisabled();
+         return deny("disabled", placeId, null, message);
+      }
 
       // things that can bypass place header
       switch(message.getMessageType()) {

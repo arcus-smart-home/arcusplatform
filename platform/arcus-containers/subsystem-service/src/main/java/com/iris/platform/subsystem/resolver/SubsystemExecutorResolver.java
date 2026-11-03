@@ -118,6 +118,7 @@ public class SubsystemExecutorResolver implements ArgumentResolverFactory<Platfo
       if(!(id instanceof UUID)) {
          throw new NotFoundException(message.getDestination());
       }
+      Errors.assertPlaceMatches(message, (UUID) id);
       return (UUID) id;
    }
 
