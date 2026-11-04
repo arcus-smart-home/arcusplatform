@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
@@ -31,6 +32,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.dao.DeviceDAO;
 import com.iris.core.dao.HubDAO;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.device.attributes.AttributeKey;
 import com.iris.device.attributes.AttributeMap;
@@ -53,9 +55,11 @@ import com.iris.messages.capability.DeviceConnectionCapability;
 import com.iris.messages.capability.HubReflexCapability;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Device;
 import com.iris.messages.model.DriverId;
 import com.iris.messages.model.Hub;
+import com.iris.messages.model.Place;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.model.ModelEntity;
 import com.iris.population.PlacePopulationCacheManager;
@@ -77,6 +81,7 @@ public class DeviceService {
    
    private final PlatformMessageBus platformBus;
    private final HubDAO hubDao;
+   private final PlaceDAO placeDao;
    private final DeviceDAO deviceDao;
    private final DriverRegistry drivers;
    private final DriverExecutorRegistry registry;
@@ -92,6 +97,7 @@ public class DeviceService {
    public DeviceService(
          PlatformMessageBus platformBus,
          HubDAO hubDao,
+         PlaceDAO placeDao,
          DeviceDAO deviceDao,
          DriverRegistry drivers,
          DriverExecutorRegistry registry,
@@ -100,6 +106,7 @@ public class DeviceService {
    ) {
       this.platformBus = platformBus;
       this.hubDao = hubDao;
+      this.placeDao = placeDao;
       this.deviceDao = deviceDao;
       this.drivers = drivers;
       this.registry = registry;
@@ -114,6 +121,18 @@ public class DeviceService {
    }
    
    public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes) {
+      return create(request, protocolAttributes, null);
+   }
+
+   /**
+    * Creates the device, or re-adds the device already at its protocol address.
+    *
+    * @param requesterPlace the place header of the message asking for the device, or null for
+    *    senders without one. When set, the device has to belong to that place: a device already
+    *    at the protocol address must be there, and a new device is only created there, under that
+    *    place's account.
+    */
+   public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes, @Nullable String requesterPlace) {
       Preconditions.checkNotNull(request.getProtocolName(), "must specify a protocol name");
       Preconditions.checkNotNull(request.getProtocolId(), "must specify a protocol id");
 
@@ -136,15 +155,10 @@ public class DeviceService {
       // this try block CAN NOT start any earlier, we only release the lock if we
       // successfully acquired it
       try {
-         if(existingDevice != null) {
-            if(existingDevice.isTombstoned()) {
-               deviceDao.delete(existingDevice);
-               registry.remove(Address.fromString(existingDevice.getAddress()));
-            }
-            else {
-               handleExistingDeviceAdd(existingDevice,protocolAttributes, reflexVersion, connected);
-               return existingDevice;
-            }
+         if(existingDevice != null && !existingDevice.isTombstoned()) {
+            assertRequesterPlace(requesterPlace, existingDevice.getPlace(), protocolAddress);
+            handleExistingDeviceAdd(existingDevice,protocolAttributes, reflexVersion, connected);
+            return existingDevice;
          }
          // if we don't have a place id or an accountId from the message, try to get it from the hub object
          if((request.getPlaceId() == null || request.getAccountId() == null) && hubId != null) {
@@ -152,6 +166,15 @@ public class DeviceService {
             // TODO should hub settings always override?
             request.setAccountId(hub.getAccount());
             request.setPlaceId(hub.getPlace());
+         }
+         // checked after the hub lookup, which can replace the place the request named
+         assertRequesterPlace(requesterPlace, request.getPlaceId(), protocolAddress);
+         assertRequesterAccount(requesterPlace, request.getAccountId(), protocolAddress);
+
+         if(existingDevice != null) {
+            // a removed device; it's replaced by the new one
+            deviceDao.delete(existingDevice);
+            registry.remove(Address.fromString(existingDevice.getAddress()));
          }
          
          
@@ -205,6 +228,29 @@ public class DeviceService {
       }
       finally {
          addsInProgress.remove(protocolAddress);
+      }
+   }
+
+   private static final Address DEVICE_SERVICE = Address.platformService(PlatformConstants.SERVICE_DEVICES);
+
+   private void assertRequesterPlace(@Nullable String requesterPlace, @Nullable UUID devicePlace, Address protocolAddress) {
+      if(requesterPlace == null) {
+         return;
+      }
+      if(devicePlace == null || !requesterPlace.equals(devicePlace.toString())) {
+         logger.warn("Refusing to add [{}] for place [{}]: the device belongs to place [{}]", protocolAddress, requesterPlace, devicePlace);
+         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for another place");
+      }
+   }
+
+   private void assertRequesterAccount(@Nullable String requesterPlace, @Nullable UUID account, Address protocolAddress) {
+      if(requesterPlace == null || account == null) {
+         return;
+      }
+      Place place = placeDao.findById(UUID.fromString(requesterPlace));
+      if(place == null || !account.equals(place.getAccount())) {
+         logger.warn("Refusing to add [{}] for place [{}]: account [{}] is not the place's account", protocolAddress, requesterPlace, account);
+         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for another account");
       }
    }
 

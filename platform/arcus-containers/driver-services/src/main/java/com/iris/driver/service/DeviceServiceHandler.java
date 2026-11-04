@@ -31,6 +31,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
         String type = body.getMessageType();
         switch (type) {
             case MessageConstants.MSG_ADD_DEVICE_REQUEST:
-                return addDevice(body);
+                return addDevice(message.getPlaceId(), body);
             case com.iris.messages.service.DeviceService.SyncDevicesRequest.NAME:
                 return syncDevices(message, body);
             // TODO: Adding this case for i2-1932 this should be changed in the hub to use dev namespace and removed at some point in the fufutre
@@ -140,7 +141,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
          handleDeletedEvent(message);
          break;
       case HubAdvancedCapability.GetDeviceInfoResponse.NAME:
-         addDevice(message.getValue());
+         addDevice(message.getPlaceId(), message.getValue());
          break;
 		case com.iris.messages.service.DeviceService.DevicesDegradedEvent.NAME:
 		   syncDegradedDevices(message, body);
@@ -151,7 +152,10 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       }
    }
 
-   public MessageBody addDevice(MessageBody request) {
+   /**
+    * @param requesterPlace the message's place header; when set, the device must belong to that place
+    */
+   public MessageBody addDevice(@Nullable String requesterPlace, MessageBody request) {
 	   CreateDeviceRequest createRequest = new CreateDeviceRequest(request);
 	   try {
 	      AttributeMap protocolAttributes = AttributeMap.newMap();
@@ -159,7 +163,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
 	         String protocolAttrs = JSON.toJson(request.getAttributes().get("protocolAttributes"));
 	         protocolAttributes = JSON.fromJson(protocolAttrs, AttributeMap.class);
 	      }
-	      Device device = service.create(createRequest, protocolAttributes);
+	      Device device = service.create(createRequest, protocolAttributes, requesterPlace);
 	      ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
 	      if(device.getAccount() != null) {
 	         response.put(MessageConstants.ATTR_ACCOUNTID, device.getAccount().toString());
