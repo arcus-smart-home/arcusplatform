@@ -59,7 +59,6 @@ import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Device;
 import com.iris.messages.model.DriverId;
 import com.iris.messages.model.Hub;
-import com.iris.messages.model.Place;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.model.ModelEntity;
 import com.iris.population.PlacePopulationCacheManager;
@@ -120,7 +119,8 @@ public class DeviceService {
       return addsInProgress.get(protocolAddress) != null;
    }
    
-   public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes) {
+   // without a requester place nothing is checked, so this form is only for tests
+   Device create(CreateDeviceRequest request, AttributeMap protocolAttributes) {
       return create(request, protocolAttributes, null);
    }
 
@@ -129,8 +129,8 @@ public class DeviceService {
     *
     * @param requesterPlace the place header of the message asking for the device, or null for
     *    senders without one. When set, the device has to belong to that place: a device already
-    *    at the protocol address must be there, and a new device is only created there, under that
-    *    place's account.
+    *    at the protocol address must be there (or have no place), a hub the request names must be
+    *    there, and a new device is created only there, under that place's account.
     */
    public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes, @Nullable String requesterPlace) {
       Preconditions.checkNotNull(request.getProtocolName(), "must specify a protocol name");
@@ -152,24 +152,40 @@ public class DeviceService {
       }
 
       Device existingDevice = lockByProtocolAddress(address,protocolId,hubId);
-      // this try block CAN NOT start any earlier, we only release the lock if we
-      // successfully acquired it
+      // lockByProtocolAddress keeps the lock unless it found a live device, and only a lock this
+      // call holds may be released. This try block CAN NOT start any earlier.
+      boolean locked = existingDevice == null || existingDevice.isTombstoned();
       try {
-         if(existingDevice != null && !existingDevice.isTombstoned()) {
-            assertRequesterPlace(requesterPlace, existingDevice.getPlace(), protocolAddress);
+         if(!locked) {
+            if(existingDevice.getPlace() != null) {
+               assertRequesterPlace(requesterPlace, existingDevice.getPlace(), protocolAddress);
+            }
             handleExistingDeviceAdd(existingDevice,protocolAttributes, reflexVersion, connected);
             return existingDevice;
          }
-         // if we don't have a place id or an accountId from the message, try to get it from the hub object
-         if((request.getPlaceId() == null || request.getAccountId() == null) && hubId != null) {
+         if(hubId != null && (requesterPlace != null || request.getPlaceId() == null || request.getAccountId() == null)) {
             Hub hub = hubDao.findById(hubId);
-            // TODO should hub settings always override?
-            request.setAccountId(hub.getAccount());
-            request.setPlaceId(hub.getPlace());
+            if(hub == null) {
+               logger.warn("Refusing to add [{}]: unknown hub [{}]", protocolAddress, hubId);
+               throw requesterPlace == null
+                     ? new ErrorEventException(Errors.invalidRequest("Unknown hub"))
+                     : new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for an unknown hub");
+            }
+            // a device named for a hub has to be at that hub's place
+            assertRequesterPlace(requesterPlace, hub.getPlace(), protocolAddress);
+            // if we don't have a place id or an accountId from the message, get it from the hub
+            if(request.getPlaceId() == null || request.getAccountId() == null) {
+               // TODO should hub settings always override?
+               request.setAccountId(hub.getAccount());
+               request.setPlaceId(hub.getPlace());
+            }
          }
          // checked after the hub lookup, which can replace the place the request named
          assertRequesterPlace(requesterPlace, request.getPlaceId(), protocolAddress);
-         assertRequesterAccount(requesterPlace, request.getAccountId(), protocolAddress);
+         if(requesterPlace != null) {
+            // the place's own account, rather than whatever the request or the hub's copy says
+            request.setAccountId(accountOf(requesterPlace, protocolAddress));
+         }
 
          if(existingDevice != null) {
             // a removed device; it's replaced by the new one
@@ -227,7 +243,9 @@ public class DeviceService {
          return ((PlatformDeviceDriverContext) e.context()).getDevice();
       }
       finally {
-         addsInProgress.remove(protocolAddress);
+         if(locked) {
+            addsInProgress.remove(protocolAddress);
+         }
       }
    }
 
@@ -243,15 +261,13 @@ public class DeviceService {
       }
    }
 
-   private void assertRequesterAccount(@Nullable String requesterPlace, @Nullable UUID account, Address protocolAddress) {
-      if(requesterPlace == null || account == null) {
-         return;
+   private UUID accountOf(String requesterPlace, Address protocolAddress) {
+      UUID account = placeDao.getAccountById(UUID.fromString(requesterPlace));
+      if(account == null) {
+         logger.warn("Refusing to add [{}]: place [{}] has no account", protocolAddress, requesterPlace);
+         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for a place without an account");
       }
-      Place place = placeDao.findById(UUID.fromString(requesterPlace));
-      if(place == null || !account.equals(place.getAccount())) {
-         logger.warn("Refusing to add [{}] for place [{}]: account [{}] is not the place's account", protocolAddress, requesterPlace, account);
-         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for another account");
-      }
+      return account;
    }
 
    private int getReflexVersionSupportedByHub(DriverExecutor executor) {
@@ -387,12 +403,13 @@ public class DeviceService {
       boolean success = false;
       try {
          Device existing = deviceDao.findByProtocolAddress(address.getRepresentation());
-         if(existing != null) {
+         if(existing != null && !existing.isTombstoned()) {
                return existing;
          }
-         
+
+         // no device, or a removed one about to be replaced: keep the lock
          success = true;
-         return null;
+         return existing;
       }
       finally {
          if(!success) {
