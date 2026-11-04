@@ -15,16 +15,20 @@
  */
 package com.iris.notification;
 
+import static com.iris.notification.EmailTemplates.HBS3_ENTITY;
+import static com.iris.notification.EmailTemplates.PLAIN_TEXT_SECTIONS;
+import static com.iris.notification.EmailTemplates.emailTemplates;
+import static com.iris.notification.EmailTemplates.read;
+import static com.iris.notification.EmailTemplates.templateId;
+
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,22 +55,20 @@ import com.iris.test.IrisTestCase;
  * <p>
  * The html-body is sent as text/html, so no value may reach it unescaped. The
  * other sections are sent as plain text, so no value may be HTML-escaped there.
- * Keeping plain text raw is safe only because every template has an html-body:
- * without one the providers would send the plaintext-body as the HTML part, so
- * a missing html-body fails here too.
+ * Every template must render both an html-body and a plaintext-body; text
+ * outside the sections is never sent, so it is not checked.
  * <p>
  * Values come from {@link Probe}, a map that answers any name, and any property
  * of any name (_place.name, _person.firstName, ...), with markup naming it, so
  * the test needs no list of message parameters or entity fields. A template with
- * {{#if}}, {{#unless}} or {{#if_equal}} is rendered a second time with those
- * conditions flipped, so both branches are checked.
+ * {{#if}}, {{#unless}} or {{#if_equal}} is rendered again with each condition
+ * flipped on its own, and with all of them flipped when it has more than one.
+ * Other mixes of branches are not rendered; today no template has more than
+ * one condition, and EmailTemplateRawValueGuardTest reads every branch in the
+ * source.
  */
 public class EmailTemplateRenderGuardTest extends IrisTestCase {
    private static final Logger LOGGER = LoggerFactory.getLogger(EmailTemplateRenderGuardTest.class);
-
-   private static final File TEMPLATE_DIR = new File("src/dist/templates");
-   private static final String EMAIL_SUFFIX = "-email.hbs";
-   private static final String LAYOUT_PREFIX = "layout-";
 
    /**
     * Helpers that cast their argument to String or parse it as a number cannot
@@ -86,8 +88,6 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
 
    private static final Pattern RAW = Pattern.compile("<probe-x name=\"([^\"]*)\"", Pattern.CASE_INSENSITIVE);
    private static final Pattern ESCAPED = Pattern.compile("&lt;probe-x name=&quot;(.*?)&quot;", Pattern.CASE_INSENSITIVE);
-   // Everything the HBS3 escaping strategy produces.
-   private static final Pattern ENTITY = Pattern.compile("&(?:lt|gt|quot|amp|#x27|#x60|#x3D);");
    private static final Pattern IF = Pattern.compile("\\{\\{~?#(?:if|unless)\\s+([^\\s}~]+)\\s*~?\\}\\}");
    private static final Pattern IF_EQUAL = Pattern.compile("\\{\\{~?#if_equal\\s+([^\\s}~]+)\\s+[\"']([^\"']*)[\"']");
 
@@ -109,47 +109,44 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
       int plainTextWithValues = 0;
 
       for(File template: emailTemplates()) {
-         String templateId = template.getName().substring(0, template.getName().length() - ".hbs".length());
+         String templateId = templateId(template);
          rendered++;
-
-         List<Probe> passes = new ArrayList<>();
-         passes.add(new Probe("", HELPER_ARGUMENTS, Collections.emptySet()));
-         Probe flipped = flipConditions(read(template));
-         if(flipped != null) {
-            passes.add(flipped);
-         }
 
          boolean sawHtmlValue = false;
          boolean sawPlainValue = false;
-         for(Probe context: passes) {
-            String label = templateId + (context == flipped ? " (conditions flipped)" : "");
+         for(Map.Entry<String, Probe> pass: passes(read(template)).entrySet()) {
+            String label = templateId + pass.getKey();
             renders++;
             Map<String, String> parts;
             try {
-               parts = templates.renderMultipart(templateId, context);
+               parts = templates.renderMultipart(templateId, pass.getValue());
             }
             catch(RuntimeException e) {
                failures.add(label + ": render failed: " + e.getMessage());
                continue;
             }
 
+            if(parts.get(EmailSections.PLAINTEXT_BODY) == null) {
+               failures.add(label + ": no plaintext-body section");
+            }
             String html = parts.get(EmailSections.HTML_BODY);
             if(html == null) {
                failures.add(label + ": no html-body section");
-               continue;
             }
-            Set<String> raw = names(RAW, html);
-            if(!raw.isEmpty()) {
-               failures.add(label + ": raw in html-body: " + raw);
+            else {
+               Set<String> raw = names(RAW, html);
+               if(!raw.isEmpty()) {
+                  failures.add(label + ": raw in html-body: " + raw);
+               }
+               sawHtmlValue |= ESCAPED.matcher(html).find();
             }
-            sawHtmlValue |= ESCAPED.matcher(html).find();
 
-            for(String section: EmailSections.PLAIN_TEXT) {
+            for(String section: PLAIN_TEXT_SECTIONS) {
                String text = parts.get(section);
                if(text == null) {
                   continue;
                }
-               if(ENTITY.matcher(text).find()) {
+               if(HBS3_ENTITY.matcher(text).find()) {
                   failures.add(label + ": HTML-escaped in " + section + ": " + names(ESCAPED, text));
                }
                sawPlainValue |= RAW.matcher(text).find();
@@ -173,23 +170,47 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
    }
 
    /**
-    * A context for a second render that takes the other branch of every
-    * condition in the template: names tested by #if or #unless are missing,
-    * and names tested by #if_equal get the value they are compared with.
-    * Returns null when the template has no conditions.
+    * The contexts to render a template with, by label: every condition taken
+    * the way the probes make it go, then each condition flipped on its own,
+    * then all of them flipped when there are several. Flipping a #if or
+    * #unless leaves its name out; flipping an #if_equal gives its name the
+    * value it is compared with.
     */
-   private static Probe flipConditions(String source) {
-      Map<String, String> values = new HashMap<>(HELPER_ARGUMENTS);
-      Set<String> absent = new HashSet<>();
+   private static Map<String, Probe> passes(String source) {
+      // name -> value that flips its condition, null for "leave it out"
+      Map<String, String> flips = new LinkedHashMap<>();
       Matcher m = IF.matcher(source);
       while(m.find()) {
-         absent.add(m.group(1));
+         flips.put(m.group(1), null);
       }
       m = IF_EQUAL.matcher(source);
       while(m.find()) {
-         values.put(m.group(1), m.group(2));
+         flips.put(m.group(1), m.group(2));
       }
-      return absent.isEmpty() && values.equals(HELPER_ARGUMENTS) ? null : new Probe("", values, absent);
+
+      Map<String, Probe> passes = new LinkedHashMap<>();
+      passes.put("", flipped(Collections.emptyMap()));
+      for(Map.Entry<String, String> flip: flips.entrySet()) {
+         passes.put(" (" + flip.getKey() + " flipped)", flipped(Collections.singletonMap(flip.getKey(), flip.getValue())));
+      }
+      if(flips.size() > 1) {
+         passes.put(" (all conditions flipped)", flipped(flips));
+      }
+      return passes;
+   }
+
+   private static Probe flipped(Map<String, String> flips) {
+      Map<String, String> values = new HashMap<>(HELPER_ARGUMENTS);
+      Set<String> absent = new HashSet<>();
+      for(Map.Entry<String, String> flip: flips.entrySet()) {
+         if(flip.getValue() == null) {
+            absent.add(flip.getKey());
+         }
+         else {
+            values.put(flip.getKey(), flip.getValue());
+         }
+      }
+      return new Probe("", values, absent);
    }
 
    private static String markup(String name) {
@@ -203,17 +224,6 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
          names.add(m.group(1));
       }
       return names;
-   }
-
-   private static List<File> emailTemplates() {
-      File[] files = TEMPLATE_DIR.listFiles((dir, name) -> name.endsWith(EMAIL_SUFFIX) && !name.startsWith(LAYOUT_PREFIX));
-      assertTrue("no email templates in " + TEMPLATE_DIR.getAbsolutePath(), files != null && files.length > 0);
-      Arrays.sort(files);
-      return Arrays.asList(files);
-   }
-
-   private static String read(File file) throws IOException {
-      return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
    }
 
    /**

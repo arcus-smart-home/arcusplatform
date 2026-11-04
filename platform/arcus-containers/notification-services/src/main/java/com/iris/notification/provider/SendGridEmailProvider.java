@@ -55,12 +55,6 @@ public class SendGridEmailProvider implements EmailProvider {
     private static Logger logger = LoggerFactory.getLogger(SendGridEmailProvider.class);
 
     private static final String REQUEST_END_POINT = "mail/send";
-    private final static String SENDER_NAME_SECTION = EmailSections.SENDER_NAME;
-    private final static String SENDER_EMAIL_SECTION = EmailSections.SENDER_EMAIL;
-    private final static String REPLYTO_EMAIL_SECTION = EmailSections.REPLYTO_EMAIL;
-    private final static String SUBJECT_SECTION = EmailSections.SUBJECT;
-    private final static String PLAINTEXT_BODY_SECTION = EmailSections.PLAINTEXT_BODY;
-    private final static String HTML_BODY_SECTION = EmailSections.HTML_BODY;
     private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
 
 
@@ -186,24 +180,26 @@ public class SendGridEmailProvider implements EmailProvider {
     private MailParams fromMap(Map<String, String> messageParts) {
         MailParams mailParams = new MailParams();
 
-        if (messageParts.containsKey(SENDER_NAME_SECTION)) {
-            mailParams.setSenderName(messageParts.get(SENDER_NAME_SECTION));
+        if (messageParts.containsKey(EmailSections.SENDER_NAME)) {
+            mailParams.setSenderName(messageParts.get(EmailSections.SENDER_NAME));
         }
 
-        if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-            mailParams.setSenderEmail(messageParts.get(SENDER_EMAIL_SECTION));
+        if (messageParts.containsKey(EmailSections.SENDER_EMAIL)) {
+            mailParams.setSenderEmail(messageParts.get(EmailSections.SENDER_EMAIL));
         }
 
-        if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
-            mailParams.setReplyToEmail(messageParts.get(REPLYTO_EMAIL_SECTION));
+        if (messageParts.containsKey(EmailSections.REPLYTO_EMAIL)) {
+            mailParams.setReplyToEmail(messageParts.get(EmailSections.REPLYTO_EMAIL));
         }
 
-        if (messageParts.containsKey(SUBJECT_SECTION)) {
-            mailParams.setSubject(messageParts.get(SUBJECT_SECTION));
+        if (messageParts.containsKey(EmailSections.SUBJECT)) {
+            mailParams.setSubject(messageParts.get(EmailSections.SUBJECT));
         }
 
-        mailParams.setPlaintextBody(messageParts.containsKey(PLAINTEXT_BODY_SECTION) ? messageParts.get(PLAINTEXT_BODY_SECTION) : messageParts.get(""));
-        mailParams.setHtmlBody(messageParts.containsKey(HTML_BODY_SECTION) ? messageParts.get(HTML_BODY_SECTION) : mailParams.getPlaintextBody());
+        mailParams.setPlaintextBody(messageParts.containsKey(EmailSections.PLAINTEXT_BODY) ? messageParts.get(EmailSections.PLAINTEXT_BODY) : messageParts.get(""));
+        // Null without an html-body, so the message goes out as text only. The
+        // plaintext-body leaves values unescaped, so it must never be the HTML part.
+        mailParams.setHtmlBody(messageParts.get(EmailSections.HTML_BODY));
 
         return mailParams;
     }
@@ -304,8 +300,9 @@ public class SendGridEmailProvider implements EmailProvider {
         Content content = new Content("text/plain", mailParams.getPlaintextBody());
 
         Mail mail = new Mail(mailParams.getFromEmail(), mailParams.getSubject(), mailParams.getToEmail(), content);
-        Content htmlContent = new Content("text/html", mailParams.getHtmlBody());
-        mail.addContent(htmlContent);
+        if (mailParams.getHtmlBody() != null) {
+            mail.addContent(new Content("text/html", mailParams.getHtmlBody()));
+        }
         mail.setReplyTo(new Email(mailParams.getReplyToEmail()));
 
         Request request = new Request();

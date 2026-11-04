@@ -15,17 +15,13 @@
  */
 package com.iris.notification.provider;
 
-import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
-
 /**
  * Names of the {{#section}} blocks in the *-email templates, as returned by
  * {@code TemplateService.renderMultipart}. The providers send {@link #HTML_BODY}
- * as text/html and everything in {@link #PLAIN_TEXT} as plain text, so templates
- * escape values with {{x}} in the html-body and leave them raw with {{{x}}} in
- * the other sections. That is only safe because every email template has an
- * html-body: without one the providers send the plaintext-body as the HTML part.
+ * as text/html and the other sections as plain text, so templates escape values
+ * with {{x}} in the html-body and leave them raw with {{{x}}} everywhere else.
+ * The plaintext-body is never sent as HTML: a template without an html-body
+ * gets a text-only email.
  */
 public final class EmailSections {
 
@@ -35,10 +31,6 @@ public final class EmailSections {
    public static final String SENDER_NAME = "sender-name";
    public static final String SENDER_EMAIL = "sender-email";
    public static final String REPLYTO_EMAIL = "replyto-email";
-
-   /** Every section that is sent as plain text, which is all of them except the html-body. */
-   public static final Set<String> PLAIN_TEXT =
-         ImmutableSet.of(SUBJECT, PLAINTEXT_BODY, SENDER_NAME, SENDER_EMAIL, REPLYTO_EMAIL);
 
    private EmailSections() {
    }

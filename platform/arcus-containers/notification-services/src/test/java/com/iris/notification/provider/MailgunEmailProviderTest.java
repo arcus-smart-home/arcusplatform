@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
@@ -191,6 +192,31 @@ public class MailgunEmailProviderTest {
 
       String expectedFromEmail = "Wes Stueve <wes.stueve@wds-it.com>";
       validateEmail(expectedFromEmail, mailRequestCaptor.getValue());
+   }
+
+   /**
+    * The plaintext-body leaves values unescaped, so a template without an
+    * html-body must get a text-only email, never its plain text as HTML.
+    */
+   @Test
+   public void shouldSendTextOnlyEmailWithoutHtmlBody() throws Exception {
+      String plaintext = "<a href=\"https://evil.example.com\">O'Brien & Daughters</a>";
+      ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(SENDER_NAME_SECTION, "Example Sender");
+      renderedParts.put(SENDER_EMAIL_SECTION, "sender@example.com");
+      renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
+      renderedParts.put(SUBJECT_SECTION, "subject");
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, plaintext);
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
+
+      mockMailgunEmailProvider.notifyCustomer(notification);
+      Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), mailRequestCaptor.capture());
+
+      Message message = mailRequestCaptor.getValue();
+      assertEquals(plaintext, message.getText());
+      assertNull(message.getHtml());
    }
 
    private void validateEmail(String expectedFromEmail, Message message) {

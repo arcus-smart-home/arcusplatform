@@ -15,16 +15,17 @@
  */
 package com.iris.notification;
 
+import static com.iris.notification.EmailTemplates.TEMPLATE_DIR;
+import static com.iris.notification.EmailTemplates.emailTemplates;
+import static com.iris.notification.EmailTemplates.read;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
@@ -35,19 +36,19 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.iris.notification.provider.EmailSections;
 
 /**
  * Source-level backstop for {@link EmailTemplateRenderGuardTest}, which is the
  * main check. Rendering only sees the branches its values select, so this test
- * also reads the template source and fails on any raw {{{x}}}, {{&x}} or raw
+ * also reads the template source. It fails on any raw {{{x}}}, {{&x}} or raw
  * block in an html-body section, or anywhere in a partial an html-body
- * includes, directly or through other partials. Subject and plaintext-body
- * sections are plain text and are meant to stay raw, so they are not checked.
+ * includes, directly or through other partials, and on a template whose
+ * html-body or plaintext-body section is missing from the source. Subject and
+ * plaintext-body sections are plain text and are meant to stay raw, so their
+ * values are not checked here.
  */
 public class EmailTemplateRawValueGuardTest {
-
-   private static final File TEMPLATE_DIR = new File("src/dist/templates");
-   private static final String EMAIL_SUFFIX = "-email.hbs";
 
    /**
     * Raw values allowed in HTML, as "template-file: expression". A value may
@@ -57,10 +58,8 @@ public class EmailTemplateRawValueGuardTest {
     */
    private static final Set<String> ALLOWED_RAW = ImmutableSet.of();
 
-   private static final Pattern HTML_BODY = Pattern.compile(
-         "\\{\\{~?#section\\s+([\"'])html-body\\1\\s*~?\\}\\}(.*?)\\{\\{~?/section\\s*~?\\}\\}",
-         Pattern.DOTALL
-   );
+   private static final Pattern HTML_BODY = section(EmailSections.HTML_BODY);
+   private static final Pattern PLAINTEXT_BODY = section(EmailSections.PLAINTEXT_BODY);
    // {{{x}}}, {{~{x}~}}, {{{{raw}}}} blocks and {{&x}} all skip escaping.
    private static final Pattern RAW = Pattern.compile(
          "\\{\\{~?\\{\\s*(.*?)\\s*\\}~?\\}\\}|\\{\\{~?&\\s*(.*?)\\s*~?\\}\\}",
@@ -107,6 +106,37 @@ public class EmailTemplateRawValueGuardTest {
       }
    }
 
+   @Test
+   public void everyEmailTemplateHasAnHtmlBody() throws IOException {
+      // The render guard checks this too, but only for the branches it renders.
+      assertEquals("email templates without an html-body section", new ArrayList<String>(), missing(HTML_BODY));
+   }
+
+   @Test
+   public void everyEmailTemplateHasAPlaintextBody() throws IOException {
+      // Without one the providers look for text under the "" key, which the
+      // renderer never sets, so the email has no text part. Requiring one also
+      // means text outside the sections never has to be checked for escaping.
+      assertEquals("email templates without a plaintext-body section", new ArrayList<String>(), missing(PLAINTEXT_BODY));
+   }
+
+   private static List<String> missing(Pattern section) throws IOException {
+      List<String> missing = new ArrayList<>();
+      for(File template: emailTemplates()) {
+         if(!section.matcher(read(template)).find()) {
+            missing.add(template.getName());
+         }
+      }
+      return missing;
+   }
+
+   private static Pattern section(String name) {
+      return Pattern.compile(
+            "\\{\\{~?#section\\s+([\"'])" + Pattern.quote(name) + "\\1\\s*~?\\}\\}(.*?)\\{\\{~?/section\\s*~?\\}\\}",
+            Pattern.DOTALL
+      );
+   }
+
    private static void collectRaw(String name, String html, List<String> violations) {
       Matcher raw = RAW.matcher(html);
       while(raw.find()) {
@@ -125,16 +155,5 @@ public class EmailTemplateRawValueGuardTest {
             toScan.push(partial.group(1));
          }
       }
-   }
-
-   private static List<File> emailTemplates() {
-      File[] files = TEMPLATE_DIR.listFiles((dir, name) -> name.endsWith(EMAIL_SUFFIX));
-      assertTrue("no email templates in " + TEMPLATE_DIR.getAbsolutePath(), files != null && files.length > 0);
-      Arrays.sort(files);
-      return Arrays.asList(files);
-   }
-
-   private static String read(File file) throws IOException {
-      return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
    }
 }

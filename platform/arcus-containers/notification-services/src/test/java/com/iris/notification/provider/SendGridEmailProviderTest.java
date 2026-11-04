@@ -110,6 +110,7 @@ public class SendGridEmailProviderTest {
       setField(uut, "logger", logger);
       Map<String, String> renderedParts = new HashMap<String, String>();
       renderedParts.put("", expectedEmailBody);
+      renderedParts.put(EmailSections.HTML_BODY, expectedEmailBody);
 
       notification = new NotificationBuilder().withPersonId(personId).withPlaceId(placeId).build();
       Map<String, BaseEntity<?, ?>> entityMap = new HashMap<>(2);
@@ -189,6 +190,28 @@ public class SendGridEmailProviderTest {
       Mockito.verify(sendGrid).api(emailCaptor.capture());
 
       validateEmail(emailCaptor.getValue(), expectedEmailFromEmail, expectedEmailFromEmail, expectedEmailBody);
+   }
+
+   /**
+    * The plaintext-body leaves values unescaped, so a template without an
+    * html-body must get a text-only email, never its plain text as HTML.
+    */
+   @Test
+   public void shouldSendTextOnlyEmailWithoutHtmlBody() throws Exception {
+      String plaintext = "<a href=\"https://evil.example.com\">O'Brien & Daughters</a>";
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, plaintext);
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      ArgumentCaptor<Request> mailRequestCaptor = ArgumentCaptor.forClass(Request.class);
+
+      uut.notifyCustomer(notification);
+      Mockito.verify(sendGrid).api(mailRequestCaptor.capture());
+
+      Mail mail = new ObjectMapper().readValue(mailRequestCaptor.getValue().getBody(), Mail.class);
+      assertEquals(1, mail.getContent().size());
+      assertEquals("text/plain", mail.getContent().get(0).getType());
+      assertEquals(plaintext, mail.getContent().get(0).getValue());
    }
 
    @Test(expected = DispatchException.class)

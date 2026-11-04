@@ -15,9 +15,10 @@
  */
 package com.iris.notification.message;
 
+import static com.iris.notification.EmailTemplates.HBS3_ENTITY;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.easymock.EasyMock;
 import org.junit.After;
@@ -55,9 +56,6 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
    private static final String IMAGE_ESCAPED = "&lt;img src=&quot;https://evil.example.com/i.png&quot;&gt;";
    private static final String APOSTROPHE = "O'Brien & Daughters";
    private static final String APOSTROPHE_ESCAPED = "O&#x27;Brien &amp; Daughters";
-
-   // Everything the HBS3 escaping strategy produces.
-   private static final Pattern ENTITY = Pattern.compile("&(?:lt|gt|quot|amp|#x27|#x60|#x3D);");
 
    private PlaceDAO placeDao;
    private DeviceDAO deviceDao;
@@ -158,16 +156,26 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
    }
 
    @Test
-   public void invitationSubjectKeepsInviterNameAsTyped() {
+   public void invitationKeepsInviterNameAsTypedInPlainText() {
       Map<String, String> parts = render(
             "account.person.invited",
-            entities(place("Example Cabin"), person("Alex", "Sample"), null),
+            entities(place("Example Cabin"), person("Alex", "Sample"), person("Jo & Sam", "Sample")),
+            "inviteeFirstName", "Alex",
             "invitorFirstName", APOSTROPHE,
             "invitorLastName", LINK
       );
 
       assertEquals("Accept Your Invitation To " + APOSTROPHE + " " + LINK + "'s Place", parts.get(EmailSections.SUBJECT));
-      assertPlainText(parts);
+      String html = parts.get(EmailSections.HTML_BODY);
+      assertEscaped(html, LINK, LINK_ESCAPED);
+      assertEscaped(html, APOSTROPHE, APOSTROPHE_ESCAPED);
+      assertEscaped(html, "Jo & Sam", "Jo &amp; Sam");
+      assertPlainText(
+            parts,
+            "products in Jo & Sam's home.",
+            "aspects of Jo & Sam's smart",
+            "please contact \n" + APOSTROPHE + " " + LINK + ". "
+      );
    }
 
    private static void assertEscaped(String html, String raw, String escaped) {
@@ -185,8 +193,8 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
       String text = parts.get(EmailSections.PLAINTEXT_BODY);
       assertNotNull(subject);
       assertNotNull(text);
-      assertFalse("HTML-escaped value in subject: " + subject, ENTITY.matcher(subject).find());
-      assertFalse("HTML-escaped value in plaintext-body:\n" + text, ENTITY.matcher(text).find());
+      assertFalse("HTML-escaped value in subject: " + subject, HBS3_ENTITY.matcher(subject).find());
+      assertFalse("HTML-escaped value in plaintext-body:\n" + text, HBS3_ENTITY.matcher(text).find());
       for(String fragment: fragments) {
          assertTrue("plaintext-body is missing [" + fragment + "]:\n" + text, text.contains(fragment));
       }

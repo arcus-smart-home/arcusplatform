@@ -62,12 +62,6 @@ public class MailgunEmailProvider implements EmailProvider {
    @Inject @Named("email.subject") 	private String defaultSubject;
 
    private final String domain;
-   private final static String SENDER_NAME_SECTION = EmailSections.SENDER_NAME;
-   private final static String SENDER_EMAIL_SECTION = EmailSections.SENDER_EMAIL;
-   private final static String REPLYTO_EMAIL_SECTION = EmailSections.REPLYTO_EMAIL;
-   private final static String SUBJECT_SECTION = EmailSections.SUBJECT;
-   private final static String PLAINTEXT_BODY_SECTION = EmailSections.PLAINTEXT_BODY;
-   private final static String HTML_BODY_SECTION = EmailSections.HTML_BODY;
    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
    
    @Inject
@@ -161,24 +155,28 @@ public class MailgunEmailProvider implements EmailProvider {
       Map<String, String> messageParts = messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, additionalEntityParams);
 
       MessageBuilder messageBuilder = Message.builder();
-      if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(SENDER_NAME_SECTION), messageParts.get(SENDER_EMAIL_SECTION)));
+      if (messageParts.containsKey(EmailSections.SENDER_EMAIL)) {
+         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(EmailSections.SENDER_NAME), messageParts.get(EmailSections.SENDER_EMAIL)));
       } else {
          messageBuilder.from(EmailUtil.nameWithEmail(defaultSenderName, defaultSenderEmail));
       }
-      if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
-         messageBuilder.replyTo(messageParts.get(REPLYTO_EMAIL_SECTION));
+      if (messageParts.containsKey(EmailSections.REPLYTO_EMAIL)) {
+         messageBuilder.replyTo(messageParts.get(EmailSections.REPLYTO_EMAIL));
       } else {
          messageBuilder.replyTo(defaultReplyToEmail);
       }
-      if (messageParts.containsKey(SUBJECT_SECTION)) {
-         messageBuilder.subject(messageParts.get(SUBJECT_SECTION));
+      if (messageParts.containsKey(EmailSections.SUBJECT)) {
+         messageBuilder.subject(messageParts.get(EmailSections.SUBJECT));
       } else {
          messageBuilder.subject(defaultSubject);
       }
       messageBuilder.to(recipientEmail);
-      messageBuilder.text(messageParts.containsKey(PLAINTEXT_BODY_SECTION) ? messageParts.get(PLAINTEXT_BODY_SECTION) : messageParts.get(""));
-      messageBuilder.html(messageParts.containsKey(HTML_BODY_SECTION) ? messageParts.get(HTML_BODY_SECTION) : messageParts.get(PLAINTEXT_BODY_SECTION));
+      messageBuilder.text(messageParts.containsKey(EmailSections.PLAINTEXT_BODY) ? messageParts.get(EmailSections.PLAINTEXT_BODY) : messageParts.get(""));
+      // Without an html-body the message goes out as text only. The
+      // plaintext-body leaves values unescaped, so it must never be the HTML part.
+      if (messageParts.containsKey(EmailSections.HTML_BODY)) {
+         messageBuilder.html(messageParts.get(EmailSections.HTML_BODY));
+      }
 
       return messageBuilder;
    }
