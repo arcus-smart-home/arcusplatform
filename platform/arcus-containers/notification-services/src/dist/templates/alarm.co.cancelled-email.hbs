@@ -14,11 +14,11 @@ The CO Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{ca
 {{#section "html-body"}}
 
 	{{#partial "greeting" }}
-	Hi {{{_person.firstName}}},
+	Hi {{_person.firstName}},
 	{{/partial}}
 
 	{{#partial "message" }}
-	<p>The CO Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.  </p>
+	<p>The CO Alarm at {{_place.name}} was cancelled by {{cancelByFirstName}} {{cancelByLastName}}.  </p>
 	{{/partial}}
 
 	{{#partial "extra" }}{{/partial}}
