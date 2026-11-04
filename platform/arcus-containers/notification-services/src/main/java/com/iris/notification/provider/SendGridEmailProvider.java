@@ -55,12 +55,12 @@ public class SendGridEmailProvider implements EmailProvider {
     private static Logger logger = LoggerFactory.getLogger(SendGridEmailProvider.class);
 
     private static final String REQUEST_END_POINT = "mail/send";
-    private final static String SENDER_NAME_SECTION = "sender-name";
-    private final static String SENDER_EMAIL_SECTION = "sender-email";
-    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
-    private final static String SUBJECT_SECTION = "subject";
-    private final static String PLAINTEXT_BODY_SECTION = "plaintext-body";
-    private final static String HTML_BODY_SECTION = "html-body";
+    private final static String SENDER_NAME_SECTION = EmailSections.SENDER_NAME;
+    private final static String SENDER_EMAIL_SECTION = EmailSections.SENDER_EMAIL;
+    private final static String REPLYTO_EMAIL_SECTION = EmailSections.REPLYTO_EMAIL;
+    private final static String SUBJECT_SECTION = EmailSections.SUBJECT;
+    private final static String PLAINTEXT_BODY_SECTION = EmailSections.PLAINTEXT_BODY;
+    private final static String HTML_BODY_SECTION = EmailSections.HTML_BODY;
     private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
 
 

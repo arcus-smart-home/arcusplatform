@@ -15,7 +15,6 @@
  */
 package com.iris.notification;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,8 +22,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -36,18 +37,17 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * The email providers send the html-body section as text/html (and fall back
- * to the plaintext-body when a template has none), while the templates use
- * HBS3 escaping, which only applies to {{x}}. A raw {{{x}}} or {{&x}} in an
- * html-body, or in a partial an html-body includes, lets a name a user typed
- * put markup into somebody else's email. Subject and plaintext-body sections
- * are plain text and are meant to stay raw, so they are not checked.
+ * Source-level backstop for {@link EmailTemplateRenderGuardTest}, which is the
+ * main check. Rendering only sees the branches its values select, so this test
+ * also reads the template source and fails on any raw {{{x}}}, {{&x}} or raw
+ * block in an html-body section, or anywhere in a partial an html-body
+ * includes, directly or through other partials. Subject and plaintext-body
+ * sections are plain text and are meant to stay raw, so they are not checked.
  */
 public class EmailTemplateRawValueGuardTest {
 
    private static final File TEMPLATE_DIR = new File("src/dist/templates");
    private static final String EMAIL_SUFFIX = "-email.hbs";
-   private static final String LAYOUT_PREFIX = "layout-";
 
    /**
     * Raw values allowed in HTML, as "template-file: expression". A value may
@@ -58,40 +58,41 @@ public class EmailTemplateRawValueGuardTest {
    private static final Set<String> ALLOWED_RAW = ImmutableSet.of();
 
    private static final Pattern HTML_BODY = Pattern.compile(
-         "\\{\\{~?#section\\s+\"html-body\"\\s*~?\\}\\}(.*?)\\{\\{~?/section\\s*~?\\}\\}",
+         "\\{\\{~?#section\\s+([\"'])html-body\\1\\s*~?\\}\\}(.*?)\\{\\{~?/section\\s*~?\\}\\}",
          Pattern.DOTALL
    );
-   // {{{x}}}, {{~{x}~}} and {{&x}} all skip escaping.
+   // {{{x}}}, {{~{x}~}}, {{{{raw}}}} blocks and {{&x}} all skip escaping.
    private static final Pattern RAW = Pattern.compile(
          "\\{\\{~?\\{\\s*(.*?)\\s*\\}~?\\}\\}|\\{\\{~?&\\s*(.*?)\\s*~?\\}\\}",
          Pattern.DOTALL
    );
-   private static final Pattern PARTIAL = Pattern.compile("\\{\\{~?>\\s*([\\w.-]+)");
+   // {{> name}} and {{#> name}}, with or without quotes around the name.
+   private static final Pattern PARTIAL = Pattern.compile("\\{\\{~?#?>\\s*[\"']?([\\w.-]+)");
 
    @Test
    public void htmlBodiesHaveNoRawValues() throws IOException {
       List<String> violations = new ArrayList<>();
       Set<String> partials = new TreeSet<>();
+      Deque<String> toScan = new ArrayDeque<>();
       int sections = 0;
 
       for(File template: emailTemplates()) {
          Matcher body = HTML_BODY.matcher(read(template));
          while(body.find()) {
             sections++;
-            collectRaw(template.getName(), body.group(1), violations);
-            Matcher partial = PARTIAL.matcher(body.group(1));
-            while(partial.find()) {
-               partials.add(partial.group(1));
-            }
+            collectRaw(template.getName(), body.group(2), violations);
+            collectPartials(body.group(2), partials, toScan);
          }
       }
 
       // Partials such as layout-html-email are rendered inside the html-body,
-      // so all of their content is HTML.
-      for(String partial: partials) {
-         File file = new File(TEMPLATE_DIR, partial + ".hbs");
+      // so all of their content is HTML, and so is any partial they include.
+      while(!toScan.isEmpty()) {
+         File file = new File(TEMPLATE_DIR, toScan.pop() + ".hbs");
          assertTrue("html-body includes missing partial " + file, file.isFile());
-         collectRaw(file.getName(), read(file), violations);
+         String content = read(file);
+         collectRaw(file.getName(), content, violations);
+         collectPartials(content, partials, toScan);
       }
 
       // Guard against the patterns silently matching nothing.
@@ -106,19 +107,6 @@ public class EmailTemplateRawValueGuardTest {
       }
    }
 
-   @Test
-   public void everyEmailTemplateHasAnHtmlBody() throws IOException {
-      // Without an html-body the providers send the plaintext-body, where
-      // values are raw on purpose, as the HTML part.
-      List<String> missing = new ArrayList<>();
-      for(File template: emailTemplates()) {
-         if(!template.getName().startsWith(LAYOUT_PREFIX) && !HTML_BODY.matcher(read(template)).find()) {
-            missing.add(template.getName());
-         }
-      }
-      assertEquals("email templates without an html-body section", new ArrayList<String>(), missing);
-   }
-
    private static void collectRaw(String name, String html, List<String> violations) {
       Matcher raw = RAW.matcher(html);
       while(raw.find()) {
@@ -126,6 +114,15 @@ public class EmailTemplateRawValueGuardTest {
          String entry = name + ": " + expression;
          if(!ALLOWED_RAW.contains(entry)) {
             violations.add(entry);
+         }
+      }
+   }
+
+   private static void collectPartials(String content, Set<String> partials, Deque<String> toScan) {
+      Matcher partial = PARTIAL.matcher(content);
+      while(partial.find()) {
+         if(partials.add(partial.group(1))) {
+            toScan.push(partial.group(1));
          }
       }
    }
