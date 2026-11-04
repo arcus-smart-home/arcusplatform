@@ -47,7 +47,7 @@ public class DeviceSettingsGetAttributesProvider implements GetAttributesProvide
 
       Map<String, Object> result = new HashMap<>(1);
       result.put(DeviceSettingsCapability.ATTR_PARAMS,
-            settingsContext.buildParamsAttribute(key -> {
+            DeviceSettingsUtil.forDevice(context, settingsContext).buildParamsAttribute(key -> {
                try {
                   return context.getVariable(key);
                } catch (Exception e) {

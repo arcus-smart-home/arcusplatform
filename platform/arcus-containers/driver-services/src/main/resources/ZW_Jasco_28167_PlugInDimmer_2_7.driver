@@ -51,6 +51,44 @@ importCapability 'zwave/GenericZWaveVersion'
 //      0x85 (-123) Association
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+//
+// Parameter 3 (LED) is driven by the Indicator capability below, so it is not here.
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   param name: 'smoothLevelChanges', id: 6, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 6: Smooth level changes (firmware 5.21+)',
+       dflt: 0
+   param name: 'zwaveDimSteps', id: 7, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 7: Dim steps for Z-Wave commands',
+       dflt: 1
+   param name: 'zwaveDimRate', id: 8, size: 1,
+       type: 'range', min: 1, max: 255,
+       description: 'Parameter 8: Time per dim step for Z-Wave commands (10 ms units)',
+       dflt: 3
+   param name: 'manualDimSteps', id: 9, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 9: Dim steps for the local button',
+       dflt: 1
+   param name: 'manualDimRate', id: 10, size: 1,
+       type: 'range', min: 1, max: 255,
+       description: 'Parameter 10: Time per dim step for the local button (10 ms units)',
+       dflt: 3
+   param name: 'allOnOffDimSteps', id: 11, size: 1,
+       type: 'range', min: 1, max: 99,
+       description: 'Parameter 11: Dim steps for All On / All Off commands',
+       dflt: 1
+   param name: 'allOnOffDimRate', id: 12, size: 1,
+       type: 'range', min: 1, max: 255,
+       description: 'Parameter 12: Time per dim step for All On / All Off commands (10 ms units)',
+       dflt: 3
+}
+
+
 DevicePower.source                DevicePower.SOURCE_LINE
 DevicePower.linecapable           true
 DevicePower.backupbatterycapable  false

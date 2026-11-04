@@ -18,11 +18,20 @@ package com.iris.driver.groovy.devicesettings;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.iris.device.attributes.AttributeMap;
 import com.iris.driver.DeviceDriverContext;
 import com.iris.driver.devicesettings.DeviceSettingsContext;
+import com.iris.driver.devicesettings.DeviceSettingsParamDefinition;
 import com.iris.messages.address.DeviceProtocolAddress;
 import com.iris.messages.address.ProtocolDeviceId;
 import com.iris.messages.capability.DeviceSettingsCapability;
+import com.iris.protocol.constants.ZwaveConstants;
+import com.iris.protocol.zwave.ZWaveProtocol;
+import com.iris.protocol.zwave.message.ZWaveCommandMessage;
+import com.iris.protocol.zwave.model.ZWaveAllCommandClasses;
 import com.iris.protocol.zwave.model.ZWaveCommand;
 import com.iris.protocol.zwave.model.ZWaveCommandClass;
 import com.iris.protocol.zwave.model.ZWaveNode;
@@ -31,6 +40,59 @@ import com.iris.protocol.zwave.model.ZWaveNode;
  * Shared utility methods for DeviceSettings handlers.
  */
 class DeviceSettingsUtil {
+   private static final Logger log = LoggerFactory.getLogger(DeviceSettingsUtil.class);
+
+   private static final ZWaveCommandClass CONFIGURATION_CC = ZWaveAllCommandClasses.getClass("configuration");
+
+   /**
+    * Narrows the driver's settings to the ones that exist on this device's product.
+    * Only reads the device's protocol attributes when some parameter is product specific.
+    */
+   static DeviceSettingsContext forDevice(DeviceDriverContext context, DeviceSettingsContext settingsContext) {
+      if (!settingsContext.hasProductFilters()) {
+         return settingsContext;
+      }
+      Map<String, Object> attrs = null;
+      try {
+         AttributeMap protocolAttrs = context.getProtocolAttributes();
+         attrs = protocolAttrs != null ? protocolAttrs.toMap() : null;
+      } catch (Exception e) {
+         log.warn("Could not read protocol attributes of {}; showing only settings common to every product",
+               context.getDriverAddress(), e);
+      }
+      return settingsContext.forProduct(
+            intAttr(attrs, ZwaveConstants.ATTR_PRODUCTTYPE),
+            intAttr(attrs, ZwaveConstants.ATTR_PRODUCTID));
+   }
+
+   /**
+    * Publishes the current values and asks the device for every parameter it has.
+    */
+   static void readAll(DeviceDriverContext context, DeviceSettingsContext settingsContext) {
+      DeviceSettingsContext settings = forDevice(context, settingsContext);
+      log.debug("Reading {} device settings params", settings.getParams().size());
+
+      // Populate devsettings:params now so the attribute is visible before
+      // config reports arrive from the device
+      emitParamsValueChange(context, settingsContext);
+
+      for (DeviceSettingsParamDefinition param : settings.getParams()) {
+         sendConfigurationGet(context, param.getZwaveParamNo());
+      }
+   }
+
+   static void sendConfigurationGet(DeviceDriverContext context, int paramNo) {
+      ZWaveCommand command = buildCommand(CONFIGURATION_CC, "get", (byte) (paramNo & 0xFF));
+      ZWaveCommandMessage message = new ZWaveCommandMessage();
+      message.setDevice(extractNode(context));
+      message.setCommand(command);
+      context.sendToDevice(ZWaveProtocol.INSTANCE, message, -1);
+   }
+
+   private static Integer intAttr(Map<String, Object> attrs, String name) {
+      Object value = attrs != null ? attrs.get(name) : null;
+      return value instanceof Number ? ((Number) value).intValue() : null;
+   }
 
    /**
     * Extracts the Z-Wave node from the device driver context.
@@ -55,7 +117,7 @@ class DeviceSettingsUtil {
     */
    @SuppressWarnings("unchecked")
    static void emitParamsValueChange(DeviceDriverContext context, DeviceSettingsContext settingsContext) {
-      List<Map<String, Object>> params = settingsContext.buildParamsAttribute(key -> {
+      List<Map<String, Object>> params = forDevice(context, settingsContext).buildParamsAttribute(key -> {
          try {
             return context.getVariable(key);
          } catch (Exception e) {

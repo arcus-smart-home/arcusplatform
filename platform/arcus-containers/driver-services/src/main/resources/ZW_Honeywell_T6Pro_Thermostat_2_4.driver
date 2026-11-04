@@ -241,14 +241,10 @@ deviceSettings {
        description: 'Parameter 41: Daylight saving time',
        dflt: 1
 
-   // Offsets
+   // Offsets (the thermostat has no parameter 43 / humidity offset)
    param name: 'temperatureOffset', id: 42, size: 1,
        type: 'range', min: -3, max: 3,
        description: 'Parameter 42: Temperature offset (degrees F)',
-       dflt: 0
-   param name: 'humidityOffset', id: 43, size: 1,
-       type: 'range', min: -12, max: 12,
-       description: 'Parameter 43: Humidity offset (percent)',
        dflt: 0
 }
 

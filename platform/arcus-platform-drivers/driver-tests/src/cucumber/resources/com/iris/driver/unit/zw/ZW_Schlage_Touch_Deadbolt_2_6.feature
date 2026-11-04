@@ -10,7 +10,7 @@ Feature: ZWave Schlage Keypad Deadbolt BE469 Driver Test
     Scenario: Driver reports capabilities to platform. 
         When a base:GetAttributes command is placed on the platform bus
         Then the driver should place a base:GetAttributesResponse message on the platform bus
-            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'doorlock']
+            And the message's base:caps attribute list should be ['base', 'dev', 'devadv', 'devpow', 'devconn', 'doorlock', 'devsettings']
             And the message's dev:devtypehint attribute should be Lock
             And the message's devadv:drivername attribute should be ZWaveSchlageTouchDeadboltDriver 
             And the message's devadv:driverversion attribute should be 2.6
@@ -180,3 +180,24 @@ Feature: ZWave Schlage Keypad Deadbolt BE469 Driver Test
         When the event TransactionTimeoutEvent triggers
         Then the platform attribute doorlock:lockstate should be UNLOCKING
             And the capability devadv:errors should be [WARN_JAM:Door lock may be jammed]
+
+    @devsettings
+    Scenario: Settings are not read on connect
+        When the device is connected
+        Then the driver should not send configuration get
+
+    @devsettings
+    Scenario: Settings are read once the lock setup runs
+        Given the driver variable CLEAR_PINS_ON_ADD is null
+        When the event SetupLock triggers
+        Then the driver should send battery get
+            And the driver should send version get
+            And the driver should send configuration get
+            And protocol message count is 8
+
+    @devsettings
+    Scenario: Settings wait while the pins are still being cleared
+        Given the driver variable CLEAR_PINS_ON_ADD is 1
+            And the driver variable CLEAR_PINS_DELAY_RETRIES is 3
+        When the event SetupLock triggers
+        Then the driver should not send configuration get

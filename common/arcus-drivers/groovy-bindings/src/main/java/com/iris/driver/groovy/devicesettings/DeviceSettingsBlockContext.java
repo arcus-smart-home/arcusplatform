@@ -41,6 +41,8 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
     *     description: 'LED indicator behavior',
     *     dflt: 1
     * </pre>
+    * Add {@code products: [[0x4F44, 0x3032], ...]} (Z-Wave product type, product id)
+    * when the parameter only exists on some of the products the driver matches.
     */
    @SuppressWarnings("unchecked")
    public void param(Map<String, Object> args) {
@@ -105,10 +107,38 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
          builder.withMin(0).withMax(1);
       }
 
+      Object products = args.get("products");
+      if (products != null) {
+         builder.withProducts(parseProducts(name, products));
+      }
+
       params.add(builder.build());
    }
 
+   private static List<int[]> parseProducts(String name, Object products) {
+      if (!(products instanceof List) || ((List<?>) products).isEmpty()) {
+         throw new IllegalArgumentException("deviceSettings param '" + name
+               + "' products must be a non-empty list of [productType, productId] pairs");
+      }
+      List<int[]> pairs = new ArrayList<>();
+      for (Object entry : (List<?>) products) {
+         if (!(entry instanceof List) || ((List<?>) entry).size() != 2
+               || !(((List<?>) entry).get(0) instanceof Number)
+               || !(((List<?>) entry).get(1) instanceof Number)) {
+            throw new IllegalArgumentException("deviceSettings param '" + name
+                  + "' has a products entry that is not a [productType, productId] pair: " + entry);
+         }
+         List<?> pair = (List<?>) entry;
+         pairs.add(new int[] { ((Number) pair.get(0)).intValue(), ((Number) pair.get(1)).intValue() });
+      }
+      return pairs;
+   }
+
    public DeviceSettingsContext build() {
-      return new DeviceSettingsContext(params);
+      return build(true);
+   }
+
+   public DeviceSettingsContext build(boolean readOnConnect) {
+      return new DeviceSettingsContext(params, readOnConnect);
    }
 }

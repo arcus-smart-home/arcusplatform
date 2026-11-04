@@ -41,8 +41,38 @@ importCapability 'zwave/GenericZWaveMeter'
 //		0x25   (37) Switch_Binary
 //		0x27   (39) Switch_All
 //		0x32   (50) Meter
+//      0x70  (112) Configuration (14285 / 500S only)
 //		0x72  (114) Manufacturer_Specific
 //		0x86 (-122) Version
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+//
+// Only the 14285 (500S: 0x4F44/0x3032, 0x5042/0x4004) has configuration
+// parameters; the 12726 (300S: 0x4F44/0x3031) has none.
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings {
+   def s500 = [[0x4F44, 0x3032], [0x5042, 0x4004]]
+
+   param name: 'powerFailure', id: 1, size: 1,
+       type: 'enum', values: ['0': 'Restore last state', '1': 'Off', '2': 'On'],
+       description: 'Parameter 1: State after power failure',
+       dflt: 0, products: s500
+   param name: 'energyReportMode', id: 2, size: 1,
+       type: 'enum', values: ['0': 'Once a month', '1': 'Use parameter 3 frequency', '2': 'Once a day'],
+       description: 'Parameter 2: Energy report mode',
+       dflt: 0, products: s500
+   param name: 'energyReportFrequency', id: 3, size: 1,
+       type: 'range', min: 5, max: 60,
+       description: 'Parameter 3: Energy report frequency (5-60, used when parameter 2 is 1)',
+       dflt: 5, products: s500
+   param name: 'alternateExclusion', id: 19, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
+       description: 'Parameter 19: Alternate exclusion (press 3 times, holding the last press)',
+       dflt: 0, products: s500
+}
 
 
 // set DevicePower

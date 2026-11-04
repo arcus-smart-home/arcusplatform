@@ -49,6 +49,55 @@ capabilities	DevicePower, DoorLock
 //      0x8B (-117) TIME_PARAMETERS
 //      0x98 (-104) Security (v1)
 /////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Device Settings
+//
+// Not exposed: 16 (user code length; changing it erases every code on the lock,
+// including the PINs this driver programs) and the read-only 6, 12-14, 17, 18.
+// Read from SetupLock, not on connect, so the gets don't crowd the pin clear and
+// lock state read the lock needs first.
+////////////////////////////////////////////////////////////////////////////////
+
+deviceSettings(readOnConnect: false) {
+   param name: 'beeper', id: 3, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '255': 'Enabled'],
+       description: 'Parameter 3: Keypad beeper',
+       dflt: 255
+   param name: 'vacationMode', id: 4, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '255': 'Enabled'],
+       description: 'Parameter 4: Vacation mode (keypad user codes stop working)',
+       dflt: 0
+   param name: 'lockAndLeave', id: 5, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '255': 'Enabled'],
+       description: 'Parameter 5: Lock & Leave (Schlage button throws the deadbolt)',
+       dflt: 0
+   param name: 'alarmMode', id: 7, size: 1,
+       type: 'enum', values: ['0': 'Off', '1': 'Alert', '2': 'Tamper', '3': 'Forced entry'],
+       description: 'Parameter 7: Built-in alarm mode',
+       dflt: 0
+   param name: 'alertSensitivity', id: 8, size: 1,
+       type: 'enum', values: ['0': 'Not supported', '1': 'Most sensitive', '2': 'More sensitive', '3': 'Medium', '4': 'Less sensitive', '5': 'Least sensitive'],
+       description: 'Parameter 8: Alarm sensitivity in Alert mode',
+       dflt: 3
+   param name: 'tamperSensitivity', id: 9, size: 1,
+       type: 'enum', values: ['0': 'Not supported', '1': 'Most sensitive', '2': 'More sensitive', '3': 'Medium', '4': 'Less sensitive', '5': 'Least sensitive'],
+       description: 'Parameter 9: Alarm sensitivity in Tamper mode',
+       dflt: 3
+   param name: 'kickSensitivity', id: 10, size: 1,
+       type: 'enum', values: ['0': 'Not supported', '1': 'Most sensitive', '2': 'More sensitive', '3': 'Medium', '4': 'Less sensitive', '5': 'Least sensitive'],
+       description: 'Parameter 10: Alarm sensitivity in Forced entry mode',
+       dflt: 3
+   param name: 'alarmLocalControls', id: 11, size: 1,
+       type: 'enum', values: ['0': 'Disable local controls', '255': 'Enable local controls'],
+       description: 'Parameter 11: Alarm local controls',
+       dflt: 0
+   param name: 'autoLock', id: 15, size: 1,
+       type: 'enum', values: ['0': 'Disabled', '255': 'Enabled'],
+       description: 'Parameter 15: Auto-lock (throws the deadbolt 30 seconds after unlocking)',
+       dflt: 0
+}
+
 DevicePower.battery              0
 DevicePower.source               DevicePower.SOURCE_BATTERY
 DevicePower.linecapable          false
@@ -204,6 +253,9 @@ onEvent('SetupLock') {
 
    // get the version
    ZWave.version.get()
+
+   // settings last, once the pins are cleared (see Device Settings)
+   deviceSettings.readAll()
 }
 
 onEvent('ClearPins') {
