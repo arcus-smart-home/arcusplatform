@@ -166,8 +166,13 @@ task generateIpcdSource(type: JavaExec) {
     dependsOn ':common:protocol-generator:jar', cleanGeneratedSource
     inputs.dir templateDir
 
+    // No outputs.dir: the Zigbee binding tasks write to the same folder
+    // without declaring it. On a checkout with no task history, Gradle
+    // deletes undeclared files in a task's output folder before running it,
+    // so if this task ran after generateZigbeeZclBindings the ZCL bindings
+    // were lost and compileJava failed. cleanGeneratedSource empties the
+    // folder on every build, so this task was never up to date anyway.
     def outputDir = file(generatedSrcDir)
-    outputs.dir outputDir
     classpath = configurations.generator
     mainClass = 'com.iris.protocol.ipcd.definition.generator.ModelGenerator'
     args '-t', templateName, '-i', ipcdDefinitionFile, '-o', genSrcMain
