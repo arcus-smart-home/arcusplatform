@@ -101,6 +101,12 @@ import com.iris.client.server.rest.SendPasswordResetRESTHandler;
 import com.iris.client.server.rest.SessionLogRESTHandler;
 import com.iris.client.server.rest.VerifyEmailRESTHandler;
 import com.iris.client.server.rest.VerifyPinRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyDeleteRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyListRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyLoginOptionsRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyLoginRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyRegisterOptionsRESTHandler;
+import com.iris.client.server.rest.passkey.PasskeyRegisterRESTHandler;
 import com.iris.client.server.session.HandshakeSessionListener;
 import com.iris.core.template.TemplateModule;
 import com.iris.messages.MessageConstants;
@@ -299,6 +305,14 @@ public class ClientServerModule extends AbstractIrisModule {
       bindHandler(rhBindings, LockDeviceRESTHandler.class);
       bindHandler(rhBindings, RequestEmailVerificatonRESTHandler.class);
       bindHandler(rhBindings, VerifyEmailRESTHandler.class);
+
+      /* Passkey (WebAuthn) handlers, inactive unless passkey.rp.id is set */
+      bindHandler(rhBindings, PasskeyLoginOptionsRESTHandler.class);
+      bindHandler(rhBindings, PasskeyLoginRESTHandler.class);
+      bindHandler(rhBindings, PasskeyRegisterOptionsRESTHandler.class);
+      bindHandler(rhBindings, PasskeyRegisterRESTHandler.class);
+      bindHandler(rhBindings, PasskeyListRESTHandler.class);
+      bindHandler(rhBindings, PasskeyDeleteRESTHandler.class);
 
       /* Static resource handler */
       // should be bound last because its matcher is super-greedy 

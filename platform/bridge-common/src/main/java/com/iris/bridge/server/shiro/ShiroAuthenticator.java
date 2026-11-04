@@ -128,6 +128,11 @@ public class ShiroAuthenticator implements Authenticator {
       return authenticateRequest(channel, token, null);
    }
 
+   @Override
+   public FullHttpResponse authenticateRequest(Channel channel, AuthenticationToken token) {
+      return authenticateRequest(channel, token, null);
+   }
+
    protected FullHttpResponse authenticateRequest(Channel channel, AuthenticationToken authToken, ByteBuf responseContentIfSuccess) {
       metrics.incAuthenticationTriedCounter();
       Timer.Context timerContext = metrics.startAuthenticationTimer();
