@@ -36,6 +36,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -126,12 +127,13 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
                continue;
             }
 
-            if(parts.get(EmailSections.PLAINTEXT_BODY) == null) {
-               failures.add(label + ": no plaintext-body section");
+            // blank counts as missing, as it does for EmailBodies, which leaves that part out
+            if(StringUtils.isBlank(parts.get(EmailSections.PLAINTEXT_BODY))) {
+               failures.add(label + ": no plaintext-body section, or a blank one");
             }
             String html = parts.get(EmailSections.HTML_BODY);
-            if(html == null) {
-               failures.add(label + ": no html-body section");
+            if(StringUtils.isBlank(html)) {
+               failures.add(label + ": no html-body section, or a blank one");
             }
             else {
                Set<String> raw = names(RAW, html);

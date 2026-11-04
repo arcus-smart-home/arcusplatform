@@ -210,6 +210,22 @@ public class MailgunEmailProviderTest {
       assertNull(message.getHtml());
    }
 
+   /** Without a plaintext-body the message goes out as HTML only. */
+   @Test
+   public void shouldSendHtmlOnlyEmailWithoutPlaintextBody() throws Exception {
+      Message message = send(EmailSections.HTML_BODY, "<p>html</p>");
+      assertNull(message.getText());
+      assertEquals("<p>html</p>", message.getHtml());
+   }
+
+   /** And so it does with a blank one. */
+   @Test
+   public void shouldSendHtmlOnlyEmailWithBlankPlaintextBody() throws Exception {
+      Message message = send(EmailSections.PLAINTEXT_BODY, " \n", EmailSections.HTML_BODY, "<p>html</p>");
+      assertNull(message.getText());
+      assertEquals("<p>html</p>", message.getHtml());
+   }
+
    /** Renders the given sections plus sender, reply-to and subject, and returns the message sent to Mailgun. */
    private Message send(String... sections) throws Exception {
       ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);

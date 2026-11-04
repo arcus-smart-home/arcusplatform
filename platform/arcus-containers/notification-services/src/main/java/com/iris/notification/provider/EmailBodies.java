@@ -39,8 +39,8 @@ public final class EmailBodies {
    /** Picks the parts out of the sections returned by {@code TemplateService.renderMultipart}. */
    public static EmailBodies from(Map<String, String> sections) {
       return new EmailBodies(
-            present(sections.get(EmailSections.PLAINTEXT_BODY)),
-            present(sections.get(EmailSections.HTML_BODY))
+            StringUtils.defaultIfBlank(sections.get(EmailSections.PLAINTEXT_BODY), null),
+            StringUtils.defaultIfBlank(sections.get(EmailSections.HTML_BODY), null)
       );
    }
 
@@ -52,9 +52,5 @@ public final class EmailBodies {
    /** The text/html part, or null when there is none. */
    public String getHtml() {
       return html;
-   }
-
-   private static String present(String value) {
-      return StringUtils.isBlank(value) ? null : value;
    }
 }
