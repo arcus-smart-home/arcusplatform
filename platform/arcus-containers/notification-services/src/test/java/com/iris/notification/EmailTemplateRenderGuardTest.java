@@ -177,7 +177,9 @@ public class EmailTemplateRenderGuardTest extends IrisTestCase {
     * value it is compared with.
     */
    private static Map<String, Probe> passes(String source) {
-      // name -> value that flips its condition, null for "leave it out"
+      // name -> value that flips its condition, null for "leave it out". Keyed
+      // by name, so a name tested twice (say #if_equal against two values) is
+      // only flipped one way; no template does that today.
       Map<String, String> flips = new LinkedHashMap<>();
       Matcher m = IF.matcher(source);
       while(m.find()) {

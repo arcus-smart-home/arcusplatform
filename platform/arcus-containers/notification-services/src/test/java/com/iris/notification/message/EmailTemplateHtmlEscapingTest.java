@@ -125,7 +125,7 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
       assertPlainText(
             parts,
             "The Smoke Alarm at " + IMAGE + " " + APOSTROPHE + "'s place (" + LINK + ") was triggered",
-            "\n" + LINK + "\n1 Example Road & Annex\nO'Exampleton, "
+            LINK + " 1 Example Road & Annex O'Exampleton,"
       );
    }
 
@@ -174,7 +174,7 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
             parts,
             "products in Jo & Sam's home.",
             "aspects of Jo & Sam's smart",
-            "please contact \n" + APOSTROPHE + " " + LINK + ". "
+            "please contact " + APOSTROPHE + " " + LINK + "."
       );
    }
 
@@ -186,7 +186,9 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
 
    /**
     * No value anywhere in the subject or plaintext-body may be HTML-escaped,
-    * and each fragment must appear in the plaintext-body as typed.
+    * and each fragment must appear in the plaintext-body as typed. Runs of
+    * whitespace, line breaks included, count as one space, so fragments do not
+    * depend on how the template wraps its lines.
     */
    private static void assertPlainText(Map<String, String> parts, String... fragments) {
       String subject = parts.get(EmailSections.SUBJECT);
@@ -195,8 +197,9 @@ public class EmailTemplateHtmlEscapingTest extends IrisTestCase {
       assertNotNull(text);
       assertFalse("HTML-escaped value in subject: " + subject, HBS3_ENTITY.matcher(subject).find());
       assertFalse("HTML-escaped value in plaintext-body:\n" + text, HBS3_ENTITY.matcher(text).find());
+      String words = text.replaceAll("\\s+", " ");
       for(String fragment: fragments) {
-         assertTrue("plaintext-body is missing [" + fragment + "]:\n" + text, text.contains(fragment));
+         assertTrue("plaintext-body is missing [" + fragment + "]:\n" + text, words.contains(fragment));
       }
    }
 

@@ -121,12 +121,12 @@ public class MailgunEmailProviderWireTest {
       Mockito.when(placeDao.findById(placeId)).thenReturn(place);
 
       renderedParts = new HashMap<>();
-      renderedParts.put("sender-name", SENDER_NAME);
-      renderedParts.put("sender-email", SENDER_EMAIL);
-      renderedParts.put("replyto-email", REPLYTO_EMAIL);
-      renderedParts.put("subject", SUBJECT);
-      renderedParts.put("plaintext-body", PLAINTEXT_BODY);
-      renderedParts.put("html-body", HTML_BODY);
+      renderedParts.put(EmailSections.SENDER_NAME, SENDER_NAME);
+      renderedParts.put(EmailSections.SENDER_EMAIL, SENDER_EMAIL);
+      renderedParts.put(EmailSections.REPLYTO_EMAIL, REPLYTO_EMAIL);
+      renderedParts.put(EmailSections.SUBJECT, SUBJECT);
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, PLAINTEXT_BODY);
+      renderedParts.put(EmailSections.HTML_BODY, HTML_BODY);
 
       NotificationMessageRenderer messageRenderer = Mockito.mock(NotificationMessageRenderer.class);
       Mockito.when(messageRenderer.renderMultipartMessage(

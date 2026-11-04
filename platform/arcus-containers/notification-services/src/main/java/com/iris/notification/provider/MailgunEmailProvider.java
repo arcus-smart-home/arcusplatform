@@ -171,11 +171,12 @@ public class MailgunEmailProvider implements EmailProvider {
          messageBuilder.subject(defaultSubject);
       }
       messageBuilder.to(recipientEmail);
-      messageBuilder.text(messageParts.containsKey(EmailSections.PLAINTEXT_BODY) ? messageParts.get(EmailSections.PLAINTEXT_BODY) : messageParts.get(""));
-      // Without an html-body the message goes out as text only. The
-      // plaintext-body leaves values unescaped, so it must never be the HTML part.
-      if (messageParts.containsKey(EmailSections.HTML_BODY)) {
-         messageBuilder.html(messageParts.get(EmailSections.HTML_BODY));
+      EmailBodies bodies = EmailBodies.from(messageParts);
+      if (bodies.getText() != null) {
+         messageBuilder.text(bodies.getText());
+      }
+      if (bodies.getHtml() != null) {
+         messageBuilder.html(bodies.getHtml());
       }
 
       return messageBuilder;

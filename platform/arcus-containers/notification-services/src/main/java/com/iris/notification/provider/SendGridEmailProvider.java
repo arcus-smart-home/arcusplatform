@@ -39,6 +39,7 @@ import com.iris.platform.notification.provider.NotificationProviderUtil;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -196,10 +197,9 @@ public class SendGridEmailProvider implements EmailProvider {
             mailParams.setSubject(messageParts.get(EmailSections.SUBJECT));
         }
 
-        mailParams.setPlaintextBody(messageParts.containsKey(EmailSections.PLAINTEXT_BODY) ? messageParts.get(EmailSections.PLAINTEXT_BODY) : messageParts.get(""));
-        // Null without an html-body, so the message goes out as text only. The
-        // plaintext-body leaves values unescaped, so it must never be the HTML part.
-        mailParams.setHtmlBody(messageParts.get(EmailSections.HTML_BODY));
+        EmailBodies bodies = EmailBodies.from(messageParts);
+        mailParams.setPlaintextBody(bodies.getText());
+        mailParams.setHtmlBody(bodies.getHtml());
 
         return mailParams;
     }
@@ -297,9 +297,16 @@ public class SendGridEmailProvider implements EmailProvider {
         }
 
         // Send the email; throw DispatchException if we're unable to
-        Content content = new Content("text/plain", mailParams.getPlaintextBody());
-
-        Mail mail = new Mail(mailParams.getFromEmail(), mailParams.getSubject(), mailParams.getToEmail(), content);
+        Mail mail = new Mail();
+        mail.setFrom(mailParams.getFromEmail());
+        mail.setSubject(mailParams.getSubject());
+        Personalization personalization = new Personalization();
+        personalization.addTo(mailParams.getToEmail());
+        mail.addPersonalization(personalization);
+        // Only the parts the template rendered; SendGrid wants text/plain first.
+        if (mailParams.getPlaintextBody() != null) {
+            mail.addContent(new Content("text/plain", mailParams.getPlaintextBody()));
+        }
         if (mailParams.getHtmlBody() != null) {
             mail.addContent(new Content("text/html", mailParams.getHtmlBody()));
         }

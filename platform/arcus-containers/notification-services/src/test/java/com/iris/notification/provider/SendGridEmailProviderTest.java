@@ -109,7 +109,7 @@ public class SendGridEmailProviderTest {
       setField(uut, "sendGrid", sendGrid);
       setField(uut, "logger", logger);
       Map<String, String> renderedParts = new HashMap<String, String>();
-      renderedParts.put("", expectedEmailBody);
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, expectedEmailBody);
       renderedParts.put(EmailSections.HTML_BODY, expectedEmailBody);
 
       notification = new NotificationBuilder().withPersonId(personId).withPlaceId(placeId).build();
@@ -199,19 +199,47 @@ public class SendGridEmailProviderTest {
    @Test
    public void shouldSendTextOnlyEmailWithoutHtmlBody() throws Exception {
       String plaintext = "<a href=\"https://evil.example.com\">O'Brien & Daughters</a>";
+      List<Content> contents = send(EmailSections.PLAINTEXT_BODY, plaintext);
+
+      assertEquals(1, contents.size());
+      assertEquals("text/plain", contents.get(0).getType());
+      assertEquals(plaintext, contents.get(0).getValue());
+   }
+
+   /** A blank html-body would show an empty email, so it is left out too. */
+   @Test
+   public void shouldSendTextOnlyEmailWithBlankHtmlBody() throws Exception {
+      List<Content> contents = send(EmailSections.PLAINTEXT_BODY, "plain text", EmailSections.HTML_BODY, "\n\t \n");
+
+      assertEquals(1, contents.size());
+      assertEquals("text/plain", contents.get(0).getType());
+      assertEquals("plain text", contents.get(0).getValue());
+   }
+
+   /** SendGrid rejects a content with no value, so a missing plaintext-body sends HTML only. */
+   @Test
+   public void shouldSendHtmlOnlyEmailWithoutPlaintextBody() throws Exception {
+      List<Content> contents = send(EmailSections.HTML_BODY, "<p>html</p>");
+
+      assertEquals(1, contents.size());
+      assertEquals("text/html", contents.get(0).getType());
+      assertEquals("<p>html</p>", contents.get(0).getValue());
+   }
+
+   /** Renders the given sections plus a subject and returns the contents of the request sent to SendGrid. */
+   private List<Content> send(String... sections) throws Exception {
       Map<String, String> renderedParts = new HashMap<>();
       renderedParts.put(EmailSections.SUBJECT, "subject");
-      renderedParts.put(EmailSections.PLAINTEXT_BODY, plaintext);
+      for(int i = 0; i < sections.length; i += 2) {
+         renderedParts.put(sections[i], sections[i + 1]);
+      }
       Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
       ArgumentCaptor<Request> mailRequestCaptor = ArgumentCaptor.forClass(Request.class);
 
       uut.notifyCustomer(notification);
       Mockito.verify(sendGrid).api(mailRequestCaptor.capture());
 
-      Mail mail = new ObjectMapper().readValue(mailRequestCaptor.getValue().getBody(), Mail.class);
-      assertEquals(1, mail.getContent().size());
-      assertEquals("text/plain", mail.getContent().get(0).getType());
-      assertEquals(plaintext, mail.getContent().get(0).getValue());
+      return new ObjectMapper().readValue(mailRequestCaptor.getValue().getBody(), Mail.class).getContent();
    }
 
    @Test(expected = DispatchException.class)

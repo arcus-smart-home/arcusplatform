@@ -21,7 +21,7 @@ package com.iris.notification.provider;
  * as text/html and the other sections as plain text, so templates escape values
  * with {{x}} in the html-body and leave them raw with {{{x}}} everywhere else.
  * The plaintext-body is never sent as HTML: a template without an html-body
- * gets a text-only email.
+ * gets a text-only email. {@link EmailBodies} makes that choice for the providers.
  */
 public final class EmailSections {
 
