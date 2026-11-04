@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="passkeys"
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="createPasskeyTable" author="arcus">
+      <cl:description>Create passkey table partitioned by personId for listing a person's passkeys</cl:description>
+      <cl:tracking>PASSKEY-001</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS passkey (
+            personId uuid,
+            credentialId varchar,
+            userHandle varchar,
+            publicKey varchar,
+            signCount bigint,
+            name varchar,
+            created timestamp,
+            lastUsed timestamp,
+            PRIMARY KEY (personId, credentialId)
+         )</cl:update>
+         <cl:rollback>DROP TABLE passkey</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <cl:changeset identifier="createPasskeyByCredentialTable" author="arcus">
+      <cl:description>Create passkey_by_credential table for finding a passkey's owner during login</cl:description>
+      <cl:tracking>PASSKEY-002</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS passkey_by_credential (
+            credentialId varchar,
+            personId uuid,
+            PRIMARY KEY (credentialId)
+         )</cl:update>
+         <cl:rollback>DROP TABLE passkey_by_credential</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+   <!--
+      Anyone can start a login, so this table takes writes from unauthenticated clients.
+      Every row expires (USING TTL, at most an hour) and is usually deleted when used, so
+      tombstones only need to outlive the rows they shadow, not the default 10 days, and
+      time windows let whole expired SSTables be dropped instead of compacted.
+   -->
+   <cl:changeset identifier="createPasskeyRequestTable" author="arcus">
+      <cl:description>Create passkey_request table for in-progress registration and login challenges (rows are written with a TTL)</cl:description>
+      <cl:tracking>PASSKEY-003</cl:tracking>
+      <cl:cql>
+         <cl:update>CREATE TABLE IF NOT EXISTS passkey_request (
+            requestId varchar,
+            personId uuid,
+            request text,
+            PRIMARY KEY (requestId)
+         ) WITH default_time_to_live = 3600
+           AND gc_grace_seconds = 3600
+           AND compaction = {'class': 'TimeWindowCompactionStrategy', 'compaction_window_unit': 'HOURS', 'compaction_window_size': '1'}</cl:update>
+         <cl:rollback>DROP TABLE passkey_request</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>
