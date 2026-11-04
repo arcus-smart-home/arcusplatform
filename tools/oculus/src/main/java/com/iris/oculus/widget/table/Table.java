@@ -21,14 +21,18 @@ package com.iris.oculus.widget.table;
 import java.awt.Color;
 import java.awt.Component;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableRowSorter;
 
 import com.iris.oculus.Oculus;
 import com.iris.oculus.widget.table.ColumnModel.TableCellEditor;
@@ -68,6 +72,23 @@ public class Table<T> extends JTable {
    @Override
    public TableModel<T> getModel() {
       return (TableModel<T>) super.getModel();
+   }
+   
+   /**
+    * Sorts the rows when a column header is clicked, starting sorted
+    * ascending by {@code column}. Columns with a comparator sort by it.
+    */
+   public void enableSorting(int column) {
+      TableModel<T> model = getModel();
+      TableRowSorter<TableModel<T>> sorter = new TableRowSorter<>(model);
+      for(int i = 0; i < model.getColumnCount(); i++) {
+         Comparator<?> comparator = model.getColumn(i).getComparator();
+         if(comparator != null) {
+            sorter.setComparator(i, comparator);
+         }
+      }
+      sorter.setSortKeys(Collections.singletonList(new RowSorter.SortKey(column, SortOrder.ASCENDING)));
+      setRowSorter(sorter);
    }
    
    private class CellRenderer extends DefaultTableCellRenderer {

@@ -21,6 +21,7 @@ package com.iris.oculus.widget.table;
 import java.awt.Component;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
@@ -80,6 +81,7 @@ public class TableModelBuilder<T> {
       
       private TableCellRenderer renderer;
       private TableCellEditor editor;
+      private Comparator<?> comparator;
       
       public ColumnBuilder withName(String name) {
          this.name = name;
@@ -115,6 +117,17 @@ public class TableModelBuilder<T> {
          return this;
       }
       
+      /**
+       * Orders this column's values when sorting. Without one, values sort
+       * by their text, which is wrong for dates and numbers. The sorter
+       * handles nulls itself, but every other value the getter returns must
+       * be a type the comparator accepts, or sorting throws.
+       */
+      public ColumnBuilder withComparator(Comparator<?> comparator) {
+         this.comparator = comparator;
+         return this;
+      }
+      
       public TableModelBuilder<T> add() {
          if(editable != null) {
             if(set == null) {
@@ -124,7 +137,7 @@ public class TableModelBuilder<T> {
          else {
             editable = set != null ? (o) -> true : (o) -> false;
          }
-         columns.add(new ColumnModel<T>(name, get, set, editable, this.renderer, this.editor));
+         columns.add(new ColumnModel<T>(name, get, set, editable, this.renderer, this.editor, this.comparator));
          return TableModelBuilder.this;
       }
    }

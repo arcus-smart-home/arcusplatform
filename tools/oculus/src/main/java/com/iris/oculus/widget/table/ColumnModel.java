@@ -19,6 +19,7 @@
 package com.iris.oculus.widget.table;
 
 import java.awt.Component;
+import java.util.Comparator;
 import java.util.function.Function;
 
 /**
@@ -31,6 +32,7 @@ public class ColumnModel<T> {
    private Function<T, Boolean> editable;
    private TableCellRenderer renderer;
    private TableCellEditor editor;
+   private Comparator<?> comparator;
    
    public ColumnModel(
          String name, 
@@ -38,7 +40,8 @@ public class ColumnModel<T> {
          SetValue<T> set,
          Function<T, Boolean> editable, 
          TableCellRenderer renderer,
-         TableCellEditor editor
+         TableCellEditor editor,
+         Comparator<?> comparator
    ) {
       super();
       this.name = name;
@@ -47,6 +50,7 @@ public class ColumnModel<T> {
       this.editable = editable;
       this.renderer = renderer;
       this.editor = editor;
+      this.comparator = comparator;
    }
 
    public String getName() {
@@ -71,6 +75,14 @@ public class ColumnModel<T> {
    
    public TableCellEditor getEditor() {
       return editor;
+   }
+   
+   /**
+    * How to order this column's values when sorting, or null to compare
+    * their text.
+    */
+   public Comparator<?> getComparator() {
+      return comparator;
    }
    
    @FunctionalInterface

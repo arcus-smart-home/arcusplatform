@@ -21,7 +21,9 @@ package com.iris.oculus.modules.device;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.text.Collator;
 import java.util.Comparator;
+import java.util.Date;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -49,6 +51,10 @@ import com.iris.oculus.widget.table.TableModelBuilder;
  */
 @Singleton
 public class DeviceSection extends BaseComponentWrapper<Component> implements OculusSection {
+   // Alphabetical ignoring case, shared by the list and the device picker so
+   // they agree. Nulls go first, where the list's sorter puts them.
+   private static final Comparator<Object> NAME_ORDER = Comparator.nullsFirst(Collator.getInstance());
+
    private DeviceController controller;
 
    @Inject
@@ -100,6 +106,7 @@ public class DeviceSection extends BaseComponentWrapper<Component> implements Oc
                .columnBuilder()
                   .withName("Name")
                   .withGetter(DeviceModel::getName)
+                  .withComparator(NAME_ORDER)
                   .add()
                .columnBuilder()
                   .withName("State")
@@ -116,24 +123,28 @@ public class DeviceSection extends BaseComponentWrapper<Component> implements Oc
                .columnBuilder()
                   .withName("Firmware")
                   .withGetter((d) -> d instanceof DeviceOta ? ((DeviceOta) d).getCurrentVersion() : ((d instanceof DeviceAdvanced) ? ((DeviceAdvanced) d).getFirmwareVersion() : null))
-                  .withRenderer((Component destination, Object value) -> {
-                     JLabel label = (JLabel) destination;
-                     if(value == null) {
-                        label.setText("Unknown");
-                        label.setFont(label.getFont().deriveFont(Font.ITALIC));
-                        label.setForeground(UIManager.getColor("Label.disabledForeground"));
-                     }
-                     else {
-                        label.setText(String.valueOf(value));
-                        label.setForeground(UIManager.getColor("Label.foreground"));
-                     }
-                  })
+                  .withRenderer(DeviceSection::renderUnknownIfNull)
                   .add()
                .columnBuilder()
                   .withName("Added")
-                  .withGetter((d) -> d instanceof DeviceAdvanced ? ((DeviceAdvanced) d).getAdded() : "<i>Unknown</i>")
+                  .withGetter((d) -> d instanceof DeviceAdvanced ? ((DeviceAdvanced) d).getAdded() : null)
+                  .withRenderer(DeviceSection::renderUnknownIfNull)
+                  .withComparator(Comparator.<Date>naturalOrder())
                   .add()
                .build();
+   }
+
+   private static void renderUnknownIfNull(Component destination, Object value, boolean isSelected, boolean hasFocus) {
+      JLabel label = (JLabel) destination;
+      // A selected row keeps the selection colour the table already set.
+      // Otherwise always set it, since a grey Unknown would stick to later cells.
+      if(!isSelected) {
+         label.setForeground(UIManager.getColor(value == null ? "Label.disabledForeground" : "Label.foreground"));
+      }
+      if(value == null) {
+         label.setText("Unknown");
+         label.setFont(label.getFont().deriveFont(Font.ITALIC));
+      }
    }
 
    protected JPanel createSummaryToolbar() {
@@ -158,7 +169,7 @@ public class DeviceSection extends BaseComponentWrapper<Component> implements Oc
       return
             ModelStoreViewBuilder
                .builder(controller.getStore())
-               .sortedBy(Comparator.comparing(DeviceModel::getName, Comparator.nullsLast(Comparator.naturalOrder())))
+               .sortedBy(Comparator.comparing(DeviceModel::getName, NAME_ORDER))
                .withListTableModel(createTableModel(), controller.getSelection(), createSummaryToolbar())
                .withTypeName("Device")
                .withModelSelector(
