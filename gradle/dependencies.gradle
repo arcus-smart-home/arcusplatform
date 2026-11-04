@@ -292,3 +292,8 @@ if(!netty_version.startsWith("4.")) {
 else {
 	ext.netty = [netty_handler, netty_codec_http, netty_epoll, netty_epoll_linux, netty_tcnative, netty_tcnative_lib]
 }
+
+// Code coverage agent, used when a build runs with -Puse_jacoco=true
+// (gradle/subproject.gradle). It has to understand the class files the
+// build produces, so it moves with the newest JDK the build supports.
+ext.jacoco_version = "0.8.15"
