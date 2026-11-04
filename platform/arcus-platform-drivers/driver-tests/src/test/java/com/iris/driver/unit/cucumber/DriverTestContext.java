@@ -50,7 +50,15 @@ public interface DriverTestContext<ProtocolMessageFormat> {
     public void checkSentParameter(String parameterName, String parameterValue);
 
     public void validateProtocolMessage(ProtocolMessage protocolMsg, String type, String subType);
-    
+
+    /**
+     * Reports whether a protocol message is the given command, without asserting,
+     * so a step can check that a driver did not send something.
+     */
+    public default boolean isProtocolMessage(ProtocolMessage protocolMsg, String type, String subType) {
+        throw new UnsupportedOperationException("isProtocolMessage is not supported for " + getProtocol().getName());
+    }
+
     public CommandBuilder getCommandBuilder();
 
 }

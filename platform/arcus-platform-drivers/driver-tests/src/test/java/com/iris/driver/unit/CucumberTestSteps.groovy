@@ -1183,7 +1183,24 @@ Then(~/^the driver should send (.+) (.+)$/) {String type, String subType ->
 	direction = Constant.Direction.OUT
 	type = type.trim()
 	protocolMsg = context.getProtocolBus().take()
-	context.validateProtocolMessage(protocolMsg, type, subType);	
+	context.validateProtocolMessage(protocolMsg, type, subType);
+}
+
+/**
+ * Takes every message left on the protocol bus and fails if any of them is the
+ * given command. Leaves the protocol bus empty. Z-Wave only.
+ *
+ * EXAMPLE:
+ * 	Then the driver should not send configuration set
+ *
+ * STEP : OUT-MESSAGE-ABSENT
+ */
+Then(~/^the driver should not send (.+) (.+)$/) {String type, String subType ->
+	def queue = context.getProtocolBus().getMessageQueue()
+	def msg
+	while ((msg = queue.poll()) != null) {
+		assert !context.isProtocolMessage(msg, type.trim(), subType.trim()) : "driver sent ${type} ${subType}"
+	}
 }
 
 /**
