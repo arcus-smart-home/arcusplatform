@@ -304,7 +304,9 @@ public class PasskeyService {
    }
 
    /**
-    * Names are shown to people in the household, so a few things are tightened up:
+    * Names are shown only to their own person, in the passkey list and in the add and
+    * remove emails. Whoever adds a passkey picks its name, though, and that may be someone
+    * else who got into the account, so a few things are tightened up:
     * <ul>
     * <li>control characters (line breaks among them) and every kind of space become one
     * space, and the ends are trimmed;</li>
