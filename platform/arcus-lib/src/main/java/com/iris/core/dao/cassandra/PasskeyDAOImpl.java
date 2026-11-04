@@ -77,6 +77,9 @@ public class PasskeyDAOImpl implements PasskeyDAO {
    // delete would bring back part of the deleted row. The two tables can't share a
    // conditional batch, so each write is two statements, passkey row first. A lookup row
    // without its passkey row can't log in, and doesn't block registering the credential.
+   // A delete removes the lookup row only if the person's passkey row was there to delete:
+   // the lookup row is keyed by credential id alone, so deleting it otherwise could break
+   // someone else's passkey.
 
    @Inject
    public PasskeyDAOImpl(CqlSession session) {
@@ -212,7 +215,9 @@ public class PasskeyDAOImpl implements PasskeyDAO {
 
    private boolean delete(Statements s, UUID personId, String credentialId) {
       boolean applied = session.execute(s.deletePasskey.bind(personId, credentialId)).wasApplied();
-      session.execute(s.deleteByCredential.bind(credentialId));
+      if (applied) {
+         session.execute(s.deleteByCredential.bind(credentialId));
+      }
       return applied;
    }
 

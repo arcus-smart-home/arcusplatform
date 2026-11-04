@@ -59,7 +59,9 @@ class InMemoryPasskeyDAO implements PasskeyDAO {
 
    @Override
    public boolean delete(UUID personId, String credentialId) {
-      return passkeys.remove(credentialId) != null;
+      // like the real one: only the person's own passkey
+      Passkey passkey = passkeys.get(credentialId);
+      return passkey != null && passkey.getPersonId().equals(personId) && passkeys.remove(credentialId, passkey);
    }
 
    @Override

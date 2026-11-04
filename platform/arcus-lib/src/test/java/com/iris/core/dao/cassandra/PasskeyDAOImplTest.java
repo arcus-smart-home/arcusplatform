@@ -136,9 +136,13 @@ public class PasskeyDAOImplTest {
       assertEquals(cassandra.executed.toString(), 2, cassandra.executed.size());
       assertDeleted(cassandra.executed.get(0), cassandra.executed.get(1), personId, "credential");
 
-      // another request deleted it first
+      // Another request deleted it first, or the credential isn't this person's. The
+      // lookup row is keyed by credential id alone, so it's left for whoever owns it.
+      cassandra.executed.clear();
       cassandra.results = bound -> RecordingCqlSession.result(false, Collections.emptyList());
-      assertFalse(dao.delete(personId, "credential"));
+      assertFalse(dao.delete(UUID.randomUUID(), "credential"));
+      assertEquals(cassandra.executed.toString(), 1, cassandra.executed.size());
+      assertEquals("DELETE FROM passkey WHERE personId = ? AND credentialId = ? IF EXISTS", cassandra.executed.get(0).get(0).query);
    }
 
    @Test
