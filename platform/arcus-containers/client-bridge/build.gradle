@@ -30,6 +30,8 @@ dependencies {
 
    implementation netty
    implementation libraries.opencsv
+   implementation libraries.webauthn
+   implementation libraries.httpClient5
 
    testImplementation project(':platform:arcus-test')
    testImplementation libraries.httpClient
