@@ -18,6 +18,7 @@ package com.iris.notification.provider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -224,6 +225,22 @@ public class SendGridEmailProviderTest {
       assertEquals(1, contents.size());
       assertEquals("text/html", contents.get(0).getType());
       assertEquals("<p>html</p>", contents.get(0).getValue());
+   }
+
+   /** With neither part there's nothing to send, and retrying can't fix it, so SendGrid is never called. */
+   @Test
+   public void shouldRefuseEmailWithNoBody() throws Exception {
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, " \n");
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      try {
+         uut.notifyCustomer(notification);
+         fail("an email with no body was sent");
+      }
+      catch(IllegalArgumentException expected) {
+      }
+      Mockito.verify(sendGrid, Mockito.never()).api(Mockito.any());
    }
 
    /** Renders the given sections plus a subject and returns the contents of the request sent to SendGrid. */

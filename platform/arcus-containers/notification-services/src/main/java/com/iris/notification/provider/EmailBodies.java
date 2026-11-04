@@ -24,7 +24,8 @@ import org.apache.commons.lang3.StringUtils;
  * provider. The text part is the plaintext-body and the HTML part is the
  * html-body. The plaintext-body leaves values unescaped, so it is never used as
  * the HTML part. A section that is missing or renders blank gives no part, and
- * providers send only the parts that are present.
+ * providers send only the parts that are present. An email with neither part is
+ * refused before it reaches a provider: retrying can't fix the template.
  */
 public final class EmailBodies {
 
@@ -36,12 +37,18 @@ public final class EmailBodies {
       this.html = html;
    }
 
-   /** Picks the parts out of the sections returned by {@code TemplateService.renderMultipart}. */
+   /**
+    * Picks the parts out of the sections returned by {@code TemplateService.renderMultipart}.
+    *
+    * @throws IllegalArgumentException if the email has neither a text nor an HTML part
+    */
    public static EmailBodies from(Map<String, String> sections) {
-      return new EmailBodies(
-            StringUtils.defaultIfBlank(sections.get(EmailSections.PLAINTEXT_BODY), null),
-            StringUtils.defaultIfBlank(sections.get(EmailSections.HTML_BODY), null)
-      );
+      String text = StringUtils.defaultIfBlank(sections.get(EmailSections.PLAINTEXT_BODY), null);
+      String html = StringUtils.defaultIfBlank(sections.get(EmailSections.HTML_BODY), null);
+      if(text == null && html == null) {
+         throw new IllegalArgumentException("The email has no text or HTML body: its template renders neither a plaintext-body nor an html-body");
+      }
+      return new EmailBodies(text, html);
    }
 
    /** The text/plain part, or null when there is none. */

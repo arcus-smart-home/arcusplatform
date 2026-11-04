@@ -47,6 +47,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -224,6 +225,24 @@ public class MailgunEmailProviderTest {
       Message message = send(EmailSections.PLAINTEXT_BODY, " \n", EmailSections.HTML_BODY, "<p>html</p>");
       assertNull(message.getText());
       assertEquals("<p>html</p>", message.getHtml());
+   }
+
+   /** With neither part there's nothing to send, so Mailgun is never called. */
+   @Test
+   public void shouldRefuseEmailWithNoBody() throws Exception {
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SENDER_NAME, "Example Sender");
+      renderedParts.put(EmailSections.SENDER_EMAIL, "sender@example.com");
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.HTML_BODY, " \n");
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      try {
+         mockMailgunEmailProvider.notifyCustomer(notification);
+         fail("an email with no body was sent");
+      }
+      catch(IllegalArgumentException expected) {
+      }
+      Mockito.verify(mailgunMessagesApi, Mockito.never()).sendMessage(Mockito.anyString(), Mockito.any(Message.class));
    }
 
    /** Renders the given sections plus sender, reply-to and subject, and returns the message sent to Mailgun. */

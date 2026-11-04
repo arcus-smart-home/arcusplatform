@@ -17,6 +17,7 @@ package com.iris.notification.provider;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,9 +56,16 @@ public class EmailBodiesTest {
    @Test
    public void blankSectionsGiveNoPart() {
       for(String blank: new String[] { "", " ", "\n\t \n" }) {
-         EmailBodies bodies = EmailBodies.from(sections(blank, blank));
-         assertNull("text for [" + blank + "]", bodies.getText());
-         assertNull("html for [" + blank + "]", bodies.getHtml());
+         assertNull("text for [" + blank + "]", EmailBodies.from(sections(blank, HTML)).getText());
+         assertNull("html for [" + blank + "]", EmailBodies.from(sections(TEXT, blank)).getHtml());
+      }
+   }
+
+   @Test
+   public void anEmailWithNeitherPartIsRefused() {
+      // a provider can't send it, and retrying can't fix the template
+      for(String blank: new String[] { null, "", " ", "\n\t \n" }) {
+         assertRefused(sections(blank, blank));
       }
    }
 
@@ -66,9 +74,16 @@ public class EmailBodiesTest {
       Map<String, String> sections = new HashMap<>();
       sections.put("", TEXT);
       sections.put(TemplateService.UNSECTIONED_CONTENT, TEXT);
-      EmailBodies bodies = EmailBodies.from(sections);
-      assertNull(bodies.getText());
-      assertNull(bodies.getHtml());
+      assertRefused(sections);
+   }
+
+   private static void assertRefused(Map<String, String> sections) {
+      try {
+         EmailBodies.from(sections);
+         fail("an email with neither part was accepted: " + sections);
+      }
+      catch(IllegalArgumentException expected) {
+      }
    }
 
    private static Map<String, String> sections(String text, String html) {

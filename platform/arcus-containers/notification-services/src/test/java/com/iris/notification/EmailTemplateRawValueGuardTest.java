@@ -114,9 +114,9 @@ public class EmailTemplateRawValueGuardTest {
 
    @Test
    public void everyEmailTemplateHasAPlaintextBody() throws IOException {
-      // Without one the providers look for text under the "" key, which the
-      // renderer never sets, so the email has no text part. Requiring one also
-      // means text outside the sections never has to be checked for escaping.
+      // Without one the email goes out as HTML only, since text outside the
+      // sections is never sent. Requiring one also means that text never has to
+      // be checked for escaping.
       assertEquals("email templates without a plaintext-body section", new ArrayList<String>(), missing(PLAINTEXT_BODY));
    }
 
