@@ -18,7 +18,10 @@
  *
  * The ZEN77 is a mains-powered Z-Wave 700 series in-wall dimmer with a paddle
  * that supports central scene notifications for multi-tap and hold actions.
- * Scene control must be enabled via parameter 13.
+ * The paddle only sends them when scene control (parameter 13) is on. It is off
+ * by default, and users turn it on with the sceneControl device setting. The
+ * driver reports every tap or hold as a press of the up or down button; it does
+ * not report how many times the paddle was tapped.
  *
  * FACTORY RESET:  Quickly press the upper paddle 6 times, then immediately press
  *                 and hold the upper paddle. The LED will start blinking.
@@ -235,10 +238,6 @@ final byte CNFG_LED_OFF                       = 2       // LED always off
 final byte CNFG_POWER_FAILURE_SIZE            = 1
 final byte CNFG_POWER_FAILURE_VALUE           = 2       // restore last state
 
-@Field final byte CNFG_SCENE_CONTROL_PARAM_NO = 13      // Scene Control Enable
-final byte CNFG_SCENE_CONTROL_SIZE            = 1
-final byte CNFG_SCENE_CONTROL_VALUE           = 1       // enable scene control
-
 // Central Scene Key Attributes (bits 0-2 of properties1)
 @Field final byte KEY_PRESSED_1_TIME  = 0x00
 @Field final byte KEY_RELEASED        = 0x01
@@ -281,8 +280,9 @@ onConnected {
    ZWave.configuration.get(CNFG_LED_PARAM_NO)
    ZWave.configuration.get(CNFG_PADDLE_PARAM_NO)
 
-   // enable scene control for paddle (disabled by default)
-   ZWave.configuration.set( CNFG_SCENE_CONTROL_PARAM_NO, CNFG_SCENE_CONTROL_SIZE, CNFG_SCENE_CONTROL_VALUE )
+   // Don't write scene control (param 13) here. It belongs to the sceneControl device
+   // setting, and this handler runs on every reconnect, so a write here would undo the
+   // user's choice. With it off, ordinary paddle use sends no button events.
 }
 
 

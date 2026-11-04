@@ -106,6 +106,27 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
     }
     
     @Override
+    public boolean isProtocolMessage(ProtocolMessage protocolMsg, String type, String subType) {
+        Message zwaveProtocolMsg = (Message)protocolMsg.getValue();
+        if (zwaveProtocolMsg.getType() != Command.ID) {
+            return false;
+        }
+
+        Command pcmd;
+        try {
+            pcmd = Command.serde().nettySerDe().decode(Unpooled.wrappedBuffer(zwaveProtocolMsg.getPayload()));
+        } catch (IOException e) {
+            throw new AssertionError("could not decode Z-Wave command", e);
+        }
+
+        ZWaveCommandClass cc = ZWaveAllCommandClasses.allClasses.get(pcmd.rawCommandClassId());
+        ZWaveCommand cmd = (cc == null) ? null : cc.get(pcmd.rawCommandId());
+        return cmd != null
+                && ZWaveCommandClass.scrub(cc.name).equalsIgnoreCase(type)
+                && cmd.commandName.equalsIgnoreCase(subType);
+    }
+
+    @Override
     public void checkTimeoutSeconds(ProtocolMessage message, Integer expectedTimeoutSeconds )throws IOException{
     	com.iris.protocol.zwave.Protocol.Message protocol = (com.iris.protocol.zwave.Protocol.Message)message.getValue();
  		assert protocol.getType() == com.iris.protocol.zwave.Protocol.SetOfflineTimeout.ID: "Not a timeout message";
