@@ -75,15 +75,15 @@ abstract class BasePinRESTHandler extends RESTHandler {
    protected abstract MessageBody handlePinOperation(Person person, String pin, String place, List<AuthorizationGrant> grants, ClientMessage clientMessage) throws PinNotUniqueAtPlaceException;
    
    BasePinRESTHandler(
-   		ClientFactory clientFactory, 
-   		PersonDAO personDao, 
-   		AuthorizationGrantDAO authGrantDao, 
-   		PlatformMessageBus bus, 
-   		PlacePopulationCacheManager populationCacheMgr, 
-   		HttpSender httpSender, 
-   		RequestAuthorizer auth, 
-   		RESTHandlerConfig restHandlerConfig
-	) {
+         ClientFactory clientFactory,
+         PersonDAO personDao,
+         AuthorizationGrantDAO authGrantDao,
+         PlatformMessageBus bus,
+         PlacePopulationCacheManager populationCacheMgr,
+         HttpSender httpSender,
+         RequestAuthorizer auth,
+         RESTHandlerConfig restHandlerConfig
+   ) {
       super(auth, httpSender, restHandlerConfig);
       this.clientFactory = clientFactory;
       this.personDao = personDao;

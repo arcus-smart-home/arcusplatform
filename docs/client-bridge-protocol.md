@@ -661,8 +661,8 @@ In addition to the WebSocket API, the client-bridge serves HTTP REST endpoints o
 | POST | `/person/ChangePassword` | No | Change password (requires `emailAddress`, `currentPassword`, `newPassword`). Broadcasts `PasswordChangedEvent` to boot other sessions. |
 | POST | `/person/SendPasswordReset` | No | Send a password reset link via email or SMS (field: `method`). |
 | POST | `/person/ResetPassword` | No | Reset password using a token (fields: `email`, `password`, `token`). Auto-authenticates and sets session cookie. |
-| POST | `/person/ChangePinV2` | Session | Change the user's PIN for a specific place (fields: `pin`, `placeId`). |
-| POST | `/person/VerifyPin` | Session | Verify a PIN for a place (fields: `pin`, `placeId`). |
+| POST | `/person/ChangePinV2` | Session | Change a person's PIN at a place (fields: `pin`, `place`). The caller must have access to the place, and may change only their own PIN unless the person has no login. |
+| POST | `/person/VerifyPin` | Session | Verify a person's PIN at a place (fields: `pin`, `place`), with the same caller rules as `ChangePinV2`. |
 | POST | `/person/SendVerificationEmail` | Session | Send an email verification link. |
 | POST | `/person/VerifyEmail` | Session | Verify email with a token (fields: `token`, `email`). |
 
