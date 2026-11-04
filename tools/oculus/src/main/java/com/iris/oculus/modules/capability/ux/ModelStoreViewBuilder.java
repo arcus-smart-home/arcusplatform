@@ -42,7 +42,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.table.TableRowSorter;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -283,7 +282,8 @@ public class ModelStoreViewBuilder<M extends Model> {
    
    protected Component createSelectionTable(TableModel<M> model, SelectionModel<M> selector) {
       Table<M> table = new Table<>(model);
-      table.setRowSorter(new TableRowSorter<TableModel<M>>(model));
+      // the first column is the name in every list built here
+      table.enableSorting(0);
       // TODO wrap this into a selection listener
       table.addMouseListener(new MouseAdapter() {
          @Override
