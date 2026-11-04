@@ -47,6 +47,16 @@ public class Notifications {
       public static final String PARAM_TOKEN = "token";
    }
 
+   public static class PasskeyAdded {
+      public static final String KEY = "account.passkey.added";
+      public static final String PARAM_NAME = "passkeyName";
+   }
+
+   public static class PasskeyRemoved {
+      public static final String KEY = "account.passkey.removed";
+      public static final String PARAM_NAME = "passkeyName";
+   }
+
    public static class AccountCreated {
       public static final String KEY = "account.created";
    }
