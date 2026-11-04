@@ -16,4 +16,5 @@
   <cl:import file="changelog-2018.10.0.xml"/>
   <cl:import file="changelog-2019.9.0.xml"/>
   <cl:import file="changelog-api-keys.xml"/>
+  <cl:import file="changelog-passkeys.xml"/>
 </cl:changelog>

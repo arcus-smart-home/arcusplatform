@@ -27,6 +27,7 @@ import com.iris.core.dao.cassandra.CassandraAppHandoffDaoModule;
 import com.iris.core.dao.cassandra.PersonDAOSecurityModule;
 import com.iris.security.GuicySessionManager;
 import com.iris.security.SessionConfig;
+import com.iris.client.server.passkey.PasskeyRealm;
 import com.iris.security.handoff.AppHandoffRealm;
 import com.iris.bootstrap.annotations.Modules;
 
@@ -48,6 +49,7 @@ public class ClientBridgeSecurityModule extends PersonDAOSecurityModule {
      bind.to(GuicySessionManager.class).asEagerSingleton();
      bind(GuicySessionManager.class);
      bindRealm().to(AppHandoffRealm.class);
+     bindRealm().to(PasskeyRealm.class);
    }
 
 }

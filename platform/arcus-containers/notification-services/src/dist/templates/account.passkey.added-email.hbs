@@ -1,0 +1,33 @@
+{{#section "subject"}}
+A Passkey Was Added To Your Arcus Account
+{{/section}}
+
+{{#section "plaintext-body"}}
+Hi {{{_person.firstName}}},
+
+A passkey named "{{{passkeyName}}}" was added to your Arcus account,
+and it can now be used to log in. If you added it, please disregard
+this email.
+
+If you did not add it, your account may have been compromised. Remove
+the passkey under Settings > Profile, then change your password, which
+signs you out everywhere else. If you can't log in, use Forgot Password.
+{{/section}}
+
+{{#section "html-body"}}
+
+	{{#partial "greeting" }}
+	Hi {{ _person.firstName }},
+	{{/partial}}
+
+	{{#partial "message" }}
+	<p>A passkey named "{{passkeyName}}" was added to your Arcus account, and it can now be used to log in. If you added it, please disregard this email.</p>
+	<p/>
+	<p>If you did not add it, your account may have been compromised. Remove the passkey under Settings &gt; Profile, then change your password, which signs you out everywhere else. If you can't log in, use Forgot Password.</p>
+	{{/partial}}
+
+{{#partial "extra" }}
+	{{/partial}}
+
+{{> layout-html-email}}
+{{/section}}

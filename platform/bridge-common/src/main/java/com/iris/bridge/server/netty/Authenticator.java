@@ -15,6 +15,8 @@
  */
 package com.iris.bridge.server.netty;
 
+import org.apache.shiro.authc.AuthenticationToken;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -29,6 +31,14 @@ public interface Authenticator {
    public FullHttpResponse authenticateRequest(Channel channel, FullHttpRequest req);
    
    public FullHttpResponse authenticateRequest(Channel channel, String username, String password, String isPublic, ByteBuf responseContentIfSuccess);
+
+   /**
+    * Logs the channel's client in with a token another handler has built (e.g. a
+    * passkey login), setting the session cookie on success like the other forms.
+    */
+   public default FullHttpResponse authenticateRequest(Channel channel, AuthenticationToken token) {
+      throw new UnsupportedOperationException("token authentication is not supported by " + getClass().getSimpleName());
+   }
 
    public DefaultCookie createCookie(String value);
 

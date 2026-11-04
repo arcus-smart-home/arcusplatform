@@ -47,6 +47,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -60,6 +61,7 @@ import com.iris.bootstrap.ServiceLocator;
 import com.iris.capability.util.PhoneNumber;
 import com.iris.capability.util.PhoneNumbers;
 import com.iris.capability.util.PhoneNumbers.PhoneNumberFormat;
+import com.iris.core.dao.PasskeyDAO;
 import com.iris.core.dao.PersonDAO;
 import com.iris.core.dao.PersonPlaceAssocDAO;
 import com.iris.core.dao.exception.EmailInUseException;
@@ -203,6 +205,8 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
    private final PersonPlaceAssocDAO personPlaceAssocDAO;
 
+   private final PasskeyDAO passkeyDao;
+
    @Inject(optional = true)
    @Named("login.reset.token_ttl_mins")
    private int tokenTTLMinutes = 15;
@@ -216,7 +220,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
    private String questionsAesSecret;
 
    @Inject
-   public PersonDAOImpl(CqlSession session, AES aes, PersonPlaceAssocDAO personPlaceAssocDAO) {
+   public PersonDAOImpl(CqlSession session, AES aes, PersonPlaceAssocDAO personPlaceAssocDAO, PasskeyDAO passkeyDao) {
       super(session, TABLE, COLUMN_ORDER, READ_ONLY_COLUMN_ORDER);
       insertLogin = prepareInsertLogin();
       findLoginByEmail = prepareFindLoginByEmail();
@@ -234,6 +238,7 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
 
       this.aes = aes;
       this.personPlaceAssocDAO = personPlaceAssocDAO;
+      this.passkeyDao = passkeyDao;
 
       listPaged = prepareListPaged();
    }
@@ -478,6 +483,31 @@ public class PersonDAOImpl extends BaseCassandraCRUDDao<UUID, Person> implements
       }
       session.execute(deleteMobileDevices.bind(entity.getId()));
       super.delete(entity);
+      if(entity.getId() != null) {
+         deletePasskeys(entity.getId());
+      }
+   }
+
+   /**
+    * Runs after the person is deleted, and never fails the delete: callers have already
+    * removed the person's grants, so stopping would leave a person who can log in but has
+    * no places. A passkey left behind can't log in, since login needs its person.
+    */
+   private void deletePasskeys(UUID personId) {
+      try {
+         passkeyDao.deleteForPerson(personId);
+      }
+      catch (RuntimeException e) {
+         String message = StringUtils.defaultString(e.getMessage());
+         if (e instanceof InvalidQueryException && (message.contains("unconfigured table") || message.contains("does not exist"))) {
+            // the passkey tables haven't been created yet, so there are no passkeys; normal
+            // until the model manager creates them, so not worth a warning on every delete
+            logger.debug("Skipped deleting the passkeys of deleted person [{}]: {}", personId, message);
+         }
+         else {
+            logger.error("Unable to delete the passkeys of deleted person [{}]; remove their rows from passkey and passkey_by_credential", personId, e);
+         }
+      }
    }
 
    @Override

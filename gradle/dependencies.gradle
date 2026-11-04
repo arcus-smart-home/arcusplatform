@@ -147,6 +147,9 @@ ext.libraries << [
 
 // misc dependencies
 		guava: "com.google.guava:guava:33.7.2-jre",
+		webauthn: "com.yubico:webauthn-server-core:2.10.1",
+		// webauthn-server-core asks for httpclient5 [5.0.0,6), which otherwise resolves to a prerelease
+		httpClient5: "org.apache.httpcomponents.client5:httpclient5:5.6.5",
 		google_guava_testlib: "com.google.guava:guava-testlib:33.7.2-jre",
 		gson: "com.google.code.gson:gson:2.15.0",
 		commons_lang: "org.apache.commons:commons-lang3:3.21.0",
