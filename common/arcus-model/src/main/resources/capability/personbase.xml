@@ -183,37 +183,6 @@
             optional="true"/>
       </c:method>
       
-      <c:method name="ChangePin"
-         description="Changes the person's pin at their currPlace.  Deprecated, use ChangePinV2 instead."
-         isRESTful="true">
-         
-         <c:parameters>
-            <c:parameter
-               name="currentPin"
-               type="string"
-               description="The current pin of the person if they have one.  If they have a pin this must match their existing pin"
-               optional="true"/>
-            <c:parameter
-               name="newPin"
-               type="string"
-               description="The new pin for the person"
-               optional="false"/>
-            
-         </c:parameters>
-         
-         <c:return
-            name="success"
-            type="boolean"
-            description="True if the pin was successfully changed, false otherwise"
-            optional="false"/>
-         
-         <c:errors>
-            <c:error code="person.notFound"      description="If no person exists with that ID." />
-            <c:error code="pin.notUniqueAtPlace" description="If the pin isn't unique at this place." />
-         </c:errors>
-
-      </c:method>
-      
       <c:method name="ChangePinV2"
          description="Changes the person's pin at the specified place.  People are allowed to change their own pin or a hobbit at the specified place assuming the person invoking the call has access to the place."
          isRESTful="true">

@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import com.iris.bridge.metrics.BridgeMetrics;
 import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.config.RESTHandlerConfig;
@@ -57,11 +56,9 @@ public class ChangePinV2RESTHandler extends BasePinRESTHandler {
          PlacePopulationCacheManager populationCacheMgr,
          BridgeMetrics metrics,
          SessionAuth auth,
-         RESTHandlerConfig restHandlerConfig,
-         @Named("changepin.require.principal.check")
-         boolean requirePrincipalCheck
+         RESTHandlerConfig restHandlerConfig
    ) {
-      super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(ChangePinV2RESTHandler.class, metrics), auth, restHandlerConfig, requirePrincipalCheck);
+      super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(ChangePinV2RESTHandler.class, metrics), auth, restHandlerConfig);
    }
 
    @Override

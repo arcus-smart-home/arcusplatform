@@ -64,7 +64,6 @@ abstract class BasePinRESTHandler extends RESTHandler {
    private final ClientFactory clientFactory;
    private final AuthorizationGrantDAO authGrantDao;
    private final PlatformMessageBus bus;
-   private final boolean checkPrincipal;
    
    protected final PersonDAO personDao;
    protected final PlacePopulationCacheManager populationCacheMgr;
@@ -76,22 +75,20 @@ abstract class BasePinRESTHandler extends RESTHandler {
    protected abstract MessageBody handlePinOperation(Person person, String pin, String place, List<AuthorizationGrant> grants, ClientMessage clientMessage) throws PinNotUniqueAtPlaceException;
    
    BasePinRESTHandler(
-   		ClientFactory clientFactory, 
-   		PersonDAO personDao, 
-   		AuthorizationGrantDAO authGrantDao, 
-   		PlatformMessageBus bus, 
-   		PlacePopulationCacheManager populationCacheMgr, 
-   		HttpSender httpSender, 
-   		RequestAuthorizer auth, 
-   		RESTHandlerConfig restHandlerConfig,
-   		boolean checkPrincipal
-	) {
+         ClientFactory clientFactory,
+         PersonDAO personDao,
+         AuthorizationGrantDAO authGrantDao,
+         PlatformMessageBus bus,
+         PlacePopulationCacheManager populationCacheMgr,
+         HttpSender httpSender,
+         RequestAuthorizer auth,
+         RESTHandlerConfig restHandlerConfig
+   ) {
       super(auth, httpSender, restHandlerConfig);
       this.clientFactory = clientFactory;
       this.personDao = personDao;
       this.authGrantDao = authGrantDao;
       this.bus = bus;
-      this.checkPrincipal = checkPrincipal;
       this.populationCacheMgr = populationCacheMgr;
    }
    
@@ -122,16 +119,16 @@ abstract class BasePinRESTHandler extends RESTHandler {
       
       List<AuthorizationGrant> grants = authGrantDao.findForEntity(person.getId());
       
-      if(checkPrincipal) {
-         AuthorizationContext authCtx = client.getAuthorizationContext();
-         if(permissionsEmpty(authCtx.getInstancePermissions(placeID)) && permissionsEmpty(authCtx.getNonInstancePermissions(placeID))) {
-            throw new UnauthorizedRequestException(dst, "Unauthorized");
-         }
+      // the caller must have access to the place, and may only handle their own pin unless the
+      // person has no login (and so can't handle it themselves)
+      AuthorizationContext authCtx = client.getAuthorizationContext();
+      if(permissionsEmpty(authCtx.getInstancePermissions(placeID)) && permissionsEmpty(authCtx.getNonInstancePermissions(placeID))) {
+         throw new UnauthorizedRequestException(dst, "Unauthorized");
+      }
 
-         UUID loggedInPerson = client.getPrincipalId();
-         if(!loggedInPerson.equals(person.getId()) && person.getHasLogin()) {
-            throw new UnauthorizedRequestException(dst, "Unauthorized request, requester must be logged in as the person that the pin is being verified for");
-         }
+      UUID loggedInPerson = client.getPrincipalId();
+      if(!person.getId().equals(loggedInPerson) && person.getHasLogin()) {
+         throw new UnauthorizedRequestException(dst, "Unauthorized request, requester must be logged in as the person that the pin is being verified for");
       }
 
       if(!grants.stream().anyMatch((a) -> { return a.getPlaceId().equals(placeID); })) {

@@ -76,7 +76,6 @@ import com.iris.client.nws.SameCodeManager;
 import com.iris.client.security.SubscriberAuthorizationContextLoader;
 import com.iris.client.server.rest.AcceptInvitationCreateLoginRESTHandler;
 import com.iris.client.server.rest.ChangePasswordRESTHandler;
-import com.iris.client.server.rest.ChangePinRESTHandler;
 import com.iris.client.server.rest.ChangePinV2RESTHandler;
 import com.iris.client.server.rest.CreateAccountRESTHandler;
 import com.iris.client.server.rest.FindProductsRESTHandler;
@@ -283,7 +282,6 @@ public class ClientServerModule extends AbstractIrisModule {
       bindHandler(rhBindings, ListEasCodesRESTHandler.class);
 
       /* Other RestHandlers */
-      bindHandler(rhBindings, ChangePinRESTHandler.class);
       bindHandler(rhBindings, ChangePinV2RESTHandler.class);
       bindHandler(rhBindings, VerifyPinRESTHandler.class);
       bindHandler(rhBindings, CreateAccountRESTHandler.class);
