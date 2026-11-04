@@ -30,7 +30,6 @@ import com.iris.capability.util.Addresses;
 import com.iris.client.ClientEvent;
 import com.iris.client.ClientRequest;
 import com.iris.client.IrisClient;
-import com.iris.client.capability.Person.ChangePinResponse;
 import com.iris.client.capability.Person.ChangePinV2Response;
 import com.iris.client.capability.Person.VerifyPinResponse;
 import com.iris.client.capability.Place;
@@ -42,7 +41,6 @@ import com.iris.client.model.PlaceModel;
 import com.iris.client.util.Result;
 import com.iris.oculus.Oculus;
 import com.iris.oculus.modules.BaseController;
-import com.iris.oculus.modules.person.dialog.ChangePinDialog;
 import com.iris.oculus.modules.person.dialog.ChangePinV2Dialog;
 import com.iris.oculus.modules.person.dialog.VerifyPinDialog;
 import com.iris.oculus.modules.session.OculusSession;
@@ -57,7 +55,6 @@ public class PersonController extends BaseController<PersonModel> {
    private IrisClient irisClient;
    private SessionController sessionController;
 
-   private Action changePinAction = Actions.build("Change Pin (Deprecated)", () -> this.changePin());
    private Action changePinV2Action = Actions.build("Change Pin V2", () -> this.changePinV2());
    private Action verifyPinAction = Actions.build("Verify Pin", () -> this.verifyPin());
 
@@ -73,10 +70,6 @@ public class PersonController extends BaseController<PersonModel> {
 
    public @Nullable PlaceModel getCurrentPlace() {
       return Models.getIfLoaded(Addresses.toObjectAddress(Place.NAMESPACE, getPlaceId()), PlaceModel.class).orElse(null);
-   }
-
-   public Action actionChangePin() {
-      return changePinAction;
    }
 
    public Action actionChangePinV2() {
@@ -142,55 +135,29 @@ public class PersonController extends BaseController<PersonModel> {
       String personAddress = getSelection().getSelectedItem().get().getAddress();
       ChangePinV2Dialog
          .prompt()
-         .onSuccess((request) -> doChangePin(request, personAddress, true));
+         .onSuccess((request) -> doChangePin(request, personAddress));
    }
 
-   private void doChangePin(ClientRequest req, String personAddress, boolean v2) {
+   private void doChangePin(ClientRequest req, String personAddress) {
       req.setAddress(personAddress);
       req.setRestfulRequest(true);
       ClientFuture<?> future =
             irisClient
                .request(req)
-               .onCompletion((result) -> onPinChanged(result, v2))
+               .onCompletion((result) -> onPinChanged(result))
                ;
          Oculus.showProgress(future, "Changing pin...");
    }
 
-   /**
-    * Changes the pin on the currently selected person
-    */
-   public void changePin() {
-      changePin(null);
-   }
-
-   protected void changePin(String errorMessage) {
-      if(!getSelection().hasSelection()) {
-         Oculus.showDialog("Select a Person", "No person is selected, choose a person in order to change their pin", JOptionPane.WARNING_MESSAGE);
-         return;
-      }
-
-      String personAddress = getSelection().getSelectedItem().get().getAddress();
-      ChangePinDialog
-         .prompt()
-         .onSuccess((request) -> { doChangePin(request, personAddress, false); });
-   }
-
-   private void onPinChanged(Result<ClientEvent> result, boolean v2) {
+   private void onPinChanged(Result<ClientEvent> result) {
       if(result.isError()) {
          Oculus.showError("Unable to Change Pin", result.getError());
          return;
       }
 
-      if(!v2) {
-         ChangePinResponse response = new ChangePinResponse(result.getValue());
-         if(!Boolean.TRUE.equals(response.getSuccess())) {
-            changePin("Previous pin was not correct");
-         }
-      } else {
-         ChangePinV2Response response = new ChangePinV2Response(result.getValue());
-         if(!Boolean.TRUE.equals(response.getSuccess())) {
-            changePinV2("Previous pin was not correct");
-         }
+      ChangePinV2Response response = new ChangePinV2Response(result.getValue());
+      if(!Boolean.TRUE.equals(response.getSuccess())) {
+         changePinV2("Previous pin was not correct");
       }
    }
 

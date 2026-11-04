@@ -54,7 +54,7 @@ public class VerifyPinRESTHandler extends BasePinRESTHandler {
    		SessionAuth authorizer, 
    		RESTHandlerConfig restHandlerConfig
 	) {
-      super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(VerifyPinRESTHandler.class, metrics), authorizer, restHandlerConfig, true);
+      super(clientFactory, personDao, authGrantDao, bus, populationCacheMgr, new HttpSender(VerifyPinRESTHandler.class, metrics), authorizer, restHandlerConfig);
       this.metrics = metrics;
    }
 
