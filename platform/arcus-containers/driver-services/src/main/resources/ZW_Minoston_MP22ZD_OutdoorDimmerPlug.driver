@@ -16,8 +16,14 @@
 /**
  * Driver for a Minoston MP22ZD Outdoor Dimmer Smart Plug
  *
- * Z-Wave 800 Series, IP65-rated outdoor dimmer plug.
+ * IP65-rated outdoor dimmer plug. Units on Z-Wave SDK 7.13 are 700 Series;
+ * Minoston also sells an 800 Series MP22ZD (ZW96SD).
  * Max load: 400W incandescent, 150W LED/CFL.
+ *
+ * Device settings follow the MP22ZD(ZW96SD) manual dated 2025-07-03, which
+ * matches the Z-Wave JS entry written for the 700 Series unit: the timers
+ * (parameters 4 and 6) are 4 bytes, and the minimum and maximum dim levels
+ * default to 10 and 99.
  *
  * FACTORY RESET:  Click the Z-Wave button 3 times quickly, then hold for at least 10 seconds.
  * PAIR/INCLUDE:   Click the Z-Wave button 3 times quickly while the hub is in inclusion mode.
@@ -80,14 +86,14 @@ Dimmer.brightness                100
 
 deviceSettings {
    param name: 'ledIndicator', id: 2, size: 1,
-       type: 'enum', values: ['0': 'On when load on', '1': 'On when load off', '2': 'Always off', '3': 'Always on'],
+       type: 'enum', values: ['0': 'On when load off', '1': 'On when load on', '2': 'Always off', '3': 'Always on'],
        description: 'Parameter 2: LED indicator behavior',
        dflt: 0
-   param name: 'autoOffTimer', id: 4, size: 2,
+   param name: 'autoOffTimer', id: 4, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 4: Auto off timer in minutes (0=disabled)',
        dflt: 0
-   param name: 'autoOnTimer', id: 6, size: 2,
+   param name: 'autoOnTimer', id: 6, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 6: Auto on timer in minutes (0=disabled)',
        dflt: 0
@@ -110,35 +116,17 @@ deviceSettings {
    param name: 'minimumDimLevel', id: 11, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 11: Minimum dim level (0=disabled, 1-99)',
-       dflt: 0
+       dflt: 10
    param name: 'maximumDimLevel', id: 12, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 12: Maximum dim level (0=disabled, 1-99)',
-       dflt: 0
+       dflt: 99
 }
 
 @Field final String DEVICE_NAME = "Minoston MP22ZD Outdoor Dimmer Plug"
 
 final int OFFLINE_TIMEOUT_SECS    = 10800       // 3 hrs
 final int POLLING_INTERVAL_SEC    = 3600        // every hour
-
-
-// Config Parameters
-// ----------------------------------------------------------------------------
-// Parameter 2: LED Indicator Mode
-@Field final byte CNFG_LED_PARAM_NO          = 2
-final byte CNFG_LED_SIZE                     = 1
-final byte CNFG_LED_ON_WHEN_OFF              = 0x00       // LED on when load off (default)
-final byte CNFG_LED_ON_WHEN_ON               = 0x01       // LED on when load on
-final byte CNFG_LED_ALWAYS_OFF               = 0x02
-final byte CNFG_LED_ALWAYS_ON                = 0x03
-
-// Parameter 8: State After Power Failure
-@Field final byte CNFG_POWER_RESTORE_PARAM_NO = 8
-final byte CNFG_POWER_RESTORE_SIZE           = 1
-final byte CNFG_POWER_RESTORE_OFF            = 0x00       // Always off
-final byte CNFG_POWER_RESTORE_ON             = 0x01       // Always on
-final byte CNFG_POWER_RESTORE_PREV           = 0x02       // Previous state (default)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,9 +156,8 @@ onConnected {
     // set Association Group 1 to hub
     ZWave.association.set( 1, 1, 0, 0, 0);
 
-    // configure defaults
-    ZWave.configuration.set(CNFG_LED_PARAM_NO, CNFG_LED_SIZE, CNFG_LED_ON_WHEN_OFF)
-    ZWave.configuration.set(CNFG_POWER_RESTORE_PARAM_NO, CNFG_POWER_RESTORE_SIZE, CNFG_POWER_RESTORE_PREV)
+    // Configuration is left to device settings; nothing is written here, so a
+    // reconnect never overwrites a value the user changed.
 }
 
 onDisconnected {

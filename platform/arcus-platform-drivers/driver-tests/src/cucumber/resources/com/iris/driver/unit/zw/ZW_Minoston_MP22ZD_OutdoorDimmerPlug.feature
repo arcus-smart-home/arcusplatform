@@ -39,6 +39,28 @@ Feature: Unit Tests for the ZWMinostonMP22ZDOutdoorDimmerPlugDriver
         Then the driver should set timeout at 3 hours
         Then the driver should poll switch_multilevel.get every 1 hour
         Then the driver should send switch_multilevel get
+        Then the driver should send association set
+            And with parameter group 1
+            And with parameter node1 1
+        Then the driver should send configuration get
+            And with parameter param 2
+        Then the driver should send configuration get
+            And with parameter param 4
+        Then the driver should send configuration get
+            And with parameter param 6
+        Then the driver should send configuration get
+            And with parameter param 7
+        Then the driver should send configuration get
+            And with parameter param 8
+        Then the driver should send configuration get
+            And with parameter param 9
+        Then the driver should send configuration get
+            And with parameter param 10
+        Then the driver should send configuration get
+            And with parameter param 11
+        Then the driver should send configuration get
+            And with parameter param 12
+        Then the driver should not send configuration set
 
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
