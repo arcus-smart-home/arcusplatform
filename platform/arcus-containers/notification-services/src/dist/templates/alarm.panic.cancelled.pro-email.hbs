@@ -16,11 +16,11 @@ Check the Arcus app for details. To cancel Police dispatch, call the monitoring 
 {{#section "html-body"}}
 
 	{{#partial "greeting" }}
-	Hi {{{_person.firstName}}},
+	Hi {{_person.firstName}},
 	{{/partial}}
 
 	{{#partial "message" }}
-	<p>The Panic Alarm at {{{_place.name}}} was cancelled by {{{cancelByFirstName}}} {{{cancelByLastName}}}.</p>
+	<p>The Panic Alarm at {{_place.name}} was cancelled by {{cancelByFirstName}} {{cancelByLastName}}.</p>
 	<p/>
 	<p>Check the Arcus app for details. To cancel Police dispatch, call the monitoring station at 1-844-571-6006. </p>
 	{{/partial}}

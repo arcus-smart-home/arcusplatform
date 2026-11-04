@@ -39,6 +39,7 @@ import com.iris.platform.notification.provider.NotificationProviderUtil;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -55,12 +56,6 @@ public class SendGridEmailProvider implements EmailProvider {
     private static Logger logger = LoggerFactory.getLogger(SendGridEmailProvider.class);
 
     private static final String REQUEST_END_POINT = "mail/send";
-    private final static String SENDER_NAME_SECTION = "sender-name";
-    private final static String SENDER_EMAIL_SECTION = "sender-email";
-    private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
-    private final static String SUBJECT_SECTION = "subject";
-    private final static String PLAINTEXT_BODY_SECTION = "plaintext-body";
-    private final static String HTML_BODY_SECTION = "html-body";
     private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
 
 
@@ -186,24 +181,25 @@ public class SendGridEmailProvider implements EmailProvider {
     private MailParams fromMap(Map<String, String> messageParts) {
         MailParams mailParams = new MailParams();
 
-        if (messageParts.containsKey(SENDER_NAME_SECTION)) {
-            mailParams.setSenderName(messageParts.get(SENDER_NAME_SECTION));
+        if (messageParts.containsKey(EmailSections.SENDER_NAME)) {
+            mailParams.setSenderName(messageParts.get(EmailSections.SENDER_NAME));
         }
 
-        if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-            mailParams.setSenderEmail(messageParts.get(SENDER_EMAIL_SECTION));
+        if (messageParts.containsKey(EmailSections.SENDER_EMAIL)) {
+            mailParams.setSenderEmail(messageParts.get(EmailSections.SENDER_EMAIL));
         }
 
-        if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
-            mailParams.setReplyToEmail(messageParts.get(REPLYTO_EMAIL_SECTION));
+        if (messageParts.containsKey(EmailSections.REPLYTO_EMAIL)) {
+            mailParams.setReplyToEmail(messageParts.get(EmailSections.REPLYTO_EMAIL));
         }
 
-        if (messageParts.containsKey(SUBJECT_SECTION)) {
-            mailParams.setSubject(messageParts.get(SUBJECT_SECTION));
+        if (messageParts.containsKey(EmailSections.SUBJECT)) {
+            mailParams.setSubject(messageParts.get(EmailSections.SUBJECT));
         }
 
-        mailParams.setPlaintextBody(messageParts.containsKey(PLAINTEXT_BODY_SECTION) ? messageParts.get(PLAINTEXT_BODY_SECTION) : messageParts.get(""));
-        mailParams.setHtmlBody(messageParts.containsKey(HTML_BODY_SECTION) ? messageParts.get(HTML_BODY_SECTION) : mailParams.getPlaintextBody());
+        EmailBodies bodies = EmailBodies.from(messageParts);
+        mailParams.setPlaintextBody(bodies.getText());
+        mailParams.setHtmlBody(bodies.getHtml());
 
         return mailParams;
     }
@@ -301,11 +297,19 @@ public class SendGridEmailProvider implements EmailProvider {
         }
 
         // Send the email; throw DispatchException if we're unable to
-        Content content = new Content("text/plain", mailParams.getPlaintextBody());
-
-        Mail mail = new Mail(mailParams.getFromEmail(), mailParams.getSubject(), mailParams.getToEmail(), content);
-        Content htmlContent = new Content("text/html", mailParams.getHtmlBody());
-        mail.addContent(htmlContent);
+        Mail mail = new Mail();
+        mail.setFrom(mailParams.getFromEmail());
+        mail.setSubject(mailParams.getSubject());
+        Personalization personalization = new Personalization();
+        personalization.addTo(mailParams.getToEmail());
+        mail.addPersonalization(personalization);
+        // Only the parts the template rendered; SendGrid wants text/plain first.
+        if (mailParams.getPlaintextBody() != null) {
+            mail.addContent(new Content("text/plain", mailParams.getPlaintextBody()));
+        }
+        if (mailParams.getHtmlBody() != null) {
+            mail.addContent(new Content("text/html", mailParams.getHtmlBody()));
+        }
         mail.setReplyTo(new Email(mailParams.getReplyToEmail()));
 
         Request request = new Request();

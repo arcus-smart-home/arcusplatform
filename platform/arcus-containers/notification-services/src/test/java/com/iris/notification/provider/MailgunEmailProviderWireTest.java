@@ -16,6 +16,7 @@
 package com.iris.notification.provider;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -91,6 +92,7 @@ public class MailgunEmailProviderWireTest {
 
    private UpstreamNotificationResponder responder;
    private Notification notification;
+   private Map<String, String> renderedParts;
    private MailgunEmailProvider provider;
 
    @Before
@@ -118,13 +120,13 @@ public class MailgunEmailProviderWireTest {
       Mockito.when(personDao.findById(Mockito.any())).thenReturn(person);
       Mockito.when(placeDao.findById(placeId)).thenReturn(place);
 
-      Map<String, String> renderedParts = new HashMap<>();
-      renderedParts.put("sender-name", SENDER_NAME);
-      renderedParts.put("sender-email", SENDER_EMAIL);
-      renderedParts.put("replyto-email", REPLYTO_EMAIL);
-      renderedParts.put("subject", SUBJECT);
-      renderedParts.put("plaintext-body", PLAINTEXT_BODY);
-      renderedParts.put("html-body", HTML_BODY);
+      renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SENDER_NAME, SENDER_NAME);
+      renderedParts.put(EmailSections.SENDER_EMAIL, SENDER_EMAIL);
+      renderedParts.put(EmailSections.REPLYTO_EMAIL, REPLYTO_EMAIL);
+      renderedParts.put(EmailSections.SUBJECT, SUBJECT);
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, PLAINTEXT_BODY);
+      renderedParts.put(EmailSections.HTML_BODY, HTML_BODY);
 
       NotificationMessageRenderer messageRenderer = Mockito.mock(NotificationMessageRenderer.class);
       Mockito.when(messageRenderer.renderMultipartMessage(
@@ -173,6 +175,23 @@ public class MailgunEmailProviderWireTest {
       assertFormField(body, "html", HTML_BODY);
 
       // The provider only hands off once it has seen an id come back.
+      Mockito.verify(responder).handleHandOff(notification);
+   }
+
+   /**
+    * The plaintext-body leaves values unescaped, so a template without an
+    * html-body must get a text-only email: the form must carry no html field
+    * at all, not an empty one and not the plain text.
+    */
+   @Test
+   public void shouldPostTextOnlyMessageWithoutHtmlBody() throws Exception {
+      renderedParts.remove(EmailSections.HTML_BODY);
+
+      provider.notifyCustomer(notification);
+
+      String body = requestBody.get();
+      assertFormField(body, "text", PLAINTEXT_BODY);
+      assertFalse("multipart body has an html field: " + body, body.contains("name=\"html\""));
       Mockito.verify(responder).handleHandOff(notification);
    }
 

@@ -45,7 +45,9 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -86,12 +88,6 @@ public class MailgunEmailProviderTest {
    private final String expectedFirstName = "Bill";
    private final String expectedLastName = "Birditzman";
 
-   private final static String SENDER_NAME_SECTION = "sender-name";
-   private final static String SENDER_EMAIL_SECTION = "sender-email";
-   private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
-   private final static String SUBJECT_SECTION = "subject";
-   private final static String HTML_BODY_SECTION = "html-body";
-
    private MockedStatic<LoggerFactory> mockedLoggerFactory;
 
    @Before
@@ -108,7 +104,7 @@ public class MailgunEmailProviderTest {
       messageResponse = Mockito.mock(MessageResponse.class);
 
       Map<String, String> renderedParts = new HashMap<>();
-      renderedParts.put("", expectedEmailBody);
+      renderedParts.put(EmailSections.PLAINTEXT_BODY, expectedEmailBody);
 
       notification = new NotificationBuilder().withPersonId(personId).withPlaceId(placeId).build();
       Map<String, BaseEntity<?, ?>> entityMap = new HashMap<>(2);
@@ -179,11 +175,11 @@ public class MailgunEmailProviderTest {
    public void shouldSendEmail() throws DispatchException, DispatchUnsupportedByUserException {
       ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
       Map<String, String> renderedParts = new HashMap<>();
-      renderedParts.put(SENDER_NAME_SECTION, "Wes Stueve");
-      renderedParts.put(SENDER_EMAIL_SECTION, "wes.stueve@wds-it.com");
-      renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
-      renderedParts.put(SUBJECT_SECTION, "subject");
-      renderedParts.put(HTML_BODY_SECTION, expectedEmailBody);
+      renderedParts.put(EmailSections.SENDER_NAME, "Wes Stueve");
+      renderedParts.put(EmailSections.SENDER_EMAIL, "wes.stueve@wds-it.com");
+      renderedParts.put(EmailSections.REPLYTO_EMAIL, "test@example.com");
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.HTML_BODY, expectedEmailBody);
       Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
       Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
       mockMailgunEmailProvider.notifyCustomer(notification);
@@ -191,6 +187,81 @@ public class MailgunEmailProviderTest {
 
       String expectedFromEmail = "Wes Stueve <wes.stueve@wds-it.com>";
       validateEmail(expectedFromEmail, mailRequestCaptor.getValue());
+   }
+
+   /**
+    * The plaintext-body leaves values unescaped, so a template without an
+    * html-body must get a text-only email, never its plain text as HTML.
+    */
+   @Test
+   public void shouldSendTextOnlyEmailWithoutHtmlBody() throws Exception {
+      String plaintext = "<a href=\"https://evil.example.com\">O'Brien & Daughters</a>";
+      Message message = send(EmailSections.PLAINTEXT_BODY, plaintext);
+
+      assertEquals(plaintext, message.getText());
+      assertNull(message.getHtml());
+   }
+
+   /** A blank html-body would show an empty email, so it is left out too. */
+   @Test
+   public void shouldSendTextOnlyEmailWithBlankHtmlBody() throws Exception {
+      Message message = send(EmailSections.PLAINTEXT_BODY, "plain text", EmailSections.HTML_BODY, "\n\t \n");
+
+      assertEquals("plain text", message.getText());
+      assertNull(message.getHtml());
+   }
+
+   /** Without a plaintext-body the message goes out as HTML only. */
+   @Test
+   public void shouldSendHtmlOnlyEmailWithoutPlaintextBody() throws Exception {
+      Message message = send(EmailSections.HTML_BODY, "<p>html</p>");
+      assertNull(message.getText());
+      assertEquals("<p>html</p>", message.getHtml());
+   }
+
+   /** And so it does with a blank one. */
+   @Test
+   public void shouldSendHtmlOnlyEmailWithBlankPlaintextBody() throws Exception {
+      Message message = send(EmailSections.PLAINTEXT_BODY, " \n", EmailSections.HTML_BODY, "<p>html</p>");
+      assertNull(message.getText());
+      assertEquals("<p>html</p>", message.getHtml());
+   }
+
+   /** With neither part there's nothing to send, so Mailgun is never called. */
+   @Test
+   public void shouldRefuseEmailWithNoBody() throws Exception {
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SENDER_NAME, "Example Sender");
+      renderedParts.put(EmailSections.SENDER_EMAIL, "sender@example.com");
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.HTML_BODY, " \n");
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      try {
+         mockMailgunEmailProvider.notifyCustomer(notification);
+         fail("an email with no body was sent");
+      }
+      catch(IllegalArgumentException expected) {
+      }
+      Mockito.verify(mailgunMessagesApi, Mockito.never()).sendMessage(Mockito.anyString(), Mockito.any(Message.class));
+   }
+
+   /** Renders the given sections plus sender, reply-to and subject, and returns the message sent to Mailgun. */
+   private Message send(String... sections) throws Exception {
+      ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
+      Map<String, String> renderedParts = new HashMap<>();
+      renderedParts.put(EmailSections.SENDER_NAME, "Example Sender");
+      renderedParts.put(EmailSections.SENDER_EMAIL, "sender@example.com");
+      renderedParts.put(EmailSections.REPLYTO_EMAIL, "test@example.com");
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      for(int i = 0; i < sections.length; i += 2) {
+         renderedParts.put(sections[i], sections[i + 1]);
+      }
+      Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
+      Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
+
+      mockMailgunEmailProvider.notifyCustomer(notification);
+      Mockito.verify(mailgunMessagesApi).sendMessage(Mockito.eq("testDomain"), mailRequestCaptor.capture());
+      return mailRequestCaptor.getValue();
    }
 
    private void validateEmail(String expectedFromEmail, Message message) {
@@ -217,9 +288,9 @@ public class MailgunEmailProviderTest {
       setField(mockMailgunEmailProvider, "defaultSenderEmail", defaultSenderEmail);
       ArgumentCaptor<Message> mailRequestCaptor = ArgumentCaptor.forClass(Message.class);
       Map<String, String> renderedParts = new HashMap<>();
-      renderedParts.put(REPLYTO_EMAIL_SECTION, "test@example.com");
-      renderedParts.put(SUBJECT_SECTION, "subject");
-      renderedParts.put(HTML_BODY_SECTION, expectedEmailBody);
+      renderedParts.put(EmailSections.REPLYTO_EMAIL, "test@example.com");
+      renderedParts.put(EmailSections.SUBJECT, "subject");
+      renderedParts.put(EmailSections.HTML_BODY, expectedEmailBody);
       Mockito.when(messageRenderer.renderMultipartMessage(Mockito.any(Notification.class), Mockito.any(NotificationMethod.class), Mockito.any(Person.class), Mockito.any())).thenReturn(renderedParts);
       Mockito.when(messageResponse.getId()).thenReturn("message-successfully-sent");
       mockMailgunEmailProvider.notifyCustomer(notification);

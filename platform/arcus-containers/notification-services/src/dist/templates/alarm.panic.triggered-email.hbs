@@ -5,7 +5,7 @@ Panic Alarm Triggered
 {{#section "plaintext-body"}}
 Hi {{{_person.firstName}}}, 
 
-The Panic Alarm at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) was triggered by {{{deviceName}}} ({{{deviceType}}}).
+The Panic Alarm at {{{_owner.firstName}}} {{{_owner.lastName}}}'s place ({{{_place.name}}}) was triggered by {{{deviceName}}} ({{{deviceType}}}).
 
 {{{_place.name}}}
 {{{_place.streetAddress1}}}
@@ -18,7 +18,7 @@ The Panic Alarm at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.na
 	{{/partial}}
 
 	{{#partial "message" }}
-	<p>The Panic Alarm at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) was triggered by {{{deviceName}}} ({{{deviceType}}}).</p>
+	<p>The Panic Alarm at {{_owner.firstName}} {{_owner.lastName}}'s place ({{_place.name}}) was triggered by {{deviceName}} ({{deviceType}}).</p>
 	<p/>
 	<p>{{_place.name}}<br/>
 	{{_place.streetAddress1}}<br/>

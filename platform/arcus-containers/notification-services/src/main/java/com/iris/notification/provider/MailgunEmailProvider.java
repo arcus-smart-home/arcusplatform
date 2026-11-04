@@ -62,12 +62,6 @@ public class MailgunEmailProvider implements EmailProvider {
    @Inject @Named("email.subject") 	private String defaultSubject;
 
    private final String domain;
-   private final static String SENDER_NAME_SECTION = "sender-name";
-   private final static String SENDER_EMAIL_SECTION = "sender-email";
-   private final static String REPLYTO_EMAIL_SECTION = "replyto-email";
-   private final static String SUBJECT_SECTION = "subject";
-   private final static String PLAINTEXT_BODY_SECTION = "plaintext-body";
-   private final static String HTML_BODY_SECTION = "html-body";
    private final static EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
    
    @Inject
@@ -161,24 +155,29 @@ public class MailgunEmailProvider implements EmailProvider {
       Map<String, String> messageParts = messageRenderer.renderMultipartMessage(notification, NotificationMethod.EMAIL, person, additionalEntityParams);
 
       MessageBuilder messageBuilder = Message.builder();
-      if (messageParts.containsKey(SENDER_EMAIL_SECTION)) {
-         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(SENDER_NAME_SECTION), messageParts.get(SENDER_EMAIL_SECTION)));
+      if (messageParts.containsKey(EmailSections.SENDER_EMAIL)) {
+         messageBuilder.from(EmailUtil.nameWithEmail(messageParts.get(EmailSections.SENDER_NAME), messageParts.get(EmailSections.SENDER_EMAIL)));
       } else {
          messageBuilder.from(EmailUtil.nameWithEmail(defaultSenderName, defaultSenderEmail));
       }
-      if (messageParts.containsKey(REPLYTO_EMAIL_SECTION)) {
-         messageBuilder.replyTo(messageParts.get(REPLYTO_EMAIL_SECTION));
+      if (messageParts.containsKey(EmailSections.REPLYTO_EMAIL)) {
+         messageBuilder.replyTo(messageParts.get(EmailSections.REPLYTO_EMAIL));
       } else {
          messageBuilder.replyTo(defaultReplyToEmail);
       }
-      if (messageParts.containsKey(SUBJECT_SECTION)) {
-         messageBuilder.subject(messageParts.get(SUBJECT_SECTION));
+      if (messageParts.containsKey(EmailSections.SUBJECT)) {
+         messageBuilder.subject(messageParts.get(EmailSections.SUBJECT));
       } else {
          messageBuilder.subject(defaultSubject);
       }
       messageBuilder.to(recipientEmail);
-      messageBuilder.text(messageParts.containsKey(PLAINTEXT_BODY_SECTION) ? messageParts.get(PLAINTEXT_BODY_SECTION) : messageParts.get(""));
-      messageBuilder.html(messageParts.containsKey(HTML_BODY_SECTION) ? messageParts.get(HTML_BODY_SECTION) : messageParts.get(PLAINTEXT_BODY_SECTION));
+      EmailBodies bodies = EmailBodies.from(messageParts);
+      if (bodies.getText() != null) {
+         messageBuilder.text(bodies.getText());
+      }
+      if (bodies.getHtml() != null) {
+         messageBuilder.html(bodies.getHtml());
+      }
 
       return messageBuilder;
    }

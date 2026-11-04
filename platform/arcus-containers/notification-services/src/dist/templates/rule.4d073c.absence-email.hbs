@@ -20,7 +20,7 @@ Hi {{{_person.firstName}}},
 	{{/partial}}
 
 	{{#partial "message" }}
-		{{#if person}}{{{person}}}{{else}}{{{device}}}{{/if}} has left {{_place.name}}.
+		{{#if person}}{{person}}{{else}}{{device}}{{/if}} has left {{_place.name}}.
 	{{/partial}}
 
 	{{#partial "extra" }}{{/partial}}
