@@ -5788,6 +5788,28 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="d3120d" name="Smart Plug Dimmer (MP21ZD)" shortname="Dimmer Plug" screen="Dimmer" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="minoston,dimmer,plug,smart,zwave,MP21ZD,800" ota="No" protofamily="Z-Wave" added="2026-11-03T12:00:00-0800" lastchanged="2026-11-03T12:00:00-0800">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the device into an indoor outlet."/>
+        <step2 type="text" img="" text="Press the button on the plug 3 times quickly. The LED will flash and the hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Press the button on the plug 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press the button twice quickly, then hold the third press for 10 seconds until the LED blinks to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d312fd" name="Outdoor Dimmer Smart Plug (MP22ZD)" shortname="Dimmer Plug" screen="Dimmer" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="minoston,dimmer,plug,outdoor,smart,zwave,MP22ZD,800" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
       <categories>
         <category name="Lights &amp; Switches"/>
