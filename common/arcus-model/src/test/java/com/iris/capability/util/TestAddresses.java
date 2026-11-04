@@ -30,7 +30,7 @@ public class TestAddresses {
    @Test
    public void testToServiceAddress() {
       assertEquals("SERV:person:", Addresses.toServiceAddress("person"));
-      assertEquals("DRIV:dev:", Addresses.toServiceAddress("dev"));
+      assertEquals("SERV:dev:", Addresses.toServiceAddress("dev"));
    }
 
    @Test
@@ -39,7 +39,7 @@ public class TestAddresses {
       assertEquals("SERV:person:", Addresses.toObjectAddress("person", ""));
       assertEquals("SERV:person:test", Addresses.toObjectAddress("person", "test"));
       
-      assertEquals("DRIV:dev:", Addresses.toObjectAddress("dev", null));
+      assertEquals("SERV:dev:", Addresses.toObjectAddress("dev", null));
       assertEquals("DRIV:dev:", Addresses.toObjectAddress("dev", ""));
       assertEquals("DRIV:dev:test", Addresses.toObjectAddress("dev", "test"));
    }
