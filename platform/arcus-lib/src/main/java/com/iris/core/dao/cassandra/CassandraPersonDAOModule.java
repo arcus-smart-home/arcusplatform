@@ -21,7 +21,8 @@ import com.iris.bootstrap.annotations.Modules;
 
 @Modules(include={
    CassandraModule.class,
-   CassandraPersonPlaceAssocDAOModule.class
+   CassandraPersonPlaceAssocDAOModule.class,
+   CassandraPasskeyDAOModule.class
 })
 public class CassandraPersonDAOModule extends AbstractModule {
    @Override
