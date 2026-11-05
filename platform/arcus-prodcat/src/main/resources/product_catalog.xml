@@ -5788,6 +5788,28 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="acd472" name="Dimmer Switch (ZEN72)" shortname="Dimmer Switch" screen="Dimmer" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="zooz,dimmer,switch,paddle,scene,zwave,ZEN72,700" ota="No" protofamily="Z-Wave" added="2026-11-05T00:00:00-0800" lastchanged="2026-11-05T00:00:00-0800">
+      <categories>
+        <category name="Lights &amp; Switches"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Make sure the dimmer switch is installed and has power."/>
+        <step2 type="text" img="" text="Tap the upper paddle 3 times quickly. The LED will blink blue, then turn green for 3 seconds when pairing is complete."/>
+      </pair>
+      <removal>
+        <step0 type="text" img="" text="TIP: Do not use other Iris devices at this time to avoid removing them. It is best if the device is within 10 feet of the hub."/>
+        <step1 type="text" img="" text="Tap the lower paddle 3 times quickly."/>
+        <step2 type="text" img="" text="The LED will blink blue, then turn green for 3 seconds when the device is removed."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the lower paddle for 10 seconds until the LED starts blinking, release it, then immediately tap the lower paddle 5 times. The LED flashes blue 3 times and turns red for 3 seconds to confirm the reset."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="d3120d" name="Smart Plug Dimmer (MP21ZD)" shortname="Dimmer Plug" screen="Dimmer" description="" manufacturer="Minoston" vendor="Minoston" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="" batteryprimnum="0" keywords="minoston,dimmer,plug,smart,zwave,MP21ZD,800" ota="No" protofamily="Z-Wave" added="2026-11-03T12:00:00-0800" lastchanged="2026-11-03T12:00:00-0800">
       <categories>
         <category name="Lights &amp; Switches"/>
