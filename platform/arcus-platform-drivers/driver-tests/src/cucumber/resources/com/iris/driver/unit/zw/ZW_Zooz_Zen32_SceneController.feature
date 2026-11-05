@@ -34,6 +34,14 @@ The ZEN32 has a main relay paddle (scene 5) and four small scene buttons (scenes
         When the device is connected
         Then the driver should set timeout at 190 minutes
 
+    # LED mode, power-failure state, relay control and relay scene control belong to
+    # device settings. Writing them on connect would undo the user's choices every
+    # time the switch reconnects; param 18 = 2 also forced the relay on after outages.
+    @basic @connected @config
+    Scenario: Connecting does not write any configuration
+        When the device is connected
+        Then the driver should not send configuration set
+
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
         When a base:SetAttributes command with the value of dev:name <value> is placed on the platform bus

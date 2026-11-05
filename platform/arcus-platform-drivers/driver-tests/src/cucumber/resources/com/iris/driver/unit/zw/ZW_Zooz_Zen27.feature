@@ -34,6 +34,13 @@ These scenarios test the functionality of the ZWave Zooz ZEN27 S2 Dimmer driver
         When the device is connected
         Then the driver should set timeout at 30 minutes
 
+    # Scene control (param 13) belongs to the sceneControl device setting. Writing it
+    # on connect would undo the user's choice every time the dimmer reconnects.
+    @basic @connected @scene
+    Scenario: Connecting does not write any configuration
+        When the device is connected
+        Then the driver should not send configuration set
+
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
         When a base:SetAttributes command with the value of dev:name <value> is placed on the platform bus

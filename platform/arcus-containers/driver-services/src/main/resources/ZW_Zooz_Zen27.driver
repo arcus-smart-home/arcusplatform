@@ -17,8 +17,8 @@
  * Driver for a Zooz ZEN27 S2 Dimmer Switch
  *
  * The ZEN27 is a mains-powered Z-Wave in-wall dimmer with a paddle that supports
- * central scene notifications for multi-tap and hold actions. Scene control must
- * be enabled via parameter 13.
+ * central scene notifications for multi-tap and hold actions. Scene control is off
+ * by default; turn on the sceneControl device setting (parameter 13) to get them.
  *
  * FACTORY RESET:  Quickly press the upper paddle 6 times, then immediately press
  *                 and hold the upper paddle. The LED will start blinking.
@@ -183,7 +183,7 @@ final int POLLING_INTERVAL_SEC = 600           // Poll every 10 minutes
 final long DEFERRED_READ_DELAY_MSEC = 5000     // wait 5 seconds after Node Info to read level
 final long RELEASE_DELAY_MSEC  = 1000          // simulate button RELEASED 1 second after PRESSED
 
-// Config Parameters (for onConnected defaults)
+// Config Parameters
 // ----------------------------------------------------------------------------
 @Field final byte CNFG_PADDLE_PARAM_NO        = 1       // Paddle Orientation
 final byte CNFG_PADDLE_SIZE                   = 1       // 0=upper on/lower off (default), 1=inverted, 2=any toggles
@@ -245,8 +245,8 @@ onConnected {
    ZWave.configuration.get(CNFG_LED_PARAM_NO)
    ZWave.configuration.get(CNFG_PADDLE_PARAM_NO)
 
-   // enable scene control for paddle (disabled by default)
-   ZWave.configuration.set( CNFG_SCENE_CONTROL_PARAM_NO, CNFG_SCENE_CONTROL_SIZE, CNFG_SCENE_CONTROL_VALUE )
+   // Don't write scene control (parameter 13) here: onConnected runs again on every
+   // reconnect, and the write would undo the sceneControl device setting.
 }
 
 

@@ -257,16 +257,16 @@ final byte CNFG_AUTO_ON_SIZE                      = 4
 final int  CNFG_AUTO_ON_VALUE                     = 0       // disabled
 
 @Field final byte CNFG_POWER_FAILURE_PARAM_NO     = 18      // On Off Status After Power Failure
-final byte CNFG_POWER_FAILURE_SIZE                = 1       // 0=OFF, 1=ON, 2=restore last state (default)
-final byte CNFG_POWER_FAILURE_VALUE               = 2       // restore last state
+final byte CNFG_POWER_FAILURE_SIZE                = 1       // 0=restore last state (default), 1=off, 2=on
+final byte CNFG_POWER_FAILURE_VALUE               = 2       // always on
 
 @Field final byte CNFG_LOAD_CONTROL_PARAM_NO      = 19      // Smart Bulb Mode
-final byte CNFG_LOAD_CONTROL_SIZE                 = 1       // 0=disabled, 1=physical+zwave (default), 2=physical disabled/zwave only
-final byte CNFG_LOAD_CONTROL_VALUE                = 1       // physical+zwave enabled
+final byte CNFG_LOAD_CONTROL_SIZE                 = 1       // 0=paddle disabled/Z-Wave enabled, 1=paddle and Z-Wave enabled (default), 2=paddle and Z-Wave disabled
+final byte CNFG_LOAD_CONTROL_VALUE                = 1       // paddle and Z-Wave enabled
 
-@Field final byte CNFG_SCENE_CONTROL_PARAM_NO     = 24      // Scene Control for main paddle
-final byte CNFG_SCENE_CONTROL_SIZE                = 1       // 0=disabled (default), 1=enabled
-final byte CNFG_SCENE_CONTROL_VALUE               = 1       // enable scene control for main paddle
+@Field final byte CNFG_SCENE_CONTROL_PARAM_NO     = 24      // Scene Control for relay button (newer firmware only)
+final byte CNFG_SCENE_CONTROL_SIZE                = 1       // 0=enabled (default), 1=disabled
+final byte CNFG_SCENE_CONTROL_VALUE               = 1       // disabled
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -299,13 +299,9 @@ onConnected {
     // set Association to Group 1, Node 1
     ZWave.association.set( 1, 1, 0, 0, 0);
 
-    // configure device
-    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
-    ZWave.configuration.set( CNFG_POWER_FAILURE_PARAM_NO, CNFG_POWER_FAILURE_SIZE, CNFG_POWER_FAILURE_VALUE )
-    ZWave.configuration.set( CNFG_LOAD_CONTROL_PARAM_NO, CNFG_LOAD_CONTROL_SIZE, CNFG_LOAD_CONTROL_VALUE )
-
-    // enable scene control for main paddle (disabled by default)
-    ZWave.configuration.set( CNFG_SCENE_CONTROL_PARAM_NO, CNFG_SCENE_CONTROL_SIZE, CNFG_SCENE_CONTROL_VALUE )
+    // No configuration writes here: onConnected runs again on every reconnect, and
+    // each write would undo the matching device setting. Parameters stay at the
+    // device defaults until changed through device settings.
 }
 
 
