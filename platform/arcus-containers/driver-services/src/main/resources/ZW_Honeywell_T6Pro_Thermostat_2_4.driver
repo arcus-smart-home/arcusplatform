@@ -276,6 +276,10 @@ deviceSettings {
 @Field static final byte FAN_MODE_ON		= 0x01
 @Field static final byte FAN_MODE_CIRC		= 0x06
 
+// therm:fanmode 0 = Auto, 1 = Circulate, 2 = On
+@Field static final int MAX_FAN_SPEED		= 2
+@Field static final int AUTO_FAN_SPEED		= 2
+
 // 1.10 Thermostat SetPoints
 @Field static final byte SETPOINT_HEAT		= 0x01
 @Field static final byte SETPOINT_COOL		= 0x02
@@ -318,8 +322,8 @@ DevicePower.source					DevicePower.SOURCE_LINE
 DevicePower.linecapable				true
 DevicePower.backupbatterycapable	false
 
-Thermostat.maxfanspeed         2
-Thermostat.autofanspeed        2
+Thermostat.maxfanspeed         MAX_FAN_SPEED
+Thermostat.autofanspeed        AUTO_FAN_SPEED
 Thermostat.supportedmodes      thermModes
 Thermostat.supportsAuto        true
 Thermostat.minsetpoint         DEF_MIN_HEAT
@@ -361,6 +365,7 @@ onConnected {
 onUpgraded {
 	log.debug 'onUpgraded called...'
     Thermostat.setpointseparation  MIN_SET_POINT_SEPARATION
+	resetFanSpeedLimits( this )
 
 	if (Thermostat.HVACMODE_COOL == Thermostat.hvacmode.get()) {
 		Thermostat.minsetpoint DEF_MIN_COOL
@@ -486,7 +491,8 @@ setAttributes('therm') {
 			byte newFanMode
 
 			if( 0 > fanMode ) fanMode = 0
-			if( Thermostat.maxfanspeed.get() < fanMode ) fanMode = Thermostat.maxfanspeed.get()
+			// Clamp to what the T6 supports, not to therm:maxfanspeed, which can be stale (see resetFanSpeedLimits)
+			if( MAX_FAN_SPEED < fanMode ) fanMode = MAX_FAN_SPEED
 
 			if( 0 == fanMode ) newFanMode = FAN_MODE_AUTO
 			if( 1 == fanMode ) newFanMode = FAN_MODE_CIRC
@@ -705,6 +711,19 @@ onZWaveMessage.thermostat_fan_mode.report {
 	if( FAN_MODE_AUTO == mode ) Thermostat.fanmode 0
 	if( FAN_MODE_CIRC == mode ) Thermostat.fanmode 1
 	if( FAN_MODE_ON == mode ) Thermostat.fanmode 2
+
+	resetFanSpeedLimits( this )
+}
+
+// When a device moves to this driver from another one, the platform fills in this
+// driver's defaults only for attributes that are empty, so the old driver's fan limits
+// stay. The generic thermostat driver sets maxfanspeed 1, which made clients offer a
+// single "on" speed (sent as 1 = Circulate), so Fan On was unreachable. onUpgraded runs
+// only on a driver change, so also reset the limits on every fan mode report (sent on
+// connect and after each fan mode change) to repair devices that already moved.
+static void resetFanSpeedLimits( ctx ) {
+	ctx.Thermostat.maxfanspeed  MAX_FAN_SPEED
+	ctx.Thermostat.autofanspeed AUTO_FAN_SPEED
 }
 
 onZWaveMessage.thermostat_fan_state.report {

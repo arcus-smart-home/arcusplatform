@@ -209,6 +209,32 @@ Feature: ZWave Honeywell T6 Pro Thermostat Driver Test
 		  | 0x00     | 0     |
 		  | 0x01     | 2     |
 
+	# A T6 that moved here from another driver keeps that driver's fan limits, because the
+	# platform only fills in this driver's defaults for empty attributes. The generic
+	# thermostat driver sets maxfanspeed 1, which turned Fan On into Circulate.
+	Scenario: Fan On is sent as On even when maxfanspeed was left at 1
+		Given the driver attribute therm:maxfanspeed is 1
+		When a base:SetAttributes command with the value of therm:fanmode 2 is placed on the platform bus
+		Then the driver should send thermostat_fan_mode set
+			And with parameter mode 1
+
+	Scenario: A fan mode report restores fan limits left by a previous driver
+		Given the driver attribute therm:maxfanspeed is 1
+			And the driver attribute therm:autofanspeed is 1
+		When the device response with thermostat_fan_mode report
+			And with parameter mode 0x06
+			And send to driver
+		Then the capability therm:maxfanspeed should be 2
+			And the capability therm:autofanspeed should be 2
+			And the capability therm:fanmode should be 1
+
+	Scenario: Upgrading to this driver restores fan limits left by a previous driver
+		Given the driver attribute therm:maxfanspeed is 1
+			And the driver attribute therm:autofanspeed is 1
+		When the device is upgraded
+		Then the capability therm:maxfanspeed should be 2
+			And the capability therm:autofanspeed should be 2
+
 	Scenario Outline: Device report thermostat fan state
 		When the device response with thermostat_fan_state report
 			And with parameter state <state>
