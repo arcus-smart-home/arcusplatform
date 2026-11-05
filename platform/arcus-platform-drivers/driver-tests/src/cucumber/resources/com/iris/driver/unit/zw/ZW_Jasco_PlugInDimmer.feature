@@ -29,7 +29,8 @@ Feature: ZWave Jasco Plugin Dimmer Driver Test
     #When a switch_multilevel first connects to the platform
     Then the driver should send switch_multilevel get
 
-  Scenario: Platform turns on switch via attribute change. 
+  Scenario: Platform turns on switch via attribute change.
+	Given the capability swit:state is OFF
 	When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
 	Then the driver should send switch_multilevel set 
 		# updated for generic switch capability

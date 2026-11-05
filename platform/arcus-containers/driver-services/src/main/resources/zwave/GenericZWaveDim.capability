@@ -75,7 +75,9 @@ onConnected {
 // - Setting the Switch.state to OFF and Dimmer.brightness to 0 will turn the device off and leave the brightness setting at whatever value it was previously.
 // - Setting the Switch.state to ON and Dimmer.brightness to 1-100 will set the device to the specified brightness first and then turn the device ON (after a short delay), to try and prevent the device from "flashing" on bright and then lowering to the new brightness if the new brightness is lower than the previous brightness.
 // - Setting the Switch.state to ON and Dimmer.brightness to 0 will turn the device on at the previous Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100).
-/// 
+// - None of the ON cases above sends anything if the device has reported that it is ON at that brightness, or if the same level was just sent and
+//   hasn't been read back yet (see alreadyOnAtLevel).
+///
 // RampBrightness Method
 // - If the "RampBrightness" method is called with a "brightness" value of 1-100, the device will be turned ON and the brightness set to the specified value.
 // - If the "RampBrightness" method is called with a "brightness" value of 0, the device will simply be turned OFF and the brightness left at its previous value.
@@ -116,11 +118,13 @@ static handleSetAttributes(ctx, message) {
 		ctx.log.warn "Generic ignored invalid attribute setting: brightness=0"
 	}
 
+	boolean sent = false
 	if (SWITCH_OFF == onoff) {
 		ctx.log.trace "Set device to OFF"
 		setWaitingOnClientOffResponse( ctx, true )
 		setTargetState( ctx, ctx.Switch.STATE_OFF )
 		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+		sent = true
 		if (0 < level) {
 			// if dim:brightness was included, remember that as the last level
 			ctx.log.trace "Adjust driver brightness setting of OFF device to restore to: {}", level
@@ -130,37 +134,53 @@ static handleSetAttributes(ctx, message) {
 	} else if (SWITCH_ON == onoff) {
 		if (0 < level) {
 			ctx.log.trace "Set device to ON at brightness: {}", level
-			setTargetLevel( ctx, level )
-			setTargetState( ctx, ctx.Switch.STATE_ON )
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		} else {
 			// recieved a swit:state=ON, but no dim:brightness setting, so force device to last used 'target' level
-			setTargetState( ctx, ctx.Switch.STATE_ON )
 			level = getTargetLevel( ctx )
 			if (0 == level) {		// if by some chance 0, reset to default of 100
 				level = 100
 				setTargetLevel( ctx, level )
 			}
 			ctx.log.trace "Set device to ON at previous brightness: {}", level
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		}
 	} else {
 		// if only level was set turn device ON to that level, if it is not 0
 		if (0 < level) {
 			ctx.log.trace "Forcing device to ON, at brightness: {}", level
-			setTargetLevel( ctx, level )
-			setTargetState( ctx, ctx.Switch.STATE_ON )
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		}
 	}
 
-	// if level or onoff were set, readback level from device
-	if ((0 < level) || (SWITCH_NOTSET != onoff)) {
+	// if a level was sent, readback level from device
+	if (sent) {
 		// read back the level after a short delay
 		// Note that we will keep re-reading until the target level is reached, or a maximum number of retries occurs, but we
 		// delay here for at least a short while to account for the time the device takes to physically adjust the level
 		scheduleDefaultDeferredReadLevel( ctx )
-	} 
+	}
+}
+
+// Turns the device ON at level, unless it is already on at that level. Returns true if a Set was sent.
+static boolean turnOn(ctx, int level) {
+	if (alreadyOnAtLevel(ctx, level)) {
+		ctx.log.debug "Dimmer is already ON at brightness {}, not sending it again", level
+		return false
+	}
+	setTargetLevel( ctx, level )
+	setTargetState( ctx, ctx.Switch.STATE_ON )
+	setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+	return true
+}
+
+// True if the device is already ON at level, or a Set to level was just sent and its first readback hasn't run yet.
+// Some dimmers flash on every Multilevel Set, even one to the level they're already at, and some clients send
+// brightness and ON as two commands for one change (Home Assistant's MQTT light does by default).
+static boolean alreadyOnAtLevel(ctx, int level) {
+	if (ctx.Switch.STATE_ON != getTargetState( ctx ) || level != getTargetLevel( ctx )) return false
+	if (0 == getReadLevelCnt( ctx )) return true
+	return !waitingForReadLevel( ctx ) && ctx.Switch.STATE_ON == ctx.Switch.state.get() && level == ctx.Dimmer.brightness.get()
 }
 
 

@@ -92,7 +92,6 @@ Scenario Outline: Client sets brightness attribute of 1-100, and no switch state
 	Examples:
       | init-brightness | init-state | to-brightness | level-param | target-brightness | remarks                                                                 |
       | 10              | ON         | 1             | 1           | 1                 | adjust ON device to level 1                                             |
-      | 10              | ON         | 10            | 10          | 10                | adjust ON device to level 10                                            |
       | 10              | ON         | 50            | 50          | 50                | adjust ON device to level 50                                            |
       | 10              | ON         | 99            | 99          | 99                | adjust ON device to level 99                                            |
       | 10              | ON         | 100           | 99          | 100               | adjust ON device to level 100 (Zwave drivers map 100 to max of 99)      |
@@ -174,10 +173,6 @@ Scenario Outline: Client sets swit:state to ON with no dim:brightness setting
       | 10              | OFF        | 10          | 10                | turn OFF device to ON at prev level                                                 |
       | 99              | OFF        | 99          | 99                | turn OFF device to ON at prev level                                                 |
       | 100             | OFF        | 99          | 100               | turn OFF device to ON at prev level (Zwave drivers map 100 to max of 99)            |
-      | 1               | ON         | 1           | 1                 | turn ON device to ON (to make sure it is ON)                                        |
-      | 10              | ON         | 10          | 10                | turn ON device to ON (to make sure it is ON)                                        |
-      | 99              | ON         | 99          | 99                | turn ON device to ON (to make sure it is ON)                                        |
-      | 100             | ON         | 99          | 100               | turn ON device to ON (to make sure it is ON, Zwave drivers map 100 to max of 99)    |
       | 0               | OFF        | 99          | 100               | turn OFF device to ON at default 100 (should never really happen that brightness=0) |
       | 0               | ON         | 99          | 100               | turn OFF device to ON at default 100 (should never really happen that brightness=0) |
 
@@ -275,11 +270,9 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness
       | 99              | OFF        | 100           | 99          | 100               | turn ON device to a new level (Zwave drivers map 100 to max of 99)              |
       | 100             | OFF        | 99            | 99          | 99                | turn ON device to a new level                                                   |
       | 100             | OFF        | 100           | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
-      | 1               | ON         | 1             | 1           | 1                 | turn ON device to current default ON level                                      |
       | 10              | ON         | 1             | 1           | 1                 | turn ON device to a new level                                                   |
       | 99              | ON         | 100           | 99          | 100               | turn ON device to a new level (Zwave drivers map 100 to max of 99)              |
       | 100             | ON         | 99            | 99          | 99                | turn ON device to a new level                                                   |
-      | 100             | ON         | 100           | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
       | 50              | OFF        | 101           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | ON         | 101           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | OFF        | 128           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
@@ -289,7 +282,6 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness
       | 50              | OFF        | 256           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | ON         | 256           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | OFF        | -1            | 50          | 50                | brightness out-of-range low uses value of 0, ignores brightness setting         |
-      | 50              | ON         | -1            | 50          | 50                | brightness out-of-range low uses value of 0, ignores brightness setting         |
 
 # Setting the Switch.state to ON and Dimmer.brightness to 0 will turn the device on at the previous Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100)
 @dimProc
@@ -314,12 +306,131 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness of zero
       | 10              | OFF        | 10          | 10                | turn ON device to current default ON level                                      |
       | 99              | OFF        | 99          | 99                | turn ON device to current default ON level                                      |
       | 100             | OFF        | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
-      | 1               | ON         | 1           | 1                 | turn ON device to current default ON level                                      |
-      | 10              | ON         | 10          | 10                | turn ON device to current default ON level                                      |
-      | 99              | ON         | 99          | 99                | turn ON device to current default ON level                                      |
-      | 100             | ON         | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
       | 0               | OFF        | 99          | 100               | turn ON device to default 100 (should never really happen that brightness=0)    |
       | 0               | ON         | 99          | 100               | turn ON device to default 100 (should never really happen that brightness=0)    |
+
+# Turning ON a device that has reported it is ON at that brightness sends nothing, since some dimmers flash on every Set
+@dimProc
+Scenario Outline: Client turns ON a device that is already ON at that brightness
+    Given the capability dim:brightness is <init-brightness>
+		And the capability swit:state is ON
+		And the driver variable targetlevel is <init-brightness>
+		And the driver variable targetstate is ON
+	When the capability method base:SetAttributes
+		 And with capability swit:state is ON
+		 And with capability dim:brightness is <to-brightness>
+		 And send to driver
+	Then the driver should place a EmptyMessage message on the platform bus
+	Then protocol bus should be empty
+		And there should be no more scheduled events
+
+	Examples:
+      | init-brightness | to-brightness | remarks                         |
+      | 1               | 1             | same brightness                 |
+      | 50              | 50            | same brightness                 |
+      | 100             | 100           | same brightness                 |
+      | 100             | 101           | out-of-range high is 100        |
+      | 50              | 0             | brightness 0 means the last one |
+
+@dimProc
+Scenario: Client sets only swit:state ON on a device that is already ON
+    Given the capability dim:brightness is 50
+		And the capability swit:state is ON
+		And the driver variable targetlevel is 50
+		And the driver variable targetstate is ON
+	When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+	Then the driver should place a EmptyMessage message on the platform bus
+	Then protocol bus should be empty
+		And there should be no more scheduled events
+
+@dimProc
+Scenario: Client sets only dim:brightness on a device that is already ON at that brightness
+    Given the capability dim:brightness is 50
+		And the capability swit:state is ON
+		And the driver variable targetlevel is 50
+		And the driver variable targetstate is ON
+	When a base:SetAttributes command with the value of dim:brightness 50 is placed on the platform bus
+	Then the driver should place a EmptyMessage message on the platform bus
+	Then protocol bus should be empty
+		And there should be no more scheduled events
+
+# Home Assistant's MQTT light can send brightness and ON, then ON again, for one change
+@dimProc
+Scenario: Client turns ON again before the first Set has been read back
+    Given the capability dim:brightness is 10
+		And the capability swit:state is OFF
+		And the driver variable targetlevel is 10
+		And the driver variable targetstate is OFF
+	When the capability method base:SetAttributes
+		 And with capability swit:state is ON
+		 And with capability dim:brightness is 50
+		 And send to driver
+	Then the driver should send switch_multilevel set
+		And with parameter level 50
+	When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+	Then protocol bus should be empty
+		And the driver variable targetlevel should be 50
+		And the driver variable targetstate should be ON
+
+@dimProc
+Scenario: Client turns ON again after the device reports that it reached the brightness
+    Given the capability dim:brightness is 10
+		And the capability swit:state is OFF
+		And the driver variable targetlevel is 10
+		And the driver variable targetstate is OFF
+	When the capability method base:SetAttributes
+		 And with capability swit:state is ON
+		 And with capability dim:brightness is 50
+		 And send to driver
+	Then the driver should send switch_multilevel set
+		And with parameter level 50
+	When the device response with switch_multilevel report
+		And with parameter value 50
+		And send to driver
+	Then the capability swit:state should be ON
+		And the capability dim:brightness should be 50
+	When the capability method base:SetAttributes
+		 And with capability swit:state is ON
+		 And with capability dim:brightness is 50
+		 And send to driver
+	Then protocol bus should be empty
+
+# A Set can be lost, so once the first readback has run without the device reaching the level, ON is sent again
+@dimProc
+Scenario: Client turns ON again after a readback that found the device still OFF
+    Given the capability dim:brightness is 10
+		And the capability swit:state is OFF
+		And the driver variable targetlevel is 10
+		And the driver variable targetstate is OFF
+	When the capability method base:SetAttributes
+		 And with capability swit:state is ON
+		 And with capability dim:brightness is 50
+		 And send to driver
+	Then the driver should send switch_multilevel set
+		And with parameter level 50
+	When event DeferredSwitchReadLevel triggers
+	Then the driver should send switch_multilevel get
+	When the device response with switch_multilevel report
+		And with parameter value 0
+		And send to driver
+	When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+	Then the driver should send switch_multilevel set
+		And with parameter level 50
+	Then protocol bus should be empty
+
+@dimProc
+Scenario: Client turns OFF, then ON at the same brightness, before the device reports
+    Given the capability dim:brightness is 50
+		And the capability swit:state is ON
+		And the driver variable targetlevel is 50
+		And the driver variable targetstate is ON
+	When a base:SetAttributes command with the value of swit:state OFF is placed on the platform bus
+	Then the driver should send switch_multilevel set
+		And with parameter level 0
+	When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+	Then the driver should send switch_multilevel set
+		And with parameter level 50
+	Then protocol bus should be empty
 
 
 

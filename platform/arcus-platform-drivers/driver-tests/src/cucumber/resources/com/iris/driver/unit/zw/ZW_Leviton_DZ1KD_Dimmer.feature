@@ -93,7 +93,6 @@ Scenario Outline: Client sets brightness attribute of 1-100, and no switch state
 	Examples:
       | init-brightness | init-state | to-brightness | level-param | target-brightness | remarks                                                                 |
       | 10              | ON         | 1             | 1           | 1                 | adjust ON device to level 1                                             |
-      | 10              | ON         | 10            | 10          | 10                | adjust ON device to level 10                                            |
       | 10              | ON         | 50            | 50          | 50                | adjust ON device to level 50                                            |
       | 10              | ON         | 99            | 99          | 99                | adjust ON device to level 99                                            |
       | 10              | ON         | 100           | 99          | 100               | adjust ON device to level 100 (Zwave drivers map 100 to max of 99)      |
@@ -175,10 +174,6 @@ Scenario Outline: Client sets swit:state to ON with no dim:brightness setting
       | 10              | OFF        | 10          | 10                | turn OFF device to ON at prev level                                                 |
       | 99              | OFF        | 99          | 99                | turn OFF device to ON at prev level                                                 |
       | 100             | OFF        | 99          | 100               | turn OFF device to ON at prev level (Zwave drivers map 100 to max of 99)            |
-      | 1               | ON         | 1           | 1                 | turn ON device to ON (to make sure it is ON)                                        |
-      | 10              | ON         | 10          | 10                | turn ON device to ON (to make sure it is ON)                                        |
-      | 99              | ON         | 99          | 99                | turn ON device to ON (to make sure it is ON)                                        |
-      | 100             | ON         | 99          | 100               | turn ON device to ON (to make sure it is ON, Zwave drivers map 100 to max of 99)    |
       | 0               | OFF        | 99          | 100               | turn OFF device to ON at default 100 (should never really happen that brightness=0) |
       | 0               | ON         | 99          | 100               | turn OFF device to ON at default 100 (should never really happen that brightness=0) |
 
@@ -276,11 +271,9 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness
       | 99              | OFF        | 100           | 99          | 100               | turn ON device to a new level (Zwave drivers map 100 to max of 99)              |
       | 100             | OFF        | 99            | 99          | 99                | turn ON device to a new level                                                   |
       | 100             | OFF        | 100           | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
-      | 1               | ON         | 1             | 1           | 1                 | turn ON device to current default ON level                                      |
       | 10              | ON         | 1             | 1           | 1                 | turn ON device to a new level                                                   |
       | 99              | ON         | 100           | 99          | 100               | turn ON device to a new level (Zwave drivers map 100 to max of 99)              |
       | 100             | ON         | 99            | 99          | 99                | turn ON device to a new level                                                   |
-      | 100             | ON         | 100           | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
       | 50              | OFF        | 101           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | ON         | 101           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | OFF        | 128           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
@@ -290,7 +283,6 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness
       | 50              | OFF        | 256           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | ON         | 256           | 99          | 100               | brightness out-of-range high uses value of 100                                  |
       | 50              | OFF        | -1            | 50          | 50                | brightness out-of-range low uses value of 0, ignores brightness setting         |
-      | 50              | ON         | -1            | 50          | 50                | brightness out-of-range low uses value of 0, ignores brightness setting         |
 
 # Setting the Switch.state to ON and Dimmer.brightness to 0 will turn the device on at the previous Dimmer.brightness (which should be non-zero, but if it is somehow zero then the brightness will default to 100)
 @dimProc
@@ -315,10 +307,6 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness of zero
       | 10              | OFF        | 10          | 10                | turn ON device to current default ON level                                      |
       | 99              | OFF        | 99          | 99                | turn ON device to current default ON level                                      |
       | 100             | OFF        | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
-      | 1               | ON         | 1           | 1                 | turn ON device to current default ON level                                      |
-      | 10              | ON         | 10          | 10                | turn ON device to current default ON level                                      |
-      | 99              | ON         | 99          | 99                | turn ON device to current default ON level                                      |
-      | 100             | ON         | 99          | 100               | turn ON device to current default ON level (Zwave drivers map 100 to max of 99) |
       | 0               | OFF        | 99          | 100               | turn ON device to default 100 (should never really happen that brightness=0)    |
       | 0               | ON         | 99          | 100               | turn ON device to default 100 (should never really happen that brightness=0)    |
 
