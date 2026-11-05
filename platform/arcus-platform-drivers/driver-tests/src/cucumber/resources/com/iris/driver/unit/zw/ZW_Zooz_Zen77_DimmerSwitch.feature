@@ -85,6 +85,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
 
 ############################################################
 # Central Scene Tests (scene control must be enabled via param 13)
+# The ZEN77 reports the upper paddle as Scene 1 and the lower paddle as Scene 2.
 ############################################################
 
     @button
@@ -92,7 +93,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 1
             And with parameter properties1 0
-            And with parameter scenenumber 2
+            And with parameter scenenumber 1
             And send to driver
         Then the capability but:state.up should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
@@ -102,7 +103,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 2
             And with parameter properties1 1
-            And with parameter scenenumber 2
+            And with parameter scenenumber 1
             And send to driver
         Then the capability but:state.up should be RELEASED
             And the driver should place a base:ValueChange message on the platform bus
@@ -112,7 +113,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 3
             And with parameter properties1 0
-            And with parameter scenenumber 1
+            And with parameter scenenumber 2
             And send to driver
         Then the capability but:state.down should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
@@ -122,7 +123,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 4
             And with parameter properties1 1
-            And with parameter scenenumber 1
+            And with parameter scenenumber 2
             And send to driver
         Then the capability but:state.down should be RELEASED
             And the driver should place a base:ValueChange message on the platform bus
@@ -132,7 +133,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 5
             And with parameter properties1 3
-            And with parameter scenenumber 2
+            And with parameter scenenumber 1
             And send to driver
         Then the capability but:state.up should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus
@@ -142,7 +143,7 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
         When the device response with central_scene notification
             And with parameter sequencenumber 6
             And with parameter properties1 2
-            And with parameter scenenumber 1
+            And with parameter scenenumber 2
             And send to driver
         Then the capability but:state.down should be PRESSED
             And the driver should place a base:ValueChange message on the platform bus

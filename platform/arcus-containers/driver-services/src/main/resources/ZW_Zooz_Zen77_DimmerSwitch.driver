@@ -247,9 +247,10 @@ final byte CNFG_POWER_FAILURE_VALUE           = 2       // restore last state
 @Field final byte KEY_PRESSED_4_TIMES = 0x05
 @Field final byte KEY_PRESSED_5_TIMES = 0x06
 
-// Scene Numbers (default mapping: upper=Scene 2, lower=Scene 1)
-@Field final byte SCENE_LOWER_PADDLE = 0x01
-@Field final byte SCENE_UPPER_PADDLE = 0x02
+// Scene Numbers: the ZEN77 reports the upper paddle as Scene 1 and the lower paddle
+// as Scene 2, like the ZEN34. The ZEN27 numbers them the other way round.
+@Field final byte SCENE_UPPER_PADDLE = 0x01
+@Field final byte SCENE_LOWER_PADDLE = 0x02
 
 
 ////////////////////////////////////////////////////////////////////////////////
