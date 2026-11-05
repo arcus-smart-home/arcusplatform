@@ -59,7 +59,7 @@ public class DeviceSettingsGetParamHandler implements ContextualEventHandler<Obj
 
       String paramId = DeviceSettingsCapability.GetParamRequest.getParamId(request);
 
-      DeviceSettingsParamDefinition param = settingsContext.getByParamId(paramId);
+      DeviceSettingsParamDefinition param = DeviceSettingsUtil.forDevice(context, settingsContext).getByParamId(paramId);
       if (param == null) {
          context.respondToPlatform(DeviceSettingsCapability.GetParamResponse.builder()
                .withStatus("INVALID_PARAM")
@@ -81,7 +81,7 @@ public class DeviceSettingsGetParamHandler implements ContextualEventHandler<Obj
       DeviceSettingsCapability.GetParamResponse.Builder response = DeviceSettingsCapability.GetParamResponse.builder()
             .withStatus("PENDING");
       if (currentValue != null) {
-         response.withValue(String.valueOf(currentValue));
+         response.withValue(String.valueOf(param.decodeStored(currentValue)));
       }
 
       context.respondToPlatform(response.build());

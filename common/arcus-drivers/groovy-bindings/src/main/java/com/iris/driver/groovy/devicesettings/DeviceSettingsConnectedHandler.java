@@ -20,24 +20,17 @@ import org.slf4j.LoggerFactory;
 
 import com.iris.driver.DeviceDriverContext;
 import com.iris.driver.devicesettings.DeviceSettingsContext;
-import com.iris.driver.devicesettings.DeviceSettingsParamDefinition;
 import com.iris.driver.handler.ContextualEventHandler;
-import com.iris.protocol.zwave.ZWaveProtocol;
-import com.iris.protocol.zwave.message.ZWaveCommandMessage;
-import com.iris.protocol.zwave.model.ZWaveAllCommandClasses;
-import com.iris.protocol.zwave.model.ZWaveCommand;
-import com.iris.protocol.zwave.model.ZWaveCommandClass;
 
 /**
  * On device connect, issues Z-Wave configuration.get for every declared
- * parameter to sync platform state with actual device configuration.
+ * parameter to sync platform state with actual device configuration, unless the
+ * driver declared {@code deviceSettings(readOnConnect: false)} and reads them itself.
  *
  * Returns false so that the driver's own onConnected handler also runs.
  */
 public class DeviceSettingsConnectedHandler implements ContextualEventHandler<Object> {
    private static final Logger log = LoggerFactory.getLogger(DeviceSettingsConnectedHandler.class);
-
-   private static final ZWaveCommandClass CONFIGURATION_CC = ZWaveAllCommandClasses.getClass("configuration");
 
    private final DeviceSettingsContext settingsContext;
 
@@ -47,28 +40,15 @@ public class DeviceSettingsConnectedHandler implements ContextualEventHandler<Ob
 
    @Override
    public boolean handleEvent(DeviceDriverContext context, Object event) throws Exception {
-      log.debug("Device connected, reading {} device settings params",
-            settingsContext.getParams().size());
-
-      // Populate devsettings:params immediately with defaults so the attribute
-      // is visible before config reports arrive from the device
-      DeviceSettingsUtil.emitParamsValueChange(context, settingsContext);
-
-      for (DeviceSettingsParamDefinition param : settingsContext.getParams()) {
-         sendConfigurationGet(context, param.getZwaveParamNo());
+      if (settingsContext.isReadOnConnect()) {
+         DeviceSettingsUtil.readAll(context, settingsContext);
+      } else {
+         // the driver calls deviceSettings.readAll() when the device can take it
+         log.debug("Device connected, settings will be read by the driver");
+         DeviceSettingsUtil.emitParamsValueChange(context, settingsContext);
       }
 
       // Return false to allow driver's own onConnected handler to also run
       return false;
-   }
-
-   private void sendConfigurationGet(DeviceDriverContext context, int paramNo) {
-      ZWaveCommand command = DeviceSettingsUtil.buildCommand(
-            CONFIGURATION_CC, "get", (byte) (paramNo & 0xFF));
-
-      ZWaveCommandMessage message = new ZWaveCommandMessage();
-      message.setDevice(DeviceSettingsUtil.extractNode(context));
-      message.setCommand(command);
-      context.sendToDevice(ZWaveProtocol.INSTANCE, message, -1);
    }
 }

@@ -15,6 +15,9 @@
  */
 package com.iris.driver.groovy.devicesettings;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +27,7 @@ import com.iris.driver.capability.Capability;
 import com.iris.driver.devicesettings.DeviceSettingsContext;
 import com.iris.driver.event.DeviceConnectedEvent;
 import com.iris.driver.groovy.DriverBinding;
+import com.iris.driver.groovy.GroovyContextObject;
 import com.iris.driver.groovy.GroovyDriverBuilder;
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
 import com.iris.driver.groovy.binding.EnvironmentBinding;
@@ -116,6 +120,7 @@ public class DeviceSettingsPlugin implements GroovyDriverPlugin {
    @SuppressWarnings("serial")
    private static class DeviceSettingsDSLClosure extends Closure<Object> {
       private final EnvironmentBinding binding;
+      private volatile DeviceSettingsContext settingsContext;
 
       DeviceSettingsDSLClosure(EnvironmentBinding binding) {
          super(binding);
@@ -123,15 +128,46 @@ public class DeviceSettingsPlugin implements GroovyDriverPlugin {
       }
 
       protected void doCall(Closure<?> body) {
+         doCall(Collections.emptyMap(), body);
+      }
+
+      /**
+       * {@code deviceSettings(readOnConnect: false) { ... }} skips the reads on connect;
+       * the driver then calls {@code deviceSettings.readAll()} when the device can take them.
+       */
+      protected void doCall(Map<String, Object> options, Closure<?> body) {
+         Object readOnConnect = options.containsKey("readOnConnect") ? options.get("readOnConnect") : Boolean.TRUE;
+         if (!(readOnConnect instanceof Boolean)) {
+            throw new IllegalArgumentException("deviceSettings readOnConnect must be true or false");
+         }
+         for (String option : options.keySet()) {
+            if (!"readOnConnect".equals(option)) {
+               throw new IllegalArgumentException("Unknown deviceSettings option '" + option + "'");
+            }
+         }
+
          DeviceSettingsBlockContext blockCtx = new DeviceSettingsBlockContext();
          body.setDelegate(blockCtx);
          body.setResolveStrategy(Closure.DELEGATE_FIRST);
          body.call();
 
+         settingsContext = blockCtx.build((Boolean) readOnConnect);
          if (binding instanceof DriverBinding) {
             GroovyDriverBuilder builder = ((DriverBinding) binding).getBuilder();
-            builder.setDeviceSettingsContext(blockCtx.build());
+            builder.setDeviceSettingsContext(settingsContext);
          }
+      }
+
+      /**
+       * Called from a driver handler: publishes the settings and asks the device for
+       * each one, as happens on connect unless {@code readOnConnect: false}.
+       */
+      public void readAll() {
+         DeviceSettingsContext ctx = settingsContext;
+         if (ctx == null) {
+            throw new IllegalStateException("deviceSettings.readAll() needs a deviceSettings block");
+         }
+         DeviceSettingsUtil.readAll(GroovyContextObject.getContext(), ctx);
       }
    }
 }

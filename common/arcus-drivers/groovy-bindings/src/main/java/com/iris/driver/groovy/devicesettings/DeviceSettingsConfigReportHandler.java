@@ -87,7 +87,7 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
             int byteCnt = command.get("level") & 0x07;
             long val = extractValue(command, byteCnt);
 
-            return processReport(context, paramNo, val);
+            return processReport(context, paramNo, val, byteCnt);
          } catch (Exception e) {
             log.trace("Could not extract config report from named vars", e);
          }
@@ -97,7 +97,7 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
             int paramNo = recvBytes[0] & 0xFF;
             int byteCnt = recvBytes[1] & 0x07;
             long val = extractValueFromBytes(recvBytes, 2, byteCnt);
-            return processReport(context, paramNo, val);
+            return processReport(context, paramNo, val, byteCnt);
          }
 
          return false;
@@ -107,17 +107,19 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
       int byteCnt = recvBytes[1] & 0x07;
       long val = extractValueFromBytes(recvBytes, 2, byteCnt);
 
-      return processReport(context, paramNo, val);
+      return processReport(context, paramNo, val, byteCnt);
    }
 
-   private boolean processReport(DeviceDriverContext context, int paramNo, long val) {
-      DeviceSettingsParamDefinition param = settingsContext.getByZwaveParamNo(paramNo);
+   private boolean processReport(DeviceDriverContext context, int paramNo, long raw, int byteCnt) {
+      DeviceSettingsParamDefinition param =
+            DeviceSettingsUtil.forDevice(context, settingsContext).getByZwaveParamNo(paramNo);
       if (param == null) {
          log.trace("Config report for unknown param {}, ignoring", paramNo);
          // Return false so other handlers can process it
          return false;
       }
 
+      long val = param.decode(raw, byteCnt);
       log.debug("Config report: param {}({}) = {}", param.getParamId(), paramNo, val);
       context.setVariable(param.getVariableKey(), val);
 
