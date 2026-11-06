@@ -41,6 +41,7 @@ import com.iris.capability.util.Addresses;
 import com.iris.client.ClientEvent;
 import com.iris.client.ClientRequest;
 import com.iris.client.IrisClient;
+import com.iris.client.IrisClientFactory;
 import com.iris.client.capability.Account.ListDevicesResponse;
 import com.iris.client.capability.Alert;
 import com.iris.client.capability.Bridge;
@@ -65,12 +66,14 @@ import com.iris.client.event.ClientFuture;
 import com.iris.client.event.Futures;
 import com.iris.client.model.DeviceModel;
 import com.iris.client.service.BridgeService;
+import com.iris.client.service.DeviceService;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.oculus.Oculus;
 import com.iris.oculus.modules.BaseController;
 import com.iris.oculus.modules.device.dialog.IpDeviceRegistrationPrompt;
+import com.iris.oculus.modules.device.dialog.ListDriversDialog;
 import com.iris.oculus.modules.device.dialog.MockDevicePrompt;
 import com.iris.oculus.util.Actions;
 import com.iris.protocol.ipcd.IpcdProtocol;
@@ -89,6 +92,7 @@ public class DeviceController extends BaseController<DeviceModel> {
 
    private Action createDevice = Actions.build("Create Mock Device", this::promptForCreateMockDevice);
    private Action registerIpDevice = Actions.build("Register IP Device", this::promptForRegisterIpDevice);
+   private Action listDrivers = Actions.build("List Drivers", this::onListDrivers);
    
    @Inject
    public DeviceController(IrisClient client) {
@@ -193,7 +197,26 @@ public class DeviceController extends BaseController<DeviceModel> {
    public Action actionRegisterIpDevice() {
       return registerIpDevice;
    }
-   
+
+   public Action actionListDrivers() {
+      return listDrivers;
+   }
+
+   protected void onListDrivers() {
+      IrisClientFactory
+         .getService(DeviceService.class)
+         .listDrivers(null)
+         .onSuccess((response) -> {
+            List<Map<String, Object>> drivers = response.getDrivers();
+            if (drivers == null || drivers.isEmpty()) {
+               Oculus.info("No drivers found");
+               return;
+            }
+            ListDriversDialog.show(drivers);
+         })
+         .onFailure((error) -> Oculus.error("Unable to list drivers: " + error.getMessage(), error));
+   }
+
    public static String getDriverInfo(DeviceModel model) {
       try {
          DeviceAdvanced advanced = (DeviceAdvanced) model;
