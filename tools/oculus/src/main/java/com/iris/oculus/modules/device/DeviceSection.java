@@ -150,6 +150,7 @@ public class DeviceSection extends BaseComponentWrapper<Component> implements Oc
    protected JPanel createSummaryToolbar() {
       JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
       toolbar.add(new JButton(controller.actionCreateMockDevice()));
+      toolbar.add(new JButton(controller.actionListDrivers()));
       return toolbar;
    }
 
