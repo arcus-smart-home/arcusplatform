@@ -46,6 +46,7 @@ import com.iris.device.model.AttributeDefinition;
 import com.iris.device.model.CapabilityDefinition;
 import com.iris.driver.DeviceDriverDefinition;
 import com.iris.driver.DriverConstants;
+import com.iris.driver.MatchCriterion;
 import com.iris.driver.capability.Capability;
 import com.iris.driver.config.DriverConfigurationStateMachine;
 import com.iris.driver.devicesettings.DeviceSettingsContext;
@@ -97,6 +98,8 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    private String name;
    private List<String> populations = null;
    private List<Predicate<AttributeMap>> attributeMatchers = new ArrayList<Predicate<AttributeMap>>();
+   // what each entry in attributeMatchers tests, in the same order
+   private List<List<MatchCriterion>> matcherDescriptions = new ArrayList<>();
    private Map<String, Set<CapabilityDefinition>> instances = new LinkedHashMap<>();
    // linked has map because we iterate these all the time
    private Map<String, CapabilityDefinition> capabilityDefinitions = new LinkedHashMap<>();
@@ -191,9 +194,10 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    }
    
    public GroovyDriverBuilder addMatcher(String name, Object value) {
-      Predicate<AttributeMap> p = toMatcher(name, value);
+      AttributeMatcher p = toMatcher(name, value);
       if(p != null) {
          attributeMatchers.add(p);
+         matcherDescriptions.add(ImmutableList.of(p.getCriterion()));
       }
       return this;
    }
@@ -201,10 +205,12 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    public GroovyDriverBuilder addMatchers(Map<String, Object> values) {
       if(values != null && !values.isEmpty()) {
          List<Predicate<AttributeMap>> predicators = new LinkedList<Predicate<AttributeMap>>();
+         List<MatchCriterion> criteria = new ArrayList<>();
          for(Map.Entry<String, Object> e: values.entrySet()) {
-            Predicate<AttributeMap> predicated = toMatcher(e.getKey(), e.getValue());
+            AttributeMatcher predicated = toMatcher(e.getKey(), e.getValue());
             if(predicated != null) {
                predicators.add(predicated);
+               criteria.add(predicated.getCriterion());
             }
          }
          if(predicators.size() == 1) {
@@ -213,11 +219,14 @@ public class GroovyDriverBuilder extends GroovyBuilder {
          else if(predicators.size() > 1) {
             attributeMatchers.add(Predicates.and(predicators));
          }
+         if(!criteria.isEmpty()) {
+            matcherDescriptions.add(criteria);
+         }
       }
       return this;
    }
-   
-   private Predicate<AttributeMap> toMatcher(String name, Object value) {
+
+   private AttributeMatcher toMatcher(String name, Object value) {
       AttributeDefinition definition = matchAttributes.get(name);
       if(definition == null) {
          definition = getAttributeDefinition(name);
@@ -471,6 +480,9 @@ public class GroovyDriverBuilder extends GroovyBuilder {
                .withPopulations(getPopulations())
                .withReflexRunMode(reflexRunMode == null ? ReflexRunMode.defaultMode() : reflexRunMode)
                ;
+      for(List<MatchCriterion> matcher: matcherDescriptions) {
+         builder.addMatcher(matcher);
+      }
       for(CapabilityDefinition definition: capabilityDefinitions.values()) {
          builder.addCapability(definition);
       }

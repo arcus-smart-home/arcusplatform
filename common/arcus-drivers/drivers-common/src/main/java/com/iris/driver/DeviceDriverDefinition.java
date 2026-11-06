@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.iris.device.model.AttributeDefinition;
 import com.iris.device.model.CapabilityDefinition;
@@ -63,6 +64,7 @@ public class DeviceDriverDefinition {
    private final Set<String> populations;
    private final ReflexDriverDefinition reflexes;
    private final DriverConfigurationStateMachine configuration;
+   private final List<List<MatchCriterion>> matchers;
 
    DeviceDriverDefinition(
          String name,
@@ -78,7 +80,8 @@ public class DeviceDriverDefinition {
          List<ReflexDefinition> reflexes,
          List<String> populations,
          DriverConfigurationStateMachine configuration,
-         long offlineTimeout
+         long offlineTimeout,
+         List<List<MatchCriterion>> matchers
    ) {
       this.id = new DriverId(name, version);
       this.description = description;
@@ -91,6 +94,11 @@ public class DeviceDriverDefinition {
       this.populations = populations!=null?ImmutableSet.copyOf(populations):null;
       this.reflexes = new ReflexDriverDefinition(name, version, hash, offlineTimeout, capabilities, mode, reflexes);
       this.configuration = configuration;
+      ImmutableList.Builder<List<MatchCriterion>> copy = ImmutableList.builder();
+      for(List<MatchCriterion> matcher : matchers) {
+         copy.add(ImmutableList.copyOf(matcher));
+      }
+      this.matchers = copy.build();
    }
 
    public DriverId getId() {
@@ -169,6 +177,14 @@ public class DeviceDriverDefinition {
       return reflexes.getOfflineTimeout();
    }
 
+   /**
+    * What each of the driver's {@code matcher} lines tests, one list per line. Empty for
+    * drivers that aren't picked by matching, such as the fallback driver.
+    */
+   public List<List<MatchCriterion>> getMatchers() {
+      return matchers;
+   }
+
    @Override
    public String toString() {
       return "DeviceDriverDefinition [id=" + id + ", description="
@@ -192,6 +208,7 @@ public class DeviceDriverDefinition {
       private List<String> populations = null;
       private DriverConfigurationStateMachine configuration = null;
       private long offlineTimeout = Long.MAX_VALUE;
+      private List<List<MatchCriterion>> matchers = new ArrayList<>();
 
       /**
        * Live view of the associated attributes so that DeviceDriverBuilder
@@ -293,9 +310,17 @@ public class DeviceDriverDefinition {
          return this;
       }
 
+      /**
+       * Adds the description of one {@code matcher} line.
+       */
+      public Builder addMatcher(List<MatchCriterion> matcher) {
+         this.matchers.add(matcher);
+         return this;
+      }
+
       public DeviceDriverDefinition create() {
          Preconditions.checkArgument(StringUtils.isNotEmpty(name), "Must specify a name");
-         return new DeviceDriverDefinition(name, description, version, commit, hash, attributes, commands, events, capabilities, reflexRunMode, reflexes, populations, configuration, offlineTimeout);
+         return new DeviceDriverDefinition(name, description, version, commit, hash, attributes, commands, events, capabilities, reflexRunMode, reflexes, populations, configuration, offlineTimeout, matchers);
       }
 
    }
