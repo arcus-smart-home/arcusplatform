@@ -155,10 +155,7 @@ public class DeviceController extends BaseController<DeviceModel> {
 
 
       ClientRequest request = new ClientRequest();
-      // note there are a couple bugs around this:
-      //  - the DeviceService.NAMESPACE is wrong
-      //  -  Addresses.toServiceAddress is broken for 'dev' namespace
-      request.setAddress("SERV:" + DeviceCapability.NAMESPACE + ":");
+      request.setAddress(Addresses.toServiceAddress(DeviceCapability.NAMESPACE));
       request.setCommand(MessageConstants.MSG_ADD_DEVICE_REQUEST);
       request.setAttribute("protocolName", MockProtocol.NAMESPACE);
       request.setAttribute("deviceId", Utils.b64Encode(id));
