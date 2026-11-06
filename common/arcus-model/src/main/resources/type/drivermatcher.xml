@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="DriverMatcher"
+   version="1.0"
+   xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
+
+   <t:description>One matcher line from a driver. A device matches the line when every criterion on it holds.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="criteria"
+         type="list&lt;DriverMatchCriterion&gt;"
+         description="The tests on this line." />
+   </t:attributes>
+</t:type>
