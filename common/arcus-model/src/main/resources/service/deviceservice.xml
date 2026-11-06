@@ -55,6 +55,22 @@
             description="A base64 encoded and gzipped json list of ReflexDriverDefinition objects"
             optional="false"/>
       </s:method>
+
+      <s:method
+         name="ListDrivers"
+         description="Lists the device drivers the platform has loaded.">
+
+         <s:parameter
+            name="population"
+            type="string"
+            description="If set, lists only the drivers in this population, with one version of each: the newest, ignoring hub firmware limits. If not set, lists every loaded version of every driver, including retired drivers that are in no population."
+            optional="true"/>
+
+         <s:return
+            name="drivers"
+            type="list&lt;DriverSummary&gt;"
+            description="The drivers, sorted by name and then newest version first."/>
+      </s:method>
    </s:methods>
    
    <s:events>

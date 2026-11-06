@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="DriverMatchCriterion"
+   version="1.0"
+   xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
+
+   <t:description>One test on a device attribute from a driver's matcher.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="attribute"
+         type="string"
+         description="The name of the device attribute being tested, such as ZWAV:Manufacturer." />
+
+      <t:attribute
+         name="comparison"
+         type="enum"
+         values="EQUALS,REGEX,IN,CONTAINS"
+         description="How the attribute is compared with the value. EQUALS: the attribute equals the value. REGEX: the attribute contains a match for the regular expression in the value. IN: the attribute equals one of the values, written as [a, b]. CONTAINS: the attribute is a set that contains the value." />
+
+      <t:attribute
+         name="value"
+         type="string"
+         description="The value the attribute is compared with. Numbers are written in decimal." />
+   </t:attributes>
+</t:type>

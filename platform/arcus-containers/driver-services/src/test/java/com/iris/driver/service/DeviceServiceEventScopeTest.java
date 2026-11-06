@@ -103,7 +103,7 @@ public class DeviceServiceEventScopeTest extends IrisMockTestCase {
    }
 
    private DeviceServiceHandler handler() {
-      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, service, null);
+      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, service, null, null);
    }
 
    private MessageBody removed(String hubId) {
