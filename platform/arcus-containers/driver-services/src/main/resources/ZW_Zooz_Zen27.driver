@@ -236,13 +236,15 @@ onStarted {
    // This dimmer reports every change on its own, paddle presses included, so an ON
    // it has already reported doesn't need sending again.
    vars.'SKIP_REPEAT_ON' = true
+
+   // It also reports the level at the end of each change, so one level check 5 seconds
+   // after a command, if that report hasn't arrived, is enough.
+   vars.'MAX_READBACKS' = 1
+   vars.'DFLT_READBACK_DELAY' = 5000
 }
 
 onConnected {
    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
-
-   vars.'MAX_READBACKS' = 10
-   vars.'DFLT_READBACK_DELAY' = 1000
 
    // get the current switch level
    ZWave.switch_multilevel.get()

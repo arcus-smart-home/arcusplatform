@@ -277,13 +277,15 @@ onStarted {
    // one would override the Z-Wave ramp rate settings (28, 29). 0xFF asks for the
    // dimmer's own ramp. Firmware 1.03 ignores the duration and ramps at parameter 9.
    vars.'SET_DURATION' = 0xFF
+
+   // It also reports the level at the end of each change, so one level check 5 seconds
+   // after a command, if that report hasn't arrived, is enough.
+   vars.'MAX_READBACKS' = 1
+   vars.'DFLT_READBACK_DELAY' = 5000
 }
 
 onConnected {
    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
-
-   vars.'MAX_READBACKS' = 10
-   vars.'DFLT_READBACK_DELAY' = 1000
 
    // get the current switch level
    ZWave.switch_multilevel.get()

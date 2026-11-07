@@ -89,6 +89,8 @@ onConnected {
 // - SET_DURATION: the Multilevel Switch Set duration for on, off and brightness changes made through
 //   handleSetAttributes. 0xFF lets a dimmer that honors the duration use its own ramp rate settings. Default
 //   RAMP_INSTANTLY.
+// - MAX_READBACKS, DFLT_READBACK_DELAY: how many times to read the level back after a command, until the device
+//   reports the target (default 10), and how long to wait before the first one (default 1000 mSec).
 //
 static handleSetAttributes(ctx, name, message) {
 	handleSetAttributes(ctx, message)
