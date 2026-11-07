@@ -267,6 +267,13 @@ onAdded {
    Button.statechanged.down  ((null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : now())
 }
 
+onStarted {
+   // GenericZWaveDim settings, applied each time the platform starts this driver.
+   // This dimmer reports every change on its own, paddle presses included, so an ON
+   // it has already reported doesn't need sending again.
+   vars.'SKIP_REPEAT_ON' = true
+}
+
 onConnected {
    ZWave.setOfflineTimeout( OFFLINE_TIMEOUT_SECS )
 

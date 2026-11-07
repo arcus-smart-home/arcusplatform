@@ -80,6 +80,13 @@ onConnected {
 // - If the "RampBrightness" method is called with a "brightness" value of 1-100, the device will be turned ON and the brightness set to the specified value.
 // - If the "RampBrightness" method is called with a "brightness" value of 0, the device will simply be turned OFF and the brightness left at its previous value.
 //
+// Driver Settings
+// A driver can set these vars to change GenericZWaveDim's behavior. Set them in onStarted, which runs each time the
+// platform starts the driver, so a change takes effect on deploy. A driver that sets none keeps the original behavior.
+// - SKIP_REPEAT_ON: true to send a Get instead of the Set for an ON when the device has reported it is already ON at
+//   that brightness (see alreadyOnAtLevel). Some dimmers flash on every Multilevel Set, even one to the level they're
+//   already at. Only for dimmers that report every change on their own, paddle presses included. Default false.
+//
 static handleSetAttributes(ctx, name, message) {
 	handleSetAttributes(ctx, message)
 }
@@ -116,11 +123,13 @@ static handleSetAttributes(ctx, message) {
 		ctx.log.warn "Generic ignored invalid attribute setting: brightness=0"
 	}
 
+	boolean sent = false
 	if (SWITCH_OFF == onoff) {
 		ctx.log.trace "Set device to OFF"
 		setWaitingOnClientOffResponse( ctx, true )
 		setTargetState( ctx, ctx.Switch.STATE_OFF )
 		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+		sent = true
 		if (0 < level) {
 			// if dim:brightness was included, remember that as the last level
 			ctx.log.trace "Adjust driver brightness setting of OFF device to restore to: {}", level
@@ -130,32 +139,27 @@ static handleSetAttributes(ctx, message) {
 	} else if (SWITCH_ON == onoff) {
 		if (0 < level) {
 			ctx.log.trace "Set device to ON at brightness: {}", level
-			setTargetLevel( ctx, level )
-			setTargetState( ctx, ctx.Switch.STATE_ON )
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		} else {
 			// recieved a swit:state=ON, but no dim:brightness setting, so force device to last used 'target' level
-			setTargetState( ctx, ctx.Switch.STATE_ON )
 			level = getTargetLevel( ctx )
 			if (0 == level) {		// if by some chance 0, reset to default of 100
 				level = 100
 				setTargetLevel( ctx, level )
 			}
 			ctx.log.trace "Set device to ON at previous brightness: {}", level
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		}
 	} else {
 		// if only level was set turn device ON to that level, if it is not 0
 		if (0 < level) {
 			ctx.log.trace "Forcing device to ON, at brightness: {}", level
-			setTargetLevel( ctx, level )
-			setTargetState( ctx, ctx.Switch.STATE_ON )
-			setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+			sent = turnOn(ctx, level)
 		}
 	}
 
-	// if level or onoff were set, readback level from device
-	if ((0 < level) || (SWITCH_NOTSET != onoff)) {
+	// if a level was sent, readback level from device
+	if (sent) {
 		// read back the level after a short delay
 		// Note that we will keep re-reading until the target level is reached, or a maximum number of retries occurs, but we
 		// delay here for at least a short while to account for the time the device takes to physically adjust the level
@@ -164,12 +168,37 @@ static handleSetAttributes(ctx, message) {
 }
 
 
+// Turns the device ON at level, unless SKIP_REPEAT_ON is set and it is already ON at that level. Returns true if a Set
+// was sent.
+static boolean turnOn(ctx, int level) {
+	if (ctx.vars.'SKIP_REPEAT_ON' && alreadyOnAtLevel(ctx, level)) {
+		// A lost report would leave the state stale, so check it with a Get, which doesn't make the dimmer flash. If the
+		// device is really off, its report sets the target to OFF and the next ON is sent.
+		ctx.log.debug "Dimmer is already ON at brightness {}, reading the level instead of sending it again", level
+		ctx.ZWave.switch_multilevel.get()
+		return false
+	}
+	setTargetLevel( ctx, level )
+	setTargetState( ctx, ctx.Switch.STATE_ON )
+	setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+	return true
+}
+
+// True if the target is ON at level, no read-back is pending, and the device has reported that it is ON at exactly
+// that brightness. An ON the device hasn't confirmed yet is sent again, so a lost Set can be retried.
+static boolean alreadyOnAtLevel(ctx, int level) {
+	return ctx.Switch.STATE_ON == getTargetState( ctx ) && level == getTargetLevel( ctx ) && !waitingForReadLevel( ctx ) &&
+		ctx.Switch.STATE_ON == ctx.Switch.state.get() && level == ctx.Dimmer.brightness.get()
+}
+
 static void setDeviceLevel (ctx, level, duration) {
 	int dvcLevel = level
 	
 	// Z-Wave only supports levels 1 - 99, and 0 = off
 	if (100 <= level) dvcLevel = 99
 	
+	// a level replaces an OFF that hasn't been reported yet, so the device's report must not be taken as OFF
+	if (0 < dvcLevel) setWaitingOnClientOffResponse( ctx, false )
 	ctx.ZWave.switch_multilevel.set((byte)dvcLevel, duration)
 }
 

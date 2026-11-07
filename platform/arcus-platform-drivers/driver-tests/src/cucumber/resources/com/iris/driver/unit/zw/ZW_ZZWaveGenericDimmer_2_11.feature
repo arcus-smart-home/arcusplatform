@@ -323,6 +323,33 @@ Scenario Outline: Client sets swit:state to ON with a dim:brightness of zero
 
 
 
+# A level replaces an OFF that hasn't been reported yet, so the device's report of the level is not taken as OFF
+@dimProc
+Scenario Outline: Client turns OFF, then sends a level, before the device reports
+    Given the capability dim:brightness is 50
+		And the capability swit:state is ON
+		And the driver variable targetlevel is 50
+		And the driver variable targetstate is ON
+	When a base:SetAttributes command with the value of swit:state OFF is placed on the platform bus
+	Then the driver should send switch_multilevel set
+		And with parameter level 0
+	When the capability method <method>
+		And with capability <attribute> is <value>
+		And send to driver
+	Then the driver should send switch_multilevel set
+		And with parameter level <level>
+	When the device response with switch_multilevel report
+		And with parameter value <level>
+		And send to driver
+	Then the capability swit:state should be ON
+		And the capability dim:brightness should be <level>
+
+	Examples:
+      | method                  | attribute  | value | level |
+      | base:SetAttributes      | swit:state | ON    | 50    |
+      | dim:IncrementBrightness | amount     | 10    | 60    |
+
+
 Scenario Outline: Multilevel switch reports various dim levels
 	Given the capability dim:brightness is <before>
 		And the capability swit:state is OFF
