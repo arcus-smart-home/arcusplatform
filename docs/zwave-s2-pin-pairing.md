@@ -217,9 +217,10 @@ command classes are secure), or when the wait or the exchange fails.
 | `CANCELLED` | `CancelS2Pin` arrived, or the node sent KEX Fail before any PIN arrived |
 
 **`hub:PairingRequest`** gains an optional boolean `s2PinEntry`. Take it from
-every `START_PAIRING`, including one that arrives while already in pairing
-mode, since `HubController` otherwise drops a repeat. Clear it on
-`STOP_PAIRING` and when pairing mode ends.
+every `START_PAIRING`. `HubController` passes one that arrives while the hub
+is already pairing on to the Z-Wave controller alone, leaving the window's
+timer and ZigBee as they were. Clear it on `STOP_PAIRING` and when pairing
+mode ends.
 
 ### Hub bridge rules
 
