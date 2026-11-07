@@ -67,6 +67,22 @@ These scenarios test the functionality of the ZWave Zooz ZEN72 Dimmer driver
 # Dimmer Tests
 ############################################################
 
+    # 0xFF asks for the dimmer's own ramp. On firmware 10.20+ a duration of 0 (instant) would
+    # override its Z-Wave ramp rate settings (parameters 28 and 29).
+    @dimmer @ramp
+    Scenario Outline: Brightness and on/off changes ask for the dimmer's own ramp
+        Given the capability swit:state is <init-state>
+            And the capability dim:brightness is 50
+        When a base:SetAttributes command with the value of <attr> <value> is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And the command payload should be <payload>
+
+        Examples:
+          | init-state | attr           | value | payload | remarks                  |
+          | OFF        | dim:brightness | 30    | 30,0xFF | brightness turns it on   |
+          | OFF        | swit:state     | ON    | 50,0xFF | on at the previous level |
+          | ON         | swit:state     | OFF   | 0,0xFF  | off                      |
+
     @dimmer
     Scenario: Setting the brightness sends a multilevel switch set
         When a base:SetAttributes command with the value of dim:brightness 50 is placed on the platform bus
@@ -96,6 +112,161 @@ These scenarios test the functionality of the ZWave Zooz ZEN72 Dimmer driver
             And send to driver
         Then the capability dim:brightness should be 100
             And the capability swit:state should be ON
+
+
+############################################################
+# Repeated ON Tests (SKIP_REPEAT_ON)
+# The ZEN72 reports every change on its own, so an ON it has
+# already reported isn't sent again.
+############################################################
+
+    @dimmer @repeat
+    Scenario Outline: Turning ON a dimmer that has reported it is ON at that brightness only reads the level
+        Given the capability dim:brightness is 50
+            And the capability swit:state is ON
+            And the driver variable targetlevel is 50
+            And the driver variable targetstate is ON
+        When a base:SetAttributes command with the value of <attribute> <value> is placed on the platform bus
+        Then the driver should place a EmptyMessage message on the platform bus
+        Then the driver should send switch_multilevel get
+        Then protocol bus should be empty
+            And there should be no more scheduled events
+
+        Examples:
+          | attribute      | value |
+          | swit:state     | ON    |
+          | dim:brightness | 50    |
+
+    # Only a brightness the dimmer has confirmed is skipped. Its last report is stale when it
+    # never confirmed the last command.
+    @dimmer @repeat
+    Scenario Outline: Turning ON a dimmer that hasn't confirmed that brightness sends it
+        Given the capability dim:brightness is 50
+            And the capability swit:state is <state>
+            And the driver variable targetlevel is <target-level>
+            And the driver variable targetstate is <target-state>
+        When a base:SetAttributes command with the value of dim:brightness <level> is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level <level>
+
+        Examples:
+          | state | target-level | target-state | level | remarks                            |
+          | ON    | 50           | ON           | 60    | a new brightness                   |
+          | ON    | 60           | ON           | 50    | reported 50, but the target is 60  |
+          | ON    | 50           | OFF          | 50    | reported 50, but the target is OFF |
+          | ON    | 60           | ON           | 60    | the target, but reported 50        |
+          | OFF   | 50           | ON           | 50    | the target, but reported OFF       |
+
+    # An ON the dimmer hasn't confirmed yet is sent again, so a lost Set can be retried
+    @dimmer @repeat
+    Scenario: Turning OFF, then ON twice, before the dimmer reports sends every command
+        Given the capability dim:brightness is 50
+            And the capability swit:state is ON
+            And the driver variable targetlevel is 50
+            And the driver variable targetstate is ON
+        When a base:SetAttributes command with the value of swit:state OFF is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level 0
+        When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level 50
+        When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level 50
+
+    @dimmer @repeat
+    Scenario: Turning ON again after the dimmer reported reaching the brightness only reads the level
+        Given the capability dim:brightness is 10
+            And the capability swit:state is OFF
+            And the driver variable targetlevel is 10
+            And the driver variable targetstate is OFF
+        When a base:SetAttributes command with the value of dim:brightness 50 is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level 50
+        When the device response with switch_multilevel report
+            And with parameter value 50
+            And send to driver
+        Then the capability swit:state should be ON
+        When the capability method base:SetAttributes
+            And with capability swit:state is ON
+            And with capability dim:brightness is 50
+            And send to driver
+        Then the driver should send switch_multilevel get
+        Then protocol bus should be empty
+
+    # A report can be lost, so a skipped ON reads the level. If the dimmer is really off, the next ON is sent.
+    @dimmer @repeat
+    Scenario: An ON after a skipped ON finds the dimmer OFF is sent
+        Given the capability dim:brightness is 50
+            And the capability swit:state is ON
+            And the driver variable targetlevel is 50
+            And the driver variable targetstate is ON
+        When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+        Then the driver should send switch_multilevel get
+        When the device response with switch_multilevel report
+            And with parameter value 0
+            And send to driver
+        Then the capability swit:state should be OFF
+        When a base:SetAttributes command with the value of swit:state ON is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And with parameter level 50
+
+
+############################################################
+# Read-back Tests (MAX_READBACKS 1, DFLT_READBACK_DELAY 5000)
+############################################################
+
+    # The ZEN72 reports its new level on its own, so after a command the driver asks for the
+    # level once, 5 seconds later, and only if no matching report has arrived.
+    @dimmer @readback
+    Scenario: A command asks for the level once, 5 seconds later
+        When a base:SetAttributes command with the value of dim:brightness 50 is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And the driver should cancel event DeferredSwitchReadLevel
+            And the driver should schedule event DeferredSwitchReadLevel in 5 seconds
+        When event DeferredSwitchReadLevel triggers
+        Then the driver should send switch_multilevel get
+            And the driver should schedule event DeferredSwitchReadLevel in 1 second
+        When event DeferredSwitchReadLevel triggers
+        Then protocol bus should be empty
+            And there should be no more scheduled events
+
+    @dimmer @readback
+    Scenario Outline: Every dimmer method reads back 5 seconds later
+        Given the capability dim:brightness is 50
+            And the capability swit:state is ON
+            And the driver variable targetlevel is 50
+            And the driver variable targetstate is ON
+        When the capability method <method>
+            And with capability amount is <amount>
+            And send to driver
+        Then the driver should send switch_multilevel set
+            And the driver should cancel event DeferredSwitchReadLevel
+            And the driver should schedule event DeferredSwitchReadLevel in 5 seconds
+
+        Examples:
+          | method                  | amount | remarks |
+          | dim:IncrementBrightness | 10     | to 60   |
+          | dim:DecrementBrightness | 10     | to 40   |
+          | dim:DecrementBrightness | 50     | to OFF  |
+
+    @dimmer @readback
+    Scenario: RampBrightness to OFF reads back 5 seconds later
+        Given the capability swit:state is ON
+        When the capability method dim:RampBrightness
+            And with capability brightness is 0
+            And with capability seconds is 3
+            And send to driver
+        Then the driver should send switch_multilevel set
+            And the driver should cancel event DeferredSwitchReadLevel
+            And the driver should schedule event DeferredSwitchReadLevel in 5 seconds
+
+    # onStarted sets the read-back vars; connecting no longer resets them
+    @connected @readback
+    Scenario: Connecting keeps the read-back settings
+        When the device is connected
+        Then the driver variable MAX_READBACKS should be 1
+            And the driver variable DFLT_READBACK_DELAY should be 5000
 
 
 ############################################################
