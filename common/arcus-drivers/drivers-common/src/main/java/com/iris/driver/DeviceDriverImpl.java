@@ -145,6 +145,15 @@ class DeviceDriverImpl implements DeviceDriver {
       if (configuration != null) {
          configuration.onDriverRestored(context);
       }
+
+      // Run the driver's onStarted handlers. They run first each time the platform starts the driver for a device,
+      // deploys included, so a driver can apply its settings there. What they set is saved with the next commit.
+      try {
+         driverEventHandler.handleEvent(context, DriverEvent.driverStarted());
+      }
+      catch(Exception e) {
+         driverLogger.warn("Error running onStarted", e);
+      }
       // don't commit here for now, wait for the connect event, otherwise we get multiple value changes
       // and break lots of test cases
    }

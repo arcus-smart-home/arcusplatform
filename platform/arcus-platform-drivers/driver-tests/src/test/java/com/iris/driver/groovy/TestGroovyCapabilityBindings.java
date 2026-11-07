@@ -43,6 +43,7 @@ import com.iris.driver.event.DeviceAssociatedEvent;
 import com.iris.driver.event.DeviceConnectedEvent;
 import com.iris.driver.event.DeviceDisassociatedEvent;
 import com.iris.driver.event.DeviceDisconnectedEvent;
+import com.iris.driver.event.DriverStartedEvent;
 import com.iris.driver.groovy.binding.CapabilityEnvironmentBinding;
 import com.iris.driver.groovy.customizer.DriverCompilationCustomizer;
 import com.iris.driver.groovy.plugin.GroovyDriverPlugin;
@@ -227,7 +228,7 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
 
       List<EventMatcher> matchers = builder.getEventMatchers();
       System.out.println("Matchers: " + matchers);
-      assertEquals(4, matchers.size());
+      assertEquals(5, matchers.size());
 
       int idx = 0;
       {
@@ -248,6 +249,11 @@ public class TestGroovyCapabilityBindings extends GroovyDriverTestCase {
       {
          DriverEventMatcher matcher = (DriverEventMatcher) matchers.get(idx++);
          assertEquals(DeviceDisassociatedEvent.class, matcher.getEventType());
+      }
+
+      {
+         DriverEventMatcher matcher = (DriverEventMatcher) matchers.get(idx++);
+         assertEquals(DriverStartedEvent.class, matcher.getEventType());
       }
    }
 

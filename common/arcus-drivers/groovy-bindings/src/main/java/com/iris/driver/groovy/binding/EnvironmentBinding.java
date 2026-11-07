@@ -35,6 +35,7 @@ import com.iris.driver.event.DeviceConnectedEvent;
 import com.iris.driver.event.DeviceDisassociatedEvent;
 import com.iris.driver.event.DeviceDisconnectedEvent;
 import com.iris.driver.event.DriverEvent;
+import com.iris.driver.event.DriverStartedEvent;
 import com.iris.driver.event.DriverUpgradedEvent;
 import com.iris.driver.groovy.GroovyBuilder;
 import com.iris.driver.groovy.GroovyDriverBuilder;
@@ -82,6 +83,10 @@ public abstract class EnvironmentBinding extends Binding {
 
    public void onUpgraded(Closure<?> closure) {
       addDriverEventMatcher(DriverUpgradedEvent.class, closure);
+   }
+
+   public void onStarted(Closure<?> closure) {
+      addDriverEventMatcher(DriverStartedEvent.class, closure);
    }
 
    public void onConnected(Closure<?> closure) {

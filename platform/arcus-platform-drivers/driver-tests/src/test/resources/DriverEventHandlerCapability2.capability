@@ -38,6 +38,10 @@ onRemoved {
 	eventCount(vars, "onRemoved")
 }
 
+onStarted {
+	eventCount(vars, "onStarted")
+}
+
 static void eventCount(curVars, handledBy) {
 	curVars.handledBy = handledBy
 	if(curVars.eventCount == null) {

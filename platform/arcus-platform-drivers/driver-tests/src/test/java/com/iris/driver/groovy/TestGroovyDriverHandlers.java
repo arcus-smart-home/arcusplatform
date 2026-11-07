@@ -108,5 +108,12 @@ public class TestGroovyDriverHandlers extends GroovyDriverTestCase {
       assertEquals(curExpectedEventCount, context.getVariable("eventCount"));
    }
 
+   @Test
+   public void testOnStarted() throws Exception {
+      driver.onRestored(context);
+      assertEquals("onStarted", context.getVariable("handledBy"));
+      assertEquals(curExpectedEventCount, context.getVariable("eventCount"));
+   }
+
 }
 
