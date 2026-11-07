@@ -64,6 +64,7 @@ public class SelectProductPage implements Transition<PairingInfo, PairingInfo> {
 		request.setAddress(info.getPairingSubsystem().getAddress());
 		request.setProductAddress(info.getProduct().get().getAddress());
 		request.setMock(true);
+		request.setS2PinEntry(true);
 		return 
 			input.getPairingSubsystem()
 				.request(request)

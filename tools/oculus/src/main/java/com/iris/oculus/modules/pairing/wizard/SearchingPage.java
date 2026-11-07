@@ -20,6 +20,7 @@ package com.iris.oculus.modules.pairing.wizard;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.event.HierarchyEvent;
 import java.beans.PropertyChangeEvent;
 import java.util.Date;
 
@@ -64,7 +65,10 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 	private ListenerRegistration reg = Listeners.unregistered();
 	private SelectionModel<PairingDeviceModel> selectionModel = new DefaultSelectionModel<>();
 	private FormView status;
-	
+	private S2PinDialog pinDialog;
+	/** The page has been on screen since it last started listening. */
+	private boolean onScreen;
+
 	public SearchingPage() {
 		selectionModel.addSelectionListener((e) -> onSelected());
 	}
@@ -83,6 +87,7 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 		Listeners.unregister(reg);
 		reg = input.getPairingSubsystem().addListener(this::onPairingSubsystemChange);
 		syncStatus();
+		promptForS2Pin(input.getPairingSubsystem().get(PairingSubsystem.ATTR_S2PINREQUESTID));
 		return c;
 	}
 
@@ -94,9 +99,23 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 	@Override
 	protected Component createComponent() {
 		JPanel panel = new JPanel(new BorderLayout());
-		
+
 		panel.add(createStatusPanel(), BorderLayout.NORTH);
 		panel.add(createPairingQueue(), BorderLayout.CENTER);
+		// The wizard doesn't say when it is closed, so stop listening once the page leaves
+		// the screen, or a closed pairing cart would go on opening PIN prompts of its own
+		panel.addHierarchyListener((e) -> {
+			if((e.getChangeFlags() & (HierarchyEvent.SHOWING_CHANGED | HierarchyEvent.DISPLAYABILITY_CHANGED)) == 0) {
+				return;
+			}
+			if(panel.isShowing()) {
+				onScreen = true;
+			}
+			else if(onScreen) {
+				onScreen = false;
+				reg = Listeners.unregister(reg);
+			}
+		});
 		return panel;
 	}
 
@@ -223,11 +242,33 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 			syncStatus();
 			break;
 			
+		case PairingSubsystem.ATTR_S2PINREQUESTID:
+			promptForS2Pin(event.getNewValue());
+			break;
+			
 		case PairingSubsystem.ATTR_SEARCHIDLE:
 			if(Boolean.TRUE.equals(event.getNewValue())) {
 				searchIdle();
 			}
 			break;
+		}
+	}
+	
+	/** A device is waiting for the PIN printed on it, or stopped waiting if there is no request. */
+	private void promptForS2Pin(Object requestId) {
+		boolean waiting = S2Pins.isWaiting(requestId);
+		if(pinDialog != null) {
+			if(!waiting) {
+				// emptied as soon as a PIN is sent, so the dialog waits for the hub's answer
+				pinDialog.requestEnded();
+			}
+			else {
+				pinDialog.close();
+			}
+			pinDialog = null;
+		}
+		if(waiting) {
+			pinDialog = S2PinDialog.show(input.getPairingSubsystem());
 		}
 	}
 	
@@ -242,6 +283,7 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 	private void startSearch() {
 		PairingSubsystem.SearchRequest request = new PairingSubsystem.SearchRequest();
 		request.setAddress(input.getPairingSubsystem().getAddress());
+		request.setS2PinEntry(true);
 		Oculus.showProgress(IrisClientFactory.getClient().request(request), "Searching...");
 	}
 
