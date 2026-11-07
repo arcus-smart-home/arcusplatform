@@ -866,6 +866,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    @Override
    public boolean isInterestedIn(PlatformMessage message) {
       switch (message.getMessageType()) {
+      case MessageConstants.MSG_ADD_DEVICE_REQUEST:
       case MessageConstants.MSG_ADD_DEVICE_RESPONSE:
       case DeviceAdvancedCapability.RemovedDeviceEvent.NAME:
       case HubCapability.UnpairingRequestRequest.NAME:
@@ -905,6 +906,24 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    @Nullable
    public Object recv(Port port, PlatformMessage message) throws Exception {
       switch (message.getMessageType()) {
+      // An add for a ZigBee device that's paired already means it joined
+      // again from scratch, as after a factory reset: iris2 adds it again
+      // without removing it first. Its reflexes start over, as for a new
+      // device, so the sync after the add runs their on added actions
+      // again. A Z-Wave device that's reset comes back as a new node, and
+      // iris2 Z-Wave adds every node again when it migrates a hub.
+      case MessageConstants.MSG_ADD_DEVICE_REQUEST:
+         try {
+            Address addr = zigbeeDeviceAdded(IrisHal.getHubId(), message.getValue());
+            if (addr != null && startOver(addr)) {
+               log.info("snooped add of device {} that has reflexes, starting them over", addr);
+               localProcessing.fireDevicesUpdated();
+            }
+         } catch (Exception ex) {
+            log.warn("reflexes could not process add device request:", ex);
+         }
+         break;
+
       case MessageConstants.MSG_ADD_DEVICE_RESPONSE:
          log.info("recevied add device response, should sync hub reflexes...");
          doReflexSync();
@@ -964,6 +983,33 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       }
 
       return null;
+   }
+
+   /**
+    * @return the address of the ZigBee device an add request is for, or
+    *         null for another radio's device or a hub being migrated
+    */
+   @Nullable
+   static Address zigbeeDeviceAdded(String hubId, MessageBody msg) {
+      Map<String,Object> attrs = msg.getAttributes();
+      Object id = attrs.get(MessageConstants.ATTR_DEVICEID);
+      if (!ZigbeeProtocol.NAMESPACE.equals(attrs.get(MessageConstants.ATTR_PROTOCOLNAME)) ||
+            Boolean.TRUE.equals(attrs.get(MessageConstants.ATTR_MIGRATED)) || id == null) {
+         return null;
+      }
+
+      // The radio's own message holds the id, a serialized one its representation
+      ProtocolDeviceId deviceId = (id instanceof ProtocolDeviceId)
+         ? (ProtocolDeviceId)id
+         : ProtocolDeviceId.fromRepresentation(id.toString());
+      return Address.hubProtocolAddress(hubId, ZigbeeProtocol.NAMESPACE, deviceId);
+   }
+
+   // As removing the device does, without its on removed actions
+   private boolean startOver(Address addr) {
+      boolean hadReflexes = processors.remove(addr) != null;
+      ReflexDao.removeAllDriverAndReflexState(addr.getRepresentation());
+      return hadReflexes;
    }
 
    @Override
