@@ -104,7 +104,7 @@ final long RELEASE_DELAY_MSEC  = 1000       // simulate button RELEASED 1 second
 // ----------------------------------------------------------------------------
 @Field final byte CNFG_LED_MODE_PARAM_NO  = 1       // parameter number to configure LED indicator mode
 final byte CNFG_LED_MODE_SIZE             = 1        // size is 1 byte
-final byte CNFG_LED_MODE_VALUE            = 1        // 0=Always Off, 1=On when button pressed (default), 2=Always on (LED is on)
+final byte CNFG_LED_MODE_VALUE            = 1        // 0=always off, 1=on when button pressed (default), 2=always on in upper paddle color, 3=always on in lower paddle color
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,8 +155,8 @@ onConnected {
     // set Association to Group 1, Node 1
     ZWave.association.set( 1, 1, 0, 0, 0);
 
-    // configure LED mode
-    ZWave.configuration.set( CNFG_LED_MODE_PARAM_NO, CNFG_LED_MODE_SIZE, CNFG_LED_MODE_VALUE )
+    // Don't write the LED mode (parameter 1) here: onConnected runs again on every
+    // reconnect, and the write would undo the ledMode device setting.
 }
 
 
