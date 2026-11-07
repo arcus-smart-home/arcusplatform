@@ -58,6 +58,22 @@ These scenarios test the functionality of the ZWave Zooz ZEN77 S2 Dimmer Switch 
 # Dimmer Tests
 ############################################################
 
+    # Firmware 10.20 and later honor the Multilevel Switch Set duration. 0xFF asks for the
+    # dimmer's own ramp (parameters 28 and 29), which a duration of 0 (instant) would override.
+    @dimmer @ramp
+    Scenario Outline: Brightness and on/off changes ask for the dimmer's own ramp
+        Given the capability swit:state is <init-state>
+            And the capability dim:brightness is 50
+        When a base:SetAttributes command with the value of <attr> <value> is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And the command payload should be <payload>
+
+        Examples:
+          | init-state | attr           | value | payload | remarks                  |
+          | OFF        | dim:brightness | 30    | 30,0xFF | brightness turns it on   |
+          | OFF        | swit:state     | ON    | 50,0xFF | on at the previous level |
+          | ON         | swit:state     | OFF   | 0,0xFF  | off                      |
+
     @dimmer
     Scenario: Device reports multilevel switch at 50%
         When the device response with switch_multilevel report

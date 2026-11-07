@@ -369,3 +369,12 @@ Scenario Outline: Multilevel switch reports various dim levels
       | 10       | 100    | ON    | 100        |                                                |
       | 50       | 253    | OFF   | 50         | Ignore out of bounds                           |
       | 50       | 121    | OFF   | 50         | Ignore out of bounds                           |
+
+
+    # Drivers that set no SET_DURATION still ask for an instant change.
+    @ramp
+    Scenario: The generic dimmer sends changes with an instant duration
+        Given the capability swit:state is OFF
+        When a base:SetAttributes command with the value of dim:brightness 30 is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And the command payload should be 30,0x00

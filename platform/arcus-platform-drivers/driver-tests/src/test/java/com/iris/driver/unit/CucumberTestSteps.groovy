@@ -1187,6 +1187,21 @@ Then(~/^the driver should send (.+) (.+)$/) {String type, String subType ->
 }
 
 /**
+ * Checks every byte of the payload of the command taken by the previous
+ * "the driver should send" step, including bytes the command class definition
+ * doesn't name (such as a Multilevel Switch Set duration). Z-Wave only.
+ *
+ * EXAMPLE:
+ * 	Then the driver should send switch_multilevel set
+ * 		And the command payload should be 0x32,0xFF
+ *
+ * STEP : OUT-PAYLOAD
+ */
+Then(~/^the command payload should be (.+)$/) { String bytes ->
+	context.checkSentPayload(bytes)
+}
+
+/**
  * Takes every message left on the protocol bus and fails if any of them is the
  * given command. Leaves the protocol bus empty. Z-Wave only.
  *

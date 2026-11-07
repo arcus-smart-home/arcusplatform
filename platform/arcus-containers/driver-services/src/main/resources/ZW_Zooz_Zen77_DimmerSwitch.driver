@@ -272,6 +272,11 @@ onStarted {
    // This dimmer reports every change on its own, paddle presses included, so an ON
    // it has already reported doesn't need sending again.
    vars.'SKIP_REPEAT_ON' = true
+
+   // Firmware 10.20 and later honor the Multilevel Switch Set duration, and an instant
+   // one would override the Z-Wave ramp rate settings (28, 29). 0xFF asks for the
+   // dimmer's own ramp. Firmware 1.03 ignores the duration and ramps at parameter 9.
+   vars.'SET_DURATION' = 0xFF
 }
 
 onConnected {

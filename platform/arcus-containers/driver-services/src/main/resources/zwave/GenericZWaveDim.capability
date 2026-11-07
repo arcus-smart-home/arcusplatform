@@ -86,6 +86,9 @@ onConnected {
 // - SKIP_REPEAT_ON: true to send a Get instead of the Set for an ON when the device has reported it is already ON at
 //   that brightness (see alreadyOnAtLevel). Some dimmers flash on every Multilevel Set, even one to the level they're
 //   already at. Only for dimmers that report every change on their own, paddle presses included. Default false.
+// - SET_DURATION: the Multilevel Switch Set duration for on, off and brightness changes made through
+//   handleSetAttributes. 0xFF lets a dimmer that honors the duration use its own ramp rate settings. Default
+//   RAMP_INSTANTLY.
 //
 static handleSetAttributes(ctx, name, message) {
 	handleSetAttributes(ctx, message)
@@ -128,7 +131,7 @@ static handleSetAttributes(ctx, message) {
 		ctx.log.trace "Set device to OFF"
 		setWaitingOnClientOffResponse( ctx, true )
 		setTargetState( ctx, ctx.Switch.STATE_OFF )
-		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, RAMP_INSTANTLY)
+		ctx.ZWave.switch_multilevel.set(SWITCH_OFF, setDuration(ctx))
 		sent = true
 		if (0 < level) {
 			// if dim:brightness was included, remember that as the last level
@@ -180,8 +183,14 @@ static boolean turnOn(ctx, int level) {
 	}
 	setTargetLevel( ctx, level )
 	setTargetState( ctx, ctx.Switch.STATE_ON )
-	setDeviceLevel(ctx, level, RAMP_INSTANTLY)
+	setDeviceLevel(ctx, level, setDuration(ctx))
 	return true
+}
+
+// The Multilevel Switch Set duration for handleSetAttributes: the driver's SET_DURATION, or RAMP_INSTANTLY.
+static byte setDuration(ctx) {
+	def duration = ctx.vars.'SET_DURATION'
+	return (null != duration) ? (byte) duration : RAMP_INSTANTLY
 }
 
 // True if the target is ON at level, no read-back is pending, and the device has reported that it is ON at exactly

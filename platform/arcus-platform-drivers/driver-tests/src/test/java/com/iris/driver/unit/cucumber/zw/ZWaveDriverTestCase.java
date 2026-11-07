@@ -50,6 +50,7 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
 	
 	
 	private ZWaveCommand command;
+	private byte[] commandPayload;
 	
     public ZWaveDriverTestCase() {
         node = new ZWaveNode((byte)10);
@@ -67,6 +68,7 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
     @Override
     public void validateProtocolMessage(ProtocolMessage protocolMsg, String type, String subType){
 		this.command = null;
+		this.commandPayload = null;
 		Message zwaveProtocolMsg = (Message)protocolMsg.getValue();
 		logger.debug("\n ZWave Protocol Message = "+zwaveProtocolMsg);
 		byte[] zwaveMsgByte = ZWaveExternalProtocol.INSTANCE.createSerializer().serialize(zwaveProtocolMsg);
@@ -87,6 +89,7 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
 				   assert false: "unknown command " + pcmd.getCommandId() + " in command class " + pcmd.getCommandClassId();
 				}
 				logger.trace("Command "+pcmd);
+				commandPayload = pcmd.getPayload();
 				try{
 					command.set(pcmd.getPayload());
 				} catch (Exception e){}
@@ -105,6 +108,18 @@ public class ZWaveDriverTestCase extends AbstractDriverTestCase implements Drive
 
     }
     
+	@Override
+	public void checkSentPayload(String expectedBytes) {
+		assert commandPayload != null : "the last message checked was not a Z-Wave command";
+		String[] tokens = expectedBytes.split(",");
+		byte[] expected = new byte[tokens.length];
+		for (int i = 0; i < tokens.length; i++) {
+			expected[i] = DataTypeUtilities.byteValueOf(tokens[i].trim());
+		}
+		assert java.util.Arrays.equals(expected, commandPayload)
+				: "Expected payload " + java.util.Arrays.toString(expected) + " but found " + java.util.Arrays.toString(commandPayload);
+	}
+
     @Override
     public boolean isProtocolMessage(ProtocolMessage protocolMsg, String type, String subType) {
         Message zwaveProtocolMsg = (Message)protocolMsg.getValue();
