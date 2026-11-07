@@ -41,6 +41,7 @@ import com.iris.driver.event.DeviceAssociatedEvent;
 import com.iris.driver.event.DeviceConnectedEvent;
 import com.iris.driver.event.DeviceDisassociatedEvent;
 import com.iris.driver.event.DeviceDisconnectedEvent;
+import com.iris.driver.event.DriverStartedEvent;
 import com.iris.driver.groovy.control.ControlProtocolPlugin;
 import com.iris.driver.groovy.customizer.DriverCompilationCustomizer;
 import com.iris.driver.groovy.zwave.ZWaveProtocolEventMatcher;
@@ -319,7 +320,7 @@ public class TestGroovyDriverBindings extends GroovyDriverTestCase {
 
       List<EventMatcher> matchers = binding.getBuilder().getEventMatchers();
       System.out.println("Matchers: " + matchers);
-      assertEquals(4, matchers.size());
+      assertEquals(5, matchers.size());
 
       int idx = 0;
       {
@@ -340,6 +341,11 @@ public class TestGroovyDriverBindings extends GroovyDriverTestCase {
       {
          DriverEventMatcher matcher = (DriverEventMatcher) matchers.get(idx++);
          assertEquals(DeviceDisassociatedEvent.class, matcher.getEventType());
+      }
+
+      {
+         DriverEventMatcher matcher = (DriverEventMatcher) matchers.get(idx++);
+         assertEquals(DriverStartedEvent.class, matcher.getEventType());
       }
    }
 

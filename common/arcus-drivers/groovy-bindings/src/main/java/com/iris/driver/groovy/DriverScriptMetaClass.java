@@ -40,6 +40,7 @@ import com.iris.driver.event.DeviceConnectedEvent;
 import com.iris.driver.event.DeviceDisassociatedEvent;
 import com.iris.driver.event.DeviceDisconnectedEvent;
 import com.iris.driver.event.DriverEvent;
+import com.iris.driver.event.DriverStartedEvent;
 import com.iris.driver.event.DriverUpgradedEvent;
 import com.iris.driver.groovy.context.GroovyCapabilityDefinition;
 import com.iris.driver.groovy.context.GroovyCommandDefinition;
@@ -66,6 +67,7 @@ public class DriverScriptMetaClass extends MetaClassImpl {
       addMetaMethod(new OnDriverEventMethod("Added", DeviceAssociatedEvent.class));
       addMetaMethod(new OnDriverEventMethod("Connected", DeviceConnectedEvent.class));
       addMetaMethod(new OnDriverEventMethod("Upgraded", DriverUpgradedEvent.class));
+      addMetaMethod(new OnDriverEventMethod("Started", DriverStartedEvent.class));
       addMetaMethod(new OnPlatformMethod());
       addMetaMethod(new OnProtocolMethod());
       addMetaMethod(new OnDriverEventMethod("Disconnected", DeviceDisconnectedEvent.class));

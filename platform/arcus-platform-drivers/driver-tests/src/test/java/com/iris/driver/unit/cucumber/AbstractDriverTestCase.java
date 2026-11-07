@@ -195,6 +195,8 @@ public class AbstractDriverTestCase extends IrisMockTestCase {
           deviceDriverContext.setAttributeValue(PresenceCapability.KEY_PRESENCE, PresenceCapability.PRESENCE_PRESENT);
           deviceDriverContext.setAttributeValue(PresenceCapability.KEY_PRESENCECHANGED, new Date());
        }
+       // start the driver as the platform does each time it loads one, so its onStarted handlers run
+       deviceDriver.onRestored(deviceDriverContext);
        deviceDriverContext.clearDirty();
        
        executor = new DefaultDriverExecutor(deviceDriver, deviceDriverContext, null, 10);

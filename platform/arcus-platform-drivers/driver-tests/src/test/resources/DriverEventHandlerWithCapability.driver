@@ -47,4 +47,8 @@ onRemoved {
 	DriverEventHandler.eventCount(vars, "onRemoved")
 }
 
+onStarted {
+	DriverEventHandler.eventCount(vars, "onStarted")
+}
+
 

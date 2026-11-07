@@ -79,6 +79,7 @@ onZigbeeMessage.Zcl.power.zclreportattributes() {
 |-------|--------------|-------------|
 | `onAdded` | Device first paired | Set initial attribute values, default state |
 | `onConnected` | Device comes online | Poll current state, configure reporting intervals |
+| `onStarted` | First, each time the platform starts the driver for a device: before `onAdded` on pairing, before `onUpgraded` on an upgrade, and on every load, deploys included | Set the vars the driver's code reads, so a change takes effect without the device reconnecting. It runs whether or not the device is online, so don't send device commands. What it sets is saved with the next commit. |
 | `onDisconnected` | Device goes offline | Cleanup, stop periodic polls |
 | `onRemoved` | Device permanently removed | Send reset command, final cleanup |
 

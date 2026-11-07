@@ -52,6 +52,14 @@ public interface DriverTestContext<ProtocolMessageFormat> {
     public void validateProtocolMessage(ProtocolMessage protocolMsg, String type, String subType);
 
     /**
+     * Checks every byte of the payload of the command the last "the driver should send"
+     * step took, including bytes the command class definition doesn't name.
+     */
+    public default void checkSentPayload(String expectedBytes) {
+        throw new UnsupportedOperationException("checkSentPayload is not supported for " + getProtocol().getName());
+    }
+
+    /**
      * Reports whether a protocol message is the given command, without asserting,
      * so a step can check that a driver did not send something.
      */
