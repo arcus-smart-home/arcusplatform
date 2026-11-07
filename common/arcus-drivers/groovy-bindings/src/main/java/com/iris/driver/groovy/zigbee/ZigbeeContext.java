@@ -207,7 +207,7 @@ public class ZigbeeContext extends GroovyObjectSupport {
          int i = 0;
          ZigbeeMessage.Protocol[] msgs = new ZigbeeMessage.Protocol[messages.size()];
          for (ProtocMessage msg : messages) {
-            msgs[i] = ZigbeeMessage.Protocol.builder()
+            msgs[i++] = ZigbeeMessage.Protocol.builder()
                .setType(msg.getMessageId())
                .setPayload(ByteOrder.LITTLE_ENDIAN, msg)
                .create();
@@ -229,7 +229,7 @@ public class ZigbeeContext extends GroovyObjectSupport {
          int i = 0;
          ZigbeeMessage.Protocol[] msgs = new ZigbeeMessage.Protocol[messages.size()];
          for (ProtocMessage msg : messages) {
-            msgs[i] = ZigbeeMessage.Protocol.builder()
+            msgs[i++] = ZigbeeMessage.Protocol.builder()
                .setType(msg.getMessageId())
                .setPayload(ByteOrder.LITTLE_ENDIAN, msg)
                .create();
