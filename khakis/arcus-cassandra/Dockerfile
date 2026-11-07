@@ -1,17 +1,40 @@
+ARG CASSANDRA_VERSION=4.0.21
+
+# Download and unpack Apache Cassandra in a throwaway stage, so curl and its
+# libraries never reach the published image.
+# archive.apache.org is slow and sometimes drops connections, so retry every
+# kind of failure (wget gives up on a TLS error), abandon a stalled transfer
+# and cap each attempt at 20 minutes.
+# The six 1.12 bundled with cqlsh breaks on Python 3.12+, so drop it in favor of python3-six.
+FROM debian:trixie AS download
+ARG CASSANDRA_VERSION
+RUN \
+    apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+RUN \
+    curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
+        --connect-timeout 60 --speed-limit 1024 --speed-time 120 --max-time 1200 \
+        -o /tmp/cassandra.tar.gz \
+        https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
+    mkdir /dist && \
+    tar xfz /tmp/cassandra.tar.gz -C /dist && \
+    rm /dist/apache-cassandra-${CASSANDRA_VERSION}/lib/six-*.zip
+
 # Cassandra 4.0 only supports JDK 8/11; use a pinned base image
 FROM arcus/java:jdk11
+ARG CASSANDRA_VERSION
 
 USER root
 
 # Initial system configuration
 #  python3 is required to run cqlsh; python3-six and python3-pyasyncore
-#    replace modules that Python 3.12+ broke or removed (see below)
+#    replace modules that Python 3.12+ broke or removed (see above)
 #  unzip is required to unzip the modelmanager jar
 #  gosu is used to drop privileges at runtime
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-      curl \
       python3 \
       python3-six \
       python3-pyasyncore \
@@ -21,23 +44,14 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
-ENV CASSANDRA_VERSION 4.0.21
+ENV CASSANDRA_VERSION=${CASSANDRA_VERSION}
 
-# Download and install the required version of Apache Cassandra.
-# archive.apache.org is slow and sometimes drops connections, so retry every
-# kind of failure (wget treats a TLS error as final) and give up on a stall.
-# The six 1.12 bundled with cqlsh breaks on Python 3.12+, so drop it in favor of python3-six.
+# Install the required version of Apache Cassandra.
+COPY --from=download /dist/apache-cassandra-${CASSANDRA_VERSION} /opt/apache-cassandra-${CASSANDRA_VERSION}
 RUN \
-    curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
-        --connect-timeout 60 --speed-limit 1024 --speed-time 120 \
-        -o /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz \
-        https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
-    tar xfz /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -C /opt && \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
-    rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     ln -s /opt/cassandra/bin/cqlsh /usr/bin && \
-    ln -s /opt/cassandra/bin/nodetool /usr/bin && \
-    rm /opt/cassandra/lib/six-*.zip
+    ln -s /opt/cassandra/bin/nodetool /usr/bin
 
 # Add control script and logging configuration
 ADD cassandra-cmd /usr/bin/
