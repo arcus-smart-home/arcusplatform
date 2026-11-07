@@ -11,7 +11,7 @@ USER root
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-      wget \
+      curl \
       python3 \
       python3-six \
       python3-pyasyncore \
@@ -24,9 +24,14 @@ RUN \
 ENV CASSANDRA_VERSION 4.0.21
 
 # Download and install the required version of Apache Cassandra.
+# archive.apache.org is slow and sometimes drops connections, so retry every
+# kind of failure (wget treats a TLS error as final) and give up on a stall.
 # The six 1.12 bundled with cqlsh breaks on Python 3.12+, so drop it in favor of python3-six.
 RUN \
-    wget https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -O /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
+    curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
+        --connect-timeout 60 --speed-limit 1024 --speed-time 120 \
+        -o /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz \
+        https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     tar xfz /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz -C /opt && \
     ln -s /opt/apache-cassandra-${CASSANDRA_VERSION} /opt/cassandra && \
     rm /tmp/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \

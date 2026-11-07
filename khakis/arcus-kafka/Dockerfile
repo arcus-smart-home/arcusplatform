@@ -6,7 +6,7 @@ USER root
 # Initial system configuration
 RUN \
     apt-get update && \
-    apt-get install -y wget && \
+    apt-get install -y curl && \
     useradd -M -U -r -s /bin/false kafka && \
     rm -rf /var/lib/apt/lists/*
 
@@ -14,9 +14,14 @@ RUN \
 ENV KAFKA_SCALA_VERSION 2.12
 ENV KAFKA_VERSION 2.8.2
 
-# Download and install the required version of Apache Kafka. 
+# Download and install the required version of Apache Kafka.
+# archive.apache.org is slow and sometimes drops connections, so retry every
+# kind of failure (wget treats a TLS error as final) and give up on a stall.
 RUN \
-    wget https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -O /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+    curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
+        --connect-timeout 60 --speed-limit 1024 --speed-time 120 \
+        -o /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+        https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     tar xfz /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt && \
     ln -s /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
     rm /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz && \

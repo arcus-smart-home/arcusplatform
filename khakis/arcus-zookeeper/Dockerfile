@@ -6,7 +6,7 @@ USER root
 # Initial system configuration
 RUN \
     apt-get update && \
-    apt-get install -y wget && \
+    apt-get install -y curl && \
     useradd -M -U -r -s /bin/false zookeeper && \
     rm -rf /var/lib/apt/lists/*
 
@@ -14,8 +14,13 @@ RUN \
 ENV ZOOKEEPER_VERSION 3.9.6
 
 # Download and install the required version of Apache Zookeeper.
+# archive.apache.org is slow and sometimes drops connections, so retry every
+# kind of failure (wget treats a TLS error as final) and give up on a stall.
 RUN \
-    wget https://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz -O /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz && \
+    curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
+        --connect-timeout 60 --speed-limit 1024 --speed-time 120 \
+        -o /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz \
+        https://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz && \
     tar xfz /tmp/zookeeper-${ZOOKEEPER_VERSION}.tar.gz -C /opt && \
     mv /opt/apache-zookeeper-${ZOOKEEPER_VERSION}-bin /opt/zookeeper-${ZOOKEEPER_VERSION} && \
     ln -s /opt/zookeeper-${ZOOKEEPER_VERSION} /opt/zookeeper && \

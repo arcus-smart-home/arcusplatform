@@ -60,24 +60,23 @@ docker_tag() {
 }
 
 docker_push() {
-    local COUNT="0"
-    local SUCCESS="false"
-    
-    while [ $COUNT -lt 4 ]; do
+    local ATTEMPTS=5
+    local i
+
+    for i in $(seq 1 ${ATTEMPTS}); do
         if "${DOCKER_BIN}" push "$@"; then
             echo "Push succeeded."
-            COUNT="5"
-            SUCCESS="true"
-        else
-            echo "Push failed."
-            COUNT=$[$COUNT+1]
+            return 0
+        fi
+        echo "Push failed (attempt ${i} of ${ATTEMPTS})."
+        # Back to back retries all land inside the same registry hiccup.
+        if [ "${i}" -lt "${ATTEMPTS}" ]; then
+            sleep 15
         fi
     done
 
-    if [ "$SUCCESS" == "false" ]; then 
-        echo "Push failed after 5 attempts."
-        exit 1
-    fi
+    echo "Push failed after ${ATTEMPTS} attempts."
+    exit 1
 }
 
 docker_stop() {

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Stop at the first image that fails to build. Without this the script's exit
+# status was that of the last build alone, so a release carried on past a
+# failed ZooKeeper or Kafka build and only noticed when the push came up empty.
+set -e
+
 # Include common functionality
 SCRIPT_PATH="$0"
 SCRIPT_DIR=$(dirname ${SCRIPT_PATH})
