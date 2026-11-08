@@ -54,10 +54,10 @@ Key configuration scopes (Gradle 7):
 
 - **Message bus:** Kafka — services communicate via platform messages
 - **Database:** Cassandra (no ORM, raw CQL via datastax driver)
-- **DI:** Guice 4.0 with custom `IrisLifecycleManager`
+- **DI:** Guice 6.0 with custom `IrisLifecycleManager`
 - **Networking:** Netty for bridges (client-bridge, hub-bridge)
 - **Auth:** Apache Shiro (SHA-256 passwords, Shiro wildcard permissions)
-- **Serialization:** Jackson 2.18.6 — avoid GSON for new code
+- **Serialization:** GSON through `com.iris.io.json.JSON` for anything sent or stored (Kafka messages, Cassandra columns, hub traffic). Its type adapters (`com.iris.gson`, `com.iris.io.json.gson`) define the wire format, so don't serialize those types another way. Jackson is only used directly by the Z-Wave model in `arcus-protocol` and by `BasicAuthClientRegistry` to read config files
 
 ## Key Patterns
 
