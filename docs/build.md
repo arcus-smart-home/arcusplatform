@@ -67,16 +67,37 @@ Four major sections with ~86 subprojects:
 | `tools/` | 3 | Oculus, eye-kat, arcus-captools |
 | `khakis/` | 1 | Docker infrastructure orchestration |
 
-### Root build.gradle
+### Build scripts and what they apply to
 
-Applied to all subprojects:
+The root `build.gradle` does only two things:
+- Stops the build unless Gradle runs on Java 11, 17, or 21 (see [Java setup](overview.md#java) for selecting a JDK on macOS or Linux)
+- Applies `gradle/dependencies.gradle`. Every subproject already gets it through `gradle/subproject.gradle`; the root copy is there because Dependabot only follows an `apply from` with a literal path
+
+Everything else is set per area.
+
+**`gradle/subproject.gradle`**: applied by every subproject (`common/` applies it from its `subprojects` block)
+- **Repositories:** Maven Central and `libs/` as a flat directory (optional `mavenLocal` via `use_maven_local=true`)
+- **Plugins:** `java-library`, `maven-publish`, `eclipse`, `project-report`, SpotBugs (failures ignored); OWASP dependency-check when `eyeris_owasp` is set; JaCoCo when `use_jacoco=true`
+- **Java:** targets the JDK running Gradle; `common` and `agent` override this
+- **Test dependencies:** JUnit, EasyMock, Logback, commons-lang 2, Hamcrest
+- **Exclusions:** commons-logging (from `dependencies.gradle`), `guice-multibindings` (part of Guice core since 5.x)
+
+**`common/build.gradle`**: `common/` subprojects only
 - **Group:** `com.arcussmarthome`
-- **Java:** Gradle must run on Java 11, 17, or 21 (see [Java setup](overview.md#java) for selecting a JDK on macOS or Linux). Platform modules target that JDK; `common` and `agent` compile with `--release 11` for the hub
-- **Repositories:** Maven Central, JCenter (optional `mavenLocal` via `use_maven_local=true`)
-- **Shared dependencies:** SLF4J, Dropwizard Metrics, JUnit 4.13.2, Logback (test), Eclipse annotations
-- **Global exclusions:** commons-logging, findbugs annotations, log4j, duplicate metrics-core
-- **Forced versions:** Jackson 2.18.6, Guice 4.0 (conflict resolution)
-- **Caching:** Dynamic versions cached for 60 minutes
+- **Java:** `--release 11`, the JDK hubs run
+- **Shared dependencies:** SLF4J API, Dropwizard Metrics core, Eclipse annotations, and the JAXB, `javax.annotation` and `javax.activation` APIs that left the JDK
+- **Forced versions:** Jackson core, databind and annotations, pinned to the versions in `gradle/dependencies.gradle`, plus Eclipse annotations
+- **Exclusions:** findbugs annotations, log4j, the old Codahale and Yammer `metrics-core`, and a few others
+- **Caching:** dynamic and changing modules cached for 60 minutes
+
+**`platform/build.gradle`**: `platform/` subprojects
+- **Version:** from `platform/version.properties`
+- **Java:** targets the JDK running Gradle; adds `javax.activation`
+
+**`agent/build.gradle`**: `agent/` subprojects
+- **Version:** from `agent/gradle.properties`
+- **Java:** `--release 11`, the JDK hubs run
+- **Netty:** every Netty module except tcnative is pinned to `netty_override_version` from `agent/gradle.properties`, so the platform Netty version that comes in through `common/` doesn't mix with it
 
 ---
 
@@ -88,7 +109,7 @@ All custom build logic lives in `gradle/`:
 |------|---------|
 | `buildscript.gradle` | Build classpath: Shadow 5.1.0, Docker, Grgit 4.1.1, JMH 0.6.8, SpotBugs 4.8.0 |
 | `dependencies.gradle` | Centralized version catalog — 100+ libraries in an `ext.libraries` map |
-| `subproject.gradle` | Applied to all subprojects: Java, Maven, Docker, Eclipse, SpotBugs, system test source set |
+| `subproject.gradle` | Applied to all subprojects: Java, Maven publishing, Eclipse, SpotBugs, shared test dependencies, system test source set |
 | `application.gradle` | Executable app setup: JVM opts, start scripts, manifest, `createApplicationInfo` task |
 | `container.gradle` | Docker containerization: extends application, adds `distDocker`/`tagDocker`/`pushDocker` tasks |
 | `deploy.gradle` | Agent SSH deployment to hubs via Ant SCP/SSH tasks |
@@ -148,26 +169,27 @@ Centralized in `gradle/dependencies.gradle` as an `ext.libraries` map. Subprojec
 
 | Library | Version | Notes |
 |---------|---------|-------|
-| Netty | 4.1.128.Final | Overridable via `netty_override_version` property |
-| tcnative | 2.0.75.Final | Overridable via `tcnative_override_version` property |
-| Groovy | 2.5.15 | Driver DSL runtime |
-| Guice | 4.0 | DI framework (forced to resolve conflicts) |
-| Cassandra Driver | 3.11.5 | Shaded JAR |
-| Kafka | 2.8.2 | Scala 2.12 |
-| ZooKeeper | 3.8.4 | |
-| Jackson | 2.18.6 | |
-| SLF4J | 2.0.17 | |
-| Logback | 1.3.14 | |
-| Dropwizard Metrics | 4.2.30 | |
-| Guava | 33.4.0-jre | |
-| zsmartsystems ZigBee | 1.2.4 | |
+| Netty | 4.2.19.Final | Overridable via `netty_override_version` property; `agent/` sets its own in `agent/gradle.properties` |
+| tcnative | 2.0.84.Final | Overridable via `tcnative_override_version` property |
+| Groovy | 4.0.30 | Driver DSL runtime |
+| Guice | 6.0.0 | DI framework; multibindings is part of the core jar |
+| Cassandra Driver | 4.17.0 | DataStax `java-driver-core`, with its Netty and metrics excluded |
+| Kafka | 3.9.2 | `kafka-clients` only |
+| ZooKeeper | 3.9.6 | |
+| GSON | 2.15.0 | Platform JSON (`com.iris.io.json.JSON`); defines the wire format |
+| Jackson | 2.22.4 | Annotations are versioned `2.22` (no patch number since 2.20) |
+| SLF4J | 2.0.20 | |
+| Logback | 1.6.6 | |
+| Dropwizard Metrics | 4.2.40 | |
+| Guava | 33.7.2-jre | |
+| zsmartsystems ZigBee | 1.4.16.1 | |
 | SQLite4Java | 1.0.392 | Agent embedded DB |
 | JUnit | 4.13.2 | |
-| EasyMock | 3.3 | Primary test mocking |
-| Mockito | 1.10.19 | Alternative test mocking |
-| Cucumber | 2.4.0 | BDD driver tests |
-| Handlebars | 2.2.2 | Code gen templates |
-| ANTLR 4 | 4.5 | IRP parser |
+| EasyMock | 5.7.0 | Primary test mocking |
+| Mockito | 5.2.0 | Alternative test mocking (`mockito-inline`) |
+| Cucumber | 6.10.4 | BDD driver tests |
+| Handlebars | 4.3.1 | Code gen templates |
+| ANTLR 4 | 4.13.2 | IRP parser |
 
 ### Dependency Overrides
 
