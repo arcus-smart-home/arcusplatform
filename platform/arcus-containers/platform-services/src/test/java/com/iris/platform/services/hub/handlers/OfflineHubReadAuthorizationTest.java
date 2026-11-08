@@ -29,6 +29,7 @@ import com.iris.core.dao.HubDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
 import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
@@ -45,7 +46,10 @@ import com.iris.test.Modules;
 /**
  * While a hub is offline the platform answers for it at SERV:<id>:hub, including a read of its
  * stored attributes (its place among them). Hub ids are short, so the answer has to depend on
- * the client's active place, not on the id being hard to guess.
+ * the client's active place, not on the id being hard to guess. And a client at another place,
+ * or with no active place, gets no answer at all, the same as for an unknown or online hub: an
+ * immediate error would tell it that a guessed id exists and is offline. A delete is answered
+ * whether the hub is online or not, so there a hub the client can't see looks unknown.
  */
 @Mocks({HubDAO.class, PlacePopulationCacheManager.class})
 @Modules(InMemoryMessageModule.class)
@@ -74,37 +78,93 @@ public class OfflineHubReadAuthorizationTest extends IrisMockTestCase {
             HubCapability.ATTR_STATE, HubCapability.STATE_DOWN));
    }
 
+   // registered to no place yet
+   private ModelEntity offlineHubWithoutAPlace() {
+      return new ModelEntity(ImmutableMap.<String, Object>of(
+            HubCapability.ATTR_ID, HUB_ID,
+            HubCapability.ATTR_STATE, HubCapability.STATE_DOWN));
+   }
+
    private PlatformMessage clientRequest(String type, UUID place) {
+      return request(Address.clientAddress("android", "1"), type, place);
+   }
+
+   private PlatformMessage request(Address source, String type, UUID place) {
       return PlatformMessage
-            .buildRequest(MessageBody.buildMessage(type), Address.clientAddress("android", "1"), Address.fromString("SERV:" + HUB_ID + ":hub"))
+            .buildRequest(MessageBody.buildMessage(type), source, Address.fromString("SERV:" + HUB_ID + ":hub"))
             .withCorrelationId("test")
             .withPlaceId(place)
             .create();
    }
 
-   private MessageBody answer(String type, UUID place) {
-      EasyMock.expect(hubDao.findHubModel(HUB_ID)).andReturn(offlineHub());
-      replay();
-      handler().onMessage(clientRequest(type, place));
-      verify();
+   private PlatformMessage ask(String type, UUID place) {
+      return ask(offlineHub(), clientRequest(type, place));
+   }
 
-      PlatformMessage response = bus.poll();
+   private PlatformMessage ask(ModelEntity hub, PlatformMessage request) {
+      EasyMock.expect(hubDao.findHubModel(HUB_ID)).andReturn(hub);
+      replay();
+      handler().onMessage(request);
+      verify();
+      return bus.poll();
+   }
+
+   private MessageBody answer(String type, UUID place) {
+      PlatformMessage response = ask(type, place);
       Assert.assertNotNull(type + " should be answered", response);
       Assert.assertNull(bus.poll());
       return response.getValue();
    }
 
    @Test
-   public void testClientAtAnotherPlaceCannotReadAnOfflineHub() {
-      MessageBody response = answer(Capability.CMD_GET_ATTRIBUTES, UUID.randomUUID());
-      Assert.assertEquals(Errors.CODE_NOT_FOUND, response.getAttributes().get("code"));
-      Assert.assertFalse(response.getAttributes().containsKey(HubCapability.ATTR_PLACE));
+   public void testClientAtAnotherPlaceGetsNoAnswerToARead() {
+      Assert.assertNull("a read from another place must not be answered", ask(Capability.CMD_GET_ATTRIBUTES, UUID.randomUUID()));
    }
 
    @Test
-   public void testClientAtAnotherPlaceGetsNotFoundRatherThanHubOffline() {
-      MessageBody response = answer(HubCapability.PairingRequestRequest.NAME, UUID.randomUUID());
-      Assert.assertEquals(Errors.CODE_NOT_FOUND, response.getAttributes().get("code"));
+   public void testClientAtAnotherPlaceGetsNoAnswerToARequest() {
+      Assert.assertNull("a request from another place must not be answered", ask(HubCapability.PairingRequestRequest.NAME, UUID.randomUUID()));
+   }
+
+   @Test
+   public void testServiceRequestWithoutAPlaceHeaderIsAnswered() {
+      PlatformMessage response = ask(offlineHub(), request(Address.platformService("subs"), Capability.CMD_GET_ATTRIBUTES, null));
+      Assert.assertNotNull("a service's read should be answered", response);
+      Assert.assertEquals(Capability.EVENT_GET_ATTRIBUTES_RESPONSE, response.getValue().getMessageType());
+   }
+
+   // client-bridge lets a client send a ping without an active place
+   @Test
+   public void testClientWithoutAPlaceHeaderGetsNoAnswer() {
+      Assert.assertNull("a ping without a place must not be answered", ask(MessageConstants.MSG_PING_REQUEST, null));
+   }
+
+   @Test
+   public void testHubWithoutAPlaceHeaderGetsNoAnswer() {
+      PlatformMessage request = request(Address.hubService("XYZ-9999", "hub"), Capability.CMD_GET_ATTRIBUTES, null);
+      Assert.assertNull("another hub's read without a place must not be answered", ask(offlineHub(), request));
+   }
+
+   @Test
+   public void testHubWithoutAPlaceGivesAClientNoAnswer() {
+      Assert.assertNull("a hub at no place must not be answered for", ask(offlineHubWithoutAPlace(), clientRequest(Capability.CMD_GET_ATTRIBUTES, hubPlace)));
+   }
+
+   @Test
+   public void testDeleteOfAHubAtAnotherPlaceLooksLikeAnUnknownHub() {
+      EasyMock.expect(hubDao.findHubModel(HUB_ID)).andReturn(offlineHub());
+      EasyMock.expect(hubDao.findHubModel(HUB_ID)).andReturn(null);
+      replay();
+      OfflineHubRequestHandler handler = handler();
+      handler.onMessage(clientRequest(HubCapability.DeleteRequest.NAME, UUID.randomUUID()));
+      handler.onMessage(clientRequest(HubCapability.DeleteRequest.NAME, hubPlace));
+      verify();
+
+      MessageBody atAnotherPlace = bus.poll().getValue();
+      MessageBody unknown = bus.poll().getValue();
+      Assert.assertEquals(Errors.CODE_NOT_FOUND, unknown.getAttributes().get("code"));
+      Assert.assertEquals(unknown, atAnotherPlace);
+      Assert.assertNull(bus.poll());
    }
 
    @Test

@@ -31,11 +31,13 @@ import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
 import com.iris.messages.address.AddressMatchers;
 import com.iris.messages.address.HubServiceAddress;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Hub;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.hub.HubModel;
@@ -92,10 +94,15 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
 
          HubServiceAddress hubAddress = (HubServiceAddress) request.getDestination();
 
-         // all delete requests are handled here, regardless of
+         // all delete requests are handled here, whether the hub is online or not
          if(HubCapability.DeleteRequest.NAME.equals(request.getMessageType())) {
             Model hub = hubDao.findHubModel(hubAddress.getHubId());
-            Errors.assertPlaceMatches(request, HubModel.getPlace(hub));
+            if(hub == null || !maySeeHub(request, hub)) {
+               // an unknown hub gets the same not found as a hub the sender can't see, so a delete
+               // doesn't tell a client that a guessed hub id exists
+               logger.warn("Refusing [{}] for hub [{}] from [{}] at place [{}]: unknown hub or not the hub's place", request.getMessageType(), hubAddress.getHubId(), request.getSource(), request.getPlaceId());
+               return Optional.of(Errors.notFound(hubAddress));
+            }
             MessageBody response = hubDeleteHandler.handleRequest(hubTransformer.transform(hub.toMap()), request);
             return Optional.of(response);
          }
@@ -120,7 +127,12 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
             return Optional.empty();
          }
 
-         Errors.assertPlaceMatches(request, HubModel.getPlace(hub));
+         if(!maySeeHub(request, hub)) {
+            // an unknown or online hub gets no answer from here, so neither does a hub the sender
+            // can't see: an immediate error would tell a client that a guessed hub id exists and is offline
+            logger.warn("Dropping [{}] for hub [{}] from [{}] at place [{}]: not the hub's place", request.getMessageType(), hubId, request.getSource(), request.getPlaceId());
+            return Optional.empty();
+         }
          if(Capability.CMD_GET_ATTRIBUTES.equals(request.getMessageType())) {
             MessageBody message = MessageBody.buildMessage(Capability.EVENT_GET_ATTRIBUTES_RESPONSE, hub.toMap());
             return Optional.of(message);
@@ -129,6 +141,31 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
             return Optional.of(Errors.hubOffline());
          }
       });
+   }
+
+   /**
+    * Whether the sender may hear about this hub. assertPlaceMatches is the usual check, but it lets
+    * any request without a place header through, as from a service, and client-bridge lets a
+    * client send a ping without one. So a client, or a hub (hub-bridge forwards a hub's requests
+    * anywhere), also needs a place header, and a hub that isn't registered to a place yet is at
+    * no sender's place.
+    */
+   private static boolean maySeeHub(PlatformMessage request, Model hub) {
+      if(request.getPlaceId() == null) {
+         Address source = request.getSource();
+         return !MessageConstants.CLIENT.equals(source.getNamespace()) && !source.isHubAddress();
+      }
+      String hubPlace = HubModel.getPlace(hub);
+      if(hubPlace == null) {
+         return false;
+      }
+      try {
+         Errors.assertPlaceMatches(request, hubPlace);
+         return true;
+      }
+      catch(UnauthorizedRequestException e) {
+         return false;
+      }
    }
 
 }
