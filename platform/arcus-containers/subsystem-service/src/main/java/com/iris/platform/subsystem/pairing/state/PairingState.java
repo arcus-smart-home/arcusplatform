@@ -81,7 +81,7 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 	protected void resetSearchTimeout(SubsystemContext<PairingSubsystemModel> context, Optional<ProductCatalogEntry> product) {		
 		Date timeout = setTimeout(context, PairingUtils.pairingTimeoutMs(product));
 		context.model().setSearchTimeout(timeout);
-      keepSearchingUntil(context, S2PinPairing.holdSearchUntil(context));
+		keepSearchingUntil(context, S2PinPairing.holdSearchUntil(context));
 	}
 	
 	@Nullable
@@ -98,7 +98,7 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 			timeout = setTimeout(context, PairingUtils.pairingTimeoutMs());			
 		}		
 		context.model().setSearchTimeout(timeout);
-      keepSearchingUntil(context, S2PinPairing.holdSearchUntil(context));
+		keepSearchingUntil(context, S2PinPairing.holdSearchUntil(context));
 		return cacheInfo;
 	}
 	
@@ -119,8 +119,8 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 					.withActionType(HubCapability.PairingRequestRequest.ACTIONTYPE_START_PAIRING)
 					.withTimeout(PairingUtils.pairingTimeoutMs(entry))
 					.withProductPairingMode(getProductPairingMode(entry))
-               // StartPairing names it the same
-               .withS2PinEntry(Boolean.TRUE.equals(request.getValue().getAttributes().get(SearchRequest.ATTR_S2PINENTRY)))
+					// StartPairing names it the same
+					.withS2PinEntry(Boolean.TRUE.equals(request.getValue().getAttributes().get(SearchRequest.ATTR_S2PINENTRY)))
 					.build();
 		long version;
 		switch(request.getMessageType()) {
@@ -379,19 +379,19 @@ public abstract class PairingState implements State<PairingSubsystemModel> {
 		}
 	}
 
-   /**
-    * Holds off the end of the search for something that is not done yet,
-    * like a user reading a PIN off a device. Says whether the timeout moved.
-    */
-   public boolean keepSearchingUntil(SubsystemContext<PairingSubsystemModel> context, Date until) {
-      Date timeout = context.model().getSearchTimeout();
-      if(until.getTime() > 0 && (timeout == null || timeout.before(until))) {
-         context.model().setSearchTimeout(until);
-         SubsystemUtils.setTimeout(until, context, name());
-         return true;
-      }
-      return false;
-   }
+	/**
+	 * Holds off the end of the search for something that is not done yet,
+	 * like a user reading a PIN off a device. Says whether the timeout moved.
+	 */
+	public boolean keepSearchingUntil(SubsystemContext<PairingSubsystemModel> context, Date until) {
+		Date timeout = context.model().getSearchTimeout();
+		if(until.getTime() > 0 && (timeout == null || timeout.before(until))) {
+			context.model().setSearchTimeout(until);
+			SubsystemUtils.setTimeout(until, context, name());
+			return true;
+		}
+		return false;
+	}
 
 	public String stopPairing(SubsystemContext<PairingSubsystemModel> context) {
 

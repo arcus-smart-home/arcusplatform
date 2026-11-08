@@ -42,7 +42,7 @@ public class IdleState extends PairingState {
 		PairingUtils.clearPendingPairingState(context);
 		// we don't clear the z-wave rebuild flag here because we re-enter this state from a StopPairingRequest
 		// which happens before DismissAll
-      S2PinPairing.abandon(context);
+		S2PinPairing.abandon(context);
 		stopHubPairingIfNeeded(context);
 		return super.onEnter(context);
 	}

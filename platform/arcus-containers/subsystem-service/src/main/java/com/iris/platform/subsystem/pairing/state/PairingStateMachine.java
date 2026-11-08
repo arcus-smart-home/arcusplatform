@@ -93,10 +93,10 @@ public class PairingStateMachine extends StateMachine<PairingSubsystemModel, Pai
 		transition(current().stopPairing(context()));
 	}
 	
-   public void keepSearchingUntil(Date until) {
-      current().keepSearchingUntil(context(), until);
-   }
-   
+	public void keepSearchingUntil(Date until) {
+		current().keepSearchingUntil(context(), until);
+	}
+
 	/**
 	 * Invoked when the hub enters pairing mode *via* request from the PairingSubsystem.
 	 * This will not be used for generic pairing / unpairing changes from legacy systems.

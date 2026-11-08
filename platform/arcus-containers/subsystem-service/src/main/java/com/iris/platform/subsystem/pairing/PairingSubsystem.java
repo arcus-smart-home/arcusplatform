@@ -104,14 +104,14 @@ public class PairingSubsystem extends BaseSubsystem<PairingSubsystemModel> {
 		super.onStarted(context);
 		initializer.onStarted(context);
 		PairingStateMachine.get(context).onStarted();
-      S2PinPairing.onStarted(context);
+		S2PinPairing.onStarted(context);
 	}
 
 	@OnScheduledEvent
 	public void onEvent(SubsystemContext<PairingSubsystemModel> context, ScheduledEvent event) {
-      if(SubsystemUtils.isMatchingTimeout(event, context, S2PinPairing.VAR_TIMEOUT)) {
-         S2PinPairing.onTimeout(context);
-      }
+		if(SubsystemUtils.isMatchingTimeout(event, context, S2PinPairing.VAR_TIMEOUT)) {
+			S2PinPairing.onTimeout(context);
+		}
 		PairingStateMachine.get( context ).onTimeout( event );
 	}
 	
@@ -203,30 +203,30 @@ public class PairingSubsystem extends BaseSubsystem<PairingSubsystemModel> {
 		return dismissHandler.dismissAll(context);
 	}
 	
-   @OnMessage(types = S2PinRequiredEvent.NAME)
-   public void onS2PinRequired(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
-      S2PinPairing.onRequired(context, message);
-   }
+	@OnMessage(types = S2PinRequiredEvent.NAME)
+	public void onS2PinRequired(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
+		S2PinPairing.onRequired(context, message);
+	}
 
-   @OnMessage(types = S2PinFinishedEvent.NAME)
-   public void onS2PinFinished(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
-      S2PinPairing.onFinished(context, message);
-   }
+	@OnMessage(types = S2PinFinishedEvent.NAME)
+	public void onS2PinFinished(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
+		S2PinPairing.onFinished(context, message);
+	}
 
-   @Request(GetS2PinRequestRequest.NAME)
-   public MessageBody getS2PinRequest(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
-      return S2PinPairing.getRequest(context, request);
-   }
+	@Request(GetS2PinRequestRequest.NAME)
+	public MessageBody getS2PinRequest(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.getRequest(context, request);
+	}
 
-   @Request(SubmitS2PinRequest.NAME)
-   public MessageBody submitS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
-      return S2PinPairing.submit(context, request);
-   }
+	@Request(SubmitS2PinRequest.NAME)
+	public MessageBody submitS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.submit(context, request);
+	}
 
-   @Request(CancelS2PinRequest.NAME)
-   public MessageBody cancelS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
-      return S2PinPairing.cancel(context, request);
-   }
+	@Request(CancelS2PinRequest.NAME)
+	public MessageBody cancelS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.cancel(context, request);
+	}
 
 	@Request(GetKitInformationRequest.NAME)
 	public MessageBody getKitInformation(
