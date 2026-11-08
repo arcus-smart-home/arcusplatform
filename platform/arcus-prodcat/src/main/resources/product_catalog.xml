@@ -5965,7 +5965,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product name="Alarm Keypad" shortname="Keypad" screen="KeyPad" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, alarm, keypad, security, pin, arm, disarm, zwave" ota="No" protofamily="Z-Wave" id="c2592f" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
+    <product name="2nd Gen Alarm Keypad" shortname="Keypad" screen="KeyPad" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, alarm, keypad, security, pin, arm, disarm, zwave" ota="No" protofamily="Z-Wave" id="c2592f" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
       <categories>
         <category name="Security"/>
       </categories>
