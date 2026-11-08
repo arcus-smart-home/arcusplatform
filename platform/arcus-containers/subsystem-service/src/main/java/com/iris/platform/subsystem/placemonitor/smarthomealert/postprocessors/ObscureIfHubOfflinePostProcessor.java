@@ -33,7 +33,7 @@ import com.iris.platform.subsystem.placemonitor.smarthomealert.AlertScratchPad;
 @Singleton
 public class ObscureIfHubOfflinePostProcessor implements AlertPostProcessor {
 
-   private static final Set<String> HUB_REQUIRED = ImmutableSet.of("PHUE", "ZIGB", "ZWAV", "SCOM");
+   private static final Set<String> HUB_REQUIRED = ImmutableSet.of("PHUE", "ZIGB", "ZWAV");
 
    private static final Predicate<SmartHomeAlert> obscureFilter = alert -> {
       // Hide these alerts from hub based devices when the hub is offline

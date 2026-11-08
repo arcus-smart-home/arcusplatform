@@ -311,12 +311,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
 
    @Override
    @Nullable
-   protected Class<? extends Module> getSercommControllerModuleClass() {
-      return SercommModuleSimulated.class;
-   }
-
-   @Override
-   @Nullable
    protected Class<? extends Module> get4gControllerModuleClass() {
       return FourGModuleSimulated.class;
    }
@@ -368,12 +362,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
             bind(ZigbeeController.class).in(Singleton.class);
          }
          */
-      }
-   }
-
-   public static final class SercommModuleSimulated extends AbstractModule {
-      @Override
-      protected void configure() {
       }
    }
 

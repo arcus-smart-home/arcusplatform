@@ -187,7 +187,7 @@ public class DeviceService {
                sendAssociated(executor, protocolAttributes, () -> {
                   updateState(executor, driver, protocolAttributes, true);
                   
-                  // do after association to get around drivers that set the name in the onAdded method (primarily sercomm cameras)
+                  // do after association to get around drivers that set the name in the onAdded method
                   if(request.getName() != null) {
                      executor.context().setAttributeValue(AttributeKey.create(DeviceCapability.ATTR_NAME, String.class), request.getName());
                   }

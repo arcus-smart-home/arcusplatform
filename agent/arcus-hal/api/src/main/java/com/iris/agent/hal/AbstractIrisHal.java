@@ -132,7 +132,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
       add(classModules, getHubControllerModuleClass());
       add(classModules, getZWaveControllerModuleClass());
       add(classModules, getZigbeeControllerModuleClass());
-      add(classModules, getSercommControllerModuleClass());
       add(classModules, get4gControllerModuleClass());
       add(classModules, getReflexControllerModuleClass());
       add(classModules, getAlarmControllerModuleClass());
@@ -161,9 +160,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
 
    @Nullable
    protected abstract Class<? extends Module> getZigbeeControllerModuleClass();
-
-   @Nullable
-   protected abstract Class<? extends Module> getSercommControllerModuleClass();
 
    @Nullable
    protected abstract Class<? extends Module> get4gControllerModuleClass();

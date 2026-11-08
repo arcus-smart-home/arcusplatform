@@ -118,12 +118,6 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    private final ZigbeeLocalProcessing zigbee;
    private final ZWaveLocalProcessing zwave;
 
-   /*
-    * Disable protocols that use proprietary information.
-    * 
-   private final SercommLocalProcessing sercomm;
-   */
-
    private Port port;
    private ReflexLocalProcessing localProcessing;
 
@@ -186,9 +180,6 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       ReflexLocalProcessing localProcessing,
       ZigbeeLocalProcessing zigbee,
       ZWaveLocalProcessing zwave,
-      /*
-      SercommLocalProcessing sercomm,
-      */
       Router router
    ) {
       this.timer = new HashedWheelTimer();
@@ -196,9 +187,6 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
 
       this.zigbee = zigbee;
       this.zwave = zwave;
-      /*
-      this.sercomm = sercomm;
-      */
       this.localProcessing = localProcessing;
 
       this.pinToUser = new HashMap<>();
@@ -286,11 +274,6 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    public ZWaveLocalProcessing zwave() {
       return this.zwave;
    }
-   /*
-   public SercommLocalProcessing sercomm() {
-      return this.sercomm;
-   }
-   */
    
    public @Nullable UUID verifyPinCode(String code) {
       String hashed;

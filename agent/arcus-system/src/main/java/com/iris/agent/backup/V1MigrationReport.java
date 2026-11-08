@@ -83,14 +83,6 @@ public class V1MigrationReport {
       failure(key, id(eui64), msg, "zigbee");
    }
 
-   public void successfulSercomm(Long key, long mac, boolean online) {
-      success(key, mac(mac), online, "sercomm");
-   }
-
-   public void failedSercomm(Long key, long mac, String msg) {
-      failure(key, mac(mac), msg, "sercomm");
-   }
-
    private void success(Long key, String id, boolean online, String type) {
       Entry entry = report.get(key);
       if (entry == null) {
@@ -127,10 +119,6 @@ public class V1MigrationReport {
 
    private static String id(long eui64) {
       return ProtocUtil.toHexString(eui64);
-   }
-
-   private static String mac(long mac) {
-      return ProtocUtil.toHexString(mac & 0xFFFFFFFFFFFFL).substring(4);
    }
 
    @Override

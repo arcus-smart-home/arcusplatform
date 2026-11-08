@@ -22,10 +22,10 @@ Some examples of what works:
 * Honeywell wifi thermostats
 * Phillips Hue
 * Nest
-* Sercomm cameras
 
 ### Removed
 
+* Sercomm (Iris-branded) cameras — their hub controller was never open-sourced
 * Alexa and Google Assistant voice bridges — see [voice-bridges-removed.md](voice-bridges-removed.md)
 
 ## Pre-reqs

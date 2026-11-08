@@ -32,8 +32,6 @@ public enum PairingProtocol {
 	ZBAM(Flags.HUB, Flags.MESH),
 	/** ZigBee devices */
 	ZIGB(Flags.HUB, Flags.MESH),
-	/** Sercomm cameras */
-	SCOM(Flags.HUB, Flags.ETHERNET),
 	/** Anything unrecognized that requires the hub to pair (not the hub itself) */
 	HUB(Flags.HUB),
 	/** Direct ip connected devices, not cloud-to-cloud, does include AOSmith */
@@ -66,10 +64,7 @@ public enum PairingProtocol {
 		case "cloud-to-cloud":
 			return CLOUD;
 		case "ip":
-			if("Sercomm".equalsIgnoreCase(entry.getManufacturer())) {
-				return PairingProtocol.SCOM;
-			}
-			else if(hubRequired) {
+			if(hubRequired) {
 				return PairingProtocol.HUB;
 			}
 			else {
@@ -111,7 +106,6 @@ public enum PairingProtocol {
 	public boolean isOAuth() { return flags.contains(Flags.OAUTH); }
 	public boolean isAssistant() { return flags.contains(Flags.ASST); }
 	public boolean isWirelessMesh() { return flags.contains(Flags.MESH); }
-	public boolean isEthernetPairing() { return flags.contains(Flags.ETHERNET); }
 	
 	public StartPairingResponse.Builder addOAuthInfo(StartPairingResponse.Builder builder, SubsystemContext<?> context) {
 		return builder;
@@ -122,8 +116,6 @@ public enum PairingProtocol {
 		HUB,
 		/** Pairing over a wireless mesh network */
 		MESH,
-		/** Should be paired while connected to ethernet */
-		ETHERNET,
 		/** IPCD based pairing */
 		IPCD,
 		/** External OAuth control (a device(s) to control) */

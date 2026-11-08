@@ -122,7 +122,6 @@ enum LoggingHandler implements PortHandler, IrisAgentAppender.Listener {
       case HubCapability.SetLogLevelRequest.SCOPE_ZIGBEE: IrisAgentLogging.setZigbeeLogLevel(lvl); break;
       case HubCapability.SetLogLevelRequest.SCOPE_ZWAVE: IrisAgentLogging.setZWaveLogLevel(lvl); break;
       case HubCapability.SetLogLevelRequest.SCOPE_BLE: IrisAgentLogging.setBleLogLevel(lvl); break;
-      case HubCapability.SetLogLevelRequest.SCOPE_SERCOMM: IrisAgentLogging.setSercommLogLevel(lvl); break;
       default: throw new RuntimeException("unknown log scope: " + scope);
       }
 

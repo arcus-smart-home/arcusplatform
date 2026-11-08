@@ -19,28 +19,6 @@
       </from-versions>
    </firmware>
     
-    <firmware name="OC821 SerComm" productId="242a43" populations="general,qa,beta" version="V1.0.06" path="/sercomm/DABFQA-309-1006.bin" >
-        <from-versions>
-            <version type="exact" match="V1.0.02" />
-            <version type="exact" match="V1.0.03" />
-            <version type="exact" match="V1.0.04" />
-        </from-versions>
-    </firmware>
-    <firmware name="OC830 SerComm" productId="5c3966" populations="general,qa,beta" version="V1.0.07" path="/sercomm/DBM3QA-110-1007.bin" >
-        <from-versions>
-            <version type="exact" match="V1.0.03" />
-            <version type="exact" match="V1.0.04" />
-            <version type="exact" match="V1.0.05" />
-            <version type="exact" match="V1.0.06" />
-        </from-versions>
-    </firmware>
-    <firmware name="RC8221 SerComm" productId="606501" populations="general,qa,beta" version="V1.0.08" path="/sercomm/DYWTQA-308-1008.bin" >
-        <from-versions>
-            <version type="exact" match="V1.0.03" />
-            <version type="exact" match="V1.0.04" />
-            <version type="exact" match="V1.0.06" />
-        </from-versions>
-    </firmware>
 
 
 

@@ -79,13 +79,6 @@ public final class IrisAgentLogging {
       }
    }
 
-   public static void setSercommLogLevel(String level) {
-      Logger log = (ch.qos.logback.classic.Logger)LoggerFactory.getLogger("com.iris.agent.controller.sercomm");
-      if (log != null) {
-         log.setLevel(getLogLevel(level));
-      }
-   }
-
    public static void setZsmartsystemsLogLevel(String level) {
       String[] loggers = {
          "com.zsmartsystems.zigbee",
@@ -128,9 +121,6 @@ public final class IrisAgentLogging {
 
       String bleLevel = System.getenv("IRIS_AGENT_BLE_LOGLVL");
       setBleLogLevel(bleLevel != null ? bleLevel : DEFAULT_LEVEL);
-
-      String sercommLevel = System.getenv("IRIS_AGENT_SERCOMM_LOGLVL");
-      setSercommLogLevel(sercommLevel != null ? sercommLevel : DEFAULT_LEVEL);
 
       String zsmartsystemsLevel = System.getenv("IRIS_AGENT_ZSMARTSYSTEMS_LOGLVL");
       setZsmartsystemsLogLevel(zsmartsystemsLevel != null ? zsmartsystemsLevel : "info");

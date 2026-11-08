@@ -659,7 +659,6 @@ ConfigService.put(String key, T value)                  // Write through to DB
 | `IRIS_AGENT_ZIGBEE_LOGLVL` | `com.iris.agent.zigbee` log level (default: `debug`) |
 | `IRIS_AGENT_ZWAVE_LOGLVL` | `com.iris.agent.zwave` log level (default: `debug`) |
 | `IRIS_AGENT_BLE_LOGLVL` | `com.iris.agent.ble` log level (default: `debug`) |
-| `IRIS_AGENT_SERCOMM_LOGLVL` | `com.iris.agent.controller.sercomm` log level (default: `debug`) |
 | `IRIS_AGENT_ZSMARTSYSTEMS_LOGLVL` | `com.zsmartsystems.zigbee` log level (default: `info`) |
 | `IRIS_AGENT_UNCONN_REBOOT_TIME` | Minutes before forced reboot on no connection (default: 30) |
 | `IRIS_AGENT_DISABLE_LOCAL_PROCESSING` | Disable reflex local processing |
@@ -837,6 +836,5 @@ When building **without** external jars, the open-source stubs are used instead.
 | `arcus-zw-controller` | Stub | Open-source Z/IP engine is incomplete; iris2 jar required for working Z-Wave |
 | `arcus-4g-controller` | Not started | Cellular backup radio — would need reimplementation |
 | `arcus-hue-controller` | Not started | Philips Hue bridge integration — would need reimplementation |
-| `arcus-sercomm-controller` | Not started | Camera integration — would need reimplementation |
 
 The `external_jars_dir` build property allows including closed-source iris2 jars for controllers that don't yet have open-source replacements. See [build.md](build.md#building-with-closed-source-controller-jars) for details.

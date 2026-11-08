@@ -450,12 +450,6 @@ public class IrisHalSimulated extends AbstractIrisHal {
 
    @Override
    @Nullable
-   protected Class<? extends Module> getSercommControllerModuleClass() {
-      return null;
-   }
-
-   @Override
-   @Nullable
    protected Class<? extends Module> get4gControllerModuleClass() {
       return null;
    }
