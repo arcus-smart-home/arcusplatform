@@ -73,7 +73,6 @@ Subsystem<M>
           ├─ LightsNSwitchesSubsystem
           ├─ WeatherSubsystem
           ├─ LawnNGardenSubsystem
-          ├─ CellBackupSubsystem
           ├─ PairingSubsystem
           └─ PlaceMonitorSubsystem
 ```
@@ -315,7 +314,7 @@ Other binder variants:
 
 ## Subsystem Implementations
 
-### Registered Subsystems (16)
+### Registered Subsystems (13)
 
 Configured in `SubsystemModule.java`:
 
@@ -332,10 +331,9 @@ Configured in `SubsystemModule.java`:
 | 9 | [Lights & Switches](#lights--switches) | `sublightsnswitches` | 1 | Lights, dimmers, switches |
 | 10 | [Weather](#weather) | `subweather` | 1 | NOAA weather radio alerts |
 | 11 | [Lawn & Garden](#lawn--garden) | `sublawnngarden` | 1 | Irrigation scheduling, zone control |
-| 12 | [Cell Backup](#cell-backup) | `subcellbackup` | 1 | 4G cellular backup monitoring |
-| 13 | [Pairing](#pairing) | `subpairing` | 1 | Device pairing workflow state machine |
-| 14 | [Place Monitor](#place-monitor) | `subplacemonitor` | 1 | Connectivity, battery, OTA, smart home alerts |
-| 15 | Alarm (hub-side) | — | — | See Alarm (provider switching) |
+| 12 | [Pairing](#pairing) | `subpairing` | 1 | Device pairing workflow state machine |
+| 13 | [Place Monitor](#place-monitor) | `subplacemonitor` | 1 | Connectivity, battery, OTA, smart home alerts |
+| 14 | Alarm (hub-side) | — | — | See Alarm (provider switching) |
 
 ---
 
@@ -531,25 +529,6 @@ Tracks `zonesWatering` — map of which zones are currently active per controlle
 
 ---
 
-### Cell Backup
-
-**Namespace:** `subcellbackup` | **Version:** 1
-
-Monitors hub 4G cellular backup connectivity.
-
-**Status States:**
-- `NOTREADY` — Hub lacks 4G modem or SIM not provisioned
-- `READY` — 4G available as backup
-- `ERRORED` — 4G has error state
-
-**Not Ready Reasons:** `MODEM` (no modem), `SIM` (SIM issue), `BOTH`
-
-**Error States:** `NONE`, `BANNED` (service explicitly banned)
-
-Sends notifications on connectivity type transitions (broadband ↔ cellular).
-
----
-
 ### Pairing
 
 **Namespace:** `subpairing` | **Version:** 1
@@ -594,7 +573,7 @@ Hub and device health monitoring with smart home alerts. Uses a pluggable handle
 - `HubOffline` / `HubOnline`
 - `DeviceOffline` / `DeviceOnline`
 - `DeviceLowBattery` / `DeviceVeryLowBattery` / `DeviceCriticalBattery` / `DeviceDeadBattery`
-- `DoorObstruction`, `CellServiceError`, `LockJam`, `CellModemNeeded`
+- `DoorObstruction`, `LockJam`
 
 ---
 

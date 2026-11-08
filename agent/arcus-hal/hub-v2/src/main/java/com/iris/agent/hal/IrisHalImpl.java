@@ -759,11 +759,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    }
 
    @Override
-   public Class<? extends Module> get4gControllerModuleClass() {
-      return FourGModuleHubV2.class;
-   }
-
-   @Override
    public Class<? extends Module> getReflexControllerModuleClass() {
       return ReflexModuleHubV2.class;
    }
@@ -830,20 +825,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          bind(ZigbeeController.class).in(Singleton.class);
          bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingDefault.class).asEagerSingleton();
 
-      }
-   }
-
-   public static final class FourGModuleHubV2 extends AbstractModule {
-      @Override
-      protected void configure() {
-         String disable = System.getenv("FOURG_DISABLE");
-         /*
-         if (disable != null) {
-            return;
-         }
-
-         bind(FourGController.class).in(Singleton.class);
-         */
       }
    }
 

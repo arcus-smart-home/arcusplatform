@@ -39,9 +39,6 @@ public class ObscureIfHubOfflinePostProcessor implements AlertPostProcessor {
       // Hide these alerts from hub based devices when the hub is offline
       switch(alert.getAlerttype()) {
          case SmartHomeAlert.ALERTTYPE_DEV_ERR_OFFLINE:
-         case SmartHomeAlert.ALERTTYPE_PLACE_4G_MODEM_NEEDED:
-         case SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_ERROR:
-         case SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_SUSPENDED:
             return true;
          default:
             return false;
@@ -51,7 +48,7 @@ public class ObscureIfHubOfflinePostProcessor implements AlertPostProcessor {
    @Override
    public void postProcess(SubsystemContext<PlaceMonitorSubsystemModel> context, AlertScratchPad originalAlerts, AlertScratchPad scratch) {
       if(!originalAlerts.hasAlert(AlertKeys.key(SmartHomeAlert.ALERTTYPE_PLACE_HUB_OFFLINE, context.getPlaceId()))) {
-         // no hub offline alert so there is no need to obscure 4g or device offline errors for devices behind the hub
+         // no hub offline alert so there is no need to obscure device offline errors for devices behind the hub
          return;
       }
 

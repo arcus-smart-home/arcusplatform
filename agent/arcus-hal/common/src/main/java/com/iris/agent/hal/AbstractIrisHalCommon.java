@@ -31,7 +31,6 @@ import com.iris.agent.config.ConfigService;
 import com.iris.agent.controller.hub.HubController;
 import com.iris.agent.db.DbService;
 import com.iris.agent.exec.ExecService;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.gateway.Gateway;
 import com.iris.agent.http.HttpService;
 import com.iris.agent.lifecycle.LifeCycleService;
@@ -88,11 +87,6 @@ public abstract class AbstractIrisHalCommon extends AbstractIrisHal {
    }
 
    @Override
-   protected void startFourgService() {
-      FourgService.start();
-   }
-
-   @Override
    protected void startBackupService() {
       BackupService.start();
    }
@@ -145,11 +139,6 @@ public abstract class AbstractIrisHalCommon extends AbstractIrisHal {
    @Override
    protected void shutdownUpnpService() {
       IrisUpnpService.shutdown();
-   }
-
-   @Override
-   protected void shutdownFourgService() {
-      FourgService.shutdown();
    }
 
    @Override

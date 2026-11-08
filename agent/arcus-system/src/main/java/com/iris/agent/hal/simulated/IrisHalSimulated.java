@@ -341,10 +341,6 @@ public class IrisHalSimulated extends AbstractIrisHal {
    }
 
    @Override
-   protected void startFourgService() {
-   }
-
-   @Override
    protected void startBackupService() {
       BackupService.start();
    }
@@ -400,10 +396,6 @@ public class IrisHalSimulated extends AbstractIrisHal {
    }
 
    @Override
-   protected void shutdownFourgService() {
-   }
-
-   @Override
    protected void shutdownBackupService() {
       BackupService.shutdown();
    }
@@ -445,12 +437,6 @@ public class IrisHalSimulated extends AbstractIrisHal {
    @Override
    @Nullable
    protected Class<? extends Module> getZigbeeControllerModuleClass() {
-      return null;
-   }
-
-   @Override
-   @Nullable
-   protected Class<? extends Module> get4gControllerModuleClass() {
       return null;
    }
 

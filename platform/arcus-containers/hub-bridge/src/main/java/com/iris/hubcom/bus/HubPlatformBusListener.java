@@ -15,8 +15,6 @@
  */
 package com.iris.hubcom.bus;
 
-import java.util.Objects;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +30,11 @@ import com.iris.io.Serializer;
 import com.iris.io.json.JSON;
 import com.iris.messages.HubMessage;
 import com.iris.messages.PlatformMessage;
-import com.iris.messages.capability.CellBackupSubsystemCapability;
 import com.iris.messages.capability.HubCapability;
-import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.util.MdcContext.MdcContextReference;
 
 public class HubPlatformBusListener implements PlatformBusListener {
    private final static Logger logger = LoggerFactory.getLogger(HubPlatformBusListener.class);
-
-   private final static int BANNED_DISCONNECT_CODE = 4655;
 
    private final HubMessageFilter filter;
    private final SessionRegistry sessionRegistry;
@@ -67,18 +61,6 @@ public class HubPlatformBusListener implements PlatformBusListener {
          if (session == null) {
             // these are owned by another bridge or hub-service
             return;
-         }
-
-         switch (msg.getMessageType()) {
-            case CellBackupSubsystemCapability.CellAccessBannedEvent.NAME:
-            case CellBackupSubsystemCapability.CellAccessUnbannedEvent.NAME:
-               if (Objects.equals(HubNetworkCapability.TYPE_3G, ((HubSession) session).getConnectionType())) {
-                  session.disconnect(BANNED_DISCONNECT_CODE);
-                  session.destroy();
-               }
-               return;
-            default:
-               /* no op */
          }
 
          boolean accepted = filter.acceptFromPlatform((HubSession) session, msg);

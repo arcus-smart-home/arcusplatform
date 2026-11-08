@@ -18,18 +18,21 @@ package com.iris.platform.subsystem.placemonitor.smarthomealert;
 import java.util.List;
 import java.util.Map;
 
+import org.easymock.Capture;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.iris.bootstrap.guice.Binders;
+import com.iris.io.json.JSON;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.model.subs.PlaceMonitorSubsystemModel;
 import com.iris.messages.type.SmartHomeAlert;
-import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.CellModemNeededGenerator;
-import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.CellServiceErrorGenerator;
+import com.iris.type.LooselyTypedReference;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DeviceLowBatteryGenerator;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DeviceOfflineGenerator;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DoorObstructionGenerator;
@@ -52,8 +55,6 @@ public class TestSmartHomeAlertHandler extends SmartHomeAlertTestCase {
 
       // generators
       Binders.bindListToInstancesOf(binder, AlertGenerator.class);
-      binder.bind(CellModemNeededGenerator.class);
-      binder.bind(CellServiceErrorGenerator.class);
       binder.bind(DeviceLowBatteryGenerator.class);
       binder.bind(DeviceOfflineGenerator.class);
       binder.bind(DoorObstructionGenerator.class);
@@ -110,6 +111,49 @@ public class TestSmartHomeAlertHandler extends SmartHomeAlertTestCase {
       assertListNoAlert(lockBattery.getAlertkey(), alerts);
       
       assertEquals(hubOffline.getAlertkey(), alerts.get(0).get(SmartHomeAlert.ATTR_ALERTKEY));
+   }
+   
+   @Test
+   public void testStartDropsStoredCellBackupAlerts() {
+      SmartHomeAlert modemNeeded = placeAlert(SmartHomeAlert.ALERTTYPE_PLACE_4G_MODEM_NEEDED);
+      SmartHomeAlert serviceError = placeAlert(SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_ERROR);
+      SmartHomeAlert suspended = placeAlert(SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_SUSPENDED);
+
+      AlertScratchPad stored = new AlertScratchPad();
+      stored.putAlert(modemNeeded);
+      stored.putAlert(serviceError);
+      stored.putAlert(suspended);
+
+      // the scratch pad comes back from the persisted variable, as it does after a restart
+      EasyMock.expect(context.getVariable("alert.scratch"))
+         .andReturn(JSON.fromJson(JSON.toJson(stored), LooselyTypedReference.class))
+         .anyTimes();
+      Capture<AlertScratchPad> saved = EasyMock.newCapture();
+      context.setVariable(EasyMock.eq("alert.scratch"), EasyMock.capture(saved));
+      EasyMock.expectLastCall().anyTimes();
+      replay();
+
+      // no generators: the fixture model lacks the attributes they read on start
+      new SmartHomeAlertHandler(ImmutableList.of(), this.postProcessors).onStarted(this.context);
+
+      assertScratchPadNoAlert(saved.getValue(), modemNeeded.getAlertkey());
+      assertScratchPadNoAlert(saved.getValue(), serviceError.getAlertkey());
+      assertScratchPadNoAlert(saved.getValue(), suspended.getAlertkey());
+
+      List<Map<String, Object>> alerts = PlaceMonitorSubsystemModel.getSmartHomeAlerts(this.model, null);
+      assertListNoAlert(modemNeeded.getAlertkey(), alerts);
+      assertListNoAlert(serviceError.getAlertkey(), alerts);
+      assertListNoAlert(suspended.getAlertkey(), alerts);
+   }
+
+   private SmartHomeAlert placeAlert(String type) {
+      return SmartHomeAlerts.create(
+            type,
+            SmartHomeAlert.SEVERITY_LOW,
+            Address.platformService(PLACE_ID, PlaceCapability.NAMESPACE),
+            ImmutableMap.of(),
+            PLACE_ID
+      );
    }
    
    private void assertListHasAlert(String key, List<Map<String, Object>> alerts) {

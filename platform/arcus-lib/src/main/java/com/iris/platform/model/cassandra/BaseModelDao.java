@@ -34,6 +34,7 @@ import com.iris.capability.definition.DefinitionRegistry;
 import com.iris.capability.key.NamespacedKey;
 import com.iris.io.json.JSON;
 import com.iris.messages.model.Entity;
+import com.iris.util.IrisAttributeLookup;
 import com.iris.util.TypeMarker;
 
 public abstract class BaseModelDao<M extends Entity<?, M>> {
@@ -127,7 +128,9 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
       NamespacedKey key = NamespacedKey.parse(attributeName);
       AttributeDefinition ad = registry.getAttribute(key.getNamedRepresentation());
       if(ad == null) {
-         if (!attributeName.startsWith("_")) {
+         if (IrisAttributeLookup.isDeprecatedNamespace(key.getNamespace())) {
+            logger.trace("Ignoring attribute [{}] of a removed capability", attributeName);
+         } else if (!attributeName.startsWith("_")) {
             logger.warn("Unrecognized attribute [{}] may lose type information when deserialized", attributeName);
          }
 

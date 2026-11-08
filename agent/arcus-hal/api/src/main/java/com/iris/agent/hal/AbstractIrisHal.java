@@ -81,7 +81,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
    protected abstract void startLifeCycleService();
    protected abstract void startHttpService();
    protected abstract void startUpnpService();
-   protected abstract void startFourgService();
    protected abstract void startBackupService();
    protected abstract void startSceneService();
    protected abstract void startMetricsService();
@@ -94,7 +93,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
    protected abstract void shutdownLifeCycleService();
    protected abstract void shutdownHttpService();
    protected abstract void shutdownUpnpService();
-   protected abstract void shutdownFourgService();
    protected abstract void shutdownBackupService();
    protected abstract void shutdownSceneService();
    protected abstract void shutdownMetricsService();
@@ -132,7 +130,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
       add(classModules, getHubControllerModuleClass());
       add(classModules, getZWaveControllerModuleClass());
       add(classModules, getZigbeeControllerModuleClass());
-      add(classModules, get4gControllerModuleClass());
       add(classModules, getReflexControllerModuleClass());
       add(classModules, getAlarmControllerModuleClass());
       add(classModules, getHueControllerModuleClass());
@@ -160,9 +157,6 @@ public abstract class AbstractIrisHal implements IrisHalInternal {
 
    @Nullable
    protected abstract Class<? extends Module> getZigbeeControllerModuleClass();
-
-   @Nullable
-   protected abstract Class<? extends Module> get4gControllerModuleClass();
 
    @Nullable
    protected abstract Class<? extends Module> getReflexControllerModuleClass();

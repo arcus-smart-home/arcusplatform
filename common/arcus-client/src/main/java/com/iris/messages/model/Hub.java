@@ -53,9 +53,6 @@ public class Hub extends BaseEntity<String, Hub> {
    private UUID lastDeviceAddRemove;
    private UUID lastReset;
 
-   private boolean disallowCell = false;
-   private String disallowCellReason;
-
    @Override
    public String getType() {
       return PlatformConstants.SERVICE_HUB;
@@ -233,22 +230,6 @@ public class Hub extends BaseEntity<String, Hub> {
       this.registrationState = registrationState;
    }
 
-   public boolean isDisallowCell() {
-      return disallowCell;
-   }
-
-   public void setDisallowCell(boolean disallowCell) {
-      this.disallowCell = disallowCell;
-   }
-
-   public String getDisallowCellReason() {
-      return disallowCellReason;
-   }
-
-   public void setDisallowCellReason(String disallowCellReason) {
-      this.disallowCellReason = disallowCellReason;
-   }
-
    @Override
    public int hashCode() {
       final int prime = 31;
@@ -259,10 +240,6 @@ public class Hub extends BaseEntity<String, Hub> {
       result = prime * result
             + ((bootloaderVer == null) ? 0 : bootloaderVer.hashCode());
       result = prime * result + ((caps == null) ? 0 : caps.hashCode());
-      result = prime * result + (disallowCell ? 1231 : 1237);
-      result = prime
-            * result
-            + ((disallowCellReason == null) ? 0 : disallowCellReason.hashCode());
       result = prime * result
             + ((firmwareGroup == null) ? 0 : firmwareGroup.hashCode());
       result = prime * result
@@ -317,13 +294,6 @@ public class Hub extends BaseEntity<String, Hub> {
          if (other.caps != null)
             return false;
       } else if (!caps.equals(other.caps))
-         return false;
-      if (disallowCell != other.disallowCell)
-         return false;
-      if (disallowCellReason == null) {
-         if (other.disallowCellReason != null)
-            return false;
-      } else if (!disallowCellReason.equals(other.disallowCellReason))
          return false;
       if (firmwareGroup == null) {
          if (other.firmwareGroup != null)
@@ -401,7 +371,7 @@ public class Hub extends BaseEntity<String, Hub> {
    @Override
    public String toString() {
       return "Hub [accountId=" + accountId + ", placeId=" + placeId + ", caps=" + caps + ", name=" + name + ", vendor=" + vendor + ", model=" + model + ", serialNum=" + serialNum + ", hardwareVer=" + hardwareVer + ", macAddress=" + macAddress + ", mfgInfo=" + mfgInfo + ", firmwareGroup=" + firmwareGroup + ", osVer=" + osVer + ", agentVer=" + agentVer
-            + ", bootloaderVer=" + bootloaderVer + ", state=" + state + ", registrationState=" + registrationState + ", lastDeviceAddRemove=" + lastDeviceAddRemove + ", lastReset=" + lastReset + ", disallowCell=" + disallowCell + ", disallowCellReason=" + disallowCellReason + "]";
+            + ", bootloaderVer=" + bootloaderVer + ", state=" + state + ", registrationState=" + registrationState + ", lastDeviceAddRemove=" + lastDeviceAddRemove + ", lastReset=" + lastReset + "]";
    }
 
    @Override

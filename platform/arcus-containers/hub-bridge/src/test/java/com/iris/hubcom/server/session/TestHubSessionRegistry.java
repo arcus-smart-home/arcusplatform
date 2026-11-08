@@ -60,7 +60,6 @@ public class TestHubSessionRegistry extends IrisMockTestCase {
 
    @Inject Partitioner partitioner;
    @Inject InMemoryIntraServiceMessageBus intraServiceBus;
-   @Inject HubDAO hubDao;
 
    private int hubsPerPartition = 8; // 8 hubs per partition
    private List<Set<String>> hubIdsByPartition;
@@ -70,7 +69,7 @@ public class TestHubSessionRegistry extends IrisMockTestCase {
       // don't inject so that start doesn't get called
       ClientFactory cf = ServiceLocator.getInstance(ClientFactory.class);
       Set<SessionListener> listeners = ImmutableSet.copyOf(ServiceLocator.getInstancesOf(SessionListener.class));
-      this.registry = new HubSessionRegistry(cf, listeners, partitioner, intraServiceBus, hubDao);
+      this.registry = new HubSessionRegistry(cf, listeners, partitioner, intraServiceBus);
 
       int partitions = partitioner.getPartitionCount();
       int count = hubsPerPartition * partitions;
