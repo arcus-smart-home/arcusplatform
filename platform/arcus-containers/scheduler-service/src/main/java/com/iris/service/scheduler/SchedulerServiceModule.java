@@ -19,6 +19,7 @@
 package com.iris.service.scheduler;
 
 import com.iris.bootstrap.guice.AbstractIrisModule;
+import com.iris.core.dao.cassandra.CassandraDeviceDAOModule;
 import com.iris.core.dao.cassandra.CassandraPlaceDAOModule;
 import com.iris.core.dao.cassandra.CassandraResourceBundleDAOModule;
 import com.iris.core.messaging.kafka.KafkaModule;
@@ -33,6 +34,7 @@ import com.iris.bootstrap.annotations.Modules;
       KafkaModule.class,
       CassandraResourceBundleDAOModule.class,
       CassandraPlaceDAOModule.class,
+      CassandraDeviceDAOModule.class,
       SchedulerDaoModule.class,
       SchedulerModule.class,
       PlacePopulationCacheModule.class
