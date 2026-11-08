@@ -28,7 +28,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -47,7 +46,6 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
 import com.iris.agent.exec.ExecService;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.http.AsyncHttpService;
@@ -78,11 +76,6 @@ public final class IrisUpnpService {
 
    private static final CopyOnWriteArraySet<IrisUpnpListener> listeners = new CopyOnWriteArraySet<>();
    private static final ConcurrentMap<String,UpnpDeviceInformation> devices = new ConcurrentHashMap<>();
-   // Whitelist camera devices - only a single type for now, but may change in the future
-   public static final Set<String> upnpCameraDeviceTypeWhiteList = ImmutableSet.<String>builder()
-      .add("Wireless Network Camera")
-      .build();
-
    private static final Predicate<HttpHeaders> headerFilter = (@NonNull HttpHeaders h) -> h.contains("hue-bridgeid");
 
    private static EventLoopGroup eventLoopGroup;
@@ -200,7 +193,7 @@ public final class IrisUpnpService {
    ) {
       final String uuid = usn.deviceUuid;
       final String type = usn.type;
-      if (uuid == null || type == null || !(upnpCameraDeviceTypeWhiteList.contains(type) || headerFilter.apply(headers))) {
+      if (uuid == null || type == null || !headerFilter.apply(headers)) {
          return;
       }
 

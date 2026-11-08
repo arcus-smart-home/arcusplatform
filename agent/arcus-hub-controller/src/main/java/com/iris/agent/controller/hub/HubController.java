@@ -666,7 +666,8 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
          // SCOM (Sercomm cameras) has had no device provider since the camera
          // controller went away, so HubDeviceService.find throws and a request
          // without protocols fails. platform-services sends exactly that request
-         // for its lost-device check on reconnect (HubEventListener), so dropping
+         // for its lost-device check (HubEventListener) when a hub reconnects with
+         // a device add/remove marker that differs from the platform's, so dropping
          // SCOM here would turn that check back on: a behaviour change of its own.
          protocols = new LinkedHashSet<>(Arrays.asList("ZIGB", "ZWAV", "SCOM"));
       }

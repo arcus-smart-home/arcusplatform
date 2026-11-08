@@ -19,10 +19,6 @@
       </from-versions>
    </firmware>
     
-
-
-
-
     <firmware name="Waxman Water Sensor" productId="bb4c98" populations="general,qa,beta" version="34" path="/waxman/waxman_sensorv2_v52.ota" >
         <from-versions>
             <version type="regex" match=".*" />
