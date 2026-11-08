@@ -146,15 +146,6 @@ public abstract class AbstractZWaveHubDriver extends AbstractHubDriver {
    }
 
    /**
-    * Send an Indicator Set command to control LEDs/sounds on the device.
-    *
-    * @param value the indicator value
-    */
-   protected void sendIndicatorSet(byte value) {
-      zwaveSend((byte) 0x87, (byte) 0x01, value);
-   }
-
-   /**
     * Send an Indicator Set V3 command with indicator objects for advanced
     * features like countdown timers. Each indicator object is a triplet of
     * (indicator ID, property ID, value).
@@ -172,21 +163,6 @@ public abstract class AbstractZWaveHubDriver extends AbstractHubDriver {
       payload[1] = (byte)(objectCount & 0x1F);   // object count (5 bits)
       System.arraycopy(objects, 0, payload, 2, objects.length);
       zwaveSend((byte) 0x87, (byte) 0x01, payload);
-   }
-
-   /**
-    * Send a Configuration Set command.
-    *
-    * @param param the parameter number
-    * @param size the parameter size in bytes
-    * @param values the parameter value bytes
-    */
-   protected void sendConfigurationSet(byte param, byte size, byte... values) {
-      byte[] payload = new byte[values.length + 2];
-      payload[0] = param;
-      payload[1] = size;
-      System.arraycopy(values, 0, payload, 2, values.length);
-      zwaveSend((byte) 0x70, (byte) 0x04, payload);
    }
 
    /**

@@ -70,12 +70,49 @@ public class RingKeyPadTest {
    }
 
    @Test
-   public void aChimePlaysDingDingFromTheSoundLevelProperty() {
-      keypad.handleCommand(KeyPadCapability.ChimeRequest.builder().build());
+   public void aDifferentCommandReusingASupervisionSessionIsActedOn() {
+      // As after the keypad restarts, or its session counter wraps
+      keypad.handleZWaveCommand(NODE, CC_SUPERVISION, (byte) 0x01, new byte[] { 4, 6, CC_ENTRY_CONTROL, 0x01, 9, 0, 0x11, 0 });
+      keypad.handleZWaveCommand(NODE, CC_SUPERVISION, (byte) 0x01, new byte[] { 4, 6, CC_ENTRY_CONTROL, 0x01, 10, 0, 0x05, 0 });
 
-      assertEquals(1, keypad.sent.size());
-      assertArrayEquals(new byte[] { (byte) 0x87, 0x01, 0, 1, 0x60, 0x09, 0x50 }, keypad.sent.get(0));
+      assertEquals(2, keypad.emitted.size());
+      assertEquals(KeyPadCapability.PanicPressedEvent.NAME, keypad.emitted.get(0).getMessageType());
+      assertEquals(KeyPadCapability.ArmPressedEvent.NAME, keypad.emitted.get(1).getMessageType());
    }
+
+   @Test
+   public void reservedBitsAroundTheDataTypeLeaveAnAsciiPinReadable() {
+      keypad.handleZWaveCommand(NODE, CC_ENTRY_CONTROL, (byte) 0x01, new byte[] { 1, (byte) 0xFE, 0x01, 4, '1', '2', '3', '4' });
+      press(2, 0x03);
+
+      assertEquals(KeyPadCapability.DisarmPressedEvent.NAME, lastEmitted().getMessageType());
+   }
+
+   @Test
+   public void aDisarmWithNoPinIsRefusedWithoutCountingAsAnInvalidPin() {
+      press(1, 0x03);
+
+      assertTrue(keypad.emitted.isEmpty());
+      assertArrayEquals(CODE_REJECTED, keypad.sent.get(0));
+   }
+
+   @Test
+   public void anArmThatStartsLeavesNothingForAnotherKeypadsRefusal() {
+      press(1, 0x05);
+      keypad.handleCommand(KeyPadCapability.BeginArmingRequest.builder()
+         .withAlarmMode(KeyPadCapability.BeginArmingRequest.ALARMMODE_ON).withDelayInS(0).build());
+      keypad.sent.clear();
+      keypad.emitted.clear();
+
+      // Another keypad or the app is refused while this one is arming
+      keypad.handleCommand(KeyPadCapability.ArmingUnavailableRequest.instance());
+      press(2, 0x02);
+
+      assertTrue(keypad.sent.isEmpty());
+      assertTrue(keypad.emitted.isEmpty());
+   }
+
+   private static final byte[] CODE_REJECTED = { (byte) 0x87, 0x01, 0, 1, 0x09, 0x01, (byte) 0xFF };
 
    private static byte[] typedPin() {
       return new byte[] { 1, 2, 0x01, 4, '1', '2', '3', '4' };
@@ -105,18 +142,23 @@ public class RingKeyPadTest {
    public void aPinUsedToArmCanNotThenDisarm() {
       typePin();
       press(2, 0x05);
+      keypad.sent.clear();
       press(3, 0x03);
 
-      assertEquals(KeyPadCapability.InvalidPinEnteredEvent.NAME, lastEmitted().getMessageType());
+      assertEquals(KeyPadCapability.ArmPressedEvent.NAME, lastEmitted().getMessageType());
+      assertArrayEquals(CODE_REJECTED, keypad.sent.get(0));
    }
 
    @Test
    public void aPinIsUsedForOneDisarmOnly() {
       typePin();
       press(2, 0x03);
+      keypad.sent.clear();
       press(3, 0x03);
 
-      assertEquals(KeyPadCapability.InvalidPinEnteredEvent.NAME, lastEmitted().getMessageType());
+      assertEquals(1, keypad.emitted.size());
+      assertEquals(KeyPadCapability.DisarmPressedEvent.NAME, lastEmitted().getMessageType());
+      assertArrayEquals(CODE_REJECTED, keypad.sent.get(0));
    }
 
    @Test
