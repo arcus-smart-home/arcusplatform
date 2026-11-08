@@ -34,9 +34,16 @@ import com.google.inject.Singleton;
 import com.iris.capability.definition.DefinitionRegistry;
 import com.iris.common.sunrise.GeoLocation;
 import com.iris.common.sunrise.SunriseSunsetCalc;
+import com.iris.core.dao.DeviceDAO;
 import com.iris.core.dao.PlaceDAO;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.address.Address;
+import com.iris.messages.address.DeviceDriverAddress;
+import com.iris.messages.capability.HubCapability;
+import com.iris.messages.errors.ErrorEventException;
+import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.NotFoundException;
+import com.iris.messages.model.Device;
 import com.iris.messages.model.Place;
 import com.iris.messages.model.serv.SchedulerModel;
 import com.iris.platform.model.ModelEntity;
@@ -54,6 +61,7 @@ public class PlatformSchedulerRegistry implements SchedulerRegistry {
    private final SunriseSunsetCalc calculator;
    private final SchedulerModelDao schedulerDao;
    private final PlaceDAO placeDao;
+   private final DeviceDAO deviceDao;
    private final PlatformMessageBus platformBus;
    private final EventSchedulerService schedulerService;
    private final DefinitionRegistry registry;
@@ -64,6 +72,7 @@ public class PlatformSchedulerRegistry implements SchedulerRegistry {
          SunriseSunsetCalc calculator,
          SchedulerModelDao schedulerDao, 
          PlaceDAO placeDao,
+         DeviceDAO deviceDao,
          PlatformMessageBus platformBus,
          EventSchedulerService schedulerService,
          DefinitionRegistry registry,
@@ -72,6 +81,7 @@ public class PlatformSchedulerRegistry implements SchedulerRegistry {
       this.calculator = calculator;
       this.schedulerDao = schedulerDao;
       this.placeDao = placeDao;
+      this.deviceDao = deviceDao;
       this.platformBus = platformBus;
       this.schedulerService = schedulerService;
       this.registry = registry;
@@ -100,8 +110,29 @@ public class PlatformSchedulerRegistry implements SchedulerRegistry {
 
    @Override
    public SchedulerCapabilityDispatcher loadOrCreateByAddress(UUID placeId, Address target) {
+      assertTargetAtPlace(placeId, target);
       ModelEntity scheduler = schedulerDao.findOrCreateByTarget(placeId, target);
       return createExecutor(scheduler);
+   }
+
+   /**
+    * The first request that names a target creates its scheduler, owned by the requester's
+    * place, and a target has one scheduler. So the target has to be shown to belong to the
+    * place before anything is created, or a client could claim another place's device and
+    * keep its owner from ever scheduling it. Scene, rule and subsystem targets carry their
+    * place in the address and are checked by the service; devices are looked up here.
+    */
+   private void assertTargetAtPlace(UUID placeId, Address target) {
+      if(target instanceof DeviceDriverAddress) {
+         Device device = deviceDao.findById((UUID) target.getId());
+         if(device == null || !placeId.equals(device.getPlace())) {
+            throw new NotFoundException(target);
+         }
+      }
+      else if(target.isHubAddress() || HubCapability.NAMESPACE.equals(target.getGroup())) {
+         // hub commands can't be scheduled (see PlatformSchedulerCapabilityDispatcher), so there's nothing to create
+         throw new ErrorEventException(Errors.invalidRequest("Hubs can't be scheduled"));
+      }
    }
 
    @Override
