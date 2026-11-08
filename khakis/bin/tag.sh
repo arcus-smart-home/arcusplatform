@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# A missing image has to fail here, not later at the push.
+set -e
+
 # Include common functionality
 SCRIPT_PATH="$0"
 SCRIPT_DIR=$(dirname ${SCRIPT_PATH})
