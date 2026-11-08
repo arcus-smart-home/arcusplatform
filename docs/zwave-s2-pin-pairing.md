@@ -234,6 +234,33 @@ including the admin address bypass:
 - `hubzwave:S2PinRequired` from a hub is dropped unless it is addressed to
   `SERV:subpairing:<the hub's place>`. A hub bug can't put a DSK on a broadcast.
 
+## Device security attributes
+
+The hub's add device request for a Z-Wave device carries two protocol
+attributes, defined in `protocol/zwave.xml`. Clients see them in
+`devadv:protocolAttrs`.
+
+| Attribute | Value |
+|---|---|
+| `ZWAV:Security` | The highest class the hub granted: `S2_ACCESS_CONTROL`, `S2_AUTHENTICATED`, `S2_UNAUTHENTICATED`, `S0` or `NONE` |
+| `ZWAV:SecurityRequested` | The highest class the device asked for, in the same terms |
+
+When `ZWAV:SecurityRequested` is higher than `ZWAV:Security`, the device
+joined with less than it asked for, usually because no client could take its
+PIN. Pairing it again from a client that sends `s2PinEntry` gets it the rest.
+
+- An S2 device says what it wants in its KEX Report, which the hub keeps. A
+  device without S2 can only ask for S0, if it has the Security command class,
+  or for nothing.
+- `ZWAV:SecurityRequested` is left out when the hub doesn't know: an S2 device
+  paired before the hub kept KEX Reports, or one that stopped before sending
+  its KEX Report.
+- Hubs running the iris2 Z-Wave controller send neither. A missing
+  `ZWAV:Security` means unknown, not `NONE`.
+- The platform takes protocol attributes only when a device is added, so a
+  device paired before hubs sent these doesn't have them until it is paired
+  again.
+
 ## Security
 
 The PIN and the DSK are secrets.
