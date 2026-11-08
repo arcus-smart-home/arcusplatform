@@ -254,22 +254,16 @@ public class SearchingPage extends BaseComponentWrapper<Component> implements Tr
 		}
 	}
 	
-	/** A device is waiting for the PIN printed on it, or stopped waiting if there is no request. */
+	/**
+	 * A device is waiting for the PIN printed on it. Each dialog closes itself when
+	 * its request ends, and this runs again each time the page is shown, so it only
+	 * opens one for a request that doesn't have one.
+	 */
 	private void promptForS2Pin(Object requestId) {
-		boolean waiting = S2Pins.isWaiting(requestId);
-		if(pinDialog != null) {
-			if(!waiting) {
-				// emptied as soon as a PIN is sent, so the dialog waits for the hub's answer
-				pinDialog.requestEnded();
-			}
-			else {
-				pinDialog.close();
-			}
-			pinDialog = null;
+		if(!S2Pins.isWaiting(requestId) || (pinDialog != null && pinDialog.isFor(requestId))) {
+			return;
 		}
-		if(waiting) {
-			pinDialog = S2PinDialog.show(input.getPairingSubsystem());
-		}
+		pinDialog = S2PinDialog.show(input.getPairingSubsystem(), requestId.toString());
 	}
 	
 	private void searchIdle() {

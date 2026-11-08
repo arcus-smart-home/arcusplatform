@@ -33,10 +33,13 @@ import javax.swing.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.iris.client.capability.PairingSubsystem;
 import com.iris.client.capability.PairingSubsystem.CancelS2PinRequest;
 import com.iris.client.capability.PairingSubsystem.GetS2PinRequestRequest;
 import com.iris.client.capability.PairingSubsystem.GetS2PinRequestResponse;
 import com.iris.client.capability.PairingSubsystem.SubmitS2PinRequest;
+import com.iris.client.event.ListenerRegistration;
+import com.iris.client.event.Listeners;
 import com.iris.client.exception.ErrorResponseException;
 import com.iris.client.model.Model;
 import com.iris.messages.errors.Errors;
@@ -63,16 +66,18 @@ final class S2PinDialog extends JDialog {
    private final JButton decline = new JButton(Actions.build("Decline", this::onDecline));
    private final Timer countdown = new Timer(1000, (event) -> onTick());
 
-   private String requestId;
+   private final String requestId;
+   private ListenerRegistration reg = Listeners.unregistered();
    private Date expires;
    /** A submit or decline is waiting for its answer. */
    private boolean busy;
    /** The request can't be answered any more. */
    private boolean spent;
 
-   private S2PinDialog(Model subsystem) {
+   private S2PinDialog(Model subsystem, String requestId) {
       super(Oculus.getMainWindow(), "Z-Wave PIN");
       this.subsystem = subsystem;
+      this.requestId = requestId;
       setModal(false);
       setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
       // Closing the window declines, so the device isn't left waiting for nothing
@@ -105,16 +110,30 @@ final class S2PinDialog extends JDialog {
       setLocationRelativeTo(Oculus.getMainWindow());
    }
 
-   /** Reads the waiting request and asks for its PIN. */
-   static S2PinDialog show(Model subsystem) {
-      S2PinDialog dialog = new S2PinDialog(subsystem);
+   /**
+    * Reads the waiting request and asks for its PIN. The dialog watches
+    * s2PinRequestId itself, so it hears the request end even once the pairing
+    * wizard is closed.
+    */
+   static S2PinDialog show(Model subsystem, String requestId) {
+      S2PinDialog dialog = new S2PinDialog(subsystem, requestId);
+      dialog.reg = subsystem.addListener((event) -> {
+         if (PairingSubsystem.ATTR_S2PINREQUESTID.equals(event.getPropertyName()) && !requestId.equals(event.getNewValue())) {
+            dialog.requestEnded();
+         }
+      });
       dialog.setVisible(true);
       dialog.load();
       return dialog;
    }
 
-   /** Closes the prompt straight away, for a request that has been replaced. */
+   /** Whether this dialog is still on screen asking about the given request. */
+   boolean isFor(Object id) {
+      return isDisplayable() && requestId.equals(id);
+   }
+
    void close() {
+      reg = Listeners.unregister(reg);
       countdown.stop();
       dispose();
    }
@@ -138,7 +157,11 @@ final class S2PinDialog extends JDialog {
          .request(request)
          .onSuccess((event) -> {
             GetS2PinRequestResponse response = new GetS2PinRequestResponse(event);
-            requestId = response.getRequestId();
+            if (spent || !requestId.equals(response.getRequestId())) {
+               // ended, or replaced by a request that gets its own prompt
+               close();
+               return;
+            }
             expires = response.getExpires();
             dskLabel.setText(S2Pins.groupsToCheck(response.getDsk()));
             setEnabledButtons(true);
@@ -198,7 +221,7 @@ final class S2PinDialog extends JDialog {
    }
 
    private void onDecline() {
-      if (requestId == null || spent) {
+      if (spent) {
          close();
          return;
       }
