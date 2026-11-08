@@ -40,8 +40,8 @@ import com.iris.messages.service.SubsystemService.ListSubsystemsResponse;
 import com.iris.platform.subsystem.SubsystemFactory;
 
 /**
- * The executor checks ListSubsystems again after the resolver picked it, so a place's executor
- * never lists its subsystems for a request about another place.
+ * After the resolver picks an executor, the executor checks ListSubsystems again: the place named
+ * in the body has to match the place header. It doesn't compare either with its own place.
  */
 public class PlatformSubsystemExecutorScopeTest {
    private final UUID activePlace = UUID.randomUUID();

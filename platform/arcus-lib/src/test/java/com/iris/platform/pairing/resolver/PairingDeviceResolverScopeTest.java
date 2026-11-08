@@ -36,6 +36,7 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.PairingDeviceCapability;
 import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Fixtures;
+import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.model.PersistentModelWrapper;
 import com.iris.platform.pairing.PairingDevice;
 import com.iris.platform.pairing.PairingDeviceDao;
@@ -77,8 +78,12 @@ public class PairingDeviceResolverScopeTest {
    }
 
    private PlatformMessage request(Address destination, UUID placeHeader) {
+      return request(destination, placeHeader, Fixtures.createClientAddress());
+   }
+
+   private PlatformMessage request(Address destination, UUID placeHeader, Address source) {
       PlatformMessage.Builder builder = PlatformMessage
-            .buildRequest(Capability.CMD_GET_ATTRIBUTES, java.util.Collections.<String, Object>emptyMap(), Fixtures.createClientAddress(), destination);
+            .buildRequest(Capability.CMD_GET_ATTRIBUTES, java.util.Collections.<String, Object>emptyMap(), source, destination);
       if(placeHeader != null) {
          builder.withPlaceId(placeHeader);
       }
@@ -121,6 +126,6 @@ public class PairingDeviceResolverScopeTest {
       EasyMock.expect(dao.findByAddress(pairingDevice(otherPlace))).andReturn(device);
       EasyMock.replay(dao, populations);
 
-      assertSame(device, resolverFor(PairingDevice.class).apply(request(pairingDevice(otherPlace), null)));
+      assertSame(device, resolverFor(PairingDevice.class).apply(request(pairingDevice(otherPlace), null, Address.platformService(PlatformConstants.SERVICE_RULE))));
    }
 }

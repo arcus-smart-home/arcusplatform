@@ -102,7 +102,7 @@ public class OfflineHubReadAuthorizationTest extends IrisMockTestCase {
    }
 
    @Test
-   public void testClientAtAnotherPlaceIsNotToldTheHubIsOffline() {
+   public void testClientAtAnotherPlaceGetsNotFoundRatherThanHubOffline() {
       MessageBody response = answer(HubCapability.PairingRequestRequest.NAME, UUID.randomUUID());
       Assert.assertEquals(Errors.CODE_NOT_FOUND, response.getAttributes().get("code"));
    }

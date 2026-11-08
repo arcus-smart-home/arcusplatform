@@ -58,7 +58,8 @@ import com.iris.test.Modules;
    ModelDao.class,
    PlaceDAO.class,
    RuleDao.class,
-   PlacePopulationCacheManager.class
+   PlacePopulationCacheManager.class,
+   RuleCatalogLoader.class
 })
 @Modules({ InMemoryMessageModule.class, SimplePartitionModule.class })
 public class RuleServiceScopeTest extends IrisMockTestCase {
@@ -71,6 +72,7 @@ public class RuleServiceScopeTest extends IrisMockTestCase {
    @Inject private InMemoryPlatformMessageBus bus;
    @Inject private Partitioner partitioner;
    @Inject private PlacePopulationCacheManager populationCacheMgr;
+   @Inject private RuleCatalogLoader ruleCatLoader;
 
    private final UUID activePlace = UUID.randomUUID();
    private final UUID otherPlace = UUID.randomUUID();
@@ -81,7 +83,6 @@ public class RuleServiceScopeTest extends IrisMockTestCase {
    public void setUp() throws Exception {
       super.setUp();
       reset();
-      RuleCatalogLoader ruleCatLoader = EasyMock.createNiceMock(RuleCatalogLoader.class);
       ruleService = new RuleService(MoreExecutors.directExecutor(), envDao, bus, partitioner, ruleDao, modelDao, placeDao, ruleCatLoader, registry, null, populationCacheMgr);
    }
 

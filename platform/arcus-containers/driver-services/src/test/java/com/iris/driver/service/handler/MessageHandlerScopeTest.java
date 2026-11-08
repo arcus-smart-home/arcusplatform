@@ -36,6 +36,7 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DoorLockCapability;
 import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Fixtures;
+import com.iris.messages.services.PlatformConstants;
 
 /**
  * Every device command and attribute write that has no handler of its own lands in
@@ -74,10 +75,14 @@ public class MessageHandlerScopeTest {
    }
 
    private PlatformMessage request(MessageBody body, UUID placeHeader) {
+      return request(body, placeHeader, Fixtures.createClientAddress());
+   }
+
+   private PlatformMessage request(MessageBody body, UUID placeHeader, Address source) {
       PlatformMessage.Builder builder =
             PlatformMessage
                .request(device)
-               .from(Fixtures.createClientAddress())
+               .from(source)
                .withPayload(body);
       if(placeHeader != null) {
          builder.withPlaceId(placeHeader);
@@ -133,7 +138,7 @@ public class MessageHandlerScopeTest {
 
    @Test
    public void testInternalMessageWithoutAPlaceHeaderReachesTheDriver() throws Exception {
-      PlatformMessage message = request(DoorLockCapability.BuzzInRequest.instance(), null);
+      PlatformMessage message = request(DoorLockCapability.BuzzInRequest.instance(), null, Address.platformService(PlatformConstants.SERVICE_RULE));
       EasyMock.expect(executor.fire(message)).andReturn(Futures.immediateFuture(null));
       replay();
 
