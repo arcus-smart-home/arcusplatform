@@ -227,13 +227,15 @@ mode ends.
 
 ### Hub bridge rules
 
-`DefaultHubMessageFilterImpl` enforces two things before any other check,
-including the admin address bypass:
+`DefaultHubMessageFilterImpl` enforces two things that an admin address can't
+skip:
 
 - `hubzwave:SubmitS2Pin` and `hubzwave:CancelS2Pin` reach a hub only from
   `SERV:subpairing:<the hub's place>` with that place in the header. Anything
-  else is dropped, and a request gets an unauthorized error back. A client
-  can't send a PIN straight to the hub and skip the checks above.
+  else is dropped. A request gets an unauthorized error back, unless it came
+  from another place: those are dropped without an answer before this check,
+  like any other message from another place. A client can't send a PIN
+  straight to the hub and skip the checks above.
 - `hubzwave:S2PinRequired` from a hub is dropped unless it is addressed to
   `SERV:subpairing:<the hub's place>`. A hub bug can't put a DSK on a broadcast.
 

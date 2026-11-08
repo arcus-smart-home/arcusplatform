@@ -254,11 +254,10 @@ The `authorized()` method on `DirectMessageHandler`:
 
 **Outbound (platform → hub):**
 
-- `hubzwave:SubmitS2Pin` and `hubzwave:CancelS2Pin` only from the pairing subsystem of the hub's place, checked before anything else (see [zwave-s2-pin-pairing.md](zwave-s2-pin-pairing.md))
-- Messages with no place ID pass through
-- Admin address messages bypass place filtering
-- Place ID must match session's active place (prevents cross-contamination)
-- Admin-only messages checked against whitelist
+- Admin addresses skip the place check. Anything else must carry the session's active place, or, from a service only, no place at all (`Errors.assertSenderAtPlace`). A client or a hub without a place header is refused. Refused messages get no answer, so a client can't tell an online hub from an unknown id
+- `hubzwave:SubmitS2Pin` and `hubzwave:CancelS2Pin` only from the pairing subsystem of the hub's place, admin addresses included (see [zwave-s2-pin-pairing.md](zwave-s2-pin-pairing.md))
+- Admin-only messages (below) only from an admin address, with or without a place header
+- A refused S2 PIN answer or admin-only request is answered with an Unauthorized error
 
 ### Message Handler
 

@@ -37,6 +37,8 @@ import com.iris.messages.address.Address;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubZwaveCapability;
 import com.iris.messages.capability.PairingSubsystemCapability;
+import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.metrics.IrisMetricSet;
 import com.iris.metrics.IrisMetrics;
 import com.iris.protocol.ProtocolMessage;
@@ -151,9 +153,27 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
    @Override
    public boolean acceptFromPlatform(HubSession session, PlatformMessage msg) {
       String placeId = msg.getPlaceId();
+      boolean admin = adminAddress.apply(msg.getSource());
+
+      // Nothing answers a request for an unknown hub, so a sender that may not see this hub gets
+      // no answer either: an error from here would tell a client that a guessed hub id exists and
+      // is online. So this comes before every check that answers.
+      if(!admin) {
+         try {
+            // Only a service may leave out the place header: client-bridge lets a client send a
+            // ping without one, and the hub answers a ping with an error. A hub's messages carry
+            // its own place, so one without a place is from a hub that isn't registered.
+            Errors.assertSenderAtPlace(msg, session.getActivePlace());
+         }
+         catch(UnauthorizedRequestException e) {
+            PLACE_MISMATCH_PLATFORM.inc();
+            logger.warn("Rejecting message with incorrect place header [{}] from [{}]", placeId, msg.getSource());
+            return false;
+         }
+      }
 
       // The pairing subsystem checks who is answering, which request, and the PIN format.
-      // This comes first since it applies to admin addresses and to messages without a place.
+      // This applies to admin addresses and to services without a place header too.
       if(isS2PinAnswer(msg) && !(isPairingSubsystem(session, msg.getSource()) && Objects.equals(placeId, session.getActivePlace()))) {
          S2_PIN_REJECTED.inc();
          logger.warn("Rejecting [{}] that did not come from the pairing subsystem: [{}]", msg.getMessageType(), msg.getSource());
@@ -163,18 +183,14 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
          return false;
       }
 
-      // FIXME replace this with the admin place
-      if(StringUtils.isEmpty(placeId)) {
+      if(admin) {
          return true;
       }
 
-      if(adminAddress.apply(msg.getSource())) {
-         return true;
-      }
-
+      // only an admin address may send these, so a service without a place header is refused too
       if (adminOnlyMessage.apply(msg.getMessageType())) {
          ADMIN_ONLY_REJECTED.inc();
-         logger.warn("Rejecting admin only message from non-admin client: [{}]", msg.getMessageType());
+         logger.warn("Rejecting admin only message from non-admin client [{}]: [{}]", msg.getSource(), msg.getMessageType());
          if (msg.isRequest()) {
             MessageBody body = AuthzUtil.createUnauthorizedEvent();
             PlatformMessage rsp = PlatformMessage.buildResponse(msg,body).create();
@@ -184,13 +200,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
          return false;
       }
 
-      if(placeId.equals(session.getActivePlace())) {
-         return true;
-      }
-
-      PLACE_MISMATCH_PLATFORM.inc();
-      logger.warn("Rejecting message with incorrect place header [{}] from [{}]", placeId, msg.getSource());
-      return false;
+      return true;
    }
 
    private static boolean isS2PinAnswer(PlatformMessage msg) {
