@@ -89,6 +89,7 @@ public class DeviceController extends BaseController<DeviceModel> {
 
    private Action createDevice = Actions.build("Create Mock Device", this::promptForCreateMockDevice);
    private Action registerIpDevice = Actions.build("Register IP Device", this::promptForRegisterIpDevice);
+   private Action listDrivers = Actions.build("List Drivers", this::onListDrivers);
    
    @Inject
    public DeviceController(IrisClient client) {
@@ -196,7 +197,29 @@ public class DeviceController extends BaseController<DeviceModel> {
    public Action actionRegisterIpDevice() {
       return registerIpDevice;
    }
-   
+
+   public Action actionListDrivers() {
+      return listDrivers;
+   }
+
+   protected void onListDrivers() {
+      ClientRequest request = new ClientRequest();
+      request.setAddress("SERV:" + DeviceCapability.NAMESPACE + ":");
+      request.setCommand(com.iris.messages.service.DeviceService.ListDriversRequest.NAME);
+      request.setTimeoutMs(30000);
+      client
+         .request(request)
+         .onSuccess((event) -> {
+            List<Map<String, Object>> drivers = (List<Map<String, Object>>) event.getAttribute("drivers");
+            if (drivers == null || drivers.isEmpty()) {
+               Oculus.info("No drivers found");
+               return;
+            }
+            com.iris.oculus.modules.device.dialog.ListDriversDialog.show(drivers);
+         })
+         .onFailure((error) -> Oculus.error("Unable to list drivers: " + error.getMessage(), error));
+   }
+
    public static String getDriverInfo(DeviceModel model) {
       try {
          DeviceAdvanced advanced = (DeviceAdvanced) model;
