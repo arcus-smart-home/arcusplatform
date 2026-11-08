@@ -408,12 +408,7 @@ final class IrisUpnpServer {
             break;
 
          case "ssdp:byebye":
-            // Ignore bye-bye messages except from cameras which need to keep track of this info
-            if (IrisUpnpService.upnpCameraDeviceTypeWhiteList.contains(usn.type)) {
-               IrisUpnpService.remove(usn.deviceUuid);
-            } else {
-               log.trace("upnp ignoring ssdp:byebye sent by device: {}", usn.deviceUuid);
-            }
+            log.trace("upnp ignoring ssdp:byebye sent by device: {}", usn.deviceUuid);
             break;
 
          default:

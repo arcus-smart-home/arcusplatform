@@ -167,15 +167,15 @@
          <p>Please consult an HVAC professional or the device manufacturer for best practices on maintaining your HVAC system.</p>
       </customization>
       
-      <!-- Firmware Upgrade Needed for (Sercomm Camera, Orbit Single Zone, & Orbit 12 Zone) -->
+      <!-- Firmware Upgrade Needed for (Orbit Single Zone & Orbit 12 Zone) -->
       <customization
          type="otaUpgrade" 
-         query="dev:productId == '606501' OR dev:productId == '242a43' OR dev:productId == '5c3966' OR dev:productId == 'deda9d' OR dev:productId == '02a3f9'"
+         query="dev:productId == 'deda9d' OR dev:productId == '02a3f9'"
          header="Attention"
          title="Firmware Upgrade Needed" 
          note="Select the button below to continue setting up your device. The update will continue in the background.">
          <p>Updates to your recently paired devices may take a few minutes, during which your device may not be controllable or work optimally.</p>
-         <p>Please do not remove power or any ethernet cords (if applicable) from the device until the firmware update is complete.</p>
+         <p>Please do not remove power from the device until the firmware update is complete.</p>
       </customization>
       
       <!-- Water Heater -->

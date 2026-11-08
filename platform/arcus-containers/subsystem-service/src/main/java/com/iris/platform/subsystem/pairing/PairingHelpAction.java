@@ -55,17 +55,6 @@ public enum PairingHelpAction {
 			}
 		}
 	},
-	EthernetCheck("ethernetcheck", "Ensure the camera's ethernet cord is plugged into your router.") {
-		@Override
-		public Optional<PairingHelpStep> forProduct(ProductCatalogEntry entry, PairingProtocol protocol) {
-			if(protocol.isEthernetPairing()) {
-				return super.forProduct(entry, protocol);
-			}
-			else {
-				return Optional.empty();
-			}
-		}
-	},
 	WifiCheck("wificheck", "Ensure the device is connected to the internet per the manufacturer's instructions.") {
 		@Override
 		public Optional<PairingHelpStep> forProduct(ProductCatalogEntry entry, PairingProtocol protocol) {

@@ -545,14 +545,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       case Capability.CMD_SET_ATTRIBUTES:
          return handleSetBaseAttributes(port, message);
 
-      // Handle camera snapshot events
-      /*
-      case HubAdvancedCapability.StartUploadingCameraPreviewsEvent.NAME:
-      case HubAdvancedCapability.StopUploadingCameraPreviewsEvent.NAME:
-         port.send(SercommCameraController.ADDRESS, message);
-         return Port.HANDLED;
-      */
-
       case com.iris.messages.ErrorEvent.MESSAGE_TYPE:
          log.warn("error received from platform: {}", message);
          return null;
@@ -566,10 +558,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
         		 ) {
             port.send(ZigbeeController.ADDRESS, message);
             return Port.HANDLED;
-         }/* else if (type.startsWith(HubSercommCapability.NAMESPACE)) {
-            port.send(SercommCameraController.ADDRESS, message);
-            return Port.HANDLED;
-         } else if (type.startsWith(Hub4gCapability.NAMESPACE)) {
+         }/* else if (type.startsWith(Hub4gCapability.NAMESPACE)) {
             port.send(FourGController.ADDRESS, message);
             return Port.HANDLED;
          } else */ if (type.startsWith(HubReflexCapability.NAMESPACE) || 
@@ -674,6 +663,12 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       MessageBody msg = message.getValue();
       Set<String> protocols = HubAdvancedCapability.GetKnownDevicesRequest.getProtocols(msg);
       if (protocols == null || protocols.isEmpty()) {
+         // SCOM (Sercomm cameras) has had no device provider since the camera
+         // controller went away, so HubDeviceService.find throws and a request
+         // without protocols fails. platform-services sends exactly that request
+         // for its lost-device check (HubEventListener) when a hub reconnects with
+         // a device add/remove marker that differs from the platform's, so dropping
+         // SCOM here would turn that check back on: a behaviour change of its own.
          protocols = new LinkedHashSet<>(Arrays.asList("ZIGB", "ZWAV", "SCOM"));
       }
 
@@ -834,7 +829,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       updateLEDState();
        port.forward(ZWaveController.ADDRESS, message);
        port.forward(ZigbeeController.ADDRESS, message);
-      // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
    }
 
@@ -846,7 +840,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
          if (force) {
              port.forward(ZWaveController.ADDRESS, message);
              port.forward(ZigbeeController.ADDRESS, message);
-            // port.forward(SercommCameraController.ADDRESS, message);
          } else {
             log.warn("dropping start unpairing request, already in unpairing mode");
          }
@@ -875,7 +868,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       updateLEDState(IrisHal.isBatteryPowered(), LifeCycleService.getState(), FourgService.getState());
        port.forward(ZWaveController.ADDRESS, message);
        port.forward(ZigbeeController.ADDRESS, message);
-      // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
    }
 
@@ -906,7 +898,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       PlatformMessage message = PlatformMessage.buildMessage(stopPairing, port.getSendPlatformAddress(), port.getSendPlatformAddress()).create();
        port.forward(ZWaveController.ADDRESS, message);
        port.forward(ZigbeeController.ADDRESS, message);
-      // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
 
       updateLEDState();
@@ -921,7 +912,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       PlatformMessage message = PlatformMessage.buildMessage(stopUnpairing, port.getSendPlatformAddress(), port.getSendPlatformAddress()).create();
        port.forward(ZWaveController.ADDRESS, message);
        port.forward(ZigbeeController.ADDRESS, message);
-      // port.forward(SercommCameraController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
 
       updateLEDState();

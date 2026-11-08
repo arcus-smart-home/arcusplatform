@@ -346,7 +346,7 @@ The original Iris hub firmware included closed-source controller jars for ZigBee
   -Pexternal_jars_dir=/path/to/extracted/hub/libs
 ```
 
-This includes the iris2 jars in the distribution and excludes the open-source stub replacements (`arcus-zigbee-controller`, `arcus-zw-controller`).
+This includes the iris2 jars that `agent/arcus-agent/hub-v2/build.gradle` lists in the distribution and excludes the open-source stub replacements (`arcus-zigbee-controller`, `arcus-zw-controller`). Other jars in the directory, such as the camera controller, are ignored.
 
 ### Netty 4.0/4.1 Compatibility
 

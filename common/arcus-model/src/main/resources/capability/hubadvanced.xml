@@ -255,24 +255,6 @@
          name="Deregister"
          description="Event sent from the platform to the hub informing it that it needs to deregister (boot all devices and factory reset)"/>
        
-      <c:event
-         name="StartUploadingCameraPreviews"
-         description="Event sent from the platform to the hub informing it that it should start uploading camera preview snapshots up to the server.
-If the hub is already publishing snapshots, it should increment some counter for the number of requests it has received but not start new uploads so
-when StopCameraPreviews is issued it will know when it is safe to stop uploading.">
-
-         <c:parameters>
-            <c:parameter name="uploadUrl" type="string" description="The URL at which the hub should upload multi-part batches of camera preview images."/>
-         </c:parameters>
-
-      </c:event>
-      
-      <c:event
-         name="StopUploadingCameraPreviews"
-         description="Event sent from the platform to the hub informing it to stop uploading camera previews.  This should decrement the counter of the
-PublishCameraPreviews (to account for multiple user sessions) and when it is zero should stop uploading."/>
-
-
       <c:event 
          name="UnpairedDeviceRemoved" 
          description="Event sent when an unpaired or unvetted device is removed from the hub.">

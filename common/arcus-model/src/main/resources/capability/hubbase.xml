@@ -170,7 +170,7 @@
             <c:parameter 
                name="scope"
                type="enum"
-               values="ROOT,AGENT,ZIGBEE,ZWAVE,BLE,SERCOMM"
+               values="ROOT,AGENT,ZIGBEE,ZWAVE,BLE"
                description="The logging scope affected by the log level, ROOT if none is specified."
                optional="true"/>
          </c:parameters>

@@ -759,11 +759,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    }
 
    @Override
-   public Class<? extends Module> getSercommControllerModuleClass() {
-      return SercommModuleHubV2.class;
-   }
-
-   @Override
    public Class<? extends Module> get4gControllerModuleClass() {
       return FourGModuleHubV2.class;
    }
@@ -835,22 +830,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          bind(ZigbeeController.class).in(Singleton.class);
          bind(ZigbeeLocalProcessing.class).to(ZigbeeLocalProcessingDefault.class).asEagerSingleton();
 
-      }
-   }
-
-   public static final class SercommModuleHubV2 extends AbstractModule {
-      @Override
-      protected void configure() {
-         String disable = System.getenv("SERCOMM_DISABLE");
-         /*
-         if (disable != null) {
-            bind(SercommLocalProcessing.class).to(SercommLocalProcessingNoop.class).asEagerSingleton();
-            return;
-         }
-
-         bind(SercommCameraController.class).in(Singleton.class);
-         bind(SercommLocalProcessing.class).to(SercommLocalProcessingDefault.class).asEagerSingleton();
-         */
       }
    }
 
