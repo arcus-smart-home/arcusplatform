@@ -289,7 +289,7 @@ HubCapability              HubAdvancedCapability      HubConnectionCapability
 HubMetricsCapability       HubNetworkCapability       HubPowerCapability
 HubVolumeCapability        HubZigbeeCapability        HubZwaveCapability
 HubChimeCapability         HubSoundsCapability        HubBackupCapability
-HubDebugCapability         Hub4gCapability            HubReflexCapability
+HubDebugCapability         HubReflexCapability
 HubAlarmCapability         HubKitCapability           HubWiFiCapability (if supported)
 HubButtonCapability (if supported)
 ```
@@ -803,7 +803,6 @@ export IRIS_AGENT_HUBV2_DATADIR=~/.hub-simulated
 export IRIS_GATEWAY_URI=wss://localhost:8082/hub/1.0
 export ZWAVE_DISABLE=true
 export ZIGBEE_DISABLE=true
-export FOURG_DISABLE=true
 ./run-agent.sh
 ```
 
@@ -834,7 +833,6 @@ When building **without** external jars, the open-source stubs are used instead.
 |-----------|--------|-------|
 | `arcus-zigbee-controller` | Working | Open-source EZSP/Ember driver with device discovery, IAS Zone enrollment, and AlertMe device support |
 | `arcus-zw-controller` | Stub | Open-source Z/IP engine is incomplete; iris2 jar required for working Z-Wave |
-| `arcus-4g-controller` | Not started | Cellular backup radio — would need reimplementation |
 | `arcus-hue-controller` | Not started | Philips Hue bridge integration — would need reimplementation |
 
 The `external_jars_dir` build property allows including closed-source iris2 jars for controllers that don't yet have open-source replacements. See [build.md](build.md#building-with-closed-source-controller-jars) for details.

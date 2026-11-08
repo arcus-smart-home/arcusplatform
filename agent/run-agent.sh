@@ -63,11 +63,6 @@ export ZWAVE_PORT=/dev/ttyACM0
 export ZIGBEE_DISABLE=true
 export ZIGBEE_PORT=tcp://192.168.2.218
 
-# Disable 4G backup support. If you need to run 4G backup support in a
-# local mannger then get a 4G backup dongle from the hub technical lead
-# and ask for assistance in setting up the backup settings.
-export FOURG_DISABLE=true
-
 # This controls the network interfaces that the
 # hub will use for UPNP device discovery. If you
 # have a Hue device you will need to ensure that

@@ -40,14 +40,6 @@ public final class FourgService {
    private FourgService() {
    }
 
-   public static void start() {
-      listeners.clear();
-   }
-
-   public static void shutdown() {
-      listeners.clear();
-   }
-
    public static State getState() {
       return current;
    }

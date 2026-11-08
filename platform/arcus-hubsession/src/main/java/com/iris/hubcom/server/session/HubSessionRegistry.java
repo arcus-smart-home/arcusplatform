@@ -18,12 +18,9 @@
  */
 package com.iris.hubcom.server.session;
 
-import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PreDestroy;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.codahale.metrics.Timer;
@@ -43,11 +39,9 @@ import com.iris.bridge.server.client.ClientFactory;
 import com.iris.bridge.server.session.DefaultSessionRegistryImpl;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionListener;
-import com.iris.core.dao.HubDAO;
 import com.iris.core.platform.IntraServiceMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
-import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.metrics.IrisMetrics;
 import com.iris.platform.hubbridge.HeartbeatMessage;
 import com.iris.platform.partition.Partitioner;
@@ -63,7 +57,6 @@ public class HubSessionRegistry extends DefaultSessionRegistryImpl {
    private final Partitioner partitioner;
    private final IntraServiceMessageBus intraServiceBus;
    private final ScheduledExecutorService executor;
-   private final ScheduledExecutorService cellDumpExecutor;
 
    @Inject(optional = true) @Named("hub.heartbeat.batchSize")
    private int batchSize = 1000;
@@ -71,22 +64,16 @@ public class HubSessionRegistry extends DefaultSessionRegistryImpl {
    private long heartbeatIntervalMs = TimeUnit.SECONDS.toMillis(1);
    @Inject(optional = true) @Named("hub.heartbeat.partitionsPerHeartbeat")
    private int partitionsPerHeartbeat = 4;
-   @Inject(optional = true) @Named("hub.cellbackup.dump.startdelay.secs")
-   private long cellbackupDumpStartDelay = 1;
-   @Inject(optional = true) @Named("hub.cellbackup.dump.interval.mins")
-   private int cellbackupIntervalMins = 5;
 
    private final AtomicInteger nextHeartbeatPartition = new AtomicInteger(0);
    private final Timer heartbeatTimer;
-   private final HubDAO hubDao;
 
    @Inject
    public HubSessionRegistry(
          ClientFactory clientFactory,
          Set<SessionListener> listeners,
          Partitioner partitioner,
-         IntraServiceMessageBus intraServiceBus,
-         HubDAO hubDao
+         IntraServiceMessageBus intraServiceBus
    ) {
       super(clientFactory, listeners);
       this.partitioner = partitioner;
@@ -98,30 +85,17 @@ public class HubSessionRegistry extends DefaultSessionRegistryImpl {
                      .setNameFormat("hub-session-heartbeat")
                      .build()
             );
-      this.cellDumpExecutor = Executors
-            .newSingleThreadScheduledExecutor(
-                  ThreadPoolBuilder
-                     .defaultFactoryBuilder()
-                     .setNameFormat("hub-session-cellbackup")
-                     .build()
-            );
       this.heartbeatTimer = IrisMetrics.metrics("bridge.hub").timer("heartbeat");
-      this.hubDao = hubDao;
    }
 
    @WarmUp
    public void start() {
       executor.scheduleAtFixedRate(() -> heartbeat(), heartbeatIntervalMs, heartbeatIntervalMs, TimeUnit.MILLISECONDS);
-      cellDumpExecutor.scheduleAtFixedRate(() -> persistCellTimes(),
-            TimeUnit.MILLISECONDS.convert(cellbackupDumpStartDelay, TimeUnit.SECONDS),
-            TimeUnit.MILLISECONDS.convert(cellbackupIntervalMins, TimeUnit.MINUTES),
-            TimeUnit.MILLISECONDS);
    }
 
    @PreDestroy
    public void stop() {
       executor.shutdownNow();
-      cellDumpExecutor.shutdownNow();
    }
 
    public void heartbeat() {
@@ -140,17 +114,6 @@ public class HubSessionRegistry extends DefaultSessionRegistryImpl {
          }
          flush(connectedHubs);
       }
-   }
-
-   public void persistCellTimes() {
-      Map<String,String> hubsOnCell = new HashMap<>();
-      for(Session session : getSessions()) {
-         HubSession hs = (HubSession) session;
-         if(Objects.equals(HubNetworkCapability.TYPE_3G, hs.getConnectionType()) && !StringUtils.isBlank(hs.getSimId())) {
-            hubsOnCell.put(hs.getHubId(), hs.getSimId());
-         }
-      }
-      hubDao.insertCellBackupTimes(Calendar.getInstance(), hubsOnCell, cellbackupIntervalMins);
    }
 
    private void accumulate(@Nullable PlatformPartition partition, String hubId, Map<PlatformPartition, Set<String>> connectedHubs) {

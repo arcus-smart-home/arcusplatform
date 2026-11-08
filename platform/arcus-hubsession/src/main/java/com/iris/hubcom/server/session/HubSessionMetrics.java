@@ -17,7 +17,6 @@ package com.iris.hubcom.server.session;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.ImmutableMap;
@@ -25,7 +24,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionRegistry;
-import com.iris.messages.capability.HubNetworkCapability;
 import com.iris.metrics.IrisMetrics;
 import com.iris.metrics.tag.Tag;
 import com.iris.metrics.tag.TagValue;
@@ -44,7 +42,6 @@ public class HubSessionMetrics {
 
    public Map<String, Object> sample() {
       long total = 0;
-      long cell = 0;
       long handshaking = 0;
       long below_min_fw = 0;
       long unregistered = 0;
@@ -53,7 +50,6 @@ public class HubSessionMetrics {
       long invalid_account = 0;
       long invalid = 0;
       long authorized = 0;
-      long bannedcell = 0;
       long unauthenticated = 0;
       Map<TagValue, Integer> firmwares = new LinkedHashMap<TagValue, Integer>(16);
 
@@ -64,9 +60,6 @@ public class HubSessionMetrics {
          }
          total++;
          HubSession hubSession = (HubSession) session;
-         if(Objects.equals(HubNetworkCapability.TYPE_3G, hubSession.getConnectionType())) {
-            cell++;
-         }
          
          TagValue tag = firmware.tag(hubSession.getFirmwareVersion());
          int count = firmwares.getOrDefault(tag, 0) + 1;
@@ -84,7 +77,6 @@ public class HubSessionMetrics {
             case ORPHANED: orphaned++; break;
             case INVALID_ACCOUNT: invalid_account++; break;
             case HANDSHAKING: handshaking++; break;
-            case BANNED_CELL: bannedcell++; break;
             case UNAUTHENTICATED: unauthenticated++; break;
             default: invalid++;
             }
@@ -99,7 +91,6 @@ public class HubSessionMetrics {
 
       return ImmutableMap.<String,Object>builder()
             .put("total", total)
-            .put("cellbackup", cell)
             .put("invalid", invalid)
             .put("unauth.below_min_fw", below_min_fw)
             .put("unauth.unregistered", unregistered)
@@ -107,7 +98,6 @@ public class HubSessionMetrics {
             .put("unauth.orphaned", orphaned)
             .put("unauth.invalid_account", invalid_account)
             .put("unauth.handshaking", handshaking)
-            .put("unauth.banned_cell", bannedcell)
             .put("unauth.invalid_cert", unauthenticated)
             .put("authorized", authorized)
             .put("firmware", firmwares)

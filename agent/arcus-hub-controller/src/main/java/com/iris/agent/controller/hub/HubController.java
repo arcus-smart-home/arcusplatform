@@ -80,7 +80,6 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.address.DeviceProtocolAddress;
 import com.iris.messages.capability.Capability;
-import com.iris.messages.capability.Hub4gCapability;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubAlarmCapability;
 import com.iris.messages.capability.HubBackupCapability;
@@ -213,7 +212,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       CAPS.add(HubSoundsCapability.NAMESPACE);
       CAPS.add(HubBackupCapability.NAMESPACE);
       CAPS.add(HubDebugCapability.NAMESPACE);
-      CAPS.add(Hub4gCapability.NAMESPACE);
       CAPS.add(HubReflexCapability.NAMESPACE);
       CAPS.add(HubAlarmCapability.NAMESPACE);      
       CAPS.add(HubKitCapability.NAMESPACE);
@@ -558,10 +556,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
         		 ) {
             port.send(ZigbeeController.ADDRESS, message);
             return Port.HANDLED;
-         }/* else if (type.startsWith(Hub4gCapability.NAMESPACE)) {
-            port.send(FourGController.ADDRESS, message);
-            return Port.HANDLED;
-         } else */ if (type.startsWith(HubReflexCapability.NAMESPACE) || 
+         } else if (type.startsWith(HubReflexCapability.NAMESPACE) || 
                     type.startsWith(DeviceService.NAMESPACE)) {
             port.send(ReflexController.ADDRESS, message);
             return Port.HANDLED;
