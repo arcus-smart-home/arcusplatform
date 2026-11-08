@@ -170,7 +170,7 @@ ext.libraries << [
 		jsr166y: "org.codehaus.jsr166-mirror:jsr166y:1.7.0",
 		jna: 'net.java.dev.jna:jna:5.19.1',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
-		oshi_core: 'com.github.oshi:oshi-core:7.7.2',
+		oshi_core: 'com.github.oshi:oshi-core:7.7.3',
 		kxml2: 'kxml2:kxml2:2.3.0',
 		jetty_servlet: 'org.eclipse.jetty:jetty-servlet:9.2.22.v20170606',
 
