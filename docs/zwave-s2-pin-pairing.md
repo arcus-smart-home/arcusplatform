@@ -5,9 +5,12 @@ get those keys if the user types in the 5 digit PIN printed on it. This page
 is the contract between the hub agent, the platform and clients for collecting
 that PIN during pairing.
 
-The platform side is in `PairingSubsystem` (`S2PinPairing`) and the hub bridge.
-The hub side is not built yet; [What the hub agent must do](#what-the-hub-agent-must-do)
-lists it. Mobile and web clients live in other repos;
+The platform side is in `PairingSubsystem` (`S2PinPairing`) and the hub bridge,
+and Oculus can enter a PIN. The hub side belongs to the hub's Z-Wave controller;
+[What the hub's Z-Wave controller must do](#what-the-hubs-z-wave-controller-must-do)
+lists its part. The iris2 controller and the Z-Wave controller on master don't
+take part: they ignore `s2PinEntry` and never ask for a PIN, so devices pair on
+them as before. Mobile and web clients live in other repos;
 [What a client must do](#what-a-client-must-do) is their part.
 
 ## Background
@@ -302,45 +305,39 @@ only protects one inclusion against a man in the middle, but it is printed on
 the device and is the same when it is paired again. A shorter `retention.ms`
 on `platform` would narrow this.
 
-## What the hub agent must do
+## What the hub's Z-Wave controller must do
 
-Against `agent/arcus-zw-controller/.../security/ZWSecurity2.java` as of
-`feature/open-zwave-controller` 2b3d7b7b:
+The messages above are the contract. These are the parts that are easy to get
+wrong:
 
-1. **Send the hub's public key before asking for the PIN.** `bootstrapNow`
-   calls `pinProvider.pinFor()` before sending its Public Key Report, and the
-   node only waits TB3 (10 s) for that report. Send it immediately, as zwave-js
-   does, then ask for the PIN. Derive the temporary keys once the PIN arrives.
-   Until then the node's KEX Set echoes can't be decrypted; the existing Nonce
-   Report resync should cope, but this needs a bench test.
-2. **Bound the PIN wait** at `timeoutMs` (200 s), and end it early on
-   `CancelS2Pin` or a KEX Fail from the node. Today `pinFor` has no timeout.
-3. **Wait for the echo for the rest of TAI2**, not `ECHO_WAIT_MS` (30 s), when a
-   PIN was used. Keep 30 s when it wasn't.
-4. **Grant Authenticated and Access Control only** when `ZWAVE_S2_AUTHENTICATED`
-   is set, a provider is installed, **and** the current pairing session came
-   with `s2PinEntry: true` (`grantable()`).
-5. **Implement the provider**: send `S2PinRequired` to
-   `Address.platformService(placeId, "subpairing")` with `port.send` (not
-   `sendEvent`, which broadcasts), then block until `SubmitS2Pin`,
-   `CancelS2Pin`, a KEX Fail or the timeout. Return the PIN or null.
-6. **Handle `hubzwave:SubmitS2Pin` and `hubzwave:CancelS2Pin`** in
-   `ZWaveController.recv` as described above. If the hub is not connected when
-   it needs a PIN, return null at once rather than waiting.
-7. **Send `S2PinFinished`** exactly once per request.
-8. **Keep the secrets out of logs**, which the hub ships to the platform's
-   `irisLog` topic:
-   - `ZWSecurity2` logs the DSK at INFO (`"Z-Wave node {} DSK: {}"`, line 651).
-     Remove it.
-   - `ZWaveSerialEngine` logs every frame in hex at DEBUG (`TX:` line 424,
-     `RX:` line 496). The node's Public Key Report carries the DSK. Mask
-     Security 2 payloads, or at least Public Key Reports.
-   - `SpyService` keeps recent platform messages when `IRIS_HUB_SPY_ACTIVE` is
-     set. It should skip these four message types.
-   - `"no PIN"` style exception messages are fine; never put the PIN or DSK in
-     one.
-9. **Reject a PIN above 65535.** `bootstrapNow` checks `\d{5}`, and
-   `Integer.parseInt` then truncates anything larger. Use `S2Pin.isValidPin`.
+1. **Send the hub's Public Key Report before asking for the PIN.** The node
+   waits only TB3 (10 s) for it. Derive the temporary keys once the PIN
+   arrives; the node's KEX Set echoes can't be decrypted before then.
+2. **Grant S2 Authenticated and Access Control only when a client can answer**,
+   that is when the latest `START_PAIRING` had `s2PinEntry: true`. Decide when
+   the key exchange starts. Otherwise grant only the classes that need no PIN.
+3. **Ask for one PIN at a time.** Send `S2PinFinished` for one request before
+   sending the next `S2PinRequired`, since the platform takes a new request as
+   the end of the last.
+4. **Send `S2PinRequired` point to point** to
+   `Address.platformService(placeId, "subpairing")`, not as an event, which
+   broadcasts. If the hub isn't connected, don't wait for an answer that can't
+   come.
+5. **Bound the wait** at `timeoutMs`, and end it early on `CancelS2Pin` or a KEX
+   Fail from the node.
+6. **Wait for the KEX Set echo for the rest of TAI2**, at least 40 s, once a PIN
+   is used.
+7. **Leaving pairing mode doesn't end a key exchange.** The hub's pairing window
+   keeps its own timer while the platform holds the search open for the PIN, so
+   a device that joins near the end of the window is still waiting when the
+   window closes.
+8. **Check the PIN with `S2Pin.isValidPin`.** Five digits alone lets through
+   65536 to 99999, which don't fit in the two bytes the PIN fills.
+9. **Keep the PIN and DSK out of logs.** The hub ships its logs to the
+   platform's `irisLog` topic. Don't log the DSK, and mask Security 2 payloads
+   in frame dumps, since the node's Public Key Report carries it. Keep these
+   four messages out of anything that records platform messages, such as the
+   hub's spy service, and never quote either value in an exception message.
 
 ## What a client must do
 
