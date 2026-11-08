@@ -15,6 +15,7 @@
  */
 package com.iris.platform.subsystem.pairing.state;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
@@ -92,6 +93,10 @@ public class PairingStateMachine extends StateMachine<PairingSubsystemModel, Pai
 		transition(current().stopPairing(context()));
 	}
 	
+	public void keepSearchingUntil(Date until) {
+		current().keepSearchingUntil(context(), until);
+	}
+
 	/**
 	 * Invoked when the hub enters pairing mode *via* request from the PairingSubsystem.
 	 * This will not be used for generic pairing / unpairing changes from legacy systems.

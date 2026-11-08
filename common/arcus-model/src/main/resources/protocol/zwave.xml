@@ -38,6 +38,14 @@
          name="CommandClasses"
          type="set&lt;byte&gt;"
          description="The supported command classes." />
+      <p:attribute
+         name="Security"
+         type="string"
+         description="The highest security class the hub granted the device when it was added: S2_ACCESS_CONTROL, S2_AUTHENTICATED, S2_UNAUTHENTICATED, S0 or NONE. Hubs running the iris2 Z-Wave controller leave it out, so a missing value means unknown, not NONE." />
+      <p:attribute
+         name="SecurityRequested"
+         type="string"
+         description="The highest security class the device asked for when it was added, in the same terms as Security. When it is higher than Security, the device joined with less than it asked for, usually because no client could enter its S2 PIN, and pairing it again gets it the rest. Left out when the hub doesn't know." />
    </p:attributes>
    
 </p:protocol>

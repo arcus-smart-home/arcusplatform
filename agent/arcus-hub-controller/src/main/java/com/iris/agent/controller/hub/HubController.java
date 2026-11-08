@@ -807,7 +807,10 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       if (HubCapability.STATE_UNPAIRING.equals(oldState)) {
          doExitUnpairingMode();
       } else if (HubCapability.STATE_PAIRING.equals(oldState)) {
-         log.warn("dropping start pairing request, already in pairing mode");
+         // The window keeps its timer, but Z-Wave takes s2PinEntry from every request, so a client
+         // that can enter an S2 PIN is still heard after a search started without one
+         log.info("already in pairing mode, passing the request on to Z-Wave only");
+         port.forward(ZWaveController.ADDRESS, message);
          return;
       }
 

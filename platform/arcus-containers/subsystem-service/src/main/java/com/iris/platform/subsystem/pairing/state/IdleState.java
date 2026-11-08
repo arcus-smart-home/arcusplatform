@@ -20,6 +20,7 @@ import com.iris.messages.capability.PairingSubsystemCapability;
 import com.iris.messages.model.subs.PairingSubsystemModel;
 import com.iris.platform.subsystem.pairing.PairingUtils;
 import com.iris.platform.subsystem.pairing.ProductLoaderForPairing.ProductCacheInfo;
+import com.iris.platform.subsystem.pairing.S2PinPairing;
 
 public class IdleState extends PairingState {
 
@@ -41,6 +42,7 @@ public class IdleState extends PairingState {
 		PairingUtils.clearPendingPairingState(context);
 		// we don't clear the z-wave rebuild flag here because we re-enter this state from a StopPairingRequest
 		// which happens before DismissAll
+		S2PinPairing.abandon(context);
 		stopHubPairingIfNeeded(context);
 		return super.onEnter(context);
 	}

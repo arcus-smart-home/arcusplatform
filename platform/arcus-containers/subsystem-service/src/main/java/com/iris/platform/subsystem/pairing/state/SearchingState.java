@@ -115,6 +115,17 @@ public class SearchingState extends PairingState {
 	}
 
 	@Override
+	public boolean keepSearchingUntil(SubsystemContext<PairingSubsystemModel> context, Date until) {
+		boolean moved = super.keepSearchingUntil(context, until);
+		if(moved) {
+			// The state has one timer, which a pending idle check would otherwise
+			// have held. Something has been found, so that check has nothing to say.
+			context.setVariable(VAR_IDLE_TIMEOUT, true);
+		}
+		return moved;
+	}
+
+	@Override
 	public String onCloudPairingSucceeded(SubsystemContext<PairingSubsystemModel> context) {
 		return PairingStateName.Idle.name();
 	}

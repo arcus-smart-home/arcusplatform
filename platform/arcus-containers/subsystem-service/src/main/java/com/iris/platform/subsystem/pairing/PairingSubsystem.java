@@ -29,6 +29,7 @@ import com.google.inject.name.Named;
 import com.iris.annotation.Version;
 import com.iris.common.subsystem.BaseSubsystem;
 import com.iris.common.subsystem.SubsystemContext;
+import com.iris.common.subsystem.SubsystemUtils;
 import com.iris.common.subsystem.annotation.Subsystem;
 import com.iris.core.dao.HubDAO;
 import com.iris.messages.MessageBody;
@@ -36,19 +37,25 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.address.ProtocolDeviceId;
 import com.iris.messages.capability.HubCapability;
+import com.iris.messages.capability.HubZwaveCapability.S2PinFinishedEvent;
+import com.iris.messages.capability.HubZwaveCapability.S2PinRequiredEvent;
 import com.iris.messages.capability.PairingSubsystemCapability;
+import com.iris.messages.capability.PairingSubsystemCapability.CancelS2PinRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.DismissAllRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.FactoryResetRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.GetKitInformationRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.GetKitInformationResponse;
+import com.iris.messages.capability.PairingSubsystemCapability.GetS2PinRequestRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.ListHelpStepsRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.ListPairingDevicesRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.SearchRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.StartPairingRequest;
 import com.iris.messages.capability.PairingSubsystemCapability.StopSearchingRequest;
+import com.iris.messages.capability.PairingSubsystemCapability.SubmitS2PinRequest;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.event.ScheduledEvent;
+import com.iris.messages.listener.annotation.OnMessage;
 import com.iris.messages.listener.annotation.OnScheduledEvent;
 import com.iris.messages.listener.annotation.OnValueChanged;
 import com.iris.messages.listener.annotation.Request;
@@ -97,10 +104,14 @@ public class PairingSubsystem extends BaseSubsystem<PairingSubsystemModel> {
 		super.onStarted(context);
 		initializer.onStarted(context);
 		PairingStateMachine.get(context).onStarted();
+		S2PinPairing.onStarted(context);
 	}
 
 	@OnScheduledEvent
 	public void onEvent(SubsystemContext<PairingSubsystemModel> context, ScheduledEvent event) {
+		if(SubsystemUtils.isMatchingTimeout(event, context, S2PinPairing.VAR_TIMEOUT)) {
+			S2PinPairing.onTimeout(context);
+		}
 		PairingStateMachine.get( context ).onTimeout( event );
 	}
 	
@@ -192,6 +203,31 @@ public class PairingSubsystem extends BaseSubsystem<PairingSubsystemModel> {
 		return dismissHandler.dismissAll(context);
 	}
 	
+	@OnMessage(types = S2PinRequiredEvent.NAME)
+	public void onS2PinRequired(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
+		S2PinPairing.onRequired(context, message);
+	}
+
+	@OnMessage(types = S2PinFinishedEvent.NAME)
+	public void onS2PinFinished(SubsystemContext<PairingSubsystemModel> context, PlatformMessage message) {
+		S2PinPairing.onFinished(context, message);
+	}
+
+	@Request(GetS2PinRequestRequest.NAME)
+	public MessageBody getS2PinRequest(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.getRequest(context, request);
+	}
+
+	@Request(SubmitS2PinRequest.NAME)
+	public MessageBody submitS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.submit(context, request);
+	}
+
+	@Request(CancelS2PinRequest.NAME)
+	public MessageBody cancelS2Pin(SubsystemContext<PairingSubsystemModel> context, PlatformMessage request) {
+		return S2PinPairing.cancel(context, request);
+	}
+
 	@Request(GetKitInformationRequest.NAME)
 	public MessageBody getKitInformation(
 			SubsystemContext<PairingSubsystemModel> context,

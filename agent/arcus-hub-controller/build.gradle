@@ -26,5 +26,7 @@ dependencies {
    api project(':common:arcus-metrics')
    implementation libraries.guava
    implementation libraries.oshi_core
+
+   testImplementation project(':agent:arcus-test-agent')
 }
 

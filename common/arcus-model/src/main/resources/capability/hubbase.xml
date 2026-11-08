@@ -102,6 +102,11 @@
                type="string"
                description="If there is a special pairing mode required for this pairing attempt as indicated by the pairingMode attribute of the product in the product catalog such as ZBCLEAR for clear text pairing in Zigbee needed for AlertMe devices"
                optional="true"/>
+           <c:parameter
+               name="s2PinEntry"
+               type="boolean"
+               description="(default: false) True if a client is ready to collect a Z-Wave S2 PIN. The hub only grants S2 Authenticated and Access Control when this is true, and takes the value from every START_PAIRING even if it is already in pairing mode."
+               optional="true"/>
            </c:parameters>
       </c:method> 
 

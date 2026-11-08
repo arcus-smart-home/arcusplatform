@@ -35,6 +35,8 @@ import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.HubAdvancedCapability;
+import com.iris.messages.capability.HubZwaveCapability;
+import com.iris.messages.capability.PairingSubsystemCapability;
 import com.iris.metrics.IrisMetricSet;
 import com.iris.metrics.IrisMetrics;
 import com.iris.protocol.ProtocolMessage;
@@ -52,6 +54,7 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
    private static final Counter ADMIN_ONLY_REJECTED = METRICS.counter("adminonly.rejected");
    private static final Counter PLACE_MISMATCH_PLATFORM = METRICS.counter("place.mismatch.platform");
    private static final Counter PLACE_MISMATCH_PROTOCOL = METRICS.counter("place.mismatch.protocol");
+   private static final Counter S2_PIN_REJECTED = METRICS.counter("s2pin.rejected");
 
    public static final String ADMIN_ADDRESS_PROP = "hub.bridge.admin.address.predicate";
    public static final String ADMIN_ONLY_MESSAGES_PROP = "hub.bridge.admin.only.message.predicate";
@@ -74,6 +77,13 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
    public boolean acceptFromHub(HubSession session, PlatformMessage msg) {
       String hubId = session.getHubId();
       Address messageAddress = msg.getSource();
+
+      // the DSK must not get out onto a broadcast, however the hub addressed it
+      if(HubZwaveCapability.S2PinRequiredEvent.NAME.equals(msg.getMessageType()) && !isPairingSubsystem(session, msg.getDestination())) {
+         S2_PIN_REJECTED.inc();
+         logger.warn("Dropping [{}] from hub [{}] not addressed to its pairing subsystem", msg.getMessageType(), hubId);
+         return false;
+      }
 
       if(!Objects.equals(hubId, messageAddress.getHubId())) {
          SOURCE_MISMATCH.inc();
@@ -127,6 +137,17 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
    public boolean acceptFromPlatform(HubSession session, PlatformMessage msg) {
       String placeId = msg.getPlaceId();
 
+      // The pairing subsystem checks who is answering, which request, and the PIN format.
+      // This comes first since it applies to admin addresses and to messages without a place.
+      if(isS2PinAnswer(msg) && !(isPairingSubsystem(session, msg.getSource()) && Objects.equals(placeId, session.getActivePlace()))) {
+         S2_PIN_REJECTED.inc();
+         logger.warn("Rejecting [{}] that did not come from the pairing subsystem: [{}]", msg.getMessageType(), msg.getSource());
+         if (msg.isRequest()) {
+            platformBusService.placeMessageOnPlatformBus(PlatformMessage.buildResponse(msg, AuthzUtil.createUnauthorizedEvent()).create());
+         }
+         return false;
+      }
+
       // FIXME replace this with the admin place
       if(StringUtils.isEmpty(placeId)) {
          return true;
@@ -155,6 +176,19 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
       PLACE_MISMATCH_PLATFORM.inc();
       logger.warn("Rejecting message with incorrect place header [{}] from [{}]", placeId, msg.getSource());
       return false;
+   }
+
+   private static boolean isS2PinAnswer(PlatformMessage msg) {
+      String type = msg.getMessageType();
+      return HubZwaveCapability.SubmitS2PinRequest.NAME.equals(type) || HubZwaveCapability.CancelS2PinRequest.NAME.equals(type);
+   }
+
+   private static boolean isPairingSubsystem(HubSession session, Address address) {
+      String placeId = session.getActivePlace();
+      return
+            !StringUtils.isEmpty(placeId) &&
+            PairingSubsystemCapability.NAMESPACE.equals(address.getGroup()) &&
+            placeId.equals(String.valueOf(address.getId()));
    }
 
    @Override

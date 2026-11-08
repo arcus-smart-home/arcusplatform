@@ -82,6 +82,7 @@ public class PairingInstructionsPage extends BaseComponentWrapper<Component> imp
 		
 		PairingSubsystem.SearchRequest search = new PairingSubsystem.SearchRequest();
 		search.setForm((Map) form.getValues());
+		search.setS2PinEntry(true);
 		search.setProductAddress(input.getProduct().transform(Model::getAddress).orNull());
 		return 
 			input.getPairingSubsystem()

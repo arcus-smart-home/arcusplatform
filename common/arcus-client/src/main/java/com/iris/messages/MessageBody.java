@@ -19,8 +19,10 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.iris.device.attributes.AttributeMap;
 import com.iris.device.attributes.AttributeValue;
 
@@ -28,6 +30,16 @@ public class MessageBody implements Serializable {
 
    private static final String RESPONSE = "Response";
    private static final String REQUEST = "Request";
+
+   // These carry a Z-Wave S2 PIN or DSK, which must never reach a log, so toString
+   // leaves their attributes out. The platform and the hub both print messages
+   // through toString; see docs/zwave-s2-pin-pairing.md.
+   private static final Set<String> SECRET_MESSAGE_TYPES = ImmutableSet.of(
+         "hubzwave:S2PinRequired",
+         "hubzwave:SubmitS2Pin",
+         "subpairing:SubmitS2Pin",
+         "subpairing:GetS2PinRequestResponse"
+   );
 
    private static final MessageBody EMPTY = new MessageBody(MessageConstants.MSG_EMPTY_MESSAGE, Collections.<String,Object>emptyMap());
    private static final MessageBody PING = new MessageBody(MessageConstants.MSG_PING_REQUEST, Collections.<String,Object>emptyMap());
@@ -205,7 +217,7 @@ public class MessageBody implements Serializable {
    @Override
    public String toString() {
       return "MessageBody [messageType=" + messageType + ", attributes="
-            + attributes + "]";
+            + (SECRET_MESSAGE_TYPES.contains(messageType) ? "<redacted>" : attributes) + "]";
    }
 }
 

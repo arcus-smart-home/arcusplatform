@@ -213,9 +213,7 @@ public class InMemoryMessageBus<T extends Message> implements MessageBus<T> {
    
    private T translate(T message) {
 	   byte [] b = serializer.serialize(message);
-	   if(LOGGER.isInfoEnabled()) {
-	   	LOGGER.info("{}: {} posted", name, new String(b));
-	   }
+	   LOGGER.info("{}: {} posted", name, message);
 	   return deserializer.deserialize(b);
    }
 

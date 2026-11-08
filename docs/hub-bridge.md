@@ -256,9 +256,11 @@ The `authorized()` method on `DirectMessageHandler`:
   - Error responses
   - Responses to admin addresses
 - Allowed during `PENDING_REG_ACK`: `MSG_HUB_REGISTERED_RESPONSE`
+- `hubzwave:S2PinRequired` is dropped unless addressed to the pairing subsystem of the hub's place
 
 **Outbound (platform → hub):**
 
+- `hubzwave:SubmitS2Pin` and `hubzwave:CancelS2Pin` only from the pairing subsystem of the hub's place, checked before anything else (see [zwave-s2-pin-pairing.md](zwave-s2-pin-pairing.md))
 - Messages with no place ID pass through
 - Admin address messages bypass place filtering
 - Place ID must match session's active place (prevents cross-contamination)

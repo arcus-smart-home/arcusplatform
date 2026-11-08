@@ -26,6 +26,7 @@ import com.iris.messages.model.Model;
 import com.iris.messages.model.hub.HubModel;
 import com.iris.messages.model.subs.PairingSubsystemModel;
 import com.iris.platform.subsystem.pairing.PairingUtils;
+import com.iris.platform.subsystem.pairing.S2PinPairing;
 
 public class FactoryResetStepsState extends PairingState {
 
@@ -35,6 +36,8 @@ public class FactoryResetStepsState extends PairingState {
 
 	@Override
 	public String onEnter(SubsystemContext<PairingSubsystemModel> context) {
+		// first, so that the reset below doesn't hold the timer open for it
+		S2PinPairing.abandon(context);
 		// TODO consider a dedicated timer for factory reset?
 		resetSearchTimeout(context);
 		// this may be removed to allow the hub to stay in Zigbee pairing mode during a factory reset

@@ -67,6 +67,18 @@
          optional="true"
          description="The pairingMode attribute from the product element of the product catalog. This value is sent to the hub to let the hub know if it needs to do anything special for the device selected to be paired such as ZBCLEAR to indicate clear text pairing for AlertMe Zigbee devices." 
       	 />
+      <c:attribute
+         name="s2PinRequestId"
+         type="string"
+         readwrite="r"
+         optional="true"
+         description="Set while a Z-Wave device is waiting for the S2 PIN printed on it. Call GetS2PinRequest to read the DSK and show it to the user, then SubmitS2Pin or CancelS2Pin. Empty once answered or expired, and absent before the first request." />
+      <c:attribute
+         name="s2PinExpires"
+         type="timestamp"
+         readwrite="r"
+         optional="true"
+         description="When the system stops accepting an answer to s2PinRequestId. 0 when no device is waiting, and absent before the first request." />
    </c:attributes>
    
    <c:methods>
@@ -94,6 +106,12 @@
             type="boolean"
             optional="true"
             description="(default: false) If set to true the system will attempt to create a mock device for pairing purposes, this is not supported by all product addresses and is intended for debugging.  When set to true the hub will never be put in pairing mode."
+            />
+         <c:parameter
+            name="s2PinEntry"
+            type="boolean"
+            optional="true"
+            description="(default: false) Set to true if this client can show a DSK and collect a Z-Wave S2 PIN. Without it the hub will not grant S2 Authenticated or Access Control, so the device joins with a lower class rather than waiting for a PIN nobody can enter."
             />
          <c:return
             name="steps"
@@ -158,6 +176,12 @@ If the requested product is an OAuth connected device, an error will be returned
             type="map&lt;string&gt;"
             optional="true"
             description="(default: {}) Any input parameters gathered from the user."
+            />
+         <c:parameter
+            name="s2PinEntry"
+            type="boolean"
+            optional="true"
+            description="(default: false) Set to true if this client can show a DSK and collect a Z-Wave S2 PIN. Without it the hub will not grant S2 Authenticated or Access Control, so the device joins with a lower class rather than waiting for a PIN nobody can enter."
             />
          <c:return
             name="mode"
@@ -245,6 +269,66 @@ This will take the hub out of pairing mode.
          </c:errors>
       </c:method>
       
+      <c:method
+         name="GetS2PinRequest"
+         description="Reads the Z-Wave S2 PIN request named by s2PinRequestId, for clients to show the DSK before asking for the PIN. This is the only way a client receives the DSK: it is never in an attribute or an event. The response is a secret, see docs/zwave-s2-pin-pairing.md.">
+         <c:return
+            name="requestId"
+            type="string"
+            optional="false"
+            description="The request to pass to SubmitS2Pin or CancelS2Pin."
+            />
+         <c:return
+            name="dsk"
+            type="string"
+            optional="false"
+            description="The DSK as eight dash separated groups of five digits. The first group is 00000, standing in for the PIN. The user must check the other seven against the device."
+            />
+         <c:return
+            name="expires"
+            type="timestamp"
+            optional="false"
+            description="When the system stops accepting an answer."
+            />
+         <c:errors>
+            <c:error code="request.state.invalid" description="If no device is waiting for a PIN." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="SubmitS2Pin"
+         description="Sends the PIN printed on the device to the hub. There is one attempt per request: a malformed PIN can be retried, but any well formed PIN uses up the request. The request is a secret, see docs/zwave-s2-pin-pairing.md.">
+         <c:parameter
+            name="requestId"
+            type="string"
+            optional="false"
+            description="The value of s2PinRequestId being answered."
+            />
+         <c:parameter
+            name="pin"
+            type="string"
+            optional="false"
+            description="The five decimal digits printed on the device, 00000 to 65535."
+            />
+         <c:errors>
+            <c:error code="request.param.invalid" description="If the PIN is not five digits between 00000 and 65535." />
+            <c:error code="request.state.invalid" description="If requestId is not waiting for a PIN: expired, already answered or cancelled." />
+            <c:error code="hub.offline" description="If the hub did not take the PIN." />
+         </c:errors>
+      </c:method>
+      <c:method
+         name="CancelS2Pin"
+         description="Declines to enter the PIN. The hub ends the key exchange, and the device has to be reset before it can join securely.">
+         <c:parameter
+            name="requestId"
+            type="string"
+            optional="false"
+            description="The value of s2PinRequestId being declined."
+            />
+         <c:errors>
+            <c:error code="request.state.invalid" description="If requestId is not waiting for a PIN: expired, already answered or cancelled." />
+         </c:errors>
+      </c:method>
+
    </c:methods>
    
    <c:events>
