@@ -130,7 +130,7 @@ public abstract class BaseModelDao<M extends Entity<?, M>> {
       if(ad == null) {
          if (IrisAttributeLookup.isDeprecatedNamespace(key.getNamespace())) {
             logger.trace("Ignoring attribute [{}] of a removed capability", attributeName);
-         } else if (!attributeName.startsWith("_")) {
+         } else {
             logger.warn("Unrecognized attribute [{}] may lose type information when deserialized", attributeName);
          }
 

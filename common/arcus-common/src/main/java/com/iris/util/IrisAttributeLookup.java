@@ -68,7 +68,7 @@ public class IrisAttributeLookup {
       if (type == null) {
          if (!name.startsWith("_")) {
             String namespace = NamespacedKey.parse(name).getNamespace();
-            if (DEPRECATED_NAMESPACES.contains(namespace)) {
+            if (isDeprecatedNamespace(namespace)) {
                log.trace("ignoring deprecated attribute [{}]", name);
             } else {
                log.warn("unrecognized attribute [{}]: type information may be wrong", name);

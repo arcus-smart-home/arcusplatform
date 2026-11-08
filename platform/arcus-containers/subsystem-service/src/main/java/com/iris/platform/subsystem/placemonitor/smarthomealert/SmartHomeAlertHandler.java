@@ -62,7 +62,8 @@ public class SmartHomeAlertHandler extends BasePlaceMonitorHandler {
 
    public void onStarted(SubsystemContext<PlaceMonitorSubsystemModel> context) {
       AlertScratchPad scratch = scratchPad(context);
-      RETIRED_ALERT_TYPES.forEach(type -> scratch.removeAlert(AlertKeys.key(type, context.getPlaceId())));
+      scratch.alerts(alert -> RETIRED_ALERT_TYPES.contains(alert.getAlerttype()))
+         .forEach(alert -> scratch.removeAlert(alert.getAlertkey()));
       generators.forEach(generator -> generator.onStarted(context, scratch));
       postProcess(context, scratch);
    }
