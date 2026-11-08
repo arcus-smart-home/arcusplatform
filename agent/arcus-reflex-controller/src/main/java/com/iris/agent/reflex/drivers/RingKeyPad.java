@@ -52,16 +52,10 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       AlertCapability.NAME
    );
 
-   // Z-Wave Entry Control command class (0x6F = 111)
-   private static final byte CC_ENTRY_CONTROL     = (byte) 0x6F;
-   private static final byte EC_CMD_NOTIFICATION   = (byte) 0x01;
-   private static final byte EC_CMD_CONFIG_SET     = (byte) 0x06;
-
-   // Z-Wave Supervision command class (0x6C = 108)
-   private static final byte CC_SUPERVISION        = (byte) 0x6C;
-   private static final byte SUPERVISION_GET        = (byte) 0x01;
-   private static final byte SUPERVISION_REPORT     = (byte) 0x02;
-   private static final byte SUPERVISION_STATUS_SUCCESS = (byte) 0xFF;
+   // Entry Control configuration: the keypad sends a PIN once it has 4 digits,
+   // or 5 s after the last key
+   private static final byte EC_KEY_CACHE_SIZE      = 4;
+   private static final byte EC_KEY_CACHE_TIMEOUT_S = 5;
 
    // Entry Control event types (Z-Wave Entry Control CC spec, SDS13891)
    private static final int EC_EVENT_CACHING_STARTED = 0x00;
@@ -81,14 +75,6 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final int EC_DATATYPE_ASCII = 0x02;
    private static final int EC_DATATYPE_MASK  = 0x03;
 
-   // Z-Wave Battery command class (0x80)
-   private static final byte CC_BATTERY       = (byte) 0x80;
-   private static final byte BATTERY_REPORT   = (byte) 0x03;
-
-   // Z-Wave Notification/Alarm command class (0x71)
-   private static final byte CC_NOTIFICATION   = (byte) 0x71;
-   private static final byte NOTIF_REPORT      = (byte) 0x05;
-
    // Notification types
    private static final int NOTIF_TYPE_HOME_SECURITY    = 0x07;
    private static final int NOTIF_TYPE_POWER_MANAGEMENT = 0x08;
@@ -99,7 +85,6 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    private static final int POWER_EVENT_AC_RECONNECTED    = 0x03;
    private static final int POWER_EVENT_REPLACE_BATTERY_SOON = 0x0A;
    private static final int POWER_EVENT_REPLACE_BATTERY_NOW  = 0x0B;
-   private static final byte NOTIF_GET = (byte) 0x04;
 
    // Indicator CC V3 indicator ids (SDS13781 table, as zwave-js lists them). The
    // keypad only understands V3 indicator objects; a V1 Indicator Set value means
@@ -208,8 +193,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
    public void start() {
       log.info("starting ring keypad hub driver: {}", addr);
 
-      // Configure Entry Control to cache up to 4 digits with a 5-second timeout
-      zwaveSend(CC_ENTRY_CONTROL, EC_CMD_CONFIG_SET, (byte) 0x04, (byte) 0x05);
+      zwaveSend(CC_ENTRY_CONTROL, ENTRY_CONTROL_CONFIGURATION_SET, EC_KEY_CACHE_SIZE, EC_KEY_CACHE_TIMEOUT_S);
 
       // Request initial battery level
       sendBatteryGet();
@@ -220,13 +204,14 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
       log.info("ring keypad driver onconnected: {}", addr);
 
       // Re-configure Entry Control on reconnect
-      zwaveSend(CC_ENTRY_CONTROL, EC_CMD_CONFIG_SET, (byte) 0x04, (byte) 0x05);
+      zwaveSend(CC_ENTRY_CONTROL, ENTRY_CONTROL_CONFIGURATION_SET, EC_KEY_CACHE_SIZE, EC_KEY_CACHE_TIMEOUT_S);
 
       // Request battery level
       sendBatteryGet();
 
       // The keypad only reports power changes, so ask whether it is on mains now
-      zwaveSend(CC_NOTIFICATION, NOTIF_GET, (byte) 0x00, (byte) NOTIF_TYPE_POWER_MANAGEMENT, (byte) 0x00);
+      // V1 alarm type 0 (unused), the notification type, then event 0 for no particular event
+      zwaveSend(CC_NOTIFICATION, NOTIFICATION_GET, (byte) 0, (byte) NOTIF_TYPE_POWER_MANAGEMENT, (byte) 0);
 
       // Sync indicator to current alarm state
       updateIndicator();
@@ -391,30 +376,27 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
 
    @Override
    protected boolean handleZWaveCommand(byte nodeId, byte commandClassId, byte commandId, byte[] payload) {
-      int cc = commandClassId & 0xFF;
-      int cmd = commandId & 0xFF;
-
-      switch (cc) {
-      case 0x6F: // Entry Control
-         if (cmd == 0x01) { // notification
+      switch (commandClassId) {
+      case CC_ENTRY_CONTROL:
+         if (commandId == ENTRY_CONTROL_NOTIFICATION) {
             handleEntryControlNotification(payload);
             return true;
          }
          break;
-      case 0x6C: // Supervision
-         if (cmd == 0x01) { // Supervision Get
+      case CC_SUPERVISION:
+         if (commandId == SUPERVISION_GET) {
             handleSupervisionGet(nodeId, payload);
             return true;
          }
          break;
-      case 0x80: // Battery
-         if (cmd == 0x03) { // report
+      case CC_BATTERY:
+         if (commandId == BATTERY_REPORT) {
             handleBatteryReport(payload);
             return true;
          }
          break;
-      case 0x71: // Notification/Alarm
-         if (cmd == 0x05) { // report
+      case CC_NOTIFICATION:
+         if (commandId == NOTIFICATION_REPORT) {
             handleNotificationReport(payload);
             return true;
          }
@@ -423,7 +405,7 @@ public class RingKeyPad extends AbstractZWaveHubDriver {
          break;
       }
 
-      log.trace("unhandled zwave command: cc=0x{}, cmd=0x{}", Integer.toHexString(cc), Integer.toHexString(cmd));
+      log.trace("unhandled zwave command: cc=0x{}, cmd=0x{}", Integer.toHexString(commandClassId & 0xFF), Integer.toHexString(commandId & 0xFF));
       return false;
    }
 

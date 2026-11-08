@@ -32,6 +32,27 @@ import io.netty.buffer.Unpooled;
 public abstract class AbstractZWaveHubDriver extends AbstractHubDriver {
    private static final Logger log = LoggerFactory.getLogger(AbstractZWaveHubDriver.class);
 
+   // Command classes and the commands hub drivers use, as the Z-Wave specification numbers them
+   protected static final byte CC_SUPERVISION = (byte) 0x6C;
+   protected static final byte SUPERVISION_GET = (byte) 0x01;
+   protected static final byte SUPERVISION_REPORT = (byte) 0x02;
+   protected static final byte SUPERVISION_STATUS_SUCCESS = (byte) 0xFF;
+
+   protected static final byte CC_ENTRY_CONTROL = (byte) 0x6F;
+   protected static final byte ENTRY_CONTROL_NOTIFICATION = (byte) 0x01;
+   protected static final byte ENTRY_CONTROL_CONFIGURATION_SET = (byte) 0x06;
+
+   protected static final byte CC_NOTIFICATION = (byte) 0x71;
+   protected static final byte NOTIFICATION_GET = (byte) 0x04;
+   protected static final byte NOTIFICATION_REPORT = (byte) 0x05;
+
+   protected static final byte CC_BATTERY = (byte) 0x80;
+   protected static final byte BATTERY_GET = (byte) 0x02;
+   protected static final byte BATTERY_REPORT = (byte) 0x03;
+
+   protected static final byte CC_INDICATOR = (byte) 0x87;
+   protected static final byte INDICATOR_SET = (byte) 0x01;
+
    public AbstractZWaveHubDriver(ReflexController parent, Address addr) {
       super(parent, addr);
    }
@@ -162,13 +183,13 @@ public abstract class AbstractZWaveHubDriver extends AbstractHubDriver {
       payload[0] = 0x00;                         // V1 indicator value (unused)
       payload[1] = (byte)(objectCount & 0x1F);   // object count (5 bits)
       System.arraycopy(objects, 0, payload, 2, objects.length);
-      zwaveSend((byte) 0x87, (byte) 0x01, payload);
+      zwaveSend(CC_INDICATOR, INDICATOR_SET, payload);
    }
 
    /**
     * Send a Battery Get command.
     */
    protected void sendBatteryGet() {
-      zwaveSend((byte) 0x80, (byte) 0x02);
+      zwaveSend(CC_BATTERY, BATTERY_GET);
    }
 }
