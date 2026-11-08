@@ -28,7 +28,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.iris.core.dao.PlaceDAO;
 import com.iris.core.notification.ServiceUpateNotifications;
 import com.iris.core.platform.ContextualRequestMessageHandler;
@@ -50,11 +49,6 @@ import com.iris.platform.subscription.SubscriptionUpdater;
 
 public class UpdateServicePlanHandler implements ContextualRequestMessageHandler<Account> {
    private final Logger logger = LoggerFactory.getLogger(UpdateServicePlanHandler.class);
-
-   public static final String PURCHASE_LINK_4G_MODEM = "4g.modem.purchase.link";
-   
-   @Inject(optional=true) 
-   @Named(PURCHASE_LINK_4G_MODEM) String modemPurchaseLink = "https://";  
 
    private static final String MISSING_PLACE_ID_ERR = "missing.argument.placeID";
    private static final String MISSING_PLACE_ID_MSG = "Missing required place ID.";

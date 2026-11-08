@@ -98,7 +98,6 @@ public class HistoryAppenderModule extends AbstractIrisModule {
       
 //      bind(HubBatteryAppender.class);
       bind(HubConnectionAppender.class);
-//      bind(HubConnectionTypeAppender.class);
 
       bind(SecuritySubsystemEventsAppender.class);
       bind(SafetySubsystemAppender.class);

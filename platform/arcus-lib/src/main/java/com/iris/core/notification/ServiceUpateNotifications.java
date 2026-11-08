@@ -30,8 +30,7 @@ public enum ServiceUpateNotifications {
    ACCOUNT_DOWNGRADED_PRO_BASIC("account.downgraded.pro.basic","place"),
    ACCOUNT_DOWNGRADED_PRO_PREMIUM("account.downgraded.pro.premium","place"), 
    ACCOUNT_DOWNGRADED_PREMIUM_BASIC("account.downgraded.premium.basic","place"),
-   ACCOUNT_UPGRADED_PREMIUM("account.upgraded.premium","place"),
-   ACCOUNT_UPGRADED_PRO("account.upgraded.pro","modemPurchaseLink");
+   ACCOUNT_UPGRADED_PREMIUM("account.upgraded.premium","place");
 
    private final String key;
    private final String parameter;
