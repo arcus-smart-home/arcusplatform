@@ -6,16 +6,20 @@ ARG CASSANDRA_VERSION=4.0.21
 # failure (wget gives up on a TLS error). A healthy download runs at several
 # MB/s, so anything under 256 KB/s for 90 s counts as a failure and is retried.
 # The 90 s windows leave room for the 35-45 s the server can take to answer a
-# CI runner, and the 10 minute cap is what a 70 MB file needs at that floor.
+# CI runner. At that floor Kafka's 72 MB tarball, the largest, takes 274 s, so
+# each attempt gets 7 minutes and no retry starts after 15, which bounds a
+# failing download to about 22 minutes.
 # The six 1.12 bundled with cqlsh breaks on Python 3.12+, so drop it in favor of python3-six.
 FROM debian:trixie AS download
-ARG CASSANDRA_VERSION
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl
+# Declared after the apt step so a version bump doesn't rerun it.
+ARG CASSANDRA_VERSION
 RUN \
     curl -fL --no-progress-meter --retry 5 --retry-all-errors --retry-delay 30 \
-        --connect-timeout 90 --speed-limit 262144 --speed-time 90 --max-time 600 \
+        --retry-max-time 900 --connect-timeout 90 \
+        --speed-limit 262144 --speed-time 90 --max-time 420 \
         -o /tmp/cassandra.tar.gz \
         https://archive.apache.org/dist/cassandra/${CASSANDRA_VERSION}/apache-cassandra-${CASSANDRA_VERSION}-bin.tar.gz && \
     mkdir /dist && \
@@ -24,7 +28,6 @@ RUN \
 
 # Cassandra 4.0 only supports JDK 8/11; use a pinned base image
 FROM arcus/java:jdk11
-ARG CASSANDRA_VERSION
 
 USER root
 
@@ -45,6 +48,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # Environment variables for configuration
+ARG CASSANDRA_VERSION
 ENV CASSANDRA_VERSION=${CASSANDRA_VERSION}
 
 # Install the required version of Apache Cassandra, owned by arcus so it can
