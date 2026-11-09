@@ -20,7 +20,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.nio.ByteOrder;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
@@ -53,6 +55,9 @@ import com.iris.protocol.zwave.ZWaveExternalProtocol;
  */
 public class ZWaveLeakSensorReflexTest extends GroovyDriverTestCase {
    private static final int NODE = 3;
+
+   // Each driver compiled once per test
+   private final Map<String, ReflexDriverDFA> dfas = new HashMap<>();
 
    private static final int NOTIFICATION = 0x71;
    private static final int NOTIFICATION_REPORT = 0x05;
@@ -186,9 +191,13 @@ public class ZWaveLeakSensorReflexTest extends GroovyDriverTestCase {
    }
 
    private @Nullable List<ReflexAction> actions(String driverFile, byte[] frame) throws Exception {
-      DeviceDriver driver = factory.load(driverFile);
-      ReflexDriverDFA dfa = driver.getDefinition().getReflexes().getDfa();
-      assertNotNull(driverFile + " has no hub reflexes", dfa);
+      ReflexDriverDFA dfa = dfas.get(driverFile);
+      if (dfa == null) {
+         DeviceDriver driver = factory.load(driverFile);
+         dfa = driver.getDefinition().getReflexes().getDfa();
+         assertNotNull(driverFile + " has no hub reflexes", dfa);
+         dfas.put(driverFile, dfa);
+      }
       return dfa.getDfa().matching(frame);
    }
 

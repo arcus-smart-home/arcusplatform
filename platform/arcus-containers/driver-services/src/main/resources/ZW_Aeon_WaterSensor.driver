@@ -215,7 +215,7 @@ void handleStateMsg(byte currentState) {
 onZWaveMessage.basic.report {
 	log.debug "Received Basic Report: {}", message
 	def byte currState = message.command.get('value')
-	handleStateMsg currentState
+	handleStateMsg currState
 }
 
 onZWaveMessage.basic.set {
