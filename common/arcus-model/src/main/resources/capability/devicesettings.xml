@@ -11,6 +11,16 @@
    reporting thresholds, etc.) in a structured, discoverable way. Drivers declare
    available parameters via a DSL block; clients read metadata and current values
    through the params attribute and modify them via SetParam/GetParam methods.
+
+   Each entry of params has:
+   - paramId: what SetParam and GetParam take
+   - name: a short label to show, or the paramId if the driver gives none
+   - description: the detail
+   - type: range, enum or boolean
+   - min and max for a range, values (value to label) for an enum
+   - unit for a range that has one, e.g. s, min or %
+   - dflt and value
+   - zwaveParamNo and zwaveParamSize for a Z-Wave parameter
    </c:description>
 
    <c:attributes>
@@ -19,7 +29,7 @@
          readwrite="r"
          type="list&lt;any&gt;"
          optional="false"
-         description="List of parameter descriptors with metadata and current values."/>
+         description="List of parameter descriptors with metadata and current values; the capability description lists their fields."/>
    </c:attributes>
 
    <c:methods>

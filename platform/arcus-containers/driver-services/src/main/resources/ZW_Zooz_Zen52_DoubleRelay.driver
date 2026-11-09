@@ -79,82 +79,82 @@ instance 'relay2', Switch
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'ledR1', id: 2, size: 1,
+   param name: 'ledR1', label: 'LED indicator', id: 2, size: 1,
        type: 'enum', values: ['0': 'LED Disabled', '1': 'LED Enabled'],
        description: 'Parameter 2: LED indicator for Relay 1',
        dflt: 0
 
-   param name: 'autoOffR1', id: 3, size: 2,
+   param name: 'autoOffR1', label: 'Relay 1 auto-off timer', id: 3, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 3: Auto turn-off timer for Relay 1 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnR1', id: 4, size: 2,
+   param name: 'autoOnR1', label: 'Relay 1 auto-on timer', id: 4, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 4: Auto turn-on timer for Relay 1 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOffR2', id: 5, size: 2,
+   param name: 'autoOffR2', label: 'Relay 2 auto-off timer', id: 5, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 5: Auto turn-off timer for Relay 2 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnR2', id: 6, size: 2,
+   param name: 'autoOnR2', label: 'Relay 2 auto-on timer', id: 6, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 6: Auto turn-on timer for Relay 2 (0=disabled)',
        dflt: 0
 
-   param name: 'timerUnitR1', id: 7, size: 1,
+   param name: 'timerUnitR1', label: 'Relay 1 timer unit', id: 7, size: 1,
        type: 'enum', values: ['1': 'Minutes', '2': 'Seconds'],
        description: 'Parameter 7: Timer unit for Relay 1',
        dflt: 1
 
-   param name: 'timerUnitR2', id: 8, size: 1,
+   param name: 'timerUnitR2', label: 'Relay 2 timer unit', id: 8, size: 1,
        type: 'enum', values: ['1': 'Minutes', '2': 'Seconds'],
        description: 'Parameter 8: Timer unit for Relay 2',
        dflt: 1
 
-   param name: 'powerFailureR1', id: 14, size: 1,
+   param name: 'powerFailureR1', label: 'Relay 1 after power failure', id: 14, size: 1,
        type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
        description: 'Parameter 14: State after power failure for Relay 1',
        dflt: 2
 
-   param name: 'powerFailureR2', id: 15, size: 1,
+   param name: 'powerFailureR2', label: 'Relay 2 after power failure', id: 15, size: 1,
        type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
        description: 'Parameter 15: State after power failure for Relay 2',
        dflt: 2
 
-   param name: 'sceneControl', id: 16, size: 1,
+   param name: 'sceneControl', label: 'Scene control', id: 16, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 16: Scene control (multi-tap detection)',
        dflt: 0
 
-   param name: 'smartSwitchR1', id: 17, size: 1,
+   param name: 'smartSwitchR1', label: 'Relay 1 smart switch mode', id: 17, size: 1,
        type: 'enum', values: ['0': 'Local disabled', '1': 'Local and Z-Wave enabled', '2': 'Both disabled'],
        description: 'Parameter 17: Smart switch mode for Relay 1',
        dflt: 1
 
-   param name: 'smartSwitchR2', id: 18, size: 1,
+   param name: 'smartSwitchR2', label: 'Relay 2 smart switch mode', id: 18, size: 1,
        type: 'enum', values: ['0': 'Local disabled', '1': 'Local and Z-Wave enabled', '2': 'Both disabled'],
        description: 'Parameter 18: Smart switch mode for Relay 2',
        dflt: 1
 
-   param name: 'switchTypeR1', id: 20, size: 1,
+   param name: 'switchTypeR1', label: 'Relay 1 switch type', id: 20, size: 1,
        type: 'enum', values: ['0': 'Toggle', '1': 'Momentary', '2': 'Toggle + Manual', '3': 'Momentary + Manual'],
        description: 'Parameter 20: External switch type for Relay 1',
        dflt: 0
 
-   param name: 'switchTypeR2', id: 21, size: 1,
+   param name: 'switchTypeR2', label: 'Relay 2 switch type', id: 21, size: 1,
        type: 'enum', values: ['0': 'Toggle', '1': 'Momentary', '2': 'Toggle + Manual', '3': 'Momentary + Manual'],
        description: 'Parameter 21: External switch type for Relay 2',
        dflt: 0
 
-   param name: 'relayTypeR1', id: 25, size: 1,
+   param name: 'relayTypeR1', label: 'Relay 1 type', id: 25, size: 1,
        type: 'enum', values: ['0': 'Bistable (Latching)', '1': 'Monostable'],
        description: 'Parameter 25: Relay type for Relay 1',
        dflt: 0
 
-   param name: 'relayTypeR2', id: 26, size: 1,
+   param name: 'relayTypeR2', label: 'Relay 2 type', id: 26, size: 1,
        type: 'enum', values: ['0': 'Bistable (Latching)', '1': 'Monostable'],
        description: 'Parameter 26: Relay type for Relay 2',
        dflt: 0

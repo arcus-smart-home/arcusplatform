@@ -48,7 +48,7 @@ public class DeviceSettingsContext {
     * @param readOnConnect false when the driver reads the values itself, later than
     *                      connect (see {@link #isReadOnConnect()})
     * @throws IllegalArgumentException if two params share a name, or two params
-    *         that can apply to one product share a parameter number
+    *         that can apply to one product share a parameter number or a label
     */
    public DeviceSettingsContext(List<DeviceSettingsParamDefinition> params, boolean readOnConnect) {
       this.params = Collections.unmodifiableList(new ArrayList<>(params));
@@ -64,6 +64,14 @@ public class DeviceSettingsContext {
             throw new IllegalArgumentException("deviceSettings param name '" + p.getParamId() + "' is declared twice");
          }
          filters |= p.hasProductFilter();
+         // a UI showing both couldn't tell them apart, whether or not they're Z-Wave parameters
+         for (int j = 0; j < i; j++) {
+            DeviceSettingsParamDefinition q = this.params.get(j);
+            if (p.getLabel() != null && p.getLabel().equalsIgnoreCase(q.getLabel()) && p.sharesProductWith(q)) {
+               throw new IllegalArgumentException("deviceSettings params '" + q.getParamId() + "' and '"
+                     + p.getParamId() + "' both have the label '" + p.getLabel() + "' on the same product");
+            }
+         }
          if (p.isDriverOnly()) {
             // kept by the driver, so it has no parameter number to clash with or be found by
             continue;

@@ -103,112 +103,112 @@ instance 'down', Button
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'paddleOrientation', id: 1, size: 1,
+   param name: 'paddleOrientation', label: 'Paddle orientation', id: 1, size: 1,
        type: 'enum', values: ['0': 'Upper On / Lower Off', '1': 'Upper Off / Lower On', '2': 'Any Paddle Toggles'],
        description: 'Parameter 1: Paddle orientation',
        dflt: 0
 
-   param name: 'ledMode', id: 2, size: 1,
+   param name: 'ledMode', label: 'LED indicator', id: 2, size: 1,
        type: 'enum', values: ['0': 'LED on when switch off', '1': 'LED on when switch on', '2': 'LED always off', '3': 'LED always on'],
        description: 'Parameter 2: LED indicator control',
        dflt: 0
 
-   param name: 'autoOffTimer', id: 3, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 3, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 3: Auto turn-off timer (0=disabled, 1-65535=minutes)',
        dflt: 0
 
-   param name: 'autoOnTimer', id: 5, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 5, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 5: Auto turn-on timer (0=disabled, 1-65535=minutes)',
        dflt: 0
 
-   param name: 'associationReports', id: 7, size: 1,
+   param name: 'associationReports', label: 'Association triggers', id: 7, size: 1,
        type: 'range', min: 0, max: 15,
        description: 'Parameter 7: Association group 2/3 report triggers (bitmask)',
        dflt: 15
 
-   param name: 'powerFailure', id: 8, size: 1,
+   param name: 'powerFailure', label: 'State after power failure', id: 8, size: 1,
        type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
        description: 'Parameter 8: On/Off status after power failure',
        dflt: 2
 
-   param name: 'rampRateOn', id: 9, size: 1,
+   param name: 'rampRateOn', label: 'Paddle ramp rate on', unit: 's', id: 9, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 9: Physical ramp rate control ON (seconds, 0=instant)',
        dflt: 0
 
-   param name: 'minBrightness', id: 10, size: 1,
+   param name: 'minBrightness', label: 'Minimum brightness', unit: '%', id: 10, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 10: Minimum brightness level (%)',
        dflt: 1
 
-   param name: 'maxBrightness', id: 11, size: 1,
+   param name: 'maxBrightness', label: 'Maximum brightness', unit: '%', id: 11, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 11: Maximum brightness level (%)',
        dflt: 99
 
-   param name: 'doubleTapFunction', id: 12, size: 1,
+   param name: 'doubleTapFunction', label: 'Double tap upper paddle', id: 12, size: 1,
        type: 'enum', values: ['0': 'Full brightness', '1': 'Custom level (param 18)', '2': 'Max brightness (param 11)', '3': 'Disabled'],
        description: 'Parameter 12: Double-tap upper paddle behavior',
        dflt: 0
 
-   param name: 'sceneControl', id: 13, size: 1,
+   param name: 'sceneControl', label: 'Scene control', id: 13, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 13: Scene control (multi-tap detection)',
        dflt: 0
 
-   param name: 'smartBulbMode', id: 15, size: 1,
+   param name: 'smartBulbMode', label: 'Smart bulb mode', id: 15, size: 1,
        type: 'enum', values: ['0': 'Disable paddle / enable Z-Wave', '1': 'Enable paddle and Z-Wave', '2': 'Disable paddle and Z-Wave'],
        description: 'Parameter 15: Smart bulb mode / load control',
        dflt: 1
 
-   param name: 'dimmingSpeed', id: 16, size: 1,
+   param name: 'dimmingSpeed', label: 'Paddle dimming speed', unit: 's', id: 16, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 16: Physical dimming speed (seconds, 0-100%)',
        dflt: 5
 
-   param name: 'customBrightnessOn', id: 18, size: 1,
+   param name: 'customBrightnessOn', label: 'Turn-on brightness', id: 18, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 18: Custom brightness on turn-on (0=last level, 1-99=%)',
        dflt: 0
 
-   param name: 'nightLightMode', id: 22, size: 1,
+   param name: 'nightLightMode', label: 'Night light brightness', id: 22, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 22: Night light brightness (0=disabled, 1-99=%)',
        dflt: 20
 
-   param name: 'ledColor', id: 23, size: 1,
+   param name: 'ledColor', label: 'LED color', id: 23, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red'],
        description: 'Parameter 23: LED indicator color',
        dflt: 1
 
-   param name: 'ledBrightness', id: 24, size: 1,
+   param name: 'ledBrightness', label: 'LED brightness', id: 24, size: 1,
        type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
        description: 'Parameter 24: LED indicator brightness',
        dflt: 1
 
-   param name: 'singleTapFunction', id: 25, size: 1,
+   param name: 'singleTapFunction', label: 'Single tap upper paddle', id: 25, size: 1,
        type: 'enum', values: ['0': 'Last brightness', '1': 'Custom level (param 18)', '2': 'Max brightness (param 11)', '3': 'Full brightness'],
        description: 'Parameter 25: Single-tap upper paddle behavior',
        dflt: 0
 
-   param name: 'rampRateOff', id: 27, size: 1,
+   param name: 'rampRateOff', label: 'Paddle ramp rate off', unit: 's', id: 27, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 27: Physical ramp rate control OFF (seconds, 0=instant)',
        dflt: 2
 
-   param name: 'zwaveRampRateOn', id: 28, size: 1,
+   param name: 'zwaveRampRateOn', label: 'Z-Wave ramp rate on', id: 28, size: 1,
        type: 'range', min: 0, max: 255,
        description: 'Parameter 28: Z-Wave ramp rate ON (0-99=seconds, 255=match physical)',
        dflt: 255
 
-   param name: 'zwaveRampRateOff', id: 29, size: 1,
+   param name: 'zwaveRampRateOff', label: 'Z-Wave ramp rate off', id: 29, size: 1,
        type: 'range', min: 0, max: 255,
        description: 'Parameter 29: Z-Wave ramp rate OFF (0-99=seconds, 255=match physical)',
        dflt: 255
 
-   param name: 'onOffSwitchMode', id: 33, size: 1,
+   param name: 'onOffSwitchMode', label: 'On/off switch mode', id: 33, size: 1,
        type: 'enum', values: ['0': 'Disabled (dimmer)', '1': 'Enabled (on/off only)'],
        description: 'Parameter 33: On/Off switch mode (disables dimming)',
        dflt: 0

@@ -54,45 +54,45 @@ deviceSettings {
    def gen2 = [[0x0401, 0x0301]]
 
    // 1st generation (4AR1S7-0EN0); 2-5 need firmware 2.4 or later
-   param name: 'batteryReportInterval', id: 1, size: 2,
+   param name: 'batteryReportInterval', label: 'Battery report interval', unit: 'min', id: 1, size: 2,
        type: 'range', min: 4, max: 70,
        description: 'Parameter 1: Battery report interval (minutes)',
        dflt: 70, products: gen1
-   param name: 'supervisionTimeout', id: 2, size: 1,
+   param name: 'supervisionTimeout', label: 'Supervision timeout', unit: 's', id: 2, size: 1,
        type: 'range', min: 5, max: 50,
        description: 'Parameter 2: Supervision report timeout (seconds, firmware 2.4+)',
        dflt: 15, products: gen1
-   param name: 'supervisionRetries', id: 3, size: 1,
+   param name: 'supervisionRetries', label: 'Retries', id: 3, size: 1,
        type: 'range', min: 0, max: 5,
        description: 'Parameter 3: Retries for unacknowledged or unsupervised messages (firmware 2.4+)',
        dflt: 1, products: gen1
-   param name: 'supervisionBackOff', id: 4, size: 1,
+   param name: 'supervisionBackOff', label: 'Retry back-off', unit: 's', id: 4, size: 1,
        type: 'range', min: 1, max: 60,
        description: 'Parameter 4: Retry back-off (seconds, firmware 2.4+)',
        dflt: 5, products: gen1
-   param name: 'supervisedBatteryReports', id: 5, size: 1,
+   param name: 'supervisedBatteryReports', label: 'Unsupervised battery reports', id: 5, size: 1,
        type: 'range', min: 0, max: 31,
        description: 'Parameter 5: Battery reports sent between supervised ones (firmware 2.4+)',
        dflt: 5, products: gen1
 
    // 2nd generation (4AR1SZ-0EN0)
-   param name: 'heartbeatInterval', id: 1, size: 1,
+   param name: 'heartbeatInterval', label: 'Heartbeat interval', unit: 'min', id: 1, size: 1,
        type: 'range', min: 1, max: 70,
        description: 'Parameter 1: Heartbeat interval (minutes)',
        dflt: 70, products: gen2
-   param name: 'retryLimit', id: 2, size: 1,
+   param name: 'retryLimit', label: 'Retry limit', id: 2, size: 1,
        type: 'range', min: 0, max: 5,
        description: 'Parameter 2: Message retry attempt limit',
        dflt: 1, products: gen2
-   param name: 'retryDelay', id: 3, size: 1,
+   param name: 'retryDelay', label: 'Retry delay', unit: 's', id: 3, size: 1,
        type: 'range', min: 1, max: 60,
        description: 'Parameter 3: Delay between retry attempts (seconds)',
        dflt: 5, products: gen2
-   param name: 'ledIndicator', id: 4, size: 1,
+   param name: 'ledIndicator', label: 'LED indicator', id: 4, size: 1,
        type: 'enum', values: ['0': 'Always off', '1': 'On when activated', '2': 'On when activated or cleared'],
        description: 'Parameter 4: LED indicator',
        dflt: 1, products: gen2
-   param name: 'supervisionReportTimeout', id: 5, size: 2,
+   param name: 'supervisionReportTimeout', label: 'Supervision report timeout', unit: 'ms', id: 5, size: 2,
        type: 'range', min: 500, max: 5000,
        description: 'Parameter 5: Supervision report timeout (milliseconds)',
        dflt: 1500, products: gen2

@@ -87,162 +87,162 @@ instance 'down', Button
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'paddleOrientation', id: 1, size: 1,
+   param name: 'paddleOrientation', label: 'Paddle orientation', id: 1, size: 1,
        type: 'enum', values: ['0': 'Normal (upper paddle on)', '1': 'Inverted (upper paddle off)', '2': 'Momentary mode'],
        description: 'Parameter 1: Paddle orientation',
        dflt: 0
 
-   param name: 'ledMode', id: 2, size: 1,
+   param name: 'ledMode', label: 'LED indicator', id: 2, size: 1,
        type: 'enum', values: ['0': 'On when load is off', '1': 'On when load is on', '2': 'Always off', '3': 'Always on'],
        description: 'Parameter 2: LED indicator',
        dflt: 0
 
-   param name: 'autoOffTimer', id: 3, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 3, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 3: Auto turn-off timer in minutes (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnTimer', id: 5, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 5, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 5: Auto turn-on timer in minutes (0=disabled)',
        dflt: 0
 
-   param name: 'associationReports', id: 7, size: 1,
+   param name: 'associationReports', label: 'Association triggers', id: 7, size: 1,
        type: 'range', min: 0, max: 15,
        description: 'Parameter 7: What controls associated devices, bitmask: 1=local, 2=3-way switch, 4=Z-Wave, 8=timer (firmware 10.30+)',
        dflt: 15
 
-   param name: 'powerFailure', id: 8, size: 1,
+   param name: 'powerFailure', label: 'State after power failure', id: 8, size: 1,
        type: 'enum', values: ['0': 'Always off', '1': 'Always on', '2': 'Previous state'],
        description: 'Parameter 8: State after power failure',
        dflt: 2
 
-   param name: 'rampRateOn', id: 9, size: 1,
+   param name: 'rampRateOn', label: 'Paddle ramp rate on', unit: 's', id: 9, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 9: Ramp rate on for the paddle in seconds, 0=instant (before firmware 10.20: on and off)',
        dflt: 0
 
-   param name: 'minBrightness', id: 10, size: 1,
+   param name: 'minBrightness', label: 'Minimum brightness', unit: '%', id: 10, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 10: Minimum brightness (%)',
        dflt: 1
 
-   param name: 'maxBrightness', id: 11, size: 1,
+   param name: 'maxBrightness', label: 'Maximum brightness', unit: '%', id: 11, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 11: Maximum brightness (%)',
        dflt: 99
 
-   param name: 'doubleTapFunction', id: 12, size: 1,
+   param name: 'doubleTapFunction', label: 'Double tap upper paddle', id: 12, size: 1,
        type: 'enum', values: ['0': 'Full brightness', '1': 'Custom brightness (parameter 18)', '2': 'Maximum brightness (parameter 11)', '3': 'Double tap disabled'],
        description: 'Parameter 12: Double-tap upper paddle behavior',
        dflt: 0
 
-   param name: 'sceneControl', id: 13, size: 1,
+   param name: 'sceneControl', label: 'Scene control', id: 13, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 13: Scene control (paddle presses reported as up/down button presses)',
        dflt: 0
 
-   param name: 'smartSwitchMode', id: 15, size: 1,
+   param name: 'smartSwitchMode', label: 'Smart switch mode', id: 15, size: 1,
        type: 'enum', values: ['0': 'Local control disabled', '1': 'Local and Z-Wave control enabled', '2': 'Local and Z-Wave control disabled'],
        description: 'Parameter 15: Smart switch mode',
        dflt: 1
 
-   param name: 'dimmingSpeed', id: 16, size: 1,
+   param name: 'dimmingSpeed', label: 'Paddle dimming speed', unit: 's', id: 16, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 16: Seconds to dim from 0 to 100% when holding the paddle',
        dflt: 5
 
-   param name: 'customBrightness', id: 18, size: 1,
+   param name: 'customBrightness', label: 'Paddle turn-on brightness', id: 18, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 18: Custom brightness when turned on from the paddle (0=previous brightness)',
        dflt: 0
 
-   param name: 'threeWaySwitchType', id: 19, size: 1,
+   param name: 'threeWaySwitchType', label: '3-way switch type', id: 19, size: 1,
        type: 'enum', values: ['0': 'Toggle switch', '1': 'Toggle switch (with dimming control)', '2': 'Momentary switch (with dimming control)', '3': 'Momentary switch (with dimming control, reduce after double click)'],
        description: 'Parameter 19: 3-way switch type',
        dflt: 0
 
-   param name: 'smartBulbDimmingReports', id: 20, size: 1,
+   param name: 'smartBulbDimmingReports', label: 'Smart mode dimming reports', id: 20, size: 1,
        type: 'enum', values: ['0': 'Each brightness level / final level', '1': 'Final brightness level only for local dimming'],
        description: 'Parameter 20: Smart switch mode dimming reports',
        dflt: 0
 
-   param name: 'smartBulbReports', id: 21, size: 1,
+   param name: 'smartBulbReports', label: 'Smart mode reports', id: 21, size: 1,
        type: 'enum', values: ['0': 'Always report status and change the LED', '1': 'No status report or LED change when control is disabled'],
        description: 'Parameter 21: Smart switch mode reporting',
        dflt: 0
 
-   param name: 'nightLightMode', id: 22, size: 1,
+   param name: 'nightLightMode', label: 'Night light brightness', id: 22, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 22: Night light brightness when the lower paddle is held while off (0=disabled)',
        dflt: 20
 
-   param name: 'ledColor', id: 23, size: 1,
+   param name: 'ledColor', label: 'LED color', id: 23, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Blue', '2': 'Green', '3': 'Red'],
        description: 'Parameter 23: LED indicator color',
        dflt: 1
 
-   param name: 'ledBrightness', id: 24, size: 1,
+   param name: 'ledBrightness', label: 'LED brightness', id: 24, size: 1,
        type: 'enum', values: ['0': 'Bright (100%)', '1': 'Medium (60%)', '2': 'Low (30%)'],
        description: 'Parameter 24: LED indicator brightness',
        dflt: 1
 
-   param name: 'singleTapFunction', id: 25, size: 1,
+   param name: 'singleTapFunction', label: 'Single tap upper paddle', id: 25, size: 1,
        type: 'enum', values: ['0': 'Previous brightness', '1': 'Custom brightness (parameter 18)', '2': 'Maximum brightness (parameter 11)', '3': 'Full brightness'],
        description: 'Parameter 25: Single-tap upper paddle behavior',
        dflt: 0
 
-   param name: 'rampRateOff', id: 27, size: 1,
+   param name: 'rampRateOff', label: 'Paddle ramp rate off', unit: 's', id: 27, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 27: Ramp rate off for the paddle in seconds, 0=instant (firmware 10.20+)',
        dflt: 2
 
-   param name: 'zwaveRampRateOn', id: 28, size: 1,
+   param name: 'zwaveRampRateOn', label: 'Z-Wave ramp rate on', id: 28, size: 1,
        type: 'range', min: 0, max: 255,
        description: 'Parameter 28: Ramp rate on for Z-Wave commands in seconds, 0=instant, 255=same as the paddle (firmware 10.20+)',
        dflt: 255
 
-   param name: 'zwaveRampRateOff', id: 29, size: 1,
+   param name: 'zwaveRampRateOff', label: 'Z-Wave ramp rate off', id: 29, size: 1,
        type: 'range', min: 0, max: 255,
        description: 'Parameter 29: Ramp rate off for Z-Wave commands in seconds, 0=instant, 255=same as the paddle (firmware 10.20+)',
        dflt: 255
 
-   param name: 'groupDimmingSpeed', id: 30, size: 1,
+   param name: 'groupDimmingSpeed', label: 'Group dimming speed', unit: 's', id: 30, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 30: Seconds to dim from 0 to 100% for devices in groups 3 and 4 (firmware 10.20+)',
        dflt: 5
 
-   param name: 'remoteThreeWaySceneControl', id: 31, size: 1,
+   param name: 'remoteThreeWaySceneControl', label: '3-way scene control', id: 31, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 31: Scene control from a connected 3-way switch (firmware 10.40+)',
        dflt: 0
 
-   param name: 'ledConfirmChange', id: 32, size: 1,
+   param name: 'ledConfirmChange', label: 'LED confirms changes', id: 32, size: 1,
        type: 'enum', values: ['0': 'Enabled', '1': 'Disabled'],
        description: 'Parameter 32: Blink the LED to confirm a setting change (firmware 10.40+)',
        dflt: 0
 
-   param name: 'onOffSwitchMode', id: 33, size: 1,
+   param name: 'onOffSwitchMode', label: 'On/off switch mode', id: 33, size: 1,
        type: 'enum', values: ['0': 'Disabled (dimmer)', '1': 'Enabled (on/off only)'],
        description: 'Parameter 33: On/off switch mode, which disables dimming (firmware 3.40+)',
        dflt: 0
 
-   param name: 'zwaveCustomBrightness', id: 34, size: 1,
+   param name: 'zwaveCustomBrightness', label: 'Z-Wave turn-on brightness', id: 34, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 34: Custom brightness when turned on over Z-Wave (0=previous brightness, firmware 3.50+)',
        dflt: 0
 
-   param name: 'sceneMultiTap', id: 35, size: 1,
+   param name: 'sceneMultiTap', label: 'Scene multi-tap', id: 35, size: 1,
        type: 'enum', values: ['0': 'Enabled', '1': 'Disabled (single taps only)'],
        description: 'Parameter 35: Scene control multi-tap (firmware 3.60+)',
        dflt: 0
 
-   param name: 'ledMultiColor', id: 36, size: 1,
+   param name: 'ledMultiColor', label: 'Opposite state LED color', id: 36, size: 1,
        type: 'enum', values: ['0': 'Off', '1': 'White', '2': 'Blue', '3': 'Green', '4': 'Red'],
        description: 'Parameter 36: LED color in the opposite switch state when the LED is always on (firmware 3.60+)',
        dflt: 0
 
-   param name: 'gammaFactor', id: 37, size: 1,
+   param name: 'gammaFactor', label: 'Gamma factor', id: 37, size: 1,
        type: 'range', min: 10, max: 50,
        description: 'Parameter 37: Gamma factor x10; higher makes dimming more gradual at low levels (firmware 3.60+)',
        dflt: 10

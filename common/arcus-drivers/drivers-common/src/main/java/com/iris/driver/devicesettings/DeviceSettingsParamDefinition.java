@@ -35,7 +35,11 @@ public class DeviceSettingsParamDefinition {
    }
 
    private final String paramId;
+   // Short name for UIs, e.g. "Ramp rate on"; null when the driver gives none
+   private final String label;
    private final String description;
+   // Unit of a range value, e.g. "s" or "%"; null when the value has none
+   private final String unit;
    private final ParamType type;
    private final int zwaveParamNo;
    private final int zwaveParamSize;
@@ -50,7 +54,9 @@ public class DeviceSettingsParamDefinition {
 
    private DeviceSettingsParamDefinition(Builder builder) {
       this.paramId = builder.paramId;
+      this.label = builder.label;
       this.description = builder.description;
+      this.unit = builder.unit;
       this.type = builder.type;
       this.zwaveParamNo = builder.zwaveParamNo;
       this.zwaveParamSize = builder.zwaveParamSize;
@@ -99,7 +105,11 @@ public class DeviceSettingsParamDefinition {
    }
 
    public String getParamId() { return paramId; }
+   /** The short name UIs show, or null if the driver gives none. */
+   public String getLabel() { return label; }
    public String getDescription() { return description; }
+   /** The unit of a range value, such as "s" or "%", or null. */
+   public String getUnit() { return unit; }
    public ParamType getType() { return type; }
    public int getZwaveParamNo() { return zwaveParamNo; }
    public int getZwaveParamSize() { return zwaveParamSize; }
@@ -201,12 +211,17 @@ public class DeviceSettingsParamDefinition {
    /**
     * Produces the client-facing map representation of this parameter's metadata.
     * Does NOT include the current value — that must be merged by the caller.
+    * {@code name} is the label, or the paramId for a parameter without one, as
+    * drivers sent before labels existed.
     */
    public Map<String, Object> toMap() {
       Map<String, Object> map = new LinkedHashMap<>();
       map.put("paramId", paramId);
-      map.put("name", paramId);
+      map.put("name", label != null ? label : paramId);
       map.put("description", description);
+      if (unit != null) {
+         map.put("unit", unit);
+      }
       map.put("type", type.name().toLowerCase());
       if (type == ParamType.ENUM) {
          map.put("values", enumValues);
@@ -263,7 +278,9 @@ public class DeviceSettingsParamDefinition {
 
    public static class Builder {
       private String paramId;
+      private String label;
       private String description = "";
+      private String unit;
       private ParamType type = ParamType.RANGE;
       private int zwaveParamNo;
       private int zwaveParamSize = 1;
@@ -275,7 +292,9 @@ public class DeviceSettingsParamDefinition {
       private boolean driverOnly;
 
       public Builder withParamId(String paramId) { this.paramId = paramId; return this; }
+      public Builder withLabel(String label) { this.label = label; return this; }
       public Builder withDescription(String description) { this.description = description; return this; }
+      public Builder withUnit(String unit) { this.unit = unit; return this; }
       public Builder withType(ParamType type) { this.type = type; return this; }
       public Builder withZwaveParamNo(int no) { this.zwaveParamNo = no; return this; }
       public Builder withZwaveParamSize(int size) { this.zwaveParamSize = size; return this; }
@@ -312,6 +331,15 @@ public class DeviceSettingsParamDefinition {
          if (zwaveParamSize < 1 || zwaveParamSize > 4) {
             throw new IllegalArgumentException("zwaveParamSize must be 1-4");
          }
+         if (label != null && !isTidy(label)) {
+            throw new IllegalArgumentException("param '" + paramId + "' label must not be blank or start or end with a space");
+         }
+         if (unit != null && !isTidy(unit)) {
+            throw new IllegalArgumentException("param '" + paramId + "' unit must not be blank or start or end with a space");
+         }
+         if (unit != null && type != ParamType.RANGE) {
+            throw new IllegalArgumentException("param '" + paramId + "' has a unit, but only a range has one");
+         }
          DeviceSettingsParamDefinition param = new DeviceSettingsParamDefinition(this);
          if (param.isSigned()) {
             // e.g. -1..255 in one byte: 200 and -56 are the same byte, so a value
@@ -323,6 +351,11 @@ public class DeviceSettingsParamDefinition {
             }
          }
          return param;
+      }
+
+      /** Not empty, with no space at either end, which a user couldn't see on screen. */
+      private static boolean isTidy(String text) {
+         return !text.isEmpty() && text.equals(text.trim());
       }
    }
 }

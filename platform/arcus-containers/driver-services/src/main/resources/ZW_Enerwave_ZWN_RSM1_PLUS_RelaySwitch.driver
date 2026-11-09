@@ -70,7 +70,7 @@ Switch.state                     Switch.STATE_OFF
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'unsolicitedReport', id: 3, size: 1,
+   param name: 'unsolicitedReport', label: 'Report status changes', id: 3, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 3: Send unsolicited Basic Report on status change',
        dflt: 0
