@@ -331,11 +331,14 @@ public class DeviceSettingsParamDefinition {
          if (zwaveParamSize < 1 || zwaveParamSize > 4) {
             throw new IllegalArgumentException("zwaveParamSize must be 1-4");
          }
-         if (label != null && (label.trim().isEmpty() || !label.equals(label.trim()))) {
+         if (label != null && !isTidy(label)) {
             throw new IllegalArgumentException("param '" + paramId + "' label must not be blank or start or end with a space");
          }
-         if (unit != null && (unit.trim().isEmpty() || !unit.equals(unit.trim()) || type != ParamType.RANGE)) {
-            throw new IllegalArgumentException("param '" + paramId + "' unit must not be blank or start or end with a space, and only a range has one");
+         if (unit != null && !isTidy(unit)) {
+            throw new IllegalArgumentException("param '" + paramId + "' unit must not be blank or start or end with a space");
+         }
+         if (unit != null && type != ParamType.RANGE) {
+            throw new IllegalArgumentException("param '" + paramId + "' has a unit, but only a range has one");
          }
          DeviceSettingsParamDefinition param = new DeviceSettingsParamDefinition(this);
          if (param.isSigned()) {
@@ -348,6 +351,11 @@ public class DeviceSettingsParamDefinition {
             }
          }
          return param;
+      }
+
+      /** Not empty, with no space at either end, which a user couldn't see on screen. */
+      private static boolean isTidy(String text) {
+         return !text.isEmpty() && text.equals(text.trim());
       }
    }
 }
