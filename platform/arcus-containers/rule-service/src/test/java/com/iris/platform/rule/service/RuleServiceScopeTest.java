@@ -33,6 +33,7 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.RuleCapability;
+import com.iris.messages.capability.RuleTemplateCapability;
 import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.model.ModelDao;
@@ -57,7 +58,8 @@ import com.iris.test.Modules;
    ModelDao.class,
    PlaceDAO.class,
    RuleDao.class,
-   PlacePopulationCacheManager.class
+   PlacePopulationCacheManager.class,
+   RuleCatalogLoader.class
 })
 @Modules({ InMemoryMessageModule.class, SimplePartitionModule.class })
 public class RuleServiceScopeTest extends IrisMockTestCase {
@@ -70,6 +72,7 @@ public class RuleServiceScopeTest extends IrisMockTestCase {
    @Inject private InMemoryPlatformMessageBus bus;
    @Inject private Partitioner partitioner;
    @Inject private PlacePopulationCacheManager populationCacheMgr;
+   @Inject private RuleCatalogLoader ruleCatLoader;
 
    private final UUID activePlace = UUID.randomUUID();
    private final UUID otherPlace = UUID.randomUUID();
@@ -80,7 +83,6 @@ public class RuleServiceScopeTest extends IrisMockTestCase {
    public void setUp() throws Exception {
       super.setUp();
       reset();
-      RuleCatalogLoader ruleCatLoader = EasyMock.createNiceMock(RuleCatalogLoader.class);
       ruleService = new RuleService(MoreExecutors.directExecutor(), envDao, bus, partitioner, ruleDao, modelDao, placeDao, ruleCatLoader, registry, null, populationCacheMgr);
    }
 
@@ -200,5 +202,53 @@ public class RuleServiceScopeTest extends IrisMockTestCase {
             activePlace));
       assertEquals(com.iris.messages.service.RuleService.ListRulesResponse.NAME, response.getMessageType());
       verify();
+   }
+
+   private void assertServiceRequestRefused(String type, Map<String, Object> attributes, Address destination) throws Exception {
+      replay();
+      try {
+         ruleService.handleRequest(request(type, attributes, destination, activePlace));
+         fail("expected " + type + " for another place to be refused");
+      }
+      catch(UnauthorizedRequestException e) {
+         // expected
+      }
+      verify();
+   }
+
+   @Test
+   public void testGetCategoriesForAnotherPlaceIsRefused() throws Exception {
+      assertServiceRequestRefused(
+            com.iris.messages.service.RuleService.GetCategoriesRequest.NAME,
+            ImmutableMap.of(com.iris.messages.service.RuleService.GetCategoriesRequest.ATTR_PLACEID, otherPlace.toString()),
+            Address.platformService(PlatformConstants.SERVICE_RULE));
+   }
+
+   @Test
+   public void testGetRuleTemplatesByCategoryForAnotherPlaceIsRefused() throws Exception {
+      assertServiceRequestRefused(
+            com.iris.messages.service.RuleService.GetRuleTemplatesByCategoryRequest.NAME,
+            ImmutableMap.of(
+                  com.iris.messages.service.RuleService.GetRuleTemplatesByCategoryRequest.ATTR_PLACEID, otherPlace.toString(),
+                  com.iris.messages.service.RuleService.GetRuleTemplatesByCategoryRequest.ATTR_CATEGORY, "Security"),
+            Address.platformService(PlatformConstants.SERVICE_RULE));
+   }
+
+   @Test
+   public void testResolveATemplateForAnotherPlaceIsRefused() throws Exception {
+      assertServiceRequestRefused(
+            RuleTemplateCapability.ResolveRequest.NAME,
+            ImmutableMap.of(RuleTemplateCapability.ResolveRequest.ATTR_PLACEID, otherPlace.toString()),
+            Address.platformService("a-template", RuleTemplateCapability.NAMESPACE));
+   }
+
+   @Test
+   public void testCreateARuleAtAnotherPlaceIsRefused() throws Exception {
+      assertServiceRequestRefused(
+            RuleTemplateCapability.CreateRuleRequest.NAME,
+            ImmutableMap.of(
+                  RuleTemplateCapability.CreateRuleRequest.ATTR_PLACEID, otherPlace.toString(),
+                  RuleTemplateCapability.CreateRuleRequest.ATTR_NAME, "a rule"),
+            Address.platformService("a-template", RuleTemplateCapability.NAMESPACE));
    }
 }

@@ -294,10 +294,10 @@ Configured via properties:
 
 ```properties
 hub.bridge.admin.addresses=SERV:hub:
-hub.bridge.admin.only.messages=hub:GetLogs,hub4g:*,hubdebug:*
+hub.bridge.admin.only.messages=hub:GetLogs,hub:StreamLogs,hub:SetLogLevel,hub:ResetLogLevels,hub:GetConfig,hub:SetConfig,hub4g:*,hubdebug:*,hubmetric:*
 ```
 
-Only service-level hub addresses can send admin-only messages (e.g., log retrieval, debug commands, 4G management).
+Only service-level hub addresses can send admin-only messages (e.g., logs, configuration, debug commands, 4G management, metrics) to a hub.
 
 ---
 

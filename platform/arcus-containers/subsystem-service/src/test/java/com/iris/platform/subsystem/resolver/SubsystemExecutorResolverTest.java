@@ -36,6 +36,8 @@ import com.iris.messages.capability.AlarmSubsystemCapability;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.SecuritySubsystemCapability;
 import com.iris.messages.errors.UnauthorizedRequestException;
+import com.iris.messages.service.SubsystemService;
+import com.iris.messages.service.SubsystemService.ListSubsystemsRequest;
 import com.iris.platform.subsystem.SubsystemRegistry;
 
 public class SubsystemExecutorResolverTest {
@@ -142,6 +144,31 @@ public class SubsystemExecutorResolverTest {
       EasyMock.replay(registry);
 
       assertSame(executor, resolver.apply(request(AlarmIncidentCapability.CancelRequest.NAME, Address.platformService(UUID.randomUUID(), AlarmIncidentCapability.NAMESPACE), activePlace)));
+      EasyMock.verify(registry);
+   }
+
+   private PlatformMessage listSubsystems(UUID place) {
+      return PlatformMessage
+            .buildRequest(
+                  ListSubsystemsRequest.NAME,
+                  ImmutableMap.of(ListSubsystemsRequest.ATTR_PLACEID, place.toString()),
+                  Address.clientAddress("android", "1"),
+                  Address.platformService(SubsystemService.NAMESPACE))
+            .withPlaceId(activePlace)
+            .create();
+   }
+
+   @Test
+   public void testListSubsystemsForAnotherPlaceIsRefused() {
+      assertRefused(listSubsystems(otherPlace));
+   }
+
+   @Test
+   public void testListSubsystemsLoadsTheActivePlace() {
+      expectLoad(activePlace);
+      EasyMock.replay(registry);
+
+      assertSame(executor, resolver.apply(listSubsystems(activePlace)));
       EasyMock.verify(registry);
    }
 }
