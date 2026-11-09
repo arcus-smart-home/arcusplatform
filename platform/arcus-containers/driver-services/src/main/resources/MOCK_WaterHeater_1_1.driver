@@ -128,7 +128,7 @@ setAttributes('waterheater') {
 		switch(attribute.key) {
 			case WaterHeater.setpoint:
 				double setpoint = (double)attribute.value
-				double maxsetpoint = WaterHeater.maxsetpoint.get()
+				double maxsetpoint = WaterHeater.maxsetpoint.get() ?: 50
 				log.debug "setpoint [" + setpoint + "] maxsetpoint [" + maxsetpoint + "]"
 				
 				// setpoint cannot exceed maxsetpoint

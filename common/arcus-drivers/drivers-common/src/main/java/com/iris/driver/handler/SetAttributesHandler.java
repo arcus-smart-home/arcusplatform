@@ -132,6 +132,11 @@ public class SetAttributesHandler implements ContextualEventHandler<MessageBody>
          else if(!definition.isWritable()) {
             error = ErrorEvent.fromCode("ReadOnlyAttribute", "Attribute " + name + " can't be set");
          }
+         else if(attributes.get(name) == null && Double.class.equals(definition.getType())) {
+            // Since Groovy 5 a null assigned to a double is NaN instead of an exception.
+            // NaN gets past a driver's range checks and rounds to a device setpoint of 0.
+            error = Errors.unsupportedAttribute(name);
+         }
 //         else if(!context.getSupportedAttributes().contains(definition.getKey())) {
 //            error = ErrorEvent.fromCode("UnsupportedAttribute", "Attribute " + name + " is not supported by this device");
 //         }

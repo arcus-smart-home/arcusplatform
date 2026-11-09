@@ -20,12 +20,17 @@ package com.iris.driver.groovy.customizer;
 
 import java.io.InputStream;
 import java.lang.reflect.Modifier;
+import java.util.Set;
 
 import org.apache.commons.io.input.ReaderInputStream;
+import org.codehaus.groovy.ast.ClassCodeExpressionTransformer;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.FieldExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
 import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
@@ -38,6 +43,7 @@ import org.codehaus.groovy.control.customizers.CompilationCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.iris.Utils;
 import com.iris.capability.registry.CapabilityRegistry;
@@ -45,6 +51,7 @@ import com.iris.device.model.CapabilityDefinition;
 import com.iris.driver.groovy.context.GroovyCapabilityDefinition;
 import com.iris.driver.groovy.context.GroovyCapabilityDefinitionFactory;
 import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.ClockCapability;
 import com.iris.messages.capability.DeviceCapability;
 
 /**
@@ -53,6 +60,15 @@ import com.iris.messages.capability.DeviceCapability;
  */
 public class DriverCompilationCustomizer extends CompilationCustomizer {
    private static final Logger LOGGER = LoggerFactory.getLogger(DriverCompilationCustomizer.class);
+
+   /**
+    * Capabilities named after a class Groovy imports by default. Groovy does not
+    * treat a script's own members as variables, so a bare name in a driver is
+    * tried as a class before it is looked up as a property. Since Groovy 5 added
+    * java.time to the default imports, a bare Clock is java.time.Clock rather
+    * than the capability, so these names have to be read through the script.
+    */
+   private static final Set<String> SHADOWED_CAPABILITIES = ImmutableSet.of(ClockCapability.NAME);
 
    private final CapabilityRegistry capabilityRegistry;
    
@@ -70,6 +86,8 @@ public class DriverCompilationCustomizer extends CompilationCustomizer {
    @Override
    public void call(SourceUnit source, GeneratorContext context, ClassNode classNode) throws CompilationFailedException {
       LOGGER.trace("Customize [phase: {} {}, classNode: {}]", source.getPhase(), source.getPhaseDescription(), classNode);
+      new ShadowedCapabilityTransformer(source).visitClass(classNode);
+
       if(classNode.getField("_HASH") == null) {
          String hash = hash(source);
          if(hash != null) {
@@ -139,6 +157,37 @@ public class DriverCompilationCustomizer extends CompilationCustomizer {
       catch(Exception e) {
          LOGGER.warn("Error hashing {}", source.getName(), e);
          return null;
+      }
+   }
+
+   private static class ShadowedCapabilityTransformer extends ClassCodeExpressionTransformer {
+      private final SourceUnit source;
+
+      ShadowedCapabilityTransformer(SourceUnit source) {
+         this.source = source;
+      }
+
+      @Override
+      protected SourceUnit getSourceUnit() {
+         return source;
+      }
+
+      @Override
+      public Expression transform(Expression expression) {
+         if(expression instanceof VariableExpression) {
+            String name = ((VariableExpression) expression).getName();
+            if(SHADOWED_CAPABILITIES.contains(name)) {
+               PropertyExpression capability = new PropertyExpression(VariableExpression.THIS_EXPRESSION, name);
+               capability.setSourcePosition(expression);
+               return capability;
+            }
+         }
+         if(expression instanceof ClosureExpression) {
+            // transformExpression does not descend into a closure's body
+            ((ClosureExpression) expression).getCode().visit(this);
+            return expression;
+         }
+         return super.transform(expression);
       }
    }
 

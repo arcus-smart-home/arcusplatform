@@ -67,6 +67,15 @@ updates:
       - dependency-name: "org.apache.lucene:*"
         versions: [">= 10"]
 
+      # Groovy 6 is built for Java 17, and its Gradle metadata says so, so it
+      # does not resolve for arcus-protoc, groovy-bindings or reflex-generator
+      # under --release 11. No Groovy reaches a hub at runtime, so this is a
+      # build constraint: revisit if those three move to a Java 17 toolchain.
+      # 5.1.x is the newest line built for Java 11. Compare driver behaviour
+      # across any Groovy major: 5 changed what bare names and null doubles mean.
+      - dependency-name: "org.apache.groovy:*"
+        versions: [">= 6"]
+
       # Guice 7 dropped javax.inject in favour of jakarta.inject. 63 files here
       # import javax.inject (42 @Inject, 30 @Singleton, 6 @Named), and some of
       # the @Named uses are not injection at all: ReflectiveCapabilityBuilder
