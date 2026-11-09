@@ -331,11 +331,11 @@ public class DeviceSettingsParamDefinition {
          if (zwaveParamSize < 1 || zwaveParamSize > 4) {
             throw new IllegalArgumentException("zwaveParamSize must be 1-4");
          }
-         if (label != null && label.trim().isEmpty()) {
-            throw new IllegalArgumentException("param '" + paramId + "' has a blank label");
+         if (label != null && (label.trim().isEmpty() || !label.equals(label.trim()))) {
+            throw new IllegalArgumentException("param '" + paramId + "' label must not be blank or start or end with a space");
          }
-         if (unit != null && (unit.trim().isEmpty() || type != ParamType.RANGE)) {
-            throw new IllegalArgumentException("param '" + paramId + "' unit must be non-blank, and only a range has one");
+         if (unit != null && (unit.trim().isEmpty() || !unit.equals(unit.trim()) || type != ParamType.RANGE)) {
+            throw new IllegalArgumentException("param '" + paramId + "' unit must not be blank or start or end with a space, and only a range has one");
          }
          DeviceSettingsParamDefinition param = new DeviceSettingsParamDefinition(this);
          if (param.isSigned()) {

@@ -81,11 +81,11 @@ deviceSettings {
        type: 'enum', values: ['0': 'On when load on', '1': 'On when load off', '2': 'Always off'],
        description: 'Parameter 1: LED indicator behavior',
        dflt: 0
-   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 'min', id: 2, size: 2,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 2, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 2: Auto off timer in minutes (0=disabled)',
        dflt: 0
-   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 'min', id: 4, size: 2,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 4, size: 2,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 4: Auto on timer in minutes (0=disabled)',
        dflt: 0

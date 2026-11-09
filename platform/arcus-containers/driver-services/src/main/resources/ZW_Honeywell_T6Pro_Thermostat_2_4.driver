@@ -134,11 +134,11 @@ deviceSettings {
        type: 'enum', values: ['0': 'Off', '1': '30 minutes', '2': '45 minutes', '3': '60 minutes', '4': '75 minutes', '5': '90 minutes', '6': '2 hours', '7': '3 hours', '8': '4 hours', '9': '5 hours', '10': '6 hours', '11': '8 hours', '12': '10 hours', '13': '12 hours', '14': '14 hours', '15': '16 hours'],
        description: 'Parameter 17: Up stage timer for aux heat',
        dflt: 0
-   param name: 'balancePoint', label: 'Balance point', unit: '°F', id: 18, size: 1,
+   param name: 'balancePoint', label: 'Balance point', id: 18, size: 1,
        type: 'range', min: 0, max: 65,
        description: 'Parameter 18: Balance point / compressor lockout (0=Off, 5-65 degrees F)',
        dflt: 65
-   param name: 'auxHeatLockout', label: 'Aux heat lockout', unit: '°F', id: 19, size: 1,
+   param name: 'auxHeatLockout', label: 'Aux heat lockout', id: 19, size: 1,
        type: 'range', min: 0, max: 65,
        description: 'Parameter 19: Aux heat lockout temperature (0=Off, 5-65 degrees F)',
        dflt: 0
@@ -170,7 +170,7 @@ deviceSettings {
        dflt: 9
 
    // Protection & Recovery
-   param name: 'compressorProtection', label: 'Compressor protection', unit: 'min', id: 26, size: 1,
+   param name: 'compressorProtection', label: 'Compressor protection', id: 26, size: 1,
        type: 'range', min: 0, max: 5,
        description: 'Parameter 26: Compressor protection time (0=Off, 1-5 minutes)',
        dflt: 5
@@ -206,11 +206,11 @@ deviceSettings {
        type: 'enum', values: ['0': 'Off', '1': '6 months', '2': '12 months'],
        description: 'Parameter 33: Humidification pad reminder',
        dflt: 0
-   param name: 'dehumidFilterReminder', label: 'Dehumidifier filter reminder', unit: 'months', id: 34, size: 1,
+   param name: 'dehumidFilterReminder', label: 'Dehumidifier filter reminder', id: 34, size: 1,
        type: 'range', min: 0, max: 12,
        description: 'Parameter 34: Dehumidification filter reminder (0=Off, 1-12 months)',
        dflt: 0
-   param name: 'ventFilterReminder', label: 'Ventilation filter reminder', unit: 'months', id: 35, size: 1,
+   param name: 'ventFilterReminder', label: 'Ventilation filter reminder', id: 35, size: 1,
        type: 'range', min: 0, max: 12,
        description: 'Parameter 35: Ventilation filter reminder (0=Off, 3-12 months)',
        dflt: 0
@@ -242,7 +242,7 @@ deviceSettings {
        dflt: 1
 
    // Offsets (the thermostat has no parameter 43 / humidity offset)
-   param name: 'temperatureOffset', label: 'Temperature offset', unit: '°F', id: 42, size: 1,
+   param name: 'temperatureOffset', label: 'Temperature offset', id: 42, size: 1,
        type: 'range', min: -3, max: 3,
        description: 'Parameter 42: Temperature offset (degrees F)',
        dflt: 0

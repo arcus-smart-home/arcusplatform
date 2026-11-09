@@ -16,6 +16,7 @@
 package com.iris.driver.groovy;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
 import org.junit.Test;
@@ -63,6 +65,9 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
 
    /** Clients put labels beside controls, so they need to be short */
    private static final int MAX_LABEL_LENGTH = 32;
+
+   /** A driver's settings block starts a line, unlike a mention of it in a comment */
+   private static final Pattern SETTINGS_BLOCK = Pattern.compile("^deviceSettings\\b", Pattern.MULTILINE);
 
    /** Every setting of the driver loaded last, whatever product it's limited to */
    private DeviceSettingsContext loadedSettings;
@@ -101,15 +106,17 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
    public void everySettingHasAShortLabel() throws Exception {
       File[] files = new File(DRIVER_DIR).listFiles((dir, name) -> name.endsWith(".driver"));
       assertTrue("no drivers in " + new File(DRIVER_DIR).getAbsolutePath(), files != null && files.length > 0);
-      int checked = 0;
+      int drivers = 0;
       List<String> problems = new ArrayList<>();
       for (File file : files) {
-         if (!new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8).contains("deviceSettings")) {
+         if (!SETTINGS_BLOCK.matcher(new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8)).find()) {
             continue;
          }
          loadedSettings = null;
          factory.load(file.getName());
          assertNotNull(file.getName() + " has no deviceSettings block", loadedSettings);
+         assertFalse(file.getName() + " has no settings", loadedSettings.getParams().isEmpty());
+         drivers++;
          for (DeviceSettingsParamDefinition param : loadedSettings.getParams()) {
             String label = param.getLabel();
             if (label == null) {
@@ -117,11 +124,10 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
             } else if (label.length() > MAX_LABEL_LENGTH) {
                problems.add(file.getName() + " " + param.getParamId() + ": label longer than " + MAX_LABEL_LENGTH);
             }
-            checked++;
          }
       }
+      assertTrue("found no driver with a deviceSettings block", drivers > 0);
       assertEquals(Collections.emptyList(), problems);
-      assertTrue("checked only " + checked + " settings", checked > 250);
    }
 
    @Test

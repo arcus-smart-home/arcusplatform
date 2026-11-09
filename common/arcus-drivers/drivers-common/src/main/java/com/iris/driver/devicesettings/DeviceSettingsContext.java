@@ -64,6 +64,14 @@ public class DeviceSettingsContext {
             throw new IllegalArgumentException("deviceSettings param name '" + p.getParamId() + "' is declared twice");
          }
          filters |= p.hasProductFilter();
+         // a UI showing both couldn't tell them apart, whether or not they're Z-Wave parameters
+         for (int j = 0; j < i; j++) {
+            DeviceSettingsParamDefinition q = this.params.get(j);
+            if (p.getLabel() != null && p.getLabel().equalsIgnoreCase(q.getLabel()) && p.sharesProductWith(q)) {
+               throw new IllegalArgumentException("deviceSettings params '" + q.getParamId() + "' and '"
+                     + p.getParamId() + "' both have the label '" + p.getLabel() + "' on the same product");
+            }
+         }
          if (p.isDriverOnly()) {
             // kept by the driver, so it has no parameter number to clash with or be found by
             continue;
@@ -76,11 +84,6 @@ public class DeviceSettingsContext {
                         + p.getParamId() + "' both use parameter " + p.getZwaveParamNo() + " on the same product");
                }
                reused.add(p.getZwaveParamNo());
-            }
-            // a UI showing both couldn't tell them apart
-            if (p.getLabel() != null && p.getLabel().equals(q.getLabel()) && p.sharesProductWith(q)) {
-               throw new IllegalArgumentException("deviceSettings params '" + q.getParamId() + "' and '"
-                     + p.getParamId() + "' both have the label '" + p.getLabel() + "' on the same product");
             }
          }
          noMap.put(p.getZwaveParamNo(), p);

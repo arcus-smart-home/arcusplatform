@@ -98,12 +98,12 @@ deviceSettings {
        description: 'Parameter 5: External switch type',
        dflt: 0
 
-   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 's', id: 7, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 7, size: 4,
        type: 'range', min: 0, max: 2678400,
        description: 'Parameter 7: Auto turn-off timer in seconds (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 's', id: 8, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 8, size: 4,
        type: 'range', min: 0, max: 2678400,
        description: 'Parameter 8: Auto turn-on timer in seconds (0=disabled)',
        dflt: 0

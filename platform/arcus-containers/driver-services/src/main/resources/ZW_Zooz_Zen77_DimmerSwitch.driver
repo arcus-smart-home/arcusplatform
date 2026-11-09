@@ -113,12 +113,12 @@ deviceSettings {
        description: 'Parameter 2: LED indicator control',
        dflt: 0
 
-   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 'min', id: 3, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 3, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 3: Auto turn-off timer (0=disabled, 1-65535=minutes)',
        dflt: 0
 
-   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 'min', id: 5, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 5, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 5: Auto turn-on timer (0=disabled, 1-65535=minutes)',
        dflt: 0
@@ -168,12 +168,12 @@ deviceSettings {
        description: 'Parameter 16: Physical dimming speed (seconds, 0-100%)',
        dflt: 5
 
-   param name: 'customBrightnessOn', label: 'Turn-on brightness', unit: '%', id: 18, size: 1,
+   param name: 'customBrightnessOn', label: 'Turn-on brightness', id: 18, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 18: Custom brightness on turn-on (0=last level, 1-99=%)',
        dflt: 0
 
-   param name: 'nightLightMode', label: 'Night light brightness', unit: '%', id: 22, size: 1,
+   param name: 'nightLightMode', label: 'Night light brightness', id: 22, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 22: Night light brightness (0=disabled, 1-99=%)',
        dflt: 20

@@ -89,11 +89,11 @@ deviceSettings {
        type: 'enum', values: ['0': 'On when load off', '1': 'On when load on', '2': 'Always off', '3': 'Always on'],
        description: 'Parameter 2: LED indicator behavior',
        dflt: 0
-   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 'min', id: 4, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 4, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 4: Auto off timer in minutes (0=disabled)',
        dflt: 0
-   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 'min', id: 6, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 6, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 6: Auto on timer in minutes (0=disabled)',
        dflt: 0
@@ -113,11 +113,11 @@ deviceSettings {
        type: 'range', min: 1, max: 10,
        description: 'Parameter 10: Dimming rate for manual dimming / Z-Wave (seconds)',
        dflt: 4
-   param name: 'minimumDimLevel', label: 'Minimum brightness', unit: '%', id: 11, size: 1,
+   param name: 'minimumDimLevel', label: 'Minimum brightness', id: 11, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 11: Minimum dim level (0=disabled, 1-99)',
        dflt: 10
-   param name: 'maximumDimLevel', label: 'Maximum brightness', unit: '%', id: 12, size: 1,
+   param name: 'maximumDimLevel', label: 'Maximum brightness', id: 12, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 12: Maximum dim level (0=disabled, 1-99)',
        dflt: 99

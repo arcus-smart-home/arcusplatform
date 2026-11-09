@@ -112,7 +112,7 @@ deviceSettings {
        type: 'enum', values: ['0': 'LED on when switch off', '1': 'LED on when switch on', '2': 'LED always off', '3': 'LED always on'],
        description: 'Parameter 2: LED indicator control',
        dflt: 0
-   param name: 'autoOffTimerEnabled', label: 'Auto-off timer', id: 3, size: 1,
+   param name: 'autoOffTimerEnabled', label: 'Auto-off enabled', id: 3, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 3: Auto turn-off timer',
        dflt: 0
@@ -120,7 +120,7 @@ deviceSettings {
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 4: Auto turn-off timer duration (minutes)',
        dflt: 0
-   param name: 'autoOnTimerEnabled', label: 'Auto-on timer', id: 5, size: 1,
+   param name: 'autoOnTimerEnabled', label: 'Auto-on enabled', id: 5, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 5: Auto turn-on timer',
        dflt: 0

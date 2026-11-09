@@ -97,12 +97,12 @@ deviceSettings {
        description: 'Parameter 2: LED indicator',
        dflt: 0
 
-   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 'min', id: 3, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', id: 3, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 3: Auto turn-off timer in minutes (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 'min', id: 5, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', id: 5, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 5: Auto turn-on timer in minutes (0=disabled)',
        dflt: 0
@@ -152,7 +152,7 @@ deviceSettings {
        description: 'Parameter 16: Seconds to dim from 0 to 100% when holding the paddle',
        dflt: 5
 
-   param name: 'customBrightness', label: 'Paddle turn-on brightness', unit: '%', id: 18, size: 1,
+   param name: 'customBrightness', label: 'Paddle turn-on brightness', id: 18, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 18: Custom brightness when turned on from the paddle (0=previous brightness)',
        dflt: 0
@@ -172,7 +172,7 @@ deviceSettings {
        description: 'Parameter 21: Smart switch mode reporting',
        dflt: 0
 
-   param name: 'nightLightMode', label: 'Night light brightness', unit: '%', id: 22, size: 1,
+   param name: 'nightLightMode', label: 'Night light brightness', id: 22, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 22: Night light brightness when the lower paddle is held while off (0=disabled)',
        dflt: 20
@@ -227,7 +227,7 @@ deviceSettings {
        description: 'Parameter 33: On/off switch mode, which disables dimming (firmware 3.40+)',
        dflt: 0
 
-   param name: 'zwaveCustomBrightness', label: 'Z-Wave turn-on brightness', unit: '%', id: 34, size: 1,
+   param name: 'zwaveCustomBrightness', label: 'Z-Wave turn-on brightness', id: 34, size: 1,
        type: 'range', min: 0, max: 99,
        description: 'Parameter 34: Custom brightness when turned on over Z-Wave (0=previous brightness, firmware 3.50+)',
        dflt: 0

@@ -59,7 +59,13 @@ public class DeviceSettingsLabelTest {
 
    @Test
    public void rejectsABlankLabel() {
-      assertRejected(range("rampRate", 9, " ", null), "blank label");
+      assertRejected(range("rampRate", 9, " ", null), "label must not be blank");
+   }
+
+   @Test
+   public void rejectsALabelThatStartsOrEndsWithASpace() {
+      assertRejected(range("rampRate", 9, "Ramp rate ", null), "label must not be blank or start or end with a space");
+      assertRejected(range("rampRate", 9, " Ramp rate", null), "label must not be blank or start or end with a space");
    }
 
    @Test
@@ -90,6 +96,20 @@ public class DeviceSettingsLabelTest {
    }
 
    @Test
+   public void rejectsLabelsThatDifferOnlyInCase() {
+      assertNotBuilt("both have the label",
+            range("ledMode", 2, "LED indicator", null), range("ledColor", 23, "LED Indicator", null));
+   }
+
+   @Test
+   public void comparesTheLabelsOfSettingsThatAreNotZWaveParameters() {
+      // in either order, since the driver-only one has no parameter number to compare
+      assertNotBuilt("both have the label", range("chimeLevel", 6, "Chime volume", "%"), driverOnly("chimeVolume", "Chime volume"));
+      assertNotBuilt("both have the label", driverOnly("chimeVolume", "Chime volume"), range("chimeLevel", 6, "Chime volume", "%"));
+      assertNotBuilt("both have the label", driverOnly("chimeVolume", "Chime volume"), driverOnly("doorbellVolume", "Chime volume"));
+   }
+
+   @Test
    public void allowsOneLabelOnDifferentProducts() {
       DeviceSettingsBlockContext block = new DeviceSettingsBlockContext();
       Map<String, Object> gen1 = range("supervisionTimeout", 2, "Supervision timeout", "s");
@@ -100,6 +120,31 @@ public class DeviceSettingsLabelTest {
       block.param(gen2);
 
       assertEquals(2, block.build().getParams().size());
+   }
+
+   @SafeVarargs
+   private static void assertNotBuilt(String reason, Map<String, Object>... params) {
+      DeviceSettingsBlockContext block = new DeviceSettingsBlockContext();
+      for (Map<String, Object> param : params) {
+         block.param(param);
+      }
+      try {
+         block.build();
+         fail("built " + Arrays.asList(params));
+      } catch (IllegalArgumentException e) {
+         assertTrue(e.getMessage(), e.getMessage().contains(reason));
+      }
+   }
+
+   private static Map<String, Object> driverOnly(String name, String label) {
+      Map<String, Object> args = new HashMap<>();
+      args.put("name", name);
+      args.put("driverOnly", true);
+      args.put("type", "range");
+      args.put("min", 10);
+      args.put("max", 100);
+      args.put("label", label);
+      return args;
    }
 
    private static void assertRejected(Map<String, Object> args, String reason) {

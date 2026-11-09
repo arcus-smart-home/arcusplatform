@@ -174,12 +174,12 @@ deviceSettings {
        description: 'Parameter 15: LED brightness for button 4',
        dflt: 1
 
-   param name: 'autoOffTimer', label: 'Relay auto-off timer', unit: 'min', id: 16, size: 4,
+   param name: 'autoOffTimer', label: 'Relay auto-off timer', id: 16, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 16: Auto turn-off timer for relay (0=disabled, 1-65535=minutes)',
        dflt: 0
 
-   param name: 'autoOnTimer', label: 'Relay auto-on timer', unit: 'min', id: 17, size: 4,
+   param name: 'autoOnTimer', label: 'Relay auto-on timer', id: 17, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 17: Auto turn-on timer for relay (0=disabled, 1-65535=minutes)',
        dflt: 0
