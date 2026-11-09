@@ -36,6 +36,17 @@ These scenarios test the functionality of the ZWave Zooz ZSE42 Water Leak XS Sen
         When the device is connected
         Then the driver should set timeout at 190 minutes
 
+    @basic @connected @leak
+    Scenario: The leak state is read from the water alarm, since the sensor has no Sensor Binary
+        When the device is connected
+        Then the driver should set timeout at 190 minutes
+        Then the driver should send wake_up set
+        Then the driver should send alarm get
+            And with parameter alarmtype 0
+            And with parameter notificationtype 5
+            And with parameter event 0
+        Then the driver should poll alarm.get every 60 minutes
+
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
         When a base:SetAttributes command with the value of dev:name <value> is placed on the platform bus

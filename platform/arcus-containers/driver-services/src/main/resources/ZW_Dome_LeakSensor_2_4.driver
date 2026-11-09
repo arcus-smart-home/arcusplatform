@@ -65,7 +65,11 @@ DevicePower.source               DevicePower.SOURCE_BATTERY
 DevicePower.linecapable          false
 DevicePower.backupbatterycapable false
 
-LeakH2O.state                    LeakH2O.STATE_SAFE
+LeakH2O {
+    LeakH2O.state LeakH2O.STATE_SAFE
+    // Stamped whenever the state changes, including when the hub sets it
+    bind LeakH2O.statechanged to LeakH2O.state
+}
 
 
 // Z-Wave alarm states
@@ -113,6 +117,29 @@ final byte CNFG_PARAM_OFFSET_MSB                     = 0
 final byte CNFG_PARAM_OFFSET_LSB                     = 1          // start at parameter offset 1
 final byte CNFG_PARAM_COUNT                          = 7          // configure parameters 1 thru 7
 final byte CNFG_PARAM_SIZE                           = 1          // parameter sizes are 1 byte
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Hub reflexes
+//
+// The hub keeps its own copy of the leak state from these, which is what a
+// hub-run alarm watches. The hub reports the state to the platform, and the
+// LeakH2O binding stamps when it changed.
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+    match reflex {
+        on alarm.report, alarmtype: 0x00, alarmlevel: 0x00, notificationstatus: 0xFF, notificationtype: 0x05, event: 0x02
+        on sensor_binary.report, sensorvalue: 0xFF
+        set LeakH2O.state, LeakH2O.STATE_LEAK
+    }
+
+    match reflex {
+        on alarm.report, alarmtype: 0x00, alarmlevel: 0x00, notificationstatus: 0xFF, notificationtype: 0x05, event: 0x00
+        on sensor_binary.report, sensorvalue: 0x00
+        set LeakH2O.state, LeakH2O.STATE_SAFE
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
