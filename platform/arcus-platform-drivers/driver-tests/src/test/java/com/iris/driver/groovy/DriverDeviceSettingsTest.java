@@ -16,9 +16,15 @@
 package com.iris.driver.groovy;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +39,10 @@ import com.iris.device.attributes.AttributeKey;
 import com.iris.device.attributes.AttributeMap;
 import com.iris.driver.DeviceDriver;
 import com.iris.driver.PlatformDeviceDriverContext;
+import com.iris.driver.devicesettings.DeviceSettingsContext;
+import com.iris.driver.devicesettings.DeviceSettingsParamDefinition;
 import com.iris.driver.event.DriverEvent;
+import com.iris.driver.groovy.binding.EnvironmentBinding;
 import com.iris.driver.groovy.control.ControlProtocolPlugin;
 import com.iris.driver.groovy.devicesettings.DeviceSettingsPlugin;
 import com.iris.driver.groovy.pin.PinManagementPlugin;
@@ -50,6 +59,14 @@ import com.iris.protocol.constants.ZwaveConstants;
  */
 public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
 
+   private static final String DRIVER_DIR = "../../arcus-containers/driver-services/src/main/resources";
+
+   /** Clients put labels beside controls, so they need to be short */
+   private static final int MAX_LABEL_LENGTH = 32;
+
+   /** Every setting of the driver loaded last, whatever product it's limited to */
+   private DeviceSettingsContext loadedSettings;
+
    @Override
    protected Set<GroovyDriverPlugin> getPlugins() {
       return ImmutableSet.of(
@@ -58,7 +75,15 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
          new ZWaveProtocolPlugin(),
          new ReflexPlugin(),
          new PinManagementPlugin(),
-         new DeviceSettingsPlugin()
+         new DeviceSettingsPlugin() {
+            @Override
+            public void postProcessEnvironment(EnvironmentBinding binding) {
+               if (binding instanceof DriverBinding) {
+                  loadedSettings = ((DriverBinding) binding).getBuilder().getDeviceSettingsContext();
+               }
+               super.postProcessEnvironment(binding);
+            }
+         }
       );
    }
 
@@ -70,6 +95,33 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
          .toInstance(new ImportCustomizer()
             .addImports("groovy.transform.Field")
             .addStaticStars("java.util.concurrent.TimeUnit"));
+   }
+
+   @Test
+   public void everySettingHasAShortLabel() throws Exception {
+      File[] files = new File(DRIVER_DIR).listFiles((dir, name) -> name.endsWith(".driver"));
+      assertTrue("no drivers in " + new File(DRIVER_DIR).getAbsolutePath(), files != null && files.length > 0);
+      int checked = 0;
+      List<String> problems = new ArrayList<>();
+      for (File file : files) {
+         if (!new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8).contains("deviceSettings")) {
+            continue;
+         }
+         loadedSettings = null;
+         factory.load(file.getName());
+         assertNotNull(file.getName() + " has no deviceSettings block", loadedSettings);
+         for (DeviceSettingsParamDefinition param : loadedSettings.getParams()) {
+            String label = param.getLabel();
+            if (label == null) {
+               problems.add(file.getName() + " " + param.getParamId() + ": no label");
+            } else if (label.length() > MAX_LABEL_LENGTH) {
+               problems.add(file.getName() + " " + param.getParamId() + ": label longer than " + MAX_LABEL_LENGTH);
+            }
+            checked++;
+         }
+      }
+      assertEquals(Collections.emptyList(), problems);
+      assertTrue("checked only " + checked + " settings", checked > 250);
    }
 
    @Test

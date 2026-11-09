@@ -100,11 +100,11 @@ def byte CNFG_SENSOR_REPORT_VALUE              = 0x00           // Send both Sen
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'basicSetCommands', id: 1, size: 1,
+   param name: 'basicSetCommands', label: 'Basic Set commands', id: 1, size: 1,
        type: 'enum', values: ['0': 'Do not send', '255': 'Send'],
        description: 'Parameter 1: Send Basic Set commands on state change',
        dflt: 255
-   param name: 'sensorBinaryReport', id: 2, size: 1,
+   param name: 'sensorBinaryReport', label: 'Sensor Binary reports', id: 2, size: 1,
        type: 'enum', values: ['0': 'Send Sensor Binary and Notification', '255': 'Notification only'],
        description: 'Parameter 2: Sensor Binary Report behavior',
        dflt: 0

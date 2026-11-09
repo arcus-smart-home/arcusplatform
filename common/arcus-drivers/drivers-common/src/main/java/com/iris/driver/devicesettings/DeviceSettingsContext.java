@@ -48,7 +48,7 @@ public class DeviceSettingsContext {
     * @param readOnConnect false when the driver reads the values itself, later than
     *                      connect (see {@link #isReadOnConnect()})
     * @throws IllegalArgumentException if two params share a name, or two params
-    *         that can apply to one product share a parameter number
+    *         that can apply to one product share a parameter number or a label
     */
    public DeviceSettingsContext(List<DeviceSettingsParamDefinition> params, boolean readOnConnect) {
       this.params = Collections.unmodifiableList(new ArrayList<>(params));
@@ -76,6 +76,11 @@ public class DeviceSettingsContext {
                         + p.getParamId() + "' both use parameter " + p.getZwaveParamNo() + " on the same product");
                }
                reused.add(p.getZwaveParamNo());
+            }
+            // a UI showing both couldn't tell them apart
+            if (p.getLabel() != null && p.getLabel().equals(q.getLabel()) && p.sharesProductWith(q)) {
+               throw new IllegalArgumentException("deviceSettings params '" + q.getParamId() + "' and '"
+                     + p.getParamId() + "' both have the label '" + p.getLabel() + "' on the same product");
             }
          }
          noMap.put(p.getZwaveParamNo(), p);

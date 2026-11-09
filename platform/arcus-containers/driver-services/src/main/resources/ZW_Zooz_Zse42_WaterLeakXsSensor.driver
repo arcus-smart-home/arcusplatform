@@ -123,23 +123,23 @@ final byte CNFG_BASIC_SET_VALUE                     = 1
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'ledIndicator', id: 1, size: 1,
+   param name: 'ledIndicator', label: 'LED indicator', id: 1, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 1: LED indicator',
        dflt: 1
-   param name: 'alarmClearDelay', id: 2, size: 4,
+   param name: 'alarmClearDelay', label: 'Leak clear delay', unit: 's', id: 2, size: 4,
        type: 'range', min: 0, max: 3600,
        description: 'Parameter 2: Leak alarm clear delay in seconds (0=instant)',
        dflt: 0
-   param name: 'batteryReportThreshold', id: 3, size: 1,
+   param name: 'batteryReportThreshold', label: 'Battery report threshold', unit: '%', id: 3, size: 1,
        type: 'range', min: 1, max: 50,
        description: 'Parameter 3: Battery reporting threshold (percent)',
        dflt: 10
-   param name: 'lowBatteryThreshold', id: 4, size: 1,
+   param name: 'lowBatteryThreshold', label: 'Low battery alert', unit: '%', id: 4, size: 1,
        type: 'range', min: 10, max: 50,
        description: 'Parameter 4: Low battery alert threshold (percent)',
        dflt: 20
-   param name: 'basicSetCommands', id: 5, size: 1,
+   param name: 'basicSetCommands', label: 'Basic Set commands', id: 5, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Off when water detected / On when cleared', '2': 'On when water detected / Off when cleared'],
        description: 'Parameter 5: Group 2 Basic Set commands',
        dflt: 1

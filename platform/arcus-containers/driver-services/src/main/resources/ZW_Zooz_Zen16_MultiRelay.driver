@@ -79,77 +79,77 @@ instance 'relay3', Switch
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'repowerState', id: 1, size: 1,
+   param name: 'repowerState', label: 'State after power failure', id: 1, size: 1,
        type: 'enum', values: ['0': 'All Relays OFF', '1': 'Remember Last State', '2': 'All Relays ON', '3': 'R1/R2 Remember / R3 OFF', '4': 'R1/R2 Remember / R3 ON'],
        description: 'Parameter 1: On/Off status after power failure',
        dflt: 1
 
-   param name: 'inputTypeR1', id: 2, size: 1,
+   param name: 'inputTypeR1', label: 'Switch 1 input type', id: 2, size: 1,
        type: 'enum', values: ['0': 'Momentary', '1': 'Toggle On/Off', '2': 'Toggle Any Change', '3': 'Garage Door'],
        description: 'Parameter 2: Input type for Switch 1',
        dflt: 2
 
-   param name: 'inputTypeR2', id: 3, size: 1,
+   param name: 'inputTypeR2', label: 'Switch 2 input type', id: 3, size: 1,
        type: 'enum', values: ['0': 'Momentary', '1': 'Toggle On/Off', '2': 'Toggle Any Change', '3': 'Garage Door'],
        description: 'Parameter 3: Input type for Switch 2',
        dflt: 2
 
-   param name: 'inputTypeR3', id: 4, size: 1,
+   param name: 'inputTypeR3', label: 'Switch 3 input type', id: 4, size: 1,
        type: 'enum', values: ['0': 'Momentary', '1': 'Toggle On/Off', '2': 'Toggle Any Change', '3': 'Garage Door'],
        description: 'Parameter 4: Input type for Switch 3',
        dflt: 2
 
-   param name: 'ledMode', id: 5, size: 1,
+   param name: 'ledMode', label: 'LED indicator', id: 5, size: 1,
        type: 'enum', values: ['0': 'LED on when all relays off', '1': 'LED on when any relay on', '2': 'LED always off', '3': 'LED always on'],
        description: 'Parameter 5: LED indicator control',
        dflt: 0
 
-   param name: 'autoOffR1', id: 6, size: 4,
+   param name: 'autoOffR1', label: 'Relay 1 auto-off timer', id: 6, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 6: Auto turn-off timer for Relay 1 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnR1', id: 7, size: 4,
+   param name: 'autoOnR1', label: 'Relay 1 auto-on timer', id: 7, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 7: Auto turn-on timer for Relay 1 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOffR2', id: 8, size: 4,
+   param name: 'autoOffR2', label: 'Relay 2 auto-off timer', id: 8, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 8: Auto turn-off timer for Relay 2 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnR2', id: 9, size: 4,
+   param name: 'autoOnR2', label: 'Relay 2 auto-on timer', id: 9, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 9: Auto turn-on timer for Relay 2 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOffR3', id: 10, size: 4,
+   param name: 'autoOffR3', label: 'Relay 3 auto-off timer', id: 10, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 10: Auto turn-off timer for Relay 3 (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnR3', id: 11, size: 4,
+   param name: 'autoOnR3', label: 'Relay 3 auto-on timer', id: 11, size: 4,
        type: 'range', min: 0, max: 65535,
        description: 'Parameter 11: Auto turn-on timer for Relay 3 (0=disabled)',
        dflt: 0
 
-   param name: 'manualControlR1', id: 12, size: 1,
+   param name: 'manualControlR1', label: 'Switch 1 manual control', id: 12, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 12: Manual control for Switch 1',
        dflt: 1
 
-   param name: 'manualControlR2', id: 13, size: 1,
+   param name: 'manualControlR2', label: 'Switch 2 manual control', id: 13, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 13: Manual control for Switch 2',
        dflt: 1
 
-   param name: 'manualControlR3', id: 14, size: 1,
+   param name: 'manualControlR3', label: 'Switch 3 manual control', id: 14, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 14: Manual control for Switch 3',
        dflt: 1
 
-   param name: 'dcMotorMode', id: 24, size: 1,
+   param name: 'dcMotorMode', label: 'DC motor mode', id: 24, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'R1/R2 Only', '2': 'R1/R2/R3'],
        description: 'Parameter 24: DC motor mode (only one relay on at a time)',
        dflt: 0

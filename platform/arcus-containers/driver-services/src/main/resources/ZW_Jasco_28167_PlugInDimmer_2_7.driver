@@ -58,31 +58,31 @@ importCapability 'zwave/GenericZWaveVersion'
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'smoothLevelChanges', id: 6, size: 1,
+   param name: 'smoothLevelChanges', label: 'Smooth level changes', id: 6, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 6: Smooth level changes (firmware 5.21+)',
        dflt: 0
-   param name: 'zwaveDimSteps', id: 7, size: 1,
+   param name: 'zwaveDimSteps', label: 'Z-Wave dim steps', id: 7, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 7: Dim steps for Z-Wave commands',
        dflt: 1
-   param name: 'zwaveDimRate', id: 8, size: 1,
+   param name: 'zwaveDimRate', label: 'Z-Wave dim step time', id: 8, size: 1,
        type: 'range', min: 1, max: 255,
        description: 'Parameter 8: Time per dim step for Z-Wave commands (10 ms units)',
        dflt: 3
-   param name: 'manualDimSteps', id: 9, size: 1,
+   param name: 'manualDimSteps', label: 'Button dim steps', id: 9, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 9: Dim steps for the local button',
        dflt: 1
-   param name: 'manualDimRate', id: 10, size: 1,
+   param name: 'manualDimRate', label: 'Button dim step time', id: 10, size: 1,
        type: 'range', min: 1, max: 255,
        description: 'Parameter 10: Time per dim step for the local button (10 ms units)',
        dflt: 3
-   param name: 'allOnOffDimSteps', id: 11, size: 1,
+   param name: 'allOnOffDimSteps', label: 'All On/Off dim steps', id: 11, size: 1,
        type: 'range', min: 1, max: 99,
        description: 'Parameter 11: Dim steps for All On / All Off commands',
        dflt: 1
-   param name: 'allOnOffDimRate', id: 12, size: 1,
+   param name: 'allOnOffDimRate', label: 'All On/Off dim step time', id: 12, size: 1,
        type: 'range', min: 1, max: 255,
        description: 'Parameter 12: Time per dim step for All On / All Off commands (10 ms units)',
        dflt: 3

@@ -36,11 +36,22 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
    /**
     * Called from the driver DSL:
     * <pre>
-    * param name: 'ledMode', id: 27, size: 1,
+    * param name: 'ledMode', label: 'LED indicator', id: 27, size: 1,
     *     type: 'enum', values: ['0': 'Always On', '1': 'On for 5 seconds'],
-    *     description: 'LED indicator behavior',
+    *     description: 'Parameter 27: LED indicator behavior',
+    *     dflt: 1
+    *
+    * param name: 'rampRate', label: 'Ramp rate', unit: 's', id: 9, size: 1,
+    *     type: 'range', min: 0, max: 99,
+    *     description: 'Parameter 9: Ramp rate (seconds, 0=instant)',
     *     dflt: 1
     * </pre>
+    * {@code label} is the short name clients show, such as Home Assistant beside a
+    * slider; {@code description} is the detail. {@code unit} is the unit of a range
+    * value as clients display it, such as {@code 's'}, {@code 'min'} or {@code '%'};
+    * leave it out when special values don't share it (e.g. 255 = "same as the
+    * paddle").
+    * <p>
     * Add {@code products: [[0x4F44, 0x3032], ...]} (Z-Wave product type, product id)
     * when the parameter only exists on some of the products the driver matches.
     * <p>
@@ -67,6 +78,8 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
 
       String typeStr = (String) args.get("type");
       String description = (String) args.get("description");
+      String label = text(args, "label", name);
+      String unit = text(args, "unit", name);
       Number dflt = (Number) args.get("dflt");
 
       DeviceSettingsParamDefinition.ParamType type;
@@ -93,6 +106,7 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
       if (description != null) {
          builder.withDescription(description);
       }
+      builder.withLabel(label).withUnit(unit);
       if (dflt != null) {
          builder.withDefaultValue(dflt.longValue());
       }
@@ -125,6 +139,14 @@ public class DeviceSettingsBlockContext extends GroovyObjectSupport {
       }
 
       params.add(builder.build());
+   }
+
+   private static String text(Map<String, Object> args, String key, String name) {
+      Object value = args.get(key);
+      if (value != null && !(value instanceof CharSequence)) {
+         throw new IllegalArgumentException("deviceSettings param '" + name + "' " + key + " must be a string, got " + value);
+      }
+      return value == null ? null : value.toString();
    }
 
    private static List<int[]> parseProducts(String name, Object products) {

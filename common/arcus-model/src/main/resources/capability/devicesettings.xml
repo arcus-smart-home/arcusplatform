@@ -19,7 +19,7 @@
          readwrite="r"
          type="list&lt;any&gt;"
          optional="false"
-         description="List of parameter descriptors with metadata and current values."/>
+         description="List of parameter descriptors with metadata and current values. Each has paramId (what SetParam and GetParam take), name (a short label to show, or the paramId for drivers that give none), description (the detail), type (range, enum or boolean), min and max for a range, values (value to label) for an enum, unit (e.g. s, min or %) for a range that has one, dflt, value, and zwaveParamNo and zwaveParamSize for a Z-Wave parameter."/>
    </c:attributes>
 
    <c:methods>

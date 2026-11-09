@@ -216,4 +216,15 @@ public class DeviceSettingParamTest {
 
       assertEquals("Siren volume", DeviceSettingFixtures.param(entry).getDisplayDescription());
    }
+
+   @Test
+   public void showsTheUnitOfARange() {
+      Map<String, Object> entry = rangeEntry("rampRate", 0, 99, 1, 5);
+      entry.put("unit", "s");
+      DeviceSettingParam range = param(entry);
+      assertEquals("s", range.getUnit());
+      assertEquals("5 s", range.describe("5"));
+      assertEquals("rampRate, Z-Wave parameter 3, size 1, 0 to 99 s", range.getDetail());
+      assertFalse(range.hasSameDefinition(param(rangeEntry("rampRate", 0, 99, 1, 5))));
+   }
 }

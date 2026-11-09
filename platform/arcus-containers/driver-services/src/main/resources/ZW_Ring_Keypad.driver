@@ -209,108 +209,108 @@ ZWave {
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'announcementVolume', id: 4, size: 1,
+   param name: 'announcementVolume', label: 'Announcement volume', id: 4, size: 1,
        type: 'range', min: 0, max: 10,
        description: 'Parameter 4: Voice announcement volume',
        dflt: 7
 
-   param name: 'keyToneVolume', id: 5, size: 1,
+   param name: 'keyToneVolume', label: 'Key tone volume', id: 5, size: 1,
        type: 'range', min: 0, max: 10,
        description: 'Parameter 5: Key press tone volume',
        dflt: 6
 
-   param name: 'sirenVolume', id: 6, size: 1,
+   param name: 'sirenVolume', label: 'Siren volume', id: 6, size: 1,
        type: 'range', min: 0, max: 10,
        description: 'Parameter 6: Siren volume',
        dflt: 10
 
-   param name: 'emergencyLongPress', id: 7, size: 1,
+   param name: 'emergencyLongPress', label: 'Emergency button hold time', unit: 's', id: 7, size: 1,
        type: 'range', min: 2, max: 5,
        description: 'Parameter 7: Hold time for the Police, Fire and Medical buttons (seconds)',
        dflt: 3
 
-   param name: 'numberPadLongPress', id: 8, size: 1,
+   param name: 'numberPadLongPress', label: 'Number pad hold time', unit: 's', id: 8, size: 1,
        type: 'range', min: 2, max: 5,
        description: 'Parameter 8: Hold time for a number pad long press (seconds)',
        dflt: 3
 
-   param name: 'proximityDisplayTimeout', id: 9, size: 1,
+   param name: 'proximityDisplayTimeout', label: 'Proximity display time', unit: 's', id: 9, size: 1,
        type: 'range', min: 0, max: 30,
        description: 'Parameter 9: Time the display stays on after proximity is detected (seconds)',
        dflt: 5
 
-   param name: 'buttonDisplayTimeout', id: 10, size: 1,
+   param name: 'buttonDisplayTimeout', label: 'Button press display time', unit: 's', id: 10, size: 1,
        type: 'range', min: 0, max: 30,
        description: 'Parameter 10: Time the display stays on after a button press (seconds)',
        dflt: 5
 
-   param name: 'statusDisplayTimeout', id: 11, size: 1,
+   param name: 'statusDisplayTimeout', label: 'Status change display time', unit: 's', id: 11, size: 1,
        type: 'range', min: 1, max: 30,
        description: 'Parameter 11: Time the display stays on after a status change (seconds)',
        dflt: 5
 
-   param name: 'securityModeBrightness', id: 12, size: 1,
+   param name: 'securityModeBrightness', label: 'Security mode brightness', unit: '%', id: 12, size: 1,
        type: 'range', min: 0, max: 100,
        description: 'Parameter 12: Security mode light brightness (%)',
        dflt: 100
 
-   param name: 'keyBacklightBrightness', id: 13, size: 1,
+   param name: 'keyBacklightBrightness', label: 'Key backlight brightness', unit: '%', id: 13, size: 1,
        type: 'range', min: 0, max: 100,
        description: 'Parameter 13: Key backlight brightness (%)',
        dflt: 100
 
-   param name: 'keyBacklightAmbientLevel', id: 14, size: 1,
+   param name: 'keyBacklightAmbientLevel', label: 'Backlight ambient cutoff', unit: '%', id: 14, size: 1,
        type: 'range', min: 0, max: 100,
        description: 'Parameter 14: Ambient light level above which the key backlight stays off (%)',
        dflt: 20
 
-   param name: 'proximityDetection', id: 15, size: 1,
+   param name: 'proximityDetection', label: 'Proximity detection', id: 15, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 15: Proximity detection',
        dflt: 1
 
-   param name: 'ledRampTime', id: 16, size: 1,
+   param name: 'ledRampTime', label: 'LED ramp time', id: 16, size: 1,
        type: 'range', min: 0, max: 255,
        description: 'Parameter 16: LED ramp time',
        dflt: 50
 
-   param name: 'batteryLowThreshold', id: 17, size: 1,
+   param name: 'batteryLowThreshold', label: 'Low battery threshold', unit: '%', id: 17, size: 1,
        type: 'range', min: 0, max: 100,
        description: 'Parameter 17: Low battery threshold (%)',
        dflt: 15
 
-   param name: 'language', id: 18, size: 1,
+   param name: 'language', label: 'Voice language', id: 18, size: 1,
        type: 'enum', values: ['0': 'English', '2': 'French', '5': 'Spanish', '30': 'Keypad default'],
        description: 'Parameter 18: Voice prompt language',
        dflt: 30
 
-   param name: 'batteryWarningThreshold', id: 19, size: 1,
+   param name: 'batteryWarningThreshold', label: 'Battery warning threshold', unit: '%', id: 19, size: 1,
        type: 'range', min: 0, max: 100,
        description: 'Parameter 19: Battery warning threshold (%)',
        dflt: 5
 
-   param name: 'securityModeBlinkDuration', id: 20, size: 1,
+   param name: 'securityModeBlinkDuration', label: 'Security mode blink time', id: 20, size: 1,
        type: 'range', min: 1, max: 60,
        description: 'Parameter 20: Security mode blink duration',
        dflt: 2
 
-   param name: 'securityModeDisplay', id: 22, size: 2,
+   param name: 'securityModeDisplay', label: 'Security mode display', id: 22, size: 2,
        type: 'range', min: 0, max: 601,
        description: 'Parameter 22: Security mode display (0=always off, 601=always on)',
        dflt: 0
 
-   param name: 'motionTimeout', id: 26, size: 1,
+   param name: 'motionTimeout', label: 'Motion timeout', unit: 's', id: 26, size: 1,
        type: 'range', min: 0, max: 60,
        description: 'Parameter 26: Motion sensor timeout (seconds)',
        dflt: 3
 
    // The keypad's sounds are indicators, so these two live in the driver
-   param name: 'chimeTone', driverOnly: true,
+   param name: 'chimeTone', label: 'Chime tone', driverOnly: true,
        type: 'enum', values: ['96': 'Ding ding', '97': 'Guitar riff', '98': 'Wind chimes', '99': 'Echoing bing bong', '100': 'Ring doorbell chime'],
        description: 'Sound played for a chime',
        dflt: 96
 
-   param name: 'chimeVolume', driverOnly: true,
+   param name: 'chimeVolume', label: 'Chime volume', unit: '%', driverOnly: true,
        type: 'range', min: 10, max: 100,
        description: 'Chime volume (%)',
        dflt: 80

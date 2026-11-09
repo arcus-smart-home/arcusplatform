@@ -45,6 +45,7 @@ public class DeviceSettingParam {
    private final String paramId;
    private final String name;
    private final String description;
+   private final String unit;
    private final Type type;
    private final Map<String, String> values;
    private final Long min;
@@ -101,6 +102,7 @@ public class DeviceSettingParam {
       this.paramId = paramId;
       this.name = Objects.toString(entry.get("name"), null);
       this.description = Objects.toString(entry.get("description"), "");
+      this.unit = StringUtils.trimToNull(Objects.toString(entry.get("unit"), null));
       this.type = toType(entry.get("type"));
       this.values = toValues(entry.get("values"));
       this.min = toLong(entry.get("min"));
@@ -153,12 +155,14 @@ public class DeviceSettingParam {
    public Map<String, String> getValues() { return values; }
    public Long getMin() { return min; }
    public Long getMax() { return max; }
+   /** The unit of a range value, such as "s" or "%", or null. */
+   public String getUnit() { return unit; }
    public String getDefault() { return dflt; }
    public String getValue() { return value; }
 
    /**
-    * Drivers currently send the id as the name, so turn it into words:
-    * ledMode becomes Led Mode and btn1LedColor becomes Btn 1 Led Color.
+    * Drivers send a label as the name. Older ones send the id, so turn that into
+    * words: ledMode becomes Led Mode and btn1LedColor becomes Btn 1 Led Color.
     */
    public String getDisplayName() {
       if(StringUtils.isNotBlank(name) && !name.equals(paramId)) {
@@ -188,6 +192,9 @@ public class DeviceSettingParam {
       }
       if(type == Type.RANGE && min != null && max != null) {
          detail.append(", ").append(min).append(" to ").append(max);
+         if(unit != null) {
+            detail.append(' ').append(unit);
+         }
       }
       return detail.toString();
    }
@@ -237,6 +244,8 @@ public class DeviceSettingParam {
          return values.getOrDefault(candidate, "Unlisted") + " (" + candidate + ")";
       case BOOLEAN:
          return ("0".equals(candidate) ? "Off" : "On") + " (" + candidate + ")";
+      case RANGE:
+         return unit == null ? candidate : candidate + " " + unit;
       default:
          return candidate;
       }
@@ -248,6 +257,7 @@ public class DeviceSettingParam {
             paramId.equals(other.paramId) &&
             Objects.equals(name, other.name) &&
             description.equals(other.description) &&
+            Objects.equals(unit, other.unit) &&
             type == other.type &&
             values.equals(other.values) &&
             Objects.equals(min, other.min) &&

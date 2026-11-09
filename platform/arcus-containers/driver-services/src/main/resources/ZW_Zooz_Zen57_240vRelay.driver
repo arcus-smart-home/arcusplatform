@@ -78,47 +78,47 @@ Switch.state                     Switch.STATE_OFF
 ////////////////////////////////////////////////////////////////////////////////
 
 deviceSettings {
-   param name: 'ledMode', id: 1, size: 1,
+   param name: 'ledMode', label: 'LED indicator', id: 1, size: 1,
        type: 'enum', values: ['0': 'LED always off', '1': 'LED on when load is on'],
        description: 'Parameter 1: LED indicator control',
        dflt: 1
 
-   param name: 'powerFailure', id: 2, size: 1,
+   param name: 'powerFailure', label: 'State after power failure', id: 2, size: 1,
        type: 'enum', values: ['0': 'Off', '1': 'On', '2': 'Restore Last State'],
        description: 'Parameter 2: State after power failure',
        dflt: 2
 
-   param name: 'sceneControl', id: 4, size: 1,
+   param name: 'sceneControl', label: 'Scene control', id: 4, size: 1,
        type: 'enum', values: ['0': 'Disabled', '1': 'Enabled'],
        description: 'Parameter 4: Scene control (multi-tap detection)',
        dflt: 1
 
-   param name: 'switchType', id: 5, size: 1,
+   param name: 'switchType', label: 'External switch type', id: 5, size: 1,
        type: 'enum', values: ['0': 'Auto Detect', '1': 'Toggle', '2': 'Momentary', '3': 'Toggle (Reversed)', '4': 'Leak Sensor', '5': 'Heat Alarm', '6': 'Motion Alert', '7': 'Door Sensor', '8': 'CO Alarm', '9': 'CO2 Alarm', '10': 'On/Off Report Only'],
        description: 'Parameter 5: External switch type',
        dflt: 0
 
-   param name: 'autoOffTimer', id: 7, size: 4,
+   param name: 'autoOffTimer', label: 'Auto-off timer', unit: 's', id: 7, size: 4,
        type: 'range', min: 0, max: 2678400,
        description: 'Parameter 7: Auto turn-off timer in seconds (0=disabled)',
        dflt: 0
 
-   param name: 'autoOnTimer', id: 8, size: 4,
+   param name: 'autoOnTimer', label: 'Auto-on timer', unit: 's', id: 8, size: 4,
        type: 'range', min: 0, max: 2678400,
        description: 'Parameter 8: Auto turn-on timer in seconds (0=disabled)',
        dflt: 0
 
-   param name: 'smartSwitchMode', id: 9, size: 1,
+   param name: 'smartSwitchMode', label: 'Smart switch mode', id: 9, size: 1,
        type: 'enum', values: ['0': 'Local disabled', '1': 'Local and Z-Wave enabled', '2': 'Both disabled'],
        description: 'Parameter 9: Smart switch mode / load control',
        dflt: 1
 
-   param name: 'relayType', id: 10, size: 1,
+   param name: 'relayType', label: 'Relay type', id: 10, size: 1,
        type: 'enum', values: ['0': 'Normally Open', '1': 'Normally Closed'],
        description: 'Parameter 10: Relay type',
        dflt: 0
 
-   param name: 'inputTrigger', id: 11, size: 1,
+   param name: 'inputTrigger', label: 'Input trigger', id: 11, size: 1,
        type: 'enum', values: ['0': 'Input triggers load', '1': 'Input reports only'],
        description: 'Parameter 11: External input trigger behavior',
        dflt: 0

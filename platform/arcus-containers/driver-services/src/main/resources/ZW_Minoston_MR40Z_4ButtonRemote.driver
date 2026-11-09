@@ -130,37 +130,37 @@ final long RELEASE_DELAY_MSEC  = 1000       // simulate button RELEASED 1 second
 // Device Settings (Z-Wave Configuration Parameters)
 // ----------------------------------------------------------------------------
 deviceSettings {
-   param name: 'battReportThresh', id: 1, size: 1,
+   param name: 'battReportThresh', label: 'Battery report threshold', unit: '%', id: 1, size: 1,
        type: 'range', min: 1, max: 20,
        description: 'Parameter 1: Battery report threshold (%)',
        dflt: 10
 
-   param name: 'lowBatteryAlert', id: 2, size: 1,
+   param name: 'lowBatteryAlert', label: 'Low battery alarm', unit: '%', id: 2, size: 1,
        type: 'range', min: 5, max: 20,
        description: 'Parameter 2: Low battery alarm threshold (%)',
        dflt: 5
 
-   param name: 'btn1LedColor', id: 3, size: 1,
+   param name: 'btn1LedColor', label: 'Button 1 LED color', id: 3, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
        description: 'Parameter 3: Button 1 (top) LED color',
        dflt: 0
 
-   param name: 'btn2LedColor', id: 4, size: 1,
+   param name: 'btn2LedColor', label: 'Button 2 LED color', id: 4, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
        description: 'Parameter 4: Button 2 (middle) LED color',
        dflt: 1
 
-   param name: 'btn3LedColor', id: 5, size: 1,
+   param name: 'btn3LedColor', label: 'Button 3 LED color', id: 5, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
        description: 'Parameter 5: Button 3 (bottom-left) LED color',
        dflt: 2
 
-   param name: 'btn4LedColor', id: 6, size: 1,
+   param name: 'btn4LedColor', label: 'Button 4 LED color', id: 6, size: 1,
        type: 'enum', values: ['0': 'White', '1': 'Purple', '2': 'Orange', '3': 'Cyan', '4': 'Red', '5': 'Green', '6': 'Blue'],
        description: 'Parameter 6: Button 4 (bottom-right) LED color',
        dflt: 3
 
-   param name: 'ledBrightness', id: 7, size: 1,
+   param name: 'ledBrightness', label: 'LED brightness', id: 7, size: 1,
        type: 'range', min: 0, max: 10,
        description: 'Parameter 7: LED brightness (0=off, 1-10 in 10% increments)',
        dflt: 5
