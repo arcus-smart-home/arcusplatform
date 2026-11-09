@@ -51,6 +51,11 @@ DevicePower.source 		         DevicePower.SOURCE_BATTERY
 DevicePower.linecapable	         false
 DevicePower.backupbatterycapable false
 
+LeakH2O {
+	// Stamped whenever the state changes, including when the hub sets it
+	bind LeakH2O.statechanged to LeakH2O.state
+}
+
 
 // Generic Device Class:    Binary Sensor
 // Specific Device Class:   Routing Binary Sensor
@@ -93,6 +98,33 @@ def byte CNFG_RPTS_VALUE_B3                        = 0x00
 @Field def byte CNFG_RESET_PARAM_NO                = 0xFF       // (255) parameter number to reset configuration to factory default
 def byte CNFG_RESET_SIZE                           = 0x01
 def byte CNFG_RESET_VALUE                          = 0x01
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Hub reflexes
+//
+// The hub keeps its own copy of the leak state from these, which is what a
+// hub-run alarm watches. The hub reports the state to the platform, and the
+// LeakH2O binding stamps when it changed.
+//
+// Parameter 121, set below, has it send a Basic Report when the state changes.
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+	match reflex {
+		on basic.report, value: 0xFF
+		on basic.set, value: 0xFF
+		on sensor_binary.report, sensorvalue: 0xFF
+		set LeakH2O.state, LeakH2O.STATE_LEAK
+	}
+
+	match reflex {
+		on basic.report, value: 0x00
+		on basic.set, value: 0x00
+		on sensor_binary.report, sensorvalue: 0x00
+		set LeakH2O.state, LeakH2O.STATE_SAFE
+	}
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -183,7 +215,7 @@ void handleStateMsg(byte currentState) {
 onZWaveMessage.basic.report {
 	log.debug "Received Basic Report: {}", message
 	def byte currState = message.command.get('value')
-	handleStateMsg currState
+	handleStateMsg currentState
 }
 
 onZWaveMessage.basic.set {
@@ -196,7 +228,7 @@ onZWaveMessage.basic.set {
 onZWaveMessage.sensor_binary.report {
 	log.debug "Received Sensor Binary Report {}", message
 	def byte currentState = message.command.get('value')
-	handleStateMsg currState
+	handleStateMsg currentState
 }
 
 

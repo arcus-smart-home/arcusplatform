@@ -70,7 +70,11 @@ DevicePower.source               DevicePower.SOURCE_BATTERY
 DevicePower.linecapable          false
 DevicePower.backupbatterycapable false
 
-LeakH2O.state                    LeakH2O.STATE_SAFE
+LeakH2O {
+    LeakH2O.state LeakH2O.STATE_SAFE
+    // Stamped whenever the state changes, including when the hub sets it
+    bind LeakH2O.statechanged to LeakH2O.state
+}
 
 
 def final String DEVICE_NAME = "Aeotec Water Sensor 6"
@@ -99,6 +103,33 @@ def byte CNFG_UNSOLICITED_RPT_SIZE                  = 0x01
 def byte CNFG_UNSOLICITED_RPT_VALUE                 = 0x03      //   (3) report both battery and temperature
 
 @Field def byte CNFG_LOCK_PARAM_NO                  = 0xFC       // (252) Configuration Locked, size 1 byte, 0 = disable, 1 = enable
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Hub reflexes
+//
+// The hub keeps its own copy of the leak state from these, which is what a
+// hub-run alarm watches. The hub reports the state to the platform, and the
+// LeakH2O binding stamps when it changed.
+//
+// Basic Report is its answer to this driver's Basic Get poll.
+////////////////////////////////////////////////////////////////////////////////
+
+ZWave {
+    match reflex {
+        on alarm.report, notificationtype: 0x05, event: 0x02
+        on sensor_binary.report, sensorvalue: 0xFF
+        on basic.report, value: 0xFF
+        set LeakH2O.state, LeakH2O.STATE_LEAK
+    }
+
+    match reflex {
+        on alarm.report, notificationtype: 0x05, event: 0x00
+        on sensor_binary.report, sensorvalue: 0x00
+        on basic.report, value: 0x00
+        set LeakH2O.state, LeakH2O.STATE_SAFE
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
