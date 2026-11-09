@@ -62,16 +62,14 @@ public class TestExecutorScheduler {
    public void testScheduleInThePast() throws Exception {
       ScheduledTask task = scheduler.scheduleAt(queue, true, new Date(100));
       assertTrue(queue.take());
-      Thread.sleep(10); // allow isPending to clear out
-      assertFalse(task.isPending());
+      assertFinishes(task);
    }
 
    @Test
    public void testScheduleWith0Delay() throws Exception {
       ScheduledTask task = scheduler.scheduleDelayed(queue, true, 0, TimeUnit.MILLISECONDS);
       assertTrue(queue.take());
-      Thread.sleep(10); // allow isPending to clear out
-      assertFalse(task.isPending());
+      assertFinishes(task);
    }
 
    @Test
@@ -92,6 +90,15 @@ public class TestExecutorScheduler {
       assertTrue(task.cancel());
       assertFalse(task.isPending());
       assertEquals(ImmutableList.<Runnable>of(), executor.shutdownNow());
+   }
+
+   // The task hands its value to the queue before its future is marked done,
+   // so the test thread can wake while the task still reads as pending. The
+   // executor only terminates after the task has returned and been marked done.
+   private void assertFinishes(ScheduledTask task) throws InterruptedException {
+      executor.shutdown();
+      assertTrue("executor still running the task after 30 s", executor.awaitTermination(30, TimeUnit.SECONDS));
+      assertFalse(task.isPending());
    }
 
    private static class QueueFunction<I> implements Function<I, Boolean> {
