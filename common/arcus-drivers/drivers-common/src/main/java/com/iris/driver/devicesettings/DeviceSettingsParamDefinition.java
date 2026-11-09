@@ -46,6 +46,7 @@ public class DeviceSettingsParamDefinition {
    // Z-Wave (productType << 16 | productId) values this param applies to; empty = every product
    private final Set<Integer> products;
    private final boolean signed;
+   private final boolean driverOnly;
 
    private DeviceSettingsParamDefinition(Builder builder) {
       this.paramId = builder.paramId;
@@ -60,7 +61,9 @@ public class DeviceSettingsParamDefinition {
             : Collections.emptyMap();
       this.defaultValue = builder.defaultValue;
       this.products = Collections.unmodifiableSet(new LinkedHashSet<>(builder.products));
-      this.signed = lowestValue() < 0;
+      this.driverOnly = builder.driverOnly;
+      // a driver-only value never travels as device bytes, so there is nothing to decode
+      this.signed = !driverOnly && lowestValue() < 0;
    }
 
    // Smallest and largest value the parameter can take: the range bounds, or the
@@ -104,6 +107,12 @@ public class DeviceSettingsParamDefinition {
    public long getMax() { return max; }
    public Map<String, String> getEnumValues() { return enumValues; }
    public long getDefaultValue() { return defaultValue; }
+
+   /**
+    * True for a setting the driver keeps itself, with no Z-Wave parameter behind
+    * it, such as which of a keypad's sounds to play.
+    */
+   public boolean isDriverOnly() { return driverOnly; }
 
    /**
     * True when the parameter only exists on some of the products its driver matches.
@@ -207,8 +216,10 @@ public class DeviceSettingsParamDefinition {
          map.put("max", max);
       }
       map.put("dflt", defaultValue);
-      map.put("zwaveParamNo", zwaveParamNo);
-      map.put("zwaveParamSize", zwaveParamSize);
+      if (!driverOnly) {
+         map.put("zwaveParamNo", zwaveParamNo);
+         map.put("zwaveParamSize", zwaveParamSize);
+      }
       return map;
    }
 
@@ -261,6 +272,7 @@ public class DeviceSettingsParamDefinition {
       private Map<String, String> enumValues;
       private long defaultValue = 0;
       private final Set<Integer> products = new LinkedHashSet<>();
+      private boolean driverOnly;
 
       public Builder withParamId(String paramId) { this.paramId = paramId; return this; }
       public Builder withDescription(String description) { this.description = description; return this; }
@@ -271,6 +283,7 @@ public class DeviceSettingsParamDefinition {
       public Builder withMax(long max) { this.max = max; return this; }
       public Builder withEnumValues(Map<String, String> values) { this.enumValues = values; return this; }
       public Builder withDefaultValue(long dflt) { this.defaultValue = dflt; return this; }
+      public Builder withDriverOnly(boolean driverOnly) { this.driverOnly = driverOnly; return this; }
 
       /** Limits the parameter to one Z-Wave product; call once per product. */
       public Builder withProduct(int productType, int productId) {

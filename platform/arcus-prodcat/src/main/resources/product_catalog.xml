@@ -5890,5 +5890,25 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product name="2nd Gen Alarm Keypad" shortname="Keypad" screen="KeyPad" description="" manufacturer="Ring" vendor="Ring" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" keywords="ring, alarm, keypad, security, pin, arm, disarm, zwave" ota="No" protofamily="Z-Wave" id="c2592f" added="2026-02-27T00:00:00-0000" lastchanged="2026-02-27T00:00:00-0000">
+      <categories>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Plug the keypad into power. It will not pair on batteries."/>
+        <step2 type="text" img="" text="Press and hold the 1 button for about 3 seconds, then release. The green Connection light blinks three times, repeatedly, while it pairs."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="With the hub in removal mode, tap the pinhole button on the back of the keypad with a paper clip. The Connection light turns solid red."/>
+      </removal>
+      <reset>
+        <step1 type="text" img="" text="Press and hold the reset button (pinhole on back) for 10 seconds."/>
+      </reset>
+      <populations>
+        <population name="general"/>
+        <population name="beta"/>
+        <population name="qa"/>
+      </populations>
+    </product>
   </products>
 </prodcat>

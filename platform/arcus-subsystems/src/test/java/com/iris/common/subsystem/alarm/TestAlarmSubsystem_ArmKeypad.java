@@ -45,10 +45,14 @@ public class TestAlarmSubsystem_ArmKeypad extends PlatformAlarmSubsystemTestCase
 	}
 	
 	protected void armKeypad(String mode) {
+		armKeypad(mode, false);
+	}
+	
+	protected void armKeypad(String mode, boolean bypass) {
 		MessageBody arm = 
 				KeyPadCapability.ArmPressedEvent
 					.builder()
-					.withBypass(false) // drivers always set this to false currently
+					.withBypass(bypass)
 					.withMode(mode)
 					.build();
 		MessageReceivedEvent mre = event(arm, keypad.getAddress(), null);
@@ -154,6 +158,17 @@ public class TestAlarmSubsystem_ArmKeypad extends PlatformAlarmSubsystemTestCase
 			armKeypad(KeyPadCapability.ArmPressedEvent.MODE_ON);
 			assertArming(AlarmSubsystemCapability.SECURITYMODE_ON, triggered);
 		}
+	}
+
+	@Test
+	public void testKeypadThatAsksForBypassArmsWithoutASecondPress() throws Exception {
+		Model triggered = addMotionSensor();
+		trigger(triggered);
+		stageDisarmed(addressesOf(contact, triggered));
+		start();
+		
+		armKeypad(KeyPadCapability.ArmPressedEvent.MODE_ON, true);
+		assertArming(AlarmSubsystemCapability.SECURITYMODE_ON, triggered);
 	}
 
 }

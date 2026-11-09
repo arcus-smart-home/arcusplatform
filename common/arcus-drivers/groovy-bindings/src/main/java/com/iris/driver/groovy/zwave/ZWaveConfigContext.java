@@ -33,6 +33,7 @@ import com.iris.driver.groovy.reflex.ReflexForwardContext;
 import com.iris.driver.groovy.reflex.ReflexMatchContext;
 import com.iris.driver.groovy.reflex.ReflexUtil;
 import com.iris.driver.reflex.ReflexAction;
+import com.iris.driver.reflex.ReflexActionBuiltin;
 import com.iris.driver.reflex.ReflexActionSendProtocol;
 import com.iris.driver.reflex.ReflexMatch;
 import com.iris.driver.reflex.ReflexMatchLifecycle;
@@ -71,6 +72,24 @@ public class ZWaveConfigContext extends GroovyObjectSupport {
       long secs = unit.toSeconds(timeout);
       if (timeout != 0 && secs == 0) secs = 1;
       offlineTimeout(secs);
+   }
+
+   /////////////////////////////////////////////////////////////////////////////
+   // Configuration of hub local builtin reflexes
+   /////////////////////////////////////////////////////////////////////////////
+
+   public void builtin(ReflexNoClosure reflex) {
+      reflexes.add(new BuiltinReflexContext());
+   }
+
+   public static final class BuiltinReflexContext extends ReflexContext {
+      public BuiltinReflexContext() {
+         actions.add(new ReflexActionBuiltin());
+      }
+   }
+
+   public static enum ReflexNoClosure {
+      INSTANCE;
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -203,6 +222,16 @@ public class ZWaveConfigContext extends GroovyObjectSupport {
    // Configuration of hub local reflexes
    /////////////////////////////////////////////////////////////////////////////
    
+   @Override
+   public Object getProperty(String property) {
+      switch (property) {
+      case "reflex":
+         return ReflexNoClosure.INSTANCE;
+      default:
+         return super.getProperty(property);
+      }
+   }
+
    public Object reflex(Closure<?> closure) {
       return new ReflexAndClosure(closure);
    }

@@ -163,6 +163,14 @@
    	<c:method
          name="Chime"
          description="Tell the Keypad to make a chime noise.">
+         <c:parameters>
+            <c:parameter
+               name="sound"
+               type="int"
+               optional="true"
+               description="Which sound to play, as this keypad numbers them. Without it the keypad plays its configured chime. Keypads with a single chime ignore it."
+               />
+         </c:parameters>
       </c:method> 
       <c:method
          name="ArmingUnavailable"

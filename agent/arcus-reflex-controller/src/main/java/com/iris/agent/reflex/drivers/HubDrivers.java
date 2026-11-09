@@ -102,16 +102,33 @@ public final class HubDrivers {
                public HubDriver create(ReflexController parent, Address addr) {
                   return new AlertmeKeyPad(parent, addr);
                }
-		
+
                @Override
 		         public String driver() {
 		            return AlertmeKeyPad.DRIVER_NAME;
 		         }
-		
+
                @Override
 		         public Version version() {
 		            return AlertmeKeyPad.VERSION_2_4;
 		         }
+            }))
+         .put(RingKeyPad.DRIVER_NAME, ImmutableMap.of(
+            RingKeyPad.VERSION_1_0, new Factory() {
+               @Override
+               public HubDriver create(ReflexController parent, Address addr) {
+                  return new RingKeyPad(parent, addr);
+               }
+
+               @Override
+               public String driver() {
+                  return RingKeyPad.DRIVER_NAME;
+               }
+
+               @Override
+               public Version version() {
+                  return RingKeyPad.VERSION_1_0;
+               }
             }))
          .build();
    }

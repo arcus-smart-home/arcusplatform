@@ -245,6 +245,52 @@ public class DeviceSettingsProductFilterTest {
       block.build();
    }
 
+   @Test
+   public void driverOnlyParamsNeedNoNumberOfTheirOwn() {
+      DeviceSettingsBlockContext block = new DeviceSettingsBlockContext();
+      block.param(driverOnly("chimeTone", 0, 255));
+      block.param(driverOnly("chimeVolume", 10, 100));
+      block.param(param("beeper", 0, 1, 0, 1, null));
+      DeviceSettingsContext ctx = block.build();
+
+      assertEquals("beeper", ctx.getByZwaveParamNo(0).getParamId());
+      assertEquals(names("chimeTone", "chimeVolume", "beeper"), names(ctx));
+   }
+
+   @Test
+   public void driverOnlyParamIsNeverDecodedAsDeviceBytes() {
+      DeviceSettingsBlockContext block = new DeviceSettingsBlockContext();
+      block.param(driverOnly("offset", -500, 500));
+      DeviceSettingsContext ctx = block.build();
+
+      assertFalse(ctx.getByParamId("offset").isSigned());
+      assertEquals(200L, ctx.getByParamId("offset").decodeStored(200L));
+   }
+
+   @Test(expected = IllegalArgumentException.class)
+   public void driverOnlyParamWithAParameterNumberIsRejected() {
+      Map<String, Object> args = driverOnly("chimeTone", 0, 255);
+      args.put("id", 7);
+      new DeviceSettingsBlockContext().param(args);
+   }
+
+   @Test(expected = IllegalArgumentException.class)
+   public void driverOnlyParamWithAParameterSizeIsRejected() {
+      Map<String, Object> args = driverOnly("chimeTone", 0, 255);
+      args.put("size", 1);
+      new DeviceSettingsBlockContext().param(args);
+   }
+
+   private static Map<String, Object> driverOnly(String name, int min, int max) {
+      Map<String, Object> args = new HashMap<>();
+      args.put("name", name);
+      args.put("driverOnly", true);
+      args.put("type", "range");
+      args.put("min", min);
+      args.put("max", max);
+      return args;
+   }
+
    private void expectProduct(int type, int id) {
       AttributeMap attrs = AttributeMap.newMap();
       attrs.set(AttributeKey.create(ZwaveConstants.ATTR_PRODUCTTYPE, Integer.class), type);
