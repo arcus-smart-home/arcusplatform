@@ -18,7 +18,7 @@ Send `apikey:Create` to the place address:
   "destination": "SERV:place:<placeId>",
   "attributes": {
     "label": "my-integration",
-    "permissions": ["device:*", "scene:*"],
+    "permissions": ["place:x:*", "base:r:*", "dev:r:*", "swit:r:*", "swit:w:*"],
     "expiresAt": 1735689600000
   }
 }
@@ -27,10 +27,10 @@ Send `apikey:Create` to the place address:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `label` | yes | Human-readable name, max 64 characters |
-| `permissions` | yes | Non-empty set of Shiro wildcard permission strings |
-| `expiresAt` | no | Expiration timestamp in milliseconds (must be in the future) |
+| `permissions` | yes | Non-empty set of permission strings, see [Permissions](#permissions) |
+| `expiresAt` | no | When the key stops working, in milliseconds since the epoch (UTC), as a number or a string of digits. Must be in the future. Any other value is rejected; leave it out for a key that doesn't expire |
 
-The response contains the raw key — **this is the only time the full key is returned**:
+The response contains the raw key — **this is the only time the full key is returned**. Platform logs print `<redacted>` in place of its attributes:
 
 ```json
 {
@@ -52,9 +52,11 @@ Send `apikey:ListKeys` to the place address. Returns all keys for the place with
 
 Send `apikey:Revoke` with the key's `id`. This sets `expiresAt` to the current time, immediately expiring the key. All active WebSocket sessions using the revoked key are disconnected. The key record is preserved for auditing.
 
+Revoking a key that has already expired or been revoked succeeds and leaves its `expiresAt` as it was. It sends the revocation again, so it also ends any session still using the key, for example one that missed the first revocation.
+
 ### Delete
 
-Send `apikey:Delete` with the key's `id`. This permanently removes the key record. The key must be revoked before it can be deleted — attempting to delete an active key returns an error.
+Send `apikey:Delete` with the key's `id`. This permanently removes the key record and disconnects any session still using it. The key must be revoked before it can be deleted — attempting to delete an active key returns an error.
 
 ```json
 {
@@ -97,16 +99,38 @@ On failure the server responds with HTTP 401.
 
 ## Permissions
 
-Permissions use [Apache Shiro wildcard format](https://shiro.apache.org/permissions.html). Examples:
+A key's permissions use the same format as a person's grants (see [Security](security.md)): [Shiro wildcard](https://shiro.apache.org/permissions.html) strings with three parts, `<namespace>:<operation>:<object id>`.
 
-| Permission | Grants |
-|-----------|--------|
-| `device:*` | All device operations |
-| `device:get` | Read device state only |
-| `scene:execute` | Execute scenes |
-| `subsystem:*` | All subsystem operations |
+- **namespace**: a capability or service namespace, the part before the colon in an attribute or message name, such as `dev`, `swit`, `scene` or `subalarm`.
+- **operation**: `r` (read), `w` (write) or `x` (execute), or `c` or `d`.
+- **object id**: the id of the object the message goes to or comes from, such as a device or the place.
 
-Each permission string is validated at key creation time. Invalid formats are rejected.
+Any part can be `*`, or a comma-separated list such as `r,w`. A shorter string covers everything after it, so `swit:w` means `swit:w:*` and `*` means `*:*:*`.
+
+Each message is checked like this:
+
+| Message | Needs |
+|---------|-------|
+| `base:GetAttributes` | `<namespace>:r:<object>` for the namespace of each attribute asked for |
+| `base:SetAttributes` | `<namespace>:w:<object>` for the namespace of each attribute set |
+| Any other request, such as `scene:Fire` | `<namespace of the request>:x:<object>`, such as `scene:x:*` |
+| Events and responses sent to the key | `<namespace>:r:<source>` for each attribute; attributes the key can't read are removed, and `place:ListDevices` leaves out a device the key can read nothing of |
+
+Examples:
+
+| Permissions | Allow |
+|-------------|-------|
+| `*:*:*` | Everything the place's full-access people can do, still limited to the key's place and never account-owner-only requests. A Home Assistant bridge such as arcus-mqtt-server, which lists and controls devices, scenes, the alarm and people, needs this |
+| `place:x:*`, `base:r:*`, `dev:r:*`, `swit:r:*` | List the devices and read their names and switch state |
+| `swit:w:*` | Turn switches on and off (`base:SetAttributes` with `swit:state`) |
+| `scene:x:*` | Fire scenes (`scene:Fire`) |
+| `subalarm:x:*` | Arm and disarm the alarm (`subalarm:Arm`, `subalarm:Disarm`) |
+
+Oculus's API key dialog builds `<namespace>:r:*`, `<namespace>:w:*` and `<namespace>:x:*` from the list of capabilities and services; enter anything else, such as `*:*:*`, with **Add Custom**.
+
+`apikey:Create` rejects a string Shiro can't parse, and one whose operation is none of `*`, `r`, `w`, `x`, `c` or `d` (such as `device:get`), since it could never allow anything. It doesn't check the namespace: `device:*` is accepted but allows nothing, because devices are `dev`.
+
+Attributes without a namespace are checked with their own name in place of one. `scene:ListScenesResponse` returns its list in `scenes`, which needs `scenes:r:*`, and `subs:ListSubsystemsResponse` needs `subsystems:r:*`. Error responses carry `code` and `message`, and a key that can't read those gets no error response at all, so a key needs `*` as its first part to see errors: `*:*:*`, or `*:r:*` next to narrower write and execute permissions.
 
 The key's place is set automatically and cannot be changed — `SetActivePlace` and other session-service messages are rejected. ListPlaces responses are filtered to return only the key's place.
 
@@ -142,6 +166,7 @@ Default configuration (`api-bridge.properties`):
 | `healthcheck.http.port` | `9081` | HTTP health check port |
 | `bridge.name` | `api` | Bridge identifier |
 | `kafka.group` | `api-bridge` | Kafka consumer group |
+| `kafka.offsets.transient` | `true` | After a restart, start at the latest message instead of replaying the ones missed, like the other bridges |
 
 ## Security Notes
 
@@ -149,6 +174,6 @@ Default configuration (`api-bridge.properties`):
 - **SHA-256 hashed storage** — only a SHA-256 hash of the key is persisted. Authentication works by hashing the presented key and looking up the hash.
 - **Key format** — keys are prefixed with `arcus_sk_` followed by 32 hex characters (128 bits of entropy from `SecureRandom`).
 - **Place isolation** — a key can only access resources within its assigned place. The active place is locked at session creation and cannot be changed.
-- **Immediate revocation** — revoking a key disconnects all active sessions using it across all api-bridge instances (via platform bus event).
+- **Immediate revocation** — revoking or deleting a key disconnects all active sessions using it across all api-bridge instances (via a platform bus event from the key's place). Each session also checks its key again once it is registered, so a revocation made while it was connecting isn't missed, and a session ends when its key's `expiresAt` passes.
 - **Per-place limits** — maximum 10 keys per place to prevent abuse.
 - **Account owner only** — only the account owner can create, list, revoke, and delete API keys.
