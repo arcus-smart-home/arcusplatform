@@ -82,11 +82,37 @@ public class ApiKeySessionListenerTest {
       replay();
 
       listener.onSessionCreated(session);
-      // the bridge registers the session after the listeners return, so the check waits for that
+      // WebSocketServerHandler registered the session before calling the listeners, but the upgrade
+      // registers it again after they return, which would undo a close made here, so the check waits
       assertFalse(checked.get());
 
       channel.runPendingTasks();
       assertTrue(checked.get());
+      assertClosed();
+   }
+
+   // the revoking host's clock is ahead of this one, so the stored expiry isn't past here yet
+   @Test
+   public void testSessionClosesWhenItsKeyWasRevokedByAHostWhoseClockIsAhead() {
+      expectSession(principal(null));
+      EasyMock.expect(apiKeyDao.findByPlace(placeId)).andReturn(keys(Instant.now().plusSeconds(3)));
+      replay();
+
+      listener.onSessionCreated(session);
+      channel.runPendingTasks();
+
+      assertClosed();
+   }
+
+   @Test
+   public void testSessionClosesWhenAKeyThatWouldExpireLaterWasRevoked() {
+      expectSession(principal(Instant.now().plus(Duration.ofHours(1))));
+      EasyMock.expect(apiKeyDao.findByPlace(placeId)).andReturn(keys(Instant.now().plusSeconds(3)));
+      replay();
+
+      listener.onSessionCreated(session);
+      channel.runPendingTasks();
+
       assertClosed();
    }
 
