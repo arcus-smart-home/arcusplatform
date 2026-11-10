@@ -29,6 +29,7 @@ import com.iris.core.platform.AbstractPlatformMessageListener;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.platform.hubbridge.HeartbeatMessage;
@@ -49,7 +50,8 @@ public class HubHeartbeatListener
    implements PlatformService // implement this to run in the PlatformServiceDispatcher thread pool
 {
    private static final Logger logger = LoggerFactory.getLogger(HubHeartbeatListener.class);
-   
+   private static final String HUB_BRIDGE_GROUP = "hub-bridge";
+
    // don't route any real messages to me
    private final Address address = Address.platformService("hubheartbeat");
    
@@ -90,9 +92,19 @@ public class HubHeartbeatListener
    @Override
    protected void handleEvent(PlatformMessage message) throws Exception {
       int partitionId = partitioner.getPartitionForMessage(message).getId();
-      if(HeartbeatMessage.NAME.equals(message.getMessageType())) {
+      if(HeartbeatMessage.NAME.equals(message.getMessageType()) && isFromHubBridge(message.getSource())) {
          onHeartbeat(partitionId, message.getSource(), message.getValue());
       }
+   }
+
+   // hub-bridge heartbeats from CLNT:hub-bridge:<member id> (HubSessionRegistry). A client can send
+   // to this service's address too, but its frame carries its own bridge's client address.
+   private static boolean isFromHubBridge(Address source) {
+      if(source != null && MessageConstants.CLIENT.equals(source.getNamespace()) && HUB_BRIDGE_GROUP.equals(source.getGroup())) {
+         return true;
+      }
+      logger.warn("Dropping hub heartbeat that did not come from hub-bridge: [{}]", source);
+      return false;
    }
 
    public void onHeartbeat(int partitionId, Address source, MessageBody payload) {

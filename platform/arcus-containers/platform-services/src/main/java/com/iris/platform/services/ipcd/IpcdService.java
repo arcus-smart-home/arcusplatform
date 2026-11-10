@@ -70,6 +70,8 @@ public class IpcdService extends AbstractPlatformMessageListener {
 
    private static final Logger logger = LoggerFactory.getLogger(IpcdService.class);
    private static final Address ADDRESS = Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE);
+   private static final Address IPCD_BRIDGE_ADDRESS = Address.bridgeAddress(IpcdProtocol.NAMESPACE);
+   private static final String IPCD_BRIDGE_GROUP = "ipcd-bridge";
 
    private final IpcdRegistry registry;
    private final PlatformMessageBus bus;
@@ -144,17 +146,35 @@ public class IpcdService extends AbstractPlatformMessageListener {
          }
          break;
       case DeviceConnectedEvent.NAME:
-         registry.onConnected(message);
+         if(isFromIpcdBridge(message)) {
+            registry.onConnected(message);
+         }
          break;
       // TODO:  This can be removed after 2.13.  During the 2.12 upgrade this needs to remain so heartbeats during the
       // rolling restart are handled by both this and IpcdHeartbeatListener.
       case DeviceHeartBeatEvent.NAME:
-         registry.onHeartBeat(message);
+         if(isFromIpcdBridge(message)) {
+            registry.onHeartBeat(message);
+         }
          break;
       default:
          super.handleEvent(message);
          break;
       }
+   }
+
+   // ipcd-bridge sends a connected event from BRDG::IPCD (IpcdSession) and heartbeats from
+   // CLNT:ipcd-bridge:<member id> (SessionHeartBeater). Both mark devices online at the bridge they
+   // name, so a client's frame, which carries its own bridge's client address, mustn't.
+   private static boolean isFromIpcdBridge(PlatformMessage message) {
+      Address source = message.getSource();
+      boolean fromBridge =
+            IPCD_BRIDGE_ADDRESS.equals(source) ||
+            (source != null && MessageConstants.CLIENT.equals(source.getNamespace()) && IPCD_BRIDGE_GROUP.equals(source.getGroup()));
+      if(!fromBridge) {
+         logger.warn("Dropping [{}] that did not come from ipcd-bridge: [{}]", message.getMessageType(), source);
+      }
+      return fromBridge;
    }
 
    private MessageBody handleListDeviceTypes() {

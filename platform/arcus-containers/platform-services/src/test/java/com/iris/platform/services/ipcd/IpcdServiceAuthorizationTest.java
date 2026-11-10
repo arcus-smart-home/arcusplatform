@@ -24,6 +24,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
 import com.iris.core.dao.DeviceDAO;
@@ -34,6 +35,8 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Device;
+import com.iris.messages.service.IpcdService.DeviceConnectedEvent;
+import com.iris.messages.service.IpcdService.DeviceHeartBeatEvent;
 import com.iris.messages.service.IpcdService.FindDeviceRequest;
 import com.iris.messages.service.IpcdService.FindDeviceResponse;
 import com.iris.messages.service.IpcdService.ForceUnregisterRequest;
@@ -202,5 +205,68 @@ public class IpcdServiceAuthorizationTest {
       replayAll();
 
       assertEquals(FindDeviceResponse.NAME, service.handleRequest(client(find(), otherPlace)).getMessageType());
+   }
+
+   // connected and heartbeat events mark devices online at the bridge they name
+
+   private MessageBody connected() {
+      return DeviceConnectedEvent.builder().withProtocolAddress(protocolAddress).build();
+   }
+
+   private MessageBody heartbeat() {
+      return DeviceHeartBeatEvent.builder().withPartitionId(1).withConnectedDevices(ImmutableSet.of(protocolAddress)).build();
+   }
+
+   // a frame with isRequest=false, as client-bridge forwards it
+   private PlatformMessage clientEvent(MessageBody body) {
+      return PlatformMessage
+            .buildMessage(body, Address.clientAddress("android", "1"), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .withPlaceId(otherPlace)
+            .withActor(Address.platformService(UUID.randomUUID(), "person"))
+            .create();
+   }
+
+   @Test
+   public void testClientConnectedEventIsDropped() throws Exception {
+      replayAll();
+      service.handleEvent(clientEvent(connected()));
+      EasyMock.verify(registry);
+   }
+
+   @Test
+   public void testIpcdBridgeConnectedEventIsHandled() throws Exception {
+      // IpcdSession.onReportOnline
+      PlatformMessage message = PlatformMessage
+            .buildMessage(connected(), Address.bridgeAddress(IpcdProtocol.NAMESPACE), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .withActor(Address.clientAddress("ipcd-bridge", "0"))
+            .withPlaceId(devicePlace)
+            .create();
+      registry.onConnected(message);
+      EasyMock.expectLastCall();
+      replayAll();
+
+      service.handleEvent(message);
+      EasyMock.verify(registry);
+   }
+
+   @Test
+   public void testClientHeartbeatIsDropped() throws Exception {
+      replayAll();
+      service.handleEvent(clientEvent(heartbeat()));
+      EasyMock.verify(registry);
+   }
+
+   @Test
+   public void testIpcdBridgeHeartbeatIsHandled() throws Exception {
+      // SessionHeartBeater.sendUpdate
+      PlatformMessage message = PlatformMessage
+            .buildMessage(heartbeat(), Address.clientAddress("ipcd-bridge", "0"), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .create();
+      registry.onHeartBeat(message);
+      EasyMock.expectLastCall();
+      replayAll();
+
+      service.handleEvent(message);
+      EasyMock.verify(registry);
    }
 }
