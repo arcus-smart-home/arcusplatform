@@ -160,6 +160,11 @@ public class DisabledRiskyOperationsTest {
    }
 
    @Test
+   public void testHubBackup() {
+      assertDisabledBy("hub.backup", message(HubBackupCapability.BackupRequest.NAME, hub));
+   }
+
+   @Test
    public void testPersonDelete() {
       assertDisabledBy("person.delete",
             message(PersonCapability.DeleteRequest.NAME, self),

@@ -123,6 +123,7 @@ Instances can switch off what they don't use. Both settings are read at startup 
 | `place.delete` | `place:Delete` |
 | `hub.delete` | `hub:Delete` |
 | `hub.factoryreset` | `FactoryReset` on the hub, ZigBee and Z-Wave, plus `hubzigbee:Reset`, `hubzwave:Reset` and `hubbackup:Restore`, which tear down or rewind the networks |
+| `hub.backup` | `hubbackup:Backup`, whose reply holds the hub's radio network keys and weakly hashed copies of people's PINs. Leave it on only while migrating a hub |
 | `person.delete` | `person:Delete`, `person:RemoveFromPlace` |
 | `login.delete` | `person:DeleteLogin` |
 
