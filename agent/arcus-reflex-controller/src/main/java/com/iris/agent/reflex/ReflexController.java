@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -103,7 +104,7 @@ import io.netty.util.Timer;
 
 import rx.Completable;
 
-public class ReflexController implements SnoopingPortHandler, LifeCycleListener {
+public class ReflexController implements SnoopingPortHandler, LifeCycleListener, HubDeviceService.Listener {
    private static final Logger log = LoggerFactory.getLogger(ReflexController.class);
    public static final boolean DISABLE_LOCAL_PROCESSING = System.getenv("IRIS_AGENT_DISABLE_LOCAL_PROCESSING") != null;
 
@@ -112,8 +113,13 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
 
    public static final Address DEVICE_SERVICE = Address.platformService(PlatformConstants.SERVICE_DEVICES);
 
+   // The platform asks for a sync once per upgraded device, and radios can
+   // register seconds apart, so requests this close together share one sync.
+   private static final long SYNC_COALESCE_SECONDS = 5;
+
    private final Timer timer;
    private final Router router;
+   private final AtomicBoolean syncScheduled = new AtomicBoolean();
 
    private final ZigbeeLocalProcessing zigbee;
    private final ZWaveLocalProcessing zwave;
@@ -206,6 +212,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       log.info("starting hub reflex controller...");
       localProcessing.setReflexController(this);
       LifeCycleService.addListener(this);
+      HubDeviceService.addListener(this);
 
       port.queue(new Runnable() {
          @Override
@@ -216,16 +223,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
                log.warn("failed to load user pin codes during startup:", ex);
             }
 
-            try {
-               String driversBase64 = ReflexDao.getReflexDB();
-               Map<Address,Map<String,String>> reflexStates = ReflexDao.getAllReflexStates();
-               Map<Address,Map<String,String>> driverStates = ReflexDao.getAllDriverStates();
-               if (driversBase64 != null) {
-                  applyDeviceReflexes(reflexStates, driverStates, driversBase64);
-               }
-            } catch (Exception ex) {
-               log.warn("failed to load device reflexes during startup:", ex);
-            }
+            loadStoredReflexes();
          }
       });
    }
@@ -233,8 +231,22 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    @PreDestroy
    public void shutdown() {
       log.info("stopping hub reflex controller...");
+      HubDeviceService.removeListener(this);
       LifeCycleService.removeListener(this);
       ReflexDao.shutdown();
+   }
+
+   private void loadStoredReflexes() {
+      try {
+         String driversBase64 = ReflexDao.getReflexDB();
+         Map<Address,Map<String,String>> reflexStates = ReflexDao.getAllReflexStates();
+         Map<Address,Map<String,String>> driverStates = ReflexDao.getAllDriverStates();
+         if (driversBase64 != null) {
+            applyDeviceReflexes(reflexStates, driverStates, driversBase64);
+         }
+      } catch (Exception ex) {
+         log.warn("failed to load stored device reflexes:", ex);
+      }
    }
 
    /////////////////////////////////////////////////////////////////////////////
@@ -374,6 +386,15 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
    // Hub <-> Platform Reflex Synchronization
    /////////////////////////////////////////////////////////////////////////////
    
+   private void scheduleReflexSync() {
+      if (syncScheduled.compareAndSet(false, true)) {
+         timer.newTimeout((to) -> {
+            syncScheduled.set(false);
+            port.queue(new DoReflexSyncTask());
+         }, SYNC_COALESCE_SECONDS, TimeUnit.SECONDS);
+      }
+   }
+
    private void doReflexSync() {
       reflexSyncCurrent = IrisUUID.randomUUID();
       final UUID syncToken = reflexSyncCurrent;
@@ -827,6 +848,20 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       }
    }
 
+   /**
+    * Devices can't start their reflexes until their radio has registered, and
+    * radios that bootstrap first register after both the load at startup and
+    * possibly the sync on authorization. The stored reflexes cover a hub that
+    * can't reach the platform. The sync is needed as well: one that ran before
+    * this radio registered replaced the stored drivers with only those of the
+    * radios it reported.
+    */
+   @Override
+   public void deviceProviderRegistered(String protocol) {
+      log.info("{} devices are available, should load hub reflexes...", protocol);
+      port.queue(new LoadRegisteredDevicesTask());
+   }
+
    @Override
    public void hubAccountIdUpdated(@Nullable UUID oldAcc, @Nullable UUID newAcc) {
       // ignore
@@ -853,6 +888,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       case MessageConstants.MSG_ADD_DEVICE_RESPONSE:
       case DeviceAdvancedCapability.RemovedDeviceEvent.NAME:
       case HubCapability.UnpairingRequestRequest.NAME:
+      case HubReflexCapability.SyncNeededEvent.NAME:
          return true;
 
       default:
@@ -877,7 +913,7 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
          return null;
 
       case HubReflexCapability.SyncNeededEvent.NAME:
-         doReflexSync();
+         scheduleReflexSync();
          return null;
 
       default:
@@ -910,6 +946,12 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       case MessageConstants.MSG_ADD_DEVICE_RESPONSE:
          log.info("recevied add device response, should sync hub reflexes...");
          doReflexSync();
+         break;
+
+      // The platform addresses this to the hub rather than to this controller
+      case HubReflexCapability.SyncNeededEvent.NAME:
+         log.info("platform requested a hub reflex sync...");
+         scheduleReflexSync();
          break;
 
       case DeviceAdvancedCapability.RemovedDeviceEvent.NAME:
@@ -1118,6 +1160,18 @@ public class ReflexController implements SnoopingPortHandler, LifeCycleListener 
       @Override
       public void run() {
          ReflexController.this.doReflexSync();
+      }
+   }
+
+   private final class LoadRegisteredDevicesTask implements Runnable {
+      @Override
+      public void run() {
+         loadStoredReflexes();
+
+         // Before authorization the sync on authorizing covers this radio
+         if (LifeCycleService.isAuthorized()) {
+            scheduleReflexSync();
+         }
       }
    }
 }
