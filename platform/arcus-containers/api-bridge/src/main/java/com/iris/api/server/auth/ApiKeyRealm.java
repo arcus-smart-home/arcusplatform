@@ -89,7 +89,8 @@ public class ApiKeyRealm extends AuthenticatingRealm {
             apiKey.getPlaceId(),
             apiKey.getPersonId(),
             apiKey.getAccountId(),
-            apiKey.getPermissions()
+            apiKey.getPermissions(),
+            apiKey.getExpiresAt()
       );
 
       return new SimpleAuthenticationInfo(principal, token, getName());

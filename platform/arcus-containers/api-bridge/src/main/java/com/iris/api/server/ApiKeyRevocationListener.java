@@ -15,6 +15,7 @@
  */
 package com.iris.api.server;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -27,7 +28,10 @@ import com.iris.bridge.server.netty.Constants;
 import com.iris.bridge.server.session.ClientToken;
 import com.iris.bridge.server.session.Session;
 import com.iris.bridge.server.session.SessionRegistry;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
+import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.service.ApiKeyService;
 import com.iris.security.apikey.ApiKeyPrincipal;
 import com.iris.security.authz.AuthorizationContext;
@@ -38,6 +42,7 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
    private static final Logger logger = LoggerFactory.getLogger(ApiKeyRevocationListener.class);
 
    public static final String EVENT_API_KEY_REVOKED = ApiKeyService.RevokedEvent.NAME;
+   public static final String EVENT_API_KEY_DELETED = ApiKeyService.DeletedEvent.NAME;
 
    private final SessionRegistry sessionRegistry;
 
@@ -48,7 +53,14 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
 
    @Override
    public void onMessage(ClientToken ct, PlatformMessage msg) {
-      if (!EVENT_API_KEY_REVOKED.equals(msg.getMessageType())) {
+      if (!EVENT_API_KEY_REVOKED.equals(msg.getMessageType()) && !EVENT_API_KEY_DELETED.equals(msg.getMessageType())) {
+         return;
+      }
+
+      // Any client can send a message of this type to a client address, so only act on the
+      // platform's own event: a broadcast from the key's place, which no client can be the source of.
+      if (ct != null || !isFromItsPlace(msg)) {
+         logger.warn("Ignoring {} that was not broadcast by a place, from [{}]", msg.getMessageType(), msg.getSource());
          return;
       }
 
@@ -80,12 +92,22 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
          }
 
          ApiKeyPrincipal apiKeyPrincipal = (ApiKeyPrincipal) principal;
-         if (keyId.equals(apiKeyPrincipal.getKeyId())) {
+         if (keyId.equals(apiKeyPrincipal.getKeyId()) && Objects.equals(apiKeyPrincipal.getPlaceId().toString(), msg.getPlaceId())) {
             logger.info("Disconnecting session for revoked API key [{}], label [{}]",
                   keyId, apiKeyPrincipal.getLabel());
             session.disconnect(Constants.SESSION_EXPIRED_STATUS);
             session.destroy();
          }
       }
+   }
+
+   // RevokeApiKeyHandler and DeleteApiKeyHandler broadcast from SERV:place:<placeId> with that place id
+   private static boolean isFromItsPlace(PlatformMessage msg) {
+      Address source = msg.getSource();
+      return msg.getDestination().isBroadcast()
+            && MessageConstants.SERVICE.equals(source.getNamespace())
+            && PlaceCapability.NAMESPACE.equals(source.getGroup())
+            && source.getId() != null
+            && Objects.equals(source.getId().toString(), msg.getPlaceId());
    }
 }

@@ -16,6 +16,7 @@
 package com.iris.security.apikey;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -32,14 +33,21 @@ public class ApiKeyPrincipal implements Principal, Serializable {
    private final UUID personId;
    private final UUID accountId;
    private final Set<String> permissions;
+   // null for a key that never expires
+   private final Instant expiresAt;
 
    public ApiKeyPrincipal(UUID keyId, String label, UUID placeId, UUID personId, UUID accountId, Set<String> permissions) {
+      this(keyId, label, placeId, personId, accountId, permissions, null);
+   }
+
+   public ApiKeyPrincipal(UUID keyId, String label, UUID placeId, UUID personId, UUID accountId, Set<String> permissions, Instant expiresAt) {
       this.keyId = keyId;
       this.label = label;
       this.placeId = placeId;
       this.personId = personId;
       this.accountId = accountId;
       this.permissions = Collections.unmodifiableSet(permissions);
+      this.expiresAt = expiresAt;
    }
 
    @Override
@@ -78,10 +86,20 @@ public class ApiKeyPrincipal implements Principal, Serializable {
       return permissions;
    }
 
+   /** When the key stopped or stops working, as it was when the session logged in, or null if it never expires. */
+   public Instant getExpiresAt() {
+      return expiresAt;
+   }
+
+   /** Matches {@link ApiKey#isExpired()}. */
+   public boolean isExpired() {
+      return expiresAt != null && Instant.now().isAfter(expiresAt);
+   }
+
    @Override
    public String toString() {
       return "ApiKeyPrincipal [keyId=" + keyId + ", label=" + label
-            + ", placeId=" + placeId + ", personId=" + personId + "]";
+            + ", placeId=" + placeId + ", personId=" + personId + ", expiresAt=" + expiresAt + "]";
    }
 
    @Override
