@@ -132,9 +132,13 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    protected void handleEvent(PlatformMessage message) throws Exception {
       MessageBody body = message.getValue();
       String type = body.getMessageType();
+      if(isDeviceReportFromClient(message)) {
+         logger.warn("Dropping [{}] from client [{}]: only hubs and services report devices added or removed", type, message.getSource());
+         return;
+      }
       switch (type) {
       case DeviceAdvancedCapability.RemovedDeviceEvent.NAME:
-         handleRemovedDeviceEvent(message.getValue());
+         handleRemovedDeviceEvent(message);
          break;
       case Capability.EVENT_DELETED:
          handleDeletedEvent(message);
@@ -178,11 +182,33 @@ public class DeviceServiceHandler extends AbstractPlatformService {
 	   }
 	}
 
-   public void handleRemovedDeviceEvent(MessageBody request) {
+   // These name a device by the hub and protocol id in the body, so the sender has to be checked.
+   // Hubs (through hub-bridge), drivers and services send them; a client never does.
+   private static boolean isDeviceReportFromClient(PlatformMessage message) {
+      String type = message.getMessageType();
+      return
+            (DeviceAdvancedCapability.RemovedDeviceEvent.NAME.equals(type) || HubAdvancedCapability.GetDeviceInfoResponse.NAME.equals(type)) &&
+            message.getSource() != null &&
+            MessageConstants.CLIENT.equals(message.getSource().getNamespace());
+   }
+
+   /**
+    * Deletes the device the event names, or marks it lost. A hub may only remove its own devices,
+    * and a device that has a place is only removed by a message for that place: hub-bridge stamps
+    * the hub's place, and drivers and services the device's.
+    */
+   public void handleRemovedDeviceEvent(PlatformMessage message) {
+      MessageBody request = message.getValue();
       String protocolName = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocol(request);
       String protocolId = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocolId(request);
       String hubId = DeviceAdvancedCapability.RemovedDeviceEvent.getHubId(request);
       String status = DeviceAdvancedCapability.RemovedDeviceEvent.getStatus(request);
+
+      Address source = message.getSource();
+      if(source != null && source.getHubId() != null && !source.getHubId().equals(hubId)) {
+         logger.warn("Dropping remove for hub [{}] sent by hub [{}]", hubId, source.getHubId());
+         return;
+      }
 
       Address address = hubId == null ?
             Address.protocolAddress(protocolName, ProtocolDeviceId.fromRepresentation(protocolId)) :
@@ -190,6 +216,11 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       Device device = deviceDao.findByProtocolAddress(address.getRepresentation());
       if(device == null) {
          logger.debug("Received remove for unrecognized device [{}]", address);
+         return;
+      }
+
+      if(device.getPlace() != null && !device.getPlace().toString().equals(message.getPlaceId())) {
+         logger.warn("Dropping remove of device [{}] at place [{}] sent for place [{}] by [{}]", address, device.getPlace(), message.getPlaceId(), source);
          return;
       }
 
