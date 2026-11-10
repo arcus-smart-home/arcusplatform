@@ -29,7 +29,6 @@ import com.iris.client.ClientEvent;
 import com.iris.client.IrisClientFactory;
 import com.iris.client.capability.Place;
 import com.iris.client.event.ClientFuture;
-import com.iris.client.exception.ErrorResponseException;
 import com.iris.client.service.ApiKeyService;
 import com.iris.oculus.Oculus;
 import com.iris.oculus.modules.session.OculusSession;
@@ -38,32 +37,30 @@ import com.iris.oculus.util.Actions;
 
 @Singleton
 public class ApiKeyController extends SessionAwareController {
-   private static final String UNSUPPORTED_MESSAGE = "unsupported.message";
-
    private List<Map<String, String>> keys = new ArrayList<>();
    private final List<Runnable> listeners = new ArrayList<>();
    private Action reloadAction = Actions.build("Refresh", this, "reload");
-   private boolean unsupported = false;
+   private KeyListState state = KeyListState.AVAILABLE;
 
    public ApiKeyController() {
    }
 
    @Override
    protected void onSessionInitialized(OculusSession info) {
-      unsupported = false;
+      state = KeyListState.AVAILABLE;
       reload();
    }
 
    @Override
    protected void onPlaceChanged(String newPlaceId) {
-      unsupported = false;
+      state = KeyListState.AVAILABLE;
       reload();
    }
 
    @Override
    protected void onSessionExpired() {
       keys.clear();
-      unsupported = false;
+      state = KeyListState.AVAILABLE;
       fireChanged();
    }
 
@@ -72,7 +69,11 @@ public class ApiKeyController extends SessionAwareController {
    }
 
    public boolean isUnsupported() {
-      return unsupported;
+      return state == KeyListState.UNSUPPORTED;
+   }
+
+   public boolean isNotOwner() {
+      return state == KeyListState.NOT_OWNER;
    }
 
    public Action actionReload() {
@@ -104,26 +105,21 @@ public class ApiKeyController extends SessionAwareController {
       ClientFuture<ClientEvent> result = IrisClientFactory.getClient().request(request);
       result
          .onSuccess((event) -> {
-            unsupported = false;
+            state = KeyListState.AVAILABLE;
             ApiKeyService.ListKeysResponse response = new ApiKeyService.ListKeysResponse(event);
             List<Map<String, String>> loaded = response.getKeys();
             keys = loaded != null ? new ArrayList<>(loaded) : new ArrayList<>();
             fireChanged();
          })
          .onFailure((error) -> {
-            if (isUnsupportedError(error)) {
-               unsupported = true;
-               keys.clear();
-               fireChanged();
-            } else {
+            // don't leave the previous place's keys listed
+            state = KeyListState.ofFailure(error);
+            keys.clear();
+            fireChanged();
+            if (state == KeyListState.FAILED) {
                Oculus.error("Unable to load API keys", error);
             }
          });
-   }
-
-   private boolean isUnsupportedError(Throwable error) {
-      return error instanceof ErrorResponseException
-         && UNSUPPORTED_MESSAGE.equals(((ErrorResponseException) error).getCode());
    }
 
    public void createKey(String label, Set<String> permissions) {
