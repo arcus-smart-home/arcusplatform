@@ -38,6 +38,7 @@ import com.iris.messages.service.SessionService;
 import com.iris.netty.server.message.IrisNettyMessageUtil;
 import com.iris.population.PlacePopulationCacheManager;
 import com.iris.security.apikey.ApiKeyPrincipal;
+import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.authz.Authorizer;
 import com.iris.security.authz.AuthzUtil;
 import com.iris.security.principal.Principal;
@@ -76,6 +77,14 @@ public class ApiMessageHandler implements DeviceMessageHandler<String> {
       if(client == null || !client.isAuthenticated()) {
          logger.debug("Dropping a message of [{}] chars from a session that is not logged in", message.length());
          session.disconnect(Constants.SESSION_EXPIRED_STATUS);
+         return null;
+      }
+
+      // the Shiro session outlives the key, so check the key's own expiry on every message
+      if(isKeyExpired(session)) {
+         logger.debug("Dropping a message of [{}] chars from a session whose API key has expired", message.length());
+         session.disconnect(Constants.SESSION_EXPIRED_STATUS);
+         session.destroy();
          return null;
       }
 
@@ -129,6 +138,12 @@ public class ApiMessageHandler implements DeviceMessageHandler<String> {
 
          return null;
       }
+   }
+
+   private static boolean isKeyExpired(Session session) {
+      AuthorizationContext context = session.getAuthorizationContext();
+      Principal principal = context == null ? null : context.getPrincipal();
+      return principal instanceof ApiKeyPrincipal && ((ApiKeyPrincipal) principal).isExpired();
    }
 
    private String createErrorResponse(Session session, ClientMessage clientMsg, ErrorEvent err) {
