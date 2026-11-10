@@ -31,6 +31,7 @@ import com.iris.agent.attributes.HubAttributesService;
 import com.iris.agent.router.Port;
 import com.iris.agent.router.Router;
 import com.iris.agent.test.SystemTestCase;
+import com.iris.agent.zigbee.ZigbeeController;
 import com.iris.agent.zwave.ZWaveController;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
@@ -61,16 +62,18 @@ public class HubControllerPairingTest extends SystemTestCase {
    }
 
    @Test
-   public void aStartWhileAlreadyPairingStillReachesZWave() throws Exception {
+   public void aStartWhileAlreadyPairingStillReachesTheRadios() throws Exception {
       STATE.set(HubCapability.STATE_PAIRING);
       PlatformMessage request = startPairing(true);
 
       hub.recv(fake(Port.class, null), request);
 
-      // Only Z-Wave, which takes the S2 PIN flag from it; the window and the other radios are left as they are
-      assertEquals(1, forwarded.size());
+      // Z-Wave takes the S2 PIN flag from it and ZigBee its key mode; the window is left as it is
+      assertEquals(2, forwarded.size());
       assertSame(ZWaveController.ADDRESS, forwarded.get(0)[0]);
       assertSame(request, forwarded.get(0)[1]);
+      assertSame(ZigbeeController.ADDRESS, forwarded.get(1)[0]);
+      assertSame(request, forwarded.get(1)[1]);
       assertEquals(HubCapability.STATE_PAIRING, STATE.get());
    }
 
