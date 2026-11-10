@@ -28,6 +28,7 @@ import com.google.inject.Inject;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
+import com.iris.core.messaging.memory.InMemoryPlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
@@ -35,6 +36,7 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.security.apikey.ApiKey;
 import com.iris.security.authz.AuthzUtil;
 import com.iris.test.IrisMockTestCase;
@@ -47,6 +49,7 @@ public class TestDeleteApiKeyHandler extends IrisMockTestCase {
 
    @Inject ApiKeyDAO apiKeyDao;
    @Inject AccountDAO accountDao;
+   @Inject InMemoryPlatformMessageBus messageBus;
 
    private DeleteApiKeyHandler handler;
    private Place place;
@@ -56,7 +59,7 @@ public class TestDeleteApiKeyHandler extends IrisMockTestCase {
    @Override
    public void setUp() throws Exception {
       super.setUp();
-      handler = new DeleteApiKeyHandler(apiKeyDao, accountDao);
+      handler = new DeleteApiKeyHandler(apiKeyDao, accountDao, messageBus);
 
       ownerId = UUID.randomUUID();
 
@@ -78,7 +81,7 @@ public class TestDeleteApiKeyHandler extends IrisMockTestCase {
    }
 
    @Test
-   public void testDeleteSuccess() {
+   public void testDeleteSuccess() throws Exception {
       UUID keyId = UUID.randomUUID();
       ApiKey existing = createExpiredKey(keyId);
 
@@ -92,6 +95,16 @@ public class TestDeleteApiKeyHandler extends IrisMockTestCase {
       MessageBody response = handler.handleRequest(place, msg);
 
       assertEquals("apikey:DeleteResponse", response.getMessageType());
+
+      // so api-bridge closes a session that is still using the key
+      PlatformMessage event = messageBus.take();
+      assertEquals(ApiKeyService.DeletedEvent.NAME, event.getMessageType());
+      assertEquals(keyId.toString(), ApiKeyService.DeletedEvent.getKeyId(event.getValue()));
+      assertEquals("test-key", ApiKeyService.DeletedEvent.getLabel(event.getValue()));
+      assertEquals(Address.fromString(place.getAddress()), event.getSource());
+      assertTrue(event.getDestination().isBroadcast());
+      assertEquals(place.getId().toString(), event.getPlaceId());
+      assertEquals(Address.platformService(ownerId, "person"), event.getActor());
    }
 
    @Test
@@ -144,6 +157,7 @@ public class TestDeleteApiKeyHandler extends IrisMockTestCase {
       } catch (ErrorEventException e) {
          assertEquals(Errors.CODE_INVALID_PARAM, e.getCode());
       }
+      assertNull(messageBus.poll());
    }
 
    @Test
