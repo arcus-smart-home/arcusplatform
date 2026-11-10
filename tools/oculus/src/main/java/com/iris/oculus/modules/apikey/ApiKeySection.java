@@ -87,6 +87,7 @@ public class ApiKeySection implements OculusSection {
    public Component getComponent() {
       String CARD_TABLE = "table";
       String CARD_UNSUPPORTED = "unsupported";
+      String CARD_NOT_OWNER = "notOwner";
 
       CardLayout cards = new CardLayout();
       JPanel cardPanel = new JPanel(cards);
@@ -136,14 +137,22 @@ public class ApiKeySection implements OculusSection {
       unsupportedLabel.setHorizontalAlignment(SwingConstants.CENTER);
       cardPanel.add(unsupportedLabel, CARD_UNSUPPORTED);
 
+      // Not owner card
+      JLabel notOwnerLabel = new JLabel("Only the account owner can manage API keys.");
+      notOwnerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+      cardPanel.add(notOwnerLabel, CARD_NOT_OWNER);
+
+      Runnable showCard = () -> cards.show(cardPanel,
+            controller.isUnsupported() ? CARD_UNSUPPORTED : controller.isNotOwner() ? CARD_NOT_OWNER : CARD_TABLE);
+
       // Switch cards on data change
       controller.addChangeListener(() -> {
          model.fireUpdate();
-         cards.show(cardPanel, controller.isUnsupported() ? CARD_UNSUPPORTED : CARD_TABLE);
+         showCard.run();
       });
 
       // Show correct card initially
-      cards.show(cardPanel, controller.isUnsupported() ? CARD_UNSUPPORTED : CARD_TABLE);
+      showCard.run();
 
       return cardPanel;
    }
