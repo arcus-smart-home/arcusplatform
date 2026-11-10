@@ -238,20 +238,13 @@ touch "${INSTALL_PATH}/watchdog_check"
 rm -rf /data/iris/data/tmp/*
 
 ################################################################################
-# Create a shared archive to speed up restarts
+# Earlier versions built a class data sharing archive here before the first
+# start after any jar changed, which took about a minute. It held only JDK
+# classes and made no measurable difference to startup, so it is no longer
+# used. Remove one left behind.
 ################################################################################
 
-if [ -z "${PROFILE}" ]; then
-   JAVA_OPTS="${JAVA_OPTS} -XX:+UnlockDiagnosticVMOptions"
-   JAVA_OPTS="${JAVA_OPTS} -XX:SharedArchiveFile=${AGENT_JSA}"
-
-   if [ ! -e "${AGENT_JSA}" ]; then
-      echo "generating shared archive ${AGENT_JSA}..."
-	   ${JAVA} -XX:OnOutOfMemoryError="kill -9 %p" -XX:ErrorFile=/tmp/hs_err.log ${JAVA_OPTS} ${JAVA_DBG_OPTS} -cp "${CP}" '-Xshare:dump' || true
-   fi
-
-   JAVA_OPTS="${JAVA_OPTS} -Xshare:on"
-fi
+rm -f "${AGENT_JSA}"
 
 ################################################################################
 # Invoke the JVM and process the exit code
@@ -303,7 +296,6 @@ case "${EC}" in
        ;;
 
     *) echo "Iris Agent Exited Abnormally (${EC})"
-       rm -f "${AGENT_JSA}"
        exec ${IRISAGENT_ALLARGS}
        ;;
 esac
