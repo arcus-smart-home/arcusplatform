@@ -63,6 +63,8 @@ When an account is created, the owner gets `accountOwner=true` with `permissions
 
 Each bridge binds one `Authorizer`, chosen by `authz.algorithm`. A client chooses the destination of every message, so authorization has to decide whether that destination is within the session's scope as well as whether the message is allowed.
 
+Clients may only send requests. `IrisNettyMessageUtil` answers a frame with `isRequest=false` with an error before any authorizer runs, because services act on events from hubs, drivers and other services without the checks a request gets. The device service also drops device removal and device info events from a client, and a hub's removal of a device that isn't its own or isn't at its place.
+
 | Bridge | `authz.algorithm` | Runs |
 |---|---|---|
 | client-bridge | `role` | RoleAuthorizer |
