@@ -210,9 +210,10 @@ public class PlatformDriverService implements DriverService {
 
          // inner catch so that we don't trigger a restore when we get a legacy unpaired message
          try {
-            driverRegistry
-               .loadConsumer(address)
-               .fire(message);
+            DriverExecutor executor = driverRegistry.loadConsumer(address);
+            if (isSendingHubsDevice(message, executor)) {
+               executor.fire(message);
+            }
    	   } catch(NotFoundException e) {
    	      LOGGER.warn("Received protocol message for unrecognized address [{}]", message.getSource());
    	      tryRestoreLostDevice(message.getSource(), message.getPlaceId(), population);
@@ -224,6 +225,21 @@ public class PlatformDriverService implements DriverService {
 	   }
 	}
 
+   // hub-bridge only passes a hub's protocol messages from that hub's own addresses, but a
+   // destination other than a broadcast picks the driver, and it has to be one of that hub's devices
+   private static boolean isSendingHubsDevice(ProtocolMessage message, DriverExecutor executor) {
+      String hubId = message.getSource() == null ? null : message.getSource().getHubId();
+      if (hubId == null) {
+         return true;
+      }
+      Address device = executor.context().getProtocolAddress();
+      if (device != null && hubId.equals(device.getHubId())) {
+         return true;
+      }
+      LOGGER.warn("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]", hubId, message.getDestination(), device);
+      return false;
+   }
+
    public void handleReflexProtocolMessage(ProtocolMessage message) {
       try {
          Address address = message.getDestination();
@@ -233,6 +249,9 @@ public class PlatformDriverService implements DriverService {
          }
 
          DriverExecutor exec = driverRegistry.loadConsumer(address);
+         if (!isSendingHubsDevice(message, exec)) {
+            return;
+         }
          DeviceDriver drv = exec.driver();
          DeviceDriverDefinition def = drv.getDefinition();
          ReflexDriverDefinition rdef = def.getReflexes();

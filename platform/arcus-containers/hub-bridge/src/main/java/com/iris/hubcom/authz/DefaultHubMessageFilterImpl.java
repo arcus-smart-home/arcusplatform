@@ -126,11 +126,26 @@ public class DefaultHubMessageFilterImpl implements HubMessageFilter {
 
    @Override
    public boolean acceptFromHub(HubSession session, ProtocolMessage msg) {
-      if(session.getState() == State.AUTHORIZED) {
-         return true;
+      if(session.getState() != State.AUTHORIZED) {
+         UNAUTHORIZED_PROTOCOL_DROPPED.inc();
+         return false;
       }
-      UNAUTHORIZED_PROTOCOL_DROPPED.inc();
-      return false;
+
+      // A hub's devices send from PROT:<protocol>-<hub id>:<device> and its radio ports from the
+      // same form, so the source names this hub. driver-services runs the driver the source names
+      // when the destination is a broadcast, and checks a hub's other destinations itself.
+      String hubId = session.getHubId();
+      Address source = msg.getSource();
+      if(source == null || !Objects.equals(hubId, source.getHubId())) {
+         SOURCE_MISMATCH.inc();
+         if(session.firstSourceMismatch()) {
+            logger.warn("Dropping protocol message because source address [{}] does not belong to session [{}]; further mismatches on this session log at debug", source, session);
+         } else {
+            logger.debug("Dropping protocol message because source address [{}] does not belong to session [{}]", source, session);
+         }
+         return false;
+      }
+      return true;
    }
 
    @Override
