@@ -79,7 +79,7 @@ public class HubHeartbeatListenerSourceTest {
       grant.setPlaceId(place);
       grant.setAccountId(UUID.randomUUID());
       grant.addPermissions("*:*:*");
-      // nothing at the bridge stops it
+      // the authorizer on its own lets it through
       assertTrue(new RoleAuthorizer(new AuthzMetrics(), new DisabledRiskyOperations())
             .isAuthorized(new AuthorizationContext(null, null, Arrays.asList(grant)), place.toString(), message));
       EasyMock.replay(hubs);

@@ -57,9 +57,9 @@ import com.iris.test.Modules;
 
 /**
  * devadv:RemovedDevice and hubadv:GetDeviceInfoResponse name a device by the hub and protocol id
- * in their body. Client-bridge passes a client frame with isRequest=false through as an event, and
- * the role authorizer doesn't stop events to the device service, so the handler has to check who
- * sent them. Every DAO and the device service are strict mocks: a dropped event that looked a
+ * in their body, so the handler has to check who sent them. The client bridges refuse a frame
+ * with isRequest=false, but the role authorizer on its own doesn't stop an event to the device
+ * service, and the handler must not depend on the bridge. Every DAO and the device service are strict mocks: a dropped event that looked a
  * device up, or deleted or created one, fails the test.
  */
 @Mocks({
@@ -160,7 +160,7 @@ public class DeviceServiceEventScopeTest extends IrisMockTestCase {
    public void testClientRemovedDeviceForAnotherPlaceIsDropped() throws Exception {
       UUID person = UUID.randomUUID();
       PlatformMessage message = fromClient(removed(HUB_ID), otherPlace, person);
-      // nothing at the bridge stops it
+      // the authorizer on its own lets it through
       assertTrue(authorizer().isAuthorized(context(person, otherPlace), otherPlace.toString(), message));
       replay();
 
