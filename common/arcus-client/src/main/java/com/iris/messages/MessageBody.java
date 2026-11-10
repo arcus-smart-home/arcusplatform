@@ -31,14 +31,15 @@ public class MessageBody implements Serializable {
    private static final String RESPONSE = "Response";
    private static final String REQUEST = "Request";
 
-   // These carry a Z-Wave S2 PIN or DSK, which must never reach a log, so toString
-   // leaves their attributes out. The platform and the hub both print messages
-   // through toString; see docs/zwave-s2-pin-pairing.md.
+   // These carry a Z-Wave S2 PIN or DSK, or a new API key, which must never reach a
+   // log, so toString leaves their attributes out. The platform and the hub both
+   // print messages through toString; see docs/zwave-s2-pin-pairing.md.
    private static final Set<String> SECRET_MESSAGE_TYPES = ImmutableSet.of(
          "hubzwave:S2PinRequired",
          "hubzwave:SubmitS2Pin",
          "subpairing:SubmitS2Pin",
-         "subpairing:GetS2PinRequestResponse"
+         "subpairing:GetS2PinRequestResponse",
+         "apikey:CreateResponse"
    );
 
    private static final MessageBody EMPTY = new MessageBody(MessageConstants.MSG_EMPTY_MESSAGE, Collections.<String,Object>emptyMap());
