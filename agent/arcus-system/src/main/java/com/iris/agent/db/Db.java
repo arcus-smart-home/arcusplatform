@@ -562,7 +562,8 @@ public final class Db implements AutoCloseable {
    }
 
    private final class DbCheckpointer extends AbstractDbWorker {
-      private @Nullable Thread thread;
+      // Read by shutdown() on another thread
+      private volatile @Nullable Thread thread;
       private final AtomicBoolean shutdown = new AtomicBoolean();
       private @Nullable SQLiteStatement checkpoint;
 
@@ -582,7 +583,9 @@ public final class Db implements AutoCloseable {
                   checkpoint(conn);
                }
 
-               ThreadUtils.sleep(5, TimeUnit.SECONDS);
+               // Not ThreadUtils.sleep, which sleeps through an interrupt: shutdown() interrupts
+               // this to stop it, and the agent's exit waited out the rest of the 5 seconds
+               Thread.sleep(TimeUnit.SECONDS.toMillis(5));
             }
          } catch (InterruptedException ex) {
             log.warn("sqlite checkpointer interrupted, shutting down...");

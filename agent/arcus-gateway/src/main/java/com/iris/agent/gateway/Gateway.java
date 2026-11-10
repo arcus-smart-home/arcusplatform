@@ -284,7 +284,9 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
                conn.disconnect();
             }
 
-            Future<?> shutdown = eventLoopGroup.shutdownGracefully(1, 10, TimeUnit.SECONDS);
+            // The quiet period restarts while tasks keep coming, so what the disconnect
+            // queued still runs; a whole second of it held up every agent restart
+            Future<?> shutdown = eventLoopGroup.shutdownGracefully(100, 10000, TimeUnit.MILLISECONDS);
             shutdown.await(10, TimeUnit.SECONDS);
          } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
