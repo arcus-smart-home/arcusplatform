@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.messages.MessageBody;
@@ -36,10 +37,12 @@ public class ListApiKeysHandler implements ContextualRequestMessageHandler<Place
    public static final String MESSAGE_TYPE = "apikey:ListKeys";
 
    private final ApiKeyDAO apiKeyDao;
+   private final AccountDAO accountDao;
 
    @Inject
-   public ListApiKeysHandler(ApiKeyDAO apiKeyDao) {
+   public ListApiKeysHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
       this.apiKeyDao = apiKeyDao;
+      this.accountDao = accountDao;
    }
 
    @Override
@@ -49,6 +52,8 @@ public class ListApiKeysHandler implements ContextualRequestMessageHandler<Place
 
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
+      AccountOwnerCheck.requireAccountOwner(accountDao, context, msg);
+
       List<ApiKey> keys = apiKeyDao.findByPlace(context.getId());
 
       List<Map<String, Object>> keyList = keys.stream()

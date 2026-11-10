@@ -33,6 +33,12 @@
             description="The set of Shiro wildcard permissions to grant to this key"
             optional="false"/>
 
+         <s:parameter
+            name="expiresAt"
+            type="timestamp"
+            description="When the key stops working, in milliseconds since the epoch (UTC). Must be in the future. Leave it out for a key that does not expire; any other value that is not a time is rejected."
+            optional="true"/>
+
          <s:return name="id" type="string" description="The UUID of the created API key"/>
          <s:return name="key" type="string" description="The raw API key. This is the only time it will be returned."/>
 
@@ -103,9 +109,16 @@
 
       <s:event
          name="Revoked"
-         description="Broadcast from the place when an API key is revoked. The actor is the person who revoked it.">
+         description="Broadcast from the place when an API key is revoked, including when a key that has already expired or been revoked is revoked again, so that api-bridge closes any session still using it. The actor is the person who revoked it.">
          <s:parameter name="keyId" type="string" description="The UUID of the revoked API key"/>
          <s:parameter name="label" type="string" description="The label of the revoked API key"/>
+      </s:event>
+
+      <s:event
+         name="Deleted"
+         description="Broadcast from the place when a revoked API key is deleted, so that api-bridge closes any session still using it. The actor is the person who deleted it.">
+         <s:parameter name="keyId" type="string" description="The UUID of the deleted API key"/>
+         <s:parameter name="label" type="string" description="The label of the deleted API key"/>
       </s:event>
    </s:events>
 

@@ -16,7 +16,6 @@
 package com.iris.platform.services.apikey.handlers;
 
 import java.util.Collections;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -26,12 +25,13 @@ import com.google.inject.Singleton;
 import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.platform.ContextualRequestMessageHandler;
+import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
+import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
-import com.iris.security.authz.AuthzUtil;
-import com.iris.messages.model.Account;
+import com.iris.messages.service.ApiKeyService;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
 
@@ -42,11 +42,13 @@ public class DeleteApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
+   private final PlatformMessageBus bus;
 
    @Inject
-   public DeleteApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao) {
+   public DeleteApiKeyHandler(ApiKeyDAO apiKeyDao, AccountDAO accountDao, PlatformMessageBus bus) {
       this.apiKeyDao = apiKeyDao;
       this.accountDao = accountDao;
+      this.bus = bus;
    }
 
    @Override
@@ -56,7 +58,7 @@ public class DeleteApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
-      requireAccountOwner(context, msg);
+      AccountOwnerCheck.requireAccountOwner(accountDao, context, msg);
 
       MessageBody body = msg.getValue();
 
@@ -90,22 +92,22 @@ public class DeleteApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
       apiKeyDao.delete(context.getId(), keyId, existing.getKeyHash());
 
+      // a session that missed the revocation would otherwise stay open with nothing left to end it
+      emitApiKeyDeleted(context, msg.getActor(), existing);
+
       return MessageBody.buildMessage("apikey:DeleteResponse", Collections.emptyMap());
    }
 
-   private void requireAccountOwner(Place place, PlatformMessage msg) {
-      if (msg.getActor() == null) {
-         throw new ErrorEventException(Errors.CODE_INVALID_REQUEST, "actor is required");
-      }
-
-      Account account = accountDao.findById(place.getAccount());
-      if (account == null) {
-         throw new ErrorEventException(Errors.CODE_NOT_FOUND, "account not found");
-      }
-
-      UUID actorId = (UUID) msg.getActor().getId();
-      if (!Objects.equals(actorId, account.getOwner())) {
-         throw new ErrorEventException(AuthzUtil.UNAUTHORIZED_CODE, "only the account owner can manage API keys");
-      }
+   private void emitApiKeyDeleted(Place place, Address actor, ApiKey apiKey) {
+      MessageBody body = ApiKeyService.DeletedEvent.builder()
+            .withKeyId(apiKey.getId().toString())
+            .withLabel(apiKey.getLabel())
+            .build();
+      PlatformMessage event = PlatformMessage.buildBroadcast(body, Address.fromString(place.getAddress()))
+            .withPlaceId(place.getId())
+            .withPopulation(place.getPopulation())
+            .withActor(actor)
+            .create();
+      bus.send(event);
    }
 }

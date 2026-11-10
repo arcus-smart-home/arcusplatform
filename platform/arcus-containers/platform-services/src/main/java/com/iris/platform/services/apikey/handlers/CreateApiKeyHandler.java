@@ -16,10 +16,13 @@
 package com.iris.platform.services.apikey.handlers;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authz.permission.WildcardPermission;
@@ -37,11 +40,10 @@ import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.ApiKeyService;
-import com.iris.security.authz.AuthzUtil;
-import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
 import com.iris.security.apikey.ApiKeyGenerator;
+import com.iris.security.authz.permission.PermissionCode;
 
 @Singleton
 public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Place> {
@@ -49,6 +51,12 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
    public static final String MESSAGE_TYPE = "apikey:Create";
    public static final int MAX_KEYS_PER_PLACE = 10;
    public static final int MAX_LABEL_LENGTH = 64;
+
+   // The authorizer only ever asks for one of the PermissionCode operations, so a permission whose second
+   // part names none of them, such as device:get, is accepted by Shiro but can never allow anything.
+   private static final Set<String> OPERATIONS = Stream
+         .concat(Stream.of("*"), Arrays.stream(PermissionCode.values()).map(PermissionCode::name))
+         .collect(Collectors.toSet());
 
    private final ApiKeyDAO apiKeyDao;
    private final AccountDAO accountDao;
@@ -69,7 +77,7 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
    @SuppressWarnings("unchecked")
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
-      requireAccountOwner(context, msg);
+      AccountOwnerCheck.requireAccountOwner(accountDao, context, msg);
 
       MessageBody body = msg.getValue();
 
@@ -102,10 +110,15 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
          if (StringUtils.isBlank(perm)) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "permission strings must not be blank");
          }
+         ParsedPermission parsed;
          try {
-            new WildcardPermission(perm);
+            parsed = new ParsedPermission(perm);
          } catch (IllegalArgumentException e) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "invalid permission format: " + perm);
+         }
+         if (!parsed.canMatch()) {
+            throw new ErrorEventException(Errors.CODE_INVALID_PARAM,
+                  "invalid permission " + perm + ": the second part must be *, r, w, x, c or d, as in dev:r:*");
          }
       }
 
@@ -133,10 +146,16 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       apiKey.setPermissions(permissions);
       apiKey.setCreated(Instant.now());
 
-      // Optional expiration
-      Object expiresAtObj = body.getAttributes().get("expiresAt");
-      if (expiresAtObj instanceof Number) {
-         Instant expiresAt = Instant.ofEpochMilli(((Number) expiresAtObj).longValue());
+      // Optional expiration, in milliseconds since the epoch. A value that isn't one is an error, never a key
+      // that doesn't expire.
+      Date expiresAtDate;
+      try {
+         expiresAtDate = ApiKeyService.CreateRequest.getExpiresAt(body);
+      } catch (IllegalArgumentException e) {
+         throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "expiresAt must be a time in milliseconds since the epoch");
+      }
+      if (expiresAtDate != null) {
+         Instant expiresAt = expiresAtDate.toInstant();
          if (!expiresAt.isAfter(Instant.now())) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "expiresAt must be in the future");
          }
@@ -157,22 +176,6 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
       );
    }
 
-   private void requireAccountOwner(Place place, PlatformMessage msg) {
-      if (msg.getActor() == null) {
-         throw new ErrorEventException(Errors.CODE_INVALID_REQUEST, "actor is required");
-      }
-
-      Account account = accountDao.findById(place.getAccount());
-      if (account == null) {
-         throw new ErrorEventException(Errors.CODE_NOT_FOUND, "account not found");
-      }
-
-      UUID actorId = (UUID) msg.getActor().getId();
-      if (!Objects.equals(actorId, account.getOwner())) {
-         throw new ErrorEventException(AuthzUtil.UNAUTHORIZED_CODE, "only the account owner can manage API keys");
-      }
-   }
-
    private void emitApiKeyCreated(Place place, Address actor, ApiKey apiKey) {
       MessageBody body = ApiKeyService.CreatedEvent.builder()
             .withKeyId(apiKey.getId().toString())
@@ -184,5 +187,18 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
             .withActor(actor)
             .create();
       bus.send(event);
+   }
+
+   /** Parsed the way the authorizer parses a key's permissions. */
+   @SuppressWarnings("serial")
+   private static class ParsedPermission extends WildcardPermission {
+      ParsedPermission(String permission) {
+         super(permission);
+      }
+
+      boolean canMatch() {
+         List<Set<String>> parts = getParts();
+         return parts.size() < 2 || parts.get(1).stream().anyMatch(OPERATIONS::contains);
+      }
    }
 }

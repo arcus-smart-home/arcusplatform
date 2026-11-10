@@ -16,7 +16,6 @@
 package com.iris.platform.services.apikey.handlers;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -33,8 +32,6 @@ import com.iris.messages.address.Address;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.ApiKeyService;
-import com.iris.security.authz.AuthzUtil;
-import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
 
@@ -62,7 +59,7 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
 
    @Override
    public MessageBody handleRequest(Place context, PlatformMessage msg) {
-      requireAccountOwner(context, msg);
+      AccountOwnerCheck.requireAccountOwner(accountDao, context, msg);
 
       MessageBody body = msg.getValue();
 
@@ -91,34 +88,18 @@ public class RevokeApiKeyHandler implements ContextualRequestMessageHandler<Plac
          throw new ErrorEventException(Errors.CODE_NOT_FOUND, "API key not found");
       }
 
-      if (existing.isExpired()) {
-         throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "API key is already revoked");
+      // Expire the key immediately rather than deleting, preserving audit trail. A key that has already
+      // expired keeps the time it stopped working.
+      if (!existing.isExpired()) {
+         apiKeyDao.expire(context.getId(), keyId, existing.getKeyHash(), Instant.now());
       }
 
-      // Expire the key immediately rather than deleting, preserving audit trail
-      apiKeyDao.expire(context.getId(), keyId, existing.getKeyHash(), Instant.now());
-
       // Broadcast revocation so api-bridge instances can disconnect active sessions and the history service can
-      // record who revoked the key
+      // record who revoked the key. This is sent for a key that has already expired too, so that revoking it
+      // again closes any session still using it, such as one whose key expired or whose first event was lost.
       emitApiKeyRevoked(context, msg.getActor(), existing);
 
       return MessageBody.buildMessage("apikey:RevokeResponse", java.util.Collections.emptyMap());
-   }
-
-   private void requireAccountOwner(Place place, PlatformMessage msg) {
-      if (msg.getActor() == null) {
-         throw new ErrorEventException(Errors.CODE_INVALID_REQUEST, "actor is required");
-      }
-
-      Account account = accountDao.findById(place.getAccount());
-      if (account == null) {
-         throw new ErrorEventException(Errors.CODE_NOT_FOUND, "account not found");
-      }
-
-      UUID actorId = (UUID) msg.getActor().getId();
-      if (!Objects.equals(actorId, account.getOwner())) {
-         throw new ErrorEventException(AuthzUtil.UNAUTHORIZED_CODE, "only the account owner can manage API keys");
-      }
    }
 
    private void emitApiKeyRevoked(Place place, Address actor, ApiKey apiKey) {
