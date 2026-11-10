@@ -31,10 +31,21 @@ public class ApiBridgeConfigTest {
    // addressed object belongs, and nothing else would fail
    @Test
    public void testApiKeysGoThroughBothAuthorizers() throws Exception {
+      assertEquals(AuthzModule.AUTHZ_ALGORITHM_LAYERED, load().getProperty(AuthzModule.AUTHZ_ALGORITHM_PROP));
+   }
+
+   // like the other bridges: a restarted bridge starts at the latest message instead of replaying
+   // the broadcasts it missed to clients that have reconnected since
+   @Test
+   public void testOffsetsAreNotSaved() throws Exception {
+      assertEquals("true", load().getProperty("kafka.offsets.transient"));
+   }
+
+   private static Properties load() throws Exception {
       Properties properties = new Properties();
       try(InputStream in = new FileInputStream("src/dist/conf/api-bridge.properties")) {
          properties.load(in);
       }
-      assertEquals(AuthzModule.AUTHZ_ALGORITHM_LAYERED, properties.getProperty(AuthzModule.AUTHZ_ALGORITHM_PROP));
+      return properties;
    }
 }
