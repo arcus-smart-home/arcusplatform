@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -143,7 +144,9 @@ public class ApiKeySessionListener implements SessionListener {
       try {
          for(ApiKey current : apiKeyDao.findByPlace(key.getPlaceId())) {
             if(key.getKeyId().equals(current.getId())) {
-               return !current.isExpired();
+               // Only a revocation changes a stored expiry, and it stamps the revoking host's clock, which
+               // can be ahead of this one, so a changed expiry ends the session even if it isn't past here.
+               return Objects.equals(current.getExpiresAt(), key.getExpiresAt()) && !current.isExpired();
             }
          }
          // deleted
