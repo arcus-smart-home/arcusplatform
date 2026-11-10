@@ -79,9 +79,13 @@ public class ListPlacesHandler implements ContextualRequestMessageHandler<Accoun
       
       List<Place> places;
       Address actor = msg.getActor();
+      // a person actor is SERV:person:<id>; the owner gets every place on the account. Anyone
+      // without a person actor (internal callers, API keys, which api-bridge narrows to the key's
+      // place in ApiPlatformBusListener) gets them all too.
       if(
-      		actor != null && 
-      		PersonCapability.NAMESPACE.equals(actor.getNamespace())
+      		actor != null &&
+      		PersonCapability.NAMESPACE.equals(actor.getGroup()) &&
+      		!Objects.equals(context.getOwner(), actor.getId())
 		) {
       	places = getAssociatedPlaces(context, (UUID) actor.getId());
       }
