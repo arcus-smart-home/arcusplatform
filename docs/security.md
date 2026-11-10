@@ -99,6 +99,7 @@ It doesn't look at where the destination belongs, so it isn't enough by itself: 
 | Subsystems | `SubsystemExecutorResolver` |
 | Alarm incidents | Looked up by place, `ListIncidentHistoryEntriesHandler` |
 | Hubs | hub-bridge `acceptFromPlatform`, `OfflineHubRequestHandler`, `HubDeleteHandler` |
+| Device sync (`dev:SyncDevices`), which answers with every pin hash at the place, and degraded device reports (`dev:DevicesDegraded`) | `DeviceServiceHandler`: only from a hub registered to the place, so a client is refused |
 | Rules | `RuleService` — a rule address names its place, which must match the message |
 | Scenes, schedulers, pairing devices | Their handlers |
 | IPCD devices | `IpcdService` |
