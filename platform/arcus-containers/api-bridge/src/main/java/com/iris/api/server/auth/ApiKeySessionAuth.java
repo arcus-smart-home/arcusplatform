@@ -46,6 +46,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
  */
 @Singleton
 public class ApiKeySessionAuth implements RequestAuthorizer {
+   // Log the method and URI, never the request: its headers include the Authorization header, and so the key.
    private static final Logger logger = LoggerFactory.getLogger(ApiKeySessionAuth.class);
    private static final String BEARER_PREFIX = "Bearer ";
 
@@ -66,7 +67,7 @@ public class ApiKeySessionAuth implements RequestAuthorizer {
       try (Timer.Context timerContext = metrics.startAuthorizationTimer()) {
          Client client = factory.get(ctx.channel());
          if (client == null) {
-            logger.error("Unable to retrieve client from channel for request {}", req);
+            logger.error("Unable to retrieve client from channel for request [{} {}]", req.method(), req.uri());
             metrics.incAuthorizationFailedCounter();
             return false;
          }
@@ -79,14 +80,14 @@ public class ApiKeySessionAuth implements RequestAuthorizer {
          // Extract Bearer token from Authorization header
          String authHeader = req.headers().get(HttpHeaderNames.AUTHORIZATION);
          if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-            logger.debug("Missing or invalid Authorization header for request: {}", req);
+            logger.debug("Missing or invalid Authorization header for request [{} {}]", req.method(), req.uri());
             metrics.incAuthorizationFailedCounter();
             return false;
          }
 
          String rawKey = authHeader.substring(BEARER_PREFIX.length()).trim();
          if (rawKey.isEmpty()) {
-            logger.debug("Empty Bearer token for request: {}", req);
+            logger.debug("Empty Bearer token for request [{} {}]", req.method(), req.uri());
             metrics.incAuthorizationFailedCounter();
             return false;
          }
@@ -111,7 +112,7 @@ public class ApiKeySessionAuth implements RequestAuthorizer {
 
    @Override
    public boolean handleFailedAuth(ChannelHandlerContext ctx, FullHttpRequest req) {
-      logger.debug("Handling failed auth for request: {}", req);
+      logger.debug("Handling failed auth for request [{} {}]", req.method(), req.uri());
       DefaultFullHttpResponse resp = new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED);
       resp.headers().add(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
       httpSender.sendHttpResponse(ctx, req, resp);
