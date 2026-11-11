@@ -92,6 +92,7 @@ It doesn't look at where the destination belongs, so it isn't enough by itself: 
 | Destination | Checked by |
 |---|---|
 | Devices | `MessageHandler`; remove, force remove, lost, upgrade and history have their own handlers, which each compare the device's place |
+| Device adds (`platform:AddDeviceRequest`, `hubadv:GetDeviceInfoResponse`) | `DeviceServiceHandler.addDevice`: a client may only add mock devices, a hub only a device that names it as its hub, and both must send a place header. `DeviceService.create`: with a place header, a device already at the protocol address, a hub the request names, and the new device all have to be at that place, and the device gets the place's account |
 | Subsystems | `SubsystemExecutorResolver` |
 | Alarm incidents | Looked up by place, `ListIncidentHistoryEntriesHandler` |
 | Hubs | hub-bridge `acceptFromPlatform`, `OfflineHubRequestHandler`, `HubDeleteHandler` |

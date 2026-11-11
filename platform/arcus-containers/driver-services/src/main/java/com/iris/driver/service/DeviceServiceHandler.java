@@ -60,12 +60,14 @@ import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Device;
 import com.iris.messages.model.Hub;
 import com.iris.messages.model.Person;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.protocol.ipcd.IpcdProtocol;
 import com.iris.util.IrisUUID;
+import com.iris.protocol.mock.MockProtocol;
 
 @Singleton
 public class DeviceServiceHandler extends AbstractPlatformService {
@@ -113,7 +115,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
         String type = body.getMessageType();
         switch (type) {
             case MessageConstants.MSG_ADD_DEVICE_REQUEST:
-                return addDevice(body);
+                return addDevice(message, body);
             case com.iris.messages.service.DeviceService.SyncDevicesRequest.NAME:
                 return syncDevices(message, body);
             // TODO: Adding this case for i2-1932 this should be changed in the hub to use dev namespace and removed at some point in the fufutre
@@ -140,7 +142,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
          handleDeletedEvent(message);
          break;
       case HubAdvancedCapability.GetDeviceInfoResponse.NAME:
-         addDevice(message.getValue());
+         addDevice(message, message.getValue());
          break;
 		case com.iris.messages.service.DeviceService.DevicesDegradedEvent.NAME:
 		   syncDegradedDevices(message, body);
@@ -151,32 +153,68 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       }
    }
 
-   public MessageBody addDevice(MessageBody request) {
-	   CreateDeviceRequest createRequest = new CreateDeviceRequest(request);
-	   try {
-	      AttributeMap protocolAttributes = AttributeMap.newMap();
-	      if(request.getAttributes().containsKey("protocolAttributes")) {
-	         String protocolAttrs = JSON.toJson(request.getAttributes().get("protocolAttributes"));
-	         protocolAttributes = JSON.fromJson(protocolAttrs, AttributeMap.class);
-	      }
-	      Device device = service.create(createRequest, protocolAttributes);
-	      ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
-	      if(device.getAccount() != null) {
-	         response.put(MessageConstants.ATTR_ACCOUNTID, device.getAccount().toString());
-	      }
-	      response.put(MessageConstants.ATTR_DEVICEID, device.getId().toString());
-	      response.put(MessageConstants.ATTR_DEVICEADDRESS, device.getAddress());
-	      return
-	            MessageBody.buildResponse(
-	                  request,
-	                  response.build()
+   /**
+    * Adds the device the message describes. Real devices come from the hub or the service that
+    * found them, so a client may only add mock devices, and a hub only its own. When the message
+    * has a place header, the device must belong to that place (see {@link DeviceService#create}).
+    */
+   public MessageBody addDevice(PlatformMessage message, MessageBody request) {
+      CreateDeviceRequest createRequest = new CreateDeviceRequest(request);
+      try {
+         assertSenderMayAdd(message.getSource(), message.getPlaceId(), createRequest);
+         AttributeMap protocolAttributes = AttributeMap.newMap();
+         if(request.getAttributes().containsKey("protocolAttributes")) {
+            String protocolAttrs = JSON.toJson(request.getAttributes().get("protocolAttributes"));
+            protocolAttributes = JSON.fromJson(protocolAttrs, AttributeMap.class);
+         }
+         Device device = service.create(createRequest, protocolAttributes, message.getPlaceId());
+         ImmutableMap.Builder<String, Object> response = ImmutableMap.builder();
+         if(device.getAccount() != null) {
+            response.put(MessageConstants.ATTR_ACCOUNTID, device.getAccount().toString());
+         }
+         response.put(MessageConstants.ATTR_DEVICEID, device.getId().toString());
+         response.put(MessageConstants.ATTR_DEVICEADDRESS, device.getAddress());
+         return
+               MessageBody.buildResponse(
+                     request,
+                     response.build()
                );
-	   }
-	   catch(Exception e) {
-	      logger.warn("Error adding device", e);
-	      return Errors.fromException(e);
-	   }
-	}
+      }
+      catch(UnauthorizedRequestException e) {
+         // already logged where it was refused; answered as not found
+         return Errors.fromException(e);
+      }
+      catch(Exception e) {
+         logger.warn("Error adding device", e);
+         return Errors.fromException(e);
+      }
+   }
+
+   /**
+    * A client may only add mock devices, and a hub only a device that names it as its hub. Without
+    * a hub id the device would get a global protocol address, such as an IP device's, which isn't
+    * the hub's to claim; every hub controller names its own hub. Clients and hubs always send a
+    * place header, which DeviceService checks the device against, so an add from either without
+    * one is refused instead of being trusted.
+    */
+   private static void assertSenderMayAdd(Address source, String placeId, CreateDeviceRequest request) {
+      if(source == null) {
+         return;
+      }
+      boolean fromClient = MessageConstants.CLIENT.equals(source.getNamespace());
+      if(fromClient && !MockProtocol.NAMESPACE.equals(request.getProtocolName())) {
+         logger.warn("Refusing to add a [{}] device for client [{}]: clients may only add mock devices", request.getProtocolName(), source);
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add from a client");
+      }
+      if(source.getHubId() != null && !source.getHubId().equals(request.getHubId())) {
+         logger.warn("Refusing to add a device for hub [{}] sent by hub [{}]", request.getHubId(), source.getHubId());
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add for another hub");
+      }
+      if((fromClient || source.getHubId() != null) && placeId == null) {
+         logger.warn("Refusing to add a device for [{}]: the message has no place", source);
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add without a place");
+      }
+   }
 
    public void handleRemovedDeviceEvent(MessageBody request) {
       String protocolName = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocol(request);

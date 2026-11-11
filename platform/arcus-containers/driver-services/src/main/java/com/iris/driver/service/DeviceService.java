@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
@@ -31,6 +32,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.dao.DeviceDAO;
 import com.iris.core.dao.HubDAO;
+import com.iris.core.dao.PlaceDAO;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.device.attributes.AttributeKey;
 import com.iris.device.attributes.AttributeMap;
@@ -53,6 +55,7 @@ import com.iris.messages.capability.DeviceConnectionCapability;
 import com.iris.messages.capability.HubReflexCapability;
 import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
+import com.iris.messages.errors.UnauthorizedRequestException;
 import com.iris.messages.model.Device;
 import com.iris.messages.model.DriverId;
 import com.iris.messages.model.Hub;
@@ -77,6 +80,7 @@ public class DeviceService {
    
    private final PlatformMessageBus platformBus;
    private final HubDAO hubDao;
+   private final PlaceDAO placeDao;
    private final DeviceDAO deviceDao;
    private final DriverRegistry drivers;
    private final DriverExecutorRegistry registry;
@@ -92,6 +96,7 @@ public class DeviceService {
    public DeviceService(
          PlatformMessageBus platformBus,
          HubDAO hubDao,
+         PlaceDAO placeDao,
          DeviceDAO deviceDao,
          DriverRegistry drivers,
          DriverExecutorRegistry registry,
@@ -100,6 +105,7 @@ public class DeviceService {
    ) {
       this.platformBus = platformBus;
       this.hubDao = hubDao;
+      this.placeDao = placeDao;
       this.deviceDao = deviceDao;
       this.drivers = drivers;
       this.registry = registry;
@@ -113,7 +119,17 @@ public class DeviceService {
       return addsInProgress.get(protocolAddress) != null;
    }
    
-   public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes) {
+   /**
+    * Creates the device, or re-adds the device already at its protocol address.
+    *
+    * @param requesterPlace the place header of the message asking for the device, or null for
+    *    services that send without one (DeviceServiceHandler refuses clients and hubs without
+    *    one). When set, the device has to belong to that place: a device already at the protocol
+    *    address must be there (or have no place), a hub the request names must be there, and a
+    *    new device is created only there, under that place's account. A request that names no
+    *    place and no hub gets the requester's place.
+    */
+   public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes, @Nullable String requesterPlace) {
       Preconditions.checkNotNull(request.getProtocolName(), "must specify a protocol name");
       Preconditions.checkNotNull(request.getProtocolId(), "must specify a protocol id");
 
@@ -125,33 +141,56 @@ public class DeviceService {
       
       ProtocolDeviceId protocolId = request.getProtocolId();
       String hubId = request.getHubId();
-      Address address = getProtocolAddress(request);
       Address protocolAddress = getProtocolAddress(request);
       if(protocolAddress == null) {
          logger.warn("Unable to determine protocol address for request [{}]", request);
          throw new ErrorEventException(Errors.invalidRequest("Invalid protocol address"));
       }
 
-      Device existingDevice = lockByProtocolAddress(address,protocolId,hubId);
-      // this try block CAN NOT start any earlier, we only release the lock if we
-      // successfully acquired it
+      Device existingDevice = lockByProtocolAddress(protocolAddress,protocolId,hubId);
+      // lockByProtocolAddress keeps the lock unless it found a live device, and only a lock this
+      // call holds may be released. This try block CAN NOT start any earlier.
+      boolean locked = existingDevice == null || existingDevice.isTombstoned();
       try {
-         if(existingDevice != null) {
-            if(existingDevice.isTombstoned()) {
-               deviceDao.delete(existingDevice);
-               registry.remove(Address.fromString(existingDevice.getAddress()));
+         if(!locked) {
+            if(existingDevice.getPlace() != null) {
+               assertRequesterPlace(requesterPlace, existingDevice.getPlace(), protocolAddress);
             }
-            else {
-               handleExistingDeviceAdd(existingDevice,protocolAttributes, reflexVersion, connected);
-               return existingDevice;
+            handleExistingDeviceAdd(existingDevice,protocolAttributes, reflexVersion, connected);
+            return existingDevice;
+         }
+         if(hubId != null && (requesterPlace != null || request.getPlaceId() == null || request.getAccountId() == null)) {
+            Hub hub = hubDao.findById(hubId);
+            if(hub == null) {
+               logger.warn("Refusing to add [{}]: unknown hub [{}]", protocolAddress, hubId);
+               throw requesterPlace == null
+                     ? new ErrorEventException(Errors.invalidRequest("Unknown hub"))
+                     : new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for an unknown hub");
+            }
+            // a device named for a hub has to be at that hub's place
+            assertRequesterPlace(requesterPlace, hub.getPlace(), protocolAddress);
+            // if we don't have a place id or an accountId from the message, get it from the hub
+            if(request.getPlaceId() == null || request.getAccountId() == null) {
+               // TODO should hub settings always override?
+               request.setAccountId(hub.getAccount());
+               request.setPlaceId(hub.getPlace());
             }
          }
-         // if we don't have a place id or an accountId from the message, try to get it from the hub object
-         if((request.getPlaceId() == null || request.getAccountId() == null) && hubId != null) {
-            Hub hub = hubDao.findById(hubId);
-            // TODO should hub settings always override?
-            request.setAccountId(hub.getAccount());
-            request.setPlaceId(hub.getPlace());
+         if(requesterPlace != null && request.getPlaceId() == null) {
+            // nothing named a place, so the device goes where the request came from
+            request.setPlaceId(UUID.fromString(requesterPlace));
+         }
+         // checked after the hub lookup, which can replace the place the request named
+         assertRequesterPlace(requesterPlace, request.getPlaceId(), protocolAddress);
+         if(requesterPlace != null) {
+            // the place's own account, rather than whatever the request or the hub's copy says
+            request.setAccountId(accountOf(requesterPlace, protocolAddress));
+         }
+
+         if(existingDevice != null) {
+            // a removed device; it's replaced by the new one
+            deviceDao.delete(existingDevice);
+            registry.remove(Address.fromString(existingDevice.getAddress()));
          }
          
          
@@ -204,8 +243,31 @@ public class DeviceService {
          return ((PlatformDeviceDriverContext) e.context()).getDevice();
       }
       finally {
-         addsInProgress.remove(protocolAddress);
+         if(locked) {
+            addsInProgress.remove(protocolAddress);
+         }
       }
+   }
+
+   private static final Address DEVICE_SERVICE = Address.platformService(PlatformConstants.SERVICE_DEVICES);
+
+   private void assertRequesterPlace(@Nullable String requesterPlace, @Nullable UUID devicePlace, Address protocolAddress) {
+      if(requesterPlace == null) {
+         return;
+      }
+      if(devicePlace == null || !requesterPlace.equals(devicePlace.toString())) {
+         logger.warn("Refusing to add [{}] for place [{}]: the device belongs to place [{}]", protocolAddress, requesterPlace, devicePlace);
+         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for another place");
+      }
+   }
+
+   private UUID accountOf(String requesterPlace, Address protocolAddress) {
+      UUID account = placeDao.getAccountById(UUID.fromString(requesterPlace));
+      if(account == null) {
+         logger.warn("Refusing to add [{}]: place [{}] has no account", protocolAddress, requesterPlace);
+         throw new UnauthorizedRequestException(DEVICE_SERVICE, "Device add for a place without an account");
+      }
+      return account;
    }
 
    private int getReflexVersionSupportedByHub(DriverExecutor executor) {
@@ -341,12 +403,13 @@ public class DeviceService {
       boolean success = false;
       try {
          Device existing = deviceDao.findByProtocolAddress(address.getRepresentation());
-         if(existing != null) {
+         if(existing != null && !existing.isTombstoned()) {
                return existing;
          }
-         
+
+         // no device, or a removed one about to be replaced: keep the lock
          success = true;
-         return null;
+         return existing;
       }
       finally {
          if(!success) {
