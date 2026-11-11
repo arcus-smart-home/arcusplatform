@@ -107,6 +107,8 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    private final List<SetAttributesHandlerDefinition> setAttrsDefinitions = new ArrayList<>();
    private final List<RequestHandlerDefinition> requestDefinitions = new ArrayList<>();
    private DriverConfigurationStateMachine configurationStateMachine;
+   // Handlers that receive every protocol message the driver handles, before its own handlers
+   private final List<ContextualEventHandler<? super ProtocolMessage>> protocolListeners = new ArrayList<>();
    private DeviceSettingsContext deviceSettingsContext;
    private long offlineTimeout = Long.MAX_VALUE;
    private List<String> defaultPopulations = ImmutableList.<String>of(Population.NAME_GENERAL);
@@ -371,6 +373,20 @@ public class GroovyDriverBuilder extends GroovyBuilder {
       return this;
    }
 
+   /**
+    * Adds a handler that receives every protocol message the driver handles. Listeners run before
+    * the driver's own handlers, and what they return doesn't stop those handlers from running.
+    * Handlers added with {@link #addProtocolHandler} are tried in order until one returns true, so
+    * one only sees a message if every handler before it returned false. A plugin can't choose its
+    * place in that order, and a driver's {@code onZWaveMessage} handlers, which come first when the
+    * protocol plugin runs first, return true for what they match. A message a reflex handles
+    * reaches neither.
+    */
+   public GroovyDriverBuilder addProtocolListener(ContextualEventHandler<? super ProtocolMessage> listener) {
+      protocolListeners.add(listener);
+      return this;
+   }
+
    public GroovyDriverBuilder addConfigurationStateMachine(DriverConfigurationStateMachine configurationStateMachine) {
       if (this.configurationStateMachine != null) {
          // TODO: lift this constraint by combining multiple state machines into a single one.
@@ -589,7 +605,8 @@ public class GroovyDriverBuilder extends GroovyBuilder {
 
    @Override
    protected ContextualEventHandler<ProtocolMessage> createProtocolMessageHandler() {
-      List<ContextualEventHandler<ProtocolMessage>> handlers = new ArrayList<>();
+      // listeners first, so the driver's own handlers see what they record
+      List<ContextualEventHandler<? super ProtocolMessage>> handlers = new ArrayList<>(protocolListeners);
       if (configurationStateMachine != null) {
          IrisCollections.addIfNotNull(handlers, configurationStateMachine.createProtocolMessageHandler());
       }

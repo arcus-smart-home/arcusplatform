@@ -54,9 +54,18 @@ import com.iris.driver.groovy.reflex.ReflexPlugin;
 import com.iris.driver.groovy.scheduler.SchedulerPlugin;
 import com.iris.driver.groovy.zwave.ZWaveProtocolPlugin;
 import com.iris.io.json.JSON;
+import com.iris.messages.address.Address;
 import com.iris.messages.capability.DeviceSettingsCapability;
+import com.iris.messages.capability.IndicatorCapability;
 import com.iris.messages.model.Device;
+import com.iris.protocol.ProtocolMessage;
 import com.iris.protocol.constants.ZwaveConstants;
+import com.iris.protocol.zwave.ZWaveProtocol;
+import com.iris.protocol.zwave.message.ZWaveCommandMessage;
+import com.iris.protocol.zwave.model.ZWaveAllCommandClasses;
+import com.iris.protocol.zwave.model.ZWaveCommand;
+import com.iris.protocol.zwave.model.ZWaveCommandClass;
+import com.iris.protocol.zwave.model.ZWaveNode;
 import com.iris.util.TypeMarker;
 
 /**
@@ -218,6 +227,36 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
       driver.onRestored(context);
 
       assertFalse(context.getDirtyAttributes().containsKey(DeviceSettingsCapability.KEY_PARAMS));
+   }
+
+   // The ZEN77, like most drivers with settings, handles configuration reports itself, and its
+   // handler comes first here, as in driver-services, since the Z-Wave plugin runs first
+   @Test
+   public void reportReachesTheSettingsAndTheDriver() throws Exception {
+      DeviceDriver driver = factory.load("ZW_Zooz_Zen77_DimmerSwitch.driver");
+      PlatformDeviceDriverContext context = new PlatformDeviceDriverContext(createDevice(driver), driver, mockPopulationCacheMgr);
+      context.setConnected();
+
+      // LED on when the switch is on
+      driver.handleProtocolMessage(configurationReport(2, 1), context);
+
+      assertEquals(1L, context.getVariable("devsettings:ledMode"));
+      assertEquals(Boolean.TRUE, context.getAttributeValue(IndicatorCapability.KEY_INVERTED));
+   }
+
+   /** A one-byte configuration report from the device */
+   private static ProtocolMessage configurationReport(int paramNo, int value) {
+      ZWaveCommandClass configuration = ZWaveAllCommandClasses.getClass("configuration");
+      ZWaveCommand command = new ZWaveCommand(configuration.number, configuration.commandsByName.get("report").commandNumber,
+            new byte[] { (byte) paramNo, 1, (byte) value });
+      ZWaveCommandMessage message = new ZWaveCommandMessage();
+      message.setDevice(new ZWaveNode((byte) 0x02));
+      message.setCommand(command);
+      return ProtocolMessage.builder()
+            .from(Address.protocolAddress("ZWAV", new byte[] { 0x02 }))
+            .to(Address.broadcastAddress())
+            .withPayload(ZWaveProtocol.INSTANCE, message)
+            .create();
    }
 
    private List<String> paramIds(String driverFile, int productType, int productId) throws Exception {

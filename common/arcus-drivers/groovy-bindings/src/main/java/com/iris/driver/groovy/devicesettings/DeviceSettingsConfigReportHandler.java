@@ -33,8 +33,8 @@ import com.iris.protocol.zwave.model.ZWaveCommandClass;
  * Extracts the parameter number and value, looks up the parameter in
  * DeviceSettingsContext, and updates the driver variable.
  *
- * Returns false to allow existing driver-specific onZWaveMessage.configuration.report
- * handlers to also process the message.
+ * Registered as a protocol listener: it receives every message the driver handles, before
+ * the driver's own handlers, and what it returns doesn't stop them from running.
  */
 public class DeviceSettingsConfigReportHandler implements ContextualEventHandler<Object> {
    private static final Logger log = LoggerFactory.getLogger(DeviceSettingsConfigReportHandler.class);
@@ -55,6 +55,10 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
       }
 
       com.iris.protocol.ProtocolMessage protocolMessage = (com.iris.protocol.ProtocolMessage) event;
+      // Only handle Z-Wave: a protocol listener gets messages of every protocol
+      if (!ZWaveProtocol.NAMESPACE.equals(protocolMessage.getMessageType())) {
+         return false;
+      }
       com.iris.protocol.zwave.message.ZWaveMessage zwaveMessage;
       try {
          zwaveMessage = protocolMessage.getValue(ZWaveProtocol.INSTANCE);
@@ -115,7 +119,6 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
             DeviceSettingsUtil.forDevice(context, settingsContext).getByZwaveParamNo(paramNo);
       if (param == null) {
          log.trace("Config report for unknown param {}, ignoring", paramNo);
-         // Return false so other handlers can process it
          return false;
       }
 
@@ -125,8 +128,6 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
 
       // Emit value change for devsettings:params
       DeviceSettingsUtil.emitParamsValueChange(context, settingsContext);
-
-      // Return false to allow driver-specific handlers to also process
       return false;
    }
 
