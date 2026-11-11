@@ -22,13 +22,16 @@ import com.iris.messages.capability.SceneCapability;
 import com.iris.platform.rule.BaseDefinition;
 
 public class SceneDefinition extends BaseDefinition<SceneDefinition> {
+   /** Whether a scene skips devices already in the state it sets, unless the scene says otherwise. */
+   public static final boolean DEFAULT_FILTER_UNCHANGED = true;
+
    private String template;
    private boolean satisfiable;
    private boolean notification;
    private Date lastFireTime;
    private String lastFireState;
    private boolean enabled;
-   private boolean filterUnchanged = true;
+   private boolean filterUnchanged = DEFAULT_FILTER_UNCHANGED;
 
    // the contents are not strictly enforced by the DAO, up to the service
    // to guarantee consistent usage

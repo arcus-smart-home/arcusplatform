@@ -18,6 +18,8 @@
  */
 package com.iris.platform.rule.cassandra;
 
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.iris.core.dao.cassandra.CassandraQueryBuilder;
 
 /**
@@ -138,7 +140,24 @@ public class RuleEnvironmentTable {
       }
    }
 
-   public static CassandraQueryBuilder addAllColumns(CassandraQueryBuilder queryBuilder) {
+   /**
+    * True when the table has the column. A column added by a model manager change set is missing
+    * until that change set runs, and a statement that names it fails to prepare, so the DAOs leave
+    * such a column out until it's there rather than fail to start.
+    */
+   static boolean hasColumn(CqlSession session, String column) {
+      try {
+         session.prepare("SELECT " + column + " FROM " + NAME + " LIMIT 1");
+         return true;
+      }
+      catch(InvalidQueryException e) {
+         return false;
+      }
+   }
+
+   public static CassandraQueryBuilder addAllColumns(CqlSession session, CassandraQueryBuilder queryBuilder) {
+      // added by changelog-scene-filter
+      boolean filterUnchanged = hasColumn(session, SceneColumn.FILTER_UNCHANGED.columnName());
       for(RuleEnvironmentTable.Column c : RuleEnvironmentTable.Column.values()) {
          queryBuilder.addColumn(c.columnName());
       }
@@ -151,6 +170,9 @@ public class RuleEnvironmentTable {
       for(RuleEnvironmentTable.SceneColumn c : RuleEnvironmentTable.SceneColumn.values()) {
          // already added by ActionColumn
          if(c == SceneColumn.ACTION) {
+            continue;
+         }
+         if(c == SceneColumn.FILTER_UNCHANGED && !filterUnchanged) {
             continue;
          }
          queryBuilder.addColumn(c.columnName());

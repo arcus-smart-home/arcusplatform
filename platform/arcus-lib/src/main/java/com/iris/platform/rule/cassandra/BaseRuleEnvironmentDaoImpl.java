@@ -48,13 +48,13 @@ public abstract class BaseRuleEnvironmentDaoImpl<T extends PlaceEntity<T>> {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder.select(RuleEnvironmentTable.NAME)
       				.addWhereColumnEquals(RuleEnvironmentTable.Column.PLACE_ID.columnName())
       				.where(RuleEnvironmentTable.Column.TYPE.columnName() + " = '" + type + "'");
-      return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
+      return RuleEnvironmentTable.addAllColumns(session, queryBuilder).prepare(session);
    }
 
    protected static PreparedStatement findByIdStatement(CqlSession session, String type) {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder.select(RuleEnvironmentTable.NAME)
       				.where(whereIdEq(type));
-      return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
+      return RuleEnvironmentTable.addAllColumns(session, queryBuilder).prepare(session);
    }
 
 

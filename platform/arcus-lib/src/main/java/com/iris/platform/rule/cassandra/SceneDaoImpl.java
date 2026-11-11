@@ -16,6 +16,7 @@
 package com.iris.platform.rule.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -26,6 +27,9 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
@@ -43,6 +47,7 @@ import com.iris.platform.scene.SceneDefinition;
 @Singleton
 public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> implements SceneDao {
    static final String TYPE = "scene";
+   private static final Logger logger = LoggerFactory.getLogger(SceneDaoImpl.class);
 
    private static final String [] UPSERT_COLUMNS = new String [] {
       Column.CREATED.columnName(),
@@ -62,16 +67,24 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
 
    private final PreparedStatement upsert;
    private final BeanAttributesTransformer<SceneDefinition> transformer;
+   // false until the model manager adds the column (changelog-scene-filter)
+   private final boolean filterUnchangedColumn;
 
    @Inject
    public SceneDaoImpl(CqlSession session, BeanAttributesTransformer<SceneDefinition> transformer) {
       super(session, TYPE);
 
       this.transformer = transformer;
+      this.filterUnchangedColumn = RuleEnvironmentTable.hasColumn(session, SceneColumn.FILTER_UNCHANGED.columnName());
+      String [] upsertColumns = UPSERT_COLUMNS;
+      if(!filterUnchangedColumn) {
+         logger.warn("{} has no {} column yet, so the model manager's scene-filter change set hasn't run. Scenes use the default and a changed setting isn't saved until it does.", RuleEnvironmentTable.NAME, SceneColumn.FILTER_UNCHANGED.columnName());
+         upsertColumns = Arrays.stream(UPSERT_COLUMNS).filter((c) -> !c.equals(SceneColumn.FILTER_UNCHANGED.columnName())).toArray(String[]::new);
+      }
       this.upsert =
                CassandraQueryBuilder
                   .update(RuleEnvironmentTable.NAME)
-                  .addColumns(UPSERT_COLUMNS)
+                  .addColumns(upsertColumns)
                   .where(whereIdEq(TYPE))
                   .prepare(session);
    }
@@ -91,7 +104,9 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       sd.setNotification(row.getBoolean(SceneColumn.NOTIFICATION.columnName()));
       sd.setTemplate(row.getString(SceneColumn.TEMPLATE.columnName()));
       sd.setEnabled(row.getBoolean(SceneColumn.ENABLED.columnName()));
-      sd.setFilterUnchanged(row.isNull(SceneColumn.FILTER_UNCHANGED.columnName()) ? true : row.getBoolean(SceneColumn.FILTER_UNCHANGED.columnName()));
+      String filterUnchanged = SceneColumn.FILTER_UNCHANGED.columnName();
+      boolean stored = row.getColumnDefinitions().contains(filterUnchanged) && !row.isNull(filterUnchanged);
+      sd.setFilterUnchanged(stored ? row.getBoolean(filterUnchanged) : SceneDefinition.DEFAULT_FILTER_UNCHANGED);
       ByteBuffer action = row.isNull(SceneColumn.ACTION.columnName()) ? null : row.getByteBuffer(SceneColumn.ACTION.columnName());
       if(action != null) {
          byte [] array = new byte[action.remaining()];
@@ -116,7 +131,9 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       bs = bs.setInstant(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime() == null ? null : sd.getLastFireTime().toInstant());
       bs = bs.setString(SceneColumn.LAST_FIRE_STATE.columnName(), sd.getLastFireState());
       bs = bs.setBoolean(SceneColumn.ENABLED.columnName(),sd.isEnabled());
-      bs = bs.setBoolean(SceneColumn.FILTER_UNCHANGED.columnName(), sd.isFilterUnchanged());
+      if(filterUnchangedColumn) {
+         bs = bs.setBoolean(SceneColumn.FILTER_UNCHANGED.columnName(), sd.isFilterUnchanged());
+      }
 
       if(sd.getAction() != null) {
          bs = bs.setByteBuffer(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(sd.getAction()));
