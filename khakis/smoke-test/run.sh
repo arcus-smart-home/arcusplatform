@@ -6,9 +6,14 @@
 #
 # Usage: khakis/smoke-test/run.sh [--build] [--keep] [service ...]
 #
-#   --build   build the images first (khakis, modelmanager, the services)
+#   --build   build the images first: modelmanager and the services, and the
+#             infrastructure too if khakis has changed since the last release
+#             (otherwise that release's are pulled)
 #   --keep    leave the containers running afterwards, for poking at
 #   service   only start these services (default: all of them)
+#
+# All of them together settle at about 5 GB, so Docker needs about 6 GB;
+# with less, Cassandra is the first thing the kernel kills.
 #
 # Environment:
 #   SMOKE_TIMEOUT  seconds to wait for every service to be healthy (default 420)
@@ -48,10 +53,43 @@ export ARCUS_VERSION="$(prop major).$(prop minor).$(prop patch)"
 
 compose() { docker compose -f "${HERE}/docker-compose.yml" "$@"; }
 
-if ${BUILD}; then
-   # Two runs: every service image builds FROM arcus/java, which the first
-   # one makes.
+# Takes the infrastructure images (arcus/java, zookeeper, kafka, cassandra)
+# from the release whose version is $1. Fails if any is not there to pull, or
+# not for this machine's architecture.
+pull_infrastructure() {
+   local registry=${SMOKE_REGISTRY:-ghcr.io/wl-net/arcusplatform}
+   local arch image
+   arch=$(docker version -f '{{.Server.Arch}}')
+   for image in java zookeeper kafka cassandra; do
+      docker pull -q --platform "linux/${arch}" "${registry}/arcus-${image}:$1" >/dev/null 2>&1 || return 1
+      [ "$(docker image inspect -f '{{.Architecture}}' "${registry}/arcus-${image}:$1")" = "${arch}" ] || return 1
+      docker tag "${registry}/arcus-${image}:$1" "arcus/${image}:latest"
+   done
+}
+
+# Building the infrastructure images downloads ZooKeeper, Kafka and Cassandra
+# from archive.apache.org, which is slow and now and then gives up. So unless
+# khakis has changed since the last release, use that release's images: the
+# ones a deployment runs anyway.
+infrastructure() {
+   local tag version
+   tag=$(git -C "${ROOT}" describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+   if [ -n "${tag}" ] && git -C "${ROOT}" diff --quiet "${tag}" -- khakis ':(exclude)khakis/smoke-test'; then
+      # Images carry the version without its qualifier: v2026.11.1-b2 is 2026.11.1.
+      version=${tag#v}
+      version=${version%%-*}
+      if pull_infrastructure "${version}"; then
+         echo "Using the infrastructure images from release ${version}"
+         return
+      fi
+      echo "Could not pull the infrastructure images from release ${version}, building them"
+   fi
    (cd "${ROOT}" && ./gradlew --no-daemon :khakis:distDocker)
+}
+
+if ${BUILD}; then
+   # Every service image builds FROM arcus/java, so that comes first.
+   infrastructure
    TASKS=":platform:arcus-modelmanager:distDocker"
    for s in ${SERVICES}; do
       TASKS="${TASKS} :platform:arcus-containers:${s}:distDocker"
@@ -186,6 +224,19 @@ if [ -n "${healthy}" ]; then
       fi
    done
 fi
+
+# Every service follows ZooKeeper, Kafka or Cassandra down, so name the one
+# that went first rather than leave it to be read from a dozen logs.
+for s in zookeeper kafka cassandra; do
+   id=$(compose ps -a -q "${s}")
+   if [ "$(docker inspect -f '{{.State.Status}}' "${id}")" != "running" ]; then
+      echo "    FAIL  ${s} $(docker inspect -f 'exited with status {{.State.ExitCode}}{{if .State.OOMKilled}}, killed for want of memory{{end}}' "${id}")"
+      failed="${s} ${failed}"
+      if [ "$(docker inspect -f '{{.State.OOMKilled}}' "${id}")" = "true" ]; then
+         echo "          The whole stack needs about 6 GB for Docker; on less, name a few services to start."
+      fi
+   fi
+done
 
 failed=$(echo ${failed})
 if [ -n "${failed}" ]; then
