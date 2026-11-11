@@ -33,8 +33,8 @@ import com.iris.protocol.zwave.model.ZWaveCommandClass;
  * Extracts the parameter number and value, looks up the parameter in
  * DeviceSettingsContext, and updates the driver variable.
  *
- * Registered as a protocol listener: it gets every message the driver handles, ahead of
- * the driver's own handlers, which run whatever it returns.
+ * Registered as a protocol listener: it receives every message the driver handles, before
+ * the driver's own handlers, and what it returns doesn't stop them from running.
  */
 public class DeviceSettingsConfigReportHandler implements ContextualEventHandler<Object> {
    private static final Logger log = LoggerFactory.getLogger(DeviceSettingsConfigReportHandler.class);

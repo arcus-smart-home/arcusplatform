@@ -107,7 +107,7 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    private final List<SetAttributesHandlerDefinition> setAttrsDefinitions = new ArrayList<>();
    private final List<RequestHandlerDefinition> requestDefinitions = new ArrayList<>();
    private DriverConfigurationStateMachine configurationStateMachine;
-   // Handlers that get each protocol message the driver handles, ahead of its own handlers
+   // Handlers that receive every protocol message the driver handles, before its own handlers
    private final List<ContextualEventHandler<? super ProtocolMessage>> protocolListeners = new ArrayList<>();
    private DeviceSettingsContext deviceSettingsContext;
    private long offlineTimeout = Long.MAX_VALUE;
@@ -374,11 +374,13 @@ public class GroovyDriverBuilder extends GroovyBuilder {
    }
 
    /**
-    * Adds a handler that gets each protocol message the driver handles, ahead of the driver's
-    * own handlers, which run whatever it returns. One added with {@link #addProtocolHandler}
-    * only gets a message no handler before it has claimed, and a plugin can't choose where it
-    * goes: a driver's {@code onZWaveMessage} handlers claim what they match, and they come first
-    * when the protocol plugin runs first. A message a reflex handles reaches neither.
+    * Adds a handler that receives every protocol message the driver handles. Listeners run before
+    * the driver's own handlers, and what they return doesn't stop those handlers from running.
+    * Handlers added with {@link #addProtocolHandler} are tried in order until one returns true, so
+    * one only sees a message if every handler before it returned false. A plugin can't choose its
+    * place in that order, and a driver's {@code onZWaveMessage} handlers, which come first when the
+    * protocol plugin runs first, return true for what they match. A message a reflex handles
+    * reaches neither.
     */
    public GroovyDriverBuilder addProtocolListener(ContextualEventHandler<? super ProtocolMessage> listener) {
       protocolListeners.add(listener);

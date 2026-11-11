@@ -90,10 +90,10 @@ public class DeviceSettingsPlugin implements GroovyDriverPlugin {
       getParamMatcher.setHandler(new DeviceSettingsGetParamHandler(ctx));
       builder.addEventMatcher(getParamMatcher);
 
-      // Record every Z-Wave configuration report as a listener, ahead of the driver's own handlers.
-      // Most drivers handle the reports themselves too, and a protocol handler only gets a message
-      // the handlers before it didn't claim; in driver-services the Z-Wave plugin's handler, with
-      // the driver's own, comes first.
+      // Record every Z-Wave configuration report through a listener, which runs before the
+      // driver's own handlers. A protocol handler only sees a message if every handler before it
+      // returned false, and in driver-services the Z-Wave plugin's handler, which runs the
+      // driver's own report handlers, comes first. Most drivers with settings have one.
       builder.addProtocolListener(new DeviceSettingsConfigReportHandler(ctx));
 
       // Register DeviceConnected handler to read all params on connect
