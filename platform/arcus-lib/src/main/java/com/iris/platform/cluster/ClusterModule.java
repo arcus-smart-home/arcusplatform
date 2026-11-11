@@ -44,8 +44,9 @@ import org.slf4j.LoggerFactory;
 public class ClusterModule extends AbstractIrisModule {
    private static final Logger logger = LoggerFactory.getLogger(ClusterModule.class);
 
+   // Not null: a switch on a null String throws before reaching its default.
    @Inject(optional = true) @Named("cluster.service.dao")
-   private String clusterServiceDao = null;
+   private String clusterServiceDao = "default";
 
    @Override
    protected void configure() {
