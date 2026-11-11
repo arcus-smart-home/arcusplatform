@@ -225,7 +225,7 @@ The gateway connects over the primary network interface (Ethernet, or Wi-Fi wher
 | Backoff factor | 2.0x |
 | Max backoff | 90s |
 
-Connection attempts poke the hardware watchdog while the hub is offline (`GatewayPokeHandler`), so the 90 second backoff and connect timeout must stay under the V3's 120 second watchdog. The Iris cellular backup (a secondary LTE connection driven by the closed `iris2-4g-controller` jar) has been removed.
+Connection attempts poke the hardware watchdog while the hub is offline: `GatewayPokeHandler` pokes when an attempt starts and when it ends, so the longest gap is the larger of the 90 second maximum backoff and the 90 second connect timeout, and each must stay under the V3's 120 second watchdog. The Iris cellular backup (a secondary LTE connection driven by the closed `iris2-4g-controller` jar) has been removed.
 
 ### Connection Lifecycle
 

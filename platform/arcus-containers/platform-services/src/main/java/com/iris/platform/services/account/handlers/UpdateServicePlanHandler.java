@@ -183,7 +183,7 @@ public class UpdateServicePlanHandler implements ContextualRequestMessageHandler
    }
    
    private enum ServiceLevelChange {
-      DOWNGRADED_PRO_BASIC, DOWNGRADED_PREMIUM_BASIC, UPGRADED_PREMIUM, DOWNGRADED_PRO_PREMIUM, UPGRADED_PRO, DEFAULT;
+      DOWNGRADED_PRO_BASIC, DOWNGRADED_PREMIUM_BASIC, UPGRADED_PREMIUM, DOWNGRADED_PRO_PREMIUM, DEFAULT;
       
       public static ServiceLevelChange getServiceLevelChange(ServiceLevel oldServiceLevel, ServiceLevel newServiceLevel) {
          if (ServiceLevel.isPromon(oldServiceLevel) && ServiceLevel.BASIC.equals(newServiceLevel)){
@@ -201,11 +201,8 @@ public class UpdateServicePlanHandler implements ContextualRequestMessageHandler
          if (ServiceLevel.isPromon(oldServiceLevel) && ServiceLevel.isPremiumNotPromon(newServiceLevel)){
             return DOWNGRADED_PRO_PREMIUM;
          }
-         
-         if (ServiceLevel.BASIC.equals(oldServiceLevel) && ServiceLevel.isPromon(newServiceLevel)){
-            return UPGRADED_PRO;
-         }          
-         
+
+         // an upgrade to pro gets the generic service update; it never had a notification of its own
          return DEFAULT;
       }
    }
