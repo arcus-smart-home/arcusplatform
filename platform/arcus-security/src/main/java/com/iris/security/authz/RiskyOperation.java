@@ -62,6 +62,8 @@ public enum RiskyOperation {
          HubZigbeeCapability.ResetRequest.NAME,
          HubZwaveCapability.ResetRequest.NAME,
          HubBackupCapability.RestoreRequest.NAME),
+   // the backup holds the radio network keys and weakly hashed copies of people's PINs
+   HUB_BACKUP("hub.backup", HubBackupCapability.BackupRequest.NAME),
    PERSON_DELETE("person.delete", PersonCapability.DeleteRequest.NAME, PersonCapability.RemoveFromPlaceRequest.NAME),
    LOGIN_DELETE("login.delete", PersonCapability.DeleteLoginRequest.NAME);
 
