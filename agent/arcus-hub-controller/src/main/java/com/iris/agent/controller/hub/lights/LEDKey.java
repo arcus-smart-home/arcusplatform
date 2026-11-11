@@ -20,15 +20,13 @@ import com.iris.agent.hal.Model;
 public class LEDKey {
     
     // These pulled from the original updateLEDState in HubController.
-    private final boolean isBackupConnection;
     private final boolean isBattery;
     private final boolean isAuthorized;
     private final boolean pairing;
     private final boolean connected;
     private final boolean isV2;
     
-    private LEDKey(boolean isBackupConnection, boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected, boolean isV2) {
-        this.isBackupConnection = isBackupConnection;
+    private LEDKey(boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected, boolean isV2) {
         this.isBattery          = isBattery;
         this.isAuthorized       = isAuthorized;
         this.pairing            = pairing;
@@ -42,7 +40,6 @@ public class LEDKey {
 		int result = 1;
 		result = prime * result + (connected ? 1231 : 1237);
 		result = prime * result + (isAuthorized ? 1231 : 1237);
-		result = prime * result + (isBackupConnection ? 1231 : 1237);
 		result = prime * result + (isBattery ? 1231 : 1237);
 		result = prime * result + (isV2 ? 1231 : 1237);
 		result = prime * result + (pairing ? 1231 : 1237);
@@ -62,8 +59,6 @@ public class LEDKey {
 			return false;
 		if (isAuthorized != other.isAuthorized)
 			return false;
-		if (isBackupConnection != other.isBackupConnection)
-			return false;
 		if (isBattery != other.isBattery)
 			return false;
 		if (isV2 != other.isV2)
@@ -80,7 +75,6 @@ public class LEDKey {
     }
     
     public static class Builder {
-        private boolean isBackupConnection = false;
         private boolean isBattery = false;
         private boolean isAuthorized = false;
         private boolean pairing = false;
@@ -89,20 +83,6 @@ public class LEDKey {
         
         public Builder() {
             
-        }
-        
-        public Builder isBackup(boolean backup) {
-            this.isBackupConnection = backup;
-            return this;
-        }
-        public Builder isOnBackup() {
-            this.isBackupConnection = true;
-            return this;
-        }
-
-        public Builder isNotOnBackup() {
-            this.isBackupConnection = false;
-            return this;
         }
         
         public Builder isBattery(boolean battery) {
@@ -173,11 +153,10 @@ public class LEDKey {
         }
         
         public LEDKey build() {
-            return new LEDKey(isBackupConnection,isBattery,isAuthorized,pairing,connected,isV2);
+            return new LEDKey(isBattery,isAuthorized,pairing,connected,isV2);
         }
 
-        public Builder V2(boolean isBackupConnection, boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected) {
-            this.isBackupConnection = isBackupConnection;
+        public Builder V2(boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected) {
             this.isBattery = isBattery;
             this.isAuthorized = isAuthorized;
             this.pairing = pairing;
@@ -186,8 +165,7 @@ public class LEDKey {
             return this;
         }
 
-		public Builder V3(boolean isBackupConnection, boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected) {
-            this.isBackupConnection = isBackupConnection;
+        public Builder V3(boolean isBattery, boolean isAuthorized, boolean pairing, boolean connected) {
             this.isBattery = isBattery;
             this.isAuthorized = isAuthorized;
             this.pairing = pairing;

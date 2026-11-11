@@ -58,8 +58,6 @@ import com.iris.agent.backup.BackupService;
 import com.iris.agent.controller.hub.lights.LEDConfig;
 import com.iris.agent.device.HubDeviceService;
 import com.iris.agent.exec.ExecService;
-import com.iris.agent.fourg.FourgListener;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.hal.LEDState;
 import com.iris.agent.hal.Model;
@@ -104,7 +102,7 @@ import com.iris.protocol.ProtocolMessage;
 import com.iris.util.IrisUUID;
 import com.iris.bootstrap.annotations.WarmUp;
 
-public class HubController implements PortHandler, LifeCycleListener, BackupFinishedListener, FourgListener {
+public class HubController implements PortHandler, LifeCycleListener, BackupFinishedListener {
    private static final Logger log = LoggerFactory.getLogger(HubController.class);
    private static final long HUB_LED_UPDATE_CHECK = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MINUTES);
 
@@ -333,7 +331,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       }
 
       BackupService.addListener(this);
-      FourgService.addListener(this);
 
       hasPlace = (place.get() != null);
       if (!hasPlace) {
@@ -434,12 +431,6 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       // ignore
    }
 
-   @Override
-   public void fourgStateChanged(FourgService.State oldState, FourgService.State newState) {
-      if (oldState != newState) {
-    	  updateLEDState(newState);
-      }
-   }
       
    synchronized void updateLEDState() {
 	   // If alarm is triggered it will dominate.
@@ -454,47 +445,41 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
    }
 
    synchronized void updateLEDState(LifeCycle state) {
-	   	updateLEDState(IrisHal.isBatteryPowered(), state, FourgService.getState());
+      updateLEDState(IrisHal.isBatteryPowered(), state);
    }
    
-   synchronized void updateLEDState(FourgService.State newState) {
-       updateLEDState(IrisHal.isBatteryPowered(), LifeCycleService.getState(), newState);      	   
-   }
-   
-   synchronized void updateLEDState(boolean isBatteryPowered, LifeCycle current, FourgService.State backup) {
+   synchronized void updateLEDState(boolean isBatteryPowered, LifeCycle current) {
 	   LEDState newState = IrisHal.getLedState();
 	   log.trace("Updating LED State: {}", newState);
 	   if (Model.isV2(IrisHal.getModel())) {
-           newState = getLEDStateV2(isBatteryPowered,current,backup);
+           newState = getLEDStateV2(isBatteryPowered,current);
        } else {
-           newState = getLEDStateV3(isBatteryPowered,current,backup);
+           newState = getLEDStateV3(isBatteryPowered,current);
        }
        IrisHal.setLedState(newState);
    }
    
-   synchronized LEDState getLEDStateV2(boolean isBatteryPowered, LifeCycle current, FourgService.State backup) {
+   synchronized LEDState getLEDStateV2(boolean isBatteryPowered, LifeCycle current) {
       boolean connected = LifeCycleService.isConnectedState(current);
       boolean isAuthorized = LifeCycleService.isAuthorizedState(current);
-      boolean isBackupConnection = FourgService.isAuthorizedState(backup);
       boolean pairing = HubCapability.STATE_PAIRING.equals(state.get());
 
-      return getLEDStateV2(IrisHal.getLedState(),isBatteryPowered,connected,isAuthorized, isBackupConnection,pairing);      
+      return getLEDStateV2(IrisHal.getLedState(),isBatteryPowered,connected,isAuthorized,pairing);      
    }
    
-   public synchronized static LEDState getLEDStateV2 (LEDState curState, boolean isBatteryPowered, boolean connected, boolean isAuthorized, boolean isBackupConnection, boolean pairing) {
-       return LEDConfig.get(Model.IH200.toString(),isBackupConnection, isBatteryPowered, isAuthorized, pairing, connected);
+   public synchronized static LEDState getLEDStateV2 (LEDState curState, boolean isBatteryPowered, boolean connected, boolean isAuthorized, boolean pairing) {
+       return LEDConfig.get(Model.IH200.toString(), isBatteryPowered, isAuthorized, pairing, connected);
    }
    
-   synchronized LEDState getLEDStateV3(boolean isBatteryPowered, LifeCycle current, FourgService.State backup) {
+   synchronized LEDState getLEDStateV3(boolean isBatteryPowered, LifeCycle current) {
        boolean connected = LifeCycleService.isConnectedState(current);
        boolean isAuthorized = LifeCycleService.isAuthorizedState(current);
-       boolean isBackupConnection = FourgService.isAuthorizedState(backup);
        boolean pairing = HubCapability.STATE_PAIRING.equals(state.get());
 
        // WIFI - Handled by hub os for commisioning?
        // All sorts of other fun stuff.       
        // Need to add alert states here.
-       return LEDConfig.get(IrisHal.getModel(),isBackupConnection, isBatteryPowered, isAuthorized, pairing, connected);
+       return LEDConfig.get(IrisHal.getModel(), isBatteryPowered, isAuthorized, pairing, connected);
    }
 
    @Override
@@ -863,7 +848,7 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
          }
       }, duration, TimeUnit.MILLISECONDS);
 
-      updateLEDState(IrisHal.isBatteryPowered(), LifeCycleService.getState(), FourgService.getState());
+      updateLEDState(IrisHal.isBatteryPowered(), LifeCycleService.getState());
        port.forward(ZWaveController.ADDRESS, message);
        port.forward(ZigbeeController.ADDRESS, message);
       // port.forward(HueController.ADDRESS, message);
@@ -937,14 +922,12 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
 	   boolean isBattery = IrisHal.isBatteryPowered();
 	   boolean connected = LifeCycleService.isConnected();
 	   boolean isAuthorized = LifeCycleService.isAuthorized();
-	   boolean isBackupConnection = FourgService.isAuthorized();
 
-	   
-	   log.debug("Button Pressed isBatt = {}, connected = {}, isAuth = {}, isBackup = {}", isBattery, connected, isAuthorized, isBackupConnection);
+      log.debug("Button Pressed isBatt = {}, connected = {}, isAuth = {}", isBattery, connected, isAuthorized);
 
 	   // LED has the full state expansion for the button pressed, sounder copies because the enums have the same values.
 	   // TODO:  Full scenario state machine that return both a light and sound and incorperates all states including alarms.
-	   LEDState ledState = LEDConfig.INSTANCE.getButtonPressed(isBackupConnection, isBattery, isAuthorized, connected );
+      LEDState ledState = LEDConfig.INSTANCE.getButtonPressed(isBattery, isAuthorized, connected );
 	   SounderMode soundMode  = SounderMode.valueOf(ledState.toString());
 
 	   // Special Case

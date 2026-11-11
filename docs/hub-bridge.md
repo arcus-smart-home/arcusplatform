@@ -291,7 +291,7 @@ hub.bridge.admin.addresses=SERV:hub:
 hub.bridge.admin.only.messages=hub:GetLogs,hub:StreamLogs,hub:SetLogLevel,hub:ResetLogLevels,hub:GetConfig,hub:SetConfig,hub4g:*,hubdebug:*,hubmetric:*
 ```
 
-Only service-level hub addresses can send admin-only messages (e.g., logs, configuration, debug commands, metrics) to a hub.
+Only service-level hub addresses can send admin-only messages (e.g., logs, configuration, debug commands, metrics) to a hub. `hub4g:*` stays on the list so a hub still running the old 4G controller can't be reached by anyone else.
 
 ---
 
