@@ -214,19 +214,18 @@ The Gateway manages the persistent connection between the hub agent and the Arcu
 - **Message Format**: JSON-serialized `PlatformMessage` and `ProtocolMessage`, with optional GZIP compression for binary frames
 - **TLS**: Mutual TLS with pinned hub certificates (BouncyCastle or OpenSSL provider)
 
-### Dual-Interface Connectivity
+### Reconnecting
 
-The gateway supports primary and secondary network interfaces for failover:
+The gateway connects over the primary network interface (Ethernet, or Wi-Fi where hubOS names it in `pri_interface`) and retries with an exponential backoff:
 
-| Parameter | Primary | Secondary |
-|-----------|---------|-----------|
-| Initial connect delay | 0s | 60s |
-| Initial backoff | 0s | 9s |
-| Backoff delay | 1s | 1s |
-| Backoff factor | 2.0x | 2.0x |
-| Max backoff | 90s | 90s |
+| Parameter | Value |
+|-----------|-------|
+| Initial backoff | 0s |
+| Backoff delay | 1s |
+| Backoff factor | 2.0x |
+| Max backoff | 90s |
 
-If the primary connection is lost, the secondary takes over after a 10-second delay.
+Connection attempts poke the hardware watchdog while the hub is offline (`GatewayPokeHandler`), so the 90 second backoff and connect timeout must stay under the V3's 120 second watchdog. The Iris cellular backup (a secondary LTE connection driven by the closed `iris2-4g-controller` jar) has been removed.
 
 ### Connection Lifecycle
 
@@ -253,7 +252,7 @@ If the primary connection is lost, the secondary takes over after a 10-second de
 
 ### Log Shipping
 
-**`LogSender`** — Buffers log entries in memory (1024 capacity) and ships them to the cloud every 1 second over the primary connection. Includes full stack traces.
+**`LogSender`** — Buffers log entries in memory (1024 capacity) and ships them to the cloud every 1 second. Includes full stack traces.
 
 ### Supporting Classes
 
@@ -722,7 +721,7 @@ Protocol controllers use lazy-loading service locators (`ZBServices`, `ZWService
 ### 6. Exponential Backoff
 
 Used throughout for resilient connectivity:
-- Gateway primary/secondary connection retry
+- Gateway connection retry
 - Reflex controller cloud sync
 - Configurable initial delay, factor, and maximum via `Backoff`/`Backoffs` classes
 

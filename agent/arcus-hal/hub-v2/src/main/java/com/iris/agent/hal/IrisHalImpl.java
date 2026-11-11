@@ -116,7 +116,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    private static final String CERT = "tmp:///mfg/certs/";
    private static final String KEY = "tmp:///mfg/keys/";
    private static final String DEBUG_FILE = "tmp:///debug";
-   private static final String LTE_INTERFACE_FILE = "tmp:///lte_interface";
    private static final String PRI_INTERFACE_FILE = "tmp:///pri_interface";
 
    // These will vary by platform as well, so hubOS will create a link to exact file
@@ -915,17 +914,13 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
 
    @Override
    public String getPrimaryNetworkInterfaceName() {
-      return getPrimaryNetworkInterfaceName(getSecondaryNetworkInterfaceName());
-   }
-
-   private String getPrimaryNetworkInterfaceName(String secName) {
       if (isFakeHub) {
          String priName = System.getenv("IRIS_AGENT_PRIMARY_INTERFACE");
          if (priName == null) {
             priName = getGatewayNetworkInterfaceNameForFakeHub();
          }
 
-         return (priName == null || priName.equals(secName)) ? "eth0" : priName;
+         return (priName == null) ? "eth0" : priName;
       }
 
       // Check for actual interface if wireless is supported
@@ -939,21 +934,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    }
 
    @Override
-   public String getSecondaryNetworkInterfaceName() {
-      if (isFakeHub) {
-         String secName = System.getenv("IRIS_AGENT_SECONDARY_INTERFACE");
-         if (secName == null) {
-            secName = getFourgNetworkInterfaceNameForFakeHub();
-         }
-
-         return (secName == null) ? "eth1" : secName;
-      }
-
-      // Will depend on the LTE dongle type, so hubOS will provide details
-      return readFirmwareFile(LTE_INTERFACE_FILE, UNKNOWN);
-   }
-
-   @Override
    public IrisHal.NetworkInfo getNetworkInfo() {
       long curTime = System.nanoTime();
 
@@ -963,24 +943,16 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       }
 
       lastNetworkInfoFetch = curTime;
-      String secondary = getSecondaryNetworkInterfaceName();
-      String primary = getPrimaryNetworkInterfaceName(secondary);
+      String primary = getPrimaryNetworkInterfaceName();
       NetworkInterface priNi = getNetworkInterface(primary);
-      NetworkInterface secNi = getNetworkInterface(secondary);
 
       InterfaceAddress priAddr = getNetworkInterfaceAddress(priNi);
-      InterfaceAddress secAddr = getNetworkInterfaceAddress(secNi);
       currentNetworkInfo = new IrisHal.NetworkInfo(
             priNi,
             primary,
             ((primary.contains("eth")) ? HubNetworkCapability.TYPE_ETH : HubNetworkCapability.TYPE_WIFI),
             (priAddr != null) ? priAddr.getAddress().getHostAddress() : "0.0.0.0",
-            (priAddr != null) ? IpUtil.genNetmask(priAddr.getNetworkPrefixLength()) : "0.0.0.0",
-            secNi,
-            secondary,
-            HubNetworkCapability.TYPE_3G,
-            (secAddr != null) ? secAddr.getAddress().getHostAddress() : "0.0.0.0",
-            (secAddr != null) ? IpUtil.genNetmask(secAddr.getNetworkPrefixLength()) : "0.0.0.0");
+            (priAddr != null) ? IpUtil.genNetmask(priAddr.getNetworkPrefixLength()) : "0.0.0.0");
 
       return currentNetworkInfo;
    }
@@ -988,11 +960,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    @Nullable
    private String getGatewayNetworkInterfaceNameForFakeHub() {
       return getNetworkInterfaceNameForFakeHub(getGatewayLine());
-   }
-
-   @Nullable
-   private String getFourgNetworkInterfaceNameForFakeHub() {
-      return getNetworkInterfaceNameForFakeHub(getFourgLineForFakeHub());
    }
 
    @Nullable
@@ -1028,16 +995,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          @Override
          public boolean apply(@Nullable String entry) {
             return (entry != null && (entry.startsWith("default") || entry.startsWith("0.0.0.0")));
-         }
-      });
-   }
-
-   @Nullable
-   private String[] getFourgLineForFakeHub() {
-      return getRoutingTableLine(new Predicate<String>() {
-         @Override
-         public boolean apply(@Nullable String entry) {
-            return (entry != null && entry.startsWith("192.168.8."));
          }
       });
    }
@@ -1168,8 +1125,7 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
          });
       }
 
-      String secName = getSecondaryNetworkInterfaceName();
-      return Lists.newArrayList(getPrimaryNetworkInterfaceName(secName));
+      return Lists.newArrayList(getPrimaryNetworkInterfaceName());
    }
 
    @Override

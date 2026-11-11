@@ -149,7 +149,6 @@ public interface IrisHalInternal {
 
    IrisHal.NetworkInfo getNetworkInfo();
    String getPrimaryNetworkInterfaceName();
-   String getSecondaryNetworkInterfaceName();
    String getGateway();
    List<String> getDNS();
    List<String> getRoutingTable();

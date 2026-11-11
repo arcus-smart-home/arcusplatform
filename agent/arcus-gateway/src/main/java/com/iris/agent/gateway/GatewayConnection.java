@@ -27,7 +27,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLEngine;
 
@@ -70,8 +69,6 @@ import rx.Subscriber;
 
 public class GatewayConnection {
    private static final Logger LOG = LoggerFactory.getLogger(GatewayConnection.class.getName());
-   private static final Logger PRIMARY_LOG = LoggerFactory.getLogger(GatewayConnection.class.getName() + ".pri");
-   private static final Logger SECONDARY_LOG = LoggerFactory.getLogger(GatewayConnection.class.getName() + ".sec");
 
    private static final String[] ALLOWED_CIPHERS = new String[] {
       // TLS 1.3 cipher suites
@@ -87,19 +84,12 @@ public class GatewayConnection {
    private static final Supplier<Integer> CONNECT_TIMEOUT = ConfigService.supplier("iris.gateway.timeout.connect", Integer.class, 90000);
    private static final Supplier<Long> SSL_HANDSHAKE_TIMEOUT = ConfigService.supplier("iris.gateway.timeout.ssl.handshake", Long.class, 90000L);
    private static final Supplier<Long> SSL_CLOSE_NOTIFY_TIMEOUT = ConfigService.supplier("iris.gateway.timeout.ssl.closenotify", Long.class, 15000L);
-   private static final Supplier<Long> FAILURES_BEFORE_FALLBACK = ConfigService.supplier("iris.gatway.fallback.fails", Long.class, 25L);
    private static final Supplier<String> configConnectUri = ConfigService.supplier("iris.gateway.uri", "wss://bh.arcussmarthome.com/hub/1.0");
 
    private final GatewayHandler handler;
-   private final boolean isPrimary;
 
-   private GatewayConnection(GatewayHandler handler, boolean isPrimary) {
+   private GatewayConnection(GatewayHandler handler) {
       this.handler = handler;
-      this.isPrimary = isPrimary;
-   }
-
-   public boolean isPrimary() {
-      return isPrimary;
    }
 
    boolean isConnected() {
@@ -178,47 +168,21 @@ public class GatewayConnection {
    // Gateway connection creation
    /////////////////////////////////////////////////////////////////////////////
 
-   public static Observable<GatewayConnection> primaryConnection(
-      GatewayNetty.Provider nettyProvider, GatewayNetty.SslProvider sslProvider,
-      GatewayPokeHandler pokeHandler, EventLoopGroup eventLoopGroup) {
-      return getConnection(true, primaryOutboundInterface(), nettyProvider, sslProvider, pokeHandler, eventLoopGroup, new AtomicBoolean(true));
-   }
-
-   public static Observable<GatewayConnection> secondaryConnection(
-      GatewayNetty.Provider nettyProvider, GatewayNetty.SslProvider sslProvider,
-      GatewayPokeHandler pokeHandler, EventLoopGroup eventLoopGroup,
-      AtomicBoolean allowSecondaryConnection) {
-      return getConnection(false, secondaryOutboundInterface(), nettyProvider, sslProvider, pokeHandler, eventLoopGroup, allowSecondaryConnection);
-   }
-
-   public static Observable<GatewayConnection> getConnection(
-      final boolean isPrimary, Observable<InetAddress> outboundInterface,
+   public static Observable<GatewayConnection> connection(
       final GatewayNetty.Provider nettyProvider, final GatewayNetty.SslProvider sslProvider,
-      final GatewayPokeHandler pokeHandler, final EventLoopGroup eventLoopGroup,
-      final AtomicBoolean allowConnection) {
+      final GatewayPokeHandler pokeHandler, final EventLoopGroup eventLoopGroup) {
 
-      return outboundInterface.lift(new RxIris.Operator<GatewayConnection,InetAddress>() {
+      return outboundInterface().lift(new RxIris.Operator<GatewayConnection,InetAddress>() {
          @Override
          public Subscriber<? super InetAddress> run(final Subscriber<? super GatewayConnection> s) {
             return new RxIris.Subscriber<InetAddress>() {
                @Override
                public void processNext(InetAddress outboundInterface) {
-                  if (!allowConnection.get()) {
-                     if (isPrimary) {
-                        log(isPrimary).warn("disallowing primary gateway connection");
-                     } else {
-                        log(isPrimary).trace("disallowing secondary gateway connection");
-                     }
-
-                     s.onError(GatewayConnectionNotAllowedException.STATIC);
-                     return;
-                  }
-
                   try {
                      final URI connectUri = URI.create(configConnectUri.get());
                      String scheme = connectUri.getScheme();
                      if (!"ws".equalsIgnoreCase(scheme) && !"wss".equalsIgnoreCase(scheme)) {
-                        log(isPrimary).warn("hub gateway uri has invalid scheme: {}", connectUri);
+                        LOG.warn("hub gateway uri has invalid scheme: {}", connectUri);
                         throw new IllegalArgumentException("Unsupported protocol: " + scheme);
                      }
 
@@ -238,7 +202,7 @@ public class GatewayConnection {
                      connect(connectUri, host, port, bootstrap, outboundInterface).map(new RxIris.Func1<GatewayHandler,GatewayConnection>() {
                         @Override
                         public GatewayConnection run(GatewayHandler handler) {
-                           return new GatewayConnection(handler, isPrimary);
+                           return new GatewayConnection(handler);
                         }
                      }).subscribe(new RxIris.Subscriber<GatewayConnection>() {
                         @Override
@@ -250,7 +214,7 @@ public class GatewayConnection {
                                  @Override
                                  public void processError(Throwable e) {
                                     if (!LifeCycleService.isShutdown()) {
-                                       log(isPrimary).info("error on channel closed, attempting to restart: ", e);
+                                       LOG.info("error on channel closed, attempting to restart: ", e);
                                        s.onError(new Exception("channel closed"));
                                     }
                                  }
@@ -258,7 +222,7 @@ public class GatewayConnection {
                                  @Override
                                  public void processCompleted() {
                                     if (!LifeCycleService.isShutdown()) {
-                                       log(isPrimary).info("channel closed, attempting to restart");
+                                       LOG.info("channel closed, attempting to restart");
                                        s.onError(new Exception("channel closed"));
                                     }
                                  }
@@ -485,15 +449,7 @@ public class GatewayConnection {
    // Utility methods for outbound interfaces
    /////////////////////////////////////////////////////////////////////////////
 
-   private static Observable<InetAddress> primaryOutboundInterface() {
-      return getOutboundInterface(true);
-   }
-
-   private static Observable<InetAddress> secondaryOutboundInterface() {
-      return getOutboundInterface(false);
-   }
-
-   private static Observable<InetAddress> getOutboundInterface(final boolean primary) {
+   private static Observable<InetAddress> outboundInterface() {
       return Observable.create(new RxIris.OnSubscribe<InetAddress>() {
          @Override
          @SuppressWarnings("null")
@@ -501,12 +457,8 @@ public class GatewayConnection {
             try {
                if (!sub.isUnsubscribed()) {
                   IrisHal.NetworkInfo ni = IrisHal.getNetworkInfo();
-                  NetworkInterface intf = (ni == null) ? null : (primary ? ni.primary : ni.secondary);
-                  if (intf == null) {
-                     throw new Exception("cannot determine " + (primary ? "primary" : "secondary") + " network interface");
-                  }
-
-                  sub.onNext(getInetAddress(primary, primary ? ni.primary : ni.secondary));
+                  NetworkInterface intf = (ni == null) ? null : ni.primary;
+                  sub.onNext(getInetAddress(intf));
                   sub.onCompleted();
                }
             } catch (Exception ex) {
@@ -519,9 +471,9 @@ public class GatewayConnection {
    }
 
 
-   private static InetAddress getInetAddress(boolean primary, @Nullable NetworkInterface ni) throws Exception {
+   private static InetAddress getInetAddress(@Nullable NetworkInterface ni) throws Exception {
       if (ni == null) {
-         throw new Exception("cannot determine " + (primary ? "primary" : "secondary") + " network interface");
+         throw new Exception("cannot determine primary network interface");
       }
 
       InetAddress best = null;
@@ -538,13 +490,6 @@ public class GatewayConnection {
       }
 
       return best;
-   }
-
-   /////////////////////////////////////////////////////////////////////////////
-   /////////////////////////////////////////////////////////////////////////////
-   
-   private static Logger log(boolean isPrimary) {
-      return isPrimary ? PRIMARY_LOG : SECONDARY_LOG;
    }
 }
 

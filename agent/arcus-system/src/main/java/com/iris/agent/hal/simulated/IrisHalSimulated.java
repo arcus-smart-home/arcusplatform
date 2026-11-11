@@ -468,13 +468,8 @@ public class IrisHalSimulated extends AbstractIrisHal {
    }
 
    @Override
-   public String getSecondaryNetworkInterfaceName() {
-      return "eth1";
-   }
-
-   @Override
    public IrisHal.NetworkInfo getNetworkInfo() {
-      return new IrisHal.NetworkInfo(null, "eth0", "eth", "192.168.1.100", "255.255.255.0", null, null, null, null, null);
+      return new IrisHal.NetworkInfo(null, "eth0", "eth", "192.168.1.100", "255.255.255.0");
    }
 
    @Override
