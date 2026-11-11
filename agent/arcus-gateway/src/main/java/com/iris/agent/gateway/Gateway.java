@@ -124,9 +124,11 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       this.converter.setOptionList(STACK_TRACE_OPTIONS);
       this.converter.start();
 
-      // IMPORTANT: Connection attempts are what poke the hardware watchdog while the hub is offline
-      //            (GatewayPokeHandler), so the maximum backoff, together with the connect timeout in
-      //            GatewayConnection, has to stay well under the V3's 120 second watchdog.
+      // IMPORTANT: Connection attempts are what poke the hardware watchdog while the hub is offline.
+      //            GatewayPokeHandler pokes when an attempt's channel registers and again when it
+      //            unregisters, so the longest gap without a poke is the larger of the maximum
+      //            backoff (the random part only shortens it) and the connect timeout in
+      //            GatewayConnection. Each has to stay well under the V3's 120 second watchdog.
       this.backoff = Backoffs.exponential()
          .initial(0, TimeUnit.SECONDS)
          .delay(1, TimeUnit.SECONDS)
