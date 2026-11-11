@@ -115,7 +115,8 @@ public class RuleEnvironmentTable {
       TEMPLATE("sceneTemplate"),
       LAST_FIRE_TIME("sceneLastFireTime"),
       LAST_FIRE_STATE("sceneLastFireState"),
-      ENABLED("sceneEnabled")
+      ENABLED("sceneEnabled"),
+      FILTER_UNCHANGED("sceneFilterUnchanged")
       ;
 
       private final String columnName;

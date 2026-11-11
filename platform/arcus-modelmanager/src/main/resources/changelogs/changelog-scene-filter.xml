@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cl:changelog
+   version="scene-filter"
+   xmlns:cl="http://www.arcussmarthome.com/schema/changelog/1.0.0">
+
+   <cl:changeset identifier="addSceneFilterUnchangedToRuleEnvironment" author="arcus">
+      <cl:description>Add sceneFilterUnchanged column to RuleEnvironment for per-scene state filtering</cl:description>
+      <cl:tracking>SCENE-FILTER-001</cl:tracking>
+      <cl:cql>
+         <cl:update>ALTER TABLE ruleenvironment ADD sceneFilterUnchanged boolean</cl:update>
+         <cl:rollback>ALTER TABLE ruleenvironment DROP sceneFilterUnchanged</cl:rollback>
+      </cl:cql>
+   </cl:changeset>
+
+</cl:changelog>

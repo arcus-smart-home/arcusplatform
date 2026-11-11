@@ -20,6 +20,7 @@ package com.iris.common.rule.action;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -27,6 +28,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.iris.messages.MessageBody;
 import com.iris.messages.address.Address;
+import com.iris.messages.capability.Capability;
+import com.iris.messages.model.Model;
 import com.iris.util.IrisCollections;
 import com.iris.util.IrisFunctions;
 
@@ -130,15 +133,70 @@ public class SendAction implements Action {
    public void execute(ActionContext context) {
       Address to = getTo(context);
       Map<String, Object> attributes = getAttributes(context);
-      
-      // TODO enable broadcast?
+
       if(to == null) {
          context.logger().warn("Can't execute action [{}] because no destination is specified", this);
          return;
       }
-      
+
+      // For SetAttributes commands, filter out attributes that already match
+      // the device's current state to avoid unnecessary device traffic.
+      // Only applied when the context has filterUnchanged set to true
+      // (e.g. per-scene configuration via scene:filterUnchanged).
+      if(Capability.CMD_SET_ATTRIBUTES.equals(this.type) && attributes != null
+            && Boolean.TRUE.equals(context.getVariable("filterUnchanged", Boolean.class))) {
+         attributes = filterUnchangedAttributes(context, to, attributes);
+         if(attributes.isEmpty()) {
+            context.logger().debug("Skipping action [{}] because device is already in desired state", this);
+            return;
+         }
+      }
+
       MessageBody message = MessageBody.buildMessage(this.type, attributes);
       context.send(to, message);
+   }
+
+   /**
+    * Returns a new map containing only the attributes whose values differ
+    * from the device's current state. If the model is not available (e.g.
+    * device offline or not yet loaded), returns the original map unchanged
+    * so the command is still sent.
+    */
+   private Map<String, Object> filterUnchangedAttributes(
+         ActionContext context, Address target, Map<String, Object> desired
+   ) {
+      Model model = context.getModelByAddress(target);
+      if(model == null) {
+         return desired;
+      }
+      Map<String, Object> changed = new HashMap<>(desired.size());
+      for(Map.Entry<String, Object> entry : desired.entrySet()) {
+         Object currentValue = model.getAttribute(entry.getKey());
+         if(!attributeValuesEqual(currentValue, entry.getValue())) {
+            changed.put(entry.getKey(), entry.getValue());
+         }
+      }
+      return changed;
+   }
+
+   /**
+    * Compares attribute values, handling numeric type mismatches (e.g. Integer
+    * vs Double) that can occur between model storage and scene action values.
+    */
+   private static boolean attributeValuesEqual(Object current, Object desired) {
+      if(current == null) {
+         // Unknown current state — send the command to be safe
+         return false;
+      }
+      if(Objects.equals(current, desired)) {
+         return true;
+      }
+      // Handle numeric type mismatches (e.g. model stores Integer 100,
+      // scene sends Double 100.0)
+      if(current instanceof Number && desired instanceof Number) {
+         return ((Number) current).doubleValue() == ((Number) desired).doubleValue();
+      }
+      return false;
    }
    
    @Override

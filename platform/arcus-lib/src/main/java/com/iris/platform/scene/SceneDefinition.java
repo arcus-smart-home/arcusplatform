@@ -28,6 +28,7 @@ public class SceneDefinition extends BaseDefinition<SceneDefinition> {
    private Date lastFireTime;
    private String lastFireState;
    private boolean enabled;
+   private boolean filterUnchanged = true;
 
    // the contents are not strictly enforced by the DAO, up to the service
    // to guarantee consistent usage
@@ -40,10 +41,17 @@ public class SceneDefinition extends BaseDefinition<SceneDefinition> {
    public boolean isEnabled() {
       return enabled;
    }
-   
 
    public void setEnabled(boolean enabled) {
       this.enabled = enabled;
+   }
+
+   public boolean isFilterUnchanged() {
+      return filterUnchanged;
+   }
+
+   public void setFilterUnchanged(boolean filterUnchanged) {
+      this.filterUnchanged = filterUnchanged;
    }
 
    /* (non-Javadoc)
@@ -158,7 +166,8 @@ public class SceneDefinition extends BaseDefinition<SceneDefinition> {
             + ", template=" + template + ", satisfiable=" + satisfiable + ", created="
             + getCreated() + ", modified=" + getModified()
             + ", lastFireTime=" + lastFireTime + ", lastFireState="
-            + lastFireState + ", action=" + Arrays.toString(action) + "]";
+            + lastFireState + ", filterUnchanged=" + filterUnchanged
+            + ", action=" + Arrays.toString(action) + "]";
    }
 
    @Override
@@ -167,6 +176,7 @@ public class SceneDefinition extends BaseDefinition<SceneDefinition> {
       int result = super.hashCode();
       result = prime * result + Arrays.hashCode(action);
       result = prime * result + (enabled ? 1231 : 1237);
+      result = prime * result + (filterUnchanged ? 1231 : 1237);
       result = prime * result + ((lastFireState == null) ? 0 : lastFireState.hashCode());
       result = prime * result + ((lastFireTime == null) ? 0 : lastFireTime.hashCode());
       result = prime * result + (notification ? 1231 : 1237);
@@ -187,6 +197,8 @@ public class SceneDefinition extends BaseDefinition<SceneDefinition> {
       if (!Arrays.equals(action, other.action))
          return false;
       if (enabled != other.enabled)
+         return false;
+      if (filterUnchanged != other.filterUnchanged)
          return false;
       if (lastFireState == null) {
          if (other.lastFireState != null)

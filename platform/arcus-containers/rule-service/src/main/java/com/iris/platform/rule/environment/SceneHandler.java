@@ -181,6 +181,8 @@ public class SceneHandler implements PlaceEventHandler {
          return Errors.invalidRequest("Scene is disabled");
       }
       context.model().setAttribute(SceneCapability.ATTR_LASTFIRETIME, new Date());
+      Boolean filterUnchanged = SceneModel.getFilterUnchanged(context.model(), Boolean.TRUE);
+      context.setVariable("filterUnchanged", filterUnchanged);
       scene.execute();
       return SceneCapability.FireResponse.instance();
    }

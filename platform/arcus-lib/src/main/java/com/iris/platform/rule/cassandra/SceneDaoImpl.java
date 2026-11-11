@@ -56,7 +56,8 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       SceneColumn.ACTION.columnName(),
       SceneColumn.LAST_FIRE_TIME.columnName(),
       SceneColumn.LAST_FIRE_STATE.columnName(),
-      SceneColumn.ENABLED.columnName()
+      SceneColumn.ENABLED.columnName(),
+      SceneColumn.FILTER_UNCHANGED.columnName()
    };
 
    private final PreparedStatement upsert;
@@ -90,6 +91,7 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       sd.setNotification(row.getBoolean(SceneColumn.NOTIFICATION.columnName()));
       sd.setTemplate(row.getString(SceneColumn.TEMPLATE.columnName()));
       sd.setEnabled(row.getBoolean(SceneColumn.ENABLED.columnName()));
+      sd.setFilterUnchanged(row.isNull(SceneColumn.FILTER_UNCHANGED.columnName()) ? true : row.getBoolean(SceneColumn.FILTER_UNCHANGED.columnName()));
       ByteBuffer action = row.isNull(SceneColumn.ACTION.columnName()) ? null : row.getByteBuffer(SceneColumn.ACTION.columnName());
       if(action != null) {
          byte [] array = new byte[action.remaining()];
@@ -114,6 +116,7 @@ public class SceneDaoImpl extends BaseRuleEnvironmentDaoImpl<SceneDefinition> im
       bs = bs.setInstant(SceneColumn.LAST_FIRE_TIME.columnName(), sd.getLastFireTime() == null ? null : sd.getLastFireTime().toInstant());
       bs = bs.setString(SceneColumn.LAST_FIRE_STATE.columnName(), sd.getLastFireState());
       bs = bs.setBoolean(SceneColumn.ENABLED.columnName(),sd.isEnabled());
+      bs = bs.setBoolean(SceneColumn.FILTER_UNCHANGED.columnName(), sd.isFilterUnchanged());
 
       if(sd.getAction() != null) {
          bs = bs.setByteBuffer(ActionColumn.ACTION.columnName(), ByteBuffer.wrap(sd.getAction()));
