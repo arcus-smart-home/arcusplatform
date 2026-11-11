@@ -98,6 +98,10 @@ public class ByteUtilsTest {
     @Test
     public void testFrom16BitToInt() {
         Assert.assertEquals(0, ByteUtils.from16BitToInt(new byte[] {0, 0}));
+        Assert.assertEquals(0xB2C3, ByteUtils.from16BitToInt(new byte[] {(byte)0xB2, (byte)0xC3}));
+        Assert.assertEquals(0x0091, ByteUtils.from16BitToInt(new byte[] {0x00, (byte)0x91}));
+        Assert.assertEquals(0xE1A2B3C4, ByteUtils.from32BitToInt(new byte[] {(byte)0xE1, (byte)0xA2, (byte)0xB3, (byte)0xC4}));
+        Assert.assertEquals(0xA2B3C4, ByteUtils.from24BitToInt(new byte[] {(byte)0xA2, (byte)0xB3, (byte)0xC4}));
         Assert.assertEquals(256, ByteUtils.from16BitToInt(new byte[] {1, 0}));
         Assert.assertEquals(257, ByteUtils.from16BitToInt(new byte[] {1, 1}));
         Assert.assertEquals(3073, ByteUtils.from16BitToInt(new byte[] {12, 1}));

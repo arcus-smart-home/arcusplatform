@@ -133,7 +133,7 @@ public class ByteUtils {
     * @return 16 bit integer
     */
    public static int from16BitToInt(byte[] bytes, int off) {
-      return (bytes[0 + off] << 8) + bytes[1 + off];
+      return ((bytes[0 + off] & 0xFF) << 8) | (bytes[1 + off] & 0xFF);
    }
    
    /**
@@ -154,7 +154,7 @@ public class ByteUtils {
     * @return 24 bit integer
     */
    public static int from24BitToInt(byte[] bytes, int off) {
-      return (bytes[0 + off] << 16) + (bytes[1 + off] << 8) + bytes[2 + off];
+      return ((bytes[0 + off] & 0xFF) << 16) | ((bytes[1 + off] & 0xFF) << 8) | (bytes[2 + off] & 0xFF);
    }
    
    /**
@@ -175,7 +175,7 @@ public class ByteUtils {
     * @return 32 bit integer
     */
    public static int from32BitToInt(byte[] bytes, int off) {
-      return (bytes[0 + off] << 24) + (bytes[1 + off] << 16) + (bytes[2 + off] << 8) + bytes[3 + off];
+      return ((bytes[0 + off] & 0xFF) << 24) | ((bytes[1 + off] & 0xFF) << 16) | ((bytes[2 + off] & 0xFF) << 8) | (bytes[3 + off] & 0xFF);
    }
    
    public static byte[] to8Bits(int i) {

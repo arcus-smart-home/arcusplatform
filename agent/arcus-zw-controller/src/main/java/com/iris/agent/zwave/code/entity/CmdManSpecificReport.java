@@ -15,6 +15,8 @@
  */
 package com.iris.agent.zwave.code.entity;
 
+import java.nio.ByteBuffer;
+
 import com.iris.agent.util.ByteUtils;
 import com.iris.agent.zwave.code.Decoded;
 import com.iris.agent.zwave.code.Decoder;
@@ -76,9 +78,10 @@ public class CmdManSpecificReport extends AbstractZCmd {
       
       @Override
       public Decoded decode(byte[] bytes, int offset) {
-         int manufacturerId = ByteUtils.from16BitToInt(bytes, offset + 2);
-         int productTypeId = ByteUtils.from16BitToInt(bytes, offset + 4);
-         int productId = ByteUtils.from16BitToInt(bytes, offset + 6);
+         ByteBuffer ids = ByteBuffer.wrap(bytes, offset + 2, 6);
+         int manufacturerId = 0xFFFF & ids.getShort();
+         int productTypeId = 0xFFFF & ids.getShort();
+         int productId = 0xFFFF & ids.getShort();
          return new Decoded(new CmdManSpecificReport(manufacturerId, productTypeId, productId));
       }
    }
