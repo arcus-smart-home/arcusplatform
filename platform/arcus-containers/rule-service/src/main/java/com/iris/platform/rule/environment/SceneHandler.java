@@ -24,6 +24,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.iris.common.rule.action.Action;
+import com.iris.common.rule.action.SendAction;
 import com.iris.common.rule.event.AttributeValueChangedEvent;
 import com.iris.common.rule.event.ModelRemovedEvent;
 import com.iris.common.rule.event.RuleEvent;
@@ -44,6 +45,7 @@ import com.iris.messages.errors.Errors;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.serv.SceneModel;
 import com.iris.messages.type.ActionTemplate;
+import com.iris.platform.scene.SceneDefinition;
 import com.iris.platform.scene.catalog.SceneCatalog;
 import com.iris.platform.scene.catalog.SceneTemplate;
 import com.iris.platform.scene.resolver.ActionResolver;
@@ -181,8 +183,8 @@ public class SceneHandler implements PlaceEventHandler {
          return Errors.invalidRequest("Scene is disabled");
       }
       context.model().setAttribute(SceneCapability.ATTR_LASTFIRETIME, new Date());
-      Boolean filterUnchanged = SceneModel.getFilterUnchanged(context.model(), Boolean.TRUE);
-      context.setVariable("filterUnchanged", filterUnchanged);
+      // on the scene's own context, so rules never filter
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, SceneModel.getFilterUnchanged(context.model(), SceneDefinition.DEFAULT_FILTER_UNCHANGED));
       scene.execute();
       return SceneCapability.FireResponse.instance();
    }

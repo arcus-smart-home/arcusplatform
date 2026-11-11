@@ -40,6 +40,8 @@ import com.iris.util.IrisFunctions;
 public class SendAction implements Action {
    public static final String VAR_TO = "to";
    public static final String VAR_ATTRIBUTES = "attributes";
+   /** Set to true on a scene's context when the scene skips devices already in its state. */
+   public static final String VAR_FILTER_UNCHANGED = "filterUnchanged";
    public static final String NAME = "send";
    
    private final String type;
@@ -139,17 +141,15 @@ public class SendAction implements Action {
          return;
       }
 
-      // For SetAttributes commands, filter out attributes that already match
-      // the device's current state to avoid unnecessary device traffic.
-      // Only applied when the context has filterUnchanged set to true
-      // (e.g. per-scene configuration via scene:filterUnchanged).
-      if(Capability.CMD_SET_ATTRIBUTES.equals(this.type) && attributes != null
-            && Boolean.TRUE.equals(context.getVariable("filterUnchanged", Boolean.class))) {
-         attributes = filterUnchangedAttributes(context, to, attributes);
-         if(attributes.isEmpty()) {
-            context.logger().debug("Skipping action [{}] because device is already in desired state", this);
-            return;
-         }
+      // A scene that filters unchanged devices skips a SetAttributes whose every value the device
+      // already has. It's all or nothing: drivers read some attributes together (a mode with its
+      // setpoints, a colour mode with hue and saturation, on with a level), so sending only the
+      // ones that differ could change what the device does.
+      if(Capability.CMD_SET_ATTRIBUTES.equals(this.type) && attributes != null && !attributes.isEmpty()
+            && Boolean.TRUE.equals(context.getVariable(VAR_FILTER_UNCHANGED, Boolean.class))
+            && alreadyInState(context, to, attributes)) {
+         context.logger().info("Skipping [{}] to [{}]: the device already has every value it sets", this.type, to);
+         return;
       }
 
       MessageBody message = MessageBody.buildMessage(this.type, attributes);
@@ -157,26 +157,20 @@ public class SendAction implements Action {
    }
 
    /**
-    * Returns a new map containing only the attributes whose values differ
-    * from the device's current state. If the model is not available (e.g.
-    * device offline or not yet loaded), returns the original map unchanged
-    * so the command is still sent.
+    * True when the device's model already has every value. A device with no model, or with no
+    * value for one of the attributes, gets the command.
     */
-   private Map<String, Object> filterUnchangedAttributes(
-         ActionContext context, Address target, Map<String, Object> desired
-   ) {
+   private static boolean alreadyInState(ActionContext context, Address target, Map<String, Object> desired) {
       Model model = context.getModelByAddress(target);
       if(model == null) {
-         return desired;
+         return false;
       }
-      Map<String, Object> changed = new HashMap<>(desired.size());
       for(Map.Entry<String, Object> entry : desired.entrySet()) {
-         Object currentValue = model.getAttribute(entry.getKey());
-         if(!attributeValuesEqual(currentValue, entry.getValue())) {
-            changed.put(entry.getKey(), entry.getValue());
+         if(!attributeValuesEqual(model.getAttribute(entry.getKey()), entry.getValue())) {
+            return false;
          }
       }
-      return changed;
+      return true;
    }
 
    /**

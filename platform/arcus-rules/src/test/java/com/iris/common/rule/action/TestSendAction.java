@@ -220,7 +220,7 @@ public class TestSendAction extends Assert {
       model.setAttribute("swit:state", "ON");
       model.setAttribute("dim:brightness", 100);
       context.putModel(model);
-      context.setVariable("filterUnchanged", Boolean.TRUE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
 
       SendAction action =
             Actions
@@ -238,7 +238,8 @@ public class TestSendAction extends Assert {
    }
 
    @Test
-   public void testSetAttributesSendsOnlyChangedAttributes() throws Exception {
+   public void testSetAttributesSendsEveryAttributeWhenAnyDiffers() throws Exception {
+      // all or nothing: on with a level is read together, so the matching swit:state goes too
       SimpleModel model = new SimpleModel();
       model.setAttribute(Capability.ATTR_TYPE, "dev");
       model.setAttribute(Capability.ATTR_ID, destination.getId().toString());
@@ -246,31 +247,57 @@ public class TestSendAction extends Assert {
       model.setAttribute("swit:state", "ON");
       model.setAttribute("dim:brightness", 50);
       context.putModel(model);
-      context.setVariable("filterUnchanged", Boolean.TRUE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
 
       SendAction action =
             Actions
                .buildSendAction(Capability.CMD_SET_ATTRIBUTES)
                .withDestination(destination)
-               .withAttribute("swit:state", "ON")      // already ON — should be filtered
-               .withAttribute("dim:brightness", 100)    // different — should be sent
+               .withAttribute("swit:state", "ON")
+               .withAttribute("dim:brightness", 100)
                .build();
 
       action.execute(context);
 
       PlatformMessage message = context.getMessages().poll();
-      assertNotNull("Expected message for changed attributes", message);
+      assertNotNull("Expected a message when one attribute differs", message);
       Map<String, Object> attrs = message.getValue().getAttributes();
-      assertFalse("swit:state should have been filtered", attrs.containsKey("swit:state"));
+      assertEquals("ON", attrs.get("swit:state"));
       assertEquals(100, ((Number) attrs.get("dim:brightness")).intValue());
 
       assertNull(context.getMessages().poll());
    }
 
    @Test
+   public void testEmptySetAttributesIsStillSent() throws Exception {
+      // nothing to compare is not the same as already in state
+      SimpleModel model = new SimpleModel();
+      model.setAttribute(Capability.ATTR_TYPE, "dev");
+      model.setAttribute(Capability.ATTR_ID, destination.getId().toString());
+      model.setAttribute(Capability.ATTR_ADDRESS, destination.getRepresentation());
+      context.putModel(model);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
+      // what a catalog selector that matched no set-attributes resolves to
+      context.setVariable(SendAction.VAR_ATTRIBUTES, Collections.emptyMap());
+
+      SendAction action =
+            Actions
+               .buildSendAction(Capability.CMD_SET_ATTRIBUTES)
+               .withDestination(destination)
+               .build();
+
+      action.execute(context);
+
+      PlatformMessage message = context.getMessages().poll();
+      assertNotNull("Expected the empty SetAttributes to be sent as before", message);
+      assertEquals(Collections.emptyMap(), message.getValue().getAttributes());
+      assertNull(context.getMessages().poll());
+   }
+
+   @Test
    public void testSetAttributesSendsAllWhenModelNotFound() throws Exception {
       // No model in context — should send all attributes
-      context.setVariable("filterUnchanged", Boolean.TRUE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
 
       SendAction action =
             Actions
@@ -296,7 +323,7 @@ public class TestSendAction extends Assert {
       model.setAttribute(Capability.ATTR_ADDRESS, destination.getRepresentation());
       model.setAttribute("dim:brightness", Integer.valueOf(100));
       context.putModel(model);
-      context.setVariable("filterUnchanged", Boolean.TRUE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
 
       // Scene sends Double 100.0 but model stores Integer 100 — should match
       SendAction action =
@@ -320,7 +347,7 @@ public class TestSendAction extends Assert {
       model.setAttribute(Capability.ATTR_ADDRESS, destination.getRepresentation());
       // swit:state is not set (null) — should still send
       context.putModel(model);
-      context.setVariable("filterUnchanged", Boolean.TRUE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.TRUE);
 
       SendAction action =
             Actions
@@ -370,7 +397,7 @@ public class TestSendAction extends Assert {
       model.setAttribute(Capability.ATTR_ADDRESS, destination.getRepresentation());
       model.setAttribute("swit:state", "ON");
       context.putModel(model);
-      context.setVariable("filterUnchanged", Boolean.FALSE);
+      context.setVariable(SendAction.VAR_FILTER_UNCHANGED, Boolean.FALSE);
 
       SendAction action =
             Actions
