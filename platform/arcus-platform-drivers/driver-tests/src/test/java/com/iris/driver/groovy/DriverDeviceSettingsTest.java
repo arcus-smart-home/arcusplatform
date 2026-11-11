@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,9 +53,11 @@ import com.iris.driver.groovy.plugin.GroovyDriverPlugin;
 import com.iris.driver.groovy.reflex.ReflexPlugin;
 import com.iris.driver.groovy.scheduler.SchedulerPlugin;
 import com.iris.driver.groovy.zwave.ZWaveProtocolPlugin;
+import com.iris.io.json.JSON;
 import com.iris.messages.capability.DeviceSettingsCapability;
 import com.iris.messages.model.Device;
 import com.iris.protocol.constants.ZwaveConstants;
+import com.iris.util.TypeMarker;
 
 /**
  * Loads production drivers and checks which settings each Z-Wave product gets.
@@ -174,7 +177,47 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
       assertEquals(42, params.size());
       Map<String, Object> last = params.get(params.size() - 1);
       assertEquals("temperatureOffset", last.get("paramId"));
-      assertEquals(42, last.get("zwaveParamNo"));
+      assertEquals(42L, last.get("zwaveParamNo"));
+   }
+
+   // A deploy that changes a driver's settings without a version bump is no upgrade, so the
+   // driver starting is what brings the change to the attribute devices saved before it
+   @Test
+   @SuppressWarnings({ "unchecked", "rawtypes" })
+   public void startingTheDriverReplacesSettingsSavedBeforeLabels() throws Exception {
+      DeviceDriver driver = factory.load("ZW_Zooz_Zen77_DimmerSwitch.driver");
+      PlatformDeviceDriverContext context = new PlatformDeviceDriverContext(createDevice(driver), driver, mockPopulationCacheMgr);
+      Map<String, Object> savedBeforeLabels = new HashMap<>();
+      savedBeforeLabels.put("paramId", "paddleOrientation");
+      savedBeforeLabels.put("name", "paddleOrientation");
+      savedBeforeLabels.put("type", "enum");
+      context.setAttributeValue((AttributeKey) DeviceSettingsCapability.KEY_PARAMS, Collections.singletonList(savedBeforeLabels));
+      context.clearDirty();
+
+      driver.onRestored(context);
+
+      List<Map<String, Object>> params = (List<Map<String, Object>>) (List<?>) context.getAttributeValue(DeviceSettingsCapability.KEY_PARAMS);
+      assertEquals("Paddle orientation", params.get(0).get("name"));
+      assertEquals(loadedSettings.getParams().size(), params.size());
+      // saved with the device's next commit
+      assertTrue(context.getDirtyAttributes().containsKey(DeviceSettingsCapability.KEY_PARAMS));
+   }
+
+   // what the same driver saved, loaded back as driver-services loads it, isn't saved again
+   @Test
+   @SuppressWarnings({ "unchecked", "rawtypes" })
+   public void startingTheDriverLeavesUpToDateSettingsAlone() throws Exception {
+      DeviceDriver driver = factory.load("ZW_Zooz_Zen77_DimmerSwitch.driver");
+      PlatformDeviceDriverContext context = new PlatformDeviceDriverContext(createDevice(driver), driver, mockPopulationCacheMgr);
+      driver.onRestored(context);
+      String saved = JSON.toJson(context.getAttributeValue(DeviceSettingsCapability.KEY_PARAMS));
+      Object loaded = JSON.fromJson(saved, TypeMarker.wrap(DeviceSettingsCapability.KEY_PARAMS.getType()));
+      context.setAttributeValue((AttributeKey) DeviceSettingsCapability.KEY_PARAMS, loaded);
+      context.clearDirty();
+
+      driver.onRestored(context);
+
+      assertFalse(context.getDirtyAttributes().containsKey(DeviceSettingsCapability.KEY_PARAMS));
    }
 
    private List<String> paramIds(String driverFile, int productType, int productId) throws Exception {
