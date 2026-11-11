@@ -63,6 +63,8 @@ When an account is created, the owner gets `accountOwner=true` with `permissions
 
 Each bridge binds one `Authorizer`, chosen by `authz.algorithm`. A client chooses the destination of every message, so authorization has to decide whether that destination is within the session's scope as well as whether the message is allowed.
 
+Clients may only send requests. `IrisNettyMessageUtil` answers a frame with `isRequest=false` with an error before the authorizer runs (session requests such as `SetActivePlace` are handled by the bridge itself before that), because services act on events from hubs, drivers and other services without the checks a request gets. The device service also drops device removal and device info events from a client, and a hub's removal of a device that isn't its own. The IPCD service only takes an add response from the device service and a connected event from ipcd-bridge. Hub and IPCD heartbeats travel on the intraservice bus, which clients can't reach.
+
 | Bridge | `authz.algorithm` | Runs |
 |---|---|---|
 | client-bridge | `role` | RoleAuthorizer |

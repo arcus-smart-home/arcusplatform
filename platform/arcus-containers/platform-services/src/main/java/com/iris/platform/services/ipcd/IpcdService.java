@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Executor;
 
 import org.apache.commons.lang3.StringUtils;
@@ -46,7 +45,6 @@ import com.iris.messages.errors.ErrorEventException;
 import com.iris.messages.errors.Errors;
 import com.iris.messages.service.BridgeService;
 import com.iris.messages.service.IpcdService.DeviceConnectedEvent;
-import com.iris.messages.service.IpcdService.DeviceHeartBeatEvent;
 import com.iris.messages.service.IpcdService.FindDeviceRequest;
 import com.iris.messages.service.IpcdService.FindDeviceResponse;
 import com.iris.messages.service.IpcdService.ForceUnregisterRequest;
@@ -70,6 +68,8 @@ public class IpcdService extends AbstractPlatformMessageListener {
 
    private static final Logger logger = LoggerFactory.getLogger(IpcdService.class);
    private static final Address ADDRESS = Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE);
+   private static final Address IPCD_BRIDGE_ADDRESS = Address.bridgeAddress(IpcdProtocol.NAMESPACE);
+   private static final Address DEVICE_SERVICE_ADDRESS = Address.platformService(PlatformConstants.SERVICE_DEVICES);
 
    private final IpcdRegistry registry;
    private final PlatformMessageBus bus;
@@ -134,27 +134,41 @@ public class IpcdService extends AbstractPlatformMessageListener {
       logger.trace("incoming event [{}]", message);
       switch(message.getMessageType()) {
       case MessageConstants.MSG_ADD_DEVICE_RESPONSE:
-         registry.onEvent(message);
+         // completes a registration's pending add, so only the device service's answer counts
+         if(DEVICE_SERVICE_ADDRESS.equals(message.getSource())) {
+            registry.onEvent(message);
+         } else {
+            logger.warn("Dropping [{}] that did not come from the device service: [{}]", message.getMessageType(), message.getSource());
+         }
          break;
       case MessageConstants.MSG_ERROR:
-         if(Objects.equals(Address.platformService(PlatformConstants.SERVICE_DEVICES), message.getSource())) {
+         if(DEVICE_SERVICE_ADDRESS.equals(message.getSource())) {
             registry.onErrorEvent(message);
          } else {
             super.handleEvent(message);
          }
          break;
       case DeviceConnectedEvent.NAME:
-         registry.onConnected(message);
-         break;
-      // TODO:  This can be removed after 2.13.  During the 2.12 upgrade this needs to remain so heartbeats during the
-      // rolling restart are handled by both this and IpcdHeartbeatListener.
-      case DeviceHeartBeatEvent.NAME:
-         registry.onHeartBeat(message);
+         if(isFromIpcdBridge(message)) {
+            registry.onConnected(message);
+         }
          break;
       default:
+         // heartbeats arrive on the intraservice bus (SessionHeartBeater, IpcdHeartbeatListener)
          super.handleEvent(message);
          break;
       }
+   }
+
+   // ipcd-bridge sends the connected event from BRDG::IPCD (IpcdSession). It marks the device online
+   // at the bridge it names, so a client's frame, which carries its own bridge's client address,
+   // mustn't.
+   private static boolean isFromIpcdBridge(PlatformMessage message) {
+      boolean fromBridge = IPCD_BRIDGE_ADDRESS.equals(message.getSource());
+      if(!fromBridge) {
+         logger.warn("Dropping [{}] that did not come from ipcd-bridge: [{}]", message.getMessageType(), message.getSource());
+      }
+      return fromBridge;
    }
 
    private MessageBody handleListDeviceTypes() {

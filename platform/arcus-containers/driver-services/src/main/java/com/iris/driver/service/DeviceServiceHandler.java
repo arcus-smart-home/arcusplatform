@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -82,6 +83,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    private final IpcdDeviceDao ipcdDeviceDao;
    private final PersonDAO personDao;
    private final PersonPlaceAssocDAO personPlaceAssocDao;
+   private final Set<String> hubsWarnedForRemoves = ConcurrentHashMap.newKeySet();
 	private final DeviceService service;
    private final PlatformDriverService driverService;
    private final int syncSizeWarning;
@@ -134,9 +136,13 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    protected void handleEvent(PlatformMessage message) throws Exception {
       MessageBody body = message.getValue();
       String type = body.getMessageType();
+      if(isDeviceReportFromClient(message)) {
+         logger.warn("Dropping [{}] from client [{}]: only hubs and services report devices added or removed", type, message.getSource());
+         return;
+      }
       switch (type) {
       case DeviceAdvancedCapability.RemovedDeviceEvent.NAME:
-         handleRemovedDeviceEvent(message.getValue());
+         handleRemovedDeviceEvent(message);
          break;
       case Capability.EVENT_DELETED:
          handleDeletedEvent(message);
@@ -216,11 +222,41 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       }
    }
 
-   public void handleRemovedDeviceEvent(MessageBody request) {
+   // These name a device by the hub and protocol id in the body, so the sender has to be checked.
+   // Hubs (through hub-bridge), drivers and services send them; a client never does.
+   private static boolean isDeviceReportFromClient(PlatformMessage message) {
+      String type = message.getMessageType();
+      return
+            (DeviceAdvancedCapability.RemovedDeviceEvent.NAME.equals(type) || HubAdvancedCapability.GetDeviceInfoResponse.NAME.equals(type)) &&
+            message.getSource() != null &&
+            MessageConstants.CLIENT.equals(message.getSource().getNamespace());
+   }
+
+   /**
+    * Deletes the device the event names, or marks it lost. A hub may only remove its own devices,
+    * whose protocol addresses carry its hub id. The place header isn't compared: a hub can only
+    * reach its own devices anyway, and the place a hub's session or a service stamps can lag the
+    * device's (a hand-moved place, an IPCD device row), which would leave a device the hub has
+    * already excluded behind with no way to remove it.
+    */
+   public void handleRemovedDeviceEvent(PlatformMessage message) {
+      MessageBody request = message.getValue();
       String protocolName = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocol(request);
       String protocolId = DeviceAdvancedCapability.RemovedDeviceEvent.getProtocolId(request);
       String hubId = DeviceAdvancedCapability.RemovedDeviceEvent.getHubId(request);
       String status = DeviceAdvancedCapability.RemovedDeviceEvent.getStatus(request);
+
+      Address source = message.getSource();
+      if(source != null && source.getHubId() != null && !source.getHubId().equals(hubId)) {
+         // warn once per hub so a misbehaving hub can't flood the log at message rate
+         if(hubsWarnedForRemoves.add(source.getHubId())) {
+            logger.warn("Dropping remove for hub [{}] sent by hub [{}]; further ones from this hub log at debug", hubId, source.getHubId());
+         }
+         else {
+            logger.debug("Dropping remove for hub [{}] sent by hub [{}]", hubId, source.getHubId());
+         }
+         return;
+      }
 
       Address address = hubId == null ?
             Address.protocolAddress(protocolName, ProtocolDeviceId.fromRepresentation(protocolId)) :

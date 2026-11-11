@@ -60,6 +60,11 @@ public class IrisNettyMessageUtil {
       if (StringUtils.isBlank(clientMsg.getDestination())) {
          throw new IllegalArgumentException("Message cannot send broadcast messages and must provide a destination.");
       }
+      // Clients only send requests. Events come from hubs, drivers and services, and the services
+      // that act on them trust where they came from rather than checking a client's place.
+      if (!clientMsg.isRequest()) {
+         throw new IllegalArgumentException("Clients may only send requests.");
+      }
 
       PlatformMessage.Builder builder = PlatformMessage.buildMessage(
             clientMsg.getPayload(),

@@ -219,7 +219,7 @@ All messages are JSON `ClientMessage` objects serialized with this structure:
 | `source` | `headers` | Address of the sender (set by server on responses/events) |
 | `destination` | `headers` | Target address (set by client on requests) |
 | `correlationId` | `headers` | UUID for request/response pairing |
-| `isRequest` | `headers` | `true` if this message expects a response |
+| `isRequest` | `headers` | Always `true` from a client: the bridge answers anything else with an error. The server sets `false` on the events it sends |
 | `messageType` | `payload` | Same as top-level `type` |
 | `attributes` | `payload` | Message-type-specific key/value pairs |
 
