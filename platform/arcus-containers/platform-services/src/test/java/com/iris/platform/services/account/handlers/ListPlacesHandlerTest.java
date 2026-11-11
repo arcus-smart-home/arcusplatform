@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,9 +40,9 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.AccountCapability;
 import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
-import com.iris.messages.type.PlaceAccessDescriptor;
 import com.iris.security.apikey.ApiKeyPrincipal;
 
 /**
@@ -89,12 +88,6 @@ public class ListPlacesHandlerTest {
       handler = new ListPlacesHandler(placeDao, assocDao, transformer);
    }
 
-   private static PlaceAccessDescriptor access(Place place) {
-      PlaceAccessDescriptor descriptor = new PlaceAccessDescriptor();
-      descriptor.setPlaceId(place.getId().toString());
-      return descriptor;
-   }
-
    private PlatformMessage listPlaces(Address actor) {
       PlatformMessage.Builder builder = PlatformMessage
             .request(Address.platformService(account.getId(), AccountCapability.NAMESPACE))
@@ -126,7 +119,7 @@ public class ListPlacesHandlerTest {
       expectAccountPlaces();
       EasyMock.replay(placeDao, assocDao);
 
-      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(owner, "person")));
+      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(owner, PersonCapability.NAMESPACE)));
 
       assertEquals(ids(home, cabin), placesIn(response));
       EasyMock.verify(placeDao, assocDao);
@@ -134,13 +127,12 @@ public class ListPlacesHandlerTest {
 
    @Test
    public void testGuestGetsOnlyTheirPlace() {
-      // the guest also has access to a place on another account, which isn't this account's
-      EasyMock.expect(assocDao.listPlaceAccessForPerson(guest)).andReturn(Arrays.asList(access(cabin), access(otherAccountsPlace)));
-      EasyMock.expect(placeDao.findByPlaceIDIn(new HashSet<>(Arrays.asList(cabin.getId(), otherAccountsPlace.getId()))))
-            .andReturn(Arrays.asList(cabin, otherAccountsPlace));
+      // the guest also has a grant on a place on another account, which isn't even read
+      EasyMock.expect(assocDao.findPlaceIdsByPerson(guest)).andReturn(ImmutableSet.of(cabin.getId(), otherAccountsPlace.getId()));
+      EasyMock.expect(placeDao.findByPlaceIDIn(ImmutableSet.of(cabin.getId()))).andReturn(Arrays.asList(cabin));
       EasyMock.replay(placeDao, assocDao);
 
-      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(guest, "person")));
+      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(guest, PersonCapability.NAMESPACE)));
 
       assertEquals(ids(cabin), placesIn(response));
       EasyMock.verify(placeDao, assocDao);
@@ -148,11 +140,20 @@ public class ListPlacesHandlerTest {
 
    @Test
    public void testPersonWithNoPlaceOnTheAccountGetsNone() {
-      EasyMock.expect(assocDao.listPlaceAccessForPerson(guest)).andReturn(Collections.<PlaceAccessDescriptor>emptyList());
-      EasyMock.expect(placeDao.findByPlaceIDIn(Collections.<UUID>emptySet())).andReturn(Collections.<Place>emptyList());
+      EasyMock.expect(assocDao.findPlaceIdsByPerson(guest)).andReturn(ImmutableSet.of(otherAccountsPlace.getId()));
       EasyMock.replay(placeDao, assocDao);
 
-      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(guest, "person")));
+      MessageBody response = handler.handleRequest(account, listPlaces(Address.platformService(guest, PersonCapability.NAMESPACE)));
+
+      assertEquals(Collections.emptySet(), placesIn(response));
+      EasyMock.verify(placeDao, assocDao);
+   }
+
+   @Test
+   public void testPersonActorWithoutAUuidGetsNone() {
+      EasyMock.replay(placeDao, assocDao);
+
+      MessageBody response = handler.handleRequest(account, listPlaces(Address.fromString("SERV:" + PersonCapability.NAMESPACE + ":not-a-uuid")));
 
       assertEquals(Collections.emptySet(), placesIn(response));
       EasyMock.verify(placeDao, assocDao);
