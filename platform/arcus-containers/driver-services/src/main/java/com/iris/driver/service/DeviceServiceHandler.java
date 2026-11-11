@@ -161,7 +161,7 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    public MessageBody addDevice(PlatformMessage message, MessageBody request) {
       CreateDeviceRequest createRequest = new CreateDeviceRequest(request);
       try {
-         assertSenderMayAdd(message.getSource(), createRequest);
+         assertSenderMayAdd(message.getSource(), message.getPlaceId(), createRequest);
          AttributeMap protocolAttributes = AttributeMap.newMap();
          if(request.getAttributes().containsKey("protocolAttributes")) {
             String protocolAttrs = JSON.toJson(request.getAttributes().get("protocolAttributes"));
@@ -190,17 +190,29 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       }
    }
 
-   private static void assertSenderMayAdd(Address source, CreateDeviceRequest request) {
+   /**
+    * A client may only add mock devices, and a hub only a device that names it as its hub. Without
+    * a hub id the device would get a global protocol address, such as an IP device's, which isn't
+    * the hub's to claim; every hub controller names its own hub. Clients and hubs always send a
+    * place header, which DeviceService checks the device against, so an add from either without
+    * one is refused instead of being trusted.
+    */
+   private static void assertSenderMayAdd(Address source, String placeId, CreateDeviceRequest request) {
       if(source == null) {
          return;
       }
-      if(MessageConstants.CLIENT.equals(source.getNamespace()) && !MockProtocol.NAMESPACE.equals(request.getProtocolName())) {
+      boolean fromClient = MessageConstants.CLIENT.equals(source.getNamespace());
+      if(fromClient && !MockProtocol.NAMESPACE.equals(request.getProtocolName())) {
          logger.warn("Refusing to add a [{}] device for client [{}]: clients may only add mock devices", request.getProtocolName(), source);
          throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add from a client");
       }
-      if(source.getHubId() != null && request.getHubId() != null && !source.getHubId().equals(request.getHubId())) {
+      if(source.getHubId() != null && !source.getHubId().equals(request.getHubId())) {
          logger.warn("Refusing to add a device for hub [{}] sent by hub [{}]", request.getHubId(), source.getHubId());
          throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add for another hub");
+      }
+      if((fromClient || source.getHubId() != null) && placeId == null) {
+         logger.warn("Refusing to add a device for [{}]: the message has no place", source);
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device add without a place");
       }
    }
 

@@ -60,9 +60,10 @@ import com.iris.test.Modules;
  * A device add names its place in the body, or a hub whose place is used instead. When the
  * message has a place header, the device must belong to that place: a device already at the
  * protocol address must be there, a hub the request names must be there, and a new device gets
- * that place's account. The sender matters too: a client may only add mock devices, and a hub
- * only its own. Messages without a place header are left alone. The DAOs are strict mocks: a
- * refused add that saved, deleted or updated anything fails the test.
+ * that place's account. The sender matters too: a client may only add mock devices, a hub only
+ * a device that names it, and both have to send a place header. Services that send without a
+ * place header are left alone. The DAOs are strict mocks: a refused add that saved, deleted or
+ * updated anything fails the test.
  */
 @Mocks({ DeviceDAO.class, HubDAO.class, PersonDAO.class, PersonPlaceAssocDAO.class, PlaceDAO.class, PopulationDAO.class, IpcdDeviceDao.class })
 @Modules({ InMemoryMessageModule.class, TestDriverModule.class, AttributeMapTransformModule.class })
@@ -312,6 +313,20 @@ public class DeviceServiceAddScopeTest extends IrisMockTestCase {
    }
 
    @Test
+   public void testAddNamingNoPlaceOrHubGoesToTheRequestersPlace() {
+      CreateDeviceRequest request = request(null, null);
+      request.setHubId(null);
+      request.setProtocolName(MockProtocol.NAMESPACE);
+      expectFindByProtocolAddress(Address.protocolAddress(MockProtocol.NAMESPACE, protocolId), null);
+      expectRequesterAccount();
+      expectSuccessfulCreate();
+
+      Device device = create(request);
+      assertEquals(requesterPlace, device.getPlace());
+      assertEquals(requesterAccount, device.getAccount());
+   }
+
+   @Test
    public void testAddWithoutAPlaceHeaderIsNotChecked() {
       expectFindByProtocolAddress(null);
       expectSuccessfulCreate();
@@ -330,18 +345,24 @@ public class DeviceServiceAddScopeTest extends IrisMockTestCase {
    }
 
    private PlatformMessage add(String type, Address from, String protocol, String hub, UUID bodyPlace) {
+      return add(type, from, protocol, hub, bodyPlace, requesterPlace);
+   }
+
+   private PlatformMessage add(String type, Address from, String protocol, String hub, UUID bodyPlace, UUID headerPlace) {
       Map<String, Object> attributes = new HashMap<>();
       attributes.put(MessageConstants.ATTR_PROTOCOLNAME, protocol);
       attributes.put(MessageConstants.ATTR_DEVICEID, protocolId.getRepresentation());
       if(hub != null) {
          attributes.put(MessageConstants.ATTR_HUBID, hub);
       }
-      attributes.put(MessageConstants.ATTR_PLACEID, bodyPlace.toString());
+      if(bodyPlace != null) {
+         attributes.put(MessageConstants.ATTR_PLACEID, bodyPlace.toString());
+      }
       attributes.put(MessageConstants.ATTR_ACCOUNTID, otherAccount.toString());
       return PlatformMessage
             .request(Address.platformService(PlatformConstants.SERVICE_DEVICES))
             .from(from)
-            .withPlaceId(requesterPlace)
+            .withPlaceId(headerPlace)
             .withPayload(MessageBody.buildMessage(type, attributes))
             .create();
    }
@@ -370,6 +391,43 @@ public class DeviceServiceAddScopeTest extends IrisMockTestCase {
    public void testHubCannotAddAnotherHubsDevice() throws Exception {
       replay();
       assertNotFound(handler().handleRequest(add(MessageConstants.MSG_ADD_DEVICE_REQUEST, Address.hubService("OTH-0001", "hub"), protocolName, hubId, requesterPlace)));
+      verify();
+   }
+
+   @Test
+   public void testHubCannotAddWithoutNamingItself() throws Exception {
+      // without a hub id the device would get a global address, an IP device's for example
+      replay();
+      assertNotFound(handler().handleRequest(add(MessageConstants.MSG_ADD_DEVICE_REQUEST, Address.hubService(hubId, "hub"), "IPCD", null, requesterPlace)));
+      verify();
+   }
+
+   @Test
+   public void testHubAddWithoutAPlaceHeaderIsRefused() throws Exception {
+      replay();
+      assertNotFound(handler().handleRequest(add(MessageConstants.MSG_ADD_DEVICE_REQUEST, Address.hubService(hubId, "hub"), protocolName, hubId, null, null)));
+      verify();
+   }
+
+   @Test
+   public void testClientAddWithoutAPlaceHeaderIsRefused() throws Exception {
+      replay();
+      assertNotFound(handler().handleRequest(add(MessageConstants.MSG_ADD_DEVICE_REQUEST, Fixtures.createClientAddress(), MockProtocol.NAMESPACE, null, otherPlace, null)));
+      verify();
+   }
+
+   @Test
+   public void testHubAddsItsOwnDevice() throws Exception {
+      // what a hub controller sends: its own hub id and account, no place
+      expectFindByProtocolAddress(null);
+      expectHub(requesterPlace, requesterAccount);
+      expectRequesterAccount();
+      expectSuccessfulCreate();
+      replay();
+
+      MessageBody response = handler().handleRequest(add(MessageConstants.MSG_ADD_DEVICE_REQUEST, Address.hubService(hubId, "hub"), protocolName, hubId, null));
+      assertEquals(requesterAccount.toString(), response.getAttributes().get(MessageConstants.ATTR_ACCOUNTID));
+      assertNotNull(response.getAttributes().get(MessageConstants.ATTR_DEVICEID));
       verify();
    }
 

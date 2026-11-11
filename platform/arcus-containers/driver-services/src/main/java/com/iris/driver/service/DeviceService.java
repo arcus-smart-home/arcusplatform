@@ -119,18 +119,15 @@ public class DeviceService {
       return addsInProgress.get(protocolAddress) != null;
    }
    
-   // without a requester place nothing is checked, so this form is only for tests
-   Device create(CreateDeviceRequest request, AttributeMap protocolAttributes) {
-      return create(request, protocolAttributes, null);
-   }
-
    /**
     * Creates the device, or re-adds the device already at its protocol address.
     *
     * @param requesterPlace the place header of the message asking for the device, or null for
-    *    senders without one. When set, the device has to belong to that place: a device already
-    *    at the protocol address must be there (or have no place), a hub the request names must be
-    *    there, and a new device is created only there, under that place's account.
+    *    services that send without one (DeviceServiceHandler refuses clients and hubs without
+    *    one). When set, the device has to belong to that place: a device already at the protocol
+    *    address must be there (or have no place), a hub the request names must be there, and a
+    *    new device is created only there, under that place's account. A request that names no
+    *    place and no hub gets the requester's place.
     */
    public Device create(CreateDeviceRequest request, AttributeMap protocolAttributes, @Nullable String requesterPlace) {
       Preconditions.checkNotNull(request.getProtocolName(), "must specify a protocol name");
@@ -144,14 +141,13 @@ public class DeviceService {
       
       ProtocolDeviceId protocolId = request.getProtocolId();
       String hubId = request.getHubId();
-      Address address = getProtocolAddress(request);
       Address protocolAddress = getProtocolAddress(request);
       if(protocolAddress == null) {
          logger.warn("Unable to determine protocol address for request [{}]", request);
          throw new ErrorEventException(Errors.invalidRequest("Invalid protocol address"));
       }
 
-      Device existingDevice = lockByProtocolAddress(address,protocolId,hubId);
+      Device existingDevice = lockByProtocolAddress(protocolAddress,protocolId,hubId);
       // lockByProtocolAddress keeps the lock unless it found a live device, and only a lock this
       // call holds may be released. This try block CAN NOT start any earlier.
       boolean locked = existingDevice == null || existingDevice.isTombstoned();
@@ -179,6 +175,10 @@ public class DeviceService {
                request.setAccountId(hub.getAccount());
                request.setPlaceId(hub.getPlace());
             }
+         }
+         if(requesterPlace != null && request.getPlaceId() == null) {
+            // nothing named a place, so the device goes where the request came from
+            request.setPlaceId(UUID.fromString(requesterPlace));
          }
          // checked after the hub lookup, which can replace the place the request named
          assertRequesterPlace(requesterPlace, request.getPlaceId(), protocolAddress);

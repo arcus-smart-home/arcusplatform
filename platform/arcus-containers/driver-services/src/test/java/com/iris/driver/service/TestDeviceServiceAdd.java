@@ -118,7 +118,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequest();
-      Device response = uut.create(request, protocolAttributes);
+      Device response = uut.create(request, protocolAttributes, null);
       assertNotNull(response);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
@@ -146,7 +146,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequestWithNoPlaceId();
-      Device response = uut.create(request, protocolAttributes);
+      Device response = uut.create(request, protocolAttributes, null);
       assertNotNull(response);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
@@ -174,7 +174,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequest();
-      Device response = uut.create(request, protocolAttributes);
+      Device response = uut.create(request, protocolAttributes, null);
       assertNotNull(response);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
@@ -202,7 +202,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequestWithNoPlaceId();
-      Device response = uut.create(request, protocolAttributes);
+      Device response = uut.create(request, protocolAttributes, null);
       assertNotNull(response);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
@@ -234,7 +234,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequest();
-      uut.create(request, protocolAttributes);
+      uut.create(request, protocolAttributes, null);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
       verify();
@@ -254,7 +254,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequest();
-      uut.create(request, protocolAttributes);
+      uut.create(request, protocolAttributes, null);
       verify();
    }
    
@@ -270,7 +270,7 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       replay();
 
       CreateDeviceRequest request = createRequest();
-      Device response = uut.create(request, protocolAttributes);
+      Device response = uut.create(request, protocolAttributes, null);
       assertNotNull(response);
       assertFalse(uut.isUpgradeInProgress(protocolAddress));
 
