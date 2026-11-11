@@ -1,0 +1,154 @@
+# Boots the services a deployment runs against throwaway ZooKeeper, Kafka and
+# Cassandra, to check that each one still starts: its Guice modules wire up,
+# its configuration resolves, it reaches Kafka and Cassandra, and it opens its
+# health check port. Driven by run.sh, which sets ARCUS_VERSION.
+#
+# The infrastructure answers to the names the code defaults to
+# (cassandra.eyeris, kafka.eyeris:9092, kafkaops.eyeris:9092), so the services
+# need no host settings of their own.
+name: arcus-smoke
+
+x-service: &service
+  env_file: smoke.env
+  restart: "no"
+  networks: [arcus]
+
+# Workers answer on a TCP port once started and Cassandra is healthy
+# (TcpHealthCheck); bridges serve GET /check on an HTTP port (CheckPage).
+x-tcp-health: &tcp-health
+  interval: 5s
+  timeout: 3s
+  retries: 1000
+  start_period: 0s
+
+services:
+  zookeeper:
+    image: arcus/zookeeper:latest
+    networks:
+      arcus:
+        aliases: [zookeeper.eyeris, zookeeperops.eyeris]
+    tmpfs: [/data]
+
+  kafka:
+    image: arcus/kafka:latest
+    environment:
+      ZOOKEEPER: zookeeper.eyeris:2181
+      ZOOKEEPEROPS: zookeeper.eyeris:2181
+      ADVERTISED_HSTN: kafka.eyeris
+      KAFKA_REPLICATION: "1"
+      KAFKAOPS_REPLICATION: "1"
+      KAFKA_HSIZE: "256"
+    depends_on: [zookeeper]
+    networks:
+      arcus:
+        aliases: [kafka.eyeris, kafkaops.eyeris]
+    tmpfs: [/data]
+
+  cassandra:
+    image: arcus/cassandra:latest
+    environment:
+      CASSANDRA_SINGLE_NODE: "true"
+      CASSANDRA_REPLICATION: "1"
+      CASSANDRA_KEYSPACE: dev
+      CASSANDRA_HEAPSIZE: "512"
+    networks:
+      arcus:
+        aliases: [cassandra.eyeris]
+    tmpfs: [/data, /var/log/cassandra]
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'describe keyspaces' | cqlsh $$HOSTNAME >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+
+  # One-shot schema setup, run by run.sh with `docker compose run`.
+  modelmanager-platform: &modelmanager
+    <<: *service
+    image: arcus/modelmanager:${ARCUS_VERSION}
+    profiles: [setup]
+    environment:
+      MODELMANAGER_SCHEMA: platform
+  modelmanager-history:
+    <<: *modelmanager
+    environment:
+      MODELMANAGER_SCHEMA: history
+
+  platform-services:
+    <<: *service
+    image: arcus/platform-services:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9003"]
+
+  driver-services:
+    <<: *service
+    image: arcus/driver-services:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
+
+  subsystem-service:
+    <<: *service
+    image: arcus/subsystem-service:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9006"]
+
+  rule-service:
+    <<: *service
+    image: arcus/rule-service:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9004"]
+
+  scheduler-service:
+    <<: *service
+    image: arcus/scheduler-service:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9005"]
+
+  history-service:
+    <<: *service
+    image: arcus/history-service:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9001"]
+
+  notification-services:
+    <<: *service
+    image: arcus/notification-services:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9002"]
+
+  client-bridge:
+    <<: *service
+    image: arcus/client-bridge:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9081/check"]
+
+  hub-bridge:
+    <<: *service
+    image: arcus/hub-bridge:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9082/check"]
+
+  api-bridge:
+    <<: *service
+    image: arcus/api-bridge:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9081/check"]
+
+  ivr-callback-server:
+    <<: *service
+    image: arcus/ivr-callback-server:${ARCUS_VERSION}
+    healthcheck:
+      <<: *tcp-health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9085/check"]
+
+networks:
+  arcus: {}

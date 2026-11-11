@@ -32,6 +32,37 @@ jobs:
       - name: Run tests
         run: ./gradlew test --no-daemon
 
+  # Unit tests build each service's pieces on their own; this starts the
+  # services themselves, from the images a release would ship, against real
+  # ZooKeeper, Kafka and Cassandra. It catches what only shows up at startup:
+  # a missing Guice binding, a configuration key with no value, a schema
+  # change modelmanager can't apply, a start script or image that is broken.
+  Boot-Smoke-Test:
+    runs-on: ubuntu-latest
+    name: Boot smoke test
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          # See the note on the Test job: 'basic' keeps the MIT-licensed cache.
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+      - name: Build the images and start every service
+        run: khakis/smoke-test/run.sh --build
+      - name: Upload container logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test-logs
+          path: build/smoke-test/
+          if-no-files-found: ignore
+
   Check-Driver-Changes:
     runs-on: ubuntu-latest
     name: Check for driver file changes
