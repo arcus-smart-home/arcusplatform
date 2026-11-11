@@ -802,10 +802,13 @@ public class HubController implements PortHandler, LifeCycleListener, BackupFini
       if (HubCapability.STATE_UNPAIRING.equals(oldState)) {
          doExitUnpairingMode();
       } else if (HubCapability.STATE_PAIRING.equals(oldState)) {
-         // The window keeps its timer, but Z-Wave takes s2PinEntry from every request, so a client
-         // that can enter an S2 PIN is still heard after a search started without one
-         log.info("already in pairing mode, passing the request on to Z-Wave only");
+         // The window keeps its timer, but each radio takes its settings from every request:
+         // Z-Wave its s2PinEntry, so a client that can enter an S2 PIN is still heard after a
+         // search started without one, and ZigBee its key mode, so an AlertMe product's page
+         // opened during a general search lets the device join
+         log.info("already in pairing mode, passing the request on to the radios");
          port.forward(ZWaveController.ADDRESS, message);
+         port.forward(ZigbeeController.ADDRESS, message);
          return;
       }
 
