@@ -55,7 +55,7 @@ public class DeviceSettingsConfigReportHandler implements ContextualEventHandler
       }
 
       com.iris.protocol.ProtocolMessage protocolMessage = (com.iris.protocol.ProtocolMessage) event;
-      // as a listener it sees every protocol, e.g. the hub's control messages
+      // Only handle Z-Wave: a protocol listener gets messages of every protocol
       if (!ZWaveProtocol.NAMESPACE.equals(protocolMessage.getMessageType())) {
          return false;
       }

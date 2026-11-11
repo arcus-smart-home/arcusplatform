@@ -82,7 +82,7 @@ public class TestDeviceSettingsConfigReportHandler {
       verify(context);
    }
 
-   // As a listener it gets every protocol's messages, e.g. the hub's control messages
+   // A protocol listener gets messages of every protocol, such as the hub's control messages
    @Test
    public void testIgnoresOtherProtocols() throws Exception {
       ProtocolMessage report = buildConfigReportMessage((byte) 2, 1, new byte[]{0x01});
