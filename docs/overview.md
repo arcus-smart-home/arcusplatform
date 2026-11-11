@@ -50,7 +50,7 @@ The following services are critical to basic user functionality:
 * client-bridge - hosts the main websocket server that users connect to (via web or mobile client)
 * platform-services - used to handle account registration and and other shared tasks
 * subsystem-service - used for a lot of functionality, including alarms, door locks, light switches, etc.
-* notification-services - (optional) used for sending notifications via APNS, GCM, Twilio, or SendGrid.
+* notification-services - (optional) used for sending notifications via APNS, Twilio, or Mailgun.
 * ivr-callback-server (optional) - used for saying a message to the user over the phone. If not configured, you'll get a phone call where the computer will say "an error occurred", and hang up.
 * driver-services - handles zigbee/zwave/etc between the bridge and other arcus systems.
 * rule-service - provides rules
