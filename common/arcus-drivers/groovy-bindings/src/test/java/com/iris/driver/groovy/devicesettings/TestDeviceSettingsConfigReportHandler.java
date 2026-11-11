@@ -82,6 +82,22 @@ public class TestDeviceSettingsConfigReportHandler {
       verify(context);
    }
 
+   // As a listener it gets every protocol's messages, e.g. the hub's control messages
+   @Test
+   public void testIgnoresOtherProtocols() throws Exception {
+      ProtocolMessage report = buildConfigReportMessage((byte) 2, 1, new byte[]{0x01});
+      ProtocolMessage other = ProtocolMessage.builder()
+            .from(report.getSource())
+            .to(report.getDestination())
+            .withPayload("CTRL", report.getBuffer())
+            .create();
+
+      context = createMock(DeviceDriverContext.class);
+      replay(context);
+      assertFalse(handler.handleEvent(context, other));
+      verify(context);
+   }
+
    @Test
    public void testProcessesKnownParam1Byte() throws Exception {
       // Configuration Report: param=2, size=1, value=1
