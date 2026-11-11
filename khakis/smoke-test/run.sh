@@ -59,6 +59,27 @@ if ${BUILD}; then
    (cd "${ROOT}" && ./gradlew --no-daemon ${TASKS})
 fi
 
+# Where modelmanager is installed in its image, e.g.
+# /modelmanager-2026.11.1-SNAPSHOT/. Compose needs it for the history schema.
+MODELMANAGER_INSTALL=$(docker run --rm --entrypoint printenv \
+   "arcus/modelmanager:${ARCUS_VERSION}" MODELMANAGER_HOME)
+export MODELMANAGER_INSTALL
+
+# hub-bridge runs mutual TLS: give it a self-signed certificate and key, and
+# trust that same certificate for client certificates. Readable by the
+# container's own user.
+SMOKE_CERTS=${ROOT}/build/smoke-test-certs
+export SMOKE_CERTS
+KEYTOOL=${JAVA_HOME:+${JAVA_HOME}/bin/}keytool
+rm -rf "${SMOKE_CERTS}"
+mkdir -p "${SMOKE_CERTS}"
+openssl req -x509 -newkey rsa:2048 -nodes -days 7 -subj /CN=hub-bridge \
+   -keyout "${SMOKE_CERTS}/tls.key" -out "${SMOKE_CERTS}/tls.crt" 2>/dev/null
+"${KEYTOOL}" -importcert -noprompt -alias smoke-test -storetype JKS -storepass smoke-test \
+   -file "${SMOKE_CERTS}/tls.crt" -keystore "${SMOKE_CERTS}/truststore.jks" >/dev/null
+chmod a+rx "${SMOKE_CERTS}"
+chmod a+r "${SMOKE_CERTS}"/*
+
 save_logs() {
    mkdir -p "${LOGS}"
    for s in zookeeper kafka cassandra ${SERVICES}; do
@@ -71,7 +92,7 @@ cleanup() {
    save_logs
    if ${KEEP}; then
       echo "Leaving the containers running (--keep). Stop them with:"
-      echo "  ARCUS_VERSION=${ARCUS_VERSION} docker compose -f ${HERE}/docker-compose.yml down -v"
+      echo "  ARCUS_VERSION=${ARCUS_VERSION} MODELMANAGER_INSTALL=${MODELMANAGER_INSTALL} SMOKE_CERTS=${SMOKE_CERTS} docker compose -f ${HERE}/docker-compose.yml down -v"
    else
       compose --profile setup down -v --remove-orphans >/dev/null 2>&1 || true
    fi

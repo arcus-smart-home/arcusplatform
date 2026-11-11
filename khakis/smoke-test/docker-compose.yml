@@ -14,8 +14,9 @@ x-service: &service
   networks: [arcus]
 
 # Workers answer on a TCP port once started and Cassandra is healthy
-# (TcpHealthCheck); bridges serve GET /check on an HTTP port (CheckPage).
-x-tcp-health: &tcp-health
+# (TcpHealthCheck); bridges answer GET /check on an HTTP port with 204
+# (CheckPage). The probes use bash because the images have no wget or curl.
+x-health: &health
   interval: 5s
   timeout: 3s
   retries: 1000
@@ -42,7 +43,8 @@ services:
     networks:
       arcus:
         aliases: [kafka.eyeris, kafkaops.eyeris]
-    tmpfs: [/data]
+    # Kafka runs as its own user, and a tmpfs mounts owned by root.
+    tmpfs: ["/data:mode=1777"]
 
   cassandra:
     image: arcus/cassandra:latest
@@ -61,94 +63,112 @@ services:
       timeout: 10s
       retries: 60
 
-  # One-shot schema setup, run by run.sh with `docker compose run`.
+  # One-shot schema setup, run by run.sh with `docker compose run`, using the
+  # image's own command.
   modelmanager-platform: &modelmanager
     <<: *service
     image: arcus/modelmanager:${ARCUS_VERSION}
     profiles: [setup]
     environment:
       MODELMANAGER_SCHEMA: platform
+  # The history schema's changelogs live in their own directory under the
+  # install, whose name carries the build's full version; run.sh reads it
+  # from the image.
   modelmanager-history:
     <<: *modelmanager
     environment:
+      MODELMANAGER_HOME: ${MODELMANAGER_INSTALL:?}history-resources/
       MODELMANAGER_SCHEMA: history
 
   platform-services:
     <<: *service
     image: arcus/platform-services:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9003"]
 
   driver-services:
     <<: *service
     image: arcus/driver-services:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
 
   subsystem-service:
     <<: *service
     image: arcus/subsystem-service:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9006"]
 
   rule-service:
     <<: *service
     image: arcus/rule-service:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9004"]
 
   scheduler-service:
     <<: *service
     image: arcus/scheduler-service:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9005"]
 
   history-service:
     <<: *service
     image: arcus/history-service:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9001"]
 
   notification-services:
     <<: *service
     image: arcus/notification-services:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
+      <<: *health
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9002"]
 
   client-bridge:
     <<: *service
     image: arcus/client-bridge:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9081/check"]
+      <<: *health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9081 && printf 'GET /check HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 204 '"]
 
+  # Hubs connect over mutual TLS, so this one runs it, with throwaway
+  # material from run.sh mounted where the deployment mounts its own.
   hub-bridge:
     <<: *service
     image: arcus/hub-bridge:${ARCUS_VERSION}
+    environment:
+      TLS_SERVER_CERT_FILEPATH: /data/tls-secrets/tls.crt
+      TLS_SERVER_PRIVATEKEY_FILEPATH: /data/tls-secrets/tls.key
+      TLS_SERVER_TRUSTSTORE_FILEPATH: /data/tls-secrets/truststore.jks
+      TLS_SERVER_TRUSTSTORE_PASSWORD: smoke-test
+    volumes:
+      - ${SMOKE_CERTS:?}:/data/tls-secrets:ro
     healthcheck:
-      <<: *tcp-health
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9082/check"]
+      <<: *health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9082 && printf 'GET /check HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 204 '"]
 
   api-bridge:
     <<: *service
     image: arcus/api-bridge:${ARCUS_VERSION}
     healthcheck:
-      <<: *tcp-health
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9081/check"]
+      <<: *health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9081 && printf 'GET /check HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 204 '"]
 
+  # TLS ends in front of it, as in the deployment.
   ivr-callback-server:
     <<: *service
     image: arcus/ivr-callback-server:${ARCUS_VERSION}
+    environment:
+      TLS_SERVER: "false"
+      USE_SSL: "false"
     healthcheck:
-      <<: *tcp-health
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9085/check"]
+      <<: *health
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9085 && printf 'GET /check HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 204 '"]
 
 networks:
   arcus: {}
