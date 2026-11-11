@@ -15,10 +15,9 @@
  */
 package com.iris.platform.services.account.handlers;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,11 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import com.iris.Utils;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
 import com.iris.core.dao.PersonPlaceAssocDAO;
@@ -43,16 +39,12 @@ import com.iris.messages.capability.AccountCapability;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
-import com.iris.messages.type.PlaceAccessDescriptor;
 
 @Singleton
 public class ListPlacesHandler implements ContextualRequestMessageHandler<Account> {
 
    public static final String MESSAGE_TYPE = AccountCapability.ListPlacesRequest.NAME;
 
-   @Inject(optional = true) @Named("account.listplaces.filterByAccount")
-   private boolean filterByAccount = true;
-   
    private final PlaceDAO placeDAO;
    private final PersonPlaceAssocDAO associationDAO;
    private final BeanAttributesTransformer<Place> placeTransformer;
@@ -79,44 +71,30 @@ public class ListPlacesHandler implements ContextualRequestMessageHandler<Accoun
       
       List<Place> places;
       Address actor = msg.getActor();
-      if(
-      		actor != null && 
-      		PersonCapability.NAMESPACE.equals(actor.getNamespace())
-		) {
-      	places = getAssociatedPlaces(context, (UUID) actor.getId());
+      // a person actor is SERV:person:<id>; the owner gets every place on the account. Anyone
+      // without a person actor (internal callers, API keys, which api-bridge narrows to the key's
+      // place in ApiPlatformBusListener) gets them all too.
+      if(actor != null && PersonCapability.NAMESPACE.equals(actor.getGroup()) && !Objects.equals(context.getOwner(), actor.getId())) {
+         places = getAssociatedPlaces(context, actor.getId());
       }
       else {
-      	places = placeDAO.findByPlaceIDIn(context.getPlaceIDs());
+         places = placeDAO.findByPlaceIDIn(context.getPlaceIDs());
       }
-      
+
       List<Map<String,Object>> transformed = places.stream().map((p) -> placeTransformer.transform(p)).collect(Collectors.toList());
       Map<String,Object> response = new HashMap<>();
       response.put(AccountCapability.ListPlacesResponse.ATTR_PLACES, transformed);
       return MessageBody.buildResponse(msg.getValue(), response);
    }
 
-   private List<Place> getAssociatedPlaces(Account context, UUID personId) {
-      Set<UUID> placeIds = new HashSet<>();
-      for(PlaceAccessDescriptor descriptor: associationDAO.listPlaceAccessForPerson(personId)) {
-      	if(descriptor == null) {
-      		continue;
-      	}
-      	if(StringUtils.isEmpty(descriptor.getPlaceId())) {
-      		continue;
-      	}
-      	placeIds.add(UUID.fromString(descriptor.getPlaceId()));
+   // the places on this account the person has a grant on; a person id that isn't a UUID has none
+   private List<Place> getAssociatedPlaces(Account context, Object personId) {
+      if(!(personId instanceof UUID)) {
+         return Collections.emptyList();
       }
-      List<Place> places = placeDAO.findByPlaceIDIn(placeIds);
-      if(filterByAccount) {
-      	places = new ArrayList<>(places);
-      	Iterator<Place> it = places.iterator();
-      	while(it.hasNext()) {
-      		if(!Objects.equals(context.getId(), it.next().getAccount())) {
-      			it.remove();
-      		}
-      	}
-      }
-      return places;
+      Set<UUID> placeIds = new HashSet<>(associationDAO.findPlaceIdsByPerson((UUID) personId));
+      placeIds.retainAll(context.getPlaceIDs());
+      return placeIds.isEmpty() ? Collections.emptyList() : placeDAO.findByPlaceIDIn(placeIds);
    }
 }
 

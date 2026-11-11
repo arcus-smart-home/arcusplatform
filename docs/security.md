@@ -77,6 +77,7 @@ Scope checks, using only the session's grants:
 - "Self" methods (add mobile device, delete login, invitations) require the message actor to match the destination
 - Place, account and mobile device destinations require a grant on that place or account, or for a mobile device to be the actor's own
 - Place-scoped service requests verify the user has at least one permission for the target place
+- Client (`CLNT:`) destinations are always denied: the bridges deliver whatever is addressed to a client straight into that session
 
 **PermissionsAuthorizer** (`platform/arcus-security/.../authz/PermissionsAuthorizer.java`):
 
@@ -100,6 +101,7 @@ It doesn't look at where the destination belongs, so it isn't enough by itself: 
 | Scenes, schedulers, pairing devices | Their handlers |
 | IPCD devices | `IpcdService` |
 | People | `PersonAccess` (see below) |
+| An account's places (`account:ListPlaces`) | `ListPlacesHandler`: anyone with a grant on the account may ask, and a person other than the owner gets only their own places there |
 
 **People:** someone with a login manages their own record, because their email is their username. Anyone sharing a place may maintain someone without a login. The web, iOS and Android clients all follow the same rule. Reading a person needs a shared place. A stranger gets `not found`, so these can't be used to test person ids.
 

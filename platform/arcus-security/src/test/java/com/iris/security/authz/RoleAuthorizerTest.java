@@ -29,12 +29,14 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.NotificationCapability;
 import com.iris.messages.capability.PersonCapability;
 import com.iris.messages.capability.PlaceCapability;
+import com.iris.messages.service.BridgeService;
 import com.iris.messages.service.RuleService;
 
 import ch.qos.logback.classic.Level;
@@ -145,6 +147,54 @@ public class RoleAuthorizerTest {
       assertTrue(authorizer.isAuthorized(context, placeId.toString(), message));
       EasyMock.verify(metrics);
       assertTrue(appender.list.isEmpty());
+   }
+
+   // anything sent to a client address is delivered into that client's session by its token
+
+   @Test
+   public void testMessageToAnotherClientDenied() {
+      metrics.onUnauthorizedClientDestination();
+      EasyMock.replay(metrics);
+
+      PlatformMessage message = request(Capability.EVENT_VALUE_CHANGE, ImmutableMap.of("swit:state", "ON"), Address.clientAddress("android", "other-session"));
+      assertFalse(authorizer.isAuthorized(context, placeId.toString(), message));
+      assertDenied("clientdestination", message, "activePlace=" + placeId);
+   }
+
+   @Test
+   public void testEventToAnotherClientDenied() {
+      metrics.onUnauthorizedClientDestination();
+      EasyMock.replay(metrics);
+
+      PlatformMessage message = PlatformMessage
+            .buildEvent(Capability.EVENT_VALUE_CHANGE, ImmutableMap.of("swit:state", "ON"), Address.clientAddress("android", "1"))
+            .to(Address.clientAddress("api", "other-session"))
+            .withActor(actor)
+            .create();
+      assertFalse(authorizer.isAuthorized(context, placeId.toString(), message));
+      assertDenied("clientdestination", message);
+   }
+
+   @Test
+   public void testOpenRequestToAnotherClientDenied() {
+      // a ping is open to anyone, but not when it's addressed to a client
+      metrics.onUnauthorizedClientDestination();
+      EasyMock.replay(metrics);
+
+      PlatformMessage message = request(MessageConstants.MSG_PING_REQUEST, ImmutableMap.of(), Address.clientAddress("android", "other-session"));
+      assertFalse(authorizer.isAuthorized(context, placeId.toString(), message));
+      assertDenied("clientdestination", message);
+   }
+
+   @Test
+   public void testRequestToTheIpcdBridgeAuthorized() {
+      // clients register IP devices with BRDG::IPCD, so bridge destinations stay open
+      metrics.onAuthorized();
+      EasyMock.replay(metrics);
+
+      PlatformMessage message = request(BridgeService.RegisterDeviceRequest.NAME, ImmutableMap.of(), Address.bridgeAddress("IPCD"));
+      assertTrue(authorizer.isAuthorized(context, placeId.toString(), message));
+      EasyMock.verify(metrics);
    }
 
    @Test

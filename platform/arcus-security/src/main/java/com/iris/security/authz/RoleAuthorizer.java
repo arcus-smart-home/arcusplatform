@@ -73,6 +73,13 @@ public class RoleAuthorizer implements Authorizer {
          return deny("disabled", placeId, null, message);
       }
 
+      // the bridges deliver anything addressed to a client address straight into that session, and
+      // no client needs to send to one, so a client can't put messages in front of another
+      if(MessageConstants.CLIENT.equals(message.getDestination().getNamespace())) {
+         this.metrics.onUnauthorizedClientDestination();
+         return deny("clientdestination", placeId, null, message);
+      }
+
       // things that can bypass place header
       switch(message.getMessageType()) {
 
