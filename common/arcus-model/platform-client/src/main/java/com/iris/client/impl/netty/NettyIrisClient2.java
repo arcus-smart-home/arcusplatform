@@ -351,10 +351,12 @@ public class NettyIrisClient2 implements IrisClient {
          throw new IllegalStateException("Client is not authenticated. Please login() first");
       }
 
+      // the bridges refuse anything but a request from a client; nothing waits for the response,
+      // which handleMessage passes to the message listeners like any other
       ClientMessage message =
             ClientMessage
                .builder()
-               .isRequest(false)
+               .isRequest(true)
                .withDestination(clientRequest.getAddress())
                .withType(clientRequest.getCommand())
                .withAttributes(clientRequest.getAttributes())

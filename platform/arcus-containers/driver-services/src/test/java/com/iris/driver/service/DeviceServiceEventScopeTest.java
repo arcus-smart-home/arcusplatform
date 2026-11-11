@@ -59,8 +59,10 @@ import com.iris.test.Modules;
  * devadv:RemovedDevice and hubadv:GetDeviceInfoResponse name a device by the hub and protocol id
  * in their body, so the handler has to check who sent them. The client bridges refuse a frame
  * with isRequest=false, but the role authorizer on its own doesn't stop an event to the device
- * service, and the handler must not depend on the bridge. Every DAO and the device service are strict mocks: a dropped event that looked a
- * device up, or deleted or created one, fails the test.
+ * service, and the handler must not depend on the bridge. A hub may only remove its own devices;
+ * the place header isn't compared, since it can lag the device's. Every DAO and the device
+ * service are strict mocks: a dropped event that looked a device up, or deleted or created one,
+ * fails the test.
  */
 @Mocks({
    DeviceDAO.class,
@@ -211,9 +213,11 @@ public class DeviceServiceEventScopeTest extends IrisMockTestCase {
    }
 
    @Test
-   public void testRemovedDeviceForAnotherPlaceIsDropped() throws Exception {
-      // the hub named is the sender, but its session is at another place than the device
+   public void testHubRemovesItsOwnDeviceWhenItsSessionIsAtAnotherPlace() throws Exception {
+      // the hub's session place lags its devices' (a hand-moved place); the hub has already
+      // excluded the device, so dropping the remove would leave it behind for good
       EasyMock.expect(deviceDao.findByProtocolAddress(hubDevice.getProtocolAddress())).andReturn(hubDevice);
+      EasyMock.expect(service.delete(hubDevice.copy())).andReturn(true);
       replay();
 
       handler().handleEvent(overTheBus(fromHub(removed(HUB_ID), HUB_ID, otherPlace)));
@@ -222,11 +226,17 @@ public class DeviceServiceEventScopeTest extends IrisMockTestCase {
    }
 
    @Test
-   public void testRemovedDeviceWithoutAPlaceHeaderIsDropped() throws Exception {
-      EasyMock.expect(deviceDao.findByProtocolAddress(hubDevice.getProtocolAddress())).andReturn(hubDevice);
+   public void testServiceRemovesADeviceWithoutAPlaceHeader() throws Exception {
+      // IpcdRegistry builds its remove from the IPCD device row, whose place can lag the device's
+      Device ipDevice = hubDevice.copy();
+      ipDevice.setHubId(null);
+      ipDevice.setProtocolAddress(Address.protocolAddress(hubDevice.getProtocol(), ProtocolDeviceId.fromRepresentation(hubDevice.getProtocolid())).getRepresentation());
+      EasyMock.expect(deviceDao.findByProtocolAddress(ipDevice.getProtocolAddress())).andReturn(ipDevice);
+      EasyMock.expect(service.delete(ipDevice.copy())).andReturn(true);
       replay();
 
-      handler().handleEvent(overTheBus(fromHub(removed(HUB_ID), HUB_ID, null)));
+      PlatformMessage message = PlatformMessage.buildMessage(removed(null), Address.platformService("ipcd"), Address.platformService(DeviceServiceHandler.NAME)).create();
+      handler().handleEvent(overTheBus(message));
 
       verify();
    }

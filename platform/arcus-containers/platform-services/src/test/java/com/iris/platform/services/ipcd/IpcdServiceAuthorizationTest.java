@@ -24,6 +24,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.iris.capability.attribute.transform.BeanAttributesTransformer;
@@ -31,6 +32,7 @@ import com.iris.core.dao.DeviceDAO;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.protocol.ipcd.IpcdDeviceDao;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.errors.UnauthorizedRequestException;
@@ -250,19 +252,37 @@ public class IpcdServiceAuthorizationTest {
    }
 
    @Test
-   public void testClientHeartbeatIsDropped() throws Exception {
+   public void testHeartbeatOnThePlatformBusIsIgnored() throws Exception {
+      // SessionHeartBeater sends heartbeats on the intraservice bus (IpcdHeartbeatListener), so
+      // one on the platform bus came from somewhere else, even when it claims to be the bridge
       replayAll();
       service.handleEvent(clientEvent(heartbeat()));
+      service.handleEvent(PlatformMessage
+            .buildMessage(heartbeat(), Address.clientAddress("ipcd-bridge", "0"), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .create());
+      EasyMock.verify(registry);
+   }
+
+   // an add response completes a registration's pending add
+
+   private MessageBody addResponse() {
+      return MessageBody.buildMessage(MessageConstants.MSG_ADD_DEVICE_RESPONSE, ImmutableMap.<String, Object>of(MessageConstants.ATTR_DEVICEADDRESS, "DRIV:dev:" + UUID.randomUUID()));
+   }
+
+   @Test
+   public void testClientAddResponseIsDropped() throws Exception {
+      replayAll();
+      service.handleEvent(clientEvent(addResponse()));
       EasyMock.verify(registry);
    }
 
    @Test
-   public void testIpcdBridgeHeartbeatIsHandled() throws Exception {
-      // SessionHeartBeater.sendUpdate
+   public void testDeviceServiceAddResponseIsHandled() throws Exception {
       PlatformMessage message = PlatformMessage
-            .buildMessage(heartbeat(), Address.clientAddress("ipcd-bridge", "0"), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .buildMessage(addResponse(), Address.platformService(PlatformConstants.SERVICE_DEVICES), Address.platformService(com.iris.messages.service.IpcdService.NAMESPACE))
+            .withCorrelationId("registration")
             .create();
-      registry.onHeartBeat(message);
+      registry.onEvent(message);
       EasyMock.expectLastCall();
       replayAll();
 

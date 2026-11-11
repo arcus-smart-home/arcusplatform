@@ -27,7 +27,6 @@ import com.iris.platform.services.hub.handlers.FirmwareUpdateProgressMessageHand
 import com.iris.platform.services.hub.handlers.HubDeleteHandler;
 import com.iris.platform.services.hub.handlers.HubEventListener;
 import com.iris.platform.services.hub.handlers.HubGetAttributesHandler;
-import com.iris.platform.services.hub.handlers.HubHeartbeatListener;
 import com.iris.platform.services.hub.handlers.OfflineHubRequestHandler;
 import com.iris.platform.services.hub.handlers.PlaceDeletedListener;
 import com.iris.platform.services.hub.handlers.PlaceValueChangeListener;
@@ -36,7 +35,6 @@ public class HubServiceModule extends AbstractIrisModule {
 
    @Override
    protected void configure() {
-      bind(HubHeartbeatListener.class).asEagerSingleton();
       bind(HubEventListener.class).asEagerSingleton();
       bind(OfflineHubRequestHandler.class).asEagerSingleton();
       
@@ -53,7 +51,6 @@ public class HubServiceModule extends AbstractIrisModule {
 
       Multibinder<PlatformService> services = bindSetOf(PlatformService.class);
       services.addBinding().to(HubService.class);
-      services.addBinding().to(HubHeartbeatListener.class);
       services.addBinding().to(HubEventListener.class);
    }
    
