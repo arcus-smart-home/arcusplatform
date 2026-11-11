@@ -232,8 +232,10 @@ public class DeviceSettingsParamDefinition {
       }
       map.put("dflt", defaultValue);
       if (!driverOnly) {
-         map.put("zwaveParamNo", zwaveParamNo);
-         map.put("zwaveParamSize", zwaveParamSize);
+         // longs, as every whole number is once saved and loaded back, so an unchanged list
+         // compares equal to the saved one and isn't saved again
+         map.put("zwaveParamNo", (long) zwaveParamNo);
+         map.put("zwaveParamSize", (long) zwaveParamSize);
       }
       return map;
    }

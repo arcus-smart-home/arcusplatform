@@ -26,6 +26,7 @@ import com.iris.driver.DeviceDriver;
 import com.iris.driver.capability.Capability;
 import com.iris.driver.devicesettings.DeviceSettingsContext;
 import com.iris.driver.event.DeviceConnectedEvent;
+import com.iris.driver.event.DriverStartedEvent;
 import com.iris.driver.groovy.DriverBinding;
 import com.iris.driver.groovy.GroovyContextObject;
 import com.iris.driver.groovy.GroovyDriverBuilder;
@@ -40,7 +41,7 @@ import groovy.lang.Closure;
 
 /**
  * Plugin that registers the {@code deviceSettings { }} DSL block and wires up
- * all the handlers (GetAttributes, SetParam, GetParam, ConfigReport, Connected).
+ * all the handlers (GetAttributes, SetParam, GetParam, ConfigReport, Connected, Started).
  */
 public class DeviceSettingsPlugin implements GroovyDriverPlugin {
    private static final Logger log = LoggerFactory.getLogger(DeviceSettingsPlugin.class);
@@ -100,6 +101,13 @@ public class DeviceSettingsPlugin implements GroovyDriverPlugin {
       DriverEventMatcher connectedMatcher = new DriverEventMatcher(DeviceConnectedEvent.class);
       connectedMatcher.setHandler(new DeviceSettingsConnectedHandler(ctx));
       builder.addEventMatcher(connectedMatcher);
+
+      // Rebuild the params attribute each time the driver starts, so a deploy that changes labels,
+      // units or parameters reaches existing devices without sending them anything; it's saved
+      // with the device's next commit
+      DriverEventMatcher startedMatcher = new DriverEventMatcher(DriverStartedEvent.class);
+      startedMatcher.setHandler(new DeviceSettingsStartedHandler(ctx));
+      builder.addEventMatcher(startedMatcher);
    }
 
    @Override
