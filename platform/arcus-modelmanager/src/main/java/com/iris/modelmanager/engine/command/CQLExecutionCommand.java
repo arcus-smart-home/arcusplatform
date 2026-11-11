@@ -15,7 +15,11 @@
  */
 package com.iris.modelmanager.engine.command;
 
+import java.util.regex.Pattern;
+
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.Version;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.servererrors.QueryExecutionException;
 import com.datastax.oss.driver.api.core.servererrors.QueryValidationException;
 import com.iris.modelmanager.changelog.CQLCommand;
@@ -23,6 +27,12 @@ import com.iris.modelmanager.context.Operation;
 import com.iris.modelmanager.engine.ExecutionContext;
 
 public class CQLExecutionCommand implements ExecutionCommand {
+
+   // Cassandra 4.0 removed these table options, and rejects a statement that
+   // sets one. Some history changesets set both. Their text can't change: an
+   // existing deployment verifies the checksum of every changeset it applied.
+   private static final Pattern REMOVED_OPTIONS = Pattern.compile(
+         "\\s+AND\\s+(dclocal_)?read_repair_chance\\s*=\\s*[0-9.]+", Pattern.CASE_INSENSITIVE);
 
    private final CQLCommand command;
 
@@ -41,15 +51,30 @@ public class CQLExecutionCommand implements ExecutionCommand {
    }
 
    private void executeCommand(CqlSession session, Operation operation) throws CommandExecutionException {
+      String cql = operation == Operation.UPGRADE ? command.getUpdateCql() : command.getRollbackCql();
+      if(hasCassandra4(session)) {
+         cql = withoutRemovedOptions(cql);
+      }
       try {
-         if(operation == Operation.UPGRADE) {
-            session.execute(command.getUpdateCql());
-         } else {
-            session.execute(command.getRollbackCql());
-         }
+         session.execute(cql);
       } catch(QueryExecutionException | QueryValidationException e) {
          throw new CommandExecutionException(e);
       }
+   }
+
+   static String withoutRemovedOptions(String cql) {
+      return REMOVED_OPTIONS.matcher(cql).replaceAll("");
+   }
+
+   // Any 4.0 node could coordinate the statement and reject the options.
+   private static boolean hasCassandra4(CqlSession session) {
+      for(Node node : session.getMetadata().getNodes().values()) {
+         Version version = node.getCassandraVersion();
+         if(version != null && version.compareTo(Version.V4_0_0) >= 0) {
+            return true;
+         }
+      }
+      return false;
    }
 
 }
