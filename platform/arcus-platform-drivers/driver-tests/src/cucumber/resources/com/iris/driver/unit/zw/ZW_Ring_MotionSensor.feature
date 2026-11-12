@@ -19,6 +19,17 @@ These scenarios test the functionality of the ZWave Ring Alarm Motion Detector d
         And the message's mot:motion attribute should be NONE
     Then both busses should be empty
 
+    @basic
+    Scenario Outline: Driver matches every Ring motion detector model
+    Then the driver should match Z-Wave device 0x0346 0x0301 <productId>
+
+        Examples:
+          | productId | remarks           |
+          | 0x0201    | 1st gen           |
+          | 0x0101    | not in Z-Wave JS  |
+          | 0x0301    | 2nd gen           |
+          | 0x0401    | 2nd gen           |
+
 
 ############################################################
 # Generic Driver Tests

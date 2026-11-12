@@ -51,9 +51,10 @@ productId       "cad253"
 vendor          "RING"
 model           "4XD3S70EN0"
 
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0201
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0301
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0601
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0201    // 1st gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0301    // 2nd gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0401    // 2nd gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0201, 'ZWAV:ProductId': 0x0601    // 2nd gen
 
 capabilities    DevicePower
 

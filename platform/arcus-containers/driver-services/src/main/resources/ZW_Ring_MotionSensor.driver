@@ -55,8 +55,10 @@ productId       "f4e352"
 vendor          "RING"
 model           "4XM1SZ-0EN0"
 
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0101
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0301
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0201    // 1st gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0101    // not in Z-Wave JS
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0301    // 2nd gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0401    // 2nd gen
 
 capabilities    DevicePower, Motion
 

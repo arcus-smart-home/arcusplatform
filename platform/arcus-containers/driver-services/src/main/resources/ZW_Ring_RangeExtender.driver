@@ -35,9 +35,10 @@ productId       "afd531"
 vendor          "RING"
 model           "4AR1S70EN0"
 
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0101
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0201
-matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0301
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0101    // 1st gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0201    // not in Z-Wave JS
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0301    // 2nd gen
+matcher         'ZWAV:Manufacturer': 0x0346, 'ZWAV:ProductType': 0x0401, 'ZWAV:ProductId': 0x0401    // 2nd gen
 
 capabilities    DevicePower
 
@@ -51,7 +52,7 @@ capabilities    DevicePower
 
 deviceSettings {
    def gen1 = [[0x0401, 0x0101]]
-   def gen2 = [[0x0401, 0x0301]]
+   def gen2 = [[0x0401, 0x0301], [0x0401, 0x0401]]
 
    // 1st generation (4AR1S7-0EN0); 2-5 need firmware 2.4 or later
    param name: 'batteryReportInterval', label: 'Battery report interval', unit: 'min', id: 1, size: 2,
