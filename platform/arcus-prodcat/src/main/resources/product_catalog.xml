@@ -4057,7 +4057,7 @@
         <population name="beta"/>
       </populations>
     </product>
-    <product id="a3e018" name="Motion Sensor (ZSE18)" shortname="Motion Sensor" screen="Motion" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="zooz,motion,sensor,security,pir,battery,usb,zwave,ZSE18,700" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
+    <product id="a3e018" name="Motion Sensor (ZSE18)" shortname="Motion Sensor" screen="Motion" description="" manufacturer="Zooz" vendor="Zooz" cert="none" canbrowse="true" cansearch="true" helpurl="" pairvideourl="" batteryprimsize="CR123" batteryprimnum="1" keywords="zooz,motion,sensor,security,pir,battery,usb,zwave,ZSE18,500,800,LR" ota="No" protofamily="Z-Wave" added="2026-03-14T12:00:00-0600" lastchanged="2026-03-14T12:00:00-0600">
       <categories>
         <category name="Cameras &amp; Sensors"/>
         <category name="Security"/>
@@ -4072,7 +4072,7 @@
         <step2 type="text" img="" text="The LED will flash and the hub will beep when the device is successfully removed."/>
       </removal>
       <reset>
-        <step1 type="text" img="" text="Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds until the LED blinks to confirm the reset."/>
+        <step1 type="text" img="" text="Press and hold the Z-Wave button for at least 20 seconds. The LED flashes, stays solid, then turns off to confirm the reset."/>
       </reset>
       <populations>
         <population name="general"/>
