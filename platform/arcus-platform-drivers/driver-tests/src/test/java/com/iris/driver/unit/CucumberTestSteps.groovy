@@ -10,6 +10,7 @@ import org.junit.After;
 import com.iris.capability.attribute.Attributes
 import com.iris.capability.definition.CapabilityDefinition;
 import com.iris.device.attributes.AttributeKey
+import com.iris.device.attributes.AttributeMap
 import com.iris.driver.unit.cucumber.groovy.DeviceCommandBuilder;
 import com.iris.driver.unit.cucumber.groovy.DeviceMessageValidator;
 import com.iris.driver.unit.cucumber.groovy.DriverEventBuilder;
@@ -21,6 +22,7 @@ import com.iris.driver.unit.cucumber.zw.ZWaveDriverTestCase
 import com.iris.io.json.JSON
 import com.iris.messages.capability.ClasspathDefinitionRegistry;
 import com.iris.messages.model.Device
+import com.iris.protocol.constants.ZwaveConstants
 import com.iris.protocol.zwave.Protocol
 
 import io.netty.buffer.Unpooled;
@@ -85,6 +87,24 @@ After {
  */
 Given(~/^the (.+) has been initialized$/) { String driverScriptResource ->
     context.initializeDriver(driverScriptResource)
+}
+
+/**
+ * Checks whether the driver's matchers pick a Z-Wave device with the given
+ * manufacturer, product type and product id, as the hub reports them.
+ *
+ * EXAMPLE:
+ * 		Then the driver should match Z-Wave device 0x027A 0x0001 0x0005
+ * 		Then the driver should not match Z-Wave device 0x027A 0x0005 0x0001
+ */
+Then(~/^the driver should( not)? match Z-Wave device (\S+) (\S+) (\S+)$/) { String not, String manufacturer, String productType, String productId ->
+    AttributeMap attributes = AttributeMap.newMap()
+    attributes.set(AttributeKey.create(ZwaveConstants.ATTR_MANUFACTURER, Integer), Integer.decode(manufacturer))
+    attributes.set(AttributeKey.create(ZwaveConstants.ATTR_PRODUCTTYPE, Integer), Integer.decode(productType))
+    attributes.set(AttributeKey.create(ZwaveConstants.ATTR_PRODUCTID, Integer), Integer.decode(productId))
+    boolean expected = (not == null)
+    assert context.getDeviceDriver().supports(attributes) == expected,
+        "Expected the driver ${expected ? 'to' : 'not to'} match ${manufacturer} ${productType} ${productId}"
 }
 
 
