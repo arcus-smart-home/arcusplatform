@@ -874,14 +874,25 @@ public class NettyIrisClient2 implements IrisClient {
 
    }
 
+   /**
+    * Names a message for the log: its type, source, correlation id and attribute names. Never the raw
+    * frame or the attribute values, because a response can carry a new API key or a Z-Wave S2 PIN.
+    */
+   static String describe(ClientMessage msg) {
+      ClientEvent event = msg.getEvent();
+      Map<String, Object> attributes = event != null ? event.getAttributes() : null;
+      return "[" + msg.getType() + "] from [" + msg.getSource() + "] correlation id [" + msg.getCorrelationId() +
+            "] attributes " + (attributes != null ? attributes.keySet() : "[]");
+   }
+
    private class MessageHandler implements TextMessageHandler {
 
       @Override
       public void handleMessage(String json) {
-         logger.debug("Got incoming message: {}", json);
-
+         ClientMessage msg = null;
          try {
-            ClientMessage msg = ClientMessageSerializer.deserialize(json, ClientMessage.class);
+            msg = ClientMessageSerializer.deserialize(json, ClientMessage.class);
+            logger.debug("Got incoming message {}", describe(msg));
             messageListeners.fireEvent(msg);
             SettableClientFuture<ClientEvent> result = futures.remove(msg.getCorrelationId());
             if (result != null) {
@@ -895,7 +906,7 @@ public class NettyIrisClient2 implements IrisClient {
             }
          }
          catch (Exception ex) {
-            logger.error("Failed to handle incoming message " + json + ":", ex);
+            logger.error("Failed to handle incoming message {}", msg != null ? describe(msg) : "of " + json.length() + " chars", ex);
          }
 
       }
@@ -969,7 +980,6 @@ public class NettyIrisClient2 implements IrisClient {
       private void onResponse(NettyHttpResponse response) {
          // TODO follow redirects
          String json = response.getBodyAsText();
-         logger.debug("Received Http Message From Server: {}", json);
          ClientMessage message = null;
          try {
             message = ClientMessageSerializer.deserialize(json, ClientMessage.class);
@@ -979,6 +989,7 @@ public class NettyIrisClient2 implements IrisClient {
             setError(new ErrorResponseException("http.error." + response.getStatusCode(), json));
             return;
          }
+         logger.debug("Received Http Message From Server: {}", message != null ? describe(message) : "(empty)");
 
          try {
          	if(message != null) {
