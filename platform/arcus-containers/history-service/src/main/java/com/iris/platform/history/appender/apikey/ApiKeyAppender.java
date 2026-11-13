@@ -23,6 +23,7 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.PlaceCapability;
 import com.iris.messages.service.ApiKeyService.CreatedEvent;
+import com.iris.messages.service.ApiKeyService.DeletedEvent;
 import com.iris.messages.service.ApiKeyService.RevokedEvent;
 import com.iris.platform.history.HistoryAppenderDAO;
 import com.iris.platform.history.HistoryLogEntry;
@@ -37,10 +38,12 @@ import com.iris.platform.history.appender.person.AnnotatedPersonAppender;
 @Group(PlaceCapability.NAMESPACE)
 @Event(event = CreatedEvent.NAME)
 @Event(event = RevokedEvent.NAME)
+@Event(event = DeletedEvent.NAME)
 public class ApiKeyAppender extends AnnotatedPersonAppender {
 
    private static final String KEY_CREATED = "apikey.created";
    private static final String KEY_REVOKED = "apikey.revoked";
+   private static final String KEY_DELETED = "apikey.deleted";
 
    @Inject
    public ApiKeyAppender(HistoryAppenderDAO appender, ObjectNameCache cache) {
@@ -50,9 +53,22 @@ public class ApiKeyAppender extends AnnotatedPersonAppender {
    @Override
    protected List<HistoryLogEntry> translate(PlatformMessage message, MessageContext context, MatchResults matchResults) {
       MessageBody body = message.getValue();
-      boolean created = CreatedEvent.NAME.equals(body.getMessageType());
-      String msgKey = created ? KEY_CREATED : KEY_REVOKED;
-      String label = created ? CreatedEvent.getLabel(body) : RevokedEvent.getLabel(body);
+      String msgKey;
+      String label;
+      switch(body.getMessageType()) {
+      case CreatedEvent.NAME:
+         msgKey = KEY_CREATED;
+         label = CreatedEvent.getLabel(body);
+         break;
+      case DeletedEvent.NAME:
+         msgKey = KEY_DELETED;
+         label = DeletedEvent.getLabel(body);
+         break;
+      default:
+         msgKey = KEY_REVOKED;
+         label = RevokedEvent.getLabel(body);
+         break;
+      }
 
       // {0} = API key label  {1} = place name  {2} = person name
       return creteLogEntries(message, context, msgKey, new String[] { label, context.getPlaceName(), context.getActorName() });
