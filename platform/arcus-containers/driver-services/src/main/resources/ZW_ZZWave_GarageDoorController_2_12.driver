@@ -54,6 +54,9 @@ matcher 'ZWAV:Generic': ZWaveGenericDevices.GENERIC_TYPE_ENTRY_CONTROL, 'ZWAV:Sp
 @Field final String ERR_OBSTRUCTION_KEY = 'ERR_OBSTRUCTION'
 @Field final String ERR_OBSTRUCTION_VALUE = 'Garage door may be obstructed'
 
+// What an Application Status Busy reply says about the command it refused
+@Field final Map BUSY_STATUS = [0: 'try again later', 1: 'try again after the wait time', 2: 'queued, will run later']
+
 @Field final long OPEN_CLOSE_DELAY_MSEC = 45000      // delay (mSec) for followup door state read
 @Field final int OFFLINE_TIMEOUT_SECS = 4200         // if no communications for 70 minutes, consider device offline
 @Field final int POLLING_INTERVAL_SEC = 1200         // poll for door state every 20 minutes (mainly just to make sure device is online)
@@ -236,7 +239,8 @@ onZWaveMessage.alarm.report {
 
 
 onZWaveMessage.application_status.busy {
-   log.info 'Reported Application Busy'
+   int status = message.command.get('status') & 0xFF
+   log.info 'Reported Application Busy: {} (status {}), wait time {} s', BUSY_STATUS[status] ?: 'unknown', status, message.command.get('waittime') & 0xFF
 }
 
 

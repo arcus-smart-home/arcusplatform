@@ -675,7 +675,7 @@
       "name" : "busy",
       "id" : 1,
       "SendVars" : [ "status", "waittime"],
-      "ReceiveVars" : [ ]
+      "ReceiveVars" : [ "status", "waittime" ]
     }, {
       "name": "rejected",
       "id" : 2,
