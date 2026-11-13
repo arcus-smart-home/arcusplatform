@@ -72,6 +72,9 @@ final int  LIFELINE_GET_DELAY   = 1000
 //Used for removing unwanted OPENING/CLOSING reports
 @Field final int COMMAND_WINDOW_MS = 120000 //2 Minutes
 
+// What an Application Status Busy reply says about the command it refused
+@Field final Map BUSY_STATUS = [0: 'try again later', 1: 'try again after the wait time', 2: 'queued, will run later']
+
 // Barrier Operator States
 // Note: Barrier Operator States 0x01 - 0x63 (Barrier Stopped with position) are not supported by this device
 
@@ -338,7 +341,8 @@ onZWaveMessage.alarm.report {
 
 
 onZWaveMessage.application_status.busy {
-   log.info 'Reported Application Busy'
+   int status = message.command.get('status') & 0xFF
+   log.info 'Reported Application Busy: {} (status {}), wait time {} s', BUSY_STATUS[status] ?: 'unknown', status, message.command.get('waittime') & 0xFF
 }
 
 onZWaveMessage.application_status.rejected {
