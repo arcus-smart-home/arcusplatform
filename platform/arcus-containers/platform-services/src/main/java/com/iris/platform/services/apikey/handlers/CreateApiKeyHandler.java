@@ -116,6 +116,10 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
          } catch (IllegalArgumentException e) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM, "invalid permission format: " + perm);
          }
+         if (parsed.partCount() > 3) {
+            throw new ErrorEventException(Errors.CODE_INVALID_PARAM,
+                  "invalid permission " + perm + ": use at most three parts, namespace:operation:object id, as in dev:r:*");
+         }
          if (!parsed.canMatch()) {
             throw new ErrorEventException(Errors.CODE_INVALID_PARAM,
                   "invalid permission " + perm + ": the second part must be *, r, w, x, c or d, as in dev:r:*");
@@ -194,6 +198,12 @@ public class CreateApiKeyHandler implements ContextualRequestMessageHandler<Plac
    private static class ParsedPermission extends WildcardPermission {
       ParsedPermission(String permission) {
          super(permission);
+      }
+
+      // The authorizer always asks with three parts, and Shiro never matches a request against a longer
+      // permission whose extra parts aren't *, so dev:r:*:x allows nothing.
+      int partCount() {
+         return getParts().size();
       }
 
       boolean canMatch() {

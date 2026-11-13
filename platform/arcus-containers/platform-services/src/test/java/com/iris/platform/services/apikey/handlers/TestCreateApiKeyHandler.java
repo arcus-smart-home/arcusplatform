@@ -332,6 +332,25 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
       assertNull(messageBus.poll());
    }
 
+   // The authorizer asks with three parts, so a fourth part that isn't * would never match
+   @Test
+   public void testCreatePermissionWithMoreThanThreePartsIsRejected() {
+      for (String perm : new String[] { "dev:r:*:extra", "dev:r:" + place.getId() + ":x", "dev:r:*:*" }) {
+         reset();
+         EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+         replay();
+
+         try {
+            handler.handleRequest(place, buildRequest(ownerId, "test-label", Collections.singleton(perm), null));
+            fail("Expected ErrorEventException for " + perm);
+         } catch (ErrorEventException e) {
+            assertEquals(perm, Errors.CODE_INVALID_PARAM, e.getCode());
+            assertTrue(e.getMessage(), e.getMessage().contains("at most three parts"));
+         }
+      }
+      assertNull(messageBus.poll());
+   }
+
    @Test
    public void testCreateWithPermissionsInTheEnforcedFormat() {
       EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);

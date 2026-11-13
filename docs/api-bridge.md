@@ -99,7 +99,7 @@ On failure the server responds with HTTP 401.
 
 ## Permissions
 
-A key's permissions use the same format as a person's grants (see [Security](security.md)): [Shiro wildcard](https://shiro.apache.org/permissions.html) strings with three parts, `<namespace>:<operation>:<object id>`.
+A key's permissions use the same format as a person's grants (see [Security](security.md)): [Shiro wildcard](https://shiro.apache.org/permissions.html) strings with up to three parts, `<namespace>:<operation>:<object id>`. A key's permission with a fourth part is refused, because the authorizer always asks with three.
 
 - **namespace**: a capability or service namespace, the part before the colon in an attribute or message name, such as `dev`, `swit`, `scene` or `subalarm`.
 - **operation**: `r` (read), `w` (write) or `x` (execute), or `c` or `d`.
