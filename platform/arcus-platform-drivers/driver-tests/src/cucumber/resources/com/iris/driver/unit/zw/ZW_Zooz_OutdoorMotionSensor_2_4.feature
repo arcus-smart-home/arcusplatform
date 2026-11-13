@@ -19,6 +19,11 @@ These scenarios test the functionality of the ZWave Zooz ZSE29 Outdoor Motion Se
         And the message's devpow:backupbatterycapable attribute should be false
     Then both busses should be empty
 
+    @basic
+    Scenario: Driver matches the ZSE29
+    Then the driver should match Z-Wave device 0x027A 0x0001 0x0005
+        And the driver should not match Z-Wave device 0x027A 0x0005 0x0001
+
 
 ############################################################
 # Generic Driver Tests
@@ -34,6 +39,11 @@ These scenarios test the functionality of the ZWave Zooz ZSE29 Outdoor Motion Se
     Scenario: Make sure the offline timeout is set each time the device Connects
         When the device is connected
         Then the driver should set timeout at 190 minutes
+
+    @basic @connected
+    Scenario: Connecting sends no configuration parameters, leaving the knobs in charge
+        When the device is connected
+        Then the driver should not send configuration set
 
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
@@ -212,6 +222,30 @@ These scenarios test the functionality of the ZWave Zooz ZSE29 Outdoor Motion Se
         Then the platform attribute mot:motion should change to NONE
             And the driver should place a base:ValueChange message on the platform bus
 
+    @motion
+    Scenario: Device reports the end of motion with the event that ended
+        Given the capability mot:motion is DETECTED
+        When the device response with alarm report
+            And with parameter notificationstatus -1
+            And with parameter notificationtype 7
+            And with parameter event 0
+            And with parameter parameterslength 1
+            And with parameter parameter1 8
+            And send to driver
+        Then the platform attribute mot:motion should change to NONE
+
+    @motion
+    Scenario: Closing the tamper switch doesn't clear motion
+        Given the capability mot:motion is DETECTED
+        When the device response with alarm report
+            And with parameter notificationstatus -1
+            And with parameter notificationtype 7
+            And with parameter event 0
+            And with parameter parameterslength 1
+            And with parameter parameter1 3
+            And send to driver
+        Then the platform attribute mot:motion should be DETECTED
+
 
 ############################################################
 # Illumination Tests
@@ -239,3 +273,19 @@ These scenarios test the functionality of the ZWave Zooz ZSE29 Outdoor Motion Se
           | 0      | 0      | 1      | 0      | 256     |
           | 0      | 1      | 134    | 160    | 100000  |
           | 1      | 1      | 1      | 1      | 100000  |
+
+    @illumination
+    Scenario Outline: Device reports illumination in fewer bytes
+        When the device response with sensor_multilevel report
+            And with parameter type 3
+            And with parameter level <level>
+            And with parameter val1 <Value1>
+            And with parameter val2 <Value2>
+            And send to driver
+        Then the platform attribute ill:illuminance should change to <reading>
+            And the driver should place a base:ValueChange message on the platform bus
+
+        Examples:
+          | level | Value1 | Value2 | reading | remarks                 |
+          | 9     | 100    | 0      | 100     | 1 byte, lux             |
+          | 10    | 3      | 132    | 900     | 2 bytes, lux            |
