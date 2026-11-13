@@ -30,6 +30,8 @@
                    optional="true" description="The last time this scene was run."/>
       <c:attribute name="lastFireStatus" readwrite="r" type="enum" values="NOTRUN, SUCCESS, FAILURE, PARTIAL"
                    optional="false" description="The actions associated with this scene."/>
+      <c:attribute name="filterUnchanged" readwrite="rw" type="boolean"
+                   optional="false" description="When true, scene execution will skip sending commands to devices that are already in the desired state."/>
 
    </c:attributes>
    

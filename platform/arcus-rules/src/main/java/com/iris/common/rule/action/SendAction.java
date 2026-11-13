@@ -20,6 +20,7 @@ package com.iris.common.rule.action;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -27,6 +28,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.iris.messages.MessageBody;
 import com.iris.messages.address.Address;
+import com.iris.messages.capability.Capability;
+import com.iris.messages.model.Model;
 import com.iris.util.IrisCollections;
 import com.iris.util.IrisFunctions;
 
@@ -37,6 +40,8 @@ import com.iris.util.IrisFunctions;
 public class SendAction implements Action {
    public static final String VAR_TO = "to";
    public static final String VAR_ATTRIBUTES = "attributes";
+   /** Set to true on a scene's context when the scene skips devices already in its state. */
+   public static final String VAR_FILTER_UNCHANGED = "filterUnchanged";
    public static final String NAME = "send";
    
    private final String type;
@@ -130,15 +135,62 @@ public class SendAction implements Action {
    public void execute(ActionContext context) {
       Address to = getTo(context);
       Map<String, Object> attributes = getAttributes(context);
-      
-      // TODO enable broadcast?
+
       if(to == null) {
          context.logger().warn("Can't execute action [{}] because no destination is specified", this);
          return;
       }
-      
+
+      // A scene that filters unchanged devices skips a SetAttributes whose every value the device
+      // already has. It's all or nothing: drivers read some attributes together (a mode with its
+      // setpoints, a colour mode with hue and saturation, on with a level), so sending only the
+      // ones that differ could change what the device does.
+      if(Capability.CMD_SET_ATTRIBUTES.equals(this.type) && attributes != null && !attributes.isEmpty()
+            && Boolean.TRUE.equals(context.getVariable(VAR_FILTER_UNCHANGED, Boolean.class))
+            && alreadyInState(context, to, attributes)) {
+         context.logger().info("Skipping [{}] to [{}]: the device already has every value it sets", this.type, to);
+         return;
+      }
+
       MessageBody message = MessageBody.buildMessage(this.type, attributes);
       context.send(to, message);
+   }
+
+   /**
+    * True when the device's model already has every value. A device with no model, or with no
+    * value for one of the attributes, gets the command.
+    */
+   private static boolean alreadyInState(ActionContext context, Address target, Map<String, Object> desired) {
+      Model model = context.getModelByAddress(target);
+      if(model == null) {
+         return false;
+      }
+      for(Map.Entry<String, Object> entry : desired.entrySet()) {
+         if(!attributeValuesEqual(model.getAttribute(entry.getKey()), entry.getValue())) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   /**
+    * Compares attribute values, handling numeric type mismatches (e.g. Integer
+    * vs Double) that can occur between model storage and scene action values.
+    */
+   private static boolean attributeValuesEqual(Object current, Object desired) {
+      if(current == null) {
+         // Unknown current state — send the command to be safe
+         return false;
+      }
+      if(Objects.equals(current, desired)) {
+         return true;
+      }
+      // Handle numeric type mismatches (e.g. model stores Integer 100,
+      // scene sends Double 100.0)
+      if(current instanceof Number && desired instanceof Number) {
+         return ((Number) current).doubleValue() == ((Number) desired).doubleValue();
+      }
+      return false;
    }
    
    @Override

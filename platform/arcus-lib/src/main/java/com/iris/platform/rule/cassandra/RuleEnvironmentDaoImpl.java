@@ -57,7 +57,7 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
    protected static PreparedStatement streamAll(CqlSession session) {
       CassandraQueryBuilder queryBuilder = CassandraQueryBuilder
                .select(RuleEnvironmentTable.NAME);
-      return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
+      return RuleEnvironmentTable.addAllColumns(session, queryBuilder).prepare(session);
    }
 
    protected static PreparedStatement listByPlaceStatement(CqlSession session) {
@@ -65,7 +65,7 @@ public class RuleEnvironmentDaoImpl implements RuleEnvironmentDao {
             CassandraQueryBuilder
                .select(RuleEnvironmentTable.NAME)
                .addWhereColumnEquals(RuleEnvironmentTable.Column.PLACE_ID.columnName());
-      return RuleEnvironmentTable.addAllColumns(queryBuilder).prepare(session);
+      return RuleEnvironmentTable.addAllColumns(session, queryBuilder).prepare(session);
    }
 
    protected static PreparedStatement deleteByPlaceStatement(CqlSession session) {
