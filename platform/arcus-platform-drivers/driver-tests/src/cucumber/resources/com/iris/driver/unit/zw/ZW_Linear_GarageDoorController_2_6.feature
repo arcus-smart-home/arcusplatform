@@ -41,36 +41,30 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		When a base:SetAttributes command with the value of motdoor:doorstate OPEN is placed on the platform bus
 		Then the driver should send barrier_operator set
 			And with parameter barrierstate -1
-		Then the driver variable lastCommandTime should be recent
-			And the driver variable lastCommandMode should be -1
+		Then the driver should schedule event CheckDoor in 120 seconds
 		Then the driver should place a EmptyMessage message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 	Scenario: Platform attempts to Close GDC via attribute change.
 		Given the driver attribute motdoor:doorstate is OPEN
 		When a base:SetAttributes command with the value of motdoor:doorstate CLOSED is placed on the platform bus
 		Then the driver should send barrier_operator set
 			And with parameter barrierstate 0
-		Then the driver variable lastCommandTime should be recent
-			And the driver variable lastCommandMode should be 0
+		Then the driver should schedule event CheckDoor in 120 seconds
 		Then the driver should place a EmptyMessage message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 	Scenario: Platform attempts to Open GDC via attribute change when obstructed.
 		Given the driver attribute devadv:errors is {'ERR_OBSTRUCTION':'Obstructed'}
 		When a base:SetAttributes command with the value of motdoor:doorstate OPEN is placed on the platform bus
-		Then the driver variable lastCommandTime should be null
-		And the driver variable lastCommandMode should be null
 		Then the driver should place a EmptyMessage message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 	Scenario: Platform attempts to Close GDC via attribute change when obstructed.
 		Given the driver attribute devadv:errors is {'ERR_OBSTRUCTION':'Obstructed'}
 		When a base:SetAttributes command with the value of motdoor:doorstate CLOSED is placed on the platform bus
-		Then the driver variable lastCommandTime should be null
-		And the driver variable lastCommandMode should be null
 		Then the driver should place a EmptyMessage message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 	Scenario Outline: Platform sends another state.
 		When a base:SetAttributes command with the value of motdoor:doorstate <state> is placed on the platform bus
@@ -140,46 +134,67 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		  |  9   |  2    |
 		  |  10  |  12   |
 
+	# Every door state comes from the reflexes. The hub only reports a state that differs from its
+	# own copy, so OPENING followed by a report of where the door started must still be a change.
 	Scenario Outline: Device reports a door state
 		Given the driver attribute motdoor:doorstate is <before>
-			And the driver variable lastCommandTime is now
-			And the driver variable lastCommandMode is <mode>
 		When the device response with barrier_operator report
 			And with parameter barrierstate <barrier_state>
 			And send to driver
 			And the capability motdoor:doorstate should be <door_state>
 			And the capability motdoor:doorstatechanged should be recent
 		Then the driver should place a base:ValueChange message on the platform bus
-		Then both busses should be empty
+		Then nothing else should happen
 
 		Examples:
-		  |before   | mode | barrier_state | door_state  |
-		  | CLOSED  |  -1  | -2            | OPENING     |
-		  | OPEN    |  0   | -4            | CLOSING     |
+		  | before      | barrier_state | door_state  |
+		  | CLOSED      | -2            | OPENING     |
+		  | OPENING     | -1            | OPEN        |
+		  | OPEN        | -4            | CLOSING     |
+		  | CLOSING     | 0             | CLOSED      |
+		  | OPENING     | 0             | CLOSED      |
+		  | CLOSING     | -1            | OPEN        |
+		  | OPEN        | -2            | OPENING     |
+		  | OBSTRUCTION | -4            | CLOSING     |
+		  | CLOSING     | -3            | OBSTRUCTION |
 
-	Scenario Outline: Device reports an incorrect door state
-		Given the driver attribute motdoor:doorstate is <before>
-			And the time driver variable lastCommandTime is <time>
-			And the driver variable lastCommandMode is <mode>
+	Scenario Outline: Device repeats its door state
+		Given the driver attribute motdoor:doorstate is <state>
 		When the device response with barrier_operator report
 			And with parameter barrierstate <barrier_state>
 			And send to driver
 		Then the driver should not place a base:ValueChange message on the platform bus
-			And the capability motdoor:doorstate should be <door_state>
-		Then both busses should be empty
+			And the capability motdoor:doorstate should be <state>
+		Then nothing else should happen
 
 		Examples:
-		  |before      |  time           |  mode | barrier_state | door_state  |
-		  | CLOSED     |  5 seconds ago  |  0    |  -2           | CLOSED      |
-		  | CLOSED     | 150 seconds ago |  -1   |  -2           | CLOSED      |
-		  | CLOSED     | 150 seconds ago |  0    |  -2           | CLOSED      |
-		  | OPEN       |  5 seconds ago  |  0    |  -2           | OPEN        |
-		  | OBSTRUCTED |  5 seconds ago  |  0    |  -2           | OBSTRUCTED  |
-		  | OPEN       |  5 seconds ago  | -1    |  -4           | OPEN        |
-		  | OPEN       | 150 seconds ago |  0    |  -4           | OPEN        |
-		  | OPEN       | 150 seconds ago | -1    |  -4           | OPEN        |
-		  | CLOSED     |  5 seconds ago  | -1    |  -4           | CLOSED      |
-		  | OBSTRUCTED |  5 seconds ago  | -1    |  -4           | OBSTRUCTED  |
+		  | state   | barrier_state |
+		  | CLOSED  | 0             |
+		  | OPEN    | -1            |
+		  | OPENING | -2            |
+		  | CLOSING | -4            |
+
+	Scenario Outline: Door is still moving when the move should be over
+		Given the driver attribute motdoor:doorstate is <state>
+		When event CheckDoor triggers
+		Then the driver should send barrier_operator get
+		Then nothing else should happen
+
+		Examples:
+		  | state   |
+		  | OPENING |
+		  | CLOSING |
+
+	Scenario Outline: Door finished moving before the check
+		Given the driver attribute motdoor:doorstate is <state>
+		When event CheckDoor triggers
+		Then nothing should happen
+
+		Examples:
+		  | state       |
+		  | OPEN        |
+		  | CLOSED      |
+		  | OBSTRUCTION |
 
 	Scenario Outline: Device reports an unknown door state
 		When the device response with barrier_operator report
@@ -194,18 +209,3 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			|   0x63        |
 			|   0x64        |
 			|   0xFB        |
-
-	Scenario Outline: Device reports a door state event
-		Given the driver attribute motdoor:doorstate is <before>
-		When the device response with barrier_operator <event>
-			And send to driver
-			And the capability motdoor:doorstate should be <door_state>
-			And the capability motdoor:doorstatechanged should be recent
-		Then the driver should place a base:ValueChange message on the platform bus
-		Then both busses should be empty
-
-		Examples:
-		  |before       |            event                         |  door_state |
-		  | OBSTRUCTION |  report_unknown_position_moving_to_close |   CLOSING   |
-		  | CLOSING     |  report_unknown_position_stopped         | OBSTRUCTION |
-		  | OBSTRUCTION |  report_unknown_position_moving_to_open  |   OPENING   |
