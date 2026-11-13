@@ -20,6 +20,11 @@ These scenarios test the functionality of the ZWave Zooz ZSE18 Motion Sensor dri
         And the message's mot:motion attribute should be NONE
     Then both busses should be empty
 
+    @basic
+    Scenario: Driver matches the ZSE18 and not the ZSE33 siren
+    Then the driver should match Z-Wave device 0x027A 0x0301 0x0012
+        And the driver should not match Z-Wave device 0x027A 0x0003 0x0088
+
 
 ############################################################
 # Generic Driver Tests
@@ -35,6 +40,11 @@ These scenarios test the functionality of the ZWave Zooz ZSE18 Motion Sensor dri
     Scenario: Make sure the offline timeout is set each time the device Connects
         When the device is connected
         Then the driver should set timeout at 190 minutes
+
+    @basic @connected
+    Scenario: Connecting sends no configuration parameters
+        When the device is connected
+        Then the driver should not send configuration set
 
     @basic @name
     Scenario Outline: Make sure driver allows device name to be set
@@ -193,6 +203,30 @@ These scenarios test the functionality of the ZWave Zooz ZSE18 Motion Sensor dri
             And with parameter event 3
             And send to driver
         Then the platform attribute mot:motion should be NONE
+
+    @motion
+    Scenario: Device reports the end of motion with the event that ended
+        Given the capability mot:motion is DETECTED
+        When the device response with alarm report
+            And with parameter notificationstatus -1
+            And with parameter notificationtype 7
+            And with parameter event 0
+            And with parameter parameterslength 1
+            And with parameter parameter1 8
+            And send to driver
+        Then the platform attribute mot:motion should change to NONE
+
+    @motion
+    Scenario: The end of a tamper alert doesn't clear motion
+        Given the capability mot:motion is DETECTED
+        When the device response with alarm report
+            And with parameter notificationstatus -1
+            And with parameter notificationtype 7
+            And with parameter event 0
+            And with parameter parameterslength 1
+            And with parameter parameter1 3
+            And send to driver
+        Then the platform attribute mot:motion should be DETECTED
 
 
 ############################################################
