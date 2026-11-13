@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.iris.agent.attributes.HubAttributesService;
 import com.iris.agent.exec.ExecService;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.hal.LEDState;
 import com.iris.agent.hal.SounderMode;
@@ -194,26 +193,20 @@ enum FirmwareUpdateHandler implements PortHandler {
         		 IrisHal.setSounderMode(SounderMode.FIRMWARE_UPDATE_NEEDED);
         	 }
         	 
-            // If we are using the backup connection, only allow urgent updates
-            if (FourgService.isAuthorized() && !priority.equals(HubAdvancedCapability.FirmwareUpdateRequest.PRIORITY_URGENT)) {
-               log.info("skipping normal priority firmware update while using backup connection.");
-               cause = new Throwable("Non-urgent install while using backup connection");
-            } else {
-               state = State.DOWNLOADING;
-               update(0.0);
+            state = State.DOWNLOADING;
+            update(0.0);
 
-               // TODO: These credentials need to be passed into the hub or the
-               //       hub needs to use its client certificate.
-               log.info("downloading new firmware from: {}", uri);
-               downloaded = HttpService.download(uri, "firmware", ".bin", IrisHal.getFirmwareDownloadDir(type), this);
+            // TODO: These credentials need to be passed into the hub or the
+            //       hub needs to use its client certificate.
+            log.info("downloading new firmware from: {}", uri);
+            downloaded = HttpService.download(uri, "firmware", ".bin", IrisHal.getFirmwareDownloadDir(type), this);
 
-               log.info("installing new firmware downloaded to: {}", downloaded);
-               state = State.INSTALLING;
-               update(0.0);
+            log.info("installing new firmware downloaded to: {}", downloaded);
+            state = State.INSTALLING;
+            update(0.0);
 
-               HubAttributesService.setLastRestartReason(HubAdvancedCapability.LASTRESTARTREASON_FIRMWARE_UPDATE);
-               IrisHal.installHubFirmware(downloaded,type,force);
-            }
+            HubAttributesService.setLastRestartReason(HubAdvancedCapability.LASTRESTARTREASON_FIRMWARE_UPDATE);
+            IrisHal.installHubFirmware(downloaded,type,force);
          } catch (Throwable ex) {
             log.warn("exception during downloading: {}", ex.getMessage(), ex);
             cause = ex;

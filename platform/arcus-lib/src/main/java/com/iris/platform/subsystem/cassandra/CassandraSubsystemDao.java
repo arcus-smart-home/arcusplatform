@@ -48,6 +48,7 @@ import com.iris.platform.model.ModelEntity;
 import com.iris.platform.model.cassandra.BaseModelDao;
 import com.iris.platform.subsystem.SubsystemDao;
 import com.iris.platform.subsystem.cassandra.SubsystemTable.Columns;
+import com.iris.util.IrisAttributeLookup;
 
 /**
  *
@@ -117,6 +118,8 @@ public class CassandraSubsystemDao extends BaseModelDao implements SubsystemDao 
       return
             StreamSupport
                .stream(rs.spliterator(), false)
+               // a removed subsystem's row stays in the table; nothing runs it, so nothing should see it
+               .filter((row) -> !IrisAttributeLookup.isDeprecatedNamespace(row.getString(Columns.NAMESPACE)))
                .map((row) -> toModel(row))
                .collect(Collectors.toList())
                ;

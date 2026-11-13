@@ -17,8 +17,6 @@ package com.iris.platform.subsystem.placemonitor.smarthomealert;
 
 import com.iris.bootstrap.guice.AbstractIrisModule;
 import com.iris.core.template.TemplateModule;
-import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.CellModemNeededGenerator;
-import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.CellServiceErrorGenerator;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DeviceLowBatteryGenerator;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DeviceOfflineGenerator;
 import com.iris.platform.subsystem.placemonitor.smarthomealert.generators.DoorObstructionGenerator;
@@ -39,8 +37,6 @@ public class SmartHomeAlertModule extends AbstractIrisModule {
    protected void configure() {
       // generators
       bindListToInstancesOf(AlertGenerator.class);
-      bind(CellModemNeededGenerator.class);
-      bind(CellServiceErrorGenerator.class);
       bind(DeviceLowBatteryGenerator.class);
       bind(DeviceOfflineGenerator.class);
       bind(DoorObstructionGenerator.class);

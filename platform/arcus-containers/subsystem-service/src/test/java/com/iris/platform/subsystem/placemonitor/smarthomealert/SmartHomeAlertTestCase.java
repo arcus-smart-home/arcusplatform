@@ -24,13 +24,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.iris.common.subsystem.SubsystemContext;
-import com.iris.messages.capability.CellBackupSubsystemCapability;
 import com.iris.messages.capability.DeviceAdvancedCapability;
 import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.DevicePowerCapability;
 import com.iris.messages.capability.DoorLockCapability;
 import com.iris.messages.capability.HubPowerCapability;
-import com.iris.messages.capability.SubsystemCapability;
 import com.iris.messages.model.Model;
 import com.iris.messages.model.SimpleModel;
 import com.iris.messages.model.SimpleModelStore;
@@ -59,7 +57,6 @@ public class SmartHomeAlertTestCase extends IrisMockTestCase {
    protected SimpleModelStore modelStore;
 
    protected Model hub;
-   protected Model cellbackup;
    protected Model lock;
    protected Model door;
    protected PlaceMonitorSubsystemModel model;
@@ -73,10 +70,6 @@ public class SmartHomeAlertTestCase extends IrisMockTestCase {
 
       hub = new SimpleModel(ModelFixtures.createHubAttributes());
       hub.setAttribute(HubPowerCapability.ATTR_SOURCE, HubPowerCapability.SOURCE_MAINS);
-
-      cellbackup = new SimpleModel(ModelFixtures.createServiceAttributes(PLACE_ID.toString(), CellBackupSubsystemCapability.NAMESPACE, SubsystemCapability.NAMESPACE));
-      cellbackup.setAttribute(CellBackupSubsystemCapability.ATTR_STATUS, CellBackupSubsystemCapability.STATUS_NOTREADY);
-      cellbackup.setAttribute(CellBackupSubsystemCapability.ATTR_NOTREADYSTATE, CellBackupSubsystemCapability.NOTREADYSTATE_BOTH);
 
       lock = new SimpleModel(ModelFixtures.buildDeviceAttributes(DoorLockCapability.NAMESPACE, DevicePowerCapability.NAMESPACE, DeviceAdvancedCapability.NAMESPACE)
          .online()
@@ -98,7 +91,6 @@ public class SmartHomeAlertTestCase extends IrisMockTestCase {
 
       modelStore = new SimpleModelStore();
       modelStore.addModel(hub.toMap());
-      modelStore.addModel(cellbackup.toMap());
       modelStore.addModel(lock.toMap());
       modelStore.addModel(door.toMap());
 

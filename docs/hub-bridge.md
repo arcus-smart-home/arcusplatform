@@ -167,7 +167,6 @@ When a hub is not `AUTHORIZED`, a reason is tracked:
 | `ORPHANED` | Hub connected without account/place record |
 | `INVALID_ACCOUNT` | Account mismatch |
 | `HANDSHAKING` | Initial handshake in progress |
-| `BANNED_CELL` | 3G cellular backup disabled for this hub |
 | `UNAUTHENTICATED` | No valid client certificate |
 
 ### Session Data
@@ -175,8 +174,6 @@ When a hub is not `AUTHORIZED`, a reason is tracked:
 Each `HubSession` stores:
 
 - Hub ID (from certificate CN)
-- Connection type (WiFi vs 3G cellular)
-- SIM ID (for cellular connections)
 - Firmware version, agent version, hardware version
 - Active place ID
 - Assigned platform partition
@@ -190,14 +187,12 @@ Each `HubSession` stores:
 - Runs periodic heartbeat task (configurable interval, default 1s)
 - Batches connected hubs per partition (batch size: 1000)
 - Rotates through partitions each heartbeat cycle (`hub.heartbeat.partitionsPerHeartbeat=4`)
-- Tracks hubs on cellular backup, persists timing info at intervals (`hub.cellbackup.dump.interval.mins=5`)
 
 ### Session Metrics
 
 `HubSessionMetrics` publishes:
 
 - Total connected hubs
-- Hubs on cellular backup
 - Per-state counts (connected, pending, registered, authorized)
 - Per-firmware-version breakdowns
 - Unauthorized reason breakdowns
@@ -210,14 +205,13 @@ Each `HubSession` stores:
 
 `HubConnectedHandler` processes `MSG_HUB_CONNECTED_EVENT`:
 
-1. **Extract metadata** — connection type, agent/firmware/hardware version, SIM ID
-2. **Blacklist check** — if hub on disallowed cellular, set `BANNED_CELL` and return
-3. **New hub?** Create record in HubDAO with default name "Smart Hub"
-4. **Firmware check** — if below minimum, set `BELOW_MIN_FW` and return
-5. **Orphaned hub?** Hub with no account but has returned with account ID
-6. **Existing hub?** Update version fields, check for account mismatch
-7. **Firmware upgrade?** Consult `HubRegistrationRegistry.upgradeIfNeeded()` — send upgrade message if needed
-8. **Assign partition** — based on place ID or hub ID
+1. **Extract metadata** — agent/firmware/hardware version
+2. **New hub?** Create record in HubDAO with default name "Smart Hub"
+3. **Firmware check** — if below minimum, set `BELOW_MIN_FW` and return
+4. **Orphaned hub?** Hub with no account but has returned with account ID
+5. **Existing hub?** Update version fields, check for account mismatch
+6. **Firmware upgrade?** Consult `HubRegistrationRegistry.upgradeIfNeeded()` — send upgrade message if needed
+7. **Assign partition** — based on place ID or hub ID
 
 ### Step 2: Hub Registers
 
@@ -297,7 +291,7 @@ hub.bridge.admin.addresses=SERV:hub:
 hub.bridge.admin.only.messages=hub:GetLogs,hub:StreamLogs,hub:SetLogLevel,hub:ResetLogLevels,hub:GetConfig,hub:SetConfig,hub4g:*,hubdebug:*,hubmetric:*
 ```
 
-Only service-level hub addresses can send admin-only messages (e.g., logs, configuration, debug commands, 4G management, metrics) to a hub.
+Only service-level hub addresses can send admin-only messages (e.g., logs, configuration, debug commands, metrics) to a hub. `hub4g:*` stays on the list so a hub still running the old 4G controller can't be reached by anyone else.
 
 ---
 
@@ -395,7 +389,6 @@ When a hub becomes authorized, `HubConnectionSessionListener.onAuthorized()`:
 | `kafka.offsets.transient` | `true` | Don't persist consumer offsets |
 | `hub.heartbeat.intervalMs` | `1000` | Heartbeat interval |
 | `hub.heartbeat.partitionsPerHeartbeat` | `4` | Partitions per heartbeat cycle |
-| `hub.cellbackup.dump.interval.mins` | `5` | Cellular backup stats interval |
 | `hub.bridge.admin.addresses` | `SERV:hub:` | Admin address whitelist |
 | `hub.bridge.admin.only.messages` | (see above) | Admin-only message types |
 

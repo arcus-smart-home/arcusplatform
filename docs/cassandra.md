@@ -247,7 +247,7 @@ Indexes: `invitation_place_idx` (place → codes), `invitation_person_idx` (invi
 | `device_driver` | Groovy driver scripts stored in DB | `(name, version)` |
 | `service` | Cluster membership / leader election | `(service, clusterId)` |
 | `notification_audit` | Notification delivery audit log | `(id, time)` |
-| `cellbackup_time` | Cellular backup usage tracking | `(dayhour, minute, hubId)` |
+| `cellbackup_time` | Cellular backup usage tracking (no longer written) | `(dayhour, minute, hubId)` |
 | `resource_bundle` | Localized strings | `((bundle, locale), key)` |
 
 ## History Keyspace

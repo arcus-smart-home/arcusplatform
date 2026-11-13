@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.iris.capability.definition.AttributeType.EnumType;
@@ -39,6 +40,14 @@ public class SmartHomeAlertHandler extends BasePlaceMonitorHandler {
 
    private static final String VAR_ALERTSCRATCH = "alert.scratch";
 
+   // Their generators went with cellular backup. The scratch pad is persisted, so an
+   // alert raised before that would otherwise stay on the place for good.
+   private static final List<String> RETIRED_ALERT_TYPES = ImmutableList.of(
+      SmartHomeAlert.ALERTTYPE_PLACE_4G_MODEM_NEEDED,
+      SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_ERROR,
+      SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_SUSPENDED
+   );
+
    private final List<AlertGenerator> generators;
    private final List<AlertPostProcessor> postProcessors;
 
@@ -53,6 +62,8 @@ public class SmartHomeAlertHandler extends BasePlaceMonitorHandler {
 
    public void onStarted(SubsystemContext<PlaceMonitorSubsystemModel> context) {
       AlertScratchPad scratch = scratchPad(context);
+      scratch.alerts(alert -> RETIRED_ALERT_TYPES.contains(alert.getAlerttype()))
+         .forEach(alert -> scratch.removeAlert(alert.getAlertkey()));
       generators.forEach(generator -> generator.onStarted(context, scratch));
       postProcess(context, scratch);
    }

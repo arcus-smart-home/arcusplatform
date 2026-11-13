@@ -15,7 +15,6 @@
  */
 package com.iris.core.dao;
 
-import java.util.Calendar;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -87,11 +86,6 @@ public interface HubDAO extends CRUDDao<String, Hub> {
 	 * @return
 	 */
 	Stream<Hub> streamByPartitionId(int partitionId);
-
-	void insertCellBackupTimes(Calendar now, Map<String,String> hubSimIdMap, int snapTo);
-
-	void disallowCell(String hubId, String reason);
-	void allowCell(String hubId);
 
 	/**
 	 * This method should be implemented as an async fire and forget method.

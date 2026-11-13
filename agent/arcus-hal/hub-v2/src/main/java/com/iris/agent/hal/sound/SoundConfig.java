@@ -79,9 +79,6 @@ public class SoundConfig {
         putV2(SounderMode.ARMING_GRACE_ENTER,   loadTone("arming.txt"));
 
         putV2(SounderMode.AWESOME_ALL_SETUP,                      loadTone("nosound.txt"));
-        putV2(SounderMode.BUTTON_PRESS_BACKUP,                    loadTone("nosound.txt"));
-        putV2(SounderMode.BUTTON_PRESS_BACKUP_BATT,               loadTone("nosound.txt"));
-        putV2(SounderMode.BUTTON_PRESS_BACKUP_OFFLINE,            loadTone("nosound.txt"));
         putV2(SounderMode.BUTTON_PRESS_BATTERY,                   loadTone("nosound.txt"));
         putV2(SounderMode.BUTTON_PRESS_NORMAL,                    loadTone("nosound.txt"));
         putV2(SounderMode.BUTTON_PRESS_OFFLINE,                   loadTone("nosound.txt"));
@@ -162,9 +159,6 @@ public class SoundConfig {
 
         // Voices 
         putV3(SounderMode.AWESOME_ALL_SETUP,                      "voice/AwesomeAllSetup.mp3");
-        putV3(SounderMode.BUTTON_PRESS_BACKUP,                    "voice/button-press-backup.mp3");
-        putV3(SounderMode.BUTTON_PRESS_BACKUP_BATT,               "voice/button-press-backup-batt.mp3");
-        putV3(SounderMode.BUTTON_PRESS_BACKUP_OFFLINE,            "voice/button-press-backup-offline.mp3");
         putV3(SounderMode.BUTTON_PRESS_BATTERY,                   "voice/button-press-battery.mp3");
         putV3(SounderMode.BUTTON_PRESS_NORMAL,                    "voice/button-press-normal.mp3");
         putV3(SounderMode.BUTTON_PRESS_OFFLINE,                   "voice/button-press-offline.mp3");

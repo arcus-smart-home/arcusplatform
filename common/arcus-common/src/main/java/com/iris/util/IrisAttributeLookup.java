@@ -39,9 +39,14 @@ public class IrisAttributeLookup {
    private static final Logger log = LoggerFactory.getLogger(IrisAttributeLookup.class);
 
    /** Capability namespaces removed from the codebase but still present in database rows. */
-   private static final Set<String> DEPRECATED_NAMESPACES = new HashSet<>(Arrays.asList("hubhue", "hubsercomm"));
+   private static final Set<String> DEPRECATED_NAMESPACES = new HashSet<>(Arrays.asList("hubhue", "hubsercomm", "hub4g", "cellbackup"));
 
    private IrisAttributeLookup() {
+   }
+
+   /** True for a capability namespace that was removed but may still have attributes in stored rows. */
+   public static boolean isDeprecatedNamespace(String namespace) {
+      return DEPRECATED_NAMESPACES.contains(namespace);
    }
 
    public static @Nullable AttributeDefinition definition(String name) {
@@ -63,7 +68,7 @@ public class IrisAttributeLookup {
       if (type == null) {
          if (!name.startsWith("_")) {
             String namespace = NamespacedKey.parse(name).getNamespace();
-            if (DEPRECATED_NAMESPACES.contains(namespace)) {
+            if (isDeprecatedNamespace(namespace)) {
                log.trace("ignoring deprecated attribute [{}]", name);
             } else {
                log.warn("unrecognized attribute [{}]: type information may be wrong", name);

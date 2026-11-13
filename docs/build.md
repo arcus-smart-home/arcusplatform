@@ -411,7 +411,6 @@ export IRIS_AGENT_HUBV2_DATADIR=~/.hub-simulated
 export IRIS_GATEWAY_URI=wss://localhost:8082/hub/1.0
 export ZWAVE_DISABLE=true
 export ZIGBEE_DISABLE=true
-export FOURG_DISABLE=true
 ./run-agent.sh
 ```
 
