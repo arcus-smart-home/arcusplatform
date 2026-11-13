@@ -42,6 +42,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		Then the driver should send barrier_operator set
 			And with parameter barrierstate -1
 		Then the driver should schedule event CheckDoor in 120 seconds
+			And the driver should cancel event RetryDoorCommand
 		Then the driver should place a EmptyMessage message on the platform bus
 		Then nothing else should happen
 
@@ -51,6 +52,7 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 		Then the driver should send barrier_operator set
 			And with parameter barrierstate 0
 		Then the driver should schedule event CheckDoor in 120 seconds
+			And the driver should cancel event RetryDoorCommand
 		Then the driver should place a EmptyMessage message on the platform bus
 		Then nothing else should happen
 
@@ -209,3 +211,137 @@ Feature: Motorized Door capability for the ZWLinearGarageDoorControllerDriver
 			|   0x63        |
 			|   0x64        |
 			|   0xFB        |
+
+
+#############################################################
+# Commands refused with Application Status Busy
+#############################################################
+
+	@busy
+	Scenario Outline: A close refused as busy is sent again after the wait time
+		Given the driver attribute motdoor:doorstate is OPEN
+		When a base:SetAttributes command with the value of motdoor:doorstate CLOSED is placed on the platform bus
+		Then the driver should send barrier_operator set
+			And with parameter barrierstate 0
+			And the driver should schedule event CheckDoor in 120 seconds
+			And the driver should cancel event RetryDoorCommand
+		When the device response with application_status busy
+			And with parameter status <status>
+			And with parameter waittime <wait>
+			And send to driver
+		Then the driver should schedule event RetryDoorCommand in <delay> seconds
+		When event RetryDoorCommand triggers
+		Then the driver should send barrier_operator set
+			And with parameter barrierstate 0
+			And the driver should schedule event CheckDoor in 120 seconds
+			And the driver variable commandTries should be 2
+
+		Examples:
+		  | status | wait | delay | remarks                        |
+		  | 0      | 0    | 5     | try again later, default wait  |
+		  | 1      | 10   | 10    | the controller's wait time     |
+		  | 1      | 60   | 30    | a long wait time is capped     |
+		  | 1      | 0    | 5     | no wait time given             |
+		  | 7      | 3    | 5     | unknown status, default wait   |
+
+	@busy
+	Scenario: An open refused as busy is sent again
+		Given the driver attribute motdoor:doorstate is CLOSED
+			And the driver variable commandTarget is OPEN
+			And the driver variable commandTime is now
+			And the driver variable commandTries is 1
+		When the device response with application_status busy
+			And with parameter status 0
+			And with parameter waittime 0
+			And send to driver
+		Then the driver should schedule event RetryDoorCommand in 5 seconds
+		When event RetryDoorCommand triggers
+		Then the driver should send barrier_operator set
+			And with parameter barrierstate -1
+			And the driver should schedule event CheckDoor in 120 seconds
+
+	@busy
+	Scenario: A command the controller queued is not sent again
+		Given the driver attribute motdoor:doorstate is OPEN
+			And the driver variable commandTarget is CLOSED
+			And the driver variable commandTime is now
+			And the driver variable commandTries is 1
+		When the device response with application_status busy
+			And with parameter status 2
+			And with parameter waittime 0
+			And send to driver
+		Then there should be no more scheduled events
+
+	@busy
+	Scenario Outline: A command the door has started or carried out is not sent again
+		Given the driver attribute motdoor:doorstate is <state>
+			And the driver variable commandTarget is <target>
+			And the driver variable commandTime is now
+			And the driver variable commandTries is 1
+		When the device response with application_status busy
+			And with parameter status 0
+			And with parameter waittime 0
+			And send to driver
+		Then there should be no more scheduled events
+
+		Examples:
+		  | target | state   |
+		  | CLOSED | CLOSING |
+		  | CLOSED | CLOSED  |
+		  | OPEN   | OPENING |
+		  | OPEN   | OPEN    |
+
+	@busy
+	Scenario: A Busy long after the last command is ignored
+		Given the driver attribute motdoor:doorstate is OPEN
+			And the driver variable commandTarget is CLOSED
+			And the time driver variable commandTime is 3 minutes ago
+			And the driver variable commandTries is 1
+		When the device response with application_status busy
+			And with parameter status 0
+			And with parameter waittime 0
+			And send to driver
+		Then there should be no more scheduled events
+
+	@busy
+	Scenario: A Busy with no command sent is ignored
+		Given the driver attribute motdoor:doorstate is OPEN
+		When the device response with application_status busy
+			And with parameter status 0
+			And with parameter waittime 0
+			And send to driver
+		Then there should be no more scheduled events
+
+	@busy
+	Scenario: A command still refused after three tries raises an error
+		Given the driver attribute motdoor:doorstate is OPEN
+			And the driver variable commandTarget is CLOSED
+			And the driver variable commandTime is now
+			And the driver variable commandTries is 3
+		When the device response with application_status busy
+			And with parameter status 0
+			And with parameter waittime 0
+			And send to driver
+		Then there should be no more scheduled events
+			And the capability devadv:errors should be [ERR_COMMAND_REFUSED:Garage door controller was busy and did not move the door]
+
+	@busy
+	Scenario: A retry is not sent once the door got there
+		Given the driver attribute motdoor:doorstate is CLOSED
+			And the driver variable commandTarget is CLOSED
+			And the driver variable commandTime is now
+			And the driver variable commandTries is 2
+		When event RetryDoorCommand triggers
+		Then the driver should not send barrier_operator set
+
+	@busy
+	Scenario: A new command clears the refused error
+		Given the driver attribute motdoor:doorstate is OPEN
+			And the driver attribute devadv:errors is {'ERR_COMMAND_REFUSED':'Garage door controller was busy and did not move the door'}
+			And the driver variable commandTries is 3
+		When a base:SetAttributes command with the value of motdoor:doorstate CLOSED is placed on the platform bus
+		Then the driver should send barrier_operator set
+			And with parameter barrierstate 0
+			And the capability devadv:errors should be [:]
+			And the driver variable commandTries should be 1
+			And the driver variable commandTarget should be "CLOSED"

@@ -78,6 +78,18 @@ final int  LIFELINE_GET_DELAY   = 1000
 
 // What an Application Status Busy reply says about the command it refused
 @Field final Map BUSY_STATUS = [0: 'try again later', 1: 'try again after the wait time', 2: 'queued, will run later']
+@Field final int BUSY_TRY_AFTER_WAIT = 1
+@Field final int BUSY_QUEUED = 2
+
+// An open or close refused as busy is sent again after the wait time the controller gives,
+// or BUSY_RETRY_DEFAULT_MS when it gives none, until it has been sent MAX_COMMAND_TRIES times
+@Field final String EVENT_RETRY_COMMAND = 'RetryDoorCommand'
+@Field final int MAX_COMMAND_TRIES = 3
+@Field final long BUSY_RETRY_DEFAULT_MS = 5000
+@Field final long BUSY_RETRY_MAX_MS = 30000
+@Field final long COMMAND_RETRY_WINDOW_MS = 120000 // a Busy later than this isn't about the last command
+@Field final String ERR_REFUSED_KEY = 'ERR_COMMAND_REFUSED'
+@Field final String ERR_REFUSED_VALUE = 'Garage door controller was busy and did not move the door'
 
 // Barrier Operator States
 // Note: Barrier Operator States 0x01 - 0x63 (Barrier Stopped with position) are not supported by this device
@@ -259,11 +271,9 @@ setAttributes('motdoor') {
 				}
 
 				if (attribute.value == MotorizedDoor.DOORSTATE_OPEN) {
-					ZWave.barrier_operator.set(BARRIER_STATE_OPEN)
-					Scheduler.scheduleIn(EVENT_CHECK_DOOR, MOVE_WINDOW_MS)
+					sendDoorCommand(MotorizedDoor.DOORSTATE_OPEN)
 				} else if (attribute.value == MotorizedDoor.DOORSTATE_CLOSED) {
-					ZWave.barrier_operator.set(BARRIER_STATE_CLOSED)
-					Scheduler.scheduleIn(EVENT_CHECK_DOOR, MOVE_WINDOW_MS)
+					sendDoorCommand(MotorizedDoor.DOORSTATE_CLOSED)
 				} else {
 					log.error 'Attempt to set Garage Door to invalid door state: {}', attribute.value
 				}
@@ -344,7 +354,9 @@ onZWaveMessage.alarm.report {
 
 onZWaveMessage.application_status.busy {
 	int status = message.command.get('status') & 0xFF
-	log.info 'Reported Application Busy: {} (status {}), wait time {} s', BUSY_STATUS[status] ?: 'unknown', status, message.command.get('waittime') & 0xFF
+	int waitTime = message.command.get('waittime') & 0xFF
+	log.info 'Reported Application Busy: {} (status {}), wait time {} s', BUSY_STATUS[status] ?: 'unknown', status, waitTime
+	retryRefusedCommand(status, waitTime)
 }
 
 onZWaveMessage.application_status.rejected {
@@ -388,4 +400,62 @@ onEvent(EVENT_CHECK_DOOR){
 		log.info 'Door still {} when the move should be over, checking its state', state
 		ZWave.barrier_operator.get()
 	}
+}
+
+onEvent(EVENT_RETRY_COMMAND){
+	if (commandPending()) {
+		vars.commandTries = vars.commandTries + 1
+		log.info 'Sending the refused {} command again, try {} of {}', vars.commandTarget, vars.commandTries, MAX_COMMAND_TRIES
+		ZWave.barrier_operator.set(barrierState(vars.commandTarget))
+		// If the controller carries out this send, the move starts now, so check on it from here
+		Scheduler.scheduleIn(EVENT_CHECK_DOOR, MOVE_WINDOW_MS)
+	}
+}
+
+
+///////////////////////////////////////////////
+// Commands Refused as Busy
+//////////////////////////////////////////////
+
+void sendDoorCommand(String target) {
+	ZWave.barrier_operator.set(barrierState(target))
+	Scheduler.scheduleIn(EVENT_CHECK_DOOR, MOVE_WINDOW_MS)
+	vars.commandTarget = target
+	vars.commandTime = now()
+	vars.commandTries = 1
+	Scheduler.cancel(EVENT_RETRY_COMMAND)
+	DeviceAdvanced.errors.remove ERR_REFUSED_KEY
+}
+
+byte barrierState(String target) {
+	return MotorizedDoor.DOORSTATE_OPEN == target ? BARRIER_STATE_OPEN : BARRIER_STATE_CLOSED
+}
+
+// A recent open or close that the door hasn't carried out or started yet
+boolean commandPending() {
+	if (null == vars.commandTarget || null == vars.commandTime) {
+		return false
+	}
+	if (now().getTime() - vars.commandTime.getTime() > COMMAND_RETRY_WINDOW_MS) {
+		return false
+	}
+	def state = MotorizedDoor.doorstate.get()
+	if (MotorizedDoor.DOORSTATE_OPEN == vars.commandTarget) {
+		return MotorizedDoor.DOORSTATE_OPEN != state && MotorizedDoor.DOORSTATE_OPENING != state
+	}
+	return MotorizedDoor.DOORSTATE_CLOSED != state && MotorizedDoor.DOORSTATE_CLOSING != state
+}
+
+void retryRefusedCommand(int status, int waitTime) {
+	// A queued command will still be carried out
+	if (BUSY_QUEUED == status || !commandPending()) {
+		return
+	}
+	if (vars.commandTries >= MAX_COMMAND_TRIES) {
+		log.warn 'Still busy after {} tries, giving up on the {} command', vars.commandTries, vars.commandTarget
+		DeviceAdvanced.errors.put ERR_REFUSED_KEY, ERR_REFUSED_VALUE
+		return
+	}
+	long delay = (BUSY_TRY_AFTER_WAIT == status && waitTime > 0) ? Math.min(waitTime * 1000L, BUSY_RETRY_MAX_MS) : BUSY_RETRY_DEFAULT_MS
+	Scheduler.scheduleIn(EVENT_RETRY_COMMAND, delay)
 }
