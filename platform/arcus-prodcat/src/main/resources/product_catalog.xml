@@ -3751,6 +3751,24 @@
         <population name="beta"/>
       </populations>
     </product>
+    <product id="1d49d8" name="Multipurpose Sensor" shortname="Multipurpose Sensor" screen="Contact" description="" manufacturer="Samsung" vendor="SmartThings" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="samsung, smartthings, samjin, contact, temperature, tilt, multipurpose, sensor, zigbee" ota="Yes" protofamily="ZigBee" added="2026-11-13T12:00:00-0500" lastchanged="2026-11-13T12:00:00-0500">
+      <categories>
+        <category name="Care"/>
+        <category name="Cameras &amp; Sensors"/>
+        <category name="Security"/>
+      </categories>
+      <pair>
+        <step1 type="text" img="" text="Insert the battery. The hub will beep when pairing is complete."/>
+      </pair>
+      <removal>
+        <step1 type="text" img="" text="The hub will beep when the device is successfully removed."/>
+      </removal>
+      <populations>
+        <population name="general"/>
+        <population name="qa"/>
+        <population name="beta"/>
+      </populations>
+    </product>
     <product id="806362" name="Link A19 LED Light Bulb" shortname="Light Bulb" screen="Light" description="" manufacturer="GE" vendor="GE" cert="none" canbrowse="false" cansearch="false" helpurl="" pairvideourl="" keywords="ge, link, dimmable, white, 60, 12, watt, a19, led, light, bulb" ota="No" protofamily="ZigBee" added="2015-10-28T17:53:30-0600" lastchanged="2015-10-28T17:53:30-0600">
       <categories>
         <category name="Lights &amp; Switches"/>

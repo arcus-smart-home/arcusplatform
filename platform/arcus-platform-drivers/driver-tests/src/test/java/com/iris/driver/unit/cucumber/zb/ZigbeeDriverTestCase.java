@@ -368,6 +368,14 @@ S    * @param attribute name in ALL_CAPS to check if it was written
 			}
 					assert false: "parameter "+ parameterName + " has unsupported value type "+actual.getClass();
     	}
+
+    	@Override
+    	public void checkSentManufacturerCode(int expectedCode) {
+    		assert zcl != null: "No ZCL command has been taken from the protocol bus";
+    		assert (zcl.getFlags() & ZigbeeMessage.Zcl.MANUFACTURER_SPECIFIC) != 0: "Expected a manufacturer specific command, instead found flags "+zcl.getFlags();
+    		assert zcl.getManufacturerCode() == expectedCode: "Expected manufacturer code "+expectedCode+", instead found "+zcl.getManufacturerCode();
+    	}
+
     	/**
     	 * This validates generic payloads, can be used for MSP or commands not supported more specifically.
     	 * 

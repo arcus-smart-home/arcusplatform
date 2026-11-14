@@ -60,6 +60,14 @@ public interface DriverTestContext<ProtocolMessageFormat> {
     }
 
     /**
+     * Checks that the command the last "the driver should send" step took is
+     * manufacturer specific with the given manufacturer code.
+     */
+    public default void checkSentManufacturerCode(int expectedCode) {
+        throw new UnsupportedOperationException("checkSentManufacturerCode is not supported for " + getProtocol().getName());
+    }
+
+    /**
      * Reports whether a protocol message is the given command, without asserting,
      * so a step can check that a driver did not send something.
      */
