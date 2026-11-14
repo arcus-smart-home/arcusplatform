@@ -1,0 +1,847 @@
+/*
+ * Copyright 2019 Arcus Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/**
+ * ZigBee Driver for the Samjin SmartThings Multipurpose Sensor (IM6001-MPP01)
+ *
+ * This is the 2018 Samjin-made SmartThings Multipurpose Sensor.  Unlike the
+ * CentraLite 3321 (ZB_SmartThings_MultipurposeSensor_2_3) and the SmartThings
+ * multiv4 (ZB_SmartThings_MultipurposeSensorV4_2_3), it reports battery as
+ * BatteryPercentageRemaining (0x0021) in half-percent units, and its
+ * accelerometer cluster (0xFC02) takes Samjin's manufacturer code (0x1241).
+ *
+ * The battery, temperature and accelerometer reporting settings, the
+ * accelerometer threshold write and the zone id in the enroll response come
+ * from the SmartThings Edge zigbee-contact driver (multi-sensor/samjin-multi
+ * and its test).  CIE enrollment is done platform-side with retries, as in
+ * ZB_SmartThings_SamjinLeakSensor.  Contact changes are handled by hub-local
+ * reflexes, so they keep working while the hub is offline.
+ *
+ * TILT
+ *  - Tilt comes from the accelerometer's 0x0013 axis, with the thresholds the
+ *    Edge driver uses for its garage door setting: UPRIGHT when the reading's
+ *    magnitude is above 900, FLAT when it is below 100, unchanged in between.
+ *  - Tilt is worked out on the platform, so it doesn't change while the hub is
+ *    offline.  It reads FLAT until the first axis report arrives.
+ *  - add a Tag of ["tiltActivatesContact"] to make the tilt state set the contact
+ *    state (assumes the magnet isn't used to work the real contact sensor)
+ *  - add a Tag of ["closedOnUpright"] to make the contact CLOSED when upright (like
+ *    a garage door); otherwise it is CLOSED when flat (like a jewelry box lid)
+ *
+ * VIBRATION
+ *  - The accelerometer's acceleration attribute (0x0010, active/inactive) is only
+ *    logged.  Arcus has no vibration capability, and mapping it to Motion would
+ *    make an armed security alarm go off on a knock.
+ *
+ * IDENTIFY
+ *  - Identify asks the device to identify itself for 3 minutes (see IDENT_PERIOD_SECS).
+ *
+ * OFFLINE TIMEOUT:    195 minutes
+ * CHECK-IN INTERVAL:  Every 2 minutes
+ *
+ * BATTERY LEVEL REPORTING:
+ *  - At least every 6 hours, at most every 30 seconds, on a change of 0.5%
+ *
+ * TEMPERATURE REPORTING:
+ *  - At least every 10 minutes, at most every 30 seconds, on a change of 1 C
+ *
+ * ACCELEROMETER REPORTING:
+ *  - Acceleration and each axis at least every hour, on any change
+ *
+ * IN Clusters
+ *   0x0000     Basic
+ *   0x0001     Power Configuration
+ *   0x0003     Identify
+ *   0x0020     Poll Control
+ *   0x0402     Temperature Measurement
+ *   0x0500     IAS Zone
+ *   0x0B05     Diagnostics
+ *   0xFC02     Manufacturer Specific Accelerometer
+ * OUT Clusters
+ *   0x0003     Identify
+ *   0x0019     OTA Upgrade
+ */
+import groovy.transform.Field
+import static java.util.concurrent.TimeUnit.*
+import static com.iris.protocol.zigbee.zcl.IasZone.ZoneEnrollResponse.*
+import static com.iris.protocol.zigbee.zcl.PollControl.CheckInResponse.*
+
+uses "generic.GenericContact"
+uses "zigbee.GenericZigbeeDeviceOta"
+
+
+driver          "ZBSmartThingsSamjinMultipurposeSensor"
+description     "Driver for the Samjin SmartThings Multipurpose Sensor"
+version         "1.0"
+protocol        "ZIGB"
+deviceTypeHint  "Contact"
+productId       "1d49d8"
+vendor          "SmartThings"
+model           "IM6001-MPP01"
+
+matcher         'ZIGB:manufacturer': 0x1241, 'ZIGB:vendor': 'Samjin', 'ZIGB:model': 'multi'
+
+
+capabilities    Identify, DeviceOta
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Capability Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+DevicePower {
+   source DevicePower.SOURCE_BATTERY
+   linecapable false
+   backupbatterycapable false
+   bind sourcechanged to source
+}
+
+Contact {
+   Contact.contact  Contact.CONTACT_CLOSED
+   Contact.usehint  Contact.USEHINT_UNKNOWN
+   bind contactchanged to Contact.contact
+}
+
+Tilt {
+   Tilt.tiltstate  Tilt.TILTSTATE_FLAT
+   bind tiltstatechanged to Tilt.tiltstate
+}
+
+Temperature {
+   temperature null
+}
+
+
+@Field def dvcEndPoint  = Zigbee.endpoint((byte)1)
+
+@Field def pwrCluster   = dvcEndPoint.Power
+@Field def identCluster = dvcEndPoint.Identify
+@Field def zoneCluster  = dvcEndPoint.IasZone
+@Field def pollCluster  = dvcEndPoint.PollControl
+@Field def tempCluster  = dvcEndPoint.TemperatureMeasurement
+@Field def diagCluster  = dvcEndPoint.Diagnostics
+@Field def otaCluster   = dvcEndPoint.Ota
+
+@Field static final String DEVICE_NAME = 'SmartThings Samjin Multipurpose Sensor'
+
+@Field final int PROFILE_HA                 = 0x0104
+@Field final int CLUSTER_PWR_CNFG           = 0x0001
+@Field final int CLUSTER_POLL_CONTROL       = 0x0020
+@Field final int CLUSTER_TEMPERATURE        = 0x0402
+@Field final int CLUSTER_IAS_ZONE           = 0x0500
+@Field final int CLUSTER_ACCELEROMETER      = 0xFC02
+@Field final int SAMJIN_MFG_CODE            = 0x1241
+
+// General Command Frames
+@Field final int CMD_READ_ATTR_RSP          = 0x01
+@Field final int CMD_WRT_ATTR               = 0x02
+@Field final int CMD_WRT_ATTR_RSP           = 0x04
+@Field final int CMD_CNFG_RPT               = 0x06
+@Field final int CMD_CNFG_RPT_RSP           = 0x07
+@Field final int CMD_REPORT_ATTR            = 0x0A
+@Field final int CMD_DFLT_RSP               = 0x0B
+
+// accelerometer cluster attributes (named as in the Edge driver)
+@Field final short ATTR_ACCELERATION        = 0x0010
+@Field final short ATTR_AXIS_X              = 0x0012
+@Field final short ATTR_AXIS_Y              = 0x0013
+@Field final short ATTR_AXIS_Z              = 0x0014
+
+// The Edge driver reads 0x0013 as the vertical axis for its garage door setting
+@Field final int TILT_UPRIGHT_ABOVE         = 900
+@Field final int TILT_FLAT_BELOW            = 100
+
+// operational constants
+@Field final short IDENT_PERIOD_SECS        = 180
+@Field final long WRITE_IAS_CIE_DELAY       = 5000
+@Field final long ZONE_ENROLL_DELAY         = 5000
+@Field final int MAX_IAS_CIE_WRITES         = 100
+@Field final int MAX_ZONE_ENROLLS           = 100
+@Field final byte ZONE_ID                   = 0x00
+
+@Field final long CNFG_RETRY_DELAY_MSEC     = 10000
+@Field final int MAX_CNFG_ATTEMPTS          = 10
+@Field final String CNFG_PWR_RPT            = 'CnfgPwrRpt'
+@Field final String CNFG_TEMP_RPT           = 'CnfgTempRpt'
+@Field final String CNFG_POLL_CTRL          = 'CnfgPollCrtl'
+@Field final String CNFG_ACCEL_THRESHOLD    = 'CnfgAccelThreshold'
+@Field final String CNFG_ACCEL_RPT          = 'CnfgAccelRpt'
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver Reflex Declarations
+////////////////////////////////////////////////////////////////////////////////
+
+Zigbee {
+   offlineTimeout 195, MINUTES
+
+   /////////////////////////////////////////////////////////////////////////////
+   // Process IAS Zone Status reports locally on the hub.
+   /////////////////////////////////////////////////////////////////////////////
+
+   match reflex {
+      // if alarm1 status reported SET with 'delay' of 30 seconds or less, change Contact.contact to OPEN
+      on iaszone, endpoint: 1, set: ["alarm1"], maxDelay: 30
+      set Contact.contact, Contact.CONTACT_OPENED
+   }
+
+   match reflex {
+      // if alarm1 status reported CLEAR with 'delay' of 30 seconds or less, change Contact.contact to CLOSED
+      on iaszone, endpoint: 1, clear: ["alarm1"], maxDelay: 30
+      set Contact.contact, Contact.CONTACT_CLOSED
+   }
+
+   match reflex {
+      // if zone status reports 'BATTERY' set battery level to 0 to trigger LOW BATTERY
+      on iaszone, set: ["battery"]
+      emit DevicePower.battery, 0
+   }
+
+   match reflex {
+      on zcl.iaszone.zoneEnrollRequest
+      send zcl.iaszone.zoneEnrollResponse, zoneId: 0x00, enrollResponseCode: REPONSE_CODE_SUCCESS
+   }
+
+   /////////////////////////////////////////////////////////////////////////////
+   // Process Poll Control Check-Ins locally on the hub.
+   /////////////////////////////////////////////////////////////////////////////
+
+   match reflex {
+      on zcl.pollcontrol.checkIn
+      // tell device to resume without short polling
+      send zcl.pollcontrol.checkInResponse, startFastPolling: START_FAST_POLLING_DISABLED, fastPollTimeout: 0
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver lifecycle callbacks
+////////////////////////////////////////////////////////////////////////////////
+
+onAdded {
+   log.debug "{} device added.", DEVICE_NAME
+
+   def addedAt = (null != DeviceAdvanced.added.get()) ? DeviceAdvanced.added.get() : new Date()
+
+   DevicePower.source               DevicePower.SOURCE_BATTERY
+   DevicePower.linecapable          false
+   DevicePower.backupbatterycapable false
+   DevicePower.sourcechanged        addedAt
+
+   Contact.contact                  Contact.CONTACT_CLOSED
+   Contact.contactchanged           addedAt
+
+   Tilt.tiltstate                   Tilt.TILTSTATE_FLAT
+   Tilt.tiltstatechanged            addedAt
+
+   // Bind clusters
+   Zigbee.bindEndpoints(
+      pwrCluster.bindServerCluster(),
+      zoneCluster.bindServerCluster(),
+      pollCluster.bindServerCluster(),
+      tempCluster.bindServerCluster(),
+      diagCluster.bindServerCluster(),
+      dvcEndPoint.bindServerCluster(CLUSTER_ACCELEROMETER) )
+
+   // initialize flags to track IAS CIE enrollment
+   vars.'writeIasCieCnt' = 0
+   vars.'zoneEnrollCnt' = 0
+
+   // write the IAS CIE Address (can only be written once until factory reset)
+   zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+   // schedule follow-up write in case first write fails
+   Scheduler.scheduleIn 'doWriteIasCie', WRITE_IAS_CIE_DELAY
+}
+
+
+onConnected {
+   log.debug "{} device connected.", DEVICE_NAME
+
+   // set long poll interval to 24 quarter seconds, and short poll interval to 4 quarter seconds
+   pollCluster.setLongPollInterval((int)24)
+   pollCluster.setShortPollInterval((short)4)
+
+   pwrCluster.zclReadAttributes( pwrCluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING )
+   tempCluster.zclReadAttributes( tempCluster.ATTR_MEASURED_VALUE )
+   diagCluster.zclReadAttributes( diagCluster.ATTR_LAST_MESSAGE_LQI )
+
+   // Zone Status on its own: the contact reflexes consume the response
+   zoneCluster.zclReadAttributes( zoneCluster.ATTR_ZONE_STATUS )
+   // Zone State and CIE Address in a read of their own, so the response reaches
+   // the platform, which checks the enrollment
+   zoneCluster.zclReadAttributes( zoneCluster.ATTR_ZONE_STATE, zoneCluster.ATTR_IAS_CIE_ADDRESS )
+
+   vars.CNFG_PWR_RPT = 0
+   Scheduler.defer CNFG_PWR_RPT
+
+   vars.CNFG_TEMP_RPT = 0
+   Scheduler.defer CNFG_TEMP_RPT
+
+   vars.CNFG_POLL_CTRL = 0
+   Scheduler.defer CNFG_POLL_CTRL
+
+   vars.CNFG_ACCEL_THRESHOLD = 0
+   Scheduler.defer CNFG_ACCEL_THRESHOLD
+
+   vars.CNFG_ACCEL_RPT = 0
+   Scheduler.defer CNFG_ACCEL_RPT
+}
+
+
+onDisconnected {
+   log.debug "{} device disconnected.", DEVICE_NAME
+}
+
+
+onRemoved {
+   log.debug "{} device removed.", DEVICE_NAME
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Scheduled Event Handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('doWriteIasCie') {
+   if ((0 <= vars.'writeIasCieCnt') && (MAX_IAS_CIE_WRITES > vars.'writeIasCieCnt')) {
+      vars.'writeIasCieCnt'++
+      log.debug "Write IAS CIE Address attempt:{}", vars.'writeIasCieCnt'
+      zoneCluster.zclWriteAttributes( [(zoneCluster.ATTR_IAS_CIE_ADDRESS): Zigbee.Data.encodeIeee(Zigbee.Hub.eui64)] )
+      Scheduler.scheduleIn 'doWriteIasCie', (WRITE_IAS_CIE_DELAY * vars.'writeIasCieCnt')
+   }
+}
+
+onEvent('doZoneEnroll') {
+   if ((0 <= vars.'zoneEnrollCnt') && (MAX_ZONE_ENROLLS > vars.'zoneEnrollCnt')) {
+      vars.'zoneEnrollCnt'++
+      log.debug "Zone Enrollment attempt:{}", vars.'zoneEnrollCnt'
+      sendZoneEnrollment()
+      // read the Zone State back; the response stops these retries once enrolled
+      zoneCluster.zclReadAttributes( zoneCluster.ATTR_ZONE_STATE )
+      Scheduler.scheduleIn 'doZoneEnroll', (ZONE_ENROLL_DELAY * vars.'zoneEnrollCnt')
+   }
+}
+
+onEvent(CNFG_PWR_RPT) {
+   if ((0 <= vars.CNFG_PWR_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_PWR_RPT)) {
+      log.debug "{}:{}", CNFG_PWR_RPT, vars.CNFG_PWR_RPT
+      // configure reporting of Power Config cluster BatteryPercentageRemaining attribute (0x0021)
+      byte[] rptPwrCnfgBytes = [
+         // Dir (0x00)
+         0x00,
+         // Attr Id (0x0021) Battery Percentage Remaining
+         0x21, 0x00,
+         // Attr Data Type (0x20) Unsigned 8-Bit Int
+         0x20,
+         // Min Interval (0x001E) 30 secs
+         0x1E, 0x00,
+         // Max Interval (0x5460) 21600 secs (at least once every 6 hours)
+         0x60, 0x54,
+         // Reportable Change (0x01) one half-percent
+         0x01 ]
+      Zigbee.send(
+         "cluster" : CLUSTER_PWR_CNFG,
+         "command" : CMD_CNFG_RPT,
+         "profile" : PROFILE_HA,
+         "endpoint" : 1,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : rptPwrCnfgBytes )
+      vars.CNFG_PWR_RPT++
+      Scheduler.scheduleIn CNFG_PWR_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_PWR_RPT)
+   }
+}
+
+onEvent(CNFG_TEMP_RPT) {
+   if ((0 <= vars.CNFG_TEMP_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_TEMP_RPT)) {
+      log.debug "{}:{}", CNFG_TEMP_RPT, vars.CNFG_TEMP_RPT
+      // configure reporting of Temperature Measurement cluster Measured Value
+      byte[] rptTempCnfgBytes = [
+         // Dir (0x00)
+         0x00,
+         // Attr Id (0x0000) Measured Value
+         0x00, 0x00,
+         // Attr Data Type (0x29) Signed 16-Bit Int
+         0x29,
+         // Min Interval (0x001E) 30 secs
+         0x1E, 0x00,
+         // Max Interval (0x0258) 600 secs (at least once every 10 minutes)
+         0x58, 0x02,
+         // Reportable Change (0x0064) 100/100ths C
+         0x64, 0x00 ]
+      Zigbee.send(
+         "cluster" : CLUSTER_TEMPERATURE,
+         "command" : CMD_CNFG_RPT,
+         "profile" : PROFILE_HA,
+         "endpoint" : 1,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : rptTempCnfgBytes )
+      vars.CNFG_TEMP_RPT++
+      Scheduler.scheduleIn CNFG_TEMP_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_TEMP_RPT)
+   }
+}
+
+onEvent(CNFG_POLL_CTRL) {
+   if ((0 <= vars.CNFG_POLL_CTRL) && (MAX_CNFG_ATTEMPTS > vars.CNFG_POLL_CTRL)) {
+      log.debug "{}:{}", CNFG_POLL_CTRL, vars.CNFG_POLL_CTRL
+      // write Poll Control cluster Checkin Interval to 2 minutes (480 quarter-seconds)
+      byte[] wrtChkIntvlBytes = [
+         // Attr Id (0x0000) Checkin Interval
+         0x00, 0x00,
+         // Attr Data Type (0x23) Unsigned 32-bit integer
+         0x23,
+         // Attr Data (0x000001E0) 480 quarter-seconds = 2 minutes
+         0xE0, 0x01, 0x00, 0x00 ]
+      Zigbee.send(
+         "cluster" : CLUSTER_POLL_CONTROL,
+         "command" : CMD_WRT_ATTR,
+         "profile" : PROFILE_HA,
+         "endpoint" : 1,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : wrtChkIntvlBytes)
+      vars.CNFG_POLL_CTRL++
+      Scheduler.scheduleIn CNFG_POLL_CTRL, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_POLL_CTRL)
+   }
+}
+
+onEvent(CNFG_ACCEL_THRESHOLD) {
+   if ((0 <= vars.CNFG_ACCEL_THRESHOLD) && (MAX_CNFG_ATTEMPTS > vars.CNFG_ACCEL_THRESHOLD)) {
+      log.debug "{}:{}", CNFG_ACCEL_THRESHOLD, vars.CNFG_ACCEL_THRESHOLD
+      // write the accelerometer's motion threshold multiplier, as the Edge driver does
+      byte[] wrtThresholdBytes = [
+         // Attr Id (0x0000) Motion Threshold Multiplier
+         0x00, 0x00,
+         // Attr Data Type (0x20) Unsigned 8-Bit Int
+         0x20,
+         // Attr Data (0x14)
+         0x14 ]
+      Zigbee.send(
+         "msp" : SAMJIN_MFG_CODE,
+         "cluster" : CLUSTER_ACCELEROMETER,
+         "command" : CMD_WRT_ATTR,
+         "profile" : PROFILE_HA,
+         "endpoint" : 1,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : wrtThresholdBytes)
+      vars.CNFG_ACCEL_THRESHOLD++
+      Scheduler.scheduleIn CNFG_ACCEL_THRESHOLD, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_ACCEL_THRESHOLD)
+   }
+}
+
+onEvent(CNFG_ACCEL_RPT) {
+   if ((0 <= vars.CNFG_ACCEL_RPT) && (MAX_CNFG_ATTEMPTS > vars.CNFG_ACCEL_RPT)) {
+      log.debug "{}:{}", CNFG_ACCEL_RPT, vars.CNFG_ACCEL_RPT
+      // configure reporting of the accelerometer's acceleration and axes, as the Edge driver does
+      byte[] rptAccelCnfgBytes = [
+         // Dir (0x00), Attr Id (0x0010) Acceleration, Data Type (0x18) 8-Bit Bitmap,
+         // Min Interval (0x0000), Max Interval (0x0E10) 3600 secs; no Reportable Change for a bitmap
+         0x00, 0x10, 0x00, 0x18, 0x00, 0x00, 0x10, 0x0E,
+         // Dir (0x00), Attr Id (0x0012) X Axis, Data Type (0x29) Signed 16-Bit Int,
+         // Min Interval (0x0000), Max Interval (0x0E10) 3600 secs, Reportable Change (0x0001)
+         0x00, 0x12, 0x00, 0x29, 0x00, 0x00, 0x10, 0x0E, 0x01, 0x00,
+         // Y Axis (0x0013), the same
+         0x00, 0x13, 0x00, 0x29, 0x00, 0x00, 0x10, 0x0E, 0x01, 0x00,
+         // Z Axis (0x0014), the same
+         0x00, 0x14, 0x00, 0x29, 0x00, 0x00, 0x10, 0x0E, 0x01, 0x00 ]
+      Zigbee.send(
+         "msp" : SAMJIN_MFG_CODE,
+         "cluster" : CLUSTER_ACCELEROMETER,
+         "command" : CMD_CNFG_RPT,
+         "profile" : PROFILE_HA,
+         "endpoint" : 1,
+         "clusterspecific" : false,
+         "defaultresponse" : true,
+         "data" : rptAccelCnfgBytes )
+      vars.CNFG_ACCEL_RPT++
+      Scheduler.scheduleIn CNFG_ACCEL_RPT, (CNFG_RETRY_DELAY_MSEC * vars.CNFG_ACCEL_RPT)
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Power Configuration Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePowerMsg(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def battPctRemaining = attributes[pwrCluster.ATTR_BATTERY_VOLTAGE_PERCENT_REMAINING]
+   log.trace "BatteryPctRemaining:{}", battPctRemaining
+
+   if ((null == battPctRemaining) || ('INVALID' == battPctRemaining.toString())) {
+      return
+   }
+
+   // an unsigned 8-bit value, so 128 and up arrive as negative bytes
+   int halfPercent = battPctRemaining
+   if (0 > halfPercent) halfPercent += 256
+   // reported in half-percent units (0-200 = 0-100%), rounded as the Edge driver does
+   int pct = Math.min(100, (int)Math.round(halfPercent / 2.0))
+   log.debug "Battery Percent:{}", pct
+   DevicePower.battery pct
+}
+
+onZigbeeMessage.Zcl.power.zclreadattributesresponse() {
+   log.trace "Driver received Power Attributes Response:{}", message
+   handlePowerMsg(message)
+}
+
+onZigbeeMessage.Zcl.power.zclreportattributes() {
+   log.trace "Driver received Power Attributes Report:{}", message
+   handlePowerMsg(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Poll Control Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handlePollCrtlMsg(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def checkin = attributes[pollCluster.ATTR_CHECKIN_INTERVAL]
+   def longPoll = attributes[pollCluster.ATTR_LONG_POLL_INTERVAL]
+   def shortPoll = attributes[pollCluster.ATTR_SHORT_POLL_INTERVAL]
+   log.trace "CheckinInterval:{}, LongPoll:{}, ShortPoll:{}", checkin, longPoll, shortPoll
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreadattributesresponse() {
+   log.trace "Driver received Poll Control Attributes Response:{}", message
+   handlePollCrtlMsg(message)
+}
+
+onZigbeeMessage.Zcl.pollcontrol.zclreportattributes() {
+   log.trace "Driver received Poll Control Attributes Report:{}", message
+   handlePollCrtlMsg(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Temperature Measurement Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleTemperatureMeasurement(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def tempVal = attributes[tempCluster.ATTR_MEASURED_VALUE]
+   log.trace "Temp:{}", tempVal
+
+   if ((null != tempVal) && ('INVALID' != tempVal.toString())) {
+      // temperature is reported in 100ths degree C, so convert to C and save
+      double tempC = tempVal
+      tempC /= 100
+      log.trace "Set Temp:{}", tempC
+      Temperature.temperature tempC
+   }
+}
+
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreadattributesresponse() {
+   log.trace "Driver received Temperature Measurement Attributes Response:{}", message
+   handleTemperatureMeasurement(message)
+}
+
+onZigbeeMessage.Zcl.temperaturemeasurement.zclreportattributes() {
+   log.trace "Driver received Temperature Measurement Attributes Report:{}", message
+   handleTemperatureMeasurement(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the IAS Zone Cluster
+//
+// Zone Status reaches the platform only when the contact reflexes don't take
+// it, so these handlers deal with enrollment: Zone State and the CIE address.
+////////////////////////////////////////////////////////////////////////////////
+
+void handleZoneMsg(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def zoneState = attributes[zoneCluster.ATTR_ZONE_STATE]
+   def iasCieAddr = attributes[zoneCluster.ATTR_IAS_CIE_ADDRESS]
+   log.debug "ZoneState:{}, IAS CIE Addr:{}", zoneState, iasCieAddr
+
+   if (null != zoneState) {
+      if (1 == zoneState) {
+         // zone state 1 = enrolled; stop enrollment retries
+         vars.'zoneEnrollCnt' = -1
+         vars.'writeIasCieCnt' = -1
+      } else {
+         sendZoneEnrollment()
+      }
+   }
+
+   if (null != iasCieAddr) {
+      verifyCIEAddr(iasCieAddr)
+   }
+}
+
+void sendZoneEnrollment() {
+   zoneCluster.zoneEnrollResponse( (byte)REPONSE_CODE_SUCCESS, ZONE_ID )
+}
+
+void verifyCIEAddr(addr) {
+   def hubAddr = Zigbee.Data.encodeIeee(Zigbee.Hub.eui64).dataValue
+
+   if (('INVALID' == addr.toString()) || (8 != addr.size())) {
+      log.warn "IAS CIE Address not set."
+   } else if (addr != hubAddr) {
+      log.error "IAS CIE Address not set to hub address."
+   } else {
+      log.debug "IAS CIE Address is set to hub address."
+   }
+}
+
+onZigbeeMessage.Zcl.iaszone.zclreadattributesresponse() {
+   log.debug "Driver received IAS Zone Attributes Response:{}", message
+   handleZoneMsg(message)
+}
+
+onZigbeeMessage.Zcl.iaszone.zclreportattributes() {
+   log.debug "Driver received IAS Zone Attributes Report:{}", message
+   handleZoneMsg(message)
+}
+
+onZigbeeMessage.Zcl.iaszone.zclwriteattributesresponse() {
+   log.debug "Driver received IAS Zone write attributes response:{}", message
+
+   def zclMsg = Zigbee.Message.toZcl(message)
+   byte[] data = zclMsg.getPayload()
+   if ((null != data) && (1 <= data.size())) {
+      if (0x00 == data[0]) {
+         log.debug "IAS Zone Write Attributes Success"
+         vars.'writeIasCieCnt' = -1
+         Scheduler.defer 'doZoneEnroll'
+      } else if (0x70 == data[0]) {         // REQUEST_DENIED
+         log.warn "IAS Zone Write Attributes REQUEST DENIED"
+         vars.'writeIasCieCnt' = -1
+         zoneCluster.zclReadAttributes( zoneCluster.ATTR_ZONE_STATE, zoneCluster.ATTR_IAS_CIE_ADDRESS )
+      } else {
+         log.warn "IAS Zone Write Attributes FAILED!!!"
+      }
+   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Accelerometer Cluster (0xFC02)
+////////////////////////////////////////////////////////////////////////////////
+
+void handleAccelerometerMsg(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+
+   def acceleration = attributes[ATTR_ACCELERATION]
+   if (null != acceleration) {
+      // logged only; see VIBRATION in the header
+      log.debug "Acceleration:{}", (1 == acceleration) ? 'active' : 'inactive'
+   }
+
+   def axis = attributes[ATTR_AXIS_Y]
+   log.trace "Axes x:{}, y:{}, z:{}", attributes[ATTR_AXIS_X], axis, attributes[ATTR_AXIS_Z]
+   if ((null != axis) && ('INVALID' != axis.toString())) {
+      updateTilt(Math.abs((int)axis))
+   }
+}
+
+void updateTilt(int magnitude) {
+   def newState
+   if (TILT_UPRIGHT_ABOVE < magnitude) {
+      newState = Tilt.TILTSTATE_UPRIGHT
+   } else if (TILT_FLAT_BELOW > magnitude) {
+      newState = Tilt.TILTSTATE_FLAT
+   } else {
+      return
+   }
+
+   if (newState == Tilt.tiltstate.get()) {
+      return
+   }
+
+   log.debug "Tilt:{}", newState
+   Tilt.tiltstate newState
+   syncContactWithTilt()
+}
+
+void syncContactWithTilt() {
+   def tags = Base.tags.get()
+   if ((null == tags) || !tags.contains('tiltActivatesContact')) {
+      return
+   }
+
+   boolean upright = (Tilt.TILTSTATE_UPRIGHT == Tilt.tiltstate.get())
+   boolean closedOnUpright = tags.contains('closedOnUpright')
+   Contact.contact ((upright == closedOnUpright) ? Contact.CONTACT_CLOSED : Contact.CONTACT_OPENED)
+}
+
+// Unlike GenericTiltWithContact, only resync the contact from the tilt when
+// tiltActivatesContact is set, so other tags don't change the contact state
+onBase.AddTags {
+   Base.tags.addAll(message.attributes.tags)
+   sendResponse()
+   syncContactWithTilt()
+}
+
+onBase.RemoveTags {
+   Base.tags.removeAll(message.attributes.tags)
+   sendResponse()
+   syncContactWithTilt()
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Handling of the Diagnostics Cluster
+////////////////////////////////////////////////////////////////////////////////
+
+void handleDiagnosticMsg(Object msg) {
+   def attributes = Zigbee.Message.decodeZclAttributes(msg)
+   def lqi = attributes[diagCluster.ATTR_LAST_MESSAGE_LQI]
+
+   if (lqi != null) {
+      if ('INVALID' == lqi.toString()) lqi = 255    // helper parses 255 value as 'INVALID', but it just means 100%
+      if (0 > lqi) lqi = 256 + lqi                  // convert signed value to unsigned
+      int sigPct = Math.round( (lqi * 100.0) / 255.0)
+      log.trace "LQI:{}, (percent:{})", lqi, sigPct
+      DeviceConnection.signal sigPct
+   }
+}
+
+onZigbeeMessage.Zcl.diagnostics.zclreadattributesresponse() {
+   log.trace "Driver received Diagnostics Attributes Response:{}", message
+   handleDiagnosticMsg(message)
+}
+
+onZigbeeMessage.Zcl.diagnostics.zclreportattributes() {
+   log.trace "Driver received Diagnostics Attributes Report:{}", message
+   handleDiagnosticMsg(message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DeviceOta Capability
+////////////////////////////////////////////////////////////////////////////////
+
+onEvent('DeviceOtaDeferredRead') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaDeferredRead(this, DEVICE_NAME, dvcEndPoint)
+}
+
+onEvent('DeviceOtaCheckFragmentRequestTimeout') {
+   GenericZigbeeDeviceOta.doProcessDeviceOtaCheckFragmentRequestTimeout(this, DEVICE_NAME)
+}
+
+onZigbeeMessage.Zcl.ota.zclreadattributesresponse() {
+   GenericZigbeeDeviceOta.doHandleOtaReadAttributesResponse(this, DEVICE_NAME, otaCluster, message)
+}
+
+onZigbeeMessage.Zcl.ota.querynextimagerequest() {
+   GenericZigbeeDeviceOta.doHandleQueryNextImageRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.imageblockrequest() {
+   GenericZigbeeDeviceOta.doHandleImageBlockRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.imagePageRequest() {
+   GenericZigbeeDeviceOta.doHandleImagePageRequest(this, DEVICE_NAME, message)
+}
+
+onZigbeeMessage.Zcl.ota.upgradeendrequest() {
+   GenericZigbeeDeviceOta.doHandleUpgradeEndRequest(this, DEVICE_NAME, message)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Identify Capability Closures
+////////////////////////////////////////////////////////////////////////////////
+
+onIdentify.Identify {
+   log.debug "Driver received onIdentify.Identify:{}", message
+   identCluster.identifyCmd( IDENT_PERIOD_SECS )
+   sendResponse 'ident:IdentifyResponse', ['result':true]
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Default protocol message handlers
+////////////////////////////////////////////////////////////////////////////////
+
+onZigbeeMessage(Zigbee.TYPE_ZCL) {
+   def zclMsg = Zigbee.Message.toZcl(message)
+   def profile = zclMsg.getProfileId()
+   def clusterId = zclMsg.getClusterId()
+   def messageId = zclMsg.getZclMessageId()
+   def endpoint = zclMsg.getEndpoint()
+   def flags = zclMsg.getFlags()
+   def payloadLen = zclMsg.getLength()
+   byte[] data = zclMsg.getPayload()
+
+   if (PROFILE_HA == profile) {
+      if (CLUSTER_ACCELEROMETER == clusterId) {
+         boolean clusterSpecific = (0 != (flags & 0x01))
+         if (!clusterSpecific && (CMD_REPORT_ATTR == messageId || CMD_READ_ATTR_RSP == messageId)) {
+            log.trace "Driver received Accelerometer Attributes:{}", message
+            handleAccelerometerMsg(message)
+            return
+         }
+         if (CMD_WRT_ATTR_RSP == messageId) {
+            if (logResponse(data, "Accelerometer threshold write")) vars.CNFG_ACCEL_THRESHOLD = -1
+            return
+         }
+         if (CMD_CNFG_RPT_RSP == messageId) {
+            if (logResponse(data, "Accelerometer reporting configuration")) vars.CNFG_ACCEL_RPT = -1
+            return
+         }
+         if (CMD_DFLT_RSP == messageId) {
+            // payload is the command id and a status; a device that rejects the
+            // manufacturer-specific setup says so here
+            if ((null != data) && (2 <= data.size()) && (0x00 != data[1])) {
+               log.warn "Accelerometer default response with an error: {}", data
+            } else {
+               log.trace "Accelerometer default response"
+            }
+            return
+         }
+      }
+      if (CLUSTER_PWR_CNFG == clusterId && CMD_CNFG_RPT_RSP == messageId) {
+         if (logResponse(data, "Power reporting configuration")) vars.CNFG_PWR_RPT = -1
+         return
+      }
+      if (CLUSTER_TEMPERATURE == clusterId && CMD_CNFG_RPT_RSP == messageId) {
+         if (logResponse(data, "Temperature reporting configuration")) vars.CNFG_TEMP_RPT = -1
+         return
+      }
+      if (CLUSTER_POLL_CONTROL == clusterId && CMD_WRT_ATTR_RSP == messageId) {
+         if (logResponse(data, "Poll Control configuration")) vars.CNFG_POLL_CTRL = -1
+         return
+      }
+      if (CLUSTER_POLL_CONTROL == clusterId && CMD_DFLT_RSP == messageId) {
+         log.trace "Poll Control default response"
+         return
+      }
+      if (CLUSTER_IAS_ZONE == clusterId && CMD_DFLT_RSP == messageId) {
+         log.trace "IAS Zone default response"
+         return
+      }
+   }
+
+   log.debug "Driver received unhandled zigbee ZCL message Profile:{}, ClusterId:{}, MessageId:{}, EndPoint:{}, Flags:{}, Len:{}, Data:{}",
+         profile, clusterId, messageId, endpoint, flags, payloadLen, data
+}
+
+boolean logResponse(data, msgType) {
+   if ((null != data) && (1 <= data.size()) && (0x00 == data[0])) {
+      log.trace "{} was successful: {}", msgType, data
+      return true
+   }
+   log.warn "{} FAILED: {}", msgType, data
+   return false
+}
