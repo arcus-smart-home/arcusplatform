@@ -103,6 +103,8 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
       assertNotNull(response.getAttributes().get("key"));
       String key = (String) response.getAttributes().get("key");
       assertTrue(key.startsWith("arcus_sk_"));
+      // wherever the response is logged
+      assertFalse(response.toString(), response.toString().contains(key));
 
       ApiKey captured = savedKey.getValue();
       assertEquals("test-label", captured.getLabel());
@@ -287,7 +289,105 @@ public class TestCreateApiKeyHandler extends IrisMockTestCase {
       }
    }
 
-   private PlatformMessage buildRequest(UUID actorId, String label, Set<String> permissions, Long expiresAt) {
+   @Test
+   public void testCreateWithExpirationAsANumericString() {
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+      EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.emptyList());
+      Capture<ApiKey> savedKey = EasyMock.newCapture();
+      apiKeyDao.save(EasyMock.capture(savedKey));
+      EasyMock.expectLastCall();
+      replay();
+
+      long futureTime = System.currentTimeMillis() + 86400000L;
+      handler.handleRequest(place, buildRequest(ownerId, "expiring-key", Collections.singleton("dev:r:*"), String.valueOf(futureTime)));
+
+      assertEquals(futureTime, savedKey.getValue().getExpiresAt().toEpochMilli());
+   }
+
+   @Test
+   public void testCreateWithADateStringExpirationIsRejected() {
+      assertExpirationRejected("2030-01-01T00:00:00Z");
+   }
+
+   @Test
+   public void testCreateWithANonTimeExpirationIsRejected() {
+      assertExpirationRejected(true);
+   }
+
+   // Shiro accepts these, but the authorizer only asks for r, w, x, c or d, so they would allow nothing
+   @Test
+   public void testCreatePermissionThatCanNeverMatchIsRejected() {
+      for (String perm : new String[] { "device:get", "scene:execute", "dev:read:*", "dev::*" }) {
+         reset();
+         EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+         replay();
+
+         try {
+            handler.handleRequest(place, buildRequest(ownerId, "test-label", Collections.singleton(perm), null));
+            fail("Expected ErrorEventException for " + perm);
+         } catch (ErrorEventException e) {
+            assertEquals(perm, Errors.CODE_INVALID_PARAM, e.getCode());
+         }
+      }
+      assertNull(messageBus.poll());
+   }
+
+   // The authorizer asks with three parts, so a fourth part that isn't * would never match
+   @Test
+   public void testCreatePermissionWithMoreThanThreePartsIsRejected() {
+      for (String perm : new String[] { "dev:r:*:extra", "dev:r:" + place.getId() + ":x", "dev:r:*:*" }) {
+         reset();
+         EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+         replay();
+
+         try {
+            handler.handleRequest(place, buildRequest(ownerId, "test-label", Collections.singleton(perm), null));
+            fail("Expected ErrorEventException for " + perm);
+         } catch (ErrorEventException e) {
+            assertEquals(perm, Errors.CODE_INVALID_PARAM, e.getCode());
+            assertTrue(e.getMessage(), e.getMessage().contains("at most three parts"));
+         }
+      }
+      assertNull(messageBus.poll());
+   }
+
+   @Test
+   public void testCreateWithPermissionsInTheEnforcedFormat() {
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+      EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.emptyList());
+      Capture<ApiKey> savedKey = EasyMock.newCapture();
+      apiKeyDao.save(EasyMock.capture(savedKey));
+      EasyMock.expectLastCall();
+      replay();
+
+      Set<String> perms = new HashSet<>();
+      perms.add("*:*:*");
+      perms.add("*");
+      perms.add("dev:r:*");
+      perms.add("swit:R,W:*");
+      perms.add("scene:x");
+      perms.add("place:x:" + place.getId());
+      perms.add("dev:*:*");
+      handler.handleRequest(place, buildRequest(ownerId, "test-label", perms, null));
+
+      assertEquals(perms, savedKey.getValue().getPermissions());
+   }
+
+   private void assertExpirationRejected(Object expiresAt) {
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+      EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.emptyList());
+      replay();
+
+      try {
+         handler.handleRequest(place, buildRequest(ownerId, "test-label", Collections.singleton("dev:r:*"), expiresAt));
+         fail("Expected ErrorEventException");
+      } catch (ErrorEventException e) {
+         assertEquals(Errors.CODE_INVALID_PARAM, e.getCode());
+      }
+      assertNull(messageBus.poll());
+   }
+
+   private PlatformMessage buildRequest(UUID actorId, String label, Set<String> permissions, Object expiresAt) {
       Map<String, Object> attrs = new HashMap<>();
       if (label != null) {
          attrs.put("label", label);

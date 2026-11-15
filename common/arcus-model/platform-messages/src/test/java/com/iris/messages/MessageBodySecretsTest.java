@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.HubZwaveCapability;
 import com.iris.messages.capability.PairingSubsystemCapability;
+import com.iris.messages.service.ApiKeyService;
 
 /**
  * Builds each secret message through its generated class, so that renaming one
@@ -36,6 +37,8 @@ import com.iris.messages.capability.PairingSubsystemCapability;
 public class MessageBodySecretsTest {
    private static final String PIN = "12345";
    private static final String DSK = "00000-11111-22222-33333-44444-55555-11111-22222";
+   // contains 11111 for assertClean
+   private static final String API_KEY = "arcus_sk_11111111222222223333333344444444";
 
    @Test
    public void testHubPinRequestIsRedacted() {
@@ -81,6 +84,17 @@ public class MessageBodySecretsTest {
                .withRequestId("request")
                .withDsk(DSK)
                .withExpires(new Date())
+               .build()
+      );
+   }
+
+   @Test
+   public void testNewApiKeyIsRedacted() {
+      assertRedacted(
+            ApiKeyService.CreateResponse
+               .builder()
+               .withId("key-id")
+               .withKey(API_KEY)
                .build()
       );
    }

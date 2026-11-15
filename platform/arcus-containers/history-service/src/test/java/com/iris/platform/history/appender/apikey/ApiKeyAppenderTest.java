@@ -25,6 +25,7 @@ import com.google.inject.Inject;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.service.ApiKeyService.CreatedEvent;
+import com.iris.messages.service.ApiKeyService.DeletedEvent;
 import com.iris.messages.service.ApiKeyService.RevokedEvent;
 import com.iris.platform.history.HistoryAppenderDAO;
 import com.iris.platform.history.HistoryLogEntry;
@@ -90,6 +91,19 @@ public class ApiKeyAppenderTest extends EventAppenderTestCase {
       assertTrue(appender.append(apiKeyEvent(RevokedEvent.NAME, ACTOR_PERSON)));
       assertEntry(dashboard.getValue(), CRITICAL, "apikey.revoked");
       assertEntry(details.getValue(), PLACE, "apikey.revoked");
+   }
+
+   @Test
+   public void testDeleted() {
+      expectFindPlaceName();
+      expectFindPersonName();
+      Capture<HistoryLogEntry> dashboard = expectAndCaptureAppend();
+      Capture<HistoryLogEntry> details = expectAndCaptureAppend();
+      replay();
+
+      assertTrue(appender.append(apiKeyEvent(DeletedEvent.NAME, ACTOR_PERSON)));
+      assertEntry(dashboard.getValue(), CRITICAL, "apikey.deleted");
+      assertEntry(details.getValue(), PLACE, "apikey.deleted");
    }
 
    @Test

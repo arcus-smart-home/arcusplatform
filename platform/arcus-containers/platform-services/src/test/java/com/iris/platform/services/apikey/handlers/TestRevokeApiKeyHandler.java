@@ -103,6 +103,9 @@ public class TestRevokeApiKeyHandler extends IrisMockTestCase {
       assertEquals("test-key", event.getValue().getAttributes().get("label"));
       assertEquals(Address.platformService(ownerId, "person"), event.getActor());
       assertEquals(place.getId().toString(), event.getPlaceId());
+      // the shape ApiKeyRevocationListener accepts
+      assertEquals(Address.fromString(place.getAddress()), event.getSource());
+      assertTrue(event.getDestination().isBroadcast());
    }
 
    @Test
@@ -153,23 +156,28 @@ public class TestRevokeApiKeyHandler extends IrisMockTestCase {
       }
    }
 
+   // A session can outlive its key, and the first event can be lost, so revoking again must still reach api-bridge
    @Test
-   public void testRevokeAlreadyRevoked() {
+   public void testRevokeAlreadyRevokedSendsTheEventAgain() throws Exception {
       UUID keyId = UUID.randomUUID();
       ApiKey existing = createExpiredKey(keyId);
 
       EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
       EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.singletonList(existing));
+      // keeps the time it stopped working, so no apiKeyDao.expire
       replay();
 
       PlatformMessage msg = buildRequest(ownerId, keyId.toString());
+      MessageBody response = handler.handleRequest(place, msg);
 
-      try {
-         handler.handleRequest(place, msg);
-         fail("Expected ErrorEventException");
-      } catch (ErrorEventException e) {
-         assertEquals(Errors.CODE_INVALID_PARAM, e.getCode());
-      }
+      assertEquals("apikey:RevokeResponse", response.getMessageType());
+
+      PlatformMessage event = messageBus.take();
+      assertEquals(RevokeApiKeyHandler.EVENT_API_KEY_REVOKED, event.getMessageType());
+      assertEquals(keyId.toString(), event.getValue().getAttributes().get("keyId"));
+      assertEquals(Address.fromString(place.getAddress()), event.getSource());
+      assertTrue(event.getDestination().isBroadcast());
+      assertEquals(place.getId().toString(), event.getPlaceId());
    }
 
    @Test

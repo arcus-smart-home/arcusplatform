@@ -27,34 +27,47 @@ import org.easymock.EasyMock;
 import org.junit.Test;
 
 import com.google.inject.Inject;
+import com.iris.core.dao.AccountDAO;
 import com.iris.core.dao.ApiKeyDAO;
 import com.iris.core.messaging.memory.InMemoryMessageModule;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
+import com.iris.messages.errors.ErrorEventException;
+import com.iris.messages.model.Account;
 import com.iris.messages.model.Place;
 import com.iris.security.apikey.ApiKey;
+import com.iris.security.authz.AuthzUtil;
 import com.iris.test.IrisMockTestCase;
 import com.iris.test.Mocks;
 import com.iris.test.Modules;
 
-@Mocks({ApiKeyDAO.class})
+@Mocks({ApiKeyDAO.class, AccountDAO.class})
 @Modules({InMemoryMessageModule.class})
 public class TestListApiKeysHandler extends IrisMockTestCase {
 
    @Inject ApiKeyDAO apiKeyDao;
+   @Inject AccountDAO accountDao;
 
    private ListApiKeysHandler handler;
    private Place place;
+   private Account account;
+   private UUID ownerId;
 
    @Override
    public void setUp() throws Exception {
       super.setUp();
-      handler = new ListApiKeysHandler(apiKeyDao);
+      handler = new ListApiKeysHandler(apiKeyDao, accountDao);
+
+      ownerId = UUID.randomUUID();
+
+      account = new Account();
+      account.setId(UUID.randomUUID());
+      account.setOwner(ownerId);
 
       place = new Place();
       place.setId(UUID.randomUUID());
-      place.setAccount(UUID.randomUUID());
+      place.setAccount(account.getId());
       place.setName("Test Place");
       place.setPopulation("general");
    }
@@ -67,10 +80,11 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
 
    @Test
    public void testListEmpty() {
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
       EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Collections.emptyList());
       replay();
 
-      PlatformMessage msg = buildRequest();
+      PlatformMessage msg = buildRequest(ownerId);
 
       MessageBody response = handler.handleRequest(place, msg);
       assertEquals("apikey:ListKeysResponse", response.getMessageType());
@@ -111,10 +125,11 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
       key2.setLastUsed(lastUsed);
       key2.setExpiresAt(expiresAt);
 
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
       EasyMock.expect(apiKeyDao.findByPlace(place.getId())).andReturn(Arrays.asList(key1, key2));
       replay();
 
-      PlatformMessage msg = buildRequest();
+      PlatformMessage msg = buildRequest(ownerId);
 
       MessageBody response = handler.handleRequest(place, msg);
       assertEquals("apikey:ListKeysResponse", response.getMessageType());
@@ -142,12 +157,27 @@ public class TestListApiKeysHandler extends IrisMockTestCase {
       assertEquals(true, map2.get("expired"));
    }
 
-   private PlatformMessage buildRequest() {
+   // a full-access guest at the place can send this too
+   @Test
+   public void testListNotOwner() {
+      EasyMock.expect(accountDao.findById(account.getId())).andReturn(account);
+      replay();
+
+      try {
+         handler.handleRequest(place, buildRequest(UUID.randomUUID()));
+         fail("Expected ErrorEventException");
+      } catch (ErrorEventException e) {
+         assertEquals(AuthzUtil.UNAUTHORIZED_CODE, e.getCode());
+      }
+   }
+
+   private PlatformMessage buildRequest(UUID actorId) {
       MessageBody body = MessageBody.buildMessage(ListApiKeysHandler.MESSAGE_TYPE, Collections.emptyMap());
       return PlatformMessage.buildMessage(
             body,
             Address.clientAddress("test", "1"),
             Address.fromString(place.getAddress()))
+            .withActor(Address.platformService(actorId, "person"))
             .create();
    }
 }
