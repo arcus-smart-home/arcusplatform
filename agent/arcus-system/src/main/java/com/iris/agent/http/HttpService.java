@@ -121,7 +121,6 @@ public final class HttpService {
             throw new RuntimeException(ex);
          }
 
-         AsyncHttpService.start();
          HttpServer.start();
       }
    }
@@ -129,7 +128,6 @@ public final class HttpService {
    public static void shutdown() {
       synchronized (START_LOCK) {
          HttpServer.shutdown();
-         AsyncHttpService.shutdown();
 
          if (client != null) {
             IOUtils.closeQuietly(client);
