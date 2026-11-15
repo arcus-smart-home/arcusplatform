@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 /**
- * Driver for a Zooz ZSE18 Motion Sensor (700 Series)
+ * Driver for a Zooz ZSE18 Motion Sensor (500 series before firmware 2.0, 800 series LR from 2.0)
  *
  * The ZSE18 is a compact stick-and-click PIR motion sensor powered by a
  * CR123A battery or USB. It features a magnetic mount for flexible placement.
+ * The driver sends no configuration parameters: their numbers differ between
+ * firmware versions, and the defaults suit the hub.
  *
- * FACTORY RESET:  Click the Z-Wave button 2 times quickly, then hold for at least 10 seconds and release.
+ * FACTORY RESET:  Press and hold the Z-Wave button for at least 20 seconds. The LED flashes, stays solid,
+ *                 then turns off.
  *
  * PAIR/INCLUDE:   Click the Z-Wave button quickly 3 times in a row while the hub is in inclusion mode.
  * UNPAIR/EXCLUDE: Click the Z-Wave button quickly 3 times in a row while the hub is in exclusion mode.
@@ -45,7 +48,6 @@
  *   0x98 (-104) Security S0
  *   0x9F  (-97) Security S2
  */
-import groovy.transform.Field
 
 driver           "ZWZoozZse18MotionSensorDriver"
 description      "Driver for a Zooz ZSE18 Motion Sensor"
@@ -56,7 +58,7 @@ productId        "a3e018"
 vendor           "Zooz"
 model            "ZSE18"
 
-matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0003, 'ZWAV:ProductId': 0x0088
+matcher          'ZWAV:Manufacturer': 0x027A, 'ZWAV:ProductType': 0x0301, 'ZWAV:ProductId': 0x0012
 
 capabilities     DevicePower, Motion
 
@@ -78,30 +80,6 @@ final int OFFLINE_TIMEOUT_SECS  = 11400     // 190 minutes
 final int BATTERY_POLLING_SEC   = 86400     // Ask for battery level every 24 hours
 
 
-// Config Parameters
-// ----------------------------------------------------------------------------
-@Field final byte CNFG_MOTION_SENSITIVITY_PARAM_NO   = 12         // Motion sensitivity
-final byte CNFG_MOTION_SENSITIVITY_SIZE              = 1          // 1-8 (low to high), default=4
-final byte CNFG_MOTION_SENSITIVITY_VALUE             = 4
-
-@Field final byte CNFG_MOTION_CLEARED_TIME_PARAM_NO  = 13         // Motion cleared time delay
-final byte CNFG_MOTION_CLEARED_TIME_SIZE             = 2          // 10-3600 seconds, default=30
-final byte CNFG_MOTION_CLEARED_TIME_VALUE_1          = 0
-final byte CNFG_MOTION_CLEARED_TIME_VALUE_2          = 30
-
-@Field final byte CNFG_BASIC_SET_REPORTING_PARAM_NO  = 14         // Basic Set reporting
-final byte CNFG_BASIC_SET_REPORTING_SIZE             = 1          // 0=disabled, 1=enabled (default=0)
-final byte CNFG_BASIC_SET_REPORTING_VALUE            = 1
-
-@Field final byte CNFG_MOTION_DETECTION_PARAM_NO     = 15         // Motion detection enable
-final byte CNFG_MOTION_DETECTION_SIZE                = 1          // 0=disabled, 1=enabled (default)
-final byte CNFG_MOTION_DETECTION_VALUE               = 1
-
-@Field final byte CNFG_LED_MOTION_PARAM_NO           = 19         // LED for motion
-final byte CNFG_LED_MOTION_SIZE                      = 1          // 0=disabled, 1=enabled (default)
-final byte CNFG_LED_MOTION_VALUE                     = 1
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Driver Lifecycle Callbacks
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,13 +99,6 @@ onConnected {
 
    // Note: Generic ZWave Battery capability file reads current battery level during onConnected
    ZWave.poll(BATTERY_POLLING_SEC, ZWave.battery.get)
-
-   // configure device
-   ZWave.configuration.set( CNFG_MOTION_SENSITIVITY_PARAM_NO, CNFG_MOTION_SENSITIVITY_SIZE, CNFG_MOTION_SENSITIVITY_VALUE )
-   ZWave.configuration.set( CNFG_MOTION_CLEARED_TIME_PARAM_NO, CNFG_MOTION_CLEARED_TIME_SIZE, CNFG_MOTION_CLEARED_TIME_VALUE_1, CNFG_MOTION_CLEARED_TIME_VALUE_2 )
-   ZWave.configuration.set( CNFG_BASIC_SET_REPORTING_PARAM_NO, CNFG_BASIC_SET_REPORTING_SIZE, CNFG_BASIC_SET_REPORTING_VALUE )
-   ZWave.configuration.set( CNFG_MOTION_DETECTION_PARAM_NO, CNFG_MOTION_DETECTION_SIZE, CNFG_MOTION_DETECTION_VALUE )
-   ZWave.configuration.set( CNFG_LED_MOTION_PARAM_NO, CNFG_LED_MOTION_SIZE, CNFG_LED_MOTION_VALUE )
 }
 
 
@@ -167,6 +138,12 @@ onZWaveMessage.sensor_binary.report {
    handleMotionMsg message.command.get('value')
 }
 
+boolean isMotionIdle(message) {
+   // An idle report with no parameter doesn't say what ended, so it is taken as motion
+   def parameters = message.command.get('parameterslength') & 0x1F
+   return 0 == parameters || 8 == message.command.get('parameter1')
+}
+
 onZWaveMessage.alarm.report {
    def alarmType =  message.command.get('alarmtype')
    def alarmLevel =  message.command.get('alarmlevel')
@@ -188,8 +165,9 @@ onZWaveMessage.alarm.report {
             Motion.motionchanged new Date()
          }
       }
-      // Event 0x00 = State Idle (motion cleared)
-      else if (0 == event) {
+      // Event 0x00 = State Idle. Its first parameter names the event that ended, and only
+      // the end of motion (0x08) clears motion, not the end of a tamper (vibration) alert.
+      else if (0 == event && isMotionIdle(message)) {
          def prevState = Motion.motion.get()
          Motion.motion Motion.MOTION_NONE
          log.trace "Notification: Motion CLEARED"
@@ -202,24 +180,6 @@ onZWaveMessage.alarm.report {
          log.warn "Notification: Tamper detected"
       }
    }
-}
-
-onZWaveMessage.configuration.report {
-   log.trace "Config Report: {}", message
-   byte[] bytes = message.command.recvBytes
-   int param = message.command.get('param') & 0xFF
-   int byteCnt = message.command.get('level') & 0xFF
-   long val1 = message.command.get('val1') & 0xFF
-   if (2 == byteCnt) {
-      long val2 = message.command.get('val2') & 0xFF
-      val1 = (val1*256) + val2
-   } else if (4 == byteCnt) {
-      long val2 = message.command.get('val2') & 0xFF
-      long val3 = message.command.get('val3') & 0xFF
-      long val4 = message.command.get('val4') & 0xFF
-      val1 = (val1*256*256*256) + (val2*256*256) + (val3*256) + val4
-   }
-   log.debug "Config Param:{}, Bytes: {}, Val: {}", param, byteCnt, val1
 }
 
 onZWaveMessage.battery.report {
