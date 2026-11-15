@@ -442,10 +442,11 @@ public class NettyIrisClient2 implements IrisClient {
 
       Client client = getClient();
       if(connectionStateRef.compareAndSet(ConnectionState.CLOSED, ConnectionState.CONNECTING)) {
-         // the session id is the credential, so it stays out of the log
-         logger.debug("Requesting WebSocket Upgrade");
+         String uri = connectionURL + PATH_WEBSOCKET;
+         // not the session id: it is the credential
+         logger.debug("Requesting WebSocket Upgrade from [{}]", uri);
          NettyWebsocket.Builder websocketBuilder = NettyWebsocket.builder()
-         		.uri(connectionURL + PATH_WEBSOCKET)
+         		.uri(uri)
                .setTextHandler(new MessageHandler())
                .addHeader("Authorization", sessionId);
 
