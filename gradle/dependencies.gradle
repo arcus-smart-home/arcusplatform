@@ -115,11 +115,11 @@ ext.libraries << [
 		hibernateValidator: "org.hibernate:hibernate-validator:8.0.6.Final",
 
 // jackson dependencies
-		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.22.4",
-		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.22.4",
-		jacksonAnnotations: "com.fasterxml.jackson.core:jackson-annotations:2.22",
+		jacksonCore: "com.fasterxml.jackson.core:jackson-core:2.23.0",
+		jacksonDatabind: "com.fasterxml.jackson.core:jackson-databind:2.23.0",
+		jacksonAnnotations: "com.fasterxml.jackson.core:jackson-annotations:2.23",
 		// JMH benchmark support, not on any runtime classpath.
-		jacksonAfterburner: "com.fasterxml.jackson.module:jackson-module-afterburner:2.22.4",
+		jacksonAfterburner: "com.fasterxml.jackson.module:jackson-module-afterburner:2.23.0",
 		msgpackJackson: "org.msgpack:jackson-dataformat-msgpack:0.9.12",
 
 // kafka dependencies
