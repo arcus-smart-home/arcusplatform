@@ -96,8 +96,8 @@ ext.libraries << [
 		jaxb_api: "jakarta.xml.bind:jakarta.xml.bind-api:4.0.5",
 
 // Encryption via Bouncy Castle
-		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.86",
-		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk18on:1.86",
+		bouncycastle: "org.bouncycastle:bcprov-jdk18on:1.87",
+		bouncycastle_pki: "org.bouncycastle:bcpkix-jdk18on:1.87",
 
 // SQL Database
 		sqlite4java: "com.almworks.sqlite4java:sqlite4java:1.0.392",
@@ -170,7 +170,7 @@ ext.libraries << [
 		jsr166y: "org.codehaus.jsr166-mirror:jsr166y:1.7.0",
 		jna: 'net.java.dev.jna:jna:5.19.1',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
-		oshi_core: 'com.github.oshi:oshi-core:7.7.2',
+		oshi_core: 'com.github.oshi:oshi-core:7.7.3',
 		kxml2: 'kxml2:kxml2:2.3.0',
 		jetty_servlet: 'org.eclipse.jetty:jetty-servlet:9.2.22.v20170606',
 
@@ -239,7 +239,7 @@ ext.libraries << [
 		pushy: dependencies.create("com.eatthepath:pushy:0.15.6") {
                         exclude group: "io.netty", module: "netty-all"
                 },
-		twilio: dependencies.create("com.twilio.sdk:twilio:13.1.0") {
+		twilio: dependencies.create("com.twilio.sdk:twilio:13.2.0") {
 			exclude group: "org.slf4j"
 		},
 
