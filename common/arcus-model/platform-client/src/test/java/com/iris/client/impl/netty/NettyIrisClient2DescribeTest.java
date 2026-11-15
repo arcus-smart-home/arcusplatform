@@ -23,8 +23,9 @@ import org.junit.Test;
 import com.iris.client.ClientMessage;
 
 /**
- * The client logs every incoming message at debug, and Oculus turns that logger on, so the log line
- * must not carry attribute values: a new API key or a Z-Wave S2 PIN arrives as one.
+ * The client logs every message it sends and receives at debug, and Oculus turns that logger on, so the
+ * log line must not carry attribute values: a new API key arrives as one, and a password, a PIN or a
+ * Z-Wave S2 PIN is sent as one.
  */
 public class NettyIrisClient2DescribeTest {
    private static final String KEY = "c2VjcmV0LWFwaS1rZXktdmFsdWU";
@@ -47,6 +48,24 @@ public class NettyIrisClient2DescribeTest {
       assertTrue(described, described.contains("SERV:apikey:"));
       assertTrue(described, described.contains("42"));
       assertTrue(described, described.contains("key"));
+   }
+
+   @Test
+   public void testNamesARequestWithoutItsValues() {
+      ClientMessage msg = ClientMessage.builder()
+            .isRequest(true)
+            .withType("subpairing:SubmitS2Pin")
+            .withDestination("SERV:subpairing:")
+            .withCorrelationId("43")
+            .withAttribute("pin", "48213")
+            .create();
+
+      String described = NettyIrisClient2.describe(msg);
+
+      assertFalse(described, described.contains("48213"));
+      assertTrue(described, described.contains("subpairing:SubmitS2Pin"));
+      assertTrue(described, described.contains("SERV:subpairing:"));
+      assertTrue(described, described.contains("pin"));
    }
 
    @Test

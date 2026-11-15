@@ -442,7 +442,8 @@ public class NettyIrisClient2 implements IrisClient {
 
       Client client = getClient();
       if(connectionStateRef.compareAndSet(ConnectionState.CLOSED, ConnectionState.CONNECTING)) {
-         logger.debug("Requesting WebSocket Upgrade using Cookie [{}]", sessionId);
+         // the session id is the credential, so it stays out of the log
+         logger.debug("Requesting WebSocket Upgrade");
          NettyWebsocket.Builder websocketBuilder = NettyWebsocket.builder()
          		.uri(connectionURL + PATH_WEBSOCKET)
                .setTextHandler(new MessageHandler())
@@ -719,7 +720,9 @@ public class NettyIrisClient2 implements IrisClient {
       requestListeners.fireEvent(request);
       String payload = ClientMessageSerializer.serialize(message);
       getClient().fire(payload);
-      logger.debug("Request Sent To Platform: {}", payload);
+      if (logger.isDebugEnabled()) {
+         logger.debug("Request Sent To Platform: {}", describe(message));
+      }
    }
 
    private Client createClient() throws Exception {
@@ -875,14 +878,15 @@ public class NettyIrisClient2 implements IrisClient {
    }
 
    /**
-    * Names a message for the log: its type, source, correlation id and attribute names. Never the raw
-    * frame or the attribute values, because a response can carry a new API key or a Z-Wave S2 PIN.
+    * Names a message for the log: its type, source, destination, correlation id and attribute names.
+    * Never the raw frame or the attribute values: a response can carry a new API key, and a request a
+    * password, a PIN or a Z-Wave S2 PIN.
     */
    static String describe(ClientMessage msg) {
       ClientEvent event = msg.getEvent();
       Map<String, Object> attributes = event != null ? event.getAttributes() : null;
-      return "[" + msg.getType() + "] from [" + msg.getSource() + "] correlation id [" + msg.getCorrelationId() +
-            "] attributes " + (attributes != null ? attributes.keySet() : "[]");
+      return "[" + msg.getType() + "] from [" + msg.getSource() + "] to [" + msg.getDestination() +
+            "] correlation id [" + msg.getCorrelationId() + "] attributes " + (attributes != null ? attributes.keySet() : "[]");
    }
 
    private class MessageHandler implements TextMessageHandler {
@@ -892,7 +896,9 @@ public class NettyIrisClient2 implements IrisClient {
          ClientMessage msg = null;
          try {
             msg = ClientMessageSerializer.deserialize(json, ClientMessage.class);
-            logger.debug("Got incoming message {}", describe(msg));
+            if (logger.isDebugEnabled()) {
+               logger.debug("Got incoming message {}", describe(msg));
+            }
             messageListeners.fireEvent(msg);
             SettableClientFuture<ClientEvent> result = futures.remove(msg.getCorrelationId());
             if (result != null) {
@@ -989,7 +995,9 @@ public class NettyIrisClient2 implements IrisClient {
             setError(new ErrorResponseException("http.error." + response.getStatusCode(), json));
             return;
          }
-         logger.debug("Received Http Message From Server: {}", message != null ? describe(message) : "(empty)");
+         if (logger.isDebugEnabled()) {
+            logger.debug("Received Http Message From Server: {}", message != null ? describe(message) : "(empty)");
+         }
 
          try {
          	if(message != null) {
