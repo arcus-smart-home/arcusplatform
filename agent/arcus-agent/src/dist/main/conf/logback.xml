@@ -43,8 +43,6 @@
 
   <logger name="io.netty" level="WARN" />
   <logger name="org.eclipse.jetty" level="WARN" />
-  <logger name="org.asynchttpclient" level="WARN" />
-  <logger name="javax.activation" level="WARN" />
   <logger name="net.wimpi" level="WARN" />
   <logger name="org.crsh" level="WARN" />
   <logger name="org.hibernate" level="WARN" />

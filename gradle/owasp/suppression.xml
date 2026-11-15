@@ -5,22 +5,6 @@
     -->
    <suppress>
       <notes><![CDATA[
-      Async HTTP client is not netty, don't warn because _it_ is below 4.0
-      file name: async-http-client-netty-utils-2.0.37.jar
-      ]]></notes>
-      <gav regex="true">^org\.asynchttpclient:.*:.*$</gav>
-      <cve>CVE-2014-3488</cve>
-   </suppress>
-   <suppress>
-      <notes><![CDATA[
-      Netty reactive streams is not netty, don't warn because _it_ is below 4.0
-      file name: netty-reactive-streams-1.0.8.jar
-      ]]></notes>
-      <gav regex="true">^com\.typesafe\.netty:netty-reactive-streams:.*$</gav>
-      <cpe>cpe:/a:netty_project:netty</cpe>
-   </suppress>
-   <suppress>
-      <notes><![CDATA[
       Netty tcnative is not netty
       file name: netty-tcnative-boringssl-static-1.1.33.Fork18-osx-x86_64.jar
       ]]></notes>

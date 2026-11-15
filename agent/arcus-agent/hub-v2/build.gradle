@@ -137,7 +137,6 @@ distributions {
             into('libs') {
                from(project.property('external_jars_dir')) {
                   include 'iris2-4g-controller-*.jar'
-                  include 'iris2-hue-controller-*.jar'
                   include 'iris2-zigbee-controller-*.jar'
                   include 'iris2-zwave-controller-*.jar'
                }

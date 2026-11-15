@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
@@ -35,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.iris.agent.http.HttpServer;
 
 import io.netty.bootstrap.Bootstrap;
@@ -59,16 +57,10 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.util.concurrent.GenericFutureListener;
 
 final class IrisUpnpServer {
    private static final Logger log = LoggerFactory.getLogger(IrisUpnpServer.class);
-   private static final Splitter usnSplitter = Splitter.on(':').trimResults();
-
-   private static final long MINIMUM_CACHE_CONTROL = TimeUnit.NANOSECONDS.convert(5, TimeUnit.MINUTES);
-   private static final long DEFAULT_CACHE_CONTROL = TimeUnit.NANOSECONDS.convert(60, TimeUnit.MINUTES);
 
    private final UpnpHandler handler = new UpnpHandler();
    private final UpnpInitializer initializer = new UpnpInitializer();
@@ -156,10 +148,6 @@ final class IrisUpnpServer {
       }
    }
 
-   void search() {
-      handler.msearch();
-   }
-
    void alive(String uuid) {
       handler.alive(uuid);
    }
@@ -175,7 +163,6 @@ final class IrisUpnpServer {
    private final class UpnpHandler extends ChannelDuplexHandler {
       final InetAddress mcast;
       final InetSocketAddress remote;
-      UniqueServiceName usn;
       ChannelHandlerContext ctx;
 
       @SuppressWarnings("null")
@@ -183,7 +170,6 @@ final class IrisUpnpServer {
          try {
             this.mcast = InetAddress.getByName("239.255.255.250");
             this.remote = new InetSocketAddress(mcast, 1900);
-            this.usn = new UniqueServiceName();
          } catch (Exception ex) {
             throw new RuntimeException(ex);
          }
@@ -221,7 +207,8 @@ final class IrisUpnpServer {
                 content.getByte(content.readerIndex()+2) == 'T' &&
                 content.getByte(content.readerIndex()+3) == 'P' &&
                 content.getByte(content.readerIndex()+4) == '/') {
-               handleResponse(ctx, packet);
+               // Search responses only answer the sender's own M-SEARCH, and the hub sends none.
+               log.trace("ignoring upnp response");
             } else {
                handleRequest(ctx, packet);
             }
@@ -250,35 +237,10 @@ final class IrisUpnpServer {
                if (result instanceof HttpRequest) {
                   HttpRequest req = (HttpRequest)result;
                   switch (req.getMethod().name()) {
-                  case "NOTIFY": handleUpnpNotify(packet, req); break;
+                  // Other devices' announcements: the hub doesn't track other UPnP devices.
+                  case "NOTIFY": break;
                   case "M-SEARCH": handleUpnpMsearch(packet, req); break;
                   default: log.debug("unknown upnp message: {}", req.getMethod()); break;
-                  }
-               } 
-            }
-         } finally {
-            http.finishAndReleaseAll();
-         }
-      }
-
-      private void handleResponse(@Nullable ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
-         EmbeddedChannel http = new EmbeddedChannel(new HttpResponseDecoder());
-
-         try {
-            http.writeInbound(Unpooled.unreleasableBuffer(packet.content()));
-            http.finish();
-
-            while (true) {
-               Object result = http.readInbound();
-               if (result == null) {
-                  break;
-               }
-
-               if (result instanceof HttpResponse) {
-                  HttpResponse res = (HttpResponse)result;
-                  switch (res.getStatus().code()) {
-                  case 200: handleUpnpMsearchResponse(packet, res); break;
-                  default: log.debug("unknown upnp response: {}", res.getStatus().code()); break;
                   }
                } 
             }
@@ -376,84 +338,6 @@ final class IrisUpnpServer {
          } catch (Exception ex) {
             log.info("upnp failed to process msearch:", ex);
          }
-      }
-
-      private void handleUpnpNotify(DatagramPacket packet, HttpRequest request) {
-         HttpHeaders headers = request.headers();
-         if (!parseUsnHeader(headers)) {
-            log.trace("dropping upnp m-search response with bad usn");
-            return;
-         }
-
-         String url = headers.get("LOCATION");
-         String nts = headers.get("NTS");
-         nts = (nts == null) ? "ssdp:alive" : nts;
-         long maxAge = parseCacheControlHeader(headers);
-
-         if (log.isTraceEnabled()) {
-            log.trace("upnp notify: cache={}s, sender={}, uuid={}, class={}, namespace={}, type={}, version={}, nts={}",
-               TimeUnit.SECONDS.convert(maxAge,TimeUnit.NANOSECONDS),
-               packet.sender(),
-               usn.deviceUuid,
-               usn.clazz,
-               usn.namespace,
-               usn.type,
-               usn.version,
-               nts);
-         }
-
-         switch (nts.toLowerCase()) {
-         case "ssdp:alive":
-            IrisUpnpService.poke(packet.sender(), usn, maxAge, url, headers);
-            break;
-
-         case "ssdp:byebye":
-            log.trace("upnp ignoring ssdp:byebye sent by device: {}", usn.deviceUuid);
-            break;
-
-         default:
-            log.warn("upnp ignoring unknown notify ssdp type: {}", nts);
-            break;
-         }
-      }
-
-      private void handleUpnpMsearchResponse(DatagramPacket packet, HttpResponse response) {
-         HttpHeaders headers = response.headers();
-         if (!parseUsnHeader(headers)) {
-            log.trace("dropping upnp m-search response with bad usn");
-            return;
-         }
-
-         String url = headers.get("LOCATION");
-         long maxAge = parseCacheControlHeader(headers);
-
-         if (log.isTraceEnabled()) {
-            log.trace("upnp msearch response: cache={}s, sender={}, uuid={}, class={}, namespace={}, type={}, version={}\n{}",
-               TimeUnit.SECONDS.convert(maxAge,TimeUnit.NANOSECONDS),
-               packet.sender(),
-               usn.deviceUuid,
-               usn.clazz,
-               usn.namespace,
-               usn.type,
-               usn.version, response);
-         }
-
-         IrisUpnpService.poke(packet.sender(), usn, maxAge, url, headers);
-      }
-
-      private void msearch() {
-         ByteBuf data = Unpooled.buffer();
-         ByteBufUtil.writeUtf8(data, 
-            "M-SEARCH * HTTP/1.1\r\n" +
-            "HOST: 239.255.255.250:1900\r\n" +
-            "MAN: \"ssdp:discover\"\r\n" +
-            "MX: 10\r\n" +
-            "ST: ssdp:all\r\n" + 
-            "USER-AGENT: Iris OS/2.0 UPnP/1.1 Iris/2.0\r\n\r\n"
-         );
-
-         log.trace("sending upnp msearch on {}", inet);
-         ctx.writeAndFlush(new DatagramPacket(data, remote));
       }
 
       private ChannelFuture respondRootDevice(InetSocketAddress to, Channel ch, String date) {
@@ -566,108 +450,6 @@ final class IrisUpnpServer {
          aliveBasicDevice(uuid);
       }
 
-      private long parseCacheControlHeader(HttpHeaders headers) {
-         String cache = headers.get(HttpHeaders.Names.CACHE_CONTROL);
-         if (cache == null) {
-            log.trace("cache control header missing");
-            return DEFAULT_CACHE_CONTROL;
-         }
-
-         int idx = cache.indexOf("max-age=");
-         if (idx < 0) {
-            log.trace("cache control header missing max-age directive");
-            return DEFAULT_CACHE_CONTROL;
-         }
-
-         int start = idx + "max-age=".length();
-         int end = start+1;
-         for (int len = cache.length(); end < len; ++end) {
-            if (!Character.isDigit(cache.charAt(end))) {
-               break;
-            }
-         }
-
-         try {
-            long maxAge = TimeUnit.NANOSECONDS.convert(Long.parseLong(cache.substring(start,end).trim()), TimeUnit.SECONDS);
-            return (maxAge < MINIMUM_CACHE_CONTROL) ? MINIMUM_CACHE_CONTROL : maxAge;
-         } catch (NumberFormatException ex) {
-            log.trace("cache control header max-age directive invalid", ex);
-            return DEFAULT_CACHE_CONTROL;
-         }
-      }
-
-      private boolean parseUsnHeader(HttpHeaders headers) {
-         String usnHeader = headers.get("USN");
-         if (usnHeader == null) {
-            log.trace("usn missing");
-            return false;
-         }
-
-         List<String> parts = usnSplitter.splitToList(usnHeader);
-         int size = parts.size();
-
-         if (size != 2 && size != 5 && size != 8) {
-            log.trace("usn bad size: {}", size);
-            return false;
-         }
-
-         String uuidPart = parts.get(0);
-         if (!"uuid".equals(uuidPart)) {
-            log.trace("usn bad uuid");
-            return false;
-         }
-
-         String deviceUuid = parts.get(1);
-         if (deviceUuid == null || deviceUuid.length() != 36) {
-            log.trace("usn bad device uuid: {}", deviceUuid);
-            return false;
-         }
-
-         String namespace = null;
-         String clazz = null;
-         String type = null;
-         Integer version = null;
-         if ((size == 5 || size == 8) && !parts.get(2).isEmpty()) {
-            log.trace("usn bad seperator");
-            return false;
-         }
-
-         if (size == 5) {
-            if (!"upnp".equals(parts.get(3)) || !"rootdevice".equals(parts.get(4))) {
-               log.trace("usn bad root device");
-               return false;
-            }
-
-            clazz = "root";
-            namespace = "upnp";
-            type = "rootdevice";
-            version = 1;
-         }
-
-         if (size == 8) {
-            if (!"urn".equals(parts.get(3))) {
-               log.trace("usn bad urn");
-               return false;
-            }
-
-            namespace = parts.get(4);
-            clazz = parts.get(5);
-            type = parts.get(6);
-            try {
-               version = Integer.parseInt(parts.get(7));
-            } catch (NumberFormatException ex) {
-               log.trace("usn bad version", ex);
-               return false;
-            }
-         }
-
-         usn.deviceUuid = deviceUuid;
-         usn.namespace = namespace;
-         usn.clazz = clazz;
-         usn.type = type;
-         usn.version = version;
-         return true;
-      }
    }
 
    private static String getResponseDate() {
@@ -677,14 +459,6 @@ final class IrisUpnpServer {
       return dateFormat.format(calendar.getTime());
    }
 
-   static final class UniqueServiceName {
-      @Nullable String deviceUuid;
-      @Nullable String namespace;
-      @Nullable String clazz;
-      @Nullable String type;
-      @Nullable Integer version;
-   }
-    
    abstract class Responder implements Runnable {
       final InetSocketAddress to;
 

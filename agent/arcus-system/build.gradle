@@ -36,7 +36,6 @@ dependencies {
    api libraries.guava
    api libraries.logback
    testImplementation libraries.junit
-   implementation libraries.kxml2
    api libraries.bouncycastle
    api libraries.bouncycastle_pki
 
@@ -54,6 +53,5 @@ dependencies {
    api libraries.rxjava_async
 
    api libraries.jetty_servlet
-   api libraries.asyncHTTPClient
 }
 
