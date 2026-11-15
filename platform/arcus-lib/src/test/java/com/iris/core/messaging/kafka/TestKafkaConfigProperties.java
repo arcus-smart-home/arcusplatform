@@ -149,6 +149,18 @@ public class TestKafkaConfigProperties {
             parse(producer).getBoolean(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG));
    }
 
+   /**
+    * KIP-1030 moved linger.ms from 0 to 5 in 4.0. Unpinned, every platform
+    * send would wait up to 5 ms for a batch to fill.
+    */
+   @Test
+   public void testFourDotOhLingerStaysAtZero() {
+      Properties producer = config(new Properties()).toNuProducerProperties();
+
+      assertEquals("0", producer.get(ProducerConfig.LINGER_MS_CONFIG));
+      assertEquals(Long.valueOf(0L), parse(producer).getLong(ProducerConfig.LINGER_MS_CONFIG));
+   }
+
    @Test
    public void testMisspelledNamesAreStillHonoured() {
       // the names these properties carried while they were misspelled

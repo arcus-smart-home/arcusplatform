@@ -214,7 +214,10 @@ public abstract class AbstractKafkaConfig {
    @Producer @Named("batch.size")
    private Integer batchSize;
    @Producer @Named("linger.ms")
-   private Long lingerMs;
+   // KIP-1030 moved this default from 0 to 5 in 4.0, which would hold every
+   // platform send for up to 5 ms waiting for a batch. Pinned to 0, the
+   // default of the 2.8 and 3.x clients this platform ran on.
+   private Long lingerMs = 0L;
    @Producer @Named("max.block.ms")
    private Long maxBlockMs;
    @Producer @Named("max.request.size")
