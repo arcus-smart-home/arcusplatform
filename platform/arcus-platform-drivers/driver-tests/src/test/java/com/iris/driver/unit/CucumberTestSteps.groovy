@@ -469,6 +469,16 @@ When(~/^a (.+) command with argument (\S+) of value (\S+) is placed on the platf
     new DeviceCommandBuilder(context).command(messageType).withStringArgument(argument, value).buildAndSend()
 }
 
+/**
+ * The same, for an argument that takes a list or set, given as a JSON list.
+ *
+ * EXAMPLE:
+ * 		When a base:AddTags command with argument tags of list value ["closedOnUpright"] is placed on the platform bus
+ */
+When(~/^a (.+) command with argument (\S+) of list value (\[.*\]) is placed on the platform bus$/) { String messageType, String argument, String json ->
+    new DeviceCommandBuilder(context).command(messageType).withArgument(argument, JSON.fromJson(json, List.class)).buildAndSend()
+}
+
 
 /**
  * Setup a client to call capability method
@@ -1034,12 +1044,29 @@ When(~/^with header flags 0x([0-9A-F]{2})$/) { String flags ->
 	commandBuilder.setFlags(Byte.decode("0x" + flags))
 }
 
+/**
+ * Sets the manufacturer code of a mock device message or, after "the driver
+ * should send", checks that the sent ZCL command is manufacturer specific
+ * with that code. The check is Zigbee only.
+ *
+ * EXAMPLE:
+ * 	Then the driver should send 0xFC02 0x06
+ * 		And with manufacturer code 0x1241
+ */
 When(~/^with manufacturer code (\d+)$/) { int code ->
-	commandBuilder.setManufacturerCode(code)
+	if (direction == Constant.Direction.OUT) {
+		context.checkSentManufacturerCode(code)
+	} else {
+		commandBuilder.setManufacturerCode(code)
+	}
 }
 
 When(~/^with manufacturer code 0x([0-9A-F]{4})$/) { String code ->
-	commandBuilder.setManufacturerCode(Integer.decode("0x" + code))
+	if (direction == Constant.Direction.OUT) {
+		context.checkSentManufacturerCode(Integer.decode("0x" + code))
+	} else {
+		commandBuilder.setManufacturerCode(Integer.decode("0x" + code))
+	}
 }
 
 
