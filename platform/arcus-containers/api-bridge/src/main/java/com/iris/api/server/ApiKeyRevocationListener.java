@@ -15,7 +15,6 @@
  */
 package com.iris.api.server;
 
-import java.util.Objects;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -59,7 +58,8 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
 
       // Any client can send a message of this type to a client address, so only act on the
       // platform's own event: a broadcast from the key's place, which no client can be the source of.
-      if (ct != null || !isFromItsPlace(msg)) {
+      UUID placeId = broadcastingPlace(msg);
+      if (ct != null || placeId == null) {
          logger.warn("Ignoring {} that was not broadcast by a place, from [{}]", msg.getMessageType(), msg.getSource());
          return;
       }
@@ -92,7 +92,7 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
          }
 
          ApiKeyPrincipal apiKeyPrincipal = (ApiKeyPrincipal) principal;
-         if (keyId.equals(apiKeyPrincipal.getKeyId()) && Objects.equals(apiKeyPrincipal.getPlaceId().toString(), msg.getPlaceId())) {
+         if (keyId.equals(apiKeyPrincipal.getKeyId()) && placeId.equals(apiKeyPrincipal.getPlaceId())) {
             logger.info("Disconnecting session for revoked API key [{}], label [{}]",
                   keyId, apiKeyPrincipal.getLabel());
             session.disconnect(Constants.SESSION_EXPIRED_STATUS);
@@ -101,13 +101,17 @@ public class ApiKeyRevocationListener implements PlatformBusListener {
       }
    }
 
-   // RevokeApiKeyHandler and DeleteApiKeyHandler broadcast from SERV:place:<placeId> with that place id
-   private static boolean isFromItsPlace(PlatformMessage msg) {
+   // RevokeApiKeyHandler and DeleteApiKeyHandler broadcast from SERV:place:<placeId> with that place id.
+   // Returns that place, or null for any other message.
+   private static UUID broadcastingPlace(PlatformMessage msg) {
       Address source = msg.getSource();
-      return msg.getDestination().isBroadcast()
-            && MessageConstants.SERVICE.equals(source.getNamespace())
-            && PlaceCapability.NAMESPACE.equals(source.getGroup())
-            && source.getId() != null
-            && Objects.equals(source.getId().toString(), msg.getPlaceId());
+      if (!msg.getDestination().isBroadcast()
+            || !MessageConstants.SERVICE.equals(source.getNamespace())
+            || !PlaceCapability.NAMESPACE.equals(source.getGroup())
+            || !(source.getId() instanceof UUID)) {
+         return null;
+      }
+      UUID placeId = (UUID) source.getId();
+      return placeId.toString().equals(msg.getPlaceId()) ? placeId : null;
    }
 }
