@@ -23,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
@@ -38,7 +37,6 @@ import com.google.gson.JsonObject;
 import com.iris.agent.addressing.HubAddr;
 import com.iris.agent.addressing.HubAddressUtils;
 import com.iris.agent.attributes.HubAttributesService;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.lifecycle.LifeCycle;
 import com.iris.agent.lifecycle.LifeCycleListener;
@@ -75,22 +73,6 @@ import io.netty.util.concurrent.Future;
 public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgentAppender.Listener, MetricsService.Listener {
    private static final Logger log = LoggerFactory.getLogger(Gateway.class);
 
-   // NOTE: This is the amount of time that we will wait during initial startup before we attempt a
-   //       connection on the secondary interface. This gives the primary interface some time to
-   //       connect before the secondary is allowed to connect.
-   //
-   // IMPORTANT: This must be some non-trivial margin less than the hub's watchdog check, otherwise
-   //            the watchdog may reboot the hub before a secondary connection can be established.
-   public static final long SECONDARY_DELAY_BEFORE_INITIAL_CONNECT = TimeUnit.NANOSECONDS.convert(60, TimeUnit.SECONDS);
-   
-   // NOTE: This is the amount of time to allow the primary connection to be re-established before
-   //       attempting a connection on the secondary interface. This prevents flapping between
-   //       the primary and secondary interfaces too quickly during a reconnect event.
-   //
-   // IMPORTANT: This must be some non-trivial margin less than the hub's watchdog check, otherwise
-   //            the watchdog may reboot the hub before a secondary connection can be established.
-   public static final long SECONDARY_DELAY_BEFORE_CONNECT = TimeUnit.NANOSECONDS.convert(10, TimeUnit.SECONDS);
-
    public static final HubAddr ADDRESS = HubAddressUtils.service("gateway");
    public static final long UNCONN_FORCE_REBOOT_TIME = (System.getenv("IRIS_AGENT_UNCONN_REBOOT_TIME") != null)
       ? TimeUnit.NANOSECONDS.convert(Long.parseLong(System.getenv("IRIS_AGENT_UNCONN_REBOOT_TIME")), TimeUnit.MINUTES) 
@@ -110,22 +92,20 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
    private final Router router;
    private Port port;
 
-   private final PingSender primaryPingSender;
-   private final PingSender secondaryPingSender;
+   private final PingSender pingSender;
    private final LogSender logSender;
    private final GatewayOutboundQueue queue;
    private final BlockingQueue<JsonObject> bufferedLogMessages = new ArrayBlockingQueue<>(1024);
-   private final Backoff primaryBackoff;
-   private final Backoff secondaryBackoff;
+   private final Backoff backoff;
 
    private final GatewayNetworkChecker networkChecker;
    private final ThrowableProxyConverter converter;
    private EventLoopGroup eventLoopGroup;
 
-   private AtomicReference<GatewayConnection> primaryConnection = new AtomicReference<>();
-   private AtomicReference<GatewayConnection> secondaryConnection = new AtomicReference<>();
+   // the newest connection that completed its handshake, and the one messages go out on; they
+   // differ only while a new connection replaces an old one
+   private AtomicReference<GatewayConnection> establishedConnection = new AtomicReference<>();
    private AtomicReference<GatewayConnection> currentConnection = new AtomicReference<>();
-   private AtomicBoolean allowSecondaryConnection = new AtomicBoolean(true);
 
    @Inject
    @SuppressWarnings("null")
@@ -133,28 +113,24 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       WatchdogService.addWatchdogCheck(new ConnectionWatchdogCheck());
 
       this.router = router;
-      this.networkChecker = new GatewayNetworkChecker(primaryConnection, secondaryConnection, currentConnection);
+      this.networkChecker = new GatewayNetworkChecker(establishedConnection, currentConnection);
 
       this.queue = new GatewayOutboundQueue();
 
-      this.primaryPingSender = new PingSender(true);
-      this.secondaryPingSender = new PingSender(false);
+      this.pingSender = new PingSender();
       this.logSender = new LogSender();
 
       this.converter = new ThrowableProxyConverter();
       this.converter.setOptionList(STACK_TRACE_OPTIONS);
       this.converter.start();
 
-      this.primaryBackoff = Backoffs.exponential()
+      // IMPORTANT: Connection attempts are what poke the hardware watchdog while the hub is offline.
+      //            GatewayPokeHandler pokes when an attempt's channel registers and again when it
+      //            unregisters, so the longest gap without a poke is the larger of the maximum
+      //            backoff (the random part only shortens it) and the connect timeout in
+      //            GatewayConnection. Each has to stay well under the V3's 120 second watchdog.
+      this.backoff = Backoffs.exponential()
          .initial(0, TimeUnit.SECONDS)
-         .delay(1, TimeUnit.SECONDS)
-         .factor(2.0)
-         .random(0.67)
-         .max(90, TimeUnit.SECONDS)
-         .build();
-
-      this.secondaryBackoff = Backoffs.exponential()
-         .initial(9, TimeUnit.SECONDS)
          .delay(1, TimeUnit.SECONDS)
          .factor(2.0)
          .random(0.67)
@@ -199,8 +175,8 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
 
       LifeCycleService.setState(LifeCycle.CONNECTING);
 
-      GatewayConnection.primaryConnection(nettyProvider, sslProvider, pokeHandler, eventLoopGroup)
-         .retryWhen(RxIris.retry(primaryBackoff))
+      GatewayConnection.connection(nettyProvider, sslProvider, pokeHandler, eventLoopGroup)
+         .retryWhen(RxIris.retry(backoff))
          .subscribe(new RxIris.Subscriber<GatewayConnection>() {
          @Override
          public void processNext(GatewayConnection conn) {
@@ -210,57 +186,17 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
             conn.protocol().subscribe(new HandleProtocolMessageEvent(port));
 
             conn.onChannelClosed(new HandleDisconnectedEvent(conn));
-            conn.onHandshakeCompleted(new HandleConnectedEvent(primaryBackoff, conn));
+            conn.onHandshakeCompleted(new HandleConnectedEvent(conn));
          }
 
          @Override
          public void processError(Throwable e) {
-            log.warn("primary gateway connection process failed:",e);
+            log.warn("gateway connection process failed:",e);
          }
 
          @Override
          public void processCompleted() {
-            log.warn("primary gateway connection process complete");
-         }
-      });
-
-      // NOTE: The secondary interface is brought up after a delay to give the primary connection
-      //       enought time to attempt to connect. This startup delay is controlled by the 
-      //       SECONDARY_DELAY_BEFORE_INITIAL_CONNECT constant.
-      checkAllowSecondary(SECONDARY_DELAY_BEFORE_INITIAL_CONNECT, TimeUnit.NANOSECONDS);
-      GatewayConnection.secondaryConnection(nettyProvider, sslProvider, pokeHandler, eventLoopGroup, allowSecondaryConnection)
-         .doOnError(new RxIris.Action1<Throwable>() {
-            @Override
-            public void run(Throwable error) {
-               // If the secondary gateway connection is currently not allowed then
-               // reset the backoff algorithm because that isn't really a failure and
-               // we want to attempt a connection on the secondary connection quickly
-               // when we decide to fail over.
-               if (error instanceof GatewayConnectionNotAllowedException) {
-                  secondaryBackoff.onSuccess();
-               }
-            }
-         }).retryWhen(RxIris.retry(secondaryBackoff))
-         .subscribe(new RxIris.Subscriber<GatewayConnection>() {
-         @Override
-         public void processNext(GatewayConnection conn) {
-            conn.registered().subscribe(new HandleRegisteredEvent(conn));
-            conn.authorized().subscribe(new HandleAuthorizedEvent(conn));
-            conn.platform().subscribe(new HandlePlatformMessageEvent(port));
-            conn.protocol().subscribe(new HandleProtocolMessageEvent(port));
-
-            conn.onChannelClosed(new HandleDisconnectedEvent(conn));
-            conn.onHandshakeCompleted(new HandleConnectedEvent(secondaryBackoff, conn));
-         }
-
-         @Override
-         public void processError(Throwable e) {
-            log.warn("secondary gateway connection process failed:",e);
-         }
-
-         @Override
-         public void processCompleted() {
-            log.warn("secondary gateway connection process complete");
+            log.warn("gateway connection process complete");
          }
       });
 
@@ -268,8 +204,7 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       //       last ping request. If we used the exact ping frequency requested then that would
       //       mean that we skip every other ping because of a check that happens that makes sure
       //       we don't ping if we have gotten a platform message during the ping interval.
-      eventLoopGroup.scheduleWithFixedDelay(primaryPingSender, GatewayHandler.PING_FREQ, GatewayHandler.PING_FREQ, TimeUnit.NANOSECONDS);
-      eventLoopGroup.scheduleWithFixedDelay(secondaryPingSender, GatewayHandler.PING_FREQ, GatewayHandler.PING_FREQ, TimeUnit.NANOSECONDS);
+      eventLoopGroup.scheduleWithFixedDelay(pingSender, GatewayHandler.PING_FREQ, GatewayHandler.PING_FREQ, TimeUnit.NANOSECONDS);
       eventLoopGroup.scheduleWithFixedDelay(logSender, LOG_SEND_FREQ, LOG_SEND_FREQ, TimeUnit.NANOSECONDS);
    }
 
@@ -332,10 +267,8 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
    public void lifeCycleStateChanged(LifeCycle oldState, LifeCycle newState) {
       GatewayConnection current = currentConnection.get();
       if (LifeCycleService.isConnectedState(oldState) && LifeCycle.CONNECTING == newState && current != null) {
-         if (current.isPrimary()) {
-            log.warn("gateway attempting to reconnect due to internal request");
-            current.disconnect();
-         }
+         log.warn("gateway attempting to reconnect due to internal request");
+         current.disconnect();
       }
    }
 
@@ -401,27 +334,12 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       throw new UnsupportedOperationException();
    }
 
-   private void checkAllowSecondary(long time, TimeUnit unit) {
-      eventLoopGroup.schedule(new Runnable() {
-         @Override
-         public void run() {
-            GatewayConnection checkCur = currentConnection.get();
-            if (checkCur == null || !checkCur.isPrimary()) {
-               log.warn("there are no active gateway connections, allowing secondary connections");
-               allowSecondaryConnection.set(true);
-            }
-         }
-      }, time, unit);
-   }
-
    private boolean updateCurrentConnection() {
       GatewayConnection cur = currentConnection.get();
-      GatewayConnection pri = primaryConnection.get();
-      GatewayConnection sec = secondaryConnection.get();
+      GatewayConnection established = establishedConnection.get();
 
-      if (pri == null && sec == null) {
+      if (established == null) {
          log.info("there are no active gateway connections");
-         checkAllowSecondary(SECONDARY_DELAY_BEFORE_CONNECT, TimeUnit.NANOSECONDS);
 
          GatewayConnection old = currentConnection.getAndSet(null);
          if (old != null) {
@@ -433,28 +351,10 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
          return true;
       }
 
-      if (pri != null && cur != pri) {
-         log.info("switching to primary gateway connection");
-         allowSecondaryConnection.set(false);
-         if (FourgService.isAuthorized()) {
-            FourgService.setState(FourgService.State.CONNECTED);
-         }
+      if (cur != established) {
+         log.info("switching to the new gateway connection");
 
-         GatewayConnection old = currentConnection.getAndSet(pri);
-         if (old != null) {
-            old.disconnect();
-         }
-
-         networkChecker.markInterfaceChanged();
-         return true;
-      }
-
-      if (sec != null && pri == null) {
-         log.info("switching to secondary gateway connection");
-         allowSecondaryConnection.set(true);
-         FourgService.setState(FourgService.State.AUTHORIZED);
-
-         GatewayConnection old = currentConnection.getAndSet(sec);
+         GatewayConnection old = currentConnection.getAndSet(established);
          if (old != null) {
             old.disconnect();
          }
@@ -465,44 +365,36 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
 
       return false;
    }
-  
+
    private final class HandleConnectedEvent implements rx.Observer<Object> {
-      private final Backoff backoff;
       private final GatewayConnection conn;
 
-      HandleConnectedEvent(Backoff backoff, GatewayConnection conn) {
-         this.backoff = backoff;
+      HandleConnectedEvent(GatewayConnection conn) {
          this.conn = conn;
       }
 
       @Override
       public void onCompleted() {
-         GatewayConnection cur = currentConnection.get();
-         String nname = conn.isPrimary() ? "primary" : "secondary";
-         String aname = (cur == null) ? "unknown" : (cur.isPrimary() ? "primary" : "secondary");
-
-         AtomicReference<GatewayConnection> ref = conn.isPrimary() ? primaryConnection : secondaryConnection;
-         GatewayConnection old = ref.getAndSet(conn);
+         GatewayConnection old = establishedConnection.getAndSet(conn);
          if (old != null) {
-            log.warn("{} gateway connection marked active while old one still alive, disconnnecting old connection", nname);
+            log.warn("gateway connection marked active while old one still alive, disconnnecting old connection");
             old.disconnect();
          }
 
          if (!updateCurrentConnection()) {
-            log.warn("{} gateway connection active but {} still connected, closing down {} connection", nname, aname, nname);
+            log.warn("gateway connection active but it is already the current connection, closing it down");
             conn.disconnect();
             return;
          }
 
-         log.info("sending connected event on {} interface", conn.isPrimary() ? "primary" : "secondary");
+         log.info("sending connected event");
 
          IrisHal.NetworkInfo ni = IrisHal.getNetworkInfo();
-         ip.set(conn.isPrimary() ? ni.primaryIp : ni.secondaryIp);
-         netmask.set(conn.isPrimary() ? ni.primaryNetmask : ni.secondaryNetmask);
-         type.set(conn.isPrimary() ? ni.primaryInterfaceType : ni.secondaryInterfaceType);
+         ip.set(ni.primaryIp);
+         netmask.set(ni.primaryNetmask);
+         type.set(ni.primaryInterfaceType);
 
-         PingSender ping = conn.isPrimary() ? primaryPingSender : secondaryPingSender;
-         ping.markConnected();
+         pingSender.markConnected();
 
          backoff.onSuccess();
          
@@ -531,12 +423,10 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
 
       @Override
       public void onCompleted() {
-         log.info("{} gateway connection was disconnected", conn.isPrimary() ? "primary" : "secondary");
-         PingSender ping = conn.isPrimary() ? primaryPingSender : secondaryPingSender;
-         ping.markDisconnected();
+         log.info("gateway connection was disconnected");
+         pingSender.markDisconnected();
 
-         AtomicReference<GatewayConnection> ref = conn.isPrimary() ? primaryConnection : secondaryConnection;
-         if (ref.compareAndSet(conn, null)) {
+         if (establishedConnection.compareAndSet(conn, null)) {
             updateCurrentConnection();
          }
       }
@@ -600,8 +490,7 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
 
       @Override
       public void onNext(@Nullable PlatformMessage authorized) {
-         PingSender ping = conn.isPrimary() ? primaryPingSender : secondaryPingSender;
-         ping.markAuthorized();
+         pingSender.markAuthorized();
 
          long time = System.nanoTime();
          while (true) {
@@ -661,14 +550,12 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
    }
    
    private final class PingSender implements Runnable {
-      private final boolean primary;
       private long lastConnReport;
       private long lastAuthTime;
       private long lastConnTime;
       private long lastDisconnTime;
 
-      PingSender(boolean primary) {
-         this.primary = primary;
+      PingSender() {
          this.lastConnReport = Long.MIN_VALUE;
          this.lastAuthTime = Long.MIN_VALUE;
          this.lastConnTime = Long.MIN_VALUE;
@@ -694,20 +581,17 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       @Override
       public void run() {
          try {
-            String type = primary ? "primary" : "secondary";
             long time = System.currentTimeMillis();
             long timeSinceLastReport = time - lastConnReport;
 
-            GatewayConnection conn = primary ? primaryConnection.get() : secondaryConnection.get();
+            GatewayConnection conn = establishedConnection.get();
             if (conn == null) {
                if (lastConnReport == Long.MIN_VALUE || timeSinceLastReport >= CONN_REPORT_INTERVAL) {
                   lastConnReport = time;
 
                   long disconnTime = (lastDisconnTime == Long.MIN_VALUE) ? time : lastDisconnTime;
                   long timeSinceLastDisconn = time - disconnTime;
-                  if (primary) {
-                     log.info("{} gateway connection has been disconnected for {}m", type, TimeUnit.MINUTES.convert(timeSinceLastDisconn, TimeUnit.MILLISECONDS));
-                  }
+                  log.info("gateway connection has been disconnected for {}m", TimeUnit.MINUTES.convert(timeSinceLastDisconn, TimeUnit.MILLISECONDS));
                }
 
                return;
@@ -722,11 +606,11 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
 
             if (lastConnReport == Long.MIN_VALUE || timeSinceLastReport >= CONN_REPORT_INTERVAL) {
                lastConnReport = time;
-               log.info("{} gateway connection times: conn={}m, auth={}m", type, TimeUnit.MINUTES.convert(timeSinceLastConn, TimeUnit.MILLISECONDS), TimeUnit.MINUTES.convert(timeSinceLastAuth, TimeUnit.MILLISECONDS));
+               log.info("gateway connection times: conn={}m, auth={}m", TimeUnit.MINUTES.convert(timeSinceLastConn, TimeUnit.MILLISECONDS), TimeUnit.MINUTES.convert(timeSinceLastAuth, TimeUnit.MILLISECONDS));
             }
 
             if (HubAttributesService.getAccountId() != null && timeConnButNotAuth > UNAUTH_FORCE_RECONNECT_TIME) {
-               log.warn("hub has an account id and {} gateway connection is connected but has not been authorized for {}m, forcing reconnect...", type, TimeUnit.MINUTES.convert(timeConnButNotAuth, TimeUnit.MILLISECONDS));
+               log.warn("hub has an account id and the gateway connection is connected but has not been authorized for {}m, forcing reconnect...", TimeUnit.MINUTES.convert(timeConnButNotAuth, TimeUnit.MILLISECONDS));
                conn.disconnect();
                return;
             }
@@ -743,7 +627,7 @@ public class Gateway implements SnoopingPortHandler, LifeCycleListener, IrisAgen
       public void run() {
          try {
             GatewayConnection conn = currentConnection.get();
-            if (conn != null && conn.isPrimary()) {
+            if (conn != null) {
                conn.sendLogs(bufferedLogMessages);
             }
          } catch (Exception ex) {

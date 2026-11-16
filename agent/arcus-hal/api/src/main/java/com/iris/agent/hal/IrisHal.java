@@ -394,16 +394,8 @@ public final class IrisHal {
       return get().getPrimaryNetworkInterfaceName();
    }
 
-   public static String getSecondaryNetworkInterfaceName() {
-      return get().getSecondaryNetworkInterfaceName();
-   }
-
    public static String getPrimaryIP() {
       return getNetworkInfo().primaryIp;
-   }
-
-   public static String getSecondaryIP() {
-      return getNetworkInfo().secondaryIp;
    }
 
    public static String getGateway() {
@@ -613,29 +605,14 @@ public final class IrisHal {
       public final String primaryIp;
       public final String primaryNetmask;
 
-      public final @Nullable NetworkInterface secondary;
-      public final String secondaryInterface;
-      public final String secondaryInterfaceType;
-      public final String secondaryIp;
-      public final String secondaryNetmask;
-
       public NetworkInfo(
             @Nullable NetworkInterface primary, String primaryInterface, String primaryInterfaceType, 
-            String primaryIp, String primaryNetmask,
-
-            @Nullable NetworkInterface secondary, String secondaryInterface, String secondaryInterfaceType, 
-            String secondaryIp, String secondaryNetmask) {
+            String primaryIp, String primaryNetmask) {
          this.primary = primary;
          this.primaryInterface = primaryInterface;
          this.primaryInterfaceType = primaryInterfaceType;
          this.primaryIp = primaryIp;
          this.primaryNetmask = primaryNetmask;
-
-         this.secondary = secondary;
-         this.secondaryInterface = secondaryInterface;
-         this.secondaryInterfaceType = secondaryInterfaceType;
-         this.secondaryIp = secondaryIp;
-         this.secondaryNetmask = secondaryNetmask;
       }
    }
 

@@ -18,21 +18,18 @@ package com.iris.core.dao.cassandra;
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +79,7 @@ import com.iris.platform.PagedResults;
 import com.iris.platform.model.ModelEntity;
 import com.iris.platform.partition.Partitioner;
 import com.iris.platform.partition.PlatformPartition;
+import com.iris.util.IrisAttributeLookup;
 import com.iris.util.TypeMarker;
 
 
@@ -89,16 +87,11 @@ import com.iris.util.TypeMarker;
 public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements HubDAO {
    private static final Logger log = LoggerFactory.getLogger(HubDAOImpl.class);
 
-   /** Capability namespaces removed from the codebase but still present in Cassandra hub rows. */
-   private static final Set<String> DEPRECATED_NAMESPACES = new HashSet<>(Arrays.asList("hubhue", "hubsercomm"));
-
    private static final Timer findByMacAddrTimer = DaoMetrics.readTimer(HubDAO.class, "findByMacAddr");
    private static final Timer findHubIdsByAccountTimer = DaoMetrics.readTimer(HubDAO.class, "findHubIdsByAccount");
    private static final Timer findHubForPlaceTimer = DaoMetrics.readTimer(HubDAO.class, "findHubForPlace");
    private static final Timer listHubsTimer = DaoMetrics.readTimer(HubDAO.class, "listHubs");
    private static final Timer streamByPartitionIdTimer = DaoMetrics.readTimer(HubDAO.class, "streamByPartitionId");
-   private static final Timer insertCellBackupTimesTimer = DaoMetrics.insertTimer(HubDAO.class, "insertCellBackupTimes");
-   private static final Timer updateDisallowCellTimer = DaoMetrics.updateTimer(HubDAO.class, "updateDisallowCell");
    private static final Timer updateAttributesTimer = DaoMetrics.updateTimer(HubDAO.class, "updateAttributes");
    private static final Timer connectedTimer = DaoMetrics.updateTimer(HubDAO.class, "connected");
    private static final Timer disconnectedTimer = DaoMetrics.updateTimer(HubDAO.class, "disconnected");
@@ -106,7 +99,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    private static final Timer updateConnectionStateTimer = DaoMetrics.updateTimer(HubDAO.class, "updateConnectionState");
    private static final Timer findHubModelTimer = DaoMetrics.readTimer(HubDAO.class, "findHubModel");
    private static final Timer findHubModelForPlaceTimer = DaoMetrics.readTimer(HubDAO.class, "findHubModelForPlace");
-   private static final Counter hubInsertCellBackupFailure = DaoMetrics.counter(HubDAO.class, "insert.cellbackup.failure");
    private static final Counter hubUpdateAttributesFailure = DaoMetrics.counter(HubDAO.class, "update.attributes.failure");
 
    private static final String TABLE = "hub";
@@ -152,8 +144,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       final static String PARTITION_ID = "partitionId";
       final static String LAST_DEVICE_ADD_REMOVE = "lastDeviceAddRemove";
       final static String LAST_RESET = "lastReset";
-      final static String DISALLOW_CELL = "disallowCell";
-      final static String DISALLOW_CELL_REASON = "disallowCellReason";
    };
 
    private static final String[] COLUMN_ORDER = {
@@ -175,26 +165,10 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       HubEntityColumns.REGISTRATIONSTATE,
       HubEntityColumns.PARTITION_ID,
       HubEntityColumns.LAST_DEVICE_ADD_REMOVE,
-      HubEntityColumns.LAST_RESET,
-      HubEntityColumns.DISALLOW_CELL,
-      HubEntityColumns.DISALLOW_CELL_REASON
+      HubEntityColumns.LAST_RESET
    };
 
    private static final String ATTRIBUTES_COLUMN = "attributes";
-
-   private static final String CELLBACKUP_TIME_TABLE = "cellbackup_time";
-
-   private static enum CellBackupCol {
-      dayhour, minute, hubid, simid;
-      private static String[] names() {
-         CellBackupCol[] cols = CellBackupCol.values();
-         String[] names = new String[cols.length];
-         for(int i = 0; i < cols.length; i++) {
-            names[i] = cols[i].name();
-         }
-         return names;
-      }
-  }
 
    private PreparedStatement streamByPartition;
    private PreparedStatement insertMacAddrIdx;
@@ -206,8 +180,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    private PreparedStatement insertPlaceIdx;
    private PreparedStatement findIdForPlace;
    private PreparedStatement deletePlaceIdx;
-   private PreparedStatement insertCellBackupTime;
-   private PreparedStatement updateCellDisallow;
    private PreparedStatement connected;
    private PreparedStatement disconnected;
    private PreparedStatement findAttributes;
@@ -250,17 +222,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
                // TODO push this down into the query builder
                .where("token(" + HubEntityColumns.ID + ") >= token(?) LIMIT ?")
                .prepare(session);
-
-      insertCellBackupTime = CassandraQueryBuilder.insert(CELLBACKUP_TIME_TABLE)
-            .addColumns(CellBackupCol.names())
-            .ifNotExists()
-            .prepare(session);
-
-      updateCellDisallow = CassandraQueryBuilder.update(TABLE)
-            .addColumns(HubEntityColumns.DISALLOW_CELL, HubEntityColumns.DISALLOW_CELL_REASON)
-            .addWhereColumnEquals(HubEntityColumns.ID)
-            .ifExists()
-            .prepare(session);
 
       connected =
              CassandraQueryBuilder
@@ -397,8 +358,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       values.add(partition.getId());
       values.add(entity.getLastDeviceAddRemove());
       values.add(entity.getLastReset());
-      values.add(entity.isDisallowCell());
-      values.add(entity.getDisallowCellReason());
 
       log.trace("Hub:Values = [{}]", values );
       return values;
@@ -429,8 +388,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       entity.setRegistrationState(row.getString(HubEntityColumns.REGISTRATIONSTATE));
       entity.setLastDeviceAddRemove(row.getUuid(HubEntityColumns.LAST_DEVICE_ADD_REMOVE));
       entity.setLastReset(row.getUuid(HubEntityColumns.LAST_RESET));
-      entity.setDisallowCell(row.getBoolean(HubEntityColumns.DISALLOW_CELL));
-      entity.setDisallowCellReason(row.getString(HubEntityColumns.DISALLOW_CELL_REASON));
 
    }
 
@@ -509,40 +466,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
    }
 
    @Override
-   public void insertCellBackupTimes(Calendar now, Map<String, String> hubSimIdMap, int snapTo) {
-      Calendar snapped = snappedMinutes(now, snapTo);
-      Calendar dayHour = DateUtils.truncate(snapped, Calendar.HOUR);
-      hubSimIdMap.forEach((h,s) -> {
-         BoundStatement stmt = insertCellBackupTime.bind()
-            .setInstant(CellBackupCol.dayhour.name(), dayHour.getTime().toInstant())
-            .setInt(CellBackupCol.minute.name(), snapped.get(Calendar.MINUTE))
-            .setString(CellBackupCol.hubid.name(), h)
-            .setString(CellBackupCol.simid.name(), s);
-         // not sure we really care about the result here
-         final Context ctxt = insertCellBackupTimesTimer.time();
-         CompletionStage<AsyncResultSet> future = session.executeAsync(stmt);
-         future.whenComplete((result, throwable) -> {
-            ctxt.stop();
-            if (throwable != null) {
-               hubInsertCellBackupFailure.inc();
-            } else if (!result.wasApplied()) {
-               hubInsertCellBackupFailure.inc();
-            }
-         });
-      });
-   }
-
-   @Override
-   public void disallowCell(String hubId, String reason) {
-      updateDisallowCell(hubId, true, reason);
-   }
-
-   @Override
-   public void allowCell(String hubId) {
-      updateDisallowCell(hubId, false, null);
-   }
-
-   @Override
    public Map<String, Object> connected(String hubId) {
       Date ts = new Date();
       BoundStatement bs = connected.bind(HubCapability.STATE_NORMAL, JSON.toJson(HubConnectionCapability.STATE_ONLINE), JSON.toJson(ts), ts.toInstant(), hubId);
@@ -603,26 +526,6 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
             HubConnectionCapability.ATTR_STATE, HubConnectionCapability.STATE_OFFLINE,
             HubConnectionCapability.ATTR_LASTCHANGE, ts
       );
-   }
-
-	private void updateDisallowCell(String hubId, boolean disallow, String reason) {
-      Preconditions.checkNotNull(hubId, "hubId is required");
-      BoundStatement stmt = updateCellDisallow.bind()
-         .setBoolean(HubEntityColumns.DISALLOW_CELL, disallow)
-         .setString(HubEntityColumns.DISALLOW_CELL_REASON, reason)
-         .setString(HubEntityColumns.ID, hubId);
-      try(Context ctxt = updateDisallowCellTimer.time()) {
-         session.execute(stmt);
-      }
-   }
-
-   private Calendar snappedMinutes(Calendar time, int snapTo) {
-      int minutes = time.get(Calendar.MINUTE);
-      int mod = minutes % snapTo;
-      int mid = (int) Math.floor(snapTo / 2);
-      time = DateUtils.truncate(time, Calendar.MINUTE);
-      time.add(Calendar.MINUTE, mod < mid ? -mod : snapTo - mod);
-      return time;
    }
 
    @Override
@@ -779,7 +682,7 @@ public class HubDAOImpl extends BaseCassandraCRUDDao<String, Hub> implements Hub
       NamespacedKey name = NamespacedKey.parse(attributeName);
       CapabilityDefinition capability = registry.getCapabilityDefinitionByNamespace(name.getNamespace());
       if(capability == null) {
-         if(DEPRECATED_NAMESPACES.contains(name.getNamespace())) {
+         if(IrisAttributeLookup.isDeprecatedNamespace(name.getNamespace())) {
             log.trace("Ignoring deprecated capability namespace [{}]", name.getNamespace());
          } else {
             log.warn("Unable to find capability namespace [{}]", name.getNamespace());

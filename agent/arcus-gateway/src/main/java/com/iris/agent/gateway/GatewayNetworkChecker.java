@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.iris.agent.attributes.HubAttributesService;
 import com.iris.agent.exec.ExecService;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.lifecycle.LifeCycle;
 import com.iris.agent.lifecycle.LifeCycleService;
@@ -66,23 +65,16 @@ class GatewayNetworkChecker {
    private static long lastInterfaceChangeTime = System.nanoTime();
 
    private boolean primaryFirst = true;
-   private boolean secondaryFirst = true;
 
    private @Nullable String primaryIp = null;
    private @Nullable String primaryNetmask = null;
    private @Nullable String primaryInterfaceType = null;
 
-   private @Nullable String secondaryIp = null;
-   private @Nullable String secondaryNetmask = null;
-   private @Nullable String secondaryInterfaceType = null;
-
-   private final AtomicReference<GatewayConnection> primaryConnection;
-   private final AtomicReference<GatewayConnection> secondaryConnection;
+   private final AtomicReference<GatewayConnection> establishedConnection;
    private final AtomicReference<GatewayConnection> currentConnection;
 
-   GatewayNetworkChecker(AtomicReference<GatewayConnection> primaryConnection, AtomicReference<GatewayConnection> secondaryConnection, AtomicReference<GatewayConnection> currentConnection) {
-      this.primaryConnection = primaryConnection;
-      this.secondaryConnection = secondaryConnection;
+   GatewayNetworkChecker(AtomicReference<GatewayConnection> establishedConnection, AtomicReference<GatewayConnection> currentConnection) {
+      this.establishedConnection = establishedConnection;
       this.currentConnection = currentConnection;
    }
 
@@ -108,17 +100,12 @@ class GatewayNetworkChecker {
             GatewayConnection cur = currentConnection.get();
 
             IrisHal.NetworkInfo ni = IrisHal.getNetworkInfo();
-            log.trace("primary interface: {} ({}), secondary interface: {} ({})", ni.primary, ni.primaryIp, ni.secondary, ni.secondaryIp);
+            log.trace("primary interface: {} ({})", ni.primary, ni.primaryIp);
 
             boolean primaryUpdated = false;
             primaryUpdated |= !compare(primaryIp, ni.primaryIp);
             primaryUpdated |= !compare(primaryNetmask, ni.primaryNetmask);
             primaryUpdated |= !compare(primaryInterfaceType, ni.primaryInterfaceType);
-
-            boolean secondaryUpdated = false;
-            secondaryUpdated |= !compare(secondaryIp, ni.secondaryIp);
-            secondaryUpdated |= !compare(secondaryNetmask, ni.secondaryNetmask);
-            secondaryUpdated |= !compare(secondaryInterfaceType, ni.secondaryInterfaceType);
 
             long curTime = System.nanoTime();
             if (primaryUpdated || lastCheckTime == Long.MIN_VALUE || (curTime - lastCheckTime) >= LONG_CHECK_INTERVAL) {
@@ -135,45 +122,18 @@ class GatewayNetworkChecker {
                primaryInterfaceType = ni.primaryInterfaceType;
 
                if (!primaryFirst) {
-                  GatewayConnection primaryEstablished = primaryConnection.get();
-                  SocketAddress primarySocket = (primaryEstablished == null) ? null : primaryEstablished.getOutboundInterface();
-                  InetAddress primaryInet = (primarySocket == null || !(primarySocket instanceof InetSocketAddress)) ? null : ((InetSocketAddress)primarySocket).getAddress();
-                  String establishedIp = (primaryInet == null) ? null : primaryInet.getHostAddress();
+                  GatewayConnection established = establishedConnection.get();
+                  SocketAddress socket = (established == null) ? null : established.getOutboundInterface();
+                  InetAddress inet = (socket == null || !(socket instanceof InetSocketAddress)) ? null : ((InetSocketAddress)socket).getAddress();
+                  String establishedIp = (inet == null) ? null : inet.getHostAddress();
 
-                  if (cur != null && cur.isPrimary() && (establishedIp == null || !establishedIp.equals(primaryIp))) {
+                  if (cur != null && (establishedIp == null || !establishedIp.equals(primaryIp))) {
                      log.warn("forcing gateway reconnect because primary interface changed");
                      LifeCycleService.setState(LifeCycle.CONNECTING);
                   }
                }
 
                primaryFirst = false;
-            }
-
-            if (secondaryUpdated) {
-               log.trace("secondary gateway interface changed: ip={}, netmask={}, type={}", ni.primaryIp, ni.primaryNetmask, ni.primaryInterfaceType);
-               secondaryIp = ni.secondaryIp;
-               secondaryNetmask = ni.secondaryNetmask;
-               secondaryInterfaceType = ni.secondaryInterfaceType;
-
-               if (!secondaryFirst) {
-                  GatewayConnection secondaryEstablished = secondaryConnection.get();
-                  SocketAddress secondarySocket = (secondaryEstablished == null) ? null : secondaryEstablished.getOutboundInterface();
-                  InetAddress secondaryInet = (secondarySocket == null || !(secondarySocket instanceof InetSocketAddress)) ? null : ((InetSocketAddress)secondarySocket).getAddress();
-                  String establishedIp = (secondaryInet == null) ? null : secondaryInet.getHostAddress();
-
-                  if (cur != null && !cur.isPrimary() && (establishedIp == null || !establishedIp.equals(secondaryIp))) {
-                     log.warn("forcing gateway reconnect because secondary interface changed");
-                     LifeCycleService.setState(LifeCycle.CONNECTING);
-                  }
-               }
-
-               if (ni.secondary != null && secondaryIp != null && !"0.0.0.0".equals(secondaryIp)) {
-                  FourgService.setState(FourgService.State.CONNECTING);
-               } else {
-                  FourgService.setState(FourgService.State.UNAVAILABLE);
-               }
-
-               secondaryFirst = false;
             }
          } catch (Exception ex) {
             // ignore

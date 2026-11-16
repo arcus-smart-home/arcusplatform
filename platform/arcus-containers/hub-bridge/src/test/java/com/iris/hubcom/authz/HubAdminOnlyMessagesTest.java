@@ -43,7 +43,6 @@ import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
-import com.iris.messages.capability.Hub4gCapability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.capability.HubDebugCapability;
 import com.iris.messages.capability.HubMetricsCapability;
@@ -74,9 +73,10 @@ public class HubAdminOnlyMessagesTest extends IrisTestCase {
          HubDebugCapability.GetBootlogRequest.NAME,
          HubDebugCapability.GetProcessesRequest.NAME,
          HubDebugCapability.GetLoadRequest.NAME,
-         Hub4gCapability.GetInfoRequest.NAME,
-         Hub4gCapability.ResetStatisticsRequest.NAME,
-         Hub4gCapability.GetStatisticsRequest.NAME,
+         // the 4G capability is gone, but a hub still running the old 4G controller answers these
+         "hub4g:GetInfo",
+         "hub4g:ResetStatistics",
+         "hub4g:GetStatistics",
          HubMetricsCapability.StartMetricsJobRequest.NAME,
          HubMetricsCapability.EndMetricsJobsRequest.NAME,
          HubMetricsCapability.GetMetricsJobInfoRequest.NAME,

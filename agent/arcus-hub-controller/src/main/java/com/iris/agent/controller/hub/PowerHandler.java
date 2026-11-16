@@ -18,7 +18,6 @@ package com.iris.agent.controller.hub;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.iris.agent.attributes.HubAttributesService;
-import com.iris.agent.fourg.FourgService;
 import com.iris.agent.hal.BatteryStateListener;
 import com.iris.agent.hal.IrisHal;
 import com.iris.agent.lifecycle.LifeCycleService;
@@ -62,7 +61,7 @@ enum PowerHandler implements PortHandler, BatteryStateListener {
    public void batteryStateChanged(boolean oldState, boolean newState) {
       source.set(IrisHal.getPowerSource());
       if (controller != null) {
-         controller.updateLEDState(newState, LifeCycleService.getState(), FourgService.getState());
+         controller.updateLEDState(newState, LifeCycleService.getState());
       }
    }
 

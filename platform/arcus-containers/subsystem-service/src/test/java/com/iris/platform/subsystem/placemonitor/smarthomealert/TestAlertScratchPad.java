@@ -35,21 +35,11 @@ public class TestAlertScratchPad extends SmartHomeAlertTestCase {
          PLACE_ID
       );
 
-      SmartHomeAlert needsModem = SmartHomeAlerts.create(
-         SmartHomeAlert.ALERTTYPE_PLACE_4G_MODEM_NEEDED,
-         SmartHomeAlert.SEVERITY_CRITICAL,
-         Address.platformService(PLACE_ID, PlaceCapability.NAMESPACE),
-         ImmutableMap.of(),
-         PLACE_ID
-      );
-
       scratchPad.putAlert(hubOffline);
-      scratchPad.putAlert(needsModem);
 
       scratchPad.deleteAlertsFor(PLACE_ID, Address.hubAddress("ABC-1234"));
 
       assertScratchPadNoAlert(hubOffline.getAlertkey());
-      assertScratchPadNoAlert(needsModem.getAlertkey());
    }
 
    @Test

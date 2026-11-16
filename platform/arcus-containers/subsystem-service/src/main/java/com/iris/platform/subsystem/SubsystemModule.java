@@ -45,8 +45,6 @@ import com.iris.core.dao.PopulationDAO;
 import com.iris.core.dao.file.PopulationManager;
 import com.iris.messages.event.AddressableEvent;
 import com.iris.messages.event.Listener;
-import com.iris.platform.subsystem.cellbackup.CellBackupNotifications;
-import com.iris.platform.subsystem.cellbackup.CellBackupSubsystem;
 import com.iris.platform.subsystem.impl.CachingSubsystemRegistry;
 import com.iris.platform.subsystem.impl.PlatformSubsystemFactory;
 import com.iris.platform.subsystem.incident.AlarmIncidentServiceImpl;
@@ -112,7 +110,6 @@ public class SubsystemModule extends AbstractIrisModule {
       subsystems.addBinding().to(WaterSubsystem.class);
       subsystems.addBinding().to(CareSubsystem.class);
       subsystems.addBinding().to(LawnNGardenSubsystem.class);
-      subsystems.addBinding().to(CellBackupSubsystem.class);
       subsystems.addBinding().to(WeatherSubsystem.class);
       subsystems.addBinding().to(AlarmSubsystem.class);
       subsystems.addBinding().to(PairingSubsystem.class);
@@ -131,7 +128,6 @@ public class SubsystemModule extends AbstractIrisModule {
       handlers.addBinding(SmartHomeAlertHandler.class.getName()).to(SmartHomeAlertHandler.class);
 
       bind(PlaceMonitorNotifications.class).asEagerSingleton();
-      bind(CellBackupNotifications.class).asEagerSingleton();
 
    }
 

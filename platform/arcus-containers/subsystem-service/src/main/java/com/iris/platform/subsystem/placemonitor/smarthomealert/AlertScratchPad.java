@@ -47,9 +47,6 @@ public class AlertScratchPad implements Copyable<AlertScratchPad> {
    public void deleteAlertsFor(UUID placeId, Address address) {
       if(address instanceof HubServiceAddress || address instanceof HubAddress) {
          removeAlert(AlertKeys.key(SmartHomeAlert.ALERTTYPE_PLACE_HUB_OFFLINE, placeId));
-         removeAlert(AlertKeys.key(SmartHomeAlert.ALERTTYPE_PLACE_4G_MODEM_NEEDED, placeId));
-         removeAlert(AlertKeys.key(SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_ERROR, placeId));
-         removeAlert(AlertKeys.key(SmartHomeAlert.ALERTTYPE_PLACE_4G_SERVICE_SUSPENDED, placeId));
       } else if(address instanceof DeviceDriverAddress) {
          alerts = alerts.entrySet().stream()
             .filter(e -> !Objects.equals(address.getRepresentation(), e.getValue().getSubjectaddr()))

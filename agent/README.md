@@ -6,7 +6,6 @@ This contains the code that the Iris v2 or Iris V3 hub runs. Version 1 of the hu
 
 Unfortunately not all of the code that powers the v2/v3 hub is open source. Notable missing components include:
 
-* arcus-4g-controller
 * arcus-hue-controller
 * arcus-zigbee-controller
 * arcus-zwave-controller

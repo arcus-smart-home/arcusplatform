@@ -112,8 +112,6 @@ enum MetricsHandler implements PortHandler {
    //    * hub.system.disk.data.free            8 bytes/entry
    //    * hub.system.net.pri.recv              8 bytes/entry
    //    * hub.system.net.pri.sent              8 bytes/entry
-   //    * hub.system.net.sec.recv              8 bytes/entry
-   //    * hub.system.net.sec.sent              8 bytes/entry
    //    * hub.system.load.1min                 2 bytes/entry
    //    * hub.system.cpu.user                  1 byte/entry
    //    * hub.system.cpu.system                1 byte/entry
@@ -123,9 +121,9 @@ enum MetricsHandler implements PortHandler {
    //    * hub.process.agent.mem.heap.used      8 bytes/entry
    //    * hub.process.agent.mem.nonheap.used   8 bytes/entry
    //    ----------------------------------------------
-   //      total                                78 bytes/entry
+   //      total                                62 bytes/entry
    //
-   // This current setup consumes approximately 110 KB of memory for storage.
+   // This current setup consumes approximately 87 KB of memory for storage.
    private static final int LONGTERM_BUFFER_SIZE = 1440;
    private final long LONGTERM_SAMPLE_FREQUENCY = TimeUnit.SECONDS.toMillis(60);
 
@@ -169,10 +167,6 @@ enum MetricsHandler implements PortHandler {
       SYSTEM_METRICS.gauge("net.pri.sent", sysPrimaryNetworkSent);
       SYSTEM_METRICS.gauge("net.pri.inerr", sysPrimaryNetworkInErr);
       SYSTEM_METRICS.gauge("net.pri.outerr", sysPrimaryNetworkOutErr);
-      SYSTEM_METRICS.gauge("net.sec.recv", sysSecondaryNetworkRecv);
-      SYSTEM_METRICS.gauge("net.sec.sent", sysSecondaryNetworkSent);
-      SYSTEM_METRICS.gauge("net.sec.inerr", sysSecondaryNetworkInErr);
-      SYSTEM_METRICS.gauge("net.sec.outerr", sysSecondaryNetworkOutErr);
 
       SYSTEM_METRICS.gauge("disk.data.read", sysDataDiskRead);
       SYSTEM_METRICS.gauge("disk.data.write", sysDataDiskWrite);
@@ -231,8 +225,6 @@ enum MetricsHandler implements PortHandler {
          .addLongMetric("hub.system.disk.data.free", sysDataDiskFree)
          .addLongMetric("hub.system.net.pri.recv", sysPrimaryNetworkRecv)
          .addLongMetric("hub.system.net.pri.sent", sysPrimaryNetworkSent)
-         .addLongMetric("hub.system.net.sec.recv", sysSecondaryNetworkRecv)
-         .addLongMetric("hub.system.net.sec.sent", sysSecondaryNetworkSent)
          .addLongMetric("hub.process.agent.mem.heap.used", procAgentHeapUsageUsed)
          .addLongMetric("hub.process.agent.mem.nonheap.used", procAgentNonHeapUsageUsed)
          .build(LONGTERM_BUFFER_SIZE);
@@ -720,41 +712,6 @@ enum MetricsHandler implements PortHandler {
    };
 
    private Gauge<Long> sysPrimaryNetworkOutErr = new DerivativeGauge<NetworkIF,Long>(sysPrimaryNetwork) {
-      @Override
-      public @Nullable Long transform(@Nullable NetworkIF network) {
-         return (network == null) ? 0 : network.getOutErrors();
-      }
-   };
-
-   private Gauge<NetworkIF> sysSecondaryNetwork = new DerivativeGauge<Map<String,NetworkIF>,NetworkIF>(sysNetworks) {
-      @Override
-      public @Nullable NetworkIF transform(@Nullable Map<String,NetworkIF> networks) {
-         return (networks == null) ? null : networks.get(IrisHal.getSecondaryNetworkInterfaceName());
-      }
-   };
-
-   private Gauge<Long> sysSecondaryNetworkRecv = new DerivativeGauge<NetworkIF,Long>(sysSecondaryNetwork) {
-      @Override
-      public @Nullable Long transform(@Nullable NetworkIF network) {
-         return (network == null) ? 0 : network.getBytesRecv();
-      }
-   };
-
-   private Gauge<Long> sysSecondaryNetworkSent = new DerivativeGauge<NetworkIF,Long>(sysSecondaryNetwork) {
-      @Override
-      public @Nullable Long transform(@Nullable NetworkIF network) {
-         return (network == null) ? 0 : network.getBytesSent();
-      }
-   };
-
-   private Gauge<Long> sysSecondaryNetworkInErr = new DerivativeGauge<NetworkIF,Long>(sysSecondaryNetwork) {
-      @Override
-      public @Nullable Long transform(@Nullable NetworkIF network) {
-         return (network == null) ? 0 : network.getInErrors();
-      }
-   };
-
-   private Gauge<Long> sysSecondaryNetworkOutErr = new DerivativeGauge<NetworkIF,Long>(sysSecondaryNetwork) {
       @Override
       public @Nullable Long transform(@Nullable NetworkIF network) {
          return (network == null) ? 0 : network.getOutErrors();

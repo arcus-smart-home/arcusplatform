@@ -39,7 +39,6 @@ import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.Capability;
-import com.iris.messages.capability.Hub4gCapability;
 import com.iris.messages.capability.HubAdvancedCapability;
 import com.iris.messages.capability.HubCapability;
 import com.iris.messages.capability.HubNetworkCapability;
@@ -70,10 +69,6 @@ public class HubConnectedHandler extends DirectMessageHandler {
    @Inject(optional = true)
    @Named("hub.auto_deregister")
    private boolean autoDeregister = false;
-
-   @Inject(optional = true)
-   @Named("hub.4g.simid.attr")
-   private String simIdAttr = Hub4gCapability.ATTR_ICCID;
 
    @Inject(optional = true)
    @Named("hub.allow.update.attributes")
@@ -117,22 +112,14 @@ public class HubConnectedHandler extends DirectMessageHandler {
    protected void onConnected(Session session, PlatformMessage msg) {
       MessageBody hubConnectedEvent = msg.getValue();
 
-      String connectionType = (String) hubConnectedEvent.getAttributes().get(HubNetworkCapability.ATTR_TYPE);
       String agentVersion = HubAdvancedCapability.getAgentver(hubConnectedEvent);
       session.setClientVersion(agentVersion);
 
-      ((HubSession) session).setConnectionType(connectionType);
-      ((HubSession) session).setSimId((String) hubConnectedEvent.getAttributes().get(simIdAttr));
       ((HubSession) session).setFirmwareVersion(HubAdvancedCapability.getOsver(hubConnectedEvent));
       String hubId = msg.getSource().getHubId();
       log.trace("Handling Hub Connected Event:  Hub Id = {}", hubId );
 
       Hub persistedHub = hubDao.findById(hubId);
-
-      if(persistedHub != null && Objects.equals(HubNetworkCapability.TYPE_3G, connectionType) && persistedHub.isDisallowCell()) {
-         updateUnauthorizedReason(session, UnauthorizedReason.BANNED_CELL);
-         return;
-      }
 
       if(persistedHub == null && HubCapability.getAccount(hubConnectedEvent) != null && autoDeregister) {
          sendDeregister(session,  hubId, msg.getPlaceId());

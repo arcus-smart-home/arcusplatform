@@ -41,7 +41,7 @@ public class HubSession extends DefaultSessionImpl {
    }
 
    public static enum UnauthorizedReason {
-      BELOW_MIN_FW, UNREGISTERED, REGISTERING, ORPHANED, INVALID_ACCOUNT, HANDSHAKING, BANNED_CELL, UNAUTHENTICATED
+      BELOW_MIN_FW, UNREGISTERED, REGISTERING, ORPHANED, INVALID_ACCOUNT, HANDSHAKING, UNAUTHENTICATED
    }
 
    private final String hubId;
@@ -50,8 +50,6 @@ public class HubSession extends DefaultSessionImpl {
    private volatile UnauthorizedReason unauthReason = UnauthorizedReason.HANDSHAKING;
    private volatile Date lastStateChange = new Date();
    private volatile PlatformPartition partition;
-   private volatile String connType;
-   private volatile String simId;
    private volatile String firmwareVersion;
    // setState fires the session listener on every call, so onAuthorized can run
    // more than once per session; this lets listeners act only on the first one
@@ -106,22 +104,6 @@ public class HubSession extends DefaultSessionImpl {
     */
    public boolean firstSourceMismatch() {
       return sourceMismatchWarned.compareAndSet(false, true);
-   }
-
-   public void setConnectionType(String connType) {
-      this.connType = connType;
-   }
-
-   public String getConnectionType() {
-      return connType;
-   }
-
-   public void setSimId(String simId) {
-      this.simId = simId;
-   }
-
-   public String getSimId() {
-      return simId;
    }
 
    public UnauthorizedReason getUnauthReason() {

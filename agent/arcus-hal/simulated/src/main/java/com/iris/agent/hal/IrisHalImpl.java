@@ -311,12 +311,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
 
    @Override
    @Nullable
-   protected Class<? extends Module> get4gControllerModuleClass() {
-      return FourGModuleSimulated.class;
-   }
-
-   @Override
-   @Nullable
    protected Class<? extends Module> getReflexControllerModuleClass() {
       return ReflexModuleSimulated.class;
    }
@@ -365,12 +359,6 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
       }
    }
 
-   public static final class FourGModuleSimulated extends AbstractModule {
-      @Override
-      protected void configure() {
-      }
-   }
-
    public static final class ReflexModuleSimulated extends AbstractModule {
       @Override
       protected void configure() {
@@ -401,13 +389,8 @@ public final class IrisHalImpl extends AbstractIrisHalCommon {
    }
 
    @Override
-   public String getSecondaryNetworkInterfaceName() {
-      return "eth1";
-   }
-   
-   @Override
    public IrisHal.NetworkInfo getNetworkInfo() {
-      return new IrisHal.NetworkInfo(null, "eth0", "eth", "192.168.1.100", "255.255.255.0", null, null, null, null, null);
+      return new IrisHal.NetworkInfo(null, "eth0", "eth", "192.168.1.100", "255.255.255.0");
    }
 
    @Override
