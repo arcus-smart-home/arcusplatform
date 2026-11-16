@@ -25,6 +25,7 @@ import static com.iris.platform.metrics.MetricUtils.getAsStringOrNull;
 import static com.iris.platform.metrics.MetricUtils.getTags;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -122,7 +123,7 @@ public class MetricsServer extends IrisAbstractApplication {
          log.info("starting metrics consumer...");
          consumer.subscribe(ImmutableSet.of(kafkaOpsConfig.getTopicMetrics()));
          while(true) {
-            ConsumerRecords<String, JsonObject> records = consumer.poll(kafkaOpsConfig.getPollingTimeoutMs());
+            ConsumerRecords<String, JsonObject> records = consumer.poll(Duration.ofMillis(kafkaOpsConfig.getPollingTimeoutMs()));
             if(!records.isEmpty()) {
                consume(records);
             }

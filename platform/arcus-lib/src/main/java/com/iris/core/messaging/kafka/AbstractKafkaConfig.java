@@ -162,6 +162,12 @@ public abstract class AbstractKafkaConfig {
    // ApiVersions and logs at debug -- so this is dead work rather than breakage,
    // but there is no reason to carry it. Revisit if the brokers move to KRaft.
    private String enableMetricsPush = "false";
+   @Consumer @Producer @Named("metadata.recovery.strategy")
+   // KIP-899: 4.0 changed this default from none to rebootstrap, so a client that
+   // can reach none of the brokers it knows, or gets no metadata for 5 minutes,
+   // reconnects from the bootstrap list resolved at startup. Pinned to the 3.x
+   // behaviour; turning rebootstrap on should be a decision of its own.
+   private String metadataRecoveryStrategy = "none";
 
    // nu consumer properties
    @Consumer @Named("group.id")
@@ -214,7 +220,10 @@ public abstract class AbstractKafkaConfig {
    @Producer @Named("batch.size")
    private Integer batchSize;
    @Producer @Named("linger.ms")
-   private Long lingerMs;
+   // KIP-1030 moved this default from 0 to 5 in 4.0, which would hold every
+   // platform send for up to 5 ms waiting for a batch. Pinned to 0, the
+   // default of the 2.8 and 3.x clients this platform ran on.
+   private Long lingerMs = 0L;
    @Producer @Named("max.block.ms")
    private Long maxBlockMs;
    @Producer @Named("max.request.size")

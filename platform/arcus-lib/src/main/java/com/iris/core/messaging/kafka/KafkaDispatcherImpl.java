@@ -35,7 +35,6 @@ import javax.annotation.PreDestroy;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -326,15 +325,6 @@ public class KafkaDispatcherImpl implements PartitionListener, KafkaDispatcher {
 			if(config.isTransientOffsets()) {
 				logger.info("Transient offsets enabled, seeking to latest");
 				consumer.seekToEnd(partitions);
-			}
-			else {
-				Set<TopicPartition> unknownPartitions = new HashSet<>();
-				for(TopicPartition tp: partitions) {
-					OffsetAndMetadata om = consumer.committed(tp);
-					if(om == null) {
-						unknownPartitions.add(tp);
-					}
-				}
 			}
 		}
 
