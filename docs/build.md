@@ -174,8 +174,8 @@ Centralized in `gradle/dependencies.gradle` as an `ext.libraries` map. Subprojec
 | Groovy | 4.0.30 | Driver DSL runtime |
 | Guice | 6.0.0 | DI framework; multibindings is part of the core jar |
 | Cassandra Driver | 4.17.0 | DataStax `java-driver-core`, with its Netty and metrics excluded |
-| Kafka | 3.9.2 | `kafka-clients` only |
-| ZooKeeper | 3.9.6 | |
+| Kafka | 4.4.0 | `kafka-clients` only |
+| ZooKeeper | 3.9.7 | |
 | GSON | 2.15.0 | Platform JSON (`com.iris.io.json.JSON`); defines the wire format |
 | Jackson | 2.22.4 | Annotations are versioned `2.22` (no patch number since 2.20) |
 | SLF4J | 2.0.20 | |

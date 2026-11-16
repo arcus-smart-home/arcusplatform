@@ -150,15 +150,22 @@ public class TestKafkaConfigProperties {
    }
 
    /**
-    * KIP-1030 moved linger.ms from 0 to 5 in 4.0. Unpinned, every platform
-    * send would wait up to 5 ms for a batch to fill.
+    * The defaults 4.0 changed under us, pinned to the 3.x behaviour.
     */
    @Test
-   public void testFourDotOhLingerStaysAtZero() {
-      Properties producer = config(new Properties()).toNuProducerProperties();
+   public void testFourDotOhDefaultsStayAtTheirThreeDotXBehaviour() {
+      KafkaConfig config = config(new Properties());
+      Properties producer = config.toNuProducerProperties();
 
+      // KIP-1030 moved linger.ms from 0 to 5: every platform send would wait
+      // up to 5 ms for a batch to fill
       assertEquals("0", producer.get(ProducerConfig.LINGER_MS_CONFIG));
       assertEquals(Long.valueOf(0L), parse(producer).getLong(ProducerConfig.LINGER_MS_CONFIG));
+
+      // KIP-899 moved metadata.recovery.strategy from none to rebootstrap
+      assertEquals("none", producer.get(CommonClientConfigs.METADATA_RECOVERY_STRATEGY_CONFIG));
+      assertEquals("none", parse(producer).getString(CommonClientConfigs.METADATA_RECOVERY_STRATEGY_CONFIG));
+      assertEquals("none", config.toNuConsumerProperties().get(CommonClientConfigs.METADATA_RECOVERY_STRATEGY_CONFIG));
    }
 
    @Test
