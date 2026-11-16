@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -225,6 +227,10 @@ public class PlatformDriverService implements DriverService {
 	   }
 	}
 
+   // a hub that keeps addressing other hubs' devices would otherwise put a warning in the log for each message
+   private static final long HUB_SCOPE_WARNING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1);
+   private static final AtomicLong lastHubScopeWarning = new AtomicLong();
+
    // hub-bridge only passes a hub's protocol messages from that hub's own addresses, but a
    // destination other than a broadcast picks the driver, and it has to be one of that hub's devices
    private static boolean isSendingHubsDevice(ProtocolMessage message, DriverExecutor executor) {
@@ -236,7 +242,13 @@ public class PlatformDriverService implements DriverService {
       if (device != null && hubId.equals(device.getHubId())) {
          return true;
       }
-      LOGGER.warn("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]", hubId, message.getDestination(), device);
+      long now = System.currentTimeMillis();
+      long last = lastHubScopeWarning.get();
+      if (now - last >= HUB_SCOPE_WARNING_INTERVAL_MS && lastHubScopeWarning.compareAndSet(last, now)) {
+         LOGGER.warn("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]; further drops in the next minute log at debug", hubId, message.getDestination(), device);
+      } else {
+         LOGGER.debug("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]", hubId, message.getDestination(), device);
+      }
       return false;
    }
 

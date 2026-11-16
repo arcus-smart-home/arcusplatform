@@ -73,7 +73,7 @@ public class NotificationService extends AbstractPlatformService {
       // Notifications come from platform services. RoleAuthorizer refuses them from clients, but
       // hub-bridge runs no authorizer and nothing on a hub sends them.
       Address source = message.getSource();
-      if(source != null && (source.getHubId() != null || MessageConstants.CLIENT.equals(source.getNamespace()))) {
+      if(source != null && (source.isHubAddress() || MessageConstants.CLIENT.equals(source.getNamespace()))) {
          LOGGER.warn("Dropping [{}] from [{}]: notifications are only sent by platform services", message.getMessageType(), source);
          return;
       }

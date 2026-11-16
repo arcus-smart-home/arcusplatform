@@ -25,7 +25,6 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.dao.MobileDeviceDAO;
 import com.iris.core.platform.ContextualEventMessageHandler;
-import com.iris.core.platform.ContextualPlatformMessageDispatcher;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
@@ -33,9 +32,10 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.model.MobileDevice;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.platform.services.HubExcludingDispatcher;
 
 @Singleton
-public class MobileDeviceService extends ContextualPlatformMessageDispatcher<MobileDevice> implements PlatformService {
+public class MobileDeviceService extends HubExcludingDispatcher<MobileDevice> implements PlatformService {
    public static final String PROP_THREADPOOL = "platform.service.mobiledevice.threadpool";
 
    private static final Address address = Address.platformService(PlatformConstants.SERVICE_MOBILEDEVICES);

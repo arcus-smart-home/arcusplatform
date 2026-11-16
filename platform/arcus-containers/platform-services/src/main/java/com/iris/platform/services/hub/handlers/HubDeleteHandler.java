@@ -69,7 +69,7 @@ public class HubDeleteHandler implements ContextualRequestMessageHandler<Hub> {
    // A hub's requests carry its own place, like a client's, since hub-bridge forwards them anywhere.
    private void assertSenderAtHubPlace(Hub hub, PlatformMessage msg) {
       Address source = msg.getSource();
-      if(!MessageConstants.CLIENT.equals(source.getNamespace()) && source.getHubId() == null) {
+      if(!MessageConstants.CLIENT.equals(source.getNamespace()) && !source.isHubAddress()) {
          return;
       }
       if(hub.getPlace() == null || !Objects.equals(hub.getPlace().toString(), msg.getPlaceId())) {
