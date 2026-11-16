@@ -138,6 +138,15 @@ public class HubDeleteAuthorizationTest extends IrisMockTestCase {
    }
 
    @Test
+   public void testAnotherHubCannotDeleteThroughTheServiceAddress() {
+      // hub-bridge forwards a hub's request anywhere and stamps the sending hub's place
+      EasyMock.expect(hubDao.findById(HUB_ID)).andReturn(hub);
+      replay();
+      service.handleMessage(request(Address.hubService("XYZ-5678", "hub"), otherPlace, "SERV:hub:" + HUB_ID));
+      assertRefused();
+   }
+
+   @Test
    public void testOtherServicesAreNotChecked() {
       EasyMock.expect(hubDao.findById(HUB_ID)).andReturn(hub);
       hubDao.delete(hub);

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -210,9 +212,10 @@ public class PlatformDriverService implements DriverService {
 
          // inner catch so that we don't trigger a restore when we get a legacy unpaired message
          try {
-            driverRegistry
-               .loadConsumer(address)
-               .fire(message);
+            DriverExecutor executor = driverRegistry.loadConsumer(address);
+            if (isSendingHubsDevice(message, executor)) {
+               executor.fire(message);
+            }
    	   } catch(NotFoundException e) {
    	      LOGGER.warn("Received protocol message for unrecognized address [{}]", message.getSource());
    	      tryRestoreLostDevice(message.getSource(), message.getPlaceId(), population);
@@ -224,6 +227,31 @@ public class PlatformDriverService implements DriverService {
 	   }
 	}
 
+   // a hub that keeps addressing other hubs' devices would otherwise put a warning in the log for each message
+   private static final long HUB_SCOPE_WARNING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1);
+   private static final AtomicLong lastHubScopeWarning = new AtomicLong();
+
+   // hub-bridge only passes a hub's protocol messages from that hub's own addresses, but a
+   // destination other than a broadcast picks the driver, and it has to be one of that hub's devices
+   private static boolean isSendingHubsDevice(ProtocolMessage message, DriverExecutor executor) {
+      String hubId = message.getSource() == null ? null : message.getSource().getHubId();
+      if (hubId == null) {
+         return true;
+      }
+      Address device = executor.context().getProtocolAddress();
+      if (device != null && hubId.equals(device.getHubId())) {
+         return true;
+      }
+      long now = System.currentTimeMillis();
+      long last = lastHubScopeWarning.get();
+      if (now - last >= HUB_SCOPE_WARNING_INTERVAL_MS && lastHubScopeWarning.compareAndSet(last, now)) {
+         LOGGER.warn("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]; further drops in the next minute log at debug", hubId, message.getDestination(), device);
+      } else {
+         LOGGER.debug("Dropping protocol message from hub [{}] addressed to [{}], a device of [{}]", hubId, message.getDestination(), device);
+      }
+      return false;
+   }
+
    public void handleReflexProtocolMessage(ProtocolMessage message) {
       try {
          Address address = message.getDestination();
@@ -233,6 +261,9 @@ public class PlatformDriverService implements DriverService {
          }
 
          DriverExecutor exec = driverRegistry.loadConsumer(address);
+         if (!isSendingHubsDevice(message, exec)) {
+            return;
+         }
          DeviceDriver drv = exec.driver();
          DeviceDriverDefinition def = drv.getDefinition();
          ReflexDriverDefinition rdef = def.getReflexes();

@@ -337,4 +337,45 @@ public class PersonAuthorizationTest extends IrisMockTestCase {
       service.handleMessage(clientRequest(actor, Capability.CMD_GET_ATTRIBUTES, ImmutableMap.of()));
       assertSucceeded();
    }
+
+   // hubs: hub-bridge forwards a hub's request anywhere, stamps the hub's place and keeps whatever
+   // actor the hub chose, here the person themselves. Nothing on a hub reads or changes people.
+
+   private PlatformMessage hubRequest(UUID hubPlace, String type, Map<String, Object> attributes) {
+      return PlatformMessage
+            .buildRequest(type, attributes, Address.hubService("ABC-1234", "hub"), Address.fromString(target.getAddress()))
+            .withPlaceId(hubPlace)
+            .withActor(Address.fromString(target.getAddress()))
+            .withCorrelationId("test")
+            .create();
+   }
+
+   @Test
+   public void testHubAtAnotherPlaceCannotChangeAnEmail() {
+      replay();
+      service.handleMessage(hubRequest(actorPlace, Capability.CMD_SET_ATTRIBUTES, ImmutableMap.of(PersonCapability.ATTR_EMAIL, NEW_EMAIL)));
+      assertRefused();
+   }
+
+   @Test
+   public void testHubAtThePersonsPlaceCannotChangeAnEmail() {
+      replay();
+      service.handleMessage(hubRequest(targetPlace, Capability.CMD_SET_ATTRIBUTES, ImmutableMap.of(PersonCapability.ATTR_EMAIL, NEW_EMAIL)));
+      assertRefused();
+   }
+
+   @Test
+   public void testHubAtAnotherPlaceCannotReadAPerson() {
+      replay();
+      service.handleMessage(hubRequest(actorPlace, Capability.CMD_GET_ATTRIBUTES, ImmutableMap.of()));
+      assertRefused();
+   }
+
+   @Test
+   public void testHubCannotMaintainAPersonWithoutALogin() {
+      withoutLogin();
+      replay();
+      service.handleMessage(hubRequest(targetPlace, Capability.CMD_SET_ATTRIBUTES, ImmutableMap.of(PersonCapability.ATTR_FIRSTNAME, "Jane")));
+      assertRefused();
+   }
 }

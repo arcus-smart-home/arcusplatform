@@ -60,14 +60,16 @@ public class HubDeleteHandler implements ContextualRequestMessageHandler<Hub> {
 
    @Override
    public MessageBody handleRequest(Hub context, PlatformMessage msg) {
-      assertClientAtHubPlace(context, msg);
+      assertSenderAtHubPlace(context, msg);
       deleteHub(context);
       return HubCapability.DeleteResponse.instance();
    }
 
-   // SERV:hub:<id> reaches this through HubService, without OfflineHubRequestHandler's place check
-   private void assertClientAtHubPlace(Hub hub, PlatformMessage msg) {
-      if(!MessageConstants.CLIENT.equals(msg.getSource().getNamespace())) {
+   // SERV:hub:<id> reaches this through HubService, without OfflineHubRequestHandler's place check.
+   // A hub's requests carry its own place, like a client's, since hub-bridge forwards them anywhere.
+   private void assertSenderAtHubPlace(Hub hub, PlatformMessage msg) {
+      Address source = msg.getSource();
+      if(!MessageConstants.CLIENT.equals(source.getNamespace()) && !source.isHubAddress()) {
          return;
       }
       if(hub.getPlace() == null || !Objects.equals(hub.getPlace().toString(), msg.getPlaceId())) {

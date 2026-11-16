@@ -28,6 +28,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.platform.AbstractPlatformService;
 import com.iris.core.platform.PlatformMessageBus;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.capability.NotificationCapability;
@@ -68,7 +69,15 @@ public class NotificationService extends AbstractPlatformService {
          super.handleMessage(message);
          return;
       }
-   	
+
+      // Notifications come from platform services. RoleAuthorizer refuses them from clients, but
+      // hub-bridge runs no authorizer and nothing on a hub sends them.
+      Address source = message.getSource();
+      if(source != null && (source.isHubAddress() || MessageConstants.CLIENT.equals(source.getNamespace()))) {
+         LOGGER.warn("Dropping [{}] from [{}]: notifications are only sent by platform services", message.getMessageType(), source);
+         return;
+      }
+
       Notification notification = Notification.fromPlatformMessage(message);
 
       // Note the amount of time the notification was left enqueued...

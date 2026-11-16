@@ -25,7 +25,6 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.iris.core.dao.PersonDAO;
 import com.iris.core.platform.ContextualEventMessageHandler;
-import com.iris.core.platform.ContextualPlatformMessageDispatcher;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
@@ -33,9 +32,10 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.model.Person;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.platform.services.HubExcludingDispatcher;
 
 @Singleton
-public class PersonService extends ContextualPlatformMessageDispatcher<Person> implements PlatformService {
+public class PersonService extends HubExcludingDispatcher<Person> implements PlatformService {
    public static final String PROP_THREADPOOL = "platform.service.person.threadpool";
 
    private static final Address address = Address.platformService(PlatformConstants.SERVICE_PEOPLE);

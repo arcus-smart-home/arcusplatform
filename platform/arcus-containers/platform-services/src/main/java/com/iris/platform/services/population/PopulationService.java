@@ -23,16 +23,16 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.iris.core.dao.PopulationDAO;
 import com.iris.core.platform.ContextualEventMessageHandler;
-import com.iris.core.platform.ContextualPlatformMessageDispatcher;
 import com.iris.core.platform.ContextualRequestMessageHandler;
 import com.iris.core.platform.PlatformMessageBus;
 import com.iris.core.platform.PlatformService;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.services.PlatformConstants;
+import com.iris.platform.services.HubExcludingDispatcher;
 import com.iris.messages.type.Population;
 
-public class PopulationService extends ContextualPlatformMessageDispatcher<Population> implements PlatformService {
+public class PopulationService extends HubExcludingDispatcher<Population> implements PlatformService {
    public static final String PROP_THREADPOOL = "platform.service.population.threadpool";
 
    private static final Address address = Address.platformService(PlatformConstants.SERVICE_POPULATION);
