@@ -34,9 +34,9 @@ import com.iris.notification.provider.LogProvider;
 import com.iris.notification.provider.EmailProvider;
 import com.iris.notification.provider.MailgunEmailProvider;
 import com.iris.notification.provider.MapNotificationProviderRegistry;
+import com.iris.notification.provider.NoopEmailProvider;
 import com.iris.notification.provider.NotificationProvider;
 import com.iris.notification.provider.NotificationProviderRegistry;
-import com.iris.notification.provider.SendGridEmailProvider;
 import com.iris.notification.provider.WebhookProvider;
 import com.iris.notification.provider.apns.ApnsSender;
 import com.iris.notification.provider.apns.NoopApnsSender;
@@ -61,7 +61,7 @@ public class NotificationModule extends AbstractIrisModule {
 
    @Inject(optional=true)
    @Named("notificationservice.sender.email")
-   private String emailSender = "default";
+   private String emailSender = "mailgun";
 
     @Override
     protected void configure() {
@@ -101,18 +101,20 @@ public class NotificationModule extends AbstractIrisModule {
         // all kept so that only the transport has to be written.
         bind(GcmSender.class).to(NoopGcmSender.class);
 
-        switch (emailSender) {
-         default:
-            logger.warn("unknown email sender implementation {}: using default instead");
-            // fall through
-
-         case "default":
-            bind(EmailProvider.class).to(SendGridEmailProvider.class);
-            break;
-         case "mailgun":
-            logger.info("using mailgun email sender");
-            bind(EmailProvider.class).to(MailgunEmailProvider.class);
-            break;
+        // Mailgun needs email.provider.apikey and email.provider.domain; noop sends
+        // no email. Any other value, including "default", which used to mean
+        // SendGrid, stops startup rather than sending through a provider the
+        // deployment didn't ask for. Binding noop for it keeps that error from
+        // being buried under Mailgun's missing settings.
+        if ("mailgun".equals(emailSender)) {
+           bind(EmailProvider.class).to(MailgunEmailProvider.class);
+        } else {
+           if ("noop".equals(emailSender)) {
+              logger.warn("notificationservice.sender.email is noop: no email will be sent");
+           } else {
+              addError("notificationservice.sender.email is '%s': set it to mailgun, or to noop to send no email", emailSender);
+           }
+           bind(EmailProvider.class).to(NoopEmailProvider.class);
         }
 
         bind(UpstreamNotificationResponder.class).to(IrisUpstreamNotificationResponder.class);

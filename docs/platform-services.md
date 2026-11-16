@@ -20,7 +20,7 @@
 | `rule-service` | Executes user-defined automation rules and triggers |
 | `scheduler-service` | Schedules timed events, reminders, and recurring tasks |
 | `history-service` | Records device state changes and events for historical replay |
-| `notification-services` | Multi-channel notifications: SMS (Twilio), email (SendGrid/Mailgun), push (GCM/APNS), XMPP |
+| `notification-services` | Multi-channel notifications: phone calls (Twilio), email (Mailgun), push (APNS), webhooks |
 | `metrics-server` | Metrics collection and aggregation (Prometheus-compatible) |
 
 **IVR:**

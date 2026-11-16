@@ -25,8 +25,6 @@ dependencies {
 	api project (':common:arcus-metrics')
 
 	implementation libraries.mailgun
-	implementation libraries.sendgridJava
-	implementation libraries.sendgridHTTP
 	implementation libraries.pushy
 	implementation libraries.twilio
 	implementation libraries.apacheCommonsValidator
