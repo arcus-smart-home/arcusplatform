@@ -34,6 +34,7 @@ import com.iris.notification.provider.LogProvider;
 import com.iris.notification.provider.EmailProvider;
 import com.iris.notification.provider.MailgunEmailProvider;
 import com.iris.notification.provider.MapNotificationProviderRegistry;
+import com.iris.notification.provider.NoopEmailProvider;
 import com.iris.notification.provider.NotificationProvider;
 import com.iris.notification.provider.NotificationProviderRegistry;
 import com.iris.notification.provider.WebhookProvider;
@@ -100,14 +101,21 @@ public class NotificationModule extends AbstractIrisModule {
         // all kept so that only the transport has to be written.
         bind(GcmSender.class).to(NoopGcmSender.class);
 
-        // Mailgun is the only email provider. It needs email.provider.apikey and
-        // email.provider.domain. Any other provider name, including "default",
-        // which used to mean SendGrid, stops startup rather than sending through
-        // a provider the deployment didn't ask for.
-        if (!"mailgun".equals(emailSender)) {
-           addError("notificationservice.sender.email is '%s', but Mailgun is the only email provider: set it to mailgun or remove it", emailSender);
+        // Mailgun needs email.provider.apikey and email.provider.domain; noop sends
+        // no email. Any other value, including "default", which used to mean
+        // SendGrid, stops startup rather than sending through a provider the
+        // deployment didn't ask for. Binding noop for it keeps that error from
+        // being buried under Mailgun's missing settings.
+        if ("mailgun".equals(emailSender)) {
+           bind(EmailProvider.class).to(MailgunEmailProvider.class);
+        } else {
+           if ("noop".equals(emailSender)) {
+              logger.warn("notificationservice.sender.email is noop: no email will be sent");
+           } else {
+              addError("notificationservice.sender.email is '%s': set it to mailgun, or to noop to send no email", emailSender);
+           }
+           bind(EmailProvider.class).to(NoopEmailProvider.class);
         }
-        bind(EmailProvider.class).to(MailgunEmailProvider.class);
 
         bind(UpstreamNotificationResponder.class).to(IrisUpstreamNotificationResponder.class);
         bind(NotificationService.class).asEagerSingleton();

@@ -32,6 +32,7 @@ import com.google.inject.spi.LinkedKeyBinding;
 import com.google.inject.spi.Message;
 import com.iris.notification.provider.EmailProvider;
 import com.iris.notification.provider.MailgunEmailProvider;
+import com.iris.notification.provider.NoopEmailProvider;
 
 public class NotificationModuleTest {
 
@@ -49,10 +50,18 @@ public class NotificationModuleTest {
       assertEquals(Key.get(MailgunEmailProvider.class), emailProviderTarget(elements));
    }
 
-   // "default" meant SendGrid, and "noop" is what arcus-k8s's checked-in overlays set
+   // a deployment without a mail provider; arcus-k8s's checked-in local overlays set it
+   @Test
+   public void noopSendsNoEmail() {
+      List<Element> elements = configure("noop");
+      assertEquals(List.of(), errors(elements));
+      assertEquals(Key.get(NoopEmailProvider.class), emailProviderTarget(elements));
+   }
+
+   // "default" meant SendGrid
    @Test
    public void anyOtherProviderStopsStartup() {
-      for (String sender : List.of("default", "sendgrid", "noop", "")) {
+      for (String sender : List.of("default", "sendgrid", "")) {
          List<String> errors = errors(configure(sender));
          assertEquals(sender, 1, errors.size());
          assertTrue(errors.get(0), errors.get(0).contains("'" + sender + "'"));
