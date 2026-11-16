@@ -145,13 +145,13 @@ public class DriverDeviceSettingsTest extends GroovyDriverTestCase {
    @Test
    public void ringExtenderGenerationsGetTheirOwnSettings() throws Exception {
       String driver = "ZW_Ring_RangeExtender.driver";
-      assertEquals(
-            Arrays.asList("batteryReportInterval", "supervisionTimeout", "supervisionRetries",
-                  "supervisionBackOff", "supervisedBatteryReports"),
-            paramIds(driver, 0x0401, 0x0101));
-      assertEquals(
-            Arrays.asList("heartbeatInterval", "retryLimit", "retryDelay", "ledIndicator", "supervisionReportTimeout"),
-            paramIds(driver, 0x0401, 0x0301));
+      List<String> gen1 = Arrays.asList("batteryReportInterval", "supervisionTimeout", "supervisionRetries",
+            "supervisionBackOff", "supervisedBatteryReports");
+      assertEquals(gen1, paramIds(driver, 0x0401, 0x0101));
+      List<String> gen2 = Arrays.asList("heartbeatInterval", "retryLimit", "retryDelay", "ledIndicator",
+            "supervisionReportTimeout");
+      assertEquals(gen2, paramIds(driver, 0x0401, 0x0301));
+      assertEquals(gen2, paramIds(driver, 0x0401, 0x0401));
       assertEquals(Arrays.asList(), paramIds(driver, 0x0401, 0x0201));
    }
 
