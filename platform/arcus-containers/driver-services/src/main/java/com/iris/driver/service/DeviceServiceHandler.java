@@ -295,16 +295,38 @@ public class DeviceServiceHandler extends AbstractPlatformService {
       }
    }
 
+   // hub-bridge only passes a hub's message when its source carries that hub's id
+   private static String senderHubId(PlatformMessage msg) {
+      return msg.getSource() == null ? null : msg.getSource().getHubId();
+   }
+
+   // The hub, if it's registered to the place. Read by the hub's id rather than through the
+   // place's hub index, which returns only its first row.
+   private Hub hubAt(String hubId, UUID place) {
+      Hub hub = hubDao.findById(hubId);
+      return hub != null && place.equals(hub.getPlace()) ? hub : null;
+   }
+
+   /**
+    * Answers a hub's sync with the hash of every pin at its place and the reflexes for its
+    * devices, after reconciling the place's devices with the list the hub sent. Only a hub
+    * registered to that place may ask.
+    */
    public MessageBody syncDevices(PlatformMessage msg, MessageBody request) {
       logger.trace("syncing reflexes with hub: {}", request);
 
+      String senderHubId = senderHubId(msg);
+      if(senderHubId == null) {
+         logger.warn("Refusing device sync from [{}] actor [{}]: only a place's hub may sync", msg.getSource(), msg.getActor());
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device sync not sent by a hub");
+      }
       UUID place = IrisUUID.fromString(com.iris.messages.service.DeviceService.SyncDevicesRequest.getPlaceId(request));
       Errors.assertPlaceMatches(msg, place);
 
-      Hub hub = hubDao.findHubForPlace(place);
+      Hub hub = hubAt(senderHubId, place);
       if(hub == null) {
-         logger.warn("No hub found for place [{}], cannot sync devices", place);
-         return Errors.notFound(Address.platformService(place.toString(), "place"));
+         logger.warn("Refusing device sync for place [{}] from hub [{}], which isn't registered there", place, senderHubId);
+         throw new UnauthorizedRequestException(Address.platformService(NAME), "Device sync for another place");
       }
       List<Device> devices = deviceDao.listDevicesByPlaceId(place, true);
 
@@ -377,12 +399,18 @@ public class DeviceServiceHandler extends AbstractPlatformService {
    public void syncDegradedDevices(PlatformMessage msg, MessageBody request) {
       logger.trace("syncing degraded devices from the hub: {}", request);
 
+      // marks the place's devices degraded or not, so like a sync it only comes from the place's hub
+      String senderHubId = senderHubId(msg);
+      if(senderHubId == null) {
+         logger.warn("Dropping degraded devices from [{}]: only a place's hub reports them", msg.getSource());
+         return;
+      }
       UUID place = UUID.fromString(com.iris.messages.service.DeviceService.DevicesDegradedEvent.getPlaceId(request));
       Errors.assertPlaceMatches(msg, place);
 
-      Hub hub = hubDao.findHubForPlace(place);
+      Hub hub = hubAt(senderHubId, place);
       if(hub == null) {
-         logger.warn("No hub found for place [{}], cannot sync degraded devices", place);
+         logger.warn("Dropping degraded devices for place [{}] from hub [{}], which isn't registered there", place, senderHubId);
          return;
       }
       List<Device> devices = deviceDao.listDevicesByPlaceId(place, true);
