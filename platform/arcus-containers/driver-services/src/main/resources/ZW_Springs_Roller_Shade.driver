@@ -68,6 +68,7 @@ DevicePower.linecapable	         false
 DevicePower.backupbatterycapable false
 
 Shade.shadestate				Shade.SHADESTATE_OK
+Shade.movement					Shade.MOVEMENT_STOPPED
 
 @Field final String DEVICE_NAME = "Springs Roller Shade"
 final int OFFLINE_TIMEOUT_SECS  = 133200     // 37 hours
@@ -78,8 +79,8 @@ final int POLLING_INTERVAL_SEC	= 43200      // 12 hours 12*3600 Seconds
 
 final byte MOVE_INSTANTLY = 0x01				//Ignored by device, moves at it's one speed.
 
-final byte BLINDS_CLOSED = 0
-final byte BLINDS_OPEN = 99				//0x63
+@Field final byte BLINDS_CLOSED = 0
+@Field final byte BLINDS_OPEN = 99		//0x63
 
 final byte BLINDS_FAVORITE = 0xFF		// send device 0xFF to request that it move to its pre-programmed 'favorite' level
 
@@ -111,6 +112,7 @@ onConnected {
 	
 	setMoveInProgress(false)
 	setSetTo100(false)
+	Shade.movement Shade.MOVEMENT_STOPPED
 	
 }
 
@@ -186,6 +188,8 @@ onShade.GoToFavorite {
 
 	ZWave.switch_multilevel.set( BLINDS_FAVORITE, MOVE_INSTANTLY)
 	resetTargetLevel()          // clear 'target' level, since we don't know what it is
+	Shade.movement Shade.MOVEMENT_STOPPED   // nor which way it moves
+	resetMoveSpan()             // or where it is during the move
 	setMoveInProgress(true)     // set true so when battery level reported after move completes, we query actual level
 	
 	// send a response so event processing completes and next event can be handled
@@ -247,11 +251,13 @@ onZWaveMessage {
 
 void initiateMoveToLevel(int level) {
 	log.trace "{} Starting Move to Level", DEVICE_NAME
-	if (!getMoveInProgress()) {
+	boolean wasMoving = getMoveInProgress()
+	if (!wasMoving) {
 		setMoveInProgress(true)
 		resetLastReportedLevel()
 	}
 	setTargetLevel(level)
+	setMovement(level, wasMoving)
 	// schedule move timeout event
 	Scheduler.scheduleIn MOVE_TO_LEVEL_TIMEOUT_EVENT, MOVE_TO_LEVEL_TIMEOUT_MSEC
 }
@@ -264,6 +270,43 @@ void endMoveInProgress() {
 	setSetTo100(false)
 	resetLastReportedLevel()
 	resetTargetLevel()
+	Shade.movement Shade.MOVEMENT_STOPPED
+}
+
+// Shows which way a move the driver sent is going. level keeps its value from
+// before the move until the move ends, and is compared on the device's scale,
+// where fully open is 99 even though level shows 100. While a move is under
+// way the shade can be anywhere between that level and every target sent
+// since, so only a target outside that span, or at either end, has a known
+// direction; a target inside it shows as stopped.
+void setMovement(int target, boolean wasMoving) {
+	int low = BLINDS_CLOSED
+	int high = BLINDS_OPEN
+	if (wasMoving) {
+		low = getMoveSpanEnd('moveLow', low)
+		high = getMoveSpanEnd('moveHigh', high)
+	} else if (null != Shade.level.get()) {
+		low = high = Math.min((int) Shade.level.get(), (int) BLINDS_OPEN)
+	}
+	if (target > high || (wasMoving && BLINDS_OPEN == target)) {
+		Shade.movement Shade.MOVEMENT_OPENING
+	} else if (target < low || (wasMoving && BLINDS_CLOSED == target)) {
+		Shade.movement Shade.MOVEMENT_CLOSING
+	} else {
+		Shade.movement Shade.MOVEMENT_STOPPED
+	}
+	vars.'moveLow' = Math.min(low, target)
+	vars.'moveHigh' = Math.max(high, target)
+}
+
+// The span is unknown after a move to the favorite level, so it becomes the whole range
+int getMoveSpanEnd(String name, int unknown) {
+	def value = vars."${name}"
+	return (null == value || LEVEL_NOT_SET == value) ? unknown : (int) value
+}
+void resetMoveSpan() {
+	vars.'moveLow' = LEVEL_NOT_SET
+	vars.'moveHigh' = LEVEL_NOT_SET
 }
 
 onEvent(MOVE_TO_LEVEL_TIMEOUT_EVENT){
@@ -280,6 +323,7 @@ onEvent(MOVE_TO_LEVEL_TIMEOUT_EVENT){
 	resetLastReportedLevel()
 	setMoveInProgress(false)
 	resetTargetLevel()
+	Shade.movement Shade.MOVEMENT_STOPPED
 }
 
 // Accessors for flag indicating that driver initiated a move to a new level
