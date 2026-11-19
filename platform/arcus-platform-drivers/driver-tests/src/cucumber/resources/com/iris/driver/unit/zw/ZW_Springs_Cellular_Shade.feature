@@ -16,6 +16,7 @@ Feature: ZWave Springs Cellular Shade Test
             And the message's devpow:source attribute should be BATTERY                                                                                            
             And the message's devpow:linecapable attribute should be false
             And the message's shade:shadestate attribute should be OK
+            And the message's shade:movement attribute should be STOPPED
 
     Scenario: Device is added
         When the device is added
@@ -30,6 +31,7 @@ Feature: ZWave Springs Cellular Shade Test
         Then the driver should set timeout at 37 hours
         Then the driver variable setTo100 should be false
             And the driver variable moveInProgress should be false
+            And the capability shade:movement should be STOPPED
         
     Scenario: Device reports battery level
         When the device response with battery report 
@@ -137,3 +139,101 @@ Feature: ZWave Springs Cellular Shade Test
         Then the driver should place a base:ValueChange message on the platform bus
         Then the driver should send Switch_Multilevel get
         Then both busses should be empty
+
+    Scenario Outline: A move shows which way the shade is going
+        Given the driver attribute shade:level is <from>
+        When a base:SetAttributes command with the value of shade:level <to> is placed on the platform bus
+        Then the capability shade:movement should be <movement>
+            And the capability shade:level should be <from>
+
+      Examples:
+        | from | to  | movement |
+        |  10  |  50 | OPENING  |
+        |   0  | 100 | OPENING  |
+        |  50  |  10 | CLOSING  |
+        | 100  |   0 | CLOSING  |
+        |  50  |  50 | STOPPED  |
+        | 100  |  99 | STOPPED  |
+        | 100  | 100 | STOPPED  |
+
+    Scenario Outline: Shade methods show which way the shade is going
+        Given the driver attribute shade:level is 50
+        When a <command> command is placed on the platform bus
+        Then the capability shade:movement should be <movement>
+
+      Examples:
+        | command            | movement |
+        | shade:GoToOpen     | OPENING  |
+        | shade:GoToClosed   | CLOSING  |
+        | shade:GoToFavorite | STOPPED  |
+
+    Scenario: Going to the favorite level clears an earlier direction
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the capability shade:movement should be OPENING
+        When a shade:GoToFavorite command is placed on the platform bus
+        Then the capability shade:movement should be STOPPED
+
+    Scenario Outline: A new target during a move shows a direction only when it is known
+        Given the driver attribute shade:level is <from>
+        When a base:SetAttributes command with the value of shade:level <first> is placed on the platform bus
+        Then the capability shade:movement should be <first_movement>
+        When a base:SetAttributes command with the value of shade:level <second> is placed on the platform bus
+        Then the capability shade:movement should be <movement>
+            And the capability shade:level should be <from>
+
+      Examples:
+        | from | first | first_movement | second | movement |
+        |   0  |  100  | OPENING        |    0   | CLOSING  |
+        | 100  |    0  | CLOSING        |  100   | OPENING  |
+        |   0  |   50  | OPENING        |   80   | OPENING  |
+        |  80  |    0  | CLOSING        |   90   | OPENING  |
+        | 100  |   20  | CLOSING        |   10   | CLOSING  |
+        |   0  |  100  | OPENING        |   50   | STOPPED  |
+        |  20  |   80  | OPENING        |   50   | STOPPED  |
+
+    Scenario: A target inside every earlier target's span stays stopped
+        Given the driver attribute shade:level is 0
+        When a base:SetAttributes command with the value of shade:level 100 is placed on the platform bus
+            And a base:SetAttributes command with the value of shade:level 40 is placed on the platform bus
+            And a base:SetAttributes command with the value of shade:level 60 is placed on the platform bus
+        Then the capability shade:movement should be STOPPED
+
+    Scenario Outline: A target during a move to the favorite level shows a direction only at either end
+        Given the driver attribute shade:level is 50
+        When a shade:GoToFavorite command is placed on the platform bus
+            And a base:SetAttributes command with the value of shade:level <level> is placed on the platform bus
+        Then the capability shade:movement should be <movement>
+
+      Examples:
+        | level | movement |
+        |    0  | CLOSING  |
+        |  100  | OPENING  |
+        |   70  | STOPPED  |
+
+    Scenario: The move ends when the shade reports the target level
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the capability shade:movement should be OPENING
+        When the device response with switch_multilevel report
+            And with parameter value 30
+            And send to driver
+        Then the capability shade:movement should be OPENING
+            And the capability shade:level should be 10
+        When the device response with switch_multilevel report
+            And with parameter value 50
+            And send to driver
+        Then the capability shade:movement should be STOPPED
+            And the capability shade:level should be 50
+
+    Scenario: A move gives the shade 90 seconds to report its new level
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the driver should schedule event MoveToLevelTimeout in 90 seconds
+
+    Scenario: The move ends when it times out
+        Given the driver attribute shade:level is 50
+        When a shade:GoToClosed command is placed on the platform bus
+        Then the capability shade:movement should be CLOSING
+        When event MoveToLevelTimeout triggers
+        Then the capability shade:movement should be STOPPED

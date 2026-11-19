@@ -27,6 +27,13 @@
          values="OK,OBSTRUCTION"
          optional="false"
          description="Reflects the current state of the shade.  Obstruction implying that something is preventing the opening or closing of the shade."/>         
+      <c:attribute
+         name="movement"
+         readwrite="r"
+         type="enum"
+         values="STOPPED,OPENING,CLOSING"
+         optional="true"
+         description="Which way the shade is moving: OPENING or CLOSING while a move the platform sent is under way, otherwise STOPPED, including when the driver can't tell the direction. level keeps its old value until the move ends. Not every driver reports it."/>
 	  <c:attribute 
          name="levelchanged" 
          readwrite="r" 
