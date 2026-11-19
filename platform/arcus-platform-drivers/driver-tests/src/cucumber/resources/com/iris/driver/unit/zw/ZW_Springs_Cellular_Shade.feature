@@ -226,6 +226,11 @@ Feature: ZWave Springs Cellular Shade Test
         Then the capability shade:movement should be STOPPED
             And the capability shade:level should be 50
 
+    Scenario: A move gives the shade 90 seconds to report its new level
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the driver should schedule event MoveToLevelTimeout in 90 seconds
+
     Scenario: The move ends when it times out
         Given the driver attribute shade:level is 50
         When a shade:GoToClosed command is placed on the platform bus

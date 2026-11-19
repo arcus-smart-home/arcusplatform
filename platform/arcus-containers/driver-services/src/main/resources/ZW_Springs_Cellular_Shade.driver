@@ -75,7 +75,9 @@ final int OFFLINE_TIMEOUT_SECS  = 133200     // 37 hours
 final int POLLING_INTERVAL_SEC	= 43200      //  12 hours 12*3600 Seconds
 
 @Field final String MOVE_TO_LEVEL_TIMEOUT_EVENT = 'MoveToLevelTimeout'
-@Field final long   MOVE_TO_LEVEL_TIMEOUT_MSEC  = 30000   // 30 second timeout for new level to be reached
+// A full travel takes over 40 seconds, and the command can wait at the hub behind
+// others first, so the timer leaves room for both
+@Field final long   MOVE_TO_LEVEL_TIMEOUT_MSEC  = 90000   // 90 second timeout for new level to be reached
 
 final byte MOVE_INSTANTLY = 0x01				//Ignored by device, moves at it's one speed.
 
