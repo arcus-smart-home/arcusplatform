@@ -15,13 +15,13 @@
  */
 package com.iris.platform.rule.service;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -34,10 +34,8 @@ import com.iris.messages.PlatformMessage;
 import com.iris.messages.address.Address;
 import com.iris.messages.address.AddressMatchers;
 import com.iris.messages.address.PlatformServiceAddress;
-import com.iris.messages.capability.Capability;
 import com.iris.messages.capability.SceneCapability;
 import com.iris.messages.errors.Errors;
-import com.iris.messages.services.PlatformConstants;
 import com.iris.platform.rule.environment.PlaceEnvironmentExecutor;
 import com.iris.platform.rule.environment.PlaceExecutorRegistry;
 import org.slf4j.Logger;
@@ -50,7 +48,10 @@ public class SceneRequestHandler extends AbstractPlatformMessageListener {
    public static final String PROP_THREADPOOL = "service.scenehandler.threadpool";
 
    private final PlaceExecutorRegistry registry;
-   private final Map<String, SceneRequestHandler.PlaceSceneRecord> placeSceneRecordMap;
+   // the last scene fired at each place, for the rate limit; one entry per place that fired a scene
+   private final ConcurrentMap<UUID, PlaceSceneRecord> placeSceneRecordMap;
+   // monotonic, so a wall clock step can't stretch or skip the rate limit
+   private final LongSupplier clock;
 
    // TODO: move to some config object?
    @Inject(optional = true)
@@ -63,9 +64,20 @@ public class SceneRequestHandler extends AbstractPlatformMessageListener {
          @Named(PROP_THREADPOOL) Executor executor,
          PlaceExecutorRegistry registry
    ) {
+      this(platformBus, executor, registry, System::nanoTime);
+   }
+
+   // tests pass their own clock
+   SceneRequestHandler(
+         PlatformMessageBus platformBus,
+         Executor executor,
+         PlaceExecutorRegistry registry,
+         LongSupplier clock
+   ) {
       super(platformBus, executor);
       this.registry = registry;
-      this.placeSceneRecordMap = new HashMap<>();
+      this.placeSceneRecordMap = new ConcurrentHashMap<>();
+      this.clock = clock;
    }
 
    /* (non-Javadoc)
@@ -87,50 +99,9 @@ public class SceneRequestHandler extends AbstractPlatformMessageListener {
          return;
       }
 
-      if (message.getMessageType().equals(SceneCapability.FireRequest.NAME)) {
-         PlatformServiceAddress m = (PlatformServiceAddress) message.getDestination();
-
-         // the timeframe for what is acceptable
-         Date past = new Date(System.currentTimeMillis() - rateLimitTime);
-
-         SceneRequestHandler.PlaceSceneRecord psr = placeSceneRecordMap.get(m.getId().toString());
-         if (psr == null) {
-            psr = new SceneRequestHandler.PlaceSceneRecord (0, 0);
-         }
-
-         logger.trace("size of placeSceneMap=[{}]", placeSceneRecordMap.size());
-         logger.trace("last record of place scene: scene=[{}] , ts=[{}]", psr.scene, psr.lastFireAtTs);
-
-         if (psr.scene == m.getContextQualifier() && psr.lastFireAtTs >= past.getTime()) {
-            logger.info("Rate limited scene: [{}.{}]", m.getId(), m.getContextQualifier());
-            getMessageBus().sendResponse(message, Errors.invalidRequest("Scene has been run very recently. Please try again in a few seconds"));
-            return; // Rate limited.
-         }
-
-         psr.lastFireAtTs = new Date().getTime();
-         psr.scene = m.getContextQualifier();
-         placeSceneRecordMap.put(m.getId().toString(), psr);
-      }
-
       getMessageBus().invokeAndSendIfNotNull(message, () -> Optional.ofNullable(dispatch(message)));
    }
 
-   @Override
-   protected void handleEvent(PlatformMessage message) {
-      if (Capability.EVENT_DELETED.equals(message.getMessageType())) {
-         Address source = message.getSource();
-         if (source instanceof PlatformServiceAddress && PlatformConstants.SERVICE_PLACES.equals(source.getGroup())) {
-            onPlaceDeleted((UUID) source.getId());
-            return;
-         }
-      }
-   }
-
-   private void onPlaceDeleted(UUID placeId) {
-      // remove records of recently fired scene for rate-limiting.
-      placeSceneRecordMap.remove(placeId);
-   }
-   
    protected MessageBody dispatch(PlatformMessage message) {
       UUID placeId = (UUID) message.getDestination().getId();
       Errors.assertPlaceMatches(message, placeId);
@@ -141,17 +112,42 @@ public class SceneRequestHandler extends AbstractPlatformMessageListener {
       if(executor == null) {
          return Errors.notFound(message.getDestination());
       }
+      // counted only once the request passed the place check and reached a loaded place, so a
+      // request for another place can't hold back this place's scenes, and only real places get
+      // a record
+      if(SceneCapability.FireRequest.NAME.equals(message.getMessageType())) {
+         Integer scene = ((PlatformServiceAddress) message.getDestination()).getContextQualifier();
+         if(scene != null && !tryRecordFire(placeId, scene)) {
+            logger.info("Rate limited scene: [{}.{}]", placeId, scene);
+            return Errors.invalidRequest("Scene has been run very recently. Please try again in a few seconds");
+         }
+      }
       executor.handleRequest(message);
       return null;
    }
 
-   private class PlaceSceneRecord {
-      private int scene;
-      private long lastFireAtTs;
+   /**
+    * Records a fire of the scene and returns true, unless the place fired the same scene within
+    * the rate limit, which returns false and leaves the record alone. The check and the update are
+    * one atomic step, so two fires at once can't both get through.
+    */
+   private boolean tryRecordFire(UUID placeId, int scene) {
+      PlaceSceneRecord fire = new PlaceSceneRecord(scene, clock.getAsLong());
+      PlaceSceneRecord recorded = placeSceneRecordMap.compute(placeId, (id, last) ->
+         last != null && last.scene == scene && fire.firedAtNanos - last.firedAtNanos < TimeUnit.MILLISECONDS.toNanos(rateLimitTime)
+            ? last
+            : fire
+      );
+      return recorded == fire;
+   }
 
-      private PlaceSceneRecord(int scene, long lastFireAtTs) {
+   private static final class PlaceSceneRecord {
+      private final int scene;
+      private final long firedAtNanos;
+
+      private PlaceSceneRecord(int scene, long firedAtNanos) {
          this.scene = scene;
-         this.lastFireAtTs = lastFireAtTs;
+         this.firedAtNanos = firedAtNanos;
       }
    }
 }
