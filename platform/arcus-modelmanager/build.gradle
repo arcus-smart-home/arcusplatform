@@ -63,11 +63,15 @@ task createDockerfile {
    outputs.file dockerFile
    doLast {
       dockerFile.parentFile.mkdirs()
+      // ModelManager only reads -c; everything else comes from configuration,
+      // so the install directory goes in as MODELMANAGER_HOME
+      // (modelmanager.home). The properties file sets modelmanager.auto.
       dockerFile.text = """\
 FROM arcus/java
 ADD ${applicationName}-${version}.tar.gz /
+ENV MODELMANAGER_HOME=/${applicationName}-${version}/
 ENTRYPOINT ["/${applicationName}-${version}/bin/${applicationName}"]
-CMD ["-H", "/${applicationName}-${version}/", "-P", "dev", "-a"]
+CMD ["-c", "/${applicationName}-${version}/conf/arcus-modelmanager.properties"]
 """
    }
 }
