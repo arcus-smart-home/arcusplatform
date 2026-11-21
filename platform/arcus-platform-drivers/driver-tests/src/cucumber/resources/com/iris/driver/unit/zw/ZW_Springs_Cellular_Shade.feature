@@ -237,3 +237,34 @@ Feature: ZWave Springs Cellular Shade Test
         Then the capability shade:movement should be CLOSING
         When event MoveToLevelTimeout triggers
         Then the capability shade:movement should be STOPPED
+
+    Scenario: Stop sends Stop Level Change and asks where the shade stopped
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the driver should send switch_multilevel set
+            And the capability shade:movement should be OPENING
+        When a shade:Stop command is placed on the platform bus
+        Then the driver should send switch_multilevel stop_level_change
+        Then the driver should send switch_multilevel get
+        Then the driver should eventually place a shade:StopResponse message on the platform bus
+            And the capability shade:movement should be STOPPED
+            And the capability shade:level should be 10
+
+    Scenario: The level the shade reports after a stop ends the move
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+            And a shade:Stop command is placed on the platform bus
+            And the device response with switch_multilevel report
+            And with parameter value 30
+            And send to driver
+        Then the capability shade:level should be 30
+            And the capability shade:movement should be STOPPED
+            And the driver variable moveInProgress should be false
+
+    Scenario: Stop sends Stop Level Change even when the driver sent no move
+        When a shade:Stop command is placed on the platform bus
+        Then the driver should send switch_multilevel stop_level_change
+        Then the driver should send switch_multilevel get
+        Then the driver should place a shade:StopResponse message on the platform bus
+            And the driver variable moveInProgress should be null
+        Then both busses should be empty
