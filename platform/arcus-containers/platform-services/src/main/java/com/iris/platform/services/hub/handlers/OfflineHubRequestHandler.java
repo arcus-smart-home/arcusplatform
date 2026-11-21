@@ -31,7 +31,6 @@ import com.iris.core.platform.PlatformMessageBus;
 import com.iris.messages.MessageBody;
 import com.iris.messages.MessageConstants;
 import com.iris.messages.PlatformMessage;
-import com.iris.messages.address.Address;
 import com.iris.messages.address.AddressMatchers;
 import com.iris.messages.address.HubServiceAddress;
 import com.iris.messages.capability.Capability;
@@ -146,21 +145,13 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
    /**
     * Whether the sender may hear about this hub. assertPlaceMatches is the usual check, but it lets
     * any request without a place header through, as from a service, and client-bridge lets a
-    * client send a ping without one. So a client, or a hub (hub-bridge forwards a hub's requests
-    * anywhere), also needs a place header, and a hub that isn't registered to a place yet is at
-    * no sender's place.
+    * client send a ping without one. assertSenderAtPlace also needs a place header from a client
+    * or a hub (hub-bridge forwards a hub's requests anywhere), and puts a hub that isn't
+    * registered to a place yet at no sender's place.
     */
    private static boolean maySeeHub(PlatformMessage request, Model hub) {
-      if(request.getPlaceId() == null) {
-         Address source = request.getSource();
-         return !MessageConstants.CLIENT.equals(source.getNamespace()) && !source.isHubAddress();
-      }
-      String hubPlace = HubModel.getPlace(hub);
-      if(hubPlace == null) {
-         return false;
-      }
       try {
-         Errors.assertPlaceMatches(request, hubPlace);
+         Errors.assertSenderAtPlace(request, HubModel.getPlace(hub));
          return true;
       }
       catch(UnauthorizedRequestException e) {
