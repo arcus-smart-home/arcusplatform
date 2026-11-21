@@ -268,3 +268,25 @@ Feature: ZWave Springs Cellular Shade Test
         Then the driver should place a shade:StopResponse message on the platform bus
             And the driver variable moveInProgress should be null
         Then both busses should be empty
+
+    Scenario: A shade stopped at the top shows fully open
+        Given the driver attribute shade:level is 100
+        When a shade:GoToClosed command is placed on the platform bus
+            And a shade:Stop command is placed on the platform bus
+            And the device response with switch_multilevel report
+            And with parameter value 99
+            And send to driver
+        Then the capability shade:level should be 100
+            And the capability shade:movement should be STOPPED
+
+    Scenario: A move that times out asks the shade for its level
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the driver should send switch_multilevel set
+        When a shade:Stop command is placed on the platform bus
+        Then the driver should send switch_multilevel stop_level_change
+        Then the driver should send switch_multilevel get
+        When event MoveToLevelTimeout triggers
+        Then the driver should send switch_multilevel get
+            And the driver variable moveInProgress should be false
+            And the capability shade:movement should be STOPPED

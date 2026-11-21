@@ -200,7 +200,8 @@ onShade.GoToFavorite {
 
 // Stop Level Change stops the shade where it is. The shade doesn't report its
 // level after a move the hub sent, so ask where it stopped, and take the next
-// level it reports, since it stops short of the target
+// level it reports, since it stops short of the target. A shade stopped at the
+// top shows 100, as it does when it stops there by itself
 onShade.Stop {
 	log.debug 'Stop'
 
@@ -208,6 +209,7 @@ onShade.Stop {
 	ZWave.switch_multilevel.get()
 	if (getMoveInProgress()) {
 		resetTargetLevel()
+		setSetTo100(true)
 	}
 	Shade.movement Shade.MOVEMENT_STOPPED
 
@@ -336,9 +338,10 @@ onEvent(MOVE_TO_LEVEL_TIMEOUT_EVENT){
 		if (BLINDS_OPEN == lastLevel) lastLevel = 100	// force 99 to 100 like we always do with async reported levels of 99
 		log.debug "{} Set Level to last reported level of {}", DEVICE_NAME, lastLevel
 		shade.level lastLevel
-		// now do a get, just to make sure we have latest level (it will be processed as async report, as if done by remote)
-		ZWave.switch_multilevel.get()
 	}
+	// now do a get, to make sure we have the latest level even if the shade's report was lost, such as
+	// the one asked for after a stop (it will be processed as async report, as if done by remote)
+	ZWave.switch_multilevel.get()
 	resetLastReportedLevel()
 	setMoveInProgress(false)
 	resetTargetLevel()
