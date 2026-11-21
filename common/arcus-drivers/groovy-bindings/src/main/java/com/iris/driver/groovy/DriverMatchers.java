@@ -16,6 +16,7 @@
 package com.iris.driver.groovy;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -27,6 +28,7 @@ import com.iris.device.attributes.AttributeKey;
 import com.iris.device.attributes.AttributeMap;
 import com.iris.device.model.AttributeDefinition;
 import com.iris.driver.DriverPredicates;
+import com.iris.driver.MatchCriterion.Comparison;
 import com.iris.model.type.AttributeType;
 import com.iris.model.type.AttributeTypes;
 import com.iris.util.ByteSet;
@@ -43,7 +45,7 @@ public class DriverMatchers {
     * @param v
     * @return
     */
-   public static Predicate<AttributeMap> toMatcher(AttributeDefinition def, Object value) {
+   public static AttributeMatcher toMatcher(AttributeDefinition def, Object value) {
       if(value == null) {
          return null;
       }
@@ -65,10 +67,11 @@ public class DriverMatchers {
          return toByteSetMatcher((AttributeKey<ByteSet>) key, value);
       }
       else if(TypeUtils.getRawType(key.getType(), null).isAssignableFrom(value.getClass())) {
-         return DriverPredicates.attributeEquals((AttributeKey) key, value);
+         return new AttributeMatcher(key, Comparison.EQUALS, value, DriverPredicates.attributeEquals((AttributeKey) key, value));
       }
       else if(def.getAttributeType().isAssignableFrom(value.getClass())) {
-         return DriverPredicates.attributeEquals((AttributeKey) key, def.getAttributeType().coerce(value));
+         Object coerced = def.getAttributeType().coerce(value);
+         return new AttributeMatcher(key, Comparison.EQUALS, coerced, DriverPredicates.attributeEquals((AttributeKey) key, coerced));
       }
       else if(value instanceof Collection) {
          return toCollectionMatcher(key, def.getAttributeType(), value);
@@ -77,36 +80,40 @@ public class DriverMatchers {
       return null;
    }
 
-   public static Predicate<AttributeMap> toStringMatcher(
+   public static AttributeMatcher toStringMatcher(
          AttributeKey<String> key,
          Object value
    ) {
       if(value instanceof String) {
-         return
+         return new AttributeMatcher(key, Comparison.EQUALS, value,
             DriverPredicates
                .attribute(key)
-               .equalTo((String) value);
+               .equalTo((String) value)
+         );
       }
       if(value instanceof Pattern) {
-         return
+         return new AttributeMatcher(key, Comparison.REGEX, ((Pattern) value).pattern(),
             DriverPredicates
                .attribute(key)
-               .matches(Predicates.contains((Pattern) value));
+               .matches(Predicates.contains((Pattern) value))
+         );
       }
 
       GroovyValidator.error("Unable to convert [" + value + "] to a string matcher, should be a string or a regex");
       return null;
    }
 
-   public static Predicate<AttributeMap> toCollectionMatcher(
+   public static AttributeMatcher toCollectionMatcher(
          AttributeKey<?> key,
          AttributeType type,
          Object value
    ) {
-      return
+      Set<Object> values = AttributeTypes.convertToCoercedSet(type, (Collection<Object>)value);
+      return new AttributeMatcher(key, Comparison.IN, values,
          DriverPredicates
             .attribute(key)
-            .matches(DriverPredicates.isIn(AttributeTypes.convertToCoercedSet(type, (Collection<Object>)value)));
+            .matches(DriverPredicates.isIn(values))
+      );
    }
 
 
@@ -132,7 +139,7 @@ public class DriverMatchers {
    }
 
    @Nullable
-   public static Predicate<AttributeMap> toByteSetMatcher(
+   public static AttributeMatcher toByteSetMatcher(
          AttributeKey<ByteSet> key,
          Object value
    ) {
@@ -152,11 +159,11 @@ public class DriverMatchers {
       return null;
    }
 
-   public static Predicate<AttributeMap> toByteSetMatcher(
+   public static AttributeMatcher toByteSetMatcher(
          AttributeKey<ByteSet> key,
          final byte b
    ) {
-      return 
+      return new AttributeMatcher(key, Comparison.CONTAINS, Byte.toUnsignedInt(b),
          DriverPredicates
             .attribute(key)
             .matches(new Predicate<ByteSet>() {
@@ -164,7 +171,8 @@ public class DriverMatchers {
                public boolean apply(ByteSet input) {
                   return input != null && input.contains(b);
                }
-            });
+            })
+      );
    }
 
 
