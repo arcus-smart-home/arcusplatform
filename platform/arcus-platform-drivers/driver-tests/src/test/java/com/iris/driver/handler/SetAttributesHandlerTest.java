@@ -16,6 +16,9 @@
 package com.iris.driver.handler;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,10 +32,13 @@ import com.iris.driver.groovy.GroovyDriverTestCase;
 import com.iris.messages.MessageBody;
 import com.iris.messages.PlatformMessage;
 import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.capability.ThermostatCapability;
 import com.iris.messages.model.Fixtures;
 
 public class SetAttributesHandlerTest extends GroovyDriverTestCase {
+   private static final String SET_ATTRIBUTES_ERROR = Capability.CMD_SET_ATTRIBUTES + "Error";
+
    @Inject
    private InMemoryPlatformMessageBus platformBus;
 
@@ -49,29 +55,96 @@ public class SetAttributesHandlerTest extends GroovyDriverTestCase {
 
    @Test
    public void testNullDoubleIsRejectedBeforeReachingTheDriver() throws Exception {
-      driver.handlePlatformMessage(setHeatSetPoint(null), context);
+      driver.handlePlatformMessage(setAttributes(ThermostatCapability.ATTR_HEATSETPOINT, null), context);
 
       assertNull(context.getVariable("setpoint"));
-      assertEquals(Capability.CMD_SET_ATTRIBUTES + "Error", platformBus.take().getMessageType());
+      assertEquals(SET_ATTRIBUTES_ERROR, platformBus.take().getMessageType());
    }
 
    @Test
    public void testDoubleReachesTheDriver() throws Exception {
-      driver.handlePlatformMessage(setHeatSetPoint(21.0), context);
+      driver.handlePlatformMessage(setAttributes(ThermostatCapability.ATTR_HEATSETPOINT, 21.0), context);
 
       assertEquals(21.0, context.getVariable("setpoint"));
    }
 
-   private PlatformMessage setHeatSetPoint(Double value) {
+   @Test
+   public void testNameIsSet() throws Exception {
+      driver.handlePlatformMessage(setAttributes(DeviceCapability.ATTR_NAME, "Kitchen Light"), context);
+
+      assertEquals("Kitchen Light", context.getAttributeValue(DeviceCapability.KEY_NAME));
+      assertEquals(MessageBody.emptyMessage().getMessageType(), platformBus.take().getMessageType());
+   }
+
+   @Test
+   public void testBlankNameIsRefused() throws Exception {
+      String name = context.getAttributeValue(DeviceCapability.KEY_NAME);
+      assertNotNull(name);
+
+      for(String blank: new String[] { "", "   ", "\t" }) {
+         driver.handlePlatformMessage(setAttributes(DeviceCapability.ATTR_NAME, blank), context);
+
+         assertEquals(name, context.getAttributeValue(DeviceCapability.KEY_NAME));
+         assertErrors(platformBus.take(), 1);
+      }
+   }
+
+   @Test
+   public void testNullNameIsRefused() throws Exception {
+      String name = context.getAttributeValue(DeviceCapability.KEY_NAME);
+
+      driver.handlePlatformMessage(setAttributes(DeviceCapability.ATTR_NAME, null), context);
+
+      assertEquals(name, context.getAttributeValue(DeviceCapability.KEY_NAME));
+      assertErrors(platformBus.take(), 1);
+   }
+
+   @Test
+   public void testOtherAttributesApplyWhenTheNameIsRefused() throws Exception {
+      String name = context.getAttributeValue(DeviceCapability.KEY_NAME);
+      Map<String, Object> attributes = new HashMap<>();
+      attributes.put(DeviceCapability.ATTR_NAME, "");
+      attributes.put(ThermostatCapability.ATTR_HEATSETPOINT, 21.0);
+
+      driver.handlePlatformMessage(setAttributes(attributes), context);
+
+      assertEquals(name, context.getAttributeValue(DeviceCapability.KEY_NAME));
+      assertEquals(21.0, context.getVariable("setpoint"));
+      assertErrors(platformBus.take(), 1);
+   }
+
+   /** Drivers can set the name themselves, and a hub can report it, without a SetAttributes. */
+   @Test
+   public void testContextIgnoresABlankName() throws Exception {
+      String name = context.getAttributeValue(DeviceCapability.KEY_NAME);
+
+      context.setAttributeValue(DeviceCapability.KEY_NAME, "  ");
+      assertEquals(name, context.getAttributeValue(DeviceCapability.KEY_NAME));
+
+      context.setAttributeValue(DeviceCapability.KEY_NAME, "Hall Light");
+      assertEquals("Hall Light", context.getAttributeValue(DeviceCapability.KEY_NAME));
+   }
+
+   /** The response, and nothing after it that changes the name. */
+   private void assertErrors(PlatformMessage response, int count) {
+      assertEquals(SET_ATTRIBUTES_ERROR, response.getMessageType());
+      assertEquals(count, ((List<?>) response.getValue().getAttributes().get("errors")).size());
+      for(PlatformMessage message = platformBus.poll(); message != null; message = platformBus.poll()) {
+         assertFalse(message.getValue().getAttributes().containsKey(DeviceCapability.ATTR_NAME));
+      }
+   }
+
+   private PlatformMessage setAttributes(String name, Object value) {
+      return setAttributes(Collections.<String, Object>singletonMap(name, value));
+   }
+
+   private PlatformMessage setAttributes(Map<String, Object> attributes) {
       return PlatformMessage
             .builder()
             .from(Fixtures.createClientAddress())
             .to(Fixtures.createDeviceAddress())
             .isRequestMessage(true)
-            .withPayload(MessageBody.buildMessage(
-                  Capability.CMD_SET_ATTRIBUTES,
-                  Collections.<String, Object>singletonMap(ThermostatCapability.ATTR_HEATSETPOINT, value)
-            ))
+            .withPayload(MessageBody.buildMessage(Capability.CMD_SET_ATTRIBUTES, attributes))
             .create();
    }
 

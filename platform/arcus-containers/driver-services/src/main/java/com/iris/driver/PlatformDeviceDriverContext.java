@@ -539,8 +539,8 @@ public class PlatformDeviceDriverContext implements DeviceDriverContext {
 
       case DeviceCapability.ATTR_NAME:
          oldValue = key.coerceToValue(device.getName()).getValue();
-         if(newValue == null) {
-            logger.warn("Ignoring request to set device [{}] name to null", device.getAddress(), new IllegalArgumentException());
+         if(StringUtils.isBlank((String) newValue)) {
+            logger.warn("Ignoring request to set device [{}] name to [{}]", device.getAddress(), newValue, new IllegalArgumentException());
          }
          else {
             device.setName((String) newValue);

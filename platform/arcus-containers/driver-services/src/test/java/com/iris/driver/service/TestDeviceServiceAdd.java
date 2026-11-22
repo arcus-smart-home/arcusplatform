@@ -21,6 +21,7 @@ package com.iris.driver.service;
 import java.util.Date;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.easymock.Capture;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -135,6 +136,41 @@ public class TestDeviceServiceAdd extends IrisMockTestCase {
       assertNull(messages.poll());
 
       verify();
+   }
+
+   @Test
+   public void testCreateSetsTheRequestedName() throws Exception {
+      assertEquals("Kitchen Light", createWithName("Kitchen Light", true).getName());
+   }
+
+   @Test
+   public void testCreateKeepsTheDefaultNameForABlankName() throws Exception {
+      String defaultName = createWithName(null, false).getName();
+      assertFalse(StringUtils.isBlank(defaultName));
+
+      for(String blank: new String[] { "", "   " }) {
+         assertEquals(defaultName, createWithName(blank, false).getName());
+      }
+   }
+
+   /** @param savesName whether the name is saved after the driver's onAdded */
+   private Device createWithName(String name, boolean savesName) throws Exception {
+      reset();
+      // cached after the first create
+      EasyMock.expect(placeDao.getPopulationById(placeId)).andReturn(place.getPopulation()).times(0, 1);
+      expectFindByProtocolNotFound();
+      expectSuccessfulCreate();
+      if(savesName) {
+         EasyMock.expect(mockDeviceDao.save(EasyMock.isA(Device.class))).andAnswer(() -> ((Device) EasyMock.getCurrentArguments()[0]).copy());
+      }
+      replay();
+
+      CreateDeviceRequest request = createRequest();
+      request.setName(name);
+      Device response = uut.create(request, protocolAttributes, null);
+      messages.getMessageQueue().clear();
+      verify();
+      return response;
    }
 
    @Test
