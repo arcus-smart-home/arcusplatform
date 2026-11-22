@@ -21,6 +21,7 @@ package com.iris.messages.errors;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jdt.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.iris.messages.ErrorEvent;
 import com.iris.messages.Message;
 import com.iris.messages.MessageBody;
+import com.iris.messages.MessageConstants;
 import com.iris.messages.address.Address;
 import com.iris.messages.services.PlatformConstants;
 
@@ -198,6 +200,29 @@ public abstract class Errors {
       if(!placeId.equals(placeHeader)) {
          throw new UnauthorizedRequestException(message.getDestination(), "Unauthorized send from session associated with place " + placeHeader + " to " + placeId);
       }
+   }
+
+   /**
+    * A stricter {@link #assertPlaceMatches(Message, String)} for a sender that may only reach
+    * something at its own place. assertPlaceMatches lets any message without a place header
+    * through, as from a service. Here a client or a hub has to send one: client-bridge lets a
+    * client send some requests without one, and hub-bridge stamps a hub's messages with its place,
+    * so a hub without one isn't registered to a place. A target that isn't at a place (null) is
+    * at no sender's place, but a service without a place header may still reach it.
+    */
+   public static void assertSenderAtPlace(Message message, @Nullable String placeId) throws UnauthorizedRequestException {
+      String placeHeader = message.getPlaceId();
+      if(placeHeader == null) {
+         Address source = message.getSource();
+         if(source == null || MessageConstants.CLIENT.equals(source.getNamespace()) || source.isHubAddress()) {
+            throw new UnauthorizedRequestException(message.getDestination(), "Unauthorized send without a place header from " + source);
+         }
+         return;
+      }
+      if(placeId == null) {
+         throw new UnauthorizedRequestException(message.getDestination(), "Unauthorized send from session associated with place " + placeHeader + " to an object at no place");
+      }
+      assertPlaceMatches(message, placeId);
    }
 
    public static MessageBody hubOffline() {

@@ -90,7 +90,7 @@ Fine-grained Shiro permission checking:
 
 It doesn't look at where the destination belongs, so it isn't enough by itself: a key with `*:*:*` on one place would pass for any object.
 
-**Services** check whatever needs a lookup. A service that loads an object from a client-chosen address must compare the object's place to the message's place header with `Errors.assertPlaceMatches`, or refuse it some other way. RoleAuthorizer can't do this, so a new handler on one of these paths has to:
+**Services** check whatever needs a lookup. A service that loads an object from a client-chosen address must compare the object's place to the message's place header with `Errors.assertPlaceMatches`, or refuse it some other way. `assertPlaceMatches` lets a message without a place header through, as from a service. `Errors.assertSenderAtPlace` also needs a place header from a client or a hub. RoleAuthorizer can't compare places, so a new handler on one of these paths has to:
 
 | Destination | Checked by |
 |---|---|
@@ -98,7 +98,7 @@ It doesn't look at where the destination belongs, so it isn't enough by itself: 
 | Device adds (`platform:AddDeviceRequest`, `hubadv:GetDeviceInfoResponse`) | `DeviceServiceHandler.addDevice`: a client may only add mock devices, a hub only a device that names it as its hub, and both must send a place header. `DeviceService.create`: with a place header, a device already at the protocol address, a hub the request names, and the new device all have to be at that place, and the device gets the place's account |
 | Subsystems | `SubsystemExecutorResolver` |
 | Alarm incidents | Looked up by place, `ListIncidentHistoryEntriesHandler` |
-| Hubs | hub-bridge `acceptFromPlatform`, `OfflineHubRequestHandler`, `HubDeleteHandler` |
+| Hubs | hub-bridge `acceptFromPlatform`, `OfflineHubRequestHandler`, `HubDeleteHandler`. `OfflineHubRequestHandler` answers for offline hubs and every hub delete. A client or hub has to send a place header (`assertSenderAtPlace`), since RoleAuthorizer lets a client send a ping without one. A hub at another place gets no answer, or not found for a delete, the same as an unknown hub id |
 | Device sync (`dev:SyncDevices`), which answers with every pin hash at the place, and degraded device reports (`dev:DevicesDegraded`) | `DeviceServiceHandler`: only from a hub registered to the place, so a client is refused |
 | Rules | `RuleService` — a rule address names its place, which must match the message |
 | Scenes, schedulers, pairing devices | Their handlers |

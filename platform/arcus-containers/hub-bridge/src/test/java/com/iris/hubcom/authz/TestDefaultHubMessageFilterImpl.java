@@ -185,8 +185,8 @@ public class TestDefaultHubMessageFilterImpl extends IrisTestCase {
 
    @Test
    public void testAcceptOrRejectNoPlaceHeader() {
-      PlatformMessage platform = createPlatformMessage(MessageBody.pong());
-      platform = PlatformMessage.builder(platform).withPlaceId((UUID) null).create();
+      // from a service: a client or a hub has to send a place header (see DefaultHubMessageFilterPlaceTest)
+      PlatformMessage platform = PlatformMessage.buildMessage(MessageBody.pong(), Address.platformService("status"), Address.hubAddress(HUB_ID)).create();
       ProtocolMessage protocol = createProtocolMessage();
       protocol = ProtocolMessage.builder(protocol).withPlaceId((UUID) null).create();
 

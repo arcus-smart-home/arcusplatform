@@ -114,11 +114,17 @@ public class HubAdminOnlyMessagesTest extends IrisTestCase {
    }
 
    private PlatformMessage request(String type, Address from) {
-      return PlatformMessage
+      return request(type, from, place);
+   }
+
+   private PlatformMessage request(String type, Address from, String placeHeader) {
+      PlatformMessage.Builder request = PlatformMessage
             .buildRequest(MessageBody.buildMessage(type), from, Address.hubService(HUB_ID, "hub"))
-            .withCorrelationId("test")
-            .withPlaceId(place)
-            .create();
+            .withCorrelationId("test");
+      if(placeHeader != null) {
+         request.withPlaceId(placeHeader);
+      }
+      return request.create();
    }
 
    @Test
@@ -131,6 +137,31 @@ public class HubAdminOnlyMessagesTest extends IrisTestCase {
          assertEquals(ErrorEvent.MESSAGE_TYPE, response.getMessageType());
          assertEquals(client, response.getDestination());
          assertNull(bus.poll());
+      }
+   }
+
+   // the list applies even when there's no place header to compare
+   @Test
+   public void testServiceWithoutAPlaceHeaderCannotSendAdminOnlyRequests() {
+      Address service = Address.platformService("subs");
+      for(String type: ADMIN_ONLY) {
+         assertFalse(type + " from a service should be refused", filter.acceptFromPlatform(session, request(type, service, null)));
+
+         PlatformMessage response = bus.poll();
+         assertNotNull(type + " should be answered with an error", response);
+         assertEquals(ErrorEvent.MESSAGE_TYPE, response.getMessageType());
+         assertEquals(service, response.getDestination());
+         assertNull(bus.poll());
+      }
+   }
+
+   // an error would tell a client at another place that the hub id is online
+   @Test
+   public void testClientAtAnotherPlaceGetsNoAnswerToAdminOnlyRequests() {
+      String otherPlace = UUID.randomUUID().toString();
+      for(String type: ADMIN_ONLY) {
+         assertFalse(type + " from another place should be refused", filter.acceptFromPlatform(session, request(type, client, otherPlace)));
+         assertNull(type + " from another place should not be answered", bus.poll());
       }
    }
 
