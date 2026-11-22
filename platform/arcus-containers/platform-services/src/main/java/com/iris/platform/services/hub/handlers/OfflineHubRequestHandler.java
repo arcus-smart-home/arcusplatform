@@ -96,7 +96,7 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
          // all delete requests are handled here, whether the hub is online or not
          if(HubCapability.DeleteRequest.NAME.equals(request.getMessageType())) {
             Model hub = hubDao.findHubModel(hubAddress.getHubId());
-            if(hub == null || !maySeeHub(request, hub)) {
+            if(hub == null || !isFromHubsPlace(request, hub)) {
                // an unknown hub gets the same not found as a hub the sender can't see, so a delete
                // doesn't tell a client that a guessed hub id exists
                logger.warn("Refusing [{}] for hub [{}] from [{}] at place [{}]: unknown hub or not the hub's place", request.getMessageType(), hubAddress.getHubId(), request.getSource(), request.getPlaceId());
@@ -126,7 +126,7 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
             return Optional.empty();
          }
 
-         if(!maySeeHub(request, hub)) {
+         if(!isFromHubsPlace(request, hub)) {
             // an unknown or online hub gets no answer from here, so neither does a hub the sender
             // can't see: an immediate error would tell a client that a guessed hub id exists and is offline
             logger.warn("Dropping [{}] for hub [{}] from [{}] at place [{}]: not the hub's place", request.getMessageType(), hubId, request.getSource(), request.getPlaceId());
@@ -143,13 +143,14 @@ public class OfflineHubRequestHandler extends AbstractPlatformMessageListener {
    }
 
    /**
-    * Whether the sender may hear about this hub. assertPlaceMatches is the usual check, but it lets
-    * any request without a place header through, as from a service, and client-bridge lets a
-    * client send a ping without one. assertSenderAtPlace also needs a place header from a client
-    * or a hub (hub-bridge forwards a hub's requests anywhere), and puts a hub that isn't
-    * registered to a place yet at no sender's place.
+    * Whether the request comes from the hub's place, or from a service without a place header.
+    * assertPlaceMatches is the usual check, but it lets any request without a place header through,
+    * as from a service, and client-bridge lets a client send a ping without one.
+    * assertSenderAtPlace also needs a place header from a client or a hub (hub-bridge forwards a
+    * hub's requests anywhere), and puts a hub that isn't registered to a place yet at no sender's
+    * place.
     */
-   private static boolean maySeeHub(PlatformMessage request, Model hub) {
+   private static boolean isFromHubsPlace(PlatformMessage request, Model hub) {
       try {
          Errors.assertSenderAtPlace(request, HubModel.getPlace(hub));
          return true;
