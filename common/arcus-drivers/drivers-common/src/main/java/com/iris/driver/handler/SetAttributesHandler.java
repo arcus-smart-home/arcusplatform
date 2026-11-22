@@ -25,11 +25,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.iris.device.model.AttributeDefinition;
 import com.iris.driver.DeviceDriverContext;
 import com.iris.messages.ErrorEvent;
 import com.iris.messages.MessageBody;
 import com.iris.messages.capability.Capability;
+import com.iris.messages.capability.DeviceCapability;
 import com.iris.messages.errors.Errors;
 
 /**
@@ -137,6 +140,10 @@ public class SetAttributesHandler implements ContextualEventHandler<MessageBody>
             // NaN gets past a driver's range checks and rounds to a device setpoint of 0.
             error = Errors.unsupportedAttribute(name);
          }
+         else if(DeviceCapability.ATTR_NAME.equals(name) && isBlank(attributes.get(name))) {
+            // clients list devices, and name them in notifications, by this
+            error = Errors.unsupportedAttribute(name);
+         }
 //         else if(!context.getSupportedAttributes().contains(definition.getKey())) {
 //            error = ErrorEvent.fromCode("UnsupportedAttribute", "Attribute " + name + " is not supported by this device");
 //         }
@@ -147,6 +154,10 @@ public class SetAttributesHandler implements ContextualEventHandler<MessageBody>
          }
       }
       return result;
+   }
+
+   private static boolean isBlank(Object value) {
+      return value == null || (value instanceof String && StringUtils.isBlank((String) value));
    }
 
 }
