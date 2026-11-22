@@ -168,7 +168,7 @@ ext.libraries << [
 		jsr166y: "org.codehaus.jsr166-mirror:jsr166y:1.7.0",
 		jna: 'net.java.dev.jna:jna:5.19.1',
 		janino: 'org.codehaus.janino:commons-compiler:3.1.12',
-		oshi_core: 'com.github.oshi:oshi-core:7.7.3',
+		oshi_core: 'com.github.oshi:oshi-core:7.8.0',
 		jetty_servlet: 'org.eclipse.jetty:jetty-servlet:9.2.22.v20170606',
 
 
@@ -234,7 +234,7 @@ ext.libraries << [
 		pushy: dependencies.create("com.eatthepath:pushy:0.15.6") {
                         exclude group: "io.netty", module: "netty-all"
                 },
-		twilio: dependencies.create("com.twilio.sdk:twilio:13.2.0") {
+		twilio: dependencies.create("com.twilio.sdk:twilio:13.2.1") {
 			exclude group: "org.slf4j"
 		},
 
