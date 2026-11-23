@@ -78,6 +78,9 @@ final int POLLING_INTERVAL_SEC	= 43200      // 12 hours 12*3600 Seconds
 // A full travel takes over 40 seconds, and the command can wait at the hub behind
 // others first, so the timer leaves room for both
 @Field final long   MOVE_TO_LEVEL_TIMEOUT_MSEC  = 90000   // 90 second timeout for new level to be reached
+// After a stop the shade only has to answer a Get, but the stop and the Get can
+// still wait at the hub behind commands to other shades
+@Field final long   STOP_TIMEOUT_MSEC           = 30000
 
 final byte MOVE_INSTANTLY = 0x01				//Ignored by device, moves at it's one speed.
 
@@ -193,6 +196,7 @@ onShade.GoToFavorite {
 	Shade.movement Shade.MOVEMENT_STOPPED   // nor which way it moves
 	resetMoveSpan()             // or where it is during the move
 	setMoveInProgress(true)     // set true so when battery level reported after move completes, we query actual level
+	Scheduler.scheduleIn MOVE_TO_LEVEL_TIMEOUT_EVENT, MOVE_TO_LEVEL_TIMEOUT_MSEC   // replaces a stop's shorter timeout
 	
 	// send a response so event processing completes and next event can be handled
 	sendResponse 'shade:GoToFavoriteResponse', [:]
@@ -200,8 +204,12 @@ onShade.GoToFavorite {
 
 // Stop Level Change stops the shade where it is. The shade doesn't report its
 // level after a move the hub sent, so ask where it stopped, and take the next
-// level it reports, since it stops short of the target. A shade stopped at the
-// top shows 100, as it does when it stops there by itself
+// level it reports, since it stops short of the target. movement keeps showing
+// the move until then, so it goes to STOPPED in the same change as level: a
+// client that shows open or closed from the level would otherwise show the level
+// from before the move for a moment. If the report is lost, the timeout ends the
+// move. A shade stopped at the top shows 100, as it does when it stops there by
+// itself
 onShade.Stop {
 	log.debug 'Stop'
 
@@ -210,8 +218,8 @@ onShade.Stop {
 	if (getMoveInProgress()) {
 		resetTargetLevel()
 		setSetTo100(true)
+		Scheduler.scheduleIn MOVE_TO_LEVEL_TIMEOUT_EVENT, STOP_TIMEOUT_MSEC
 	}
-	Shade.movement Shade.MOVEMENT_STOPPED
 
 	// send a response so event processing completes and next event can be handled
 	sendResponse 'shade:StopResponse', [:]

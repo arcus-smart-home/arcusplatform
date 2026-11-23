@@ -33,7 +33,7 @@
          type="enum"
          values="STOPPED,OPENING,CLOSING"
          optional="true"
-         description="Which way the shade is moving: OPENING or CLOSING while a move the platform sent is under way, otherwise STOPPED, including when the driver can't tell the direction. level keeps its old value until the move ends. Not every driver reports it."/>
+         description="Which way the shade is moving: OPENING or CLOSING while a move the platform sent is under way, otherwise STOPPED, including when the driver can't tell the direction. level keeps its old value until the move ends. After Stop, the move ends when the shade reports where it stopped. Not every driver reports it."/>
 	  <c:attribute 
          name="levelchanged" 
          readwrite="r" 
@@ -57,7 +57,7 @@
       </c:method>
       <c:method
          name="Stop"
-         description="Stop the shade where it is. level changes once the shade reports where it stopped. Only drivers that report movement support it.">
+         description="Stop the shade where it is. movement keeps its value until the shade reports where it stopped, then changes with level. If the shade doesn't report, movement goes to STOPPED after a timeout and level follows later. Only drivers that report movement support it.">
       </c:method>
    </c:methods>
    
