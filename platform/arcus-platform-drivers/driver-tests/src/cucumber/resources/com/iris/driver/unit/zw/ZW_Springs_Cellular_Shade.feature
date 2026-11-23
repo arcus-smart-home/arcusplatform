@@ -247,18 +247,20 @@ Feature: ZWave Springs Cellular Shade Test
         Then the driver should send switch_multilevel stop_level_change
         Then the driver should send switch_multilevel get
         Then the driver should eventually place a shade:StopResponse message on the platform bus
-            And the capability shade:movement should be STOPPED
+            And the capability shade:movement should be OPENING
             And the capability shade:level should be 10
 
-    Scenario: The level the shade reports after a stop ends the move
+    Scenario: The level the shade reports after a stop ends the move in the same change
         Given the driver attribute shade:level is 10
         When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
             And a shade:Stop command is placed on the platform bus
-            And the device response with switch_multilevel report
+        Then the driver should eventually place a shade:StopResponse message on the platform bus
+        When the device response with switch_multilevel report
             And with parameter value 30
             And send to driver
-        Then the capability shade:level should be 30
-            And the capability shade:movement should be STOPPED
+        Then the driver should place a base:ValueChange message on the platform bus
+            And the message's shade:level attribute should be 30
+            And the message's shade:movement attribute should be STOPPED
             And the driver variable moveInProgress should be false
 
     Scenario: Stop sends Stop Level Change even when the driver sent no move
@@ -279,14 +281,17 @@ Feature: ZWave Springs Cellular Shade Test
         Then the capability shade:level should be 100
             And the capability shade:movement should be STOPPED
 
-    Scenario: A move that times out asks the shade for its level
+    Scenario: A stop the shade doesn't answer ends the move after 10 seconds
         Given the driver attribute shade:level is 10
         When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
         Then the driver should send switch_multilevel set
+            And the driver should schedule event MoveToLevelTimeout in 90 seconds
         When a shade:Stop command is placed on the platform bus
         Then the driver should send switch_multilevel stop_level_change
         Then the driver should send switch_multilevel get
+            And the driver should schedule event MoveToLevelTimeout in 10 seconds
         When event MoveToLevelTimeout triggers
         Then the driver should send switch_multilevel get
             And the driver variable moveInProgress should be false
             And the capability shade:movement should be STOPPED
+            And the capability shade:level should be 10

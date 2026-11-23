@@ -57,7 +57,7 @@
       </c:method>
       <c:method
          name="Stop"
-         description="Stop the shade where it is. level changes once the shade reports where it stopped. Only drivers that report movement support it.">
+         description="Stop the shade where it is. level and movement change together once the shade reports where it stopped. Only drivers that report movement support it.">
       </c:method>
    </c:methods>
    
