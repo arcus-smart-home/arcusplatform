@@ -174,6 +174,15 @@ Feature: ZWave Springs Roller Shade Test
         When a shade:GoToFavorite command is placed on the platform bus
         Then the capability shade:movement should be STOPPED
 
+    Scenario: A move to the favorite level after a stop gets the whole move timeout
+        Given the driver attribute shade:level is 10
+        When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
+        Then the driver should schedule event MoveToLevelTimeout in 90 seconds
+        When a shade:Stop command is placed on the platform bus
+        Then the driver should schedule event MoveToLevelTimeout in 30 seconds
+        When a shade:GoToFavorite command is placed on the platform bus
+        Then the driver should schedule event MoveToLevelTimeout in 90 seconds
+
     Scenario Outline: A new target during a move shows a direction only when it is known
         Given the driver attribute shade:level is <from>
         When a base:SetAttributes command with the value of shade:level <first> is placed on the platform bus
@@ -281,7 +290,7 @@ Feature: ZWave Springs Roller Shade Test
         Then the capability shade:level should be 100
             And the capability shade:movement should be STOPPED
 
-    Scenario: A stop the shade doesn't answer ends the move after 10 seconds
+    Scenario: A stop the shade doesn't answer ends the move after 30 seconds
         Given the driver attribute shade:level is 10
         When a base:SetAttributes command with the value of shade:level 50 is placed on the platform bus
         Then the driver should send switch_multilevel set
@@ -289,7 +298,7 @@ Feature: ZWave Springs Roller Shade Test
         When a shade:Stop command is placed on the platform bus
         Then the driver should send switch_multilevel stop_level_change
         Then the driver should send switch_multilevel get
-            And the driver should schedule event MoveToLevelTimeout in 10 seconds
+            And the driver should schedule event MoveToLevelTimeout in 30 seconds
         When event MoveToLevelTimeout triggers
         Then the driver should send switch_multilevel get
             And the driver variable moveInProgress should be false

@@ -78,8 +78,9 @@ final int POLLING_INTERVAL_SEC	= 43200      //  12 hours 12*3600 Seconds
 // A full travel takes over 40 seconds, and the command can wait at the hub behind
 // others first, so the timer leaves room for both
 @Field final long   MOVE_TO_LEVEL_TIMEOUT_MSEC  = 90000   // 90 second timeout for new level to be reached
-// After a stop the shade only has to answer a Get
-@Field final long   STOP_TIMEOUT_MSEC           = 10000
+// After a stop the shade only has to answer a Get, but the stop and the Get can
+// still wait at the hub behind commands to other shades
+@Field final long   STOP_TIMEOUT_MSEC           = 30000
 
 final byte MOVE_INSTANTLY = 0x01				//Ignored by device, moves at it's one speed.
 
@@ -195,6 +196,7 @@ onShade.GoToFavorite {
 	Shade.movement Shade.MOVEMENT_STOPPED   // nor which way it moves
 	resetMoveSpan()             // or where it is during the move
 	setMoveInProgress(true)     // set true so when battery level reported after move completes, we query actual level
+	Scheduler.scheduleIn MOVE_TO_LEVEL_TIMEOUT_EVENT, MOVE_TO_LEVEL_TIMEOUT_MSEC   // replaces a stop's shorter timeout
 	
 	// send a response so event processing completes and next event can be handled
 	sendResponse 'shade:GoToFavoriteResponse', [:]
