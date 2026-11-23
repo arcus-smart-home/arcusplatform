@@ -47,6 +47,7 @@ import com.iris.messages.service.SessionService;
 import com.iris.messages.service.SessionService.PreferencesChangedEvent;
 import com.iris.messages.services.PlatformConstants;
 import com.iris.netty.server.message.IrisNettyMessageUtil;
+import com.iris.security.authz.AuthorizationContext;
 import com.iris.security.authz.Authorizer;
 import com.iris.util.MdcContext.MdcContextReference;
 
@@ -133,16 +134,22 @@ public class IrisNettyPlatformBusListener implements PlatformBusListener {
          if (deleted || authRemoved) {
             try (MdcContextReference ref = Message.captureAndInitializeContext(msg)) {
                for (Session session : sessions) {
-                  if (deleted) {
-                     onDeleted(session, msg);
-                  }
+                  // a session that fails here must not stop the rest, or a removed person's other sessions keep the grant
+                  try {
+                     if (deleted) {
+                        onDeleted(session, msg);
+                     }
 
-                  if (personAdded) {
-                     onPersonAdded(session, msg);
-                  }
+                     if (personAdded) {
+                        onPersonAdded(session, msg);
+                     }
 
-                  if (authRemoved) {
-                     onAuthorizationRemoved(session, msg);
+                     if (authRemoved) {
+                        onAuthorizationRemoved(session, msg);
+                     }
+                  }
+                  catch (Exception e) {
+                     logger.warn("Unable to apply [{}] to client session [{}]", msg.getMessageType(), session.getClientToken(), e);
                   }
                }
             }
@@ -204,23 +211,30 @@ public class IrisNettyPlatformBusListener implements PlatformBusListener {
       }
    }
 
+   // a logged out session can hold a context with no principal
+   private static boolean isSessionOf(Session session, Object personId) {
+      AuthorizationContext context = session.getAuthorizationContext();
+      return context != null && context.getPrincipal() != null && Objects.equals(context.getPrincipal().getUserId(), personId);
+   }
+
    private void onPersonAdded(Session session, PlatformMessage msg) {
-      UUID personId = (UUID) msg.getSource().getId();
-      if(Objects.equals(session.getAuthorizationContext().getPrincipal().getUserId(), personId)) {
+      if(isSessionOf(session, msg.getSource().getId())) {
          logger.debug("Updated auth context [{}] because person was added to a new place", session.getClientToken());
          session.getAuthorizationContext(true);
       }
    }
 
    private void onAuthorizationRemoved(Session session, PlatformMessage msg) {
-      UUID personId = (UUID) msg.getSource().getId();
-      if(Objects.equals(session.getAuthorizationContext().getPrincipal().getUserId(), personId)) {
+      if(isSessionOf(session, msg.getSource().getId())) {
          MessageBody body = msg.getValue();
          String placeId = PersonCapability.AuthorizationRemovedEvent.getPlaceId(body);
+         // the session keeps the person's grants until told to reload, and the authorizer allows a request
+         // addressed to any place in them, so drop the grant even when the session is on another place
+         logger.debug("Reloading grants for client session [{}] because authorization to [{}] was removed", session.getClientToken(), placeId);
+         session.getAuthorizationContext(true);
          if(Objects.equals(session.getActivePlace(), placeId)) {
             logger.debug("Clearing active place for client session [{}] because authorization was removed", session.getClientToken());
             SessionUtil.clearPlace(session);
-            session.getAuthorizationContext(true);
             writePlaceCleared(session, placeId, "Access to place removed");
          }
       }
@@ -247,8 +261,7 @@ public class IrisNettyPlatformBusListener implements PlatformBusListener {
    }
 
    private void bootRemovedPerson(Session session, PlatformMessage msg) {
-      UUID personId = (UUID) msg.getSource().getId();
-      if(Objects.equals(session.getAuthorizationContext().getPrincipal().getUserId(), personId)) {
+      if(isSessionOf(session, msg.getSource().getId())) {
          MessageBody body = msg.getValue();
          if(Boolean.TRUE.equals(body.getAttributes().get("bootSession"))) {
             logger.debug("Destroying client session [{}] because the logged in person has been deleted", session.getClientToken());
