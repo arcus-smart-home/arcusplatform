@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -58,17 +57,14 @@ public class AES {
    @Named("iris.aes.iv")
    private String unsafeIV;
 
-   private SecureRandom random;
+   private final SecureRandom random = new SecureRandom();
 
-   public AES() throws NoSuchAlgorithmException {
-      this.random = SecureRandom.getInstanceStrong();
+   public AES() {
    }
 
-   public AES(String secret, String unsafeIV) throws NoSuchAlgorithmException {
+   public AES(String secret, String unsafeIV) {
       this.secret = secret;
       this.unsafeIV = unsafeIV;
-
-      this.random = SecureRandom.getInstanceStrong();
    }
 
    /**
