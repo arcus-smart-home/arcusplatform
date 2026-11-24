@@ -341,7 +341,7 @@ public class DeviceServiceAddScopeTest extends IrisMockTestCase {
    // through DeviceServiceHandler, which checks the sender and passes the place header on
 
    private DeviceServiceHandler handler() {
-      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, uut, null);
+      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, uut, null, null);
    }
 
    private PlatformMessage add(String type, Address from, String protocol, String hub, UUID bodyPlace) {

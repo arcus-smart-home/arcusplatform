@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<t:type
+   name="DriverSummary"
+   version="1.0"
+   xmlns:t="http://www.arcussmarthome.com/schema/type/1.0.0">
+
+   <t:description>A device driver the platform has loaded.</t:description>
+
+   <t:attributes>
+      <t:attribute
+         name="name"
+         type="string"
+         description="The driver's name, as in devadv:drivername and the driverName of devadv:UpgradeDriver." />
+
+      <t:attribute
+         name="version"
+         type="string"
+         description="The driver's version, as in devadv:driverversion and the driverVersion of devadv:UpgradeDriver." />
+
+      <t:attribute
+         name="description"
+         type="string"
+         description="The driver's description." />
+
+      <t:attribute
+         name="hash"
+         type="string"
+         description="Hash of the driver's source, as in devadv:driverhash." />
+
+      <t:attribute
+         name="populations"
+         type="list&lt;string&gt;"
+         description="The populations this driver can be picked for. Empty for a retired driver that is kept only for devices already using it." />
+
+      <t:attribute
+         name="capabilities"
+         type="list&lt;string&gt;"
+         description="Namespaces of the capabilities the driver supports." />
+
+      <t:attribute
+         name="matchers"
+         type="list&lt;DriverMatcher&gt;"
+         description="The driver's matcher lines. A device matches the driver when it matches any line. Empty for drivers that are never picked by matching, such as the fallback driver." />
+   </t:attributes>
+</t:type>

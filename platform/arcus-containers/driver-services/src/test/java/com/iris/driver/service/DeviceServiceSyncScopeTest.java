@@ -123,7 +123,7 @@ public class DeviceServiceSyncScopeTest extends IrisMockTestCase {
    }
 
    private DeviceServiceHandler handler() {
-      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, service, driverService);
+      return new DeviceServiceHandler(bus, new DriverServiceConfig(), deviceDao, hubDao, ipcdDeviceDao, personDao, personPlaceAssocDao, service, driverService, null);
    }
 
    private static Hub hub(String id, UUID place) {
