@@ -17,7 +17,7 @@
  * Driver for a Honeywell T6 Pro Z-Wave Plus thermostat
  *
  * TH6320ZW2003 (Honeywell) - Manufacturer 0x0039, ProductType 0x0011, ProductId 0x0008
- * TH6320ZW2007 (Resideo)   - Manufacturer 0x041B, ProductType 0x0011, ProductId 0x0009
+ * TH6320ZW2007 (Resideo)   - Manufacturer 0x041B, ProductType 0x0011, ProductId 0x0009 or 0x000A
  *
  */
 import groovy.transform.Field
@@ -33,6 +33,7 @@ model 			"TH6320ZW"
 
 matcher			'ZWAV:Manufacturer': 0x0039, 'ZWAV:ProductType': 0x0011, 'ZWAV:ProductId': 0x0008
 matcher			'ZWAV:Manufacturer': 0x041B, 'ZWAV:ProductType': 0x0011, 'ZWAV:ProductId': 0x0009
+matcher			'ZWAV:Manufacturer': 0x041B, 'ZWAV:ProductType': 0x0011, 'ZWAV:ProductId': 0x000A
 
 capabilities	DevicePower, Temperature, RelativeHumidity, Thermostat
 
