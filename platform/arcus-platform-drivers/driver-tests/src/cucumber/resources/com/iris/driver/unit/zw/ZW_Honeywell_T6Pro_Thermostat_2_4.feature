@@ -23,6 +23,15 @@ Feature: ZWave Honeywell T6 Pro Thermostat Driver Test
 		And the message's therm:setpointseparation attribute should be 1.67
 	Then both busses should be empty
 
+	Scenario Outline: Driver matches every T6 Pro model
+	Then the driver should match Z-Wave device <manufacturer> 0x0011 <productId>
+
+		Examples:
+		  | manufacturer | productId | remarks                |
+		  | 0x0039       | 0x0008    | TH6320ZW2003 Honeywell |
+		  | 0x041B       | 0x0009    | TH6320ZW2007 Resideo   |
+		  | 0x041B       | 0x000A    | TH6320ZW2007 Resideo   |
+
 
 ############################################################
 # Generic Driver Tests
